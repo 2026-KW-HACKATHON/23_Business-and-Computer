@@ -1,0 +1,38 @@
+name: "✨ Feature"
+description: "새로운 기능 개발을 위한 이슈입니다."
+title: "[FEAT] "
+labels: ["feature"]
+body:
+  - type: textarea
+    id: description
+    attributes:
+      label: 📌 작업 내용
+      description: 구현할 기능에 대해 간단히 설명해주세요.
+      placeholder: |
+        회원가입 API를 구현합니다.
+    validations:
+      required: true
+
+  - type: textarea
+    id: tasks
+    attributes:
+      label: ✅ 작업 목록
+      description: 필요한 작업을 체크리스트로 작성해주세요.
+      placeholder: |
+        - [ ] 회원가입 Request DTO 구현
+        - [ ] 회원가입 API 구현
+        - [ ] 이메일 중복 검증 구현
+        - [ ] 테스트 코드 작성
+    validations:
+      required: true
+
+  - type: textarea
+    id: reference
+    attributes:
+      label: 🔗 참고 사항
+      description: 관련 문서, API 명세, 디자인 등 참고할 내용이 있다면 작성해주세요.
+      placeholder: |
+        API 명세:
+        관련 문서:
+    validations:
+      required: false
