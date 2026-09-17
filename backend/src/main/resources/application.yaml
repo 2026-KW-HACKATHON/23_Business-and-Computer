@@ -1,3 +1,5 @@
 spring:
   application:
     name: backend
+  datasource:
+    url: ${DATABASE_URL}
