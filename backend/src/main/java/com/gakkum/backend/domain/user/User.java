@@ -11,15 +11,23 @@ import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Entity
 @Getter
+@Builder
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
 @Table(name = "users")
 public class User {
 
     @Id
+    @Column(name = "user_id")
     private Long id;
 
     @Setter
@@ -42,14 +50,4 @@ public class User {
     @UpdateTimestamp
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
-
-    protected User() {
-    }
-
-    public User(Long id, String email, String name, UserRole role) {
-        this.id = id;
-        this.email = email;
-        this.name = name;
-        this.role = role;
-    }
 }
