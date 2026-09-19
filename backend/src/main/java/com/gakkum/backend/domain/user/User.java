@@ -27,6 +27,7 @@ import lombok.Setter;
 public class User {
 
     @Id
+    @Column(name = "user_id")
     private Long id;
 
     @Setter
