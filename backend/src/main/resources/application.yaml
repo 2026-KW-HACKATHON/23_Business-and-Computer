@@ -11,3 +11,6 @@ spring:
       connection-timeout: ${DATABASE_CONNECTION_TIMEOUT}
       idle-timeout: ${DATABASE_IDLE_TIMEOUT}
       max-lifetime: ${DATABASE_MAX_LIFETIME}
+  jpa:
+    hibernate:
+      ddl-auto: validate

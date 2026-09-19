@@ -58,6 +58,7 @@ The repository contains only the backend application. The frontend is a separate
 | Rule | Applies when |
 | --- | --- |
 | `harness/project/rules/architecture-and-domain.md` | Adding or moving backend modules, choosing packages, or implementing business behavior |
+| `harness/project/rules/dto-entity-mapping.md` | Adding or changing Request/Response DTO, Entity, or Converter mappings |
 | `harness/project/rules/naming-convention.md` | Adding or renaming Java classes, methods, variables, DTOs, database tables, or columns |
 | `harness/project/rules/api-and-security.md` | Adding/changing routes, DTOs, validation, authentication, authorization, error behavior, or CORS |
 | `harness/project/rules/persistence-and-configuration.md` | Changing entities, repositories, schema, datasource settings, environment variables, or dependencies |
@@ -67,8 +68,9 @@ The repository contains only the backend application. The frontend is a separate
 
 | Task type | Read these project rules |
 | --- | --- |
-| New backend feature or domain behavior | `architecture-and-domain.md`, `naming-convention.md`, `api-and-security.md`, `persistence-and-configuration.md`, `testing-and-verification.md` as applicable to the touched layers |
-| API or authentication bug/change | `naming-convention.md`, `api-and-security.md`, `testing-and-verification.md` |
+| New backend feature or domain behavior | `architecture-and-domain.md`, `naming-convention.md`, `api-and-security.md`, `persistence-and-configuration.md`, `testing-and-verification.md` as applicable to the touched layers; `dto-entity-mapping.md` when mappings are added |
+| API or authentication bug/change | `naming-convention.md`, `api-and-security.md`, `testing-and-verification.md`; `dto-entity-mapping.md` when mappings change |
+| DTO/Entity mapping or Converter refactor | `dto-entity-mapping.md`, `architecture-and-domain.md`, `naming-convention.md`, `testing-and-verification.md` |
 | Database or configuration change | `naming-convention.md`, `persistence-and-configuration.md`, `testing-and-verification.md`; also `architecture-and-domain.md` if domain persistence is introduced |
 | Refactor or package move | `architecture-and-domain.md`, `naming-convention.md`, `testing-and-verification.md`; add the other rule covering any changed contract |
 | Dependency or Spring Boot configuration change | `persistence-and-configuration.md`, `api-and-security.md` when security/web behavior is affected, and `testing-and-verification.md` |
