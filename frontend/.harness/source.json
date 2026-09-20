@@ -1,14 +1,14 @@
 {
   "kit": "harness-starter-kit",
-  "kit_reference": "./harness-starter-kit",
+  "kit_url": "https://github.com/harnessworks/harness-starter-kit",
   "profile": "react",
-  "profile_reference": "harness-starter-kit/templates/profiles/react/",
+  "profile_path_in_kit": "templates/profiles/react",
   "adopted": "2026-09-20",
   "scope": "frontend",
   "notes": [
     "This harness is independent from ../backend, which uses its own gate-based harness under backend/harness/.",
     "Only the pieces useful to this React 19 + TypeScript + Vite app were adopted.",
-    "The local ./harness-starter-kit clone is read-only reference material and is git-ignored."
+    "The local ./harness-starter-kit reference clone was removed; consult the kit at kit_url when revisiting the profile. If re-cloned, it stays git-ignored."
   ],
   "adopted_pieces": [
     "AGENTS.md (React/TypeScript/Vite agent instructions)",

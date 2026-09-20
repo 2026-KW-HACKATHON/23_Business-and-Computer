@@ -7,7 +7,8 @@ apply backend rules here or frontend rules there.
 ## Project Overview
 
 - Name: 가꿈 frontend
-- Harness profile: `react` (from `harness-starter-kit/templates/profiles/react/`)
+- Harness profile: `react`, from the harness-starter-kit repo
+  (https://github.com/harnessworks/harness-starter-kit)
 - Stack: React 19, TypeScript (strict, bundler mode), Vite 8, ESLint 10 flat
   config. Package manager: npm (`package-lock.json`).
 - Status: currently the Vite starter UI. Product flows and backend API calls
@@ -57,15 +58,36 @@ backend and a check against its contract.
 
 ## Directory And Architecture Rules
 
-- Application code lives in `src/`; `src/main.tsx` is the entry, `src/App.tsx`
-  the root component. Component-imported assets go in `src/assets/`; root-served
-  static files go in `public/`.
-- Config: `vite.config.ts`, `eslint.config.js`, `tsconfig*.json`.
-- Tests: none yet. When added, prefer Vitest + React Testing Library, colocate
-  `*.test.tsx`, and wire the runner into `npm run check`.
-- Generated/ignored (never edit): `dist/`, `node_modules/`, `.vite/`.
-- Coding conventions that lint/tsc do not enforce live in
-  `docs/conventions/coding.md` — read it before writing components.
+Application code lives in `src/`; `src/main.tsx` is the entry and `src/App.tsx`
+the root component. Component-imported assets go in `src/assets/`; root-served
+static files go in `public/`. Config: `vite.config.ts`, `eslint.config.js`,
+`tsconfig*.json`.
+
+`src` follows a **hybrid layout** — reusable code by layer, domain code by
+feature. The full target tree, placement, and boundary rules are in
+`docs/conventions/directory-structure.md`; read it before adding files. The
+rules that must hold:
+
+- Put each file in the right layer: a route/screen in `pages`, reusable
+  domain-agnostic UI in `components`, domain code under its own feature folder
+  in `features`, shared hooks in `hooks`, pure helpers in `lib`, global CSS in
+  `styles`, app-wide types in `types`.
+- Backend calls go through `api` (or a feature's own `api` module). Components
+  and pages must not call the network directly.
+- Import a feature only through its `index.ts`; never reach into another
+  feature's internals. Shared layers must not import from `features` or
+  `pages`.
+- Do not import across more than two parent levels (`../../`). No path aliases —
+  adding one requires a decision record.
+- Create a directory only when it gets its first real file; do not commit empty
+  placeholder folders.
+
+Tests: none yet. When added, prefer Vitest + React Testing Library, colocate
+`*.test.tsx`, and wire the runner into `npm run check`.
+
+Generated/ignored (never edit): `dist/`, `node_modules/`, `.vite/`. Other
+coding conventions that lint/tsc do not enforce live in
+`docs/conventions/coding.md`.
 
 ## Knowledge Store
 
@@ -105,10 +127,10 @@ checks, and recommended next work.
 ## Profile Guidance
 
 When a new stack piece is introduced (router, state manager, styling system,
-test runner, data-fetching layer), review the react profile reference at
-`harness-starter-kit/templates/profiles/react/`. Adopt, adapt, skip, or defer
-its snippets based on this repo's actual tools, then record the choice in a
-decision record and report it.
+test runner, data-fetching layer), review the `react` profile in the
+harness-starter-kit repo (https://github.com/harnessworks/harness-starter-kit).
+Adopt, adapt, skip, or defer its snippets based on this repo's actual tools,
+then record the choice in a decision record and report it.
 
 ## Commit And PR Rules
 

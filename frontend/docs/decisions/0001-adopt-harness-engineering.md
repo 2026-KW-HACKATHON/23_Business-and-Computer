@@ -52,4 +52,5 @@ harness-starter-kit `react` profile:
 - Run `npm run check` before reporting completion.
 - Treat `harness-starter-kit/` as read-only reference; do not edit or commit it.
 - When a new stack piece is added (router, state lib, test runner), revisit
-  `harness-starter-kit/templates/profiles/react/` and record the choice here.
+  the `react` profile at https://github.com/harnessworks/harness-starter-kit
+  and record the choice here.
