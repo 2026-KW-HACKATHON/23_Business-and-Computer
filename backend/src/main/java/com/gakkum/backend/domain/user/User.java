@@ -38,6 +38,16 @@ public class User {
     @Column(nullable = false, length = 255)
     private String name;
 
+    @Column(name = "username", unique = true, nullable = false, updatable = false)
+    private String username;
+
+    @Column(name = "is_lock", nullable = false)
+    private Boolean isLock;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "social_provider_type")
+    private SocialProviderType socialProviderType;
+
     @Setter
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
