@@ -48,6 +48,9 @@ public class Owner {
     @Column(name = "store_name", nullable = false, length = 255)
     private String storeName;
 
+    @Column(name = "category_id", nullable = false)
+    private Long categoryId;
+
     @Column(length = 255)
     private String address;
 
