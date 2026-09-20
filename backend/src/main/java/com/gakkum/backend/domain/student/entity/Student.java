@@ -1,4 +1,4 @@
-package com.gakkum.backend.domain.certificate;
+package com.gakkum.backend.domain.student.entity;
 
 import java.time.LocalDateTime;
 
@@ -22,24 +22,36 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
-@Table(name = "student_certificates")
-public class StudentCertificate {
+@Table(name = "student_profiles")
+public class Student {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "student_profile_id", nullable = false)
-    private Long studentProfileId;
+    @Column(name = "user_id", nullable = false, unique = true, length = 26)
+    private String userId;
 
-    @Column(name = "certificate_name", nullable = false, length = 255)
-    private String certificateName;
+    @Column(nullable = false, length = 255)
+    private String university;
 
-    @Column(name = "acquired_year", nullable = false)
-    private Integer acquiredYear;
+    @Column(name = "student_number", nullable = false, length = 255)
+    private String studentNumber;
 
-    @Column(name = "issuing_organization", nullable = false, length = 255)
-    private String issuingOrganization;
+    @Column(nullable = false, length = 255)
+    private String major;
+
+    @Column(name = "activity_area", nullable = false, length = 255)
+    private String activityArea;
+
+    @Column(nullable = false, length = 255)
+    private String portfolio;
+
+    @Column(columnDefinition = "TEXT")
+    private String introduction;
+
+    @Column(name = "profile_image_url", length = 255)
+    private String profileImageUrl;
 
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
