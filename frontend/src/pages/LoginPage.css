@@ -1,0 +1,48 @@
+.login {
+  max-width: 22rem;
+  margin: 4rem auto;
+  padding: 0 1rem;
+  text-align: center;
+}
+
+.login__title {
+  margin-bottom: 0.25rem;
+}
+
+.login__subtitle {
+  margin-top: 0;
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.login__providers {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-top: 2rem;
+}
+
+.login__button {
+  padding: 0.75rem 1rem;
+  border: 1px solid transparent;
+  border-radius: 0.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.login__button--kakao {
+  background: #fee500;
+  color: #191600;
+}
+
+.login__button--google {
+  background: #fff;
+  color: #1f1f1f;
+  border-color: #dadce0;
+}
+
+.login__button--naver {
+  background: #03c75a;
+  color: #fff;
+}

@@ -15,6 +15,11 @@ coverage
 .vite
 *.tsbuildinfo
 
+# Local environment files (keep .env.example tracked)
+.env
+.env.*
+!.env.example
+
 # Harness starter kit reference clone (read-only material, not part of the app)
 harness-starter-kit/
 
