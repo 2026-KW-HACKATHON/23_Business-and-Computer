@@ -1,0 +1,28 @@
+{
+  "kit": "harness-starter-kit",
+  "kit_reference": "./harness-starter-kit",
+  "profile": "react",
+  "profile_reference": "harness-starter-kit/templates/profiles/react/",
+  "adopted": "2026-09-20",
+  "scope": "frontend",
+  "notes": [
+    "This harness is independent from ../backend, which uses its own gate-based harness under backend/harness/.",
+    "Only the pieces useful to this React 19 + TypeScript + Vite app were adopted.",
+    "The local ./harness-starter-kit clone is read-only reference material and is git-ignored."
+  ],
+  "adopted_pieces": [
+    "AGENTS.md (React/TypeScript/Vite agent instructions)",
+    ".harness/structure-rules.json",
+    "scripts/check_structure.py",
+    "scripts/check_docs_drift.py",
+    "docs/conventions/coding.md",
+    "docs/decisions/",
+    "docs/failures/",
+    "docs/domain/glossary.md",
+    "package.json scripts: typecheck, check, check:docs"
+  ],
+  "deferred_pieces": [
+    "CI harness-check workflow (README documents no frontend CI yet)",
+    "decision-memory / failure-memory / effectiveness Python enforcement scripts (kept as manual review discipline in AGENTS.md until the app has real product flows)"
+  ]
+}

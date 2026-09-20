@@ -11,6 +11,12 @@ node_modules
 dist
 dist-ssr
 *.local
+coverage
+.vite
+*.tsbuildinfo
+
+# Harness starter kit reference clone (read-only material, not part of the app)
+harness-starter-kit/
 
 # Editor directories and files
 .vscode/*
