@@ -1,4 +1,4 @@
-package com.gakkum.backend.domain.specialty;
+package com.gakkum.backend.domain.student.entity;
 
 import java.time.LocalDateTime;
 
@@ -11,7 +11,6 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
-import jakarta.persistence.UniqueConstraint;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -23,20 +22,36 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
-@Table(name = "student_specialties", uniqueConstraints = @UniqueConstraint(
-        name = "student_specialties_student_profile_id_specialty_id_key",
-        columnNames = { "student_profile_id", "specialty_id" }))
-public class StudentSpecialty {
+@Table(name = "student_profiles")
+public class Student {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "student_profile_id", nullable = false)
-    private Long studentProfileId;
+    @Column(name = "user_id", nullable = false, unique = true)
+    private Long userId;
 
-    @Column(name = "specialty_id", nullable = false)
-    private Long specialtyId;
+    @Column(nullable = false, length = 255)
+    private String university;
+
+    @Column(name = "student_number", nullable = false, length = 255)
+    private String studentNumber;
+
+    @Column(nullable = false, length = 255)
+    private String major;
+
+    @Column(name = "activity_area", nullable = false, length = 255)
+    private String activityArea;
+
+    @Column(nullable = false, length = 255)
+    private String portfolio;
+
+    @Column(columnDefinition = "TEXT")
+    private String introduction;
+
+    @Column(name = "profile_image_url", length = 255)
+    private String profileImageUrl;
 
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)

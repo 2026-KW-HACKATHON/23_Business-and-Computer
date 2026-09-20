@@ -1,4 +1,6 @@
-package com.gakkum.backend.domain.user;
+package com.gakkum.backend.domain.user.repository;
+
+import com.gakkum.backend.domain.user.entity.User;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 

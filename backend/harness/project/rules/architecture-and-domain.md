@@ -2,19 +2,21 @@
 
 ## Package Structure
 
-Use feature-based packaging.
+Place domain-specific classes under `com.gakkum.backend.domain.<domain>.<layer>`.
+Do not place classes directly in `com.gakkum.backend.domain.<domain>`.
+Use the layer that matches the class's responsibility, such as `entity`, `repository`, `service`, `controller`, or `dto`.
+Keep enums used only by an entity in that domain's `entity` package.
 
 Example:
 
 ```text
-com.gakkum.backend
-├── auth
-├── user
-├── business
-├── request
-├── application
-├── payment
-└── global
+com.gakkum.backend.domain
+└── user
+    ├── entity
+    │   ├── User.java
+    │   └── UserRole.java
+    └── repository
+        └── UserRepository.java
 ```
 
 ## Layer Responsibility

@@ -1,4 +1,4 @@
-package com.gakkum.backend.domain.specialty;
+package com.gakkum.backend.domain.category.entity;
 
 import java.time.LocalDateTime;
 
@@ -22,8 +22,8 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
-@Table(name = "specialties")
-public class Specialty {
+@Table(name = "business_categories")
+public class BusinessCategory {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

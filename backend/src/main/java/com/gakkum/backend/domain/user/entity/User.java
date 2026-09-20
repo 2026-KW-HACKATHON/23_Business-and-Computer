@@ -1,4 +1,4 @@
-package com.gakkum.backend.domain.user;
+package com.gakkum.backend.domain.user.entity;
 
 import java.time.LocalDateTime;
 

@@ -1,4 +1,4 @@
-package com.gakkum.backend.domain.user;
+package com.gakkum.backend.domain.user.entity;
 
 public enum SocialProviderType {
     KAKAO("카카오");

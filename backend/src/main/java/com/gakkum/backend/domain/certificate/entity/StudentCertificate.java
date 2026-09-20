@@ -1,4 +1,4 @@
-package com.gakkum.backend.domain.category;
+package com.gakkum.backend.domain.certificate.entity;
 
 import java.time.LocalDateTime;
 
@@ -22,15 +22,24 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
-@Table(name = "business_categories")
-public class BusinessCategory {
+@Table(name = "student_certificates")
+public class StudentCertificate {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, unique = true, length = 255)
-    private String name;
+    @Column(name = "student_profile_id", nullable = false)
+    private Long studentProfileId;
+
+    @Column(name = "certificate_name", nullable = false, length = 255)
+    private String certificateName;
+
+    @Column(name = "acquired_year", nullable = false)
+    private Integer acquiredYear;
+
+    @Column(name = "issuing_organization", nullable = false, length = 255)
+    private String issuingOrganization;
 
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
