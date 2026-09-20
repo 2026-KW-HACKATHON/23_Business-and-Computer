@@ -1,0 +1,30 @@
+{
+  "forbidden_patterns": [
+    "**/temp_*",
+    "**/*_new.*",
+    "**/*_old.*",
+    "**/*_backup.*",
+    "**/*_fix.*",
+    "**/*.bak"
+  ],
+  "generated_paths": [
+    "dist/",
+    "dist-ssr/",
+    "node_modules/",
+    "coverage/",
+    ".vite/",
+    "harness-starter-kit/",
+    "*.local",
+    "*.tsbuildinfo"
+  ],
+  "ignored_directories": [
+    ".git",
+    ".idea",
+    "node_modules",
+    "dist",
+    "dist-ssr",
+    "coverage",
+    ".vite",
+    "harness-starter-kit"
+  ]
+}
