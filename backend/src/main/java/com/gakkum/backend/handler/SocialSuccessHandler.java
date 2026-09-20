@@ -41,9 +41,8 @@ public class SocialSuccessHandler implements AuthenticationSuccessHandler {
                 .path("/")
                 .sameSite("Lax")
                 .httpOnly(true)
-                .secure(true)
+                .secure(false)  // local
                 .maxAge(60)
-                .domain("api.hubspacekw.com")
                 .build();
         response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
 
