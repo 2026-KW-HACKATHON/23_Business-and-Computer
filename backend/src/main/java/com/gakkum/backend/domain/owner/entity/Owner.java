@@ -33,8 +33,8 @@ public class Owner {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "user_id", nullable = false, unique = true)
-    private Long userId;
+    @Column(name = "user_id", nullable = false, unique = true, length = 26)
+    private String userId;
 
     @Column(name = "business_number", nullable = false, unique = true, length = 255)
     private String businessNumber;

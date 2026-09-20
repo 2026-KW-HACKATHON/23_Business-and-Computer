@@ -27,15 +27,15 @@ import lombok.Setter;
 public class User {
 
     @Id
-    @Column(name = "user_id")
-    private Long id;
+    @Column(name = "user_id", length = 26)
+    private String id;
 
     @Setter
-    @Column(nullable = false, unique = true, length = 255)
+    @Column(unique = true, length = 255)
     private String email;
 
     @Setter
-    @Column(nullable = false, length = 255)
+    @Column(length = 255)
     private String name;
 
     @Column(name = "username", unique = true, nullable = false, updatable = false)
