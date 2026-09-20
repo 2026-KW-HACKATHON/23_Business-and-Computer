@@ -1,4 +1,4 @@
 package com.gakkum.backend.domain.jwt.dto;
 
-public class JWTResponseDTO {
+public record JWTResponseDTO(String accessToken, String refreshToken) {
 }
