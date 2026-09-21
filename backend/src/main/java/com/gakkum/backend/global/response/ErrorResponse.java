@@ -1,6 +1,6 @@
-package com.gakkum.backend.common.response;
+package com.gakkum.backend.global.response;
 
-import com.gakkum.backend.common.exception.ErrorCode;
+import com.gakkum.backend.global.exception.ErrorCode;
 
 public record ErrorResponse(
     String code,

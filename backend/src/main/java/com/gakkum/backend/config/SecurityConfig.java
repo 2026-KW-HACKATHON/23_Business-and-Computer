@@ -21,7 +21,7 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
-import com.gakkum.backend.common.exception.RestAuthenticationEntryPoint;
+import com.gakkum.backend.global.exception.RestAuthenticationEntryPoint;
 
 @Configuration
 @EnableWebSecurity

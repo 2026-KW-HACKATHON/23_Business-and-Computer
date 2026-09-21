@@ -1,4 +1,4 @@
-package com.gakkum.backend.common.exception;
+package com.gakkum.backend.global.exception;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -19,7 +19,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.gakkum.backend.common.response.ApiResponse;
+import com.gakkum.backend.global.response.ApiResponse;
 
 class GlobalExceptionHandlerTest {
 

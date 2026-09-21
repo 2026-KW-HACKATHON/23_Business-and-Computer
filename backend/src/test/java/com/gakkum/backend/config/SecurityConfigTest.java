@@ -17,8 +17,8 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.gakkum.backend.common.exception.RestAuthenticationEntryPoint;
-import com.gakkum.backend.common.response.ApiResponse;
+import com.gakkum.backend.global.exception.RestAuthenticationEntryPoint;
+import com.gakkum.backend.global.response.ApiResponse;
 import com.gakkum.backend.domain.jwt.service.JwtService;
 import com.gakkum.backend.domain.user.service.UserService;
 import com.gakkum.backend.util.JWTUtil;

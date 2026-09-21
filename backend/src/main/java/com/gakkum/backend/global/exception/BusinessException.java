@@ -1,4 +1,4 @@
-package com.gakkum.backend.common.exception;
+package com.gakkum.backend.global.exception;
 
 import java.util.Objects;
 

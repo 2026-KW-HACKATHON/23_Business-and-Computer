@@ -1,10 +1,10 @@
-package com.gakkum.backend.common.response;
+package com.gakkum.backend.global.response;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.jupiter.api.Test;
 
-import com.gakkum.backend.common.exception.ErrorCode;
+import com.gakkum.backend.global.exception.ErrorCode;
 
 class ApiResponseTest {
 

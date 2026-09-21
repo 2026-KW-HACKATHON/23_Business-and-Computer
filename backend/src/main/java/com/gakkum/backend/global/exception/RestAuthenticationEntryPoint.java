@@ -1,4 +1,4 @@
-package com.gakkum.backend.common.exception;
+package com.gakkum.backend.global.exception;
 
 import java.io.IOException;
 
@@ -12,7 +12,7 @@ import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.stereotype.Component;
 
-import com.gakkum.backend.common.response.ApiResponse;
+import com.gakkum.backend.global.response.ApiResponse;
 
 @Component
 public class RestAuthenticationEntryPoint implements AuthenticationEntryPoint {
