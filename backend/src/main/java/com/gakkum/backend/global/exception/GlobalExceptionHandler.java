@@ -1,4 +1,4 @@
-package com.gakkum.backend.common.exception;
+package com.gakkum.backend.global.exception;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -6,7 +6,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.HandlerMethodValidationException;
 
-import com.gakkum.backend.common.response.ApiResponse;
+import com.gakkum.backend.global.response.ApiResponse;
 
 import lombok.extern.slf4j.Slf4j;
 
