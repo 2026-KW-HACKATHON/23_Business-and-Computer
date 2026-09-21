@@ -41,8 +41,8 @@ public class Student {
     @Column(nullable = false, length = 255)
     private String major;
 
-    @Column(nullable = false, length = 255)
-    private String portfolio;
+    @Column(name = "portfolio_url", nullable = false, length = 255)
+    private String portfolioUrl;
 
     @Column(columnDefinition = "TEXT")
     private String introduction;
