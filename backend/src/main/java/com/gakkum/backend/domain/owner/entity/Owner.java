@@ -51,8 +51,8 @@ public class Owner {
     @Column(name = "category_id", nullable = false)
     private Long categoryId;
 
-    @Column(length = 255)
-    private String address;
+    @Column(name = "store_address", length = 255)
+    private String storeAddress;
 
     @Column(columnDefinition = "TEXT")
     private String description;
