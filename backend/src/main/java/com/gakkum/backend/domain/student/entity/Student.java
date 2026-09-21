@@ -41,9 +41,6 @@ public class Student {
     @Column(nullable = false, length = 255)
     private String major;
 
-    @Column(name = "activity_area", nullable = false, length = 255)
-    private String activityArea;
-
     @Column(nullable = false, length = 255)
     private String portfolio;
 
