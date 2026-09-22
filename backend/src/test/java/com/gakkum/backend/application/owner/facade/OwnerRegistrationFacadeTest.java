@@ -100,6 +100,34 @@ class OwnerRegistrationFacadeTest {
     }
 
     @Test
+    void stopsImmediatelyWhenUserIsAlreadyRegistered() {
+        when(userService.validateOwnerRegistration("KAKAO_12345"))
+                .thenThrow(new BusinessException(ErrorCode.ALREADY_REGISTERED));
+
+        assertThatThrownBy(() -> facade.register("KAKAO_12345", command))
+                .isInstanceOfSatisfying(BusinessException.class, exception ->
+                        assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.ALREADY_REGISTERED));
+
+        verify(userService, never()).completeOwnerRegistration(any(), any());
+        verifyNoInteractions(ownerService, businessCategoryService, jwtService);
+    }
+
+    @Test
+    void stopsBeforeCategoryCheckWhenBusinessNumberIsDuplicated() {
+        when(userService.validateOwnerRegistration("KAKAO_12345")).thenReturn(user);
+        doThrow(new BusinessException(ErrorCode.DUPLICATE_BUSINESS_NUMBER))
+                .when(ownerService).validateBusinessNumberAvailable("12341453312");
+
+        assertThatThrownBy(() -> facade.register("KAKAO_12345", command))
+                .isInstanceOfSatisfying(BusinessException.class, exception ->
+                        assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.DUPLICATE_BUSINESS_NUMBER));
+
+        verify(userService, never()).completeOwnerRegistration(any(), any());
+        verify(ownerService, never()).createOwnerProfile(any());
+        verifyNoInteractions(businessCategoryService, jwtService);
+    }
+
+    @Test
     void stopsBeforeSavingWhenCategoryDoesNotExist() {
         when(userService.validateOwnerRegistration("KAKAO_12345")).thenReturn(user);
         doThrow(new BusinessException(ErrorCode.BUSINESS_CATEGORY_NOT_FOUND))
