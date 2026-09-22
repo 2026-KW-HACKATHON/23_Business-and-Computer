@@ -2,6 +2,7 @@ package com.gakkum.backend.global.exception;
 
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -26,7 +27,10 @@ public class GlobalExceptionHandler {
     /**
      * 요청 데이터 검증 실패를 공통 입력값 오류 응답으로 변환
      */
-    @ExceptionHandler({MethodArgumentNotValidException.class, HandlerMethodValidationException.class})
+    @ExceptionHandler({
+            MethodArgumentNotValidException.class,
+            HandlerMethodValidationException.class,
+            HttpMessageNotReadableException.class})
     public ResponseEntity<ApiResponse<Void>> handleValidationException(Exception exception) {
         return createErrorResponse(ErrorCode.INVALID_INPUT_VALUE);
     }
