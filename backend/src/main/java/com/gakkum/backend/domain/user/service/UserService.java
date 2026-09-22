@@ -97,15 +97,31 @@ public class UserService extends DefaultOAuth2UserService {
 
     @Transactional(readOnly = true)
     public User validateStudentRegistration(String username, String email) {
+        User user = findPendingUser(username);
+
+        if (userRepository.existsByEmailIgnoreCase(email)) {
+            throw new BusinessException(ErrorCode.DUPLICATE_EMAIL);
+        }
+
+        return user;
+    }
+
+    public User completeOwnerRegistration(User user, String name) {
+        user.completeOwnerRegistration(name);
+        return user;
+    }
+
+    @Transactional(readOnly = true)
+    public User validateOwnerRegistration(String username) {
+        return findPendingUser(username);
+    }
+
+    private User findPendingUser(String username) {
         User user = userRepository.findByUsernameAndIsLock(username, false)
                 .orElseThrow(() -> new BusinessException(ErrorCode.UNAUTHORIZED));
 
         if (user.getRole() != UserRole.PENDING) {
             throw new BusinessException(ErrorCode.ALREADY_REGISTERED);
-        }
-
-        if (userRepository.existsByEmailIgnoreCase(email)) {
-            throw new BusinessException(ErrorCode.DUPLICATE_EMAIL);
         }
 
         return user;
