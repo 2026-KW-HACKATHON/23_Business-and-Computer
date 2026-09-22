@@ -9,6 +9,7 @@ import static org.mockito.Mockito.when;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
+import com.gakkum.backend.domain.certificate.dto.CertificateCommandDto.AddStudentCertificateCommand;
 import com.gakkum.backend.domain.certificate.entity.StudentCertificate;
 import com.gakkum.backend.domain.certificate.repository.StudentCertificateRepository;
 
@@ -23,11 +24,14 @@ class CertificateServiceTest {
         when(studentCertificateRepository.save(any(StudentCertificate.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
-        StudentCertificate savedCertificate = certificateService.addStudentCertificate(
-                10L,
-                "정보처리기사",
-                2025,
-                "한국산업인력공단");
+        AddStudentCertificateCommand command = AddStudentCertificateCommand.builder()
+                .studentProfileId(10L)
+                .certificateName("정보처리기사")
+                .acquiredYear(2025)
+                .issuingOrganization("한국산업인력공단")
+                .build();
+
+        StudentCertificate savedCertificate = certificateService.addStudentCertificate(command);
 
         ArgumentCaptor<StudentCertificate> certificateCaptor = ArgumentCaptor.forClass(StudentCertificate.class);
         verify(studentCertificateRepository).save(certificateCaptor.capture());
