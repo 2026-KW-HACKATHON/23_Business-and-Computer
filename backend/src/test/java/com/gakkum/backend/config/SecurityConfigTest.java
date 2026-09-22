@@ -66,6 +66,15 @@ class SecurityConfigTest {
             .andExpect(jsonPath("$.error.code").value("COMMON_401"));
     }
 
+    @Test
+    void ownerRegistrationRequiresAuthentication() throws Exception {
+        mockMvc.perform(post("/auth/owner")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{}"))
+            .andExpect(status().isUnauthorized())
+            .andExpect(jsonPath("$.error.code").value("COMMON_401"));
+    }
+
     @RestController
     static class TestController {
 
@@ -76,6 +85,11 @@ class SecurityConfigTest {
 
         @org.springframework.web.bind.annotation.PostMapping("/auth/student")
         ApiResponse<String> registerStudent() {
+            return ApiResponse.success("registered");
+        }
+
+        @org.springframework.web.bind.annotation.PostMapping("/auth/owner")
+        ApiResponse<String> registerOwner() {
             return ApiResponse.success("registered");
         }
     }
