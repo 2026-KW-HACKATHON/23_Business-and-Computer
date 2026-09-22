@@ -4,6 +4,7 @@ import com.gakkum.backend.domain.jwt.dto.JWTResponseDTO;
 import com.gakkum.backend.domain.jwt.dto.RefreshRequestDTO;
 import com.gakkum.backend.domain.jwt.entity.RefreshToken;
 import com.gakkum.backend.domain.jwt.repository.RefreshRepository;
+import com.gakkum.backend.domain.user.entity.UserRole;
 import com.gakkum.backend.util.JWTUtil;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
@@ -194,5 +195,23 @@ public class JwtService {
     @Transactional
     public void removeRefreshUser(String username) {
         refreshRepository.deleteByUsername(username);
+    }
+
+    public String issueAccessToken(String username, UserRole role) {
+        return jwtUtil.createJWT(username, "ROLE_" + role.name(), true);
+    }
+
+    @Transactional
+    public String replaceRefreshToken(String username, UserRole role) {
+        String refreshToken = jwtUtil.createJWT(username, "ROLE_" + role.name(), false);
+
+        refreshRepository.deleteByUsername(username);
+        refreshRepository.flush();
+        refreshRepository.save(RefreshToken.builder()
+                .username(username)
+                .refresh(refreshToken)
+                .build());
+
+        return refreshToken;
     }
 }

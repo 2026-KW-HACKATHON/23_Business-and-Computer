@@ -41,8 +41,8 @@ public class Student {
     @Column(nullable = false, length = 255)
     private String major;
 
-    @Column(nullable = false, length = 255)
-    private String portfolio;
+    @Column(name = "portfolio_url", length = 255)
+    private String portfolioUrl;
 
     @Column(columnDefinition = "TEXT")
     private String introduction;
@@ -57,4 +57,23 @@ public class Student {
     @UpdateTimestamp
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
+
+    public static Student create(
+            String userId,
+            String university,
+            String studentNumber,
+            String major,
+            String portfolioUrl,
+            String introduction,
+            String profileImageUrl) {
+        return Student.builder()
+                .userId(userId)
+                .university(university)
+                .studentNumber(studentNumber)
+                .major(major)
+                .portfolioUrl(portfolioUrl)
+                .introduction(introduction)
+                .profileImageUrl(profileImageUrl)
+                .build();
+    }
 }

@@ -1,0 +1,60 @@
+package com.gakkum.backend.domain.student.service;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
+
+import com.gakkum.backend.domain.student.dto.StudentCommandDto.CreateStudentProfileCommand;
+import com.gakkum.backend.domain.student.entity.Student;
+import com.gakkum.backend.domain.student.repository.StudentRepository;
+import com.gakkum.backend.global.exception.BusinessException;
+import com.gakkum.backend.global.exception.ErrorCode;
+
+class StudentServiceTest {
+
+    private final StudentRepository studentRepository = mock(StudentRepository.class);
+    private final StudentService studentService = new StudentService(studentRepository);
+
+    @Test
+    void createsStudentProfile() {
+        when(studentRepository.save(any(Student.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        CreateStudentProfileCommand command = CreateStudentProfileCommand.builder()
+                .userId("01K58M6PJV8VAJMXHBHJ2PNB5C")
+                .university("광운대학교")
+                .studentNumber("2024402001")
+                .major("컴퓨터정보공학부")
+                .portfolioUrl("https://portfolio.example.com")
+                .introduction("나의 한 줄 소개")
+                .profileImageUrl("https://image.example.com/profile.png")
+                .build();
+
+        Student savedStudent = studentService.createStudentProfile(command);
+
+        ArgumentCaptor<Student> studentCaptor = ArgumentCaptor.forClass(Student.class);
+        verify(studentRepository).save(studentCaptor.capture());
+        assertThat(savedStudent).isSameAs(studentCaptor.getValue());
+        assertThat(savedStudent.getUserId()).isEqualTo("01K58M6PJV8VAJMXHBHJ2PNB5C");
+        assertThat(savedStudent.getUniversity()).isEqualTo("광운대학교");
+        assertThat(savedStudent.getStudentNumber()).isEqualTo("2024402001");
+        assertThat(savedStudent.getMajor()).isEqualTo("컴퓨터정보공학부");
+        assertThat(savedStudent.getPortfolioUrl()).isEqualTo("https://portfolio.example.com");
+        assertThat(savedStudent.getIntroduction()).isEqualTo("나의 한 줄 소개");
+        assertThat(savedStudent.getProfileImageUrl()).isEqualTo("https://image.example.com/profile.png");
+    }
+
+    @Test
+    void rejectsDuplicateStudentNumber() {
+        when(studentRepository.existsByStudentNumber("2024402001")).thenReturn(true);
+
+        assertThatThrownBy(() -> studentService.validateStudentNumberAvailable("2024402001"))
+                .isInstanceOfSatisfying(BusinessException.class, exception ->
+                        assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.DUPLICATE_STUDENT_NUMBER));
+    }
+}

@@ -45,4 +45,11 @@ public class StudentSpecialty {
     @UpdateTimestamp
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
+
+    public static StudentSpecialty create(Long studentProfileId, Long specialtyId) {
+        return StudentSpecialty.builder()
+                .studentProfileId(studentProfileId)
+                .specialtyId(specialtyId)
+                .build();
+    }
 }
