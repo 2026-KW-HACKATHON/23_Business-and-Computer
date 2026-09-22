@@ -81,6 +81,15 @@ class StudentRegistrationControllerTest {
                 .contains("email", "university", "studentNumber");
     }
 
+    @Test
+    void acceptsMissingPortfolioUrl() {
+        Validator validator = Validation.buildDefaultValidatorFactory().getValidator();
+        StudentRegistrationRequest request = validRequest("student@kw.ac.kr");
+
+        assertThat(validator.validate(request)).isEmpty();
+        assertThat(request.toCommand().portfolioUrl()).isNull();
+    }
+
     private StudentRegistrationRequest validRequest(String email) {
         return new StudentRegistrationRequest(
                 "김광운",
