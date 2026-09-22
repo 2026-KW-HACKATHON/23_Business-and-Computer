@@ -25,15 +25,14 @@ class StudentServiceTest {
     void createsStudentProfile() {
         when(studentRepository.save(any(Student.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        CreateStudentProfileCommand command = CreateStudentProfileCommand.builder()
-                .userId("01K58M6PJV8VAJMXHBHJ2PNB5C")
-                .university("광운대학교")
-                .studentNumber("2024402001")
-                .major("컴퓨터정보공학부")
-                .portfolioUrl("https://portfolio.example.com")
-                .introduction("나의 한 줄 소개")
-                .profileImageUrl("https://image.example.com/profile.png")
-                .build();
+        CreateStudentProfileCommand command = CreateStudentProfileCommand.of(
+                "01K58M6PJV8VAJMXHBHJ2PNB5C",
+                "광운대학교",
+                "2024402001",
+                "컴퓨터정보공학부",
+                "https://portfolio.example.com",
+                "나의 한 줄 소개",
+                "https://image.example.com/profile.png");
 
         Student savedStudent = studentService.createStudentProfile(command);
 

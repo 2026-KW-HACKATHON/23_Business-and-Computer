@@ -29,12 +29,11 @@ class CertificateServiceTest {
         when(studentCertificateRepository.save(any(StudentCertificate.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
-        AddStudentCertificateCommand command = AddStudentCertificateCommand.builder()
-                .studentProfileId(10L)
-                .certificateName("정보처리기사")
-                .acquiredYear(2025)
-                .issuingOrganization("한국산업인력공단")
-                .build();
+        AddStudentCertificateCommand command = AddStudentCertificateCommand.of(
+                10L,
+                "정보처리기사",
+                2025,
+                "한국산업인력공단");
 
         StudentCertificate savedCertificate = certificateService.addStudentCertificate(command);
 
@@ -49,12 +48,11 @@ class CertificateServiceTest {
 
     @Test
     void rejectsFutureAcquiredYear() {
-        AddStudentCertificateCommand command = AddStudentCertificateCommand.builder()
-                .studentProfileId(10L)
-                .certificateName("정보처리기사")
-                .acquiredYear(Year.now().getValue() + 1)
-                .issuingOrganization("한국산업인력공단")
-                .build();
+        AddStudentCertificateCommand command = AddStudentCertificateCommand.of(
+                10L,
+                "정보처리기사",
+                Year.now().getValue() + 1,
+                "한국산업인력공단");
 
         assertThatThrownBy(() -> certificateService.addStudentCertificate(command))
                 .isInstanceOfSatisfying(BusinessException.class, exception ->

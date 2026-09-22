@@ -2,11 +2,25 @@ package com.gakkum.backend.application.student.dto;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
-public record StudentRegistrationResponse(String accessToken, String refreshToken) {
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
 
-    @Override
+@Getter
+@Builder(access = AccessLevel.PRIVATE)
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
+public class StudentRegistrationResponse {
+
+    private final String accessToken;
+
     @JsonIgnore
-    public String refreshToken() {
-        return refreshToken;
+    private final String refreshToken;
+
+    public static StudentRegistrationResponse of(String accessToken, String refreshToken) {
+        return StudentRegistrationResponse.builder()
+                .accessToken(accessToken)
+                .refreshToken(refreshToken)
+                .build();
     }
 }

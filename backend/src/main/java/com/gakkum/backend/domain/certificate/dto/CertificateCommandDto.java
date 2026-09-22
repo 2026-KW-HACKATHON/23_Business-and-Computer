@@ -1,5 +1,6 @@
 package com.gakkum.backend.domain.certificate.dto;
 
+import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -10,8 +11,8 @@ public final class CertificateCommandDto {
     }
 
     @Getter
-    @Builder
-    @AllArgsConstructor
+    @Builder(access = AccessLevel.PRIVATE)
+    @AllArgsConstructor(access = AccessLevel.PRIVATE)
     public static class AddStudentCertificateCommand {
 
         private final Long studentProfileId;
