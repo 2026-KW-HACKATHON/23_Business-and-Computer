@@ -9,6 +9,7 @@ import static org.mockito.Mockito.when;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
+import com.gakkum.backend.domain.student.dto.StudentCommandDto.CreateStudentProfileCommand;
 import com.gakkum.backend.domain.student.entity.Student;
 import com.gakkum.backend.domain.student.repository.StudentRepository;
 
@@ -21,14 +22,17 @@ class StudentServiceTest {
     void createsStudentProfile() {
         when(studentRepository.save(any(Student.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        Student savedStudent = studentService.createStudentProfile(
-                "01K58M6PJV8VAJMXHBHJ2PNB5C",
-                "광운대학교",
-                "2024402001",
-                "컴퓨터정보공학부",
-                "https://portfolio.example.com",
-                "나의 한 줄 소개",
-                "https://image.example.com/profile.png");
+        CreateStudentProfileCommand command = CreateStudentProfileCommand.builder()
+                .userId("01K58M6PJV8VAJMXHBHJ2PNB5C")
+                .university("광운대학교")
+                .studentNumber("2024402001")
+                .major("컴퓨터정보공학부")
+                .portfolioUrl("https://portfolio.example.com")
+                .introduction("나의 한 줄 소개")
+                .profileImageUrl("https://image.example.com/profile.png")
+                .build();
+
+        Student savedStudent = studentService.createStudentProfile(command);
 
         ArgumentCaptor<Student> studentCaptor = ArgumentCaptor.forClass(Student.class);
         verify(studentRepository).save(studentCaptor.capture());

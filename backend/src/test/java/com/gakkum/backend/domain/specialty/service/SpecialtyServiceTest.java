@@ -11,6 +11,7 @@ import static org.mockito.Mockito.when;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
+import com.gakkum.backend.domain.specialty.dto.SpecialtyCommandDto.AddStudentSpecialtyCommand;
 import com.gakkum.backend.domain.specialty.entity.StudentSpecialty;
 import com.gakkum.backend.domain.specialty.repository.SpecialtyRepository;
 import com.gakkum.backend.domain.specialty.repository.StudentSpecialtyRepository;
@@ -31,7 +32,12 @@ class SpecialtyServiceTest {
         when(studentSpecialtyRepository.save(any(StudentSpecialty.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
-        StudentSpecialty savedSpecialty = specialtyService.addStudentSpecialty(10L, 1L);
+        AddStudentSpecialtyCommand command = AddStudentSpecialtyCommand.builder()
+                .studentProfileId(10L)
+                .specialtyId(1L)
+                .build();
+
+        StudentSpecialty savedSpecialty = specialtyService.addStudentSpecialty(command);
 
         ArgumentCaptor<StudentSpecialty> specialtyCaptor = ArgumentCaptor.forClass(StudentSpecialty.class);
         verify(studentSpecialtyRepository).save(specialtyCaptor.capture());
@@ -44,7 +50,12 @@ class SpecialtyServiceTest {
     void rejectsMissingSpecialty() {
         when(specialtyRepository.existsById(99L)).thenReturn(false);
 
-        assertThatThrownBy(() -> specialtyService.addStudentSpecialty(10L, 99L))
+        AddStudentSpecialtyCommand command = AddStudentSpecialtyCommand.builder()
+                .studentProfileId(10L)
+                .specialtyId(99L)
+                .build();
+
+        assertThatThrownBy(() -> specialtyService.addStudentSpecialty(command))
                 .isInstanceOfSatisfying(BusinessException.class, exception ->
                         assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.INVALID_INPUT_VALUE));
 
