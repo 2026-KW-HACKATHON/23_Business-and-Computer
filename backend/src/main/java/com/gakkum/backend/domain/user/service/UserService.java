@@ -22,6 +22,8 @@ import com.gakkum.backend.domain.user.entity.SocialProviderType;
 import com.gakkum.backend.domain.user.entity.User;
 import com.gakkum.backend.domain.user.entity.UserRole;
 import com.gakkum.backend.domain.user.repository.UserRepository;
+import com.gakkum.backend.global.exception.BusinessException;
+import com.gakkum.backend.global.exception.ErrorCode;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.transaction.annotation.Transactional;
@@ -80,5 +82,19 @@ public class UserService extends DefaultOAuth2UserService {
                 .orElseThrow(() -> new UsernameNotFoundException("해당 유저를 찾을 수 없습니다: " + username));
 
         return new UserResponseDTO(username, entity.getEmail());
+    }
+
+    @Transactional
+    public User completeStudentRegistration(String username, String name, String email) {
+        User user = userRepository.findByUsernameAndIsLock(username, false)
+                .orElseThrow(() -> new UsernameNotFoundException("해당 유저를 찾을 수 없습니다: " + username));
+
+        if (user.getRole() != UserRole.PENDING) {
+            throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE);
+        }
+
+        user.completeStudentRegistration(name, email);
+
+        return user;
     }
 }

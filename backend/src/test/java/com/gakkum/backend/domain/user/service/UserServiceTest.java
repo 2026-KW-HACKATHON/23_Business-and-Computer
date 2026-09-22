@@ -33,6 +33,8 @@ import com.gakkum.backend.domain.user.entity.User;
 import com.gakkum.backend.domain.user.entity.UserRole;
 import com.gakkum.backend.domain.user.repository.UserRepository;
 import com.gakkum.backend.domain.jwt.service.JwtService;
+import com.gakkum.backend.global.exception.BusinessException;
+import com.gakkum.backend.global.exception.ErrorCode;
 
 class UserServiceTest {
 
@@ -122,6 +124,73 @@ class UserServiceTest {
         assertThatThrownBy(() -> userService.loadUser(userRequest("other")))
             .isInstanceOf(OAuth2AuthenticationException.class);
         verifyNoInteractions(userRepository);
+    }
+
+    @Test
+    void pendingUserCompletesStudentRegistration() {
+        User user = User.builder()
+            .id("01K58M6PJV8VAJMXHBHJ2PNB5C")
+            .username("KAKAO_12345")
+            .isLock(false)
+            .role(UserRole.PENDING)
+            .build();
+        when(userRepository.findByUsernameAndIsLock("KAKAO_12345", false))
+            .thenReturn(Optional.of(user));
+
+        User registeredUser = userService.completeStudentRegistration(
+            "KAKAO_12345",
+            "김광운",
+            "kwangwoon@kw.ac.kr"
+        );
+
+        assertThat(registeredUser).isSameAs(user);
+        assertThat(user.getName()).isEqualTo("김광운");
+        assertThat(user.getEmail()).isEqualTo("kwangwoon@kw.ac.kr");
+        assertThat(user.getRole()).isEqualTo(UserRole.STUDENT);
+        verify(userRepository).findByUsernameAndIsLock("KAKAO_12345", false);
+        verifyNoMoreInteractions(userRepository);
+    }
+
+    @Test
+    void missingUserCannotCompleteStudentRegistration() {
+        when(userRepository.findByUsernameAndIsLock("KAKAO_12345", false))
+            .thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> userService.completeStudentRegistration(
+            "KAKAO_12345",
+            "김광운",
+            "kwangwoon@kw.ac.kr"
+        )).isInstanceOf(org.springframework.security.core.userdetails.UsernameNotFoundException.class);
+
+        verify(userRepository).findByUsernameAndIsLock("KAKAO_12345", false);
+        verifyNoMoreInteractions(userRepository);
+    }
+
+    @Test
+    void registeredUserCannotCompleteStudentRegistrationAgain() {
+        User user = User.builder()
+            .id("01K58M6PJV8VAJMXHBHJ2PNB5C")
+            .username("KAKAO_12345")
+            .email("old@example.com")
+            .name("기존 사용자")
+            .isLock(false)
+            .role(UserRole.STUDENT)
+            .build();
+        when(userRepository.findByUsernameAndIsLock("KAKAO_12345", false))
+            .thenReturn(Optional.of(user));
+
+        assertThatThrownBy(() -> userService.completeStudentRegistration(
+            "KAKAO_12345",
+            "김광운",
+            "kwangwoon@kw.ac.kr"
+        )).isInstanceOfSatisfying(BusinessException.class, exception ->
+            assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.INVALID_INPUT_VALUE));
+
+        assertThat(user.getName()).isEqualTo("기존 사용자");
+        assertThat(user.getEmail()).isEqualTo("old@example.com");
+        assertThat(user.getRole()).isEqualTo(UserRole.STUDENT);
+        verify(userRepository).findByUsernameAndIsLock("KAKAO_12345", false);
+        verifyNoMoreInteractions(userRepository);
     }
 
     private void kakaoUserInfo(String body) {

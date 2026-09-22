@@ -48,4 +48,17 @@ public class StudentCertificate {
     @UpdateTimestamp
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
+
+    public static StudentCertificate create(
+            Long studentProfileId,
+            String certificateName,
+            Integer acquiredYear,
+            String issuingOrganization) {
+        return StudentCertificate.builder()
+                .studentProfileId(studentProfileId)
+                .certificateName(certificateName)
+                .acquiredYear(acquiredYear)
+                .issuingOrganization(issuingOrganization)
+                .build();
+    }
 }

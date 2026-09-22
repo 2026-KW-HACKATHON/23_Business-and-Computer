@@ -60,4 +60,10 @@ public class User {
     @UpdateTimestamp
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
+
+    public void completeStudentRegistration(String name, String email) {
+        this.name = name;
+        this.email = email;
+        this.role = UserRole.STUDENT;
+    }
 }
