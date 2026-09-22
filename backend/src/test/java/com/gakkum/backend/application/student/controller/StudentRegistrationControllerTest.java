@@ -30,7 +30,7 @@ class StudentRegistrationControllerTest {
             new StudentRegistrationController(studentRegistrationFacade);
 
     @Test
-    void registersStudentAndWritesRefreshTokenOnlyToCookie() throws Exception {
+    void returnsAccessTokenAndSetsRefreshTokenCookie() throws Exception {
         StudentRegistrationRequest request = validRequest("KWANGWOON@KW.AC.KR");
         StudentRegistrationResponse registrationResponse =
                 new StudentRegistrationResponse("access-token", "refresh-token");
