@@ -35,7 +35,7 @@ class OwnerRegistrationControllerTest {
     @Test
     void returnsAccessTokenAndSetsRefreshTokenCookie() throws Exception {
         when(ownerRegistrationFacade.register(eq("KAKAO_12345"), any(OwnerRegistrationCommand.class)))
-                .thenReturn(new OwnerRegistrationResponse("access-token", "refresh-token"));
+                .thenReturn(OwnerRegistrationResponse.of("access-token", "refresh-token"));
         MockHttpServletResponse servletResponse = new MockHttpServletResponse();
 
         ApiResponse<OwnerRegistrationResponse> response = controller.register(
@@ -44,7 +44,7 @@ class OwnerRegistrationControllerTest {
                 servletResponse);
 
         assertThat(response.isSuccess()).isTrue();
-        assertThat(response.getData().accessToken()).isEqualTo("access-token");
+        assertThat(response.getData().getAccessToken()).isEqualTo("access-token");
         assertThat(servletResponse.getHeader("Set-Cookie"))
                 .contains("refreshToken=refresh-token", "HttpOnly", "SameSite=Lax", "Path=/");
 
@@ -55,8 +55,8 @@ class OwnerRegistrationControllerTest {
         ArgumentCaptor<OwnerRegistrationCommand> commandCaptor =
                 ArgumentCaptor.forClass(OwnerRegistrationCommand.class);
         verify(ownerRegistrationFacade).register(eq("KAKAO_12345"), commandCaptor.capture());
-        assertThat(commandCaptor.getValue().businessNumber()).isEqualTo("1234567890");
-        assertThat(commandCaptor.getValue().storeImageUrls()).isEmpty();
+        assertThat(commandCaptor.getValue().getBusinessNumber()).isEqualTo("1234567890");
+        assertThat(commandCaptor.getValue().getStoreImageUrls()).isEmpty();
     }
 
     @Test
@@ -67,7 +67,7 @@ class OwnerRegistrationControllerTest {
 
     @Test
     void rejectsInvalidBusinessNumberCategoryAndImageUrl() {
-        OwnerRegistrationRequest request = new OwnerRegistrationRequest(
+        OwnerRegistrationRequest request = OwnerRegistrationRequest.of(
                 "김사장",
                 "치킨플러스",
                 null,
@@ -85,7 +85,7 @@ class OwnerRegistrationControllerTest {
     }
 
     private OwnerRegistrationRequest validRequest(String businessNumber, List<String> storeImageUrls) {
-        return new OwnerRegistrationRequest(
+        return OwnerRegistrationRequest.of(
                 "김사장",
                 "치킨플러스",
                 "서울시 월계1동 광운로23",

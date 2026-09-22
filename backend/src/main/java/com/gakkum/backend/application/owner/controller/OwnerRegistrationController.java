@@ -35,7 +35,7 @@ public class OwnerRegistrationController {
                 authentication.getName(),
                 request.toCommand());
 
-        ResponseCookie refreshCookie = ResponseCookie.from("refreshToken", response.refreshToken())
+        ResponseCookie refreshCookie = ResponseCookie.from("refreshToken", response.getRefreshToken())
                 .path("/")
                 .sameSite("Lax")
                 .httpOnly(true)

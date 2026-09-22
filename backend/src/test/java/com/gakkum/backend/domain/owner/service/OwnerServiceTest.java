@@ -28,18 +28,17 @@ class OwnerServiceTest {
     void createsOwnerProfile() {
         when(ownerRepository.save(any(Owner.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        CreateOwnerProfileCommand command = CreateOwnerProfileCommand.builder()
-                .userId("01K58M6PJV8VAJMXHBHJ2PNB5C")
-                .businessNumber("12341453312")
-                .openedAt(LocalDate.of(2020, 3, 1))
-                .representativeName("김사장")
-                .storeName("치킨플러스")
-                .categoryId(2L)
-                .storeAddress("서울시 월계1동 광운로23")
-                .description("매장 한 줄 소개")
-                .profileImageUrl("https://image.example.com/profile.png")
-                .storeImageUrls(List.of("https://image.example.com/store1.png", "https://image.example.com/store2.png"))
-                .build();
+        CreateOwnerProfileCommand command = CreateOwnerProfileCommand.of(
+                "01K58M6PJV8VAJMXHBHJ2PNB5C",
+                "12341453312",
+                LocalDate.of(2020, 3, 1),
+                "김사장",
+                "치킨플러스",
+                2L,
+                "서울시 월계1동 광운로23",
+                "매장 한 줄 소개",
+                "https://image.example.com/profile.png",
+                List.of("https://image.example.com/store1.png", "https://image.example.com/store2.png"));
 
         Owner savedOwner = ownerService.createOwnerProfile(command);
 

@@ -2,11 +2,25 @@ package com.gakkum.backend.application.owner.dto;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
-public record OwnerRegistrationResponse(String accessToken, String refreshToken) {
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
 
-    @Override
+@Getter
+@Builder(access = AccessLevel.PRIVATE)
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
+public class OwnerRegistrationResponse {
+
+    private final String accessToken;
+
     @JsonIgnore
-    public String refreshToken() {
-        return refreshToken;
+    private final String refreshToken;
+
+    public static OwnerRegistrationResponse of(String accessToken, String refreshToken) {
+        return OwnerRegistrationResponse.builder()
+                .accessToken(accessToken)
+                .refreshToken(refreshToken)
+                .build();
     }
 }

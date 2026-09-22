@@ -27,25 +27,25 @@ public class OwnerRegistrationFacade {
     @Transactional
     public OwnerRegistrationResponse register(String username, OwnerRegistrationCommand command) {
         User user = userService.validateOwnerRegistration(username);
-        ownerService.validateBusinessNumberAvailable(command.businessNumber());
-        businessCategoryService.validateCategoryExists(command.categoryId());
+        ownerService.validateBusinessNumberAvailable(command.getBusinessNumber());
+        businessCategoryService.validateCategoryExists(command.getCategoryId());
 
-        userService.completeOwnerRegistration(user, command.name());
+        userService.completeOwnerRegistration(user, command.getName());
         ownerService.createOwnerProfile(CreateOwnerProfileCommand.of(
                 user.getId(),
-                command.businessNumber(),
-                command.openedAt(),
-                command.representativeName(),
-                command.storeName(),
-                command.categoryId(),
-                command.storeAddress(),
-                command.description(),
-                command.profileImageUrl(),
-                command.storeImageUrls())
+                command.getBusinessNumber(),
+                command.getOpenedAt(),
+                command.getRepresentativeName(),
+                command.getStoreName(),
+                command.getCategoryId(),
+                command.getStoreAddress(),
+                command.getDescription(),
+                command.getProfileImageUrl(),
+                command.getStoreImageUrls())
         );
 
         String accessToken = jwtService.issueAccessToken(username, UserRole.OWNER);
         String refreshToken = jwtService.replaceRefreshToken(username, UserRole.OWNER);
-        return new OwnerRegistrationResponse(accessToken, refreshToken);
+        return OwnerRegistrationResponse.of(accessToken, refreshToken);
     }
 }

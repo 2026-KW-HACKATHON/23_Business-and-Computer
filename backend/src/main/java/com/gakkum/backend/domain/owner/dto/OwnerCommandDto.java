@@ -3,6 +3,7 @@ package com.gakkum.backend.domain.owner.dto;
 import java.time.LocalDate;
 import java.util.List;
 
+import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -13,8 +14,8 @@ public final class OwnerCommandDto {
     }
 
     @Getter
-    @Builder
-    @AllArgsConstructor
+    @Builder(access = AccessLevel.PRIVATE)
+    @AllArgsConstructor(access = AccessLevel.PRIVATE)
     public static class CreateOwnerProfileCommand {
 
         private final String userId;

@@ -49,7 +49,7 @@ class OwnerRegistrationFacadeTest {
             .role(UserRole.PENDING)
             .build();
 
-    private final OwnerRegistrationCommand command = new OwnerRegistrationCommand(
+    private final OwnerRegistrationCommand command = OwnerRegistrationCommand.of(
             "김사장",
             "치킨플러스",
             "서울시 월계1동 광운로23",
@@ -70,8 +70,8 @@ class OwnerRegistrationFacadeTest {
 
         OwnerRegistrationResponse response = facade.register("KAKAO_12345", command);
 
-        assertThat(response.accessToken()).isEqualTo("access-token");
-        assertThat(response.refreshToken()).isEqualTo("refresh-token");
+        assertThat(response.getAccessToken()).isEqualTo("access-token");
+        assertThat(response.getRefreshToken()).isEqualTo("refresh-token");
 
         InOrder order = inOrder(userService, ownerService, businessCategoryService, jwtService);
         order.verify(userService).validateOwnerRegistration("KAKAO_12345");
