@@ -1,6 +1,7 @@
 package com.gakkum.backend.domain.student.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -12,6 +13,8 @@ import org.mockito.ArgumentCaptor;
 import com.gakkum.backend.domain.student.dto.StudentCommandDto.CreateStudentProfileCommand;
 import com.gakkum.backend.domain.student.entity.Student;
 import com.gakkum.backend.domain.student.repository.StudentRepository;
+import com.gakkum.backend.global.exception.BusinessException;
+import com.gakkum.backend.global.exception.ErrorCode;
 
 class StudentServiceTest {
 
@@ -44,5 +47,14 @@ class StudentServiceTest {
         assertThat(savedStudent.getPortfolioUrl()).isEqualTo("https://portfolio.example.com");
         assertThat(savedStudent.getIntroduction()).isEqualTo("나의 한 줄 소개");
         assertThat(savedStudent.getProfileImageUrl()).isEqualTo("https://image.example.com/profile.png");
+    }
+
+    @Test
+    void rejectsDuplicateStudentNumber() {
+        when(studentRepository.existsByStudentNumber("2024402001")).thenReturn(true);
+
+        assertThatThrownBy(() -> studentService.validateStudentNumberAvailable("2024402001"))
+                .isInstanceOfSatisfying(BusinessException.class, exception ->
+                        assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.DUPLICATE_STUDENT_NUMBER));
     }
 }

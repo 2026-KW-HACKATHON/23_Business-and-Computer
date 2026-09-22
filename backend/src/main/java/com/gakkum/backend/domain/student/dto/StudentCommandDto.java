@@ -21,5 +21,17 @@ public final class StudentCommandDto {
         private final String portfolioUrl;
         private final String introduction;
         private final String profileImageUrl;
+
+        public static CreateStudentProfileCommand of(String userId, String university, String studentNumber, String major, String portfolioUrl, String introduction, String profileImageUrl) {
+            return CreateStudentProfileCommand.builder()
+                    .userId(userId)
+                    .university(university)
+                    .studentNumber(studentNumber)
+                    .major(major)
+                    .portfolioUrl(portfolioUrl)
+                    .introduction(introduction)
+                    .profileImageUrl(profileImageUrl)
+                    .build();
+        }
     }
 }

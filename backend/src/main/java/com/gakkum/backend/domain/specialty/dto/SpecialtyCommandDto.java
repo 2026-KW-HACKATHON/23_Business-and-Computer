@@ -16,5 +16,12 @@ public final class SpecialtyCommandDto {
 
         private final Long studentProfileId;
         private final Long specialtyId;
+
+        public static AddStudentSpecialtyCommand of(Long studentProfileId, Long specialtyId) {
+            return AddStudentSpecialtyCommand.builder()
+                    .studentProfileId(studentProfileId)
+                    .specialtyId(specialtyId)
+                    .build();
+        }
     }
 }

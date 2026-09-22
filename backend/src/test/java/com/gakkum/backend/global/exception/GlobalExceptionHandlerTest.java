@@ -11,6 +11,7 @@ import jakarta.validation.constraints.NotBlank;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
@@ -69,6 +70,14 @@ class GlobalExceptionHandlerTest {
             )));
     }
 
+    @Test
+    void dataIntegrityViolationReturnsConflict() throws Exception {
+        mockMvc.perform(get("/test/data-conflict"))
+            .andExpect(status().isConflict())
+            .andExpect(jsonPath("$.success").value(false))
+            .andExpect(jsonPath("$.error.code").value("COMMON_409"));
+    }
+
     @RestController
     static class TestController {
 
@@ -85,6 +94,11 @@ class GlobalExceptionHandlerTest {
         @GetMapping("/test/unexpected-error")
         ApiResponse<Void> unexpectedError() {
             throw new IllegalStateException("sensitive error message");
+        }
+
+        @GetMapping("/test/data-conflict")
+        ApiResponse<Void> dataConflict() {
+            throw new DataIntegrityViolationException("duplicate");
         }
     }
 

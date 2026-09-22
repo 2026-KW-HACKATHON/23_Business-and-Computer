@@ -8,6 +8,8 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.List;
+
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
@@ -57,8 +59,24 @@ class SpecialtyServiceTest {
 
         assertThatThrownBy(() -> specialtyService.addStudentSpecialty(command))
                 .isInstanceOfSatisfying(BusinessException.class, exception ->
-                        assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.INVALID_INPUT_VALUE));
+                        assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.SPECIALTY_NOT_FOUND));
 
         verify(studentSpecialtyRepository, never()).save(any(StudentSpecialty.class));
+    }
+
+    @Test
+    void rejectsDuplicateSpecialtyIds() {
+        assertThatThrownBy(() -> specialtyService.validateSpecialtyIds(List.of(1L, 1L)))
+                .isInstanceOfSatisfying(BusinessException.class, exception ->
+                        assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.DUPLICATE_SPECIALTY));
+    }
+
+    @Test
+    void rejectsWhenAnySpecialtyDoesNotExist() {
+        when(specialtyRepository.countByIdIn(List.of(1L, 99L))).thenReturn(1L);
+
+        assertThatThrownBy(() -> specialtyService.validateSpecialtyIds(List.of(1L, 99L)))
+                .isInstanceOfSatisfying(BusinessException.class, exception ->
+                        assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.SPECIALTY_NOT_FOUND));
     }
 }

@@ -1,6 +1,7 @@
 package com.gakkum.backend.config;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -56,12 +57,26 @@ class SecurityConfigTest {
             .andExpect(jsonPath("$.error.message").value("인증이 필요합니다."));
     }
 
+    @Test
+    void studentRegistrationRequiresAuthentication() throws Exception {
+        mockMvc.perform(post("/auth/student")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{}"))
+            .andExpect(status().isUnauthorized())
+            .andExpect(jsonPath("$.error.code").value("COMMON_401"));
+    }
+
     @RestController
     static class TestController {
 
         @GetMapping("/api/protected")
         ApiResponse<String> protectedEndpoint() {
             return ApiResponse.success("protected");
+        }
+
+        @org.springframework.web.bind.annotation.PostMapping("/auth/student")
+        ApiResponse<String> registerStudent() {
+            return ApiResponse.success("registered");
         }
     }
 }

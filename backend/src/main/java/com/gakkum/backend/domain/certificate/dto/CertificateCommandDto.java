@@ -18,5 +18,14 @@ public final class CertificateCommandDto {
         private final String certificateName;
         private final Integer acquiredYear;
         private final String issuingOrganization;
+
+        public static AddStudentCertificateCommand of(Long studentProfileId, String certificateName, Integer acquiredYear, String issuingOrganization) {
+            return AddStudentCertificateCommand.builder()
+                    .studentProfileId(studentProfileId)
+                    .certificateName(certificateName)
+                    .acquiredYear(acquiredYear)
+                    .issuingOrganization(issuingOrganization)
+                    .build();
+        }
     }
 }

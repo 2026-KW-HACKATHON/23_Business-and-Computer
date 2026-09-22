@@ -1,10 +1,13 @@
 package com.gakkum.backend.domain.certificate.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+
+import java.time.Year;
 
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -12,6 +15,8 @@ import org.mockito.ArgumentCaptor;
 import com.gakkum.backend.domain.certificate.dto.CertificateCommandDto.AddStudentCertificateCommand;
 import com.gakkum.backend.domain.certificate.entity.StudentCertificate;
 import com.gakkum.backend.domain.certificate.repository.StudentCertificateRepository;
+import com.gakkum.backend.global.exception.BusinessException;
+import com.gakkum.backend.global.exception.ErrorCode;
 
 class CertificateServiceTest {
 
@@ -40,5 +45,19 @@ class CertificateServiceTest {
         assertThat(savedCertificate.getCertificateName()).isEqualTo("정보처리기사");
         assertThat(savedCertificate.getAcquiredYear()).isEqualTo(2025);
         assertThat(savedCertificate.getIssuingOrganization()).isEqualTo("한국산업인력공단");
+    }
+
+    @Test
+    void rejectsFutureAcquiredYear() {
+        AddStudentCertificateCommand command = AddStudentCertificateCommand.builder()
+                .studentProfileId(10L)
+                .certificateName("정보처리기사")
+                .acquiredYear(Year.now().getValue() + 1)
+                .issuingOrganization("한국산업인력공단")
+                .build();
+
+        assertThatThrownBy(() -> certificateService.addStudentCertificate(command))
+                .isInstanceOfSatisfying(BusinessException.class, exception ->
+                        assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.INVALID_INPUT_VALUE));
     }
 }

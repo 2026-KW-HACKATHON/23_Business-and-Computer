@@ -86,14 +86,27 @@ public class UserService extends DefaultOAuth2UserService {
 
     @Transactional
     public User completeStudentRegistration(String username, String name, String email) {
+        User user = validateStudentRegistration(username, email);
+        return completeStudentRegistration(user, name, email);
+    }
+
+    public User completeStudentRegistration(User user, String name, String email) {
+        user.completeStudentRegistration(name, email);
+        return user;
+    }
+
+    @Transactional(readOnly = true)
+    public User validateStudentRegistration(String username, String email) {
         User user = userRepository.findByUsernameAndIsLock(username, false)
-                .orElseThrow(() -> new UsernameNotFoundException("해당 유저를 찾을 수 없습니다: " + username));
+                .orElseThrow(() -> new BusinessException(ErrorCode.UNAUTHORIZED));
 
         if (user.getRole() != UserRole.PENDING) {
-            throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE);
+            throw new BusinessException(ErrorCode.ALREADY_REGISTERED);
         }
 
-        user.completeStudentRegistration(name, email);
+        if (userRepository.existsByEmailIgnoreCase(email)) {
+            throw new BusinessException(ErrorCode.DUPLICATE_EMAIL);
+        }
 
         return user;
     }

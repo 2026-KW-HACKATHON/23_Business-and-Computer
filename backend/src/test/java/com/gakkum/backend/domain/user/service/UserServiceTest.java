@@ -148,6 +148,7 @@ class UserServiceTest {
         assertThat(user.getEmail()).isEqualTo("kwangwoon@kw.ac.kr");
         assertThat(user.getRole()).isEqualTo(UserRole.STUDENT);
         verify(userRepository).findByUsernameAndIsLock("KAKAO_12345", false);
+        verify(userRepository).existsByEmailIgnoreCase("kwangwoon@kw.ac.kr");
         verifyNoMoreInteractions(userRepository);
     }
 
@@ -160,7 +161,8 @@ class UserServiceTest {
             "KAKAO_12345",
             "김광운",
             "kwangwoon@kw.ac.kr"
-        )).isInstanceOf(org.springframework.security.core.userdetails.UsernameNotFoundException.class);
+        )).isInstanceOfSatisfying(BusinessException.class, exception ->
+            assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.UNAUTHORIZED));
 
         verify(userRepository).findByUsernameAndIsLock("KAKAO_12345", false);
         verifyNoMoreInteractions(userRepository);
@@ -184,13 +186,35 @@ class UserServiceTest {
             "김광운",
             "kwangwoon@kw.ac.kr"
         )).isInstanceOfSatisfying(BusinessException.class, exception ->
-            assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.INVALID_INPUT_VALUE));
+            assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.ALREADY_REGISTERED));
 
         assertThat(user.getName()).isEqualTo("기존 사용자");
         assertThat(user.getEmail()).isEqualTo("old@example.com");
         assertThat(user.getRole()).isEqualTo(UserRole.STUDENT);
         verify(userRepository).findByUsernameAndIsLock("KAKAO_12345", false);
         verifyNoMoreInteractions(userRepository);
+    }
+
+    @Test
+    void duplicateEmailCannotCompleteStudentRegistration() {
+        User user = User.builder()
+            .id("01K58M6PJV8VAJMXHBHJ2PNB5C")
+            .username("KAKAO_12345")
+            .isLock(false)
+            .role(UserRole.PENDING)
+            .build();
+        when(userRepository.findByUsernameAndIsLock("KAKAO_12345", false))
+            .thenReturn(Optional.of(user));
+        when(userRepository.existsByEmailIgnoreCase("kwangwoon@kw.ac.kr")).thenReturn(true);
+
+        assertThatThrownBy(() -> userService.completeStudentRegistration(
+            "KAKAO_12345",
+            "김광운",
+            "kwangwoon@kw.ac.kr"
+        )).isInstanceOfSatisfying(BusinessException.class, exception ->
+            assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.DUPLICATE_EMAIL));
+
+        assertThat(user.getRole()).isEqualTo(UserRole.PENDING);
     }
 
     private void kakaoUserInfo(String body) {

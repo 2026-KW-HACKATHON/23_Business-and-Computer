@@ -1,5 +1,6 @@
 package com.gakkum.backend.global.exception;
 
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -28,6 +29,12 @@ public class GlobalExceptionHandler {
     @ExceptionHandler({MethodArgumentNotValidException.class, HandlerMethodValidationException.class})
     public ResponseEntity<ApiResponse<Void>> handleValidationException(Exception exception) {
         return createErrorResponse(ErrorCode.INVALID_INPUT_VALUE);
+    }
+
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<ApiResponse<Void>> handleDataIntegrityViolationException(
+            DataIntegrityViolationException exception) {
+        return createErrorResponse(ErrorCode.DATA_CONFLICT);
     }
 
     /**

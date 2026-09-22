@@ -1,5 +1,8 @@
 package com.gakkum.backend.domain.specialty.service;
 
+import java.util.HashSet;
+import java.util.List;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,7 +25,7 @@ public class SpecialtyService {
     @Transactional
     public StudentSpecialty addStudentSpecialty(AddStudentSpecialtyCommand command) {
         if (!specialtyRepository.existsById(command.getSpecialtyId())) {
-            throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE);
+            throw new BusinessException(ErrorCode.SPECIALTY_NOT_FOUND);
         }
 
         StudentSpecialty studentSpecialty = StudentSpecialty.create(
@@ -30,5 +33,16 @@ public class SpecialtyService {
                 command.getSpecialtyId());
 
         return studentSpecialtyRepository.save(studentSpecialty);
+    }
+
+    @Transactional(readOnly = true)
+    public void validateSpecialtyIds(List<Long> specialtyIds) {
+        if (new HashSet<>(specialtyIds).size() != specialtyIds.size()) {
+            throw new BusinessException(ErrorCode.DUPLICATE_SPECIALTY);
+        }
+
+        if (!specialtyIds.isEmpty() && specialtyRepository.countByIdIn(specialtyIds) != specialtyIds.size()) {
+            throw new BusinessException(ErrorCode.SPECIALTY_NOT_FOUND);
+        }
     }
 }
