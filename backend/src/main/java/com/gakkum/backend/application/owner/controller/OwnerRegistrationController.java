@@ -1,4 +1,4 @@
-package com.gakkum.backend.application.student.controller;
+package com.gakkum.backend.application.owner.controller;
 
 import java.time.Duration;
 
@@ -9,9 +9,9 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.gakkum.backend.application.student.dto.StudentRegistrationRequest;
-import com.gakkum.backend.application.student.dto.StudentRegistrationResponse;
-import com.gakkum.backend.application.student.facade.StudentRegistrationFacade;
+import com.gakkum.backend.application.owner.dto.OwnerRegistrationRequest;
+import com.gakkum.backend.application.owner.dto.OwnerRegistrationResponse;
+import com.gakkum.backend.application.owner.facade.OwnerRegistrationFacade;
 import com.gakkum.backend.global.response.ApiResponse;
 
 import jakarta.servlet.http.HttpServletResponse;
@@ -20,18 +20,18 @@ import lombok.RequiredArgsConstructor;
 
 @RestController
 @RequiredArgsConstructor
-public class StudentRegistrationController {
+public class OwnerRegistrationController {
 
     private static final Duration REFRESH_TOKEN_MAX_AGE = Duration.ofDays(7);
 
-    private final StudentRegistrationFacade studentRegistrationFacade;
+    private final OwnerRegistrationFacade ownerRegistrationFacade;
 
-    @PostMapping("/auth/student")
-    public ApiResponse<StudentRegistrationResponse> register(
+    @PostMapping("/auth/owner")
+    public ApiResponse<OwnerRegistrationResponse> register(
             Authentication authentication,
-            @Valid @RequestBody StudentRegistrationRequest request,
+            @Valid @RequestBody OwnerRegistrationRequest request,
             HttpServletResponse httpServletResponse) {
-        StudentRegistrationResponse response = studentRegistrationFacade.register(
+        OwnerRegistrationResponse response = ownerRegistrationFacade.register(
                 authentication.getName(),
                 request.toCommand());
 

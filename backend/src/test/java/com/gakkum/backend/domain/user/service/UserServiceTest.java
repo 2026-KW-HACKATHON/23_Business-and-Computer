@@ -217,6 +217,46 @@ class UserServiceTest {
         assertThat(user.getRole()).isEqualTo(UserRole.PENDING);
     }
 
+    @Test
+    void pendingUserCompletesOwnerRegistration() {
+        User user = User.builder()
+            .id("01K58M6PJV8VAJMXHBHJ2PNB5C")
+            .username("KAKAO_12345")
+            .isLock(false)
+            .role(UserRole.PENDING)
+            .build();
+        when(userRepository.findByUsernameAndIsLock("KAKAO_12345", false))
+            .thenReturn(Optional.of(user));
+
+        User validatedUser = userService.validateOwnerRegistration("KAKAO_12345");
+        User registeredUser = userService.completeOwnerRegistration(validatedUser, "김사장");
+
+        assertThat(registeredUser).isSameAs(user);
+        assertThat(user.getName()).isEqualTo("김사장");
+        assertThat(user.getEmail()).isNull();
+        assertThat(user.getRole()).isEqualTo(UserRole.OWNER);
+        verify(userRepository).findByUsernameAndIsLock("KAKAO_12345", false);
+        verifyNoMoreInteractions(userRepository);
+    }
+
+    @Test
+    void registeredUserCannotCompleteOwnerRegistration() {
+        User user = User.builder()
+            .id("01K58M6PJV8VAJMXHBHJ2PNB5C")
+            .username("KAKAO_12345")
+            .isLock(false)
+            .role(UserRole.STUDENT)
+            .build();
+        when(userRepository.findByUsernameAndIsLock("KAKAO_12345", false))
+            .thenReturn(Optional.of(user));
+
+        assertThatThrownBy(() -> userService.validateOwnerRegistration("KAKAO_12345"))
+            .isInstanceOfSatisfying(BusinessException.class, exception ->
+                assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.ALREADY_REGISTERED));
+
+        assertThat(user.getRole()).isEqualTo(UserRole.STUDENT);
+    }
+
     private void kakaoUserInfo(String body) {
         kakaoServer.expect(once(), requestTo("https://kapi.kakao.com/v2/user/me"))
             .andRespond(withSuccess(body, MediaType.APPLICATION_JSON));

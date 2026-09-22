@@ -31,36 +31,36 @@ public class StudentRegistrationFacade {
 
     @Transactional
     public StudentRegistrationResponse register(String username, StudentRegistrationCommand command) {
-        User user = userService.validateStudentRegistration(username, command.email());
-        studentService.validateStudentNumberAvailable(command.studentNumber());
-        specialtyService.validateSpecialtyIds(command.specialtyIds());
+        User user = userService.validateStudentRegistration(username, command.getEmail());
+        studentService.validateStudentNumberAvailable(command.getStudentNumber());
+        specialtyService.validateSpecialtyIds(command.getSpecialtyIds());
 
-        userService.completeStudentRegistration(user, command.name(), command.email());
+        userService.completeStudentRegistration(user, command.getName(), command.getEmail());
         Student student = studentService.createStudentProfile(CreateStudentProfileCommand.of(
                 user.getId(),
-                command.university(),
-                command.studentNumber(),
-                command.major(),
-                command.portfolioUrl(),
-                command.introduction(),
-                command.profileImageUrl())
+                command.getUniversity(),
+                command.getStudentNumber(),
+                command.getMajor(),
+                command.getPortfolioUrl(),
+                command.getIntroduction(),
+                command.getProfileImageUrl())
         );
 
-        for (Long specialtyId : command.specialtyIds()) {
+        for (Long specialtyId : command.getSpecialtyIds()) {
             specialtyService.addStudentSpecialty(AddStudentSpecialtyCommand.of(student.getId(), specialtyId));
         }
 
-        for (StudentRegistrationCommand.CertificateCommand certificate : command.certificates()) {
+        for (StudentRegistrationCommand.CertificateCommand certificate : command.getCertificates()) {
             certificateService.addStudentCertificate(AddStudentCertificateCommand.of(
                     student.getId(),
-                    certificate.certificateName(),
-                    certificate.acquiredYear(),
-                    certificate.issuingOrganization()
+                    certificate.getCertificateName(),
+                    certificate.getAcquiredYear(),
+                    certificate.getIssuingOrganization()
             ));
         }
 
         String accessToken = jwtService.issueAccessToken(username, UserRole.STUDENT);
         String refreshToken = jwtService.replaceRefreshToken(username, UserRole.STUDENT);
-        return new StudentRegistrationResponse(accessToken, refreshToken);
+        return StudentRegistrationResponse.of(accessToken, refreshToken);
     }
 }

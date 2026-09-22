@@ -1,5 +1,6 @@
 package com.gakkum.backend.domain.specialty.dto;
 
+import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -10,8 +11,8 @@ public final class SpecialtyCommandDto {
     }
 
     @Getter
-    @Builder
-    @AllArgsConstructor
+    @Builder(access = AccessLevel.PRIVATE)
+    @AllArgsConstructor(access = AccessLevel.PRIVATE)
     public static class AddStudentSpecialtyCommand {
 
         private final Long studentProfileId;

@@ -56,7 +56,7 @@ class StudentRegistrationFacadeTest {
         when(studentService.createStudentProfile(any(CreateStudentProfileCommand.class))).thenReturn(student);
         when(jwtService.issueAccessToken("KAKAO_12345", UserRole.STUDENT)).thenReturn("access-token");
         when(jwtService.replaceRefreshToken("KAKAO_12345", UserRole.STUDENT)).thenReturn("refresh-token");
-        StudentRegistrationCommand command = new StudentRegistrationCommand(
+        StudentRegistrationCommand command = StudentRegistrationCommand.of(
                 "김광운",
                 "kwangwoon@kw.ac.kr",
                 "광운대학교",
@@ -66,13 +66,13 @@ class StudentRegistrationFacadeTest {
                 null,
                 null,
                 List.of(1L, 2L),
-                List.of(new StudentRegistrationCommand.CertificateCommand(
+                List.of(StudentRegistrationCommand.CertificateCommand.of(
                         "정보처리기사", 2025, "한국산업인력공단")));
 
         StudentRegistrationResponse response = facade.register("KAKAO_12345", command);
 
-        assertThat(response.accessToken()).isEqualTo("access-token");
-        assertThat(response.refreshToken()).isEqualTo("refresh-token");
+        assertThat(response.getAccessToken()).isEqualTo("access-token");
+        assertThat(response.getRefreshToken()).isEqualTo("refresh-token");
 
         InOrder order = inOrder(userService, studentService, specialtyService, certificateService, jwtService);
         order.verify(userService).validateStudentRegistration("KAKAO_12345", "kwangwoon@kw.ac.kr");

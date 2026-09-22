@@ -1,4 +1,4 @@
-package com.gakkum.backend.application.student.dto;
+package com.gakkum.backend.application.owner.dto;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
@@ -10,15 +10,15 @@ import lombok.Getter;
 @Getter
 @Builder(access = AccessLevel.PRIVATE)
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
-public class StudentRegistrationResponse {
+public class OwnerRegistrationResponse {
 
     private final String accessToken;
 
     @JsonIgnore
     private final String refreshToken;
 
-    public static StudentRegistrationResponse of(String accessToken, String refreshToken) {
-        return StudentRegistrationResponse.builder()
+    public static OwnerRegistrationResponse of(String accessToken, String refreshToken) {
+        return OwnerRegistrationResponse.builder()
                 .accessToken(accessToken)
                 .refreshToken(refreshToken)
                 .build();

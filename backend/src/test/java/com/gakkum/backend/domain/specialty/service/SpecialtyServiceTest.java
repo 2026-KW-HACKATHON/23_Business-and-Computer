@@ -34,10 +34,9 @@ class SpecialtyServiceTest {
         when(studentSpecialtyRepository.save(any(StudentSpecialty.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
-        AddStudentSpecialtyCommand command = AddStudentSpecialtyCommand.builder()
-                .studentProfileId(10L)
-                .specialtyId(1L)
-                .build();
+        AddStudentSpecialtyCommand command = AddStudentSpecialtyCommand.of(
+                10L,
+                1L);
 
         StudentSpecialty savedSpecialty = specialtyService.addStudentSpecialty(command);
 
@@ -52,10 +51,9 @@ class SpecialtyServiceTest {
     void rejectsMissingSpecialty() {
         when(specialtyRepository.existsById(99L)).thenReturn(false);
 
-        AddStudentSpecialtyCommand command = AddStudentSpecialtyCommand.builder()
-                .studentProfileId(10L)
-                .specialtyId(99L)
-                .build();
+        AddStudentSpecialtyCommand command = AddStudentSpecialtyCommand.of(
+                10L,
+                99L);
 
         assertThatThrownBy(() -> specialtyService.addStudentSpecialty(command))
                 .isInstanceOfSatisfying(BusinessException.class, exception ->

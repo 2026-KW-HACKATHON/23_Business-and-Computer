@@ -71,4 +71,29 @@ public class Owner {
     @UpdateTimestamp
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
+
+    public static Owner create(
+            String userId,
+            String businessNumber,
+            LocalDate openedAt,
+            String representativeName,
+            String storeName,
+            Long categoryId,
+            String storeAddress,
+            String description,
+            String profileImageUrl,
+            List<String> storeImageUrls) {
+        return Owner.builder()
+                .userId(userId)
+                .businessNumber(businessNumber)
+                .openedAt(openedAt)
+                .representativeName(representativeName)
+                .storeName(storeName)
+                .categoryId(categoryId)
+                .storeAddress(storeAddress)
+                .description(description)
+                .profileImageUrl(profileImageUrl)
+                .storeImageUrls(storeImageUrls)
+                .build();
+    }
 }

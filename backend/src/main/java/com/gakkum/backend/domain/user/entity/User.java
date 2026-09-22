@@ -66,4 +66,9 @@ public class User {
         this.email = email;
         this.role = UserRole.STUDENT;
     }
+
+    public void completeOwnerRegistration(String name) {
+        this.name = name;
+        this.role = UserRole.OWNER;
+    }
 }

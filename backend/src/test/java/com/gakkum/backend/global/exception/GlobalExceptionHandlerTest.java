@@ -58,6 +58,16 @@ class GlobalExceptionHandlerTest {
     }
 
     @Test
+    void malformedRequestBodyReturnsCommonValidationError() throws Exception {
+        mockMvc.perform(post("/test/validation")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"name\":"))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.success").value(false))
+            .andExpect(jsonPath("$.error.code").value("COMMON_400"));
+    }
+
+    @Test
     void unexpectedExceptionReturnsSafeInternalServerError() throws Exception {
         mockMvc.perform(get("/test/unexpected-error"))
             .andExpect(status().isInternalServerError())
