@@ -16,7 +16,7 @@ import lombok.RequiredArgsConstructor;
 
 @Component
 @RequiredArgsConstructor
-public class OwnerRegistrationFacade {
+public class OwnerFacade {
 
     private final UserService userService;
     private final OwnerService ownerService;

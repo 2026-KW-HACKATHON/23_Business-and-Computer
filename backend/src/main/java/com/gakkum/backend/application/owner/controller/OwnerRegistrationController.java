@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.gakkum.backend.application.owner.dto.OwnerRegistrationRequest;
 import com.gakkum.backend.application.owner.dto.OwnerRegistrationResponse;
-import com.gakkum.backend.application.owner.facade.OwnerRegistrationFacade;
+import com.gakkum.backend.application.owner.facade.OwnerFacade;
 import com.gakkum.backend.global.response.ApiResponse;
 
 import jakarta.servlet.http.HttpServletResponse;
@@ -24,14 +24,14 @@ public class OwnerRegistrationController {
 
     private static final Duration REFRESH_TOKEN_MAX_AGE = Duration.ofDays(7);
 
-    private final OwnerRegistrationFacade ownerRegistrationFacade;
+    private final OwnerFacade ownerFacade;
 
     @PostMapping("/auth/owner")
     public ApiResponse<OwnerRegistrationResponse> register(
             Authentication authentication,
             @Valid @RequestBody OwnerRegistrationRequest request,
             HttpServletResponse httpServletResponse) {
-        OwnerRegistrationResponse response = ownerRegistrationFacade.register(
+        OwnerRegistrationResponse response = ownerFacade.register(
                 authentication.getName(),
                 request);
 

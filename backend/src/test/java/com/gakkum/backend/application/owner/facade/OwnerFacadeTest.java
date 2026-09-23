@@ -30,13 +30,13 @@ import com.gakkum.backend.domain.user.service.UserService;
 import com.gakkum.backend.global.exception.BusinessException;
 import com.gakkum.backend.global.exception.ErrorCode;
 
-class OwnerRegistrationFacadeTest {
+class OwnerFacadeTest {
 
     private final UserService userService = mock(UserService.class);
     private final OwnerService ownerService = mock(OwnerService.class);
     private final BusinessCategoryService businessCategoryService = mock(BusinessCategoryService.class);
     private final JwtService jwtService = mock(JwtService.class);
-    private final OwnerRegistrationFacade facade = new OwnerRegistrationFacade(
+    private final OwnerFacade facade = new OwnerFacade(
             userService,
             ownerService,
             businessCategoryService,

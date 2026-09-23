@@ -19,7 +19,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 
 import com.gakkum.backend.application.owner.dto.OwnerRegistrationRequest;
 import com.gakkum.backend.application.owner.dto.OwnerRegistrationResponse;
-import com.gakkum.backend.application.owner.facade.OwnerRegistrationFacade;
+import com.gakkum.backend.application.owner.facade.OwnerFacade;
 import com.gakkum.backend.domain.owner.dto.OwnerCommandDto.CreateOwnerProfileCommand;
 import com.gakkum.backend.global.response.ApiResponse;
 
@@ -29,14 +29,14 @@ import tools.jackson.databind.ObjectMapper;
 
 class OwnerRegistrationControllerTest {
 
-    private final OwnerRegistrationFacade ownerRegistrationFacade = mock(OwnerRegistrationFacade.class);
+    private final OwnerFacade ownerFacade = mock(OwnerFacade.class);
     private final OwnerRegistrationController controller =
-            new OwnerRegistrationController(ownerRegistrationFacade);
+            new OwnerRegistrationController(ownerFacade);
     private final Validator validator = Validation.buildDefaultValidatorFactory().getValidator();
 
     @Test
     void returnsAccessTokenAndSetsRefreshTokenCookie() throws Exception {
-        when(ownerRegistrationFacade.register(eq("KAKAO_12345"), any(OwnerRegistrationRequest.class)))
+        when(ownerFacade.register(eq("KAKAO_12345"), any(OwnerRegistrationRequest.class)))
                 .thenReturn(OwnerRegistrationResponse.of("access-token", "refresh-token"));
         MockHttpServletResponse servletResponse = new MockHttpServletResponse();
 
@@ -56,7 +56,7 @@ class OwnerRegistrationControllerTest {
 
         ArgumentCaptor<OwnerRegistrationRequest> requestCaptor =
                 ArgumentCaptor.forClass(OwnerRegistrationRequest.class);
-        verify(ownerRegistrationFacade).register(eq("KAKAO_12345"), requestCaptor.capture());
+        verify(ownerFacade).register(eq("KAKAO_12345"), requestCaptor.capture());
         assertThat(requestCaptor.getValue().getNormalizedBusinessNumber()).isEqualTo("1234567890");
         assertThat(requestCaptor.getValue().getStoreImageUrls()).isNull();
     }
