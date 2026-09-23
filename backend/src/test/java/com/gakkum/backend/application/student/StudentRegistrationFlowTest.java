@@ -25,8 +25,8 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
-import com.gakkum.backend.application.student.controller.StudentRegistrationController;
-import com.gakkum.backend.application.student.facade.StudentRegistrationFacade;
+import com.gakkum.backend.application.student.controller.StudentController;
+import com.gakkum.backend.application.student.facade.StudentFacade;
 import com.gakkum.backend.domain.certificate.entity.StudentCertificate;
 import com.gakkum.backend.domain.certificate.repository.StudentCertificateRepository;
 import com.gakkum.backend.domain.certificate.service.CertificateService;
@@ -67,13 +67,13 @@ class StudentRegistrationFlowTest {
         StudentService studentService = new StudentService(studentRepository);
         SpecialtyService specialtyService = new SpecialtyService(specialtyRepository, studentSpecialtyRepository);
         CertificateService certificateService = new CertificateService(studentCertificateRepository);
-        StudentRegistrationFacade facade = new StudentRegistrationFacade(
+        StudentFacade facade = new StudentFacade(
                 userService,
                 studentService,
                 specialtyService,
                 certificateService,
                 jwtService);
-        StudentRegistrationController controller = new StudentRegistrationController(facade);
+        StudentController controller = new StudentController(facade);
 
         mockMvc = MockMvcBuilders.standaloneSetup(controller)
                 .setControllerAdvice(new GlobalExceptionHandler())

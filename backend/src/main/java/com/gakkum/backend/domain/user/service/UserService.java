@@ -116,6 +116,12 @@ public class UserService extends DefaultOAuth2UserService {
         return findPendingUser(username);
     }
 
+    @Transactional(readOnly = true)
+    public User getActiveUser(String username) {
+        return userRepository.findByUsernameAndIsLock(username, false)
+                .orElseThrow(() -> new BusinessException(ErrorCode.UNAUTHORIZED));
+    }
+
     private User findPendingUser(String username) {
         User user = userRepository.findByUsernameAndIsLock(username, false)
                 .orElseThrow(() -> new BusinessException(ErrorCode.UNAUTHORIZED));

@@ -11,6 +11,9 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
+
+import com.gakkum.backend.domain.student.dto.StudentCommandDto.CreateStudentProfileCommand;
+
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -84,23 +87,31 @@ public class StudentRegistrationRequest {
                 .build();
     }
 
-    public StudentRegistrationCommand toCommand() {
-        List<Long> normalizedSpecialtyIds = specialtyIds == null ? List.of() : List.copyOf(specialtyIds);
-        List<StudentRegistrationCommand.CertificateCommand> normalizedCertificates = certificates == null
-                ? List.of()
-                : certificates.stream().map(CertificateRequest::toCommand).toList();
+    public String getStudentName() {
+        return name.trim();
+    }
 
-        return StudentRegistrationCommand.of(
-                name.trim(),
-                email.trim().toLowerCase(Locale.ROOT),
+    public String getNormalizedEmail() {
+        return email.trim().toLowerCase(Locale.ROOT);
+    }
+
+    public List<Long> getNormalizedSpecialtyIds() {
+        return specialtyIds == null ? List.of() : List.copyOf(specialtyIds);
+    }
+
+    public List<CertificateRequest> getNormalizedCertificates() {
+        return certificates == null ? List.of() : certificates;
+    }
+
+    public CreateStudentProfileCommand toCommand(String userId) {
+        return CreateStudentProfileCommand.of(
+                userId,
                 university,
                 studentNumber,
                 major.trim(),
                 normalizeOptional(portfolioUrl),
                 normalizeOptional(introduction),
-                normalizeOptional(profileImageUrl),
-                normalizedSpecialtyIds,
-                normalizedCertificates);
+                normalizeOptional(profileImageUrl));
     }
 
     private static String normalizeOptional(String value) {
@@ -136,11 +147,12 @@ public class StudentRegistrationRequest {
                     .build();
         }
 
-        private StudentRegistrationCommand.CertificateCommand toCommand() {
-            return StudentRegistrationCommand.CertificateCommand.of(
-                    certificateName.trim(),
-                    acquiredYear,
-                    issuingOrganization.trim());
+        public String getNormalizedCertificateName() {
+            return certificateName.trim();
+        }
+
+        public String getNormalizedIssuingOrganization() {
+            return issuingOrganization.trim();
         }
     }
 }

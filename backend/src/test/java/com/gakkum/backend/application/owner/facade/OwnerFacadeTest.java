@@ -18,7 +18,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InOrder;
 
-import com.gakkum.backend.application.owner.dto.OwnerRegistrationCommand;
+import com.gakkum.backend.application.owner.dto.OwnerRegistrationRequest;
 import com.gakkum.backend.application.owner.dto.OwnerRegistrationResponse;
 import com.gakkum.backend.domain.category.service.BusinessCategoryService;
 import com.gakkum.backend.domain.jwt.service.JwtService;
@@ -30,13 +30,13 @@ import com.gakkum.backend.domain.user.service.UserService;
 import com.gakkum.backend.global.exception.BusinessException;
 import com.gakkum.backend.global.exception.ErrorCode;
 
-class OwnerRegistrationFacadeTest {
+class OwnerFacadeTest {
 
     private final UserService userService = mock(UserService.class);
     private final OwnerService ownerService = mock(OwnerService.class);
     private final BusinessCategoryService businessCategoryService = mock(BusinessCategoryService.class);
     private final JwtService jwtService = mock(JwtService.class);
-    private final OwnerRegistrationFacade facade = new OwnerRegistrationFacade(
+    private final OwnerFacade facade = new OwnerFacade(
             userService,
             ownerService,
             businessCategoryService,
@@ -49,7 +49,7 @@ class OwnerRegistrationFacadeTest {
             .role(UserRole.PENDING)
             .build();
 
-    private final OwnerRegistrationCommand command = OwnerRegistrationCommand.of(
+    private final OwnerRegistrationRequest request = OwnerRegistrationRequest.of(
             "김사장",
             "치킨플러스",
             "서울시 월계1동 광운로23",
@@ -68,7 +68,7 @@ class OwnerRegistrationFacadeTest {
         when(jwtService.issueAccessToken("KAKAO_12345", UserRole.OWNER)).thenReturn("access-token");
         when(jwtService.replaceRefreshToken("KAKAO_12345", UserRole.OWNER)).thenReturn("refresh-token");
 
-        OwnerRegistrationResponse response = facade.register("KAKAO_12345", command);
+        OwnerRegistrationResponse response = facade.register("KAKAO_12345", request);
 
         assertThat(response.getAccessToken()).isEqualTo("access-token");
         assertThat(response.getRefreshToken()).isEqualTo("refresh-token");
@@ -104,7 +104,7 @@ class OwnerRegistrationFacadeTest {
         when(userService.validateOwnerRegistration("KAKAO_12345"))
                 .thenThrow(new BusinessException(ErrorCode.ALREADY_REGISTERED));
 
-        assertThatThrownBy(() -> facade.register("KAKAO_12345", command))
+        assertThatThrownBy(() -> facade.register("KAKAO_12345", request))
                 .isInstanceOfSatisfying(BusinessException.class, exception ->
                         assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.ALREADY_REGISTERED));
 
@@ -118,7 +118,7 @@ class OwnerRegistrationFacadeTest {
         doThrow(new BusinessException(ErrorCode.DUPLICATE_BUSINESS_NUMBER))
                 .when(ownerService).validateBusinessNumberAvailable("12341453312");
 
-        assertThatThrownBy(() -> facade.register("KAKAO_12345", command))
+        assertThatThrownBy(() -> facade.register("KAKAO_12345", request))
                 .isInstanceOfSatisfying(BusinessException.class, exception ->
                         assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.DUPLICATE_BUSINESS_NUMBER));
 
@@ -133,7 +133,7 @@ class OwnerRegistrationFacadeTest {
         doThrow(new BusinessException(ErrorCode.BUSINESS_CATEGORY_NOT_FOUND))
                 .when(businessCategoryService).validateCategoryExists(2L);
 
-        assertThatThrownBy(() -> facade.register("KAKAO_12345", command))
+        assertThatThrownBy(() -> facade.register("KAKAO_12345", request))
                 .isInstanceOfSatisfying(BusinessException.class, exception ->
                         assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.BUSINESS_CATEGORY_NOT_FOUND));
 

@@ -1,4 +1,4 @@
-package com.gakkum.backend.domain.specialty.controller;
+package com.gakkum.backend.application.specialty.controller;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;

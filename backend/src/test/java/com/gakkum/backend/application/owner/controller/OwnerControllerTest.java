@@ -17,26 +17,26 @@ import org.mockito.ArgumentCaptor;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 
-import com.gakkum.backend.application.owner.dto.OwnerRegistrationCommand;
 import com.gakkum.backend.application.owner.dto.OwnerRegistrationRequest;
 import com.gakkum.backend.application.owner.dto.OwnerRegistrationResponse;
-import com.gakkum.backend.application.owner.facade.OwnerRegistrationFacade;
+import com.gakkum.backend.application.owner.facade.OwnerFacade;
+import com.gakkum.backend.domain.owner.dto.OwnerCommandDto.CreateOwnerProfileCommand;
 import com.gakkum.backend.global.response.ApiResponse;
 
 import jakarta.validation.Validation;
 import jakarta.validation.Validator;
 import tools.jackson.databind.ObjectMapper;
 
-class OwnerRegistrationControllerTest {
+class OwnerControllerTest {
 
-    private final OwnerRegistrationFacade ownerRegistrationFacade = mock(OwnerRegistrationFacade.class);
-    private final OwnerRegistrationController controller =
-            new OwnerRegistrationController(ownerRegistrationFacade);
+    private final OwnerFacade ownerFacade = mock(OwnerFacade.class);
+    private final OwnerController controller =
+            new OwnerController(ownerFacade);
     private final Validator validator = Validation.buildDefaultValidatorFactory().getValidator();
 
     @Test
     void returnsAccessTokenAndSetsRefreshTokenCookie() throws Exception {
-        when(ownerRegistrationFacade.register(eq("KAKAO_12345"), any(OwnerRegistrationCommand.class)))
+        when(ownerFacade.register(eq("KAKAO_12345"), any(OwnerRegistrationRequest.class)))
                 .thenReturn(OwnerRegistrationResponse.of("access-token", "refresh-token"));
         MockHttpServletResponse servletResponse = new MockHttpServletResponse();
 
@@ -54,11 +54,11 @@ class OwnerRegistrationControllerTest {
         assertThat(json).contains("\"accessToken\":\"access-token\"");
         assertThat(json).doesNotContain("refresh-token", "refreshToken");
 
-        ArgumentCaptor<OwnerRegistrationCommand> commandCaptor =
-                ArgumentCaptor.forClass(OwnerRegistrationCommand.class);
-        verify(ownerRegistrationFacade).register(eq("KAKAO_12345"), commandCaptor.capture());
-        assertThat(commandCaptor.getValue().getBusinessNumber()).isEqualTo("1234567890");
-        assertThat(commandCaptor.getValue().getStoreImageUrls()).isEmpty();
+        ArgumentCaptor<OwnerRegistrationRequest> requestCaptor =
+                ArgumentCaptor.forClass(OwnerRegistrationRequest.class);
+        verify(ownerFacade).register(eq("KAKAO_12345"), requestCaptor.capture());
+        assertThat(requestCaptor.getValue().getNormalizedBusinessNumber()).isEqualTo("1234567890");
+        assertThat(requestCaptor.getValue().getStoreImageUrls()).isNull();
     }
 
     @Test
@@ -160,9 +160,11 @@ class OwnerRegistrationControllerTest {
                 List.of(" https://image.example.com/store.png "),
                 "");
 
-        OwnerRegistrationCommand command = request.toCommand();
+        assertThat(request.getOwnerName()).isEqualTo("김사장");
 
-        assertThat(command.getName()).isEqualTo("김사장");
+        CreateOwnerProfileCommand command = request.toCommand("01K58M6PJV8VAJMXHBHJ2PNB5C");
+
+        assertThat(command.getUserId()).isEqualTo("01K58M6PJV8VAJMXHBHJ2PNB5C");
         assertThat(command.getStoreName()).isEqualTo("치킨플러스");
         assertThat(command.getStoreAddress()).isNull();
         assertThat(command.getCategoryId()).isEqualTo(2L);

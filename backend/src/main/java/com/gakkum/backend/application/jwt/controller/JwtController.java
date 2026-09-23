@@ -1,4 +1,4 @@
-package com.gakkum.backend.domain.jwt.controller;
+package com.gakkum.backend.application.jwt.controller;
 
 import com.gakkum.backend.domain.jwt.dto.JWTResponseDTO;
 import com.gakkum.backend.domain.jwt.dto.RefreshRequestDTO;

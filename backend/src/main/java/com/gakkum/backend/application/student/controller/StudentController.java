@@ -1,4 +1,4 @@
-package com.gakkum.backend.application.owner.controller;
+package com.gakkum.backend.application.student.controller;
 
 import java.time.Duration;
 
@@ -9,9 +9,9 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.gakkum.backend.application.owner.dto.OwnerRegistrationRequest;
-import com.gakkum.backend.application.owner.dto.OwnerRegistrationResponse;
-import com.gakkum.backend.application.owner.facade.OwnerRegistrationFacade;
+import com.gakkum.backend.application.student.dto.StudentRegistrationRequest;
+import com.gakkum.backend.application.student.dto.StudentRegistrationResponse;
+import com.gakkum.backend.application.student.facade.StudentFacade;
 import com.gakkum.backend.global.response.ApiResponse;
 
 import jakarta.servlet.http.HttpServletResponse;
@@ -20,20 +20,20 @@ import lombok.RequiredArgsConstructor;
 
 @RestController
 @RequiredArgsConstructor
-public class OwnerRegistrationController {
+public class StudentController {
 
     private static final Duration REFRESH_TOKEN_MAX_AGE = Duration.ofDays(7);
 
-    private final OwnerRegistrationFacade ownerRegistrationFacade;
+    private final StudentFacade studentFacade;
 
-    @PostMapping("/auth/owner")
-    public ApiResponse<OwnerRegistrationResponse> register(
+    @PostMapping("/auth/student")
+    public ApiResponse<StudentRegistrationResponse> register(
             Authentication authentication,
-            @Valid @RequestBody OwnerRegistrationRequest request,
+            @Valid @RequestBody StudentRegistrationRequest request,
             HttpServletResponse httpServletResponse) {
-        OwnerRegistrationResponse response = ownerRegistrationFacade.register(
+        StudentRegistrationResponse response = studentFacade.register(
                 authentication.getName(),
-                request.toCommand());
+                request);
 
         ResponseCookie refreshCookie = ResponseCookie.from("refreshToken", response.getRefreshToken())
                 .path("/")
