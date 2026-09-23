@@ -10,6 +10,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import com.gakkum.backend.domain.specialty.dto.SpecialtyQueryDto.SpecialtyCategoryResponse;
+import com.gakkum.backend.domain.specialty.dto.SpecialtyQueryDto.SpecialtyListResponse;
 import com.gakkum.backend.domain.specialty.dto.SpecialtyQueryDto.SpecialtyResponse;
 import com.gakkum.backend.domain.specialty.service.SpecialtyCategoryService;
 import com.gakkum.backend.global.response.ApiResponse;
@@ -34,17 +35,20 @@ class SpecialtyControllerTest {
                 List.of(SpecialtyResponse.of(1L, "백엔드"), SpecialtyResponse.of(2L, "프론트엔드")));
         when(specialtyCategoryService.getSpecialtyCategories()).thenReturn(List.of(category));
 
-        ApiResponse<List<SpecialtyCategoryResponse>> response = controller.getSpecialties();
+        ApiResponse<SpecialtyListResponse> response = controller.getSpecialties();
 
         // success=true와 함께 대분류 데이터가 그대로 담기는지 확인
         assertThat(response.isSuccess()).isTrue();
-        assertThat(response.getData()).hasSize(1);
+        assertThat(response.getData().getCategories()).hasSize(1);
 
         // 실제 JSON으로 직렬화했을 때도 success 필드와 중첩된 대분류/특기 정보가 포함되는지 확인
         String json = new ObjectMapper().writeValueAsString(response);
         log.info("GET /specialties 응답 JSON: {}", json);
         assertThat(json).contains("\"success\":true");
         assertThat(json).contains("\"id\":1", "\"name\":\"IT/개발\"", "\"name\":\"백엔드\"", "\"name\":\"프론트엔드\"");
+        // 응답용 DTO로 감쌌더라도 data는 객체가 아닌 배열 형태(API 스펙)를 유지하는지 확인
+        assertThat(json).contains("\"data\":[{");
+        assertThat(json).doesNotContain("\"categories\"");
     }
 
     @Test
@@ -53,12 +57,13 @@ class SpecialtyControllerTest {
         // 서비스가 빈 목록을 반환하는 상황을 준비
         when(specialtyCategoryService.getSpecialtyCategories()).thenReturn(List.of());
 
-        ApiResponse<List<SpecialtyCategoryResponse>> response = controller.getSpecialties();
+        ApiResponse<SpecialtyListResponse> response = controller.getSpecialties();
 
-        log.info("GET /specialties 응답 (대분류 없음): success={}, data={}", response.isSuccess(), response.getData());
+        log.info("GET /specialties 응답 (대분류 없음): success={}, data={}",
+                response.isSuccess(), response.getData().getCategories());
 
         // 실패가 아니라 성공 응답 + 빈 데이터로 반환되는지 확인
         assertThat(response.isSuccess()).isTrue();
-        assertThat(response.getData()).isEmpty();
+        assertThat(response.getData().getCategories()).isEmpty();
     }
 }
