@@ -2,10 +2,12 @@ package com.gakkum.backend.config;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
@@ -18,13 +20,16 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.gakkum.backend.domain.specialty.controller.SpecialtyController;
+import com.gakkum.backend.domain.specialty.service.SpecialtyCategoryService;
 import com.gakkum.backend.global.exception.RestAuthenticationEntryPoint;
 import com.gakkum.backend.global.response.ApiResponse;
 import com.gakkum.backend.domain.jwt.service.JwtService;
 import com.gakkum.backend.domain.user.service.UserService;
 import com.gakkum.backend.util.JWTUtil;
 
-@WebMvcTest(controllers = SecurityConfigTest.TestController.class)
+@DisplayName("보안 설정 - 기본 거부(default-deny) 인증 정책 검증")
+@WebMvcTest(controllers = {SecurityConfigTest.TestController.class, SpecialtyController.class})
 @Import({SecurityConfig.class, RestAuthenticationEntryPoint.class})
 class SecurityConfigTest {
 
@@ -46,11 +51,19 @@ class SecurityConfigTest {
     @MockitoBean
     private ClientRegistrationRepository clientRegistrationRepository;
 
+    @MockitoBean
+    private SpecialtyCategoryService specialtyCategoryService;
+
     @Test
+    @DisplayName("인증 없이 임의의 보호된 API를 호출하면 공통 401 응답 형식으로 반환된다")
     void unauthenticatedRequestReturnsCommonUnauthorizedResponse() throws Exception {
+        // 인증 정보 없이 임의의 보호 대상 엔드포인트를 호출
         mockMvc.perform(get("/api/protected"))
+            // 실제 요청/응답(상태 코드, 헤더, 본문)을 콘솔 로그로 출력
+            .andDo(print())
             .andExpect(status().isUnauthorized())
             .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+            // 공통 에러 응답 형식(success=false, data 없음, error.code/message)을 따르는지 확인
             .andExpect(jsonPath("$.success").value(false))
             .andExpect(jsonPath("$.data").isEmpty())
             .andExpect(jsonPath("$.error.code").value("COMMON_401"))
@@ -58,19 +71,35 @@ class SecurityConfigTest {
     }
 
     @Test
+    @DisplayName("인증 없이 학생 회원가입을 요청하면 401을 반환한다")
     void studentRegistrationRequiresAuthentication() throws Exception {
+        // 인증 헤더 없이 학생 회원가입 API 호출 시 기본 거부 정책에 의해 차단되는지 검증
         mockMvc.perform(post("/auth/student")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{}"))
+            .andDo(print())
             .andExpect(status().isUnauthorized())
             .andExpect(jsonPath("$.error.code").value("COMMON_401"));
     }
 
     @Test
+    @DisplayName("인증 없이 사장님 회원가입을 요청하면 401을 반환한다")
     void ownerRegistrationRequiresAuthentication() throws Exception {
+        // 인증 헤더 없이 사장님 회원가입 API 호출 시 기본 거부 정책에 의해 차단되는지 검증
         mockMvc.perform(post("/auth/owner")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{}"))
+            .andDo(print())
+            .andExpect(status().isUnauthorized())
+            .andExpect(jsonPath("$.error.code").value("COMMON_401"));
+    }
+
+    @Test
+    @DisplayName("인증 없이 대분류/특기 목록을 조회하면 401을 반환한다")
+    void specialtiesRequiresAuthentication() throws Exception {
+        // GET /specialties 도 다른 API와 동일하게 기본 거부 정책이 적용되는지 검증
+        mockMvc.perform(get("/specialties"))
+            .andDo(print())
             .andExpect(status().isUnauthorized())
             .andExpect(jsonPath("$.error.code").value("COMMON_401"));
     }
