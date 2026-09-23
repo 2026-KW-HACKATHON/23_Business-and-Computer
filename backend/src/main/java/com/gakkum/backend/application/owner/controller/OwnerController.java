@@ -20,7 +20,7 @@ import lombok.RequiredArgsConstructor;
 
 @RestController
 @RequiredArgsConstructor
-public class OwnerRegistrationController {
+public class OwnerController {
 
     private static final Duration REFRESH_TOKEN_MAX_AGE = Duration.ofDays(7);
 

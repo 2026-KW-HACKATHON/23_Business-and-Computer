@@ -27,11 +27,11 @@ import jakarta.validation.Validation;
 import jakarta.validation.Validator;
 import tools.jackson.databind.ObjectMapper;
 
-class OwnerRegistrationControllerTest {
+class OwnerControllerTest {
 
     private final OwnerFacade ownerFacade = mock(OwnerFacade.class);
-    private final OwnerRegistrationController controller =
-            new OwnerRegistrationController(ownerFacade);
+    private final OwnerController controller =
+            new OwnerController(ownerFacade);
     private final Validator validator = Validation.buildDefaultValidatorFactory().getValidator();
 
     @Test

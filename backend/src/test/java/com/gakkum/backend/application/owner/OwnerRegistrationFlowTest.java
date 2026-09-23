@@ -30,7 +30,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
-import com.gakkum.backend.application.owner.controller.OwnerRegistrationController;
+import com.gakkum.backend.application.owner.controller.OwnerController;
 import com.gakkum.backend.application.owner.facade.OwnerFacade;
 import com.gakkum.backend.domain.category.repository.BusinessCategoryRepository;
 import com.gakkum.backend.domain.category.service.BusinessCategoryService;
@@ -97,7 +97,7 @@ class OwnerRegistrationFlowTest {
                 ownerService,
                 businessCategoryService,
                 jwtService);
-        OwnerRegistrationController controller = new OwnerRegistrationController(facade);
+        OwnerController controller = new OwnerController(facade);
 
         mockMvc = MockMvcBuilders.standaloneSetup(controller)
                 .setControllerAdvice(new GlobalExceptionHandler())
