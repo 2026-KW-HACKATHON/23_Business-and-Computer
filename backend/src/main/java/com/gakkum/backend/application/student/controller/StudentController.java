@@ -20,7 +20,7 @@ import lombok.RequiredArgsConstructor;
 
 @RestController
 @RequiredArgsConstructor
-public class StudentRegistrationController {
+public class StudentController {
 
     private static final Duration REFRESH_TOKEN_MAX_AGE = Duration.ofDays(7);
 

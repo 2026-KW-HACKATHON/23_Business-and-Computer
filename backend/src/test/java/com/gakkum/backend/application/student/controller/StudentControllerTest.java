@@ -23,11 +23,11 @@ import jakarta.validation.Validation;
 import jakarta.validation.Validator;
 import tools.jackson.databind.ObjectMapper;
 
-class StudentRegistrationControllerTest {
+class StudentControllerTest {
 
     private final StudentFacade studentFacade = mock(StudentFacade.class);
-    private final StudentRegistrationController controller =
-            new StudentRegistrationController(studentFacade);
+    private final StudentController controller =
+            new StudentController(studentFacade);
 
     @Test
     void returnsAccessTokenAndSetsRefreshTokenCookie() throws Exception {
