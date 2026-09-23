@@ -44,8 +44,14 @@ public class Job {
     @Column(nullable = false)
     private Long budget;
 
-    @Column(nullable = false)
-    private LocalDate deadline;
+    @Column(name = "draft_deadline", nullable = false)
+    private LocalDate draftDeadline;
+
+    @Column(name = "final_deadline", nullable = false)
+    private LocalDate finalDeadline;
+
+    @Column(name = "revision_count", nullable = false)
+    private Integer revisionCount;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 30)
@@ -61,4 +67,24 @@ public class Job {
     @UpdateTimestamp
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
+
+    public static Job create(
+            Long ownerProfileId,
+            String title,
+            String description,
+            Long budget,
+            LocalDate draftDeadline,
+            LocalDate finalDeadline,
+            Integer revisionCount) {
+        return Job.builder()
+                .ownerProfileId(ownerProfileId)
+                .title(title)
+                .description(description)
+                .budget(budget)
+                .draftDeadline(draftDeadline)
+                .finalDeadline(finalDeadline)
+                .revisionCount(revisionCount)
+                .status(JobStatus.OPEN)
+                .build();
+    }
 }

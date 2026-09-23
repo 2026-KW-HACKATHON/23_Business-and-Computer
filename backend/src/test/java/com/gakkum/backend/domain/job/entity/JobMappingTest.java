@@ -31,11 +31,14 @@ class JobMappingTest {
 
             Table jobs = metadata.getEntityBinding(Job.class.getName()).getTable();
             assertThat(jobs.getName()).isEqualTo("jobs");
-            assertNotNull(jobs, "owner_profile_id", "title", "description", "budget", "deadline", "status");
+            assertNotNull(jobs, "owner_profile_id", "title", "description", "budget", "draft_deadline",
+                    "final_deadline", "revision_count", "status");
             assertThat(jobs.getColumn(new Column("selected_student_profile_id")).isNullable()).isTrue();
             assertThat(jobs.getColumn(new Column("description")).getSqlType(metadata)).isEqualTo("TEXT");
             assertThat(jobs.getColumn(new Column("budget")).getSqlType(metadata)).isEqualTo("bigint");
-            assertThat(jobs.getColumn(new Column("deadline")).getSqlType(metadata)).isEqualTo("date");
+            assertThat(jobs.getColumn(new Column("draft_deadline")).getSqlType(metadata)).isEqualTo("date");
+            assertThat(jobs.getColumn(new Column("final_deadline")).getSqlType(metadata)).isEqualTo("date");
+            assertThat(jobs.getColumn(new Column("revision_count")).getSqlType(metadata)).isEqualTo("integer");
             assertThat(jobs.getColumn(new Column("status")).getLength()).isEqualTo(30L);
 
             Table specialties = metadata.getEntityBinding(JobSpecialty.class.getName()).getTable();
@@ -58,7 +61,8 @@ class JobMappingTest {
             assertThat(jobs.getForeignKeyCollection()).isEmpty();
             assertThat(specialties.getForeignKeyCollection()).isEmpty();
             assertThat(applications.getForeignKeyCollection()).isEmpty();
-            assertThat(Job.class.getDeclaredField("deadline").getType()).isEqualTo(LocalDate.class);
+            assertThat(Job.class.getDeclaredField("draftDeadline").getType()).isEqualTo(LocalDate.class);
+            assertThat(Job.class.getDeclaredField("finalDeadline").getType()).isEqualTo(LocalDate.class);
             assertThat(Job.class.getDeclaredField("status").getAnnotation(Enumerated.class).value())
                     .isEqualTo(EnumType.STRING);
             assertThat(JobApplication.class.getDeclaredField("status").getAnnotation(Enumerated.class).value())
