@@ -14,7 +14,7 @@ import lombok.RequiredArgsConstructor;
 
 @RestController
 @RequiredArgsConstructor
-public class JobCreationController {
+public class JobController {
 
     private final JobFacade jobFacade;
 
