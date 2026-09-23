@@ -9,6 +9,9 @@ import jakarta.validation.constraints.PastOrPresent;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
+
+import com.gakkum.backend.domain.owner.dto.OwnerCommandDto.CreateOwnerProfileCommand;
+
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -79,22 +82,30 @@ public class OwnerRegistrationRequest {
                 .build();
     }
 
-    public OwnerRegistrationCommand toCommand() {
+    public String getOwnerName() {
+        return name.trim();
+    }
+
+    public String getNormalizedBusinessNumber() {
+        return businessNumber.replace("-", "");
+    }
+
+    public CreateOwnerProfileCommand toCommand(String userId) {
         List<String> normalizedStoreImageUrls = storeImageUrls == null
                 ? List.of()
                 : storeImageUrls.stream().map(String::trim).toList();
 
-        return OwnerRegistrationCommand.of(
-                name.trim(),
-                storeName.trim(),
-                normalizeOptional(storeAddress),
-                categoryId,
-                businessNumber.replace("-", ""),
+        return CreateOwnerProfileCommand.of(
+                userId,
+                getNormalizedBusinessNumber(),
                 openedAt,
                 normalizeOptional(representativeName),
+                storeName.trim(),
+                categoryId,
+                normalizeOptional(storeAddress),
                 normalizeOptional(description),
-                normalizedStoreImageUrls,
-                normalizeOptional(profileImageUrl));
+                normalizeOptional(profileImageUrl),
+                normalizedStoreImageUrls);
     }
 
     private static String normalizeOptional(String value) {

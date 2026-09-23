@@ -33,7 +33,7 @@ public class OwnerRegistrationController {
             HttpServletResponse httpServletResponse) {
         OwnerRegistrationResponse response = ownerRegistrationFacade.register(
                 authentication.getName(),
-                request.toCommand());
+                request);
 
         ResponseCookie refreshCookie = ResponseCookie.from("refreshToken", response.getRefreshToken())
                 .path("/")
