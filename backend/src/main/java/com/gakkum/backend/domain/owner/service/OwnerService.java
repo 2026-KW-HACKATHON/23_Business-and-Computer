@@ -40,4 +40,10 @@ public class OwnerService {
             throw new BusinessException(ErrorCode.DUPLICATE_BUSINESS_NUMBER);
         }
     }
+
+    @Transactional(readOnly = true)
+    public Owner getOwnerProfile(String userId) {
+        return ownerRepository.findByUserId(userId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.OWNER_PROFILE_NOT_FOUND));
+    }
 }
