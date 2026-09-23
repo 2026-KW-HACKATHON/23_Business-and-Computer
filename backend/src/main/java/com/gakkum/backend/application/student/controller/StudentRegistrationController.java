@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.gakkum.backend.application.student.dto.StudentRegistrationRequest;
 import com.gakkum.backend.application.student.dto.StudentRegistrationResponse;
-import com.gakkum.backend.application.student.facade.StudentRegistrationFacade;
+import com.gakkum.backend.application.student.facade.StudentFacade;
 import com.gakkum.backend.global.response.ApiResponse;
 
 import jakarta.servlet.http.HttpServletResponse;
@@ -24,14 +24,14 @@ public class StudentRegistrationController {
 
     private static final Duration REFRESH_TOKEN_MAX_AGE = Duration.ofDays(7);
 
-    private final StudentRegistrationFacade studentRegistrationFacade;
+    private final StudentFacade studentFacade;
 
     @PostMapping("/auth/student")
     public ApiResponse<StudentRegistrationResponse> register(
             Authentication authentication,
             @Valid @RequestBody StudentRegistrationRequest request,
             HttpServletResponse httpServletResponse) {
-        StudentRegistrationResponse response = studentRegistrationFacade.register(
+        StudentRegistrationResponse response = studentFacade.register(
                 authentication.getName(),
                 request);
 

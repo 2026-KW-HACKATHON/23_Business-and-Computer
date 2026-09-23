@@ -27,14 +27,14 @@ import com.gakkum.backend.domain.user.entity.User;
 import com.gakkum.backend.domain.user.entity.UserRole;
 import com.gakkum.backend.domain.user.service.UserService;
 
-class StudentRegistrationFacadeTest {
+class StudentFacadeTest {
 
     private final UserService userService = mock(UserService.class);
     private final StudentService studentService = mock(StudentService.class);
     private final SpecialtyService specialtyService = mock(SpecialtyService.class);
     private final CertificateService certificateService = mock(CertificateService.class);
     private final JwtService jwtService = mock(JwtService.class);
-    private final StudentRegistrationFacade facade = new StudentRegistrationFacade(
+    private final StudentFacade facade = new StudentFacade(
             userService,
             studentService,
             specialtyService,

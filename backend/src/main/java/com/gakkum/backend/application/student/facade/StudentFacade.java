@@ -23,7 +23,7 @@ import lombok.RequiredArgsConstructor;
 
 @Component
 @RequiredArgsConstructor
-public class StudentRegistrationFacade {
+public class StudentFacade {
 
     private final UserService userService;
     private final StudentService studentService;
