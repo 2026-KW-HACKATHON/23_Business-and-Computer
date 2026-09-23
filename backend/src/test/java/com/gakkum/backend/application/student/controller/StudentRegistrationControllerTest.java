@@ -13,10 +13,10 @@ import org.mockito.ArgumentCaptor;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 
-import com.gakkum.backend.application.student.dto.StudentRegistrationCommand;
 import com.gakkum.backend.application.student.dto.StudentRegistrationRequest;
 import com.gakkum.backend.application.student.dto.StudentRegistrationResponse;
 import com.gakkum.backend.application.student.facade.StudentRegistrationFacade;
+import com.gakkum.backend.domain.student.dto.StudentCommandDto.CreateStudentProfileCommand;
 import com.gakkum.backend.global.response.ApiResponse;
 
 import jakarta.validation.Validation;
@@ -35,7 +35,7 @@ class StudentRegistrationControllerTest {
         StudentRegistrationResponse registrationResponse =
                 StudentRegistrationResponse.of("access-token", "refresh-token");
         when(studentRegistrationFacade.register(eq("KAKAO_12345"),
-                org.mockito.ArgumentMatchers.any(StudentRegistrationCommand.class)))
+                org.mockito.ArgumentMatchers.any(StudentRegistrationRequest.class)))
                 .thenReturn(registrationResponse);
         MockHttpServletResponse servletResponse = new MockHttpServletResponse();
 
@@ -53,12 +53,12 @@ class StudentRegistrationControllerTest {
         assertThat(json).contains("\"accessToken\":\"access-token\"");
         assertThat(json).doesNotContain("refresh-token", "refreshToken");
 
-        ArgumentCaptor<StudentRegistrationCommand> commandCaptor =
-                ArgumentCaptor.forClass(StudentRegistrationCommand.class);
-        verify(studentRegistrationFacade).register(eq("KAKAO_12345"), commandCaptor.capture());
-        assertThat(commandCaptor.getValue().getEmail()).isEqualTo("kwangwoon@kw.ac.kr");
-        assertThat(commandCaptor.getValue().getSpecialtyIds()).isEmpty();
-        assertThat(commandCaptor.getValue().getCertificates()).isEmpty();
+        ArgumentCaptor<StudentRegistrationRequest> requestCaptor =
+                ArgumentCaptor.forClass(StudentRegistrationRequest.class);
+        verify(studentRegistrationFacade).register(eq("KAKAO_12345"), requestCaptor.capture());
+        assertThat(requestCaptor.getValue().getNormalizedEmail()).isEqualTo("kwangwoon@kw.ac.kr");
+        assertThat(requestCaptor.getValue().getNormalizedSpecialtyIds()).isEmpty();
+        assertThat(requestCaptor.getValue().getNormalizedCertificates()).isEmpty();
     }
 
     @Test
@@ -87,7 +87,8 @@ class StudentRegistrationControllerTest {
         StudentRegistrationRequest request = validRequest("student@kw.ac.kr");
 
         assertThat(validator.validate(request)).isEmpty();
-        assertThat(request.toCommand().getPortfolioUrl()).isNull();
+        CreateStudentProfileCommand command = request.toCommand("01K58M6PJV8VAJMXHBHJ2PNB5C");
+        assertThat(command.getPortfolioUrl()).isNull();
     }
 
     private StudentRegistrationRequest validRequest(String email) {

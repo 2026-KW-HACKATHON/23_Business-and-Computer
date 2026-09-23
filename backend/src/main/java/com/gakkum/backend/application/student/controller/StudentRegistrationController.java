@@ -33,7 +33,7 @@ public class StudentRegistrationController {
             HttpServletResponse httpServletResponse) {
         StudentRegistrationResponse response = studentRegistrationFacade.register(
                 authentication.getName(),
-                request.toCommand());
+                request);
 
         ResponseCookie refreshCookie = ResponseCookie.from("refreshToken", response.getRefreshToken())
                 .path("/")

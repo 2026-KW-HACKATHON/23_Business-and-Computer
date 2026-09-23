@@ -1,16 +1,18 @@
 package com.gakkum.backend.application.student.facade;
 
+import java.util.List;
+
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.gakkum.backend.application.student.dto.StudentRegistrationCommand;
+import com.gakkum.backend.application.student.dto.StudentRegistrationRequest;
+import com.gakkum.backend.application.student.dto.StudentRegistrationRequest.CertificateRequest;
 import com.gakkum.backend.application.student.dto.StudentRegistrationResponse;
 import com.gakkum.backend.domain.certificate.dto.CertificateCommandDto.AddStudentCertificateCommand;
 import com.gakkum.backend.domain.certificate.service.CertificateService;
 import com.gakkum.backend.domain.jwt.service.JwtService;
 import com.gakkum.backend.domain.specialty.dto.SpecialtyCommandDto.AddStudentSpecialtyCommand;
 import com.gakkum.backend.domain.specialty.service.SpecialtyService;
-import com.gakkum.backend.domain.student.dto.StudentCommandDto.CreateStudentProfileCommand;
 import com.gakkum.backend.domain.student.entity.Student;
 import com.gakkum.backend.domain.student.service.StudentService;
 import com.gakkum.backend.domain.user.entity.User;
@@ -30,32 +32,26 @@ public class StudentRegistrationFacade {
     private final JwtService jwtService;
 
     @Transactional
-    public StudentRegistrationResponse register(String username, StudentRegistrationCommand command) {
-        User user = userService.validateStudentRegistration(username, command.getEmail());
-        studentService.validateStudentNumberAvailable(command.getStudentNumber());
-        specialtyService.validateSpecialtyIds(command.getSpecialtyIds());
+    public StudentRegistrationResponse register(String username, StudentRegistrationRequest request) {
+        String normalizedEmail = request.getNormalizedEmail();
+        User user = userService.validateStudentRegistration(username, normalizedEmail);
+        studentService.validateStudentNumberAvailable(request.getStudentNumber());
+        List<Long> specialtyIds = request.getNormalizedSpecialtyIds();
+        specialtyService.validateSpecialtyIds(specialtyIds);
 
-        userService.completeStudentRegistration(user, command.getName(), command.getEmail());
-        Student student = studentService.createStudentProfile(CreateStudentProfileCommand.of(
-                user.getId(),
-                command.getUniversity(),
-                command.getStudentNumber(),
-                command.getMajor(),
-                command.getPortfolioUrl(),
-                command.getIntroduction(),
-                command.getProfileImageUrl())
-        );
+        userService.completeStudentRegistration(user, request.getStudentName(), normalizedEmail);
+        Student student = studentService.createStudentProfile(request.toCommand(user.getId()));
 
-        for (Long specialtyId : command.getSpecialtyIds()) {
+        for (Long specialtyId : specialtyIds) {
             specialtyService.addStudentSpecialty(AddStudentSpecialtyCommand.of(student.getId(), specialtyId));
         }
 
-        for (StudentRegistrationCommand.CertificateCommand certificate : command.getCertificates()) {
+        for (CertificateRequest certificate : request.getNormalizedCertificates()) {
             certificateService.addStudentCertificate(AddStudentCertificateCommand.of(
                     student.getId(),
-                    certificate.getCertificateName(),
+                    certificate.getNormalizedCertificateName(),
                     certificate.getAcquiredYear(),
-                    certificate.getIssuingOrganization()
+                    certificate.getNormalizedIssuingOrganization()
             ));
         }
 

@@ -12,7 +12,8 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InOrder;
 
-import com.gakkum.backend.application.student.dto.StudentRegistrationCommand;
+import com.gakkum.backend.application.student.dto.StudentRegistrationRequest;
+import com.gakkum.backend.application.student.dto.StudentRegistrationRequest.CertificateRequest;
 import com.gakkum.backend.application.student.dto.StudentRegistrationResponse;
 import com.gakkum.backend.domain.certificate.dto.CertificateCommandDto.AddStudentCertificateCommand;
 import com.gakkum.backend.domain.certificate.service.CertificateService;
@@ -56,7 +57,7 @@ class StudentRegistrationFacadeTest {
         when(studentService.createStudentProfile(any(CreateStudentProfileCommand.class))).thenReturn(student);
         when(jwtService.issueAccessToken("KAKAO_12345", UserRole.STUDENT)).thenReturn("access-token");
         when(jwtService.replaceRefreshToken("KAKAO_12345", UserRole.STUDENT)).thenReturn("refresh-token");
-        StudentRegistrationCommand command = StudentRegistrationCommand.of(
+        StudentRegistrationRequest request = StudentRegistrationRequest.of(
                 "김광운",
                 "kwangwoon@kw.ac.kr",
                 "광운대학교",
@@ -66,10 +67,10 @@ class StudentRegistrationFacadeTest {
                 null,
                 null,
                 List.of(1L, 2L),
-                List.of(StudentRegistrationCommand.CertificateCommand.of(
+                List.of(CertificateRequest.of(
                         "정보처리기사", 2025, "한국산업인력공단")));
 
-        StudentRegistrationResponse response = facade.register("KAKAO_12345", command);
+        StudentRegistrationResponse response = facade.register("KAKAO_12345", request);
 
         assertThat(response.getAccessToken()).isEqualTo("access-token");
         assertThat(response.getRefreshToken()).isEqualTo("refresh-token");
