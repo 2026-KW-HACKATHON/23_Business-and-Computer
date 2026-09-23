@@ -14,7 +14,7 @@ import lombok.RequiredArgsConstructor;
 
 @Component
 @RequiredArgsConstructor
-public class JobCreationFacade {
+public class JobFacade {
 
     private final UserService userService;
     private final OwnerService ownerService;

@@ -6,7 +6,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.gakkum.backend.application.job.dto.JobCreateRequest;
-import com.gakkum.backend.application.job.facade.JobCreationFacade;
+import com.gakkum.backend.application.job.facade.JobFacade;
 import com.gakkum.backend.global.response.ApiResponse;
 
 import jakarta.validation.Valid;
@@ -16,11 +16,11 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class JobCreationController {
 
-    private final JobCreationFacade jobCreationFacade;
+    private final JobFacade jobFacade;
 
     @PostMapping("/jobs")
     public ApiResponse<Void> createJob(Authentication authentication, @Valid @RequestBody JobCreateRequest request) {
-        jobCreationFacade.createJob(authentication.getName(), request);
+        jobFacade.createJob(authentication.getName(), request);
         return ApiResponse.success();
     }
 }

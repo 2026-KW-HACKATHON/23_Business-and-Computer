@@ -27,7 +27,7 @@ import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import com.gakkum.backend.application.job.controller.JobCreationController;
-import com.gakkum.backend.application.job.facade.JobCreationFacade;
+import com.gakkum.backend.application.job.facade.JobFacade;
 import com.gakkum.backend.domain.job.entity.Job;
 import com.gakkum.backend.domain.job.entity.JobSpecialty;
 import com.gakkum.backend.domain.job.entity.JobStatus;
@@ -100,7 +100,7 @@ class JobCreationFlowTest {
         OwnerService ownerService = new OwnerService(ownerRepository);
         SpecialtyService specialtyService = new SpecialtyService(specialtyRepository, studentSpecialtyRepository);
         JobService jobService = new JobService(jobRepository, jobSpecialtyRepository, specialtyService);
-        JobCreationFacade facade = new JobCreationFacade(userService, ownerService, jobService);
+        JobFacade facade = new JobFacade(userService, ownerService, jobService);
         JobCreationController controller = new JobCreationController(facade);
 
         mockMvc = MockMvcBuilders.standaloneSetup(controller)
