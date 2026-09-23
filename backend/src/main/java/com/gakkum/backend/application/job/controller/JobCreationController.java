@@ -20,7 +20,7 @@ public class JobCreationController {
 
     @PostMapping("/jobs")
     public ApiResponse<Void> createJob(Authentication authentication, @Valid @RequestBody JobCreateRequest request) {
-        jobCreationFacade.createJob(authentication.getName(), request.toCommand());
+        jobCreationFacade.createJob(authentication.getName(), request);
         return ApiResponse.success();
     }
 }

@@ -3,8 +3,7 @@ package com.gakkum.backend.application.job.facade;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.gakkum.backend.application.job.dto.JobCreateCommand;
-import com.gakkum.backend.domain.job.dto.JobCommandDto.CreateJobCommand;
+import com.gakkum.backend.application.job.dto.JobCreateRequest;
 import com.gakkum.backend.domain.job.service.JobService;
 import com.gakkum.backend.domain.owner.entity.Owner;
 import com.gakkum.backend.domain.owner.service.OwnerService;
@@ -22,18 +21,10 @@ public class JobCreationFacade {
     private final JobService jobService;
 
     @Transactional
-    public void createJob(String username, JobCreateCommand command) {
+    public void createJob(String username, JobCreateRequest request) {
         User user = userService.getActiveUser(username);
         Owner owner = ownerService.getOwnerProfile(user.getId());
 
-        jobService.createJob(CreateJobCommand.of(
-                owner.getId(),
-                command.getSpecialtyIds(),
-                command.getTitle(),
-                command.getDescription(),
-                command.getBudget(),
-                command.getDraftDeadline(),
-                command.getFinalDeadline(),
-                command.getRevisionCount()));
+        jobService.createJob(request.toCommand(owner.getId()));
     }
 }

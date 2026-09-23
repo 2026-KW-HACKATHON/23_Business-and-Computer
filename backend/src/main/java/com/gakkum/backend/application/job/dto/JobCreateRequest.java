@@ -11,6 +11,9 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.PositiveOrZero;
 import jakarta.validation.constraints.Size;
+
+import com.gakkum.backend.domain.job.dto.JobCommandDto.CreateJobCommand;
+
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -76,8 +79,9 @@ public class JobCreateRequest {
         return !draftDeadline.isAfter(finalDeadline);
     }
 
-    public JobCreateCommand toCommand() {
-        return JobCreateCommand.of(
+    public CreateJobCommand toCommand(Long ownerProfileId) {
+        return CreateJobCommand.of(
+                ownerProfileId,
                 List.copyOf(specialtyIds),
                 title.trim(),
                 description.trim(),
