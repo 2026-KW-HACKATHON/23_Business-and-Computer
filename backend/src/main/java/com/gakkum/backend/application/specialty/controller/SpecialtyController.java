@@ -1,5 +1,6 @@
 package com.gakkum.backend.application.specialty.controller;
 
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -16,7 +17,8 @@ public class SpecialtyController {
     private final SpecialtyCategoryService specialtyCategoryService;
 
     @GetMapping("/specialties")
-    public ApiResponse<SpecialtyListResponse> getSpecialties() {
-        return ApiResponse.success(SpecialtyListResponse.from(specialtyCategoryService.getSpecialtyCategories()));
+    public ResponseEntity<ApiResponse<SpecialtyListResponse>> getSpecialties() {
+        return ResponseEntity.ok(ApiResponse.success(
+                SpecialtyListResponse.from(specialtyCategoryService.getSpecialtyCategories())));
     }
 }

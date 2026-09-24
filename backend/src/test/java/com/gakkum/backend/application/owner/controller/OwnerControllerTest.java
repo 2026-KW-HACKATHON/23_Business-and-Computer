@@ -14,6 +14,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
+import org.springframework.http.ResponseEntity;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 
@@ -40,17 +41,19 @@ class OwnerControllerTest {
                 .thenReturn(OwnerRegistrationResponse.of("access-token", "refresh-token"));
         MockHttpServletResponse servletResponse = new MockHttpServletResponse();
 
-        ApiResponse<OwnerRegistrationResponse> response = controller.register(
+        ResponseEntity<ApiResponse<OwnerRegistrationResponse>> response = controller.register(
                 new UsernamePasswordAuthenticationToken("KAKAO_12345", null),
                 validRequest("123-45-67890", null),
                 servletResponse);
 
-        assertThat(response.isSuccess()).isTrue();
-        assertThat(response.getData().getAccessToken()).isEqualTo("access-token");
+        assertThat(response.getStatusCode().value()).isEqualTo(200);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().isSuccess()).isTrue();
+        assertThat(response.getBody().getData().getAccessToken()).isEqualTo("access-token");
         assertThat(servletResponse.getHeader("Set-Cookie"))
                 .contains("refreshToken=refresh-token", "HttpOnly", "SameSite=Lax", "Path=/", "Max-Age=604800");
 
-        String json = new ObjectMapper().writeValueAsString(response);
+        String json = new ObjectMapper().writeValueAsString(response.getBody());
         assertThat(json).contains("\"accessToken\":\"access-token\"");
         assertThat(json).doesNotContain("refresh-token", "refreshToken");
 
