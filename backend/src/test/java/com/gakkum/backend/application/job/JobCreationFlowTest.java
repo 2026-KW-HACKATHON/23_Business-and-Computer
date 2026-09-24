@@ -109,7 +109,7 @@ class JobCreationFlowTest {
     }
 
     @Test
-    @DisplayName("정상 요청이면 의뢰와 특기가 저장되고 success: true, data: null이 반환된다")
+    @DisplayName("정상 요청이면 의뢰와 특기가 저장되고 data 필드 없이 성공 응답을 반환한다")
     void createsJobThroughControllerFacadeAndDomainServices() throws Exception {
         givenOwner();
         when(specialtyRepository.countByIdIn(List.of(1L, 2L, 3L))).thenReturn(3L);
@@ -132,7 +132,7 @@ class JobCreationFlowTest {
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.success").value(true))
             .andExpect(jsonPath("$.data").doesNotExist())
-            .andExpect(jsonPath("$.error").isEmpty());
+            .andExpect(jsonPath("$.error").doesNotExist());
 
         ArgumentCaptor<Job> jobCaptor = ArgumentCaptor.forClass(Job.class);
         verify(jobRepository).save(jobCaptor.capture());

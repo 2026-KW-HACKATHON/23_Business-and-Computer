@@ -10,6 +10,7 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.MediaType;
@@ -35,29 +36,32 @@ class GlobalExceptionHandlerTest {
     }
 
     @Test
+    @DisplayName("비즈니스 예외는 data 필드 없이 정의된 오류 응답을 반환한다")
     void businessExceptionReturnsConfiguredErrorResponse() throws Exception {
         mockMvc.perform(get("/test/business-error"))
             .andExpect(status().isBadRequest())
             .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
             .andExpect(jsonPath("$.success").value(false))
-            .andExpect(jsonPath("$.data").isEmpty())
+            .andExpect(jsonPath("$.data").doesNotExist())
             .andExpect(jsonPath("$.error.code").value("COMMON_400"))
             .andExpect(jsonPath("$.error.message").value("요청 값이 올바르지 않습니다."));
     }
 
     @Test
+    @DisplayName("잘못된 요청 값은 공통 입력 오류를 반환한다")
     void invalidRequestReturnsCommonValidationError() throws Exception {
         mockMvc.perform(post("/test/validation")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"name\":\"\"}"))
             .andExpect(status().isBadRequest())
             .andExpect(jsonPath("$.success").value(false))
-            .andExpect(jsonPath("$.data").isEmpty())
+            .andExpect(jsonPath("$.data").doesNotExist())
             .andExpect(jsonPath("$.error.code").value("COMMON_400"))
             .andExpect(jsonPath("$.error.message").value("요청 값이 올바르지 않습니다."));
     }
 
     @Test
+    @DisplayName("잘못된 JSON 본문은 공통 입력 오류를 반환한다")
     void malformedRequestBodyReturnsCommonValidationError() throws Exception {
         mockMvc.perform(post("/test/validation")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -68,11 +72,12 @@ class GlobalExceptionHandlerTest {
     }
 
     @Test
+    @DisplayName("예상하지 못한 예외는 내부 정보를 숨긴 서버 오류를 반환한다")
     void unexpectedExceptionReturnsSafeInternalServerError() throws Exception {
         mockMvc.perform(get("/test/unexpected-error"))
             .andExpect(status().isInternalServerError())
             .andExpect(jsonPath("$.success").value(false))
-            .andExpect(jsonPath("$.data").isEmpty())
+            .andExpect(jsonPath("$.data").doesNotExist())
             .andExpect(jsonPath("$.error.code").value("COMMON_500"))
             .andExpect(jsonPath("$.error.message").value("서버 내부 오류가 발생했습니다."))
             .andExpect(content().string(org.hamcrest.Matchers.not(
@@ -81,6 +86,7 @@ class GlobalExceptionHandlerTest {
     }
 
     @Test
+    @DisplayName("데이터 충돌 예외는 409 오류를 반환한다")
     void dataIntegrityViolationReturnsConflict() throws Exception {
         mockMvc.perform(get("/test/data-conflict"))
             .andExpect(status().isConflict())

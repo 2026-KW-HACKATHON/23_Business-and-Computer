@@ -42,7 +42,7 @@ class AuthControllerTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"email\":\"STUDENT@KW.AC.KR\"}"))
             .andExpect(status().isOk())
-            .andExpect(content().json("{\"success\":true,\"data\":null,\"error\":null}", true));
+            .andExpect(content().json("{\"success\":true}", true));
         verify(authService).sendStudentEmailVerification("KAKAO_12345", "student@kw.ac.kr");
 
         mockMvc.perform(post("/auth/student-verification/email/verify")
@@ -50,7 +50,7 @@ class AuthControllerTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"email\":\"STUDENT@KW.AC.KR\",\"code\":\"123456\"}"))
             .andExpect(status().isOk())
-            .andExpect(content().json("{\"success\":true,\"data\":null,\"error\":null}", true));
+            .andExpect(content().json("{\"success\":true}", true));
         verify(authService).verifyStudentEmail("KAKAO_12345", "student@kw.ac.kr", "123456");
     }
 

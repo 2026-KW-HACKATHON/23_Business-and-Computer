@@ -117,7 +117,7 @@ class OwnerRegistrationFlowTest {
             .andExpect(jsonPath("$.success").value(true))
             .andExpect(jsonPath("$.data.accessToken").value("owner-access-token"))
             .andExpect(jsonPath("$.data.refreshToken").doesNotExist())
-            .andExpect(jsonPath("$.error").isEmpty())
+            .andExpect(jsonPath("$.error").doesNotExist())
             .andExpect(header().string(HttpHeaders.SET_COOKIE, Matchers.allOf(
                     Matchers.containsString("refreshToken=owner-refresh-token"),
                     Matchers.containsString("HttpOnly"),

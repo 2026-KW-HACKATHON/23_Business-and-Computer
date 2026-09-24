@@ -63,9 +63,9 @@ class SecurityConfigTest {
             .andDo(print())
             .andExpect(status().isUnauthorized())
             .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
-            // 공통 에러 응답 형식(success=false, data 없음, error.code/message)을 따르는지 확인
+            // 공통 에러 응답 형식(success=false, data 필드 생략, error.code/message)을 따르는지 확인
             .andExpect(jsonPath("$.success").value(false))
-            .andExpect(jsonPath("$.data").isEmpty())
+            .andExpect(jsonPath("$.data").doesNotExist())
             .andExpect(jsonPath("$.error.code").value("COMMON_401"))
             .andExpect(jsonPath("$.error.message").value("인증이 필요합니다."));
     }
