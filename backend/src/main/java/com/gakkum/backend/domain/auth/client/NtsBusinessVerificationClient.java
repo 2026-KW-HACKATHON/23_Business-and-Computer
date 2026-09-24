@@ -6,6 +6,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
@@ -25,12 +26,15 @@ public class NtsBusinessVerificationClient {
     private final RestClient restClient;
     private final String serviceKey;
 
-    public NtsBusinessVerificationClient(RestClient.Builder builder,
-                                         @Value("${nts-businessman.service-key}") String serviceKey) {
+    @Autowired
+    public NtsBusinessVerificationClient(@Value("${nts-businessman.service-key}") String serviceKey) {
         SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
         requestFactory.setConnectTimeout(Duration.ofSeconds(3));
         requestFactory.setReadTimeout(Duration.ofSeconds(5));
-        this.restClient = builder.baseUrl(BASE_URL).requestFactory(requestFactory).build();
+        this.restClient = RestClient.builder()
+                .baseUrl(BASE_URL)
+                .requestFactory(requestFactory)
+                .build();
         this.serviceKey = serviceKey;
     }
 
