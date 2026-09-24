@@ -178,12 +178,17 @@ class AuthServiceTest {
     @DisplayName("가입 대기 사용자는 사업자등록정보 진위 확인을 요청할 수 있다")
     void verifiesBusinessForPendingUser() {
         LocalDate openedAt = LocalDate.of(2020, 3, 1);
+        when(userRepository.findByUsernameAndIsLock("KAKAO_12345", false))
+                .thenReturn(Optional.of(User.builder().id(USER_ID).username("KAKAO_12345")
+                        .isLock(false).role(UserRole.PENDING).build()));
         when(businessVerificationClient.verify("1234567890", openedAt, "김사장")).thenReturn(true);
 
         VerifyOwnerBusinessCommand command = VerifyOwnerBusinessCommand.of(
                 "KAKAO_12345", "김사장", openedAt, "1234567890");
         assertThat(serviceAt(START).verifyOwnerBusiness(command))
                 .isTrue();
+        verify(userRepository).findByUsernameAndIsLock("KAKAO_12345", false);
+        verify(userRepository, never()).findByUsernameAndIsLockFalse("KAKAO_12345");
         verify(businessVerificationClient).verify("1234567890", openedAt, "김사장");
     }
 
@@ -192,7 +197,7 @@ class AuthServiceTest {
     void rejectsNonPendingUserBeforeExternalCall() {
         User owner = User.builder().id(USER_ID).username("KAKAO_12345")
                 .isLock(false).role(UserRole.OWNER).build();
-        when(userRepository.findByUsernameAndIsLockFalse("KAKAO_12345"))
+        when(userRepository.findByUsernameAndIsLock("KAKAO_12345", false))
                 .thenReturn(Optional.of(owner));
 
         VerifyOwnerBusinessCommand command = VerifyOwnerBusinessCommand.of(
@@ -204,7 +209,7 @@ class AuthServiceTest {
     @Test
     @DisplayName("존재하지 않는 사용자는 외부 사업자 확인을 호출하지 않는다")
     void rejectsUnknownUserBeforeExternalCall() {
-        when(userRepository.findByUsernameAndIsLockFalse("KAKAO_12345"))
+        when(userRepository.findByUsernameAndIsLock("KAKAO_12345", false))
                 .thenReturn(Optional.empty());
 
         VerifyOwnerBusinessCommand command = VerifyOwnerBusinessCommand.of(

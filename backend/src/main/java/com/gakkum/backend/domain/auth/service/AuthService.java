@@ -52,7 +52,11 @@ public class AuthService {
     }
 
     public boolean verifyOwnerBusiness(VerifyOwnerBusinessCommand command) {
-        pendingUser(command.getUsername());
+        User user = userRepository.findByUsernameAndIsLock(command.getUsername(), false)
+                .orElseThrow(() -> new BusinessException(ErrorCode.UNAUTHORIZED));
+        if (user.getRole() != UserRole.PENDING) {
+            throw new BusinessException(ErrorCode.ALREADY_REGISTERED);
+        }
         return businessVerificationClient.verify(
                 command.getBusinessNumber(), command.getOpenedAt(), command.getRepresentativeName());
     }
