@@ -5,7 +5,6 @@ import java.time.Clock;
 import java.time.Instant;
 import java.util.Locale;
 
-import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.MailException;
 import org.springframework.mail.SimpleMailMessage;
@@ -14,6 +13,8 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.gakkum.backend.domain.auth.client.NtsBusinessVerificationClient;
+import com.gakkum.backend.domain.auth.dto.AuthCommandDto.VerifyOwnerBusinessCommand;
 import com.gakkum.backend.domain.auth.entity.StudentEmailVerification;
 import com.gakkum.backend.domain.auth.repository.StudentEmailVerificationRepository;
 import com.gakkum.backend.domain.user.entity.User;
@@ -31,6 +32,7 @@ public class AuthService {
     private final UserRepository userRepository;
     private final StudentEmailVerificationRepository verificationRepository;
     private final JavaMailSender mailSender;
+    private final NtsBusinessVerificationClient businessVerificationClient;
     private final Clock clock;
     private final String senderAddress;
 
@@ -38,13 +40,21 @@ public class AuthService {
             UserRepository userRepository,
             StudentEmailVerificationRepository verificationRepository,
             JavaMailSender mailSender,
+            NtsBusinessVerificationClient businessVerificationClient,
             Clock clock,
             @Value("${spring.mail.username}") String senderAddress) {
         this.userRepository = userRepository;
         this.verificationRepository = verificationRepository;
         this.mailSender = mailSender;
+        this.businessVerificationClient = businessVerificationClient;
         this.clock = clock;
         this.senderAddress = senderAddress;
+    }
+
+    public boolean verifyOwnerBusiness(VerifyOwnerBusinessCommand command) {
+        pendingUser(command.getUsername());
+        return businessVerificationClient.verify(
+                command.getBusinessNumber(), command.getOpenedAt(), command.getRepresentativeName());
     }
 
     @Transactional

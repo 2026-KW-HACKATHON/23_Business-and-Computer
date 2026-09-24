@@ -12,6 +12,7 @@ import static org.mockito.Mockito.when;
 
 import java.time.Clock;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
@@ -25,6 +26,8 @@ import org.springframework.mail.MailSendException;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
+import com.gakkum.backend.domain.auth.client.NtsBusinessVerificationClient;
+import com.gakkum.backend.domain.auth.dto.AuthCommandDto.VerifyOwnerBusinessCommand;
 import com.gakkum.backend.domain.auth.entity.StudentEmailVerification;
 import com.gakkum.backend.domain.auth.repository.StudentEmailVerificationRepository;
 import com.gakkum.backend.domain.user.entity.User;
@@ -33,7 +36,7 @@ import com.gakkum.backend.domain.user.repository.UserRepository;
 import com.gakkum.backend.global.exception.BusinessException;
 import com.gakkum.backend.global.exception.ErrorCode;
 
-@DisplayName("학생 이메일 인증 서비스")
+@DisplayName("인증 서비스")
 class AuthServiceTest {
 
     private static final String USER_ID = "01K58M6PJV8VAJMXHBHJ2PNB5C";
@@ -44,6 +47,7 @@ class AuthServiceTest {
     private final StudentEmailVerificationRepository verificationRepository =
             mock(StudentEmailVerificationRepository.class);
     private final JavaMailSender mailSender = mock(JavaMailSender.class);
+    private final NtsBusinessVerificationClient businessVerificationClient = mock(NtsBusinessVerificationClient.class);
     private final AtomicReference<StudentEmailVerification> stored = new AtomicReference<>();
 
     @BeforeEach
@@ -170,9 +174,49 @@ class AuthServiceTest {
         verify(mailSender, never()).send(any(SimpleMailMessage.class));
     }
 
+    @Test
+    @DisplayName("가입 대기 사용자는 사업자등록정보 진위 확인을 요청할 수 있다")
+    void verifiesBusinessForPendingUser() {
+        LocalDate openedAt = LocalDate.of(2020, 3, 1);
+        when(businessVerificationClient.verify("1234567890", openedAt, "김사장")).thenReturn(true);
+
+        VerifyOwnerBusinessCommand command = VerifyOwnerBusinessCommand.of(
+                "KAKAO_12345", "김사장", openedAt, "1234567890");
+        assertThat(serviceAt(START).verifyOwnerBusiness(command))
+                .isTrue();
+        verify(businessVerificationClient).verify("1234567890", openedAt, "김사장");
+    }
+
+    @Test
+    @DisplayName("가입 대기 사용자가 아니면 외부 사업자 확인을 호출하지 않는다")
+    void rejectsNonPendingUserBeforeExternalCall() {
+        User owner = User.builder().id(USER_ID).username("KAKAO_12345")
+                .isLock(false).role(UserRole.OWNER).build();
+        when(userRepository.findByUsernameAndIsLockFalse("KAKAO_12345"))
+                .thenReturn(Optional.of(owner));
+
+        VerifyOwnerBusinessCommand command = VerifyOwnerBusinessCommand.of(
+                "KAKAO_12345", "김사장", LocalDate.of(2020, 3, 1), "1234567890");
+        assertError(ErrorCode.ALREADY_REGISTERED, () -> serviceAt(START).verifyOwnerBusiness(command));
+        verify(businessVerificationClient, never()).verify(any(), any(), any());
+    }
+
+    @Test
+    @DisplayName("존재하지 않는 사용자는 외부 사업자 확인을 호출하지 않는다")
+    void rejectsUnknownUserBeforeExternalCall() {
+        when(userRepository.findByUsernameAndIsLockFalse("KAKAO_12345"))
+                .thenReturn(Optional.empty());
+
+        VerifyOwnerBusinessCommand command = VerifyOwnerBusinessCommand.of(
+                "KAKAO_12345", "김사장", LocalDate.of(2020, 3, 1), "1234567890");
+        assertError(ErrorCode.UNAUTHORIZED, () -> serviceAt(START).verifyOwnerBusiness(command));
+        verify(businessVerificationClient, never()).verify(any(), any(), any());
+    }
+
     private AuthService serviceAt(Instant instant) {
         return new AuthService(userRepository, verificationRepository,
-                mailSender, Clock.fixed(instant, ZoneOffset.UTC), "sender@example.com");
+                mailSender, businessVerificationClient,
+                Clock.fixed(instant, ZoneOffset.UTC), "sender@example.com");
     }
 
     private String sentCode() {

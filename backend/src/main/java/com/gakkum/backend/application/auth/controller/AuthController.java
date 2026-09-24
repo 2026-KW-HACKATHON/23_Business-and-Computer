@@ -6,6 +6,8 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.gakkum.backend.application.auth.dto.OwnerBusinessVerificationRequest;
+import com.gakkum.backend.application.auth.dto.OwnerBusinessVerificationResponse;
 import com.gakkum.backend.application.auth.dto.StudentEmailSendRequest;
 import com.gakkum.backend.application.auth.dto.StudentEmailVerifyRequest;
 import com.gakkum.backend.domain.auth.service.AuthService;
@@ -32,5 +34,12 @@ public class AuthController {
                                                    @Valid @RequestBody StudentEmailVerifyRequest request) {
         authService.verifyStudentEmail(authentication.getName(), request.normalizedEmail(), request.code());
         return ResponseEntity.ok(ApiResponse.success());
+    }
+
+    @PostMapping("/auth/owner-verification/business")
+    public ResponseEntity<ApiResponse<OwnerBusinessVerificationResponse>> verifyOwnerBusiness(
+            Authentication authentication, @Valid @RequestBody OwnerBusinessVerificationRequest request) {
+        boolean verified = authService.verifyOwnerBusiness(request.toCommand(authentication.getName()));
+        return ResponseEntity.ok(ApiResponse.success(OwnerBusinessVerificationResponse.of(verified)));
     }
 }

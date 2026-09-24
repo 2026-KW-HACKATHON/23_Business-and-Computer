@@ -109,6 +109,16 @@ class SecurityConfigTest {
     }
 
     @Test
+    @DisplayName("인증 없이 사업자등록정보 진위 확인을 요청하면 401을 반환한다")
+    void ownerBusinessVerificationRequiresAuthentication() throws Exception {
+        mockMvc.perform(post("/auth/owner-verification/business")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{}"))
+            .andExpect(status().isUnauthorized())
+            .andExpect(jsonPath("$.error.code").value("COMMON_401"));
+    }
+
+    @Test
     @DisplayName("인증 없이 대분류/특기 목록을 조회하면 401을 반환한다")
     void specialtiesRequiresAuthentication() throws Exception {
         // GET /specialties 도 다른 API와 동일하게 기본 거부 정책이 적용되는지 검증
@@ -134,6 +144,11 @@ class SecurityConfigTest {
         @org.springframework.web.bind.annotation.PostMapping("/auth/owner")
         ApiResponse<String> registerOwner() {
             return ApiResponse.success("registered");
+        }
+
+        @org.springframework.web.bind.annotation.PostMapping("/auth/owner-verification/business")
+        ApiResponse<String> verifyOwnerBusiness() {
+            return ApiResponse.success("verified");
         }
 
         @org.springframework.web.bind.annotation.PostMapping("/auth/student-verification/email")
