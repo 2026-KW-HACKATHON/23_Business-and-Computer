@@ -21,10 +21,15 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
-import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.MailSendException;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+
+import jakarta.mail.BodyPart;
+import jakarta.mail.Multipart;
+import jakarta.mail.Part;
+import jakarta.mail.Session;
+import jakarta.mail.internet.MimeMessage;
 
 import com.gakkum.backend.domain.auth.client.NtsBusinessVerificationClient;
 import com.gakkum.backend.domain.auth.dto.AuthCommandDto.VerifyOwnerBusinessCommand;
@@ -52,6 +57,7 @@ class AuthServiceTest {
 
     @BeforeEach
     void setUp() {
+        when(mailSender.createMimeMessage()).thenAnswer(invocation -> new MimeMessage((Session) null));
         User user = User.builder().id(USER_ID).username("KAKAO_12345")
                 .isLock(false).role(UserRole.PENDING).build();
         when(userRepository.findByUsernameAndIsLockFalse("KAKAO_12345"))
@@ -157,11 +163,11 @@ class AuthServiceTest {
     @DisplayName("메일 발송 실패 시 성공 처리하지 않는다")
     void doesNotReportSuccessWhenMailDeliveryFails() {
         doThrow(new MailSendException("SMTP unavailable"))
-                .when(mailSender).send(any(SimpleMailMessage.class));
+                .when(mailSender).send(any(MimeMessage.class));
 
         assertError(ErrorCode.STUDENT_EMAIL_DELIVERY_FAILED,
                 () -> serviceAt(START).sendStudentEmailVerification("KAKAO_12345", EMAIL));
-        verify(mailSender).send(any(SimpleMailMessage.class));
+        verify(mailSender).send(any(MimeMessage.class));
     }
 
     @Test
@@ -171,7 +177,27 @@ class AuthServiceTest {
 
         assertError(ErrorCode.DUPLICATE_EMAIL,
                 () -> serviceAt(START).sendStudentEmailVerification("KAKAO_12345", EMAIL));
-        verify(mailSender, never()).send(any(SimpleMailMessage.class));
+        verify(mailSender, never()).send(any(MimeMessage.class));
+    }
+
+    @Test
+    @DisplayName("학생 인증 메일은 인증번호가 들어간 HTML 본문과 텍스트 대체 본문을 함께 보낸다")
+    void sendsHtmlVerificationMailWithPlainTextFallback() throws Exception {
+        serviceAt(START).sendStudentEmailVerification("KAKAO_12345", EMAIL);
+
+        ArgumentCaptor<MimeMessage> captor = ArgumentCaptor.forClass(MimeMessage.class);
+        verify(mailSender).send(captor.capture());
+        MimeMessage message = captor.getValue();
+        assertThat(message.getSubject()).isEqualTo("[가꿈] 학생 이메일 인증번호");
+        assertThat(message.getAllRecipients()).extracting(Object::toString).containsExactly(EMAIL);
+        assertThat(message.getFrom()).extracting(Object::toString).containsExactly("sender@example.com");
+
+        String code = sentCode();
+        assertThat(lastSentPart("text/html"))
+                .startsWith("<!DOCTYPE html>")
+                .contains(code)
+                .doesNotContain("{{code}}");
+        assertThat(new BCryptPasswordEncoder().matches(code, stored.get().getCodeHash())).isTrue();
     }
 
     @Test
@@ -225,10 +251,33 @@ class AuthServiceTest {
     }
 
     private String sentCode() {
-        ArgumentCaptor<SimpleMailMessage> captor = ArgumentCaptor.forClass(SimpleMailMessage.class);
+        return lastSentPart("text/plain").replaceAll("\\D", "").substring(0, 6);
+    }
+
+    private String lastSentPart(String mimeType) {
+        ArgumentCaptor<MimeMessage> captor = ArgumentCaptor.forClass(MimeMessage.class);
         verify(mailSender, org.mockito.Mockito.atLeastOnce()).send(captor.capture());
-        String body = captor.getAllValues().getLast().getText();
-        return body.replaceAll("\\D", "").substring(0, 6);
+        try {
+            MimeMessage message = captor.getAllValues().getLast();
+            message.saveChanges();
+            return findPart(message, mimeType);
+        } catch (Exception exception) {
+            throw new IllegalStateException(exception);
+        }
+    }
+
+    private String findPart(Part part, String mimeType) throws Exception {
+        if (part.getContent() instanceof Multipart multipart) {
+            for (int i = 0; i < multipart.getCount(); i++) {
+                BodyPart child = multipart.getBodyPart(i);
+                String found = findPart(child, mimeType);
+                if (found != null) {
+                    return found;
+                }
+            }
+            return null;
+        }
+        return part.isMimeType(mimeType) ? (String) part.getContent() : null;
     }
 
     private void assertError(ErrorCode expected, Runnable action) {

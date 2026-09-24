@@ -1,17 +1,24 @@
 package com.gakkum.backend.domain.auth.service;
 
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.Locale;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.mail.MailException;
-import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import jakarta.mail.MessagingException;
+import jakarta.mail.internet.MimeMessage;
 
 import com.gakkum.backend.domain.auth.client.NtsBusinessVerificationClient;
 import com.gakkum.backend.domain.auth.dto.AuthCommandDto.VerifyOwnerBusinessCommand;
@@ -28,6 +35,7 @@ public class AuthService {
 
     private static final SecureRandom RANDOM = new SecureRandom();
     private static final BCryptPasswordEncoder CODE_ENCODER = new BCryptPasswordEncoder();
+    private static final String VERIFICATION_MAIL_TEMPLATE = "mail/student-email-verification.html";
 
     private final UserRepository userRepository;
     private final StudentEmailVerificationRepository verificationRepository;
@@ -35,6 +43,7 @@ public class AuthService {
     private final NtsBusinessVerificationClient businessVerificationClient;
     private final Clock clock;
     private final String senderAddress;
+    private final String verificationMailTemplate;
 
     public AuthService(
             UserRepository userRepository,
@@ -49,6 +58,7 @@ public class AuthService {
         this.businessVerificationClient = businessVerificationClient;
         this.clock = clock;
         this.senderAddress = senderAddress;
+        this.verificationMailTemplate = loadTemplate(VERIFICATION_MAIL_TEMPLATE);
     }
 
     public boolean verifyOwnerBusiness(VerifyOwnerBusinessCommand command) {
@@ -87,14 +97,17 @@ public class AuthService {
         }
         verificationRepository.save(verification);
 
-        SimpleMailMessage message = new SimpleMailMessage();
-        message.setFrom(senderAddress);
-        message.setTo(email);
-        message.setSubject("[가꿈] 학생 이메일 인증번호");
-        message.setText("학생 이메일 인증번호는 " + code + "입니다. 10분 안에 입력해 주세요.");
         try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, StandardCharsets.UTF_8.name());
+            helper.setFrom(senderAddress);
+            helper.setTo(email);
+            helper.setSubject("[가꿈] 학생 이메일 인증번호");
+            helper.setText(
+                    "학생 이메일 인증번호는 " + code + "입니다. 10분 안에 입력해 주세요.",
+                    verificationMailTemplate.replace("{{code}}", code));
             mailSender.send(message);
-        } catch (MailException exception) {
+        } catch (MailException | MessagingException exception) {
             throw new BusinessException(ErrorCode.STUDENT_EMAIL_DELIVERY_FAILED);
         }
     }
@@ -133,6 +146,14 @@ public class AuthService {
             throw new BusinessException(ErrorCode.STUDENT_EMAIL_VERIFICATION_REQUIRED);
         }
         verificationRepository.delete(verification);
+    }
+
+    private static String loadTemplate(String path) {
+        try {
+            return new ClassPathResource(path).getContentAsString(StandardCharsets.UTF_8);
+        } catch (IOException exception) {
+            throw new UncheckedIOException("메일 템플릿을 읽을 수 없습니다: " + path, exception);
+        }
     }
 
     private User pendingUser(String username) {
