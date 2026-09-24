@@ -1,5 +1,6 @@
 package com.gakkum.backend.application.job.controller;
 
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -19,8 +20,8 @@ public class JobController {
     private final JobFacade jobFacade;
 
     @PostMapping("/jobs")
-    public ApiResponse<Void> createJob(Authentication authentication, @Valid @RequestBody JobCreateRequest request) {
+    public ResponseEntity<ApiResponse<Void>> createJob(Authentication authentication, @Valid @RequestBody JobCreateRequest request) {
         jobFacade.createJob(authentication.getName(), request);
-        return ApiResponse.success();
+        return ResponseEntity.ok(ApiResponse.success());
     }
 }

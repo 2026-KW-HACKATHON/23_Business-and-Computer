@@ -4,6 +4,7 @@ import java.time.Duration;
 
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -27,7 +28,7 @@ public class StudentController {
     private final StudentFacade studentFacade;
 
     @PostMapping("/auth/student")
-    public ApiResponse<StudentRegistrationResponse> register(
+    public ResponseEntity<ApiResponse<StudentRegistrationResponse>> register(
             Authentication authentication,
             @Valid @RequestBody StudentRegistrationRequest request,
             HttpServletResponse httpServletResponse) {
@@ -44,6 +45,6 @@ public class StudentController {
                 .build();
         httpServletResponse.addHeader(HttpHeaders.SET_COOKIE, refreshCookie.toString());
 
-        return ApiResponse.success(response);
+        return ResponseEntity.ok(ApiResponse.success(response));
     }
 }

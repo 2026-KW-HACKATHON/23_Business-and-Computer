@@ -23,6 +23,8 @@ When the controller and service use separate DTOs, keep each boundary conversion
 ## Rules
 
 - A Request DTO may depend on its service-layer Command through `toCommand()`. A Command must not depend on a controller-layer Request DTO.
+- For new request-driven service operations, the controller passes `request.toCommand(...)` to the service rather than passing request fields separately. Include authenticated user context as a `toCommand(...)` argument when the service needs it.
+- New application Request and Response DTOs use classes with private builders and public factory methods, following the existing DTO pattern. Do not introduce Java records for new application DTOs; existing record DTOs can remain until their own flow is changed.
 - A Response DTO may depend on its service-layer Result through `from(result)`. A Result must not depend on a controller-layer Response DTO.
 - When no Command boundary is used, Request DTO → Entity may use `toEntity()` only if the DTO contains every value needed for a direct conversion and no business decision or external context is required. Otherwise, the application service gathers the values and calls an Entity constructor or factory. An Entity must not depend on a DTO.
 - When no Result boundary is used, Entity → Response DTO may use a static `from(entity)` factory on the Response DTO if mapping is a straightforward field copy. Do not add a separate Converter for this case.

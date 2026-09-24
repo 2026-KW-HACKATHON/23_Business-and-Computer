@@ -30,6 +30,7 @@ import com.gakkum.backend.application.student.facade.StudentFacade;
 import com.gakkum.backend.domain.certificate.entity.StudentCertificate;
 import com.gakkum.backend.domain.certificate.repository.StudentCertificateRepository;
 import com.gakkum.backend.domain.certificate.service.CertificateService;
+import com.gakkum.backend.domain.auth.service.AuthService;
 import com.gakkum.backend.domain.jwt.entity.RefreshToken;
 import com.gakkum.backend.domain.jwt.repository.RefreshRepository;
 import com.gakkum.backend.domain.jwt.service.JwtService;
@@ -67,12 +68,14 @@ class StudentRegistrationFlowTest {
         StudentService studentService = new StudentService(studentRepository);
         SpecialtyService specialtyService = new SpecialtyService(specialtyRepository, studentSpecialtyRepository);
         CertificateService certificateService = new CertificateService(studentCertificateRepository);
+        AuthService authService = mock(AuthService.class);
         StudentFacade facade = new StudentFacade(
                 userService,
                 studentService,
                 specialtyService,
                 certificateService,
-                jwtService);
+                jwtService,
+                authService);
         StudentController controller = new StudentController(facade);
 
         mockMvc = MockMvcBuilders.standaloneSetup(controller)

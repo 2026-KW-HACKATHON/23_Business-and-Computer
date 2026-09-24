@@ -63,9 +63,9 @@ class SecurityConfigTest {
             .andDo(print())
             .andExpect(status().isUnauthorized())
             .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
-            // 공통 에러 응답 형식(success=false, data 없음, error.code/message)을 따르는지 확인
+            // 공통 에러 응답 형식(success=false, data 필드 생략, error.code/message)을 따르는지 확인
             .andExpect(jsonPath("$.success").value(false))
-            .andExpect(jsonPath("$.data").isEmpty())
+            .andExpect(jsonPath("$.data").doesNotExist())
             .andExpect(jsonPath("$.error.code").value("COMMON_401"))
             .andExpect(jsonPath("$.error.message").value("인증이 필요합니다."));
     }
@@ -83,6 +83,20 @@ class SecurityConfigTest {
     }
 
     @Test
+    @DisplayName("인증 없이 학생 이메일 인증번호를 요청하거나 검증하면 401을 반환한다")
+    void studentEmailVerificationRequiresAuthentication() throws Exception {
+        mockMvc.perform(post("/auth/student-verification/email")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"email\":\"student@kw.ac.kr\"}"))
+            .andExpect(status().isUnauthorized());
+
+        mockMvc.perform(post("/auth/student-verification/email/verify")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"email\":\"student@kw.ac.kr\",\"code\":\"123456\"}"))
+            .andExpect(status().isUnauthorized());
+    }
+
+    @Test
     @DisplayName("인증 없이 사장님 회원가입을 요청하면 401을 반환한다")
     void ownerRegistrationRequiresAuthentication() throws Exception {
         // 인증 헤더 없이 사장님 회원가입 API 호출 시 기본 거부 정책에 의해 차단되는지 검증
@@ -90,6 +104,16 @@ class SecurityConfigTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{}"))
             .andDo(print())
+            .andExpect(status().isUnauthorized())
+            .andExpect(jsonPath("$.error.code").value("COMMON_401"));
+    }
+
+    @Test
+    @DisplayName("인증 없이 사업자등록정보 진위 확인을 요청하면 401을 반환한다")
+    void ownerBusinessVerificationRequiresAuthentication() throws Exception {
+        mockMvc.perform(post("/auth/owner-verification/business")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{}"))
             .andExpect(status().isUnauthorized())
             .andExpect(jsonPath("$.error.code").value("COMMON_401"));
     }
@@ -120,6 +144,21 @@ class SecurityConfigTest {
         @org.springframework.web.bind.annotation.PostMapping("/auth/owner")
         ApiResponse<String> registerOwner() {
             return ApiResponse.success("registered");
+        }
+
+        @org.springframework.web.bind.annotation.PostMapping("/auth/owner-verification/business")
+        ApiResponse<String> verifyOwnerBusiness() {
+            return ApiResponse.success("verified");
+        }
+
+        @org.springframework.web.bind.annotation.PostMapping("/auth/student-verification/email")
+        ApiResponse<String> sendStudentEmailVerification() {
+            return ApiResponse.success("sent");
+        }
+
+        @org.springframework.web.bind.annotation.PostMapping("/auth/student-verification/email/verify")
+        ApiResponse<String> verifyStudentEmail() {
+            return ApiResponse.success("verified");
         }
     }
 }

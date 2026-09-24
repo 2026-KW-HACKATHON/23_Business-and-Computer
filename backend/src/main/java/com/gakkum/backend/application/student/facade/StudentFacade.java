@@ -10,6 +10,7 @@ import com.gakkum.backend.application.student.dto.StudentRegistrationRequest.Cer
 import com.gakkum.backend.application.student.dto.StudentRegistrationResponse;
 import com.gakkum.backend.domain.certificate.dto.CertificateCommandDto.AddStudentCertificateCommand;
 import com.gakkum.backend.domain.certificate.service.CertificateService;
+import com.gakkum.backend.domain.auth.service.AuthService;
 import com.gakkum.backend.domain.jwt.service.JwtService;
 import com.gakkum.backend.domain.specialty.dto.SpecialtyCommandDto.AddStudentSpecialtyCommand;
 import com.gakkum.backend.domain.specialty.service.SpecialtyService;
@@ -30,6 +31,7 @@ public class StudentFacade {
     private final SpecialtyService specialtyService;
     private final CertificateService certificateService;
     private final JwtService jwtService;
+    private final AuthService authService;
 
     @Transactional
     public StudentRegistrationResponse register(String username, StudentRegistrationRequest request) {
@@ -38,6 +40,7 @@ public class StudentFacade {
         studentService.validateStudentNumberAvailable(request.getStudentNumber());
         List<Long> specialtyIds = request.getNormalizedSpecialtyIds();
         specialtyService.validateSpecialtyIds(specialtyIds);
+        authService.consumeVerifiedStudentEmail(user.getId(), normalizedEmail);
 
         userService.completeStudentRegistration(user, request.getStudentName(), normalizedEmail);
         Student student = studentService.createStudentProfile(request.toCommand(user.getId()));

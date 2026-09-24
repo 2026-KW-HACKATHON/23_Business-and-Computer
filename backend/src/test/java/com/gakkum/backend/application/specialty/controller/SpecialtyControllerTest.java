@@ -8,6 +8,7 @@ import java.util.List;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.springframework.http.ResponseEntity;
 
 import com.gakkum.backend.domain.specialty.dto.SpecialtyQueryDto.SpecialtyCategoryResponse;
 import com.gakkum.backend.domain.specialty.dto.SpecialtyQueryDto.SpecialtyListResponse;
@@ -35,14 +36,16 @@ class SpecialtyControllerTest {
                 List.of(SpecialtyResponse.of(1L, "백엔드"), SpecialtyResponse.of(2L, "프론트엔드")));
         when(specialtyCategoryService.getSpecialtyCategories()).thenReturn(List.of(category));
 
-        ApiResponse<SpecialtyListResponse> response = controller.getSpecialties();
+        ResponseEntity<ApiResponse<SpecialtyListResponse>> response = controller.getSpecialties();
 
         // success=true와 함께 대분류 데이터가 그대로 담기는지 확인
-        assertThat(response.isSuccess()).isTrue();
-        assertThat(response.getData().getCategories()).hasSize(1);
+        assertThat(response.getStatusCode().value()).isEqualTo(200);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().isSuccess()).isTrue();
+        assertThat(response.getBody().getData().getCategories()).hasSize(1);
 
         // 실제 JSON으로 직렬화했을 때도 success 필드와 중첩된 대분류/특기 정보가 포함되는지 확인
-        String json = new ObjectMapper().writeValueAsString(response);
+        String json = new ObjectMapper().writeValueAsString(response.getBody());
         log.info("GET /specialties 응답 JSON: {}", json);
         assertThat(json).contains("\"success\":true");
         assertThat(json).contains("\"id\":1", "\"name\":\"IT/개발\"", "\"name\":\"백엔드\"", "\"name\":\"프론트엔드\"");
@@ -57,13 +60,15 @@ class SpecialtyControllerTest {
         // 서비스가 빈 목록을 반환하는 상황을 준비
         when(specialtyCategoryService.getSpecialtyCategories()).thenReturn(List.of());
 
-        ApiResponse<SpecialtyListResponse> response = controller.getSpecialties();
+        ResponseEntity<ApiResponse<SpecialtyListResponse>> response = controller.getSpecialties();
 
         log.info("GET /specialties 응답 (대분류 없음): success={}, data={}",
-                response.isSuccess(), response.getData().getCategories());
+                response.getBody().isSuccess(), response.getBody().getData().getCategories());
 
         // 실패가 아니라 성공 응답 + 빈 데이터로 반환되는지 확인
-        assertThat(response.isSuccess()).isTrue();
-        assertThat(response.getData().getCategories()).isEmpty();
+        assertThat(response.getStatusCode().value()).isEqualTo(200);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().isSuccess()).isTrue();
+        assertThat(response.getBody().getData().getCategories()).isEmpty();
     }
 }

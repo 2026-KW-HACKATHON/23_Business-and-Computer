@@ -14,6 +14,7 @@ Make backend changes verifiable at the narrowest useful level while ensuring sec
 ## Core Rules
 
 - Add focused tests for changed behavior; do not rely on the context smoke test as proof of API, domain, security, or persistence correctness.
+- Give every JUnit test method a Korean `@DisplayName` that states the behavior it verifies.
 - Prefer the narrowest test scope that exercises the contract: plain unit tests for domain behavior, MVC/security tests for HTTP boundaries, and database-backed tests for JPA/PostgreSQL behavior.
 - Test both allowed and rejected paths for validation and authorization changes.
 - Do not silently replace PostgreSQL with a different database for behavior that depends on SQL dialect, constraints, locking, or transaction semantics.

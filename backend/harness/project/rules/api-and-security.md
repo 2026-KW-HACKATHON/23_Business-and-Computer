@@ -5,6 +5,7 @@
 - Use RESTful API design.
 - Use DTO instead of exposing Entity.
 - Request and Response DTO must be separated.
+- All application controller endpoints must return `ResponseEntity<ApiResponse<T>>`; JWT-related controllers are exempt.
 - API changes require compatibility consideration.
 
 ## Exception Handling
