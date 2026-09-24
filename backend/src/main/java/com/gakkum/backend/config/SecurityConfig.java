@@ -77,7 +77,7 @@ public class SecurityConfig {
         http
             .authorizeHttpRequests(authorize -> authorize
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                .requestMatchers("/api/auth/**").permitAll()
+                .requestMatchers("/auth/**").permitAll()
                 .requestMatchers("/jwt/exchange", "/jwt/refresh").permitAll()
                 .anyRequest().authenticated()
             )
