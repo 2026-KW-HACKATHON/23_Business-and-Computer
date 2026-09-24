@@ -77,9 +77,8 @@ public class SecurityConfig {
         http
             .authorizeHttpRequests(authorize -> authorize
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                .requestMatchers(HttpMethod.POST, "/auth/owner-verification/business").authenticated()
-                .requestMatchers("/auth/**").permitAll()
-                .requestMatchers("/jwt/exchange", "/jwt/refresh").permitAll()
+                .requestMatchers(HttpMethod.GET, "/oauth2/authorization/kakao", "/login/oauth2/code/kakao").permitAll()
+                .requestMatchers(HttpMethod.POST, "/jwt/exchange", "/refresh").permitAll()
                 .anyRequest().authenticated()
             )
             .exceptionHandling(exception -> exception
