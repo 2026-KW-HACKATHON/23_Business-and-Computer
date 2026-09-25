@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.gakkum.backend.application.job.dto.ClosedJobListResponse;
 import com.gakkum.backend.application.job.dto.JobCreateRequest;
 import com.gakkum.backend.application.job.dto.MatchedJobListResponse;
 import com.gakkum.backend.application.job.dto.OpenJobListResponse;
@@ -40,6 +41,10 @@ public class JobController {
         }
         if ("MATCHED".equals(status)) {
             MatchedJobListResponse response = MatchedJobListResponse.from(jobFacade.getMatchedJobs(authentication.getName()));
+            return ResponseEntity.ok(ApiResponse.success(response));
+        }
+        if ("CLOSED".equals(status)) {
+            ClosedJobListResponse response = ClosedJobListResponse.from(jobFacade.getClosedJobs(authentication.getName()));
             return ResponseEntity.ok(ApiResponse.success(response));
         }
 

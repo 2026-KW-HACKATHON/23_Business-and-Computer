@@ -134,12 +134,15 @@ class SecurityConfigTest {
     }
 
     @Test
-    @DisplayName("인증 없이 OPEN 또는 MATCHED 의뢰 목록을 조회하면 401을 반환한다")
+    @DisplayName("인증 없이 OPEN, MATCHED 또는 CLOSED 의뢰 목록을 조회하면 401을 반환한다")
     void jobsRequireAuthentication() throws Exception {
         mockMvc.perform(get("/me/jobs").param("status", "OPEN"))
             .andExpect(status().isUnauthorized())
             .andExpect(jsonPath("$.error.code").value("COMMON_401"));
         mockMvc.perform(get("/me/jobs").param("status", "MATCHED"))
+            .andExpect(status().isUnauthorized())
+            .andExpect(jsonPath("$.error.code").value("COMMON_401"));
+        mockMvc.perform(get("/me/jobs").param("status", "CLOSED"))
             .andExpect(status().isUnauthorized())
             .andExpect(jsonPath("$.error.code").value("COMMON_401"));
     }

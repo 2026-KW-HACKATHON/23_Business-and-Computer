@@ -10,6 +10,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -20,6 +21,9 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import com.gakkum.backend.application.job.facade.JobFacade;
+import com.gakkum.backend.domain.job.dto.JobQueryDto.ClosedJobData;
+import com.gakkum.backend.domain.job.dto.JobQueryDto.ClosedJobListResult;
+import com.gakkum.backend.domain.job.dto.JobQueryDto.ClosedJobResult;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.MatchedJobData;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.MatchedJobListResult;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.MatchedJobResult;
@@ -32,6 +36,7 @@ import com.gakkum.backend.domain.job.entity.Job;
 import com.gakkum.backend.domain.job.entity.JobSubmission;
 import com.gakkum.backend.domain.job.entity.JobSubmissionType;
 import com.gakkum.backend.domain.student.entity.Student;
+import com.gakkum.backend.domain.user.entity.User;
 import com.gakkum.backend.global.exception.GlobalExceptionHandler;
 
 @DisplayName("보낸 의뢰 목록 조회 컨트롤러 (GET /me/jobs)")
@@ -177,6 +182,49 @@ class JobControllerTest {
     }
 
     @Test
+    @DisplayName("CLOSED 상태이면 완료 의뢰를 작업자와 날짜가 포함된 배열로 반환한다")
+    void returnsClosedJobList() throws Exception {
+        Job job = Job.builder()
+                .id(42L)
+                .title("가게 메뉴판 디자인")
+                .selectedStudentProfileId(21L)
+                .completedAt(LocalDateTime.of(2026, 9, 25, 18, 30))
+                .build();
+        ClosedJobResult result = ClosedJobResult.of(
+                ClosedJobData.of(job, List.of(11L)),
+                Student.builder().id(21L).build(),
+                User.builder().name("김람가").build(),
+                List.of(SpecialtyCategoryResult.of(3L, "디자인", List.of())));
+        when(jobFacade.getClosedJobs(USERNAME)).thenReturn(ClosedJobListResult.of(List.of(result)));
+
+        mockMvc.perform(get("/me/jobs").param("status", "CLOSED").principal(authentication))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data").isArray())
+                .andExpect(jsonPath("$.data[0].jobId").value(42))
+                .andExpect(jsonPath("$.data[0].title").value("가게 메뉴판 디자인"))
+                .andExpect(jsonPath("$.data[0].specialtyCategories[0].id").value(3))
+                .andExpect(jsonPath("$.data[0].specialtyCategories[0].name").value("디자인"))
+                .andExpect(jsonPath("$.data[0].specialtyCategories[0].specialties").doesNotExist())
+                .andExpect(jsonPath("$.data[0].matchedWorker.studentProfileId").value(21))
+                .andExpect(jsonPath("$.data[0].matchedWorker.name").value("김람가"))
+                .andExpect(jsonPath("$.data[0].completedAt").value("2026-09-25"));
+        verify(jobFacade).getClosedJobs(USERNAME);
+    }
+
+    @Test
+    @DisplayName("CLOSED 의뢰가 없으면 data 빈 배열을 반환한다")
+    void returnsEmptyClosedJobs() throws Exception {
+        when(jobFacade.getClosedJobs(USERNAME)).thenReturn(ClosedJobListResult.of(List.of()));
+
+        mockMvc.perform(get("/me/jobs").param("status", "CLOSED").principal(authentication))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data").isArray())
+                .andExpect(jsonPath("$.data").isEmpty());
+        verify(jobFacade).getClosedJobs(USERNAME);
+    }
+
+    @Test
     @DisplayName("상태값이 없으면 400을 반환하고 조회하지 않는다")
     void rejectsMissingStatus() throws Exception {
         mockMvc.perform(get("/me/jobs").principal(authentication))
@@ -188,7 +236,7 @@ class JobControllerTest {
     @Test
     @DisplayName("지원하지 않는 상태값이면 400을 반환하고 조회하지 않는다")
     void rejectsUnsupportedStatus() throws Exception {
-        mockMvc.perform(get("/me/jobs").param("status", "CLOSED").principal(authentication))
+        mockMvc.perform(get("/me/jobs").param("status", "INVALID").principal(authentication))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.error.code").value("COMMON_400"));
         verifyNoInteractions(jobFacade);
