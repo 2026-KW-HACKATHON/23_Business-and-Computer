@@ -2,6 +2,9 @@ package com.gakkum.backend.domain.payment.entity;
 
 import java.time.Instant;
 
+import com.gakkum.backend.global.exception.BusinessException;
+import com.gakkum.backend.global.exception.ErrorCode;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -79,14 +82,14 @@ public class Payment {
 
     public void supersede() {
         if (status != PaymentStatus.PENDING) {
-            throw new IllegalStateException("Only pending payments can be superseded");
+            throw new BusinessException(ErrorCode.PAYMENT_NOT_AVAILABLE);
         }
         status = PaymentStatus.SUPERSEDED;
     }
 
     public void recordKakaoTid(String tid) {
         if (status != PaymentStatus.PENDING || kakaoTid != null) {
-            throw new IllegalStateException("Only pending payments without a TID can be prepared");
+            throw new BusinessException(ErrorCode.PAYMENT_NOT_AVAILABLE);
         }
         kakaoTid = tid;
     }
@@ -98,8 +101,11 @@ public class Payment {
     }
 
     public void approve(Instant approvedAt) {
-        if (status != PaymentStatus.PENDING || kakaoTid == null || approvedAt == null) {
-            throw new IllegalStateException("Only prepared pending payments can be approved");
+        if (status != PaymentStatus.PENDING || kakaoTid == null) {
+            throw new BusinessException(ErrorCode.PAYMENT_NOT_AVAILABLE);
+        }
+        if (approvedAt == null) {
+            throw new BusinessException(ErrorCode.PAYMENT_RESULT_MISMATCH);
         }
         status = PaymentStatus.PAID;
         this.approvedAt = approvedAt;
