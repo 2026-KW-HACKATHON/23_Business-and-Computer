@@ -52,14 +52,14 @@ public class StudentService {
 
         //
         if (studentProfileIds.stream().anyMatch(id -> id == null)) {
-            throw new IllegalStateException("MATCHED job has no selected student profile");
+            throw new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR);
         }
 
         Map<Long, Student> studentsById = studentRepository.findAllById(studentProfileIds).stream()
                 .collect(Collectors.toMap(Student::getId, student -> student));
         for (Long studentProfileId : studentProfileIds) {
             if (!studentsById.containsKey(studentProfileId)) {
-                throw new IllegalStateException("Student profile not found: " + studentProfileId);
+                throw new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR);
             }
         }
         return studentsById;

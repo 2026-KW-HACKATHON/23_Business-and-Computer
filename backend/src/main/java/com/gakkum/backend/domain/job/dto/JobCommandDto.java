@@ -44,6 +44,20 @@ public final class JobCommandDto {
     @Getter
     @Builder(access = AccessLevel.PRIVATE)
     @AllArgsConstructor(access = AccessLevel.PRIVATE)
+    public static class GetClosedJobsCommand {
+
+        private final Long ownerProfileId;
+
+        public static GetClosedJobsCommand of(Long ownerProfileId) {
+            return GetClosedJobsCommand.builder()
+                    .ownerProfileId(ownerProfileId)
+                    .build();
+        }
+    }
+
+    @Getter
+    @Builder(access = AccessLevel.PRIVATE)
+    @AllArgsConstructor(access = AccessLevel.PRIVATE)
     public static class CreateJobCommand {
 
         private final Long ownerProfileId;

@@ -6,6 +6,7 @@ import java.util.List;
 import com.gakkum.backend.domain.job.entity.Job;
 import com.gakkum.backend.domain.job.entity.JobSubmission;
 import com.gakkum.backend.domain.student.entity.Student;
+import com.gakkum.backend.domain.user.entity.User;
 
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -40,6 +41,65 @@ public final class JobQueryDto {
 
         public static MatchedJobData of(Job job, List<Long> specialtyIds, JobSubmission pendingSubmission) {
             return new MatchedJobData(job, specialtyIds, pendingSubmission);
+        }
+    }
+
+    @Getter
+    @AllArgsConstructor(access = AccessLevel.PRIVATE)
+    public static class ClosedJobData {
+
+        private final Job job;
+        private final List<Long> specialtyIds;
+
+        public static ClosedJobData of(Job job, List<Long> specialtyIds) {
+            return new ClosedJobData(job, specialtyIds);
+        }
+    }
+
+    @Getter
+    @AllArgsConstructor(access = AccessLevel.PRIVATE)
+    public static class ClosedJobListResult {
+
+        private final List<ClosedJobResult> jobs;
+
+        public static ClosedJobListResult of(List<ClosedJobResult> jobs) {
+            return new ClosedJobListResult(jobs);
+        }
+    }
+
+    @Getter
+    @Builder(access = AccessLevel.PRIVATE)
+    @AllArgsConstructor(access = AccessLevel.PRIVATE)
+    public static class ClosedJobResult {
+
+        private final Long jobId;
+        private final String title;
+        private final List<SpecialtyCategoryResult> specialtyCategories;
+        private final MatchedWorkerResult matchedWorker;
+        private final LocalDate completedAt;
+
+        public static ClosedJobResult of(
+                ClosedJobData data, Student student, User worker, List<SpecialtyCategoryResult> specialtyCategories) {
+            Job job = data.getJob();
+            return ClosedJobResult.builder()
+                    .jobId(job.getId())
+                    .title(job.getTitle())
+                    .specialtyCategories(specialtyCategories)
+                    .matchedWorker(MatchedWorkerResult.of(student.getId(), worker.getName()))
+                    .completedAt(job.getCompletedAt().toLocalDate())
+                    .build();
+        }
+    }
+
+    @Getter
+    @AllArgsConstructor(access = AccessLevel.PRIVATE)
+    public static class MatchedWorkerResult {
+
+        private final Long studentProfileId;
+        private final String name;
+
+        public static MatchedWorkerResult of(Long studentProfileId, String name) {
+            return new MatchedWorkerResult(studentProfileId, name);
         }
     }
 

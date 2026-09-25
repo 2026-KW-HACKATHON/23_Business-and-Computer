@@ -50,6 +50,8 @@ import com.gakkum.backend.domain.user.entity.User;
 import com.gakkum.backend.domain.user.entity.UserRole;
 import com.gakkum.backend.domain.user.repository.UserRepository;
 import com.gakkum.backend.domain.user.service.UserService;
+import com.gakkum.backend.global.exception.BusinessException;
+import com.gakkum.backend.global.exception.ErrorCode;
 import com.gakkum.backend.global.exception.GlobalExceptionHandler;
 
 import lombok.extern.slf4j.Slf4j;
@@ -214,8 +216,8 @@ class JobOpenListFlowTest {
                 .andExpect(status().isInternalServerError())
                 .andExpect(jsonPath("$.error.code").value("COMMON_500"))
                 .andExpect(result -> assertThat(result.getResolvedException())
-                        .isInstanceOf(IllegalStateException.class)
-                        .hasMessage("Specialty category not found: 99"));
+                        .isInstanceOfSatisfying(BusinessException.class, exception ->
+                                assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.INTERNAL_SERVER_ERROR)));
     }
 
     @Test
@@ -246,7 +248,7 @@ class JobOpenListFlowTest {
     @Test
     @DisplayName("지원하지 않는 상태값이면 400을 응답하고 사용자 조회를 시작하지 않는다")
     void rejectsUnsupportedStatus() throws Exception {
-        getOpenJobs("CLOSED")
+        getOpenJobs("INVALID")
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.error.code").value("COMMON_400"));
 

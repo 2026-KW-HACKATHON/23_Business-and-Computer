@@ -14,6 +14,8 @@ import org.junit.jupiter.api.Test;
 
 import com.gakkum.backend.domain.student.entity.Student;
 import com.gakkum.backend.domain.student.repository.StudentRepository;
+import com.gakkum.backend.global.exception.BusinessException;
+import com.gakkum.backend.global.exception.ErrorCode;
 
 class StudentProfileLookupTest {
 
@@ -34,7 +36,8 @@ class StudentProfileLookupTest {
     @DisplayName("선택된 학생 ID가 없으면 조회 오류를 발생시킨다")
     void rejectsNullStudentId() {
         assertThatThrownBy(() -> studentService.getStudentProfilesByIds(Collections.singletonList(null)))
-                .isInstanceOf(IllegalStateException.class);
+                .isInstanceOfSatisfying(BusinessException.class, exception ->
+                        assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.INTERNAL_SERVER_ERROR));
         verifyNoInteractions(studentRepository);
     }
 
@@ -44,7 +47,7 @@ class StudentProfileLookupTest {
         when(studentRepository.findAllById(List.of(7L))).thenReturn(List.of());
 
         assertThatThrownBy(() -> studentService.getStudentProfilesByIds(List.of(7L)))
-                .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("7");
+                .isInstanceOfSatisfying(BusinessException.class, exception ->
+                        assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.INTERNAL_SERVER_ERROR));
     }
 }

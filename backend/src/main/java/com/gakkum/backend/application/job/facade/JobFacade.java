@@ -11,8 +11,12 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.gakkum.backend.application.job.dto.JobCreateRequest;
-import com.gakkum.backend.domain.job.dto.JobCommandDto.GetOpenJobsCommand;
+import com.gakkum.backend.domain.job.dto.JobCommandDto.GetClosedJobsCommand;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.GetMatchedJobsCommand;
+import com.gakkum.backend.domain.job.dto.JobCommandDto.GetOpenJobsCommand;
+import com.gakkum.backend.domain.job.dto.JobQueryDto.ClosedJobData;
+import com.gakkum.backend.domain.job.dto.JobQueryDto.ClosedJobListResult;
+import com.gakkum.backend.domain.job.dto.JobQueryDto.ClosedJobResult;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.MatchedJobData;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.MatchedJobListResult;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.MatchedJobResult;
@@ -97,6 +101,41 @@ public class JobFacade {
                         job,
                         studentsById.get(job.getJob().getSelectedStudentProfileId()),
                         groupSpecialties(job.getSpecialtyIds(), specialtiesById)))
+                .toList());
+    }
+
+    @Transactional(readOnly = true)
+    public ClosedJobListResult getClosedJobs(String username) {
+        User user = userService.getActiveUser(username);
+        Owner owner = ownerService.getOwnerProfile(user.getId());
+        List<ClosedJobData> jobs = jobService.getClosedJobs(GetClosedJobsCommand.of(owner.getId()));
+
+        if (jobs.isEmpty()) {
+            return ClosedJobListResult.of(List.of());
+        }
+
+        Map<Long, Student> studentsById = studentService.getStudentProfilesByIds(jobs.stream()
+                .map(job -> job.getJob().getSelectedStudentProfileId())
+                .distinct()
+                .toList());
+        Map<String, User> workersById = userService.getUsersByIds(studentsById.values().stream()
+                .map(Student::getUserId)
+                .distinct()
+                .toList());
+        Set<Long> specialtyIds = jobs.stream()
+                .flatMap(job -> job.getSpecialtyIds().stream())
+                .collect(Collectors.toSet());
+        Map<Long, SpecialtyDetail> specialtiesById = specialtyCategoryService.getSpecialtyDetails(specialtyIds);
+
+        return ClosedJobListResult.of(jobs.stream()
+                .map(job -> {
+                    Student student = studentsById.get(job.getJob().getSelectedStudentProfileId());
+                    return ClosedJobResult.of(
+                            job,
+                            student,
+                            workersById.get(student.getUserId()),
+                            groupSpecialties(job.getSpecialtyIds(), specialtiesById));
+                })
                 .toList());
     }
 

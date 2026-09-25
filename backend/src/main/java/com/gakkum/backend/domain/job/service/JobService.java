@@ -8,8 +8,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.gakkum.backend.domain.job.dto.JobCommandDto.CreateJobCommand;
-import com.gakkum.backend.domain.job.dto.JobCommandDto.GetOpenJobsCommand;
+import com.gakkum.backend.domain.job.dto.JobCommandDto.GetClosedJobsCommand;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.GetMatchedJobsCommand;
+import com.gakkum.backend.domain.job.dto.JobCommandDto.GetOpenJobsCommand;
+import com.gakkum.backend.domain.job.dto.JobQueryDto.ClosedJobData;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.MatchedJobData;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.OpenJobData;
 import com.gakkum.backend.domain.job.entity.Job;
@@ -24,6 +26,8 @@ import com.gakkum.backend.domain.job.repository.JobRepository;
 import com.gakkum.backend.domain.job.repository.JobSpecialtyRepository;
 import com.gakkum.backend.domain.job.repository.JobSubmissionRepository;
 import com.gakkum.backend.domain.specialty.service.SpecialtyService;
+import com.gakkum.backend.global.exception.BusinessException;
+import com.gakkum.backend.global.exception.ErrorCode;
 
 import lombok.RequiredArgsConstructor;
 
@@ -120,6 +124,34 @@ public class JobService {
                                 .map(JobSpecialty::getSpecialtyId)
                                 .toList(),
                         pendingSubmissionsByJobId.get(job.getId())))
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<ClosedJobData> getClosedJobs(GetClosedJobsCommand command) {
+        List<Job> jobs = jobRepository.findByOwnerProfileIdAndStatusOrderByCompletedAtDescIdDesc(
+                command.getOwnerProfileId(), JobStatus.CLOSED);
+        if (jobs.isEmpty()) {
+            return List.of();
+        }
+
+        // CompletedAt 이 없으면 에러
+        for (Job job : jobs) {
+            if (job.getCompletedAt() == null) {
+                throw new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR);
+            }
+        }
+
+        List<Long> jobIds = jobs.stream().map(Job::getId).toList();
+        Map<Long, List<JobSpecialty>> specialtiesByJobId = jobSpecialtyRepository.findByJobIdIn(jobIds).stream()
+                .collect(Collectors.groupingBy(JobSpecialty::getJobId));
+
+        return jobs.stream()
+                .map(job -> ClosedJobData.of(
+                        job,
+                        specialtiesByJobId.getOrDefault(job.getId(), List.of()).stream()
+                                .map(JobSpecialty::getSpecialtyId)
+                                .toList()))
                 .toList();
     }
 }

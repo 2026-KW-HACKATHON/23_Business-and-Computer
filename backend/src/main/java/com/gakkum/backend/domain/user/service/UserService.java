@@ -1,7 +1,9 @@
 package com.gakkum.backend.domain.user.service;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import com.gakkum.backend.domain.jwt.service.JwtService;
 import com.gakkum.backend.domain.user.dto.CustomOAuth2User;
@@ -120,6 +122,23 @@ public class UserService extends DefaultOAuth2UserService {
     public User getActiveUser(String username) {
         return userRepository.findByUsernameAndIsLock(username, false)
                 .orElseThrow(() -> new BusinessException(ErrorCode.UNAUTHORIZED));
+    }
+
+    @Transactional(readOnly = true)
+    public Map<String, User> getUsersByIds(Collection<String> userIds) {
+        if (userIds.stream().anyMatch(id -> id == null)) {
+            throw new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR);
+        }
+
+        Map<String, User> usersById = userRepository.findAllById(userIds).stream()
+                .collect(Collectors.toMap(User::getId, user -> user));
+        for (String userId : userIds) {
+            User user = usersById.get(userId);
+            if (user == null || user.getName() == null) {
+                throw new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR);
+            }
+        }
+        return usersById;
     }
 
     private User findPendingUser(String username) {

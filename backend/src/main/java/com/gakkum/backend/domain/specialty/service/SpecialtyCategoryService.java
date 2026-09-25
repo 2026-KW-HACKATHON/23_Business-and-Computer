@@ -16,6 +16,8 @@ import com.gakkum.backend.domain.specialty.entity.Specialty;
 import com.gakkum.backend.domain.specialty.entity.SpecialtyCategory;
 import com.gakkum.backend.domain.specialty.repository.SpecialtyCategoryRepository;
 import com.gakkum.backend.domain.specialty.repository.SpecialtyRepository;
+import com.gakkum.backend.global.exception.BusinessException;
+import com.gakkum.backend.global.exception.ErrorCode;
 
 import lombok.RequiredArgsConstructor;
 
@@ -67,8 +69,7 @@ public class SpecialtyCategoryService {
                 .map(specialty -> {
                     SpecialtyCategory category = categoriesById.get(specialty.getSpecialtyCategoryId());
                     if (category == null) {
-                        throw new IllegalStateException(
-                                "Specialty category not found: " + specialty.getSpecialtyCategoryId());
+                        throw new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR);
                     }
                     return SpecialtyDetail.of(
                             specialty.getId(), specialty.getName(), category.getId(), category.getName());
