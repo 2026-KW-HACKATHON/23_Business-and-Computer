@@ -4,6 +4,8 @@ import java.time.LocalDate;
 import java.util.List;
 
 import com.gakkum.backend.domain.job.entity.Job;
+import com.gakkum.backend.domain.job.entity.JobSubmission;
+import com.gakkum.backend.domain.student.entity.Student;
 
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -25,6 +27,65 @@ public final class JobQueryDto {
 
         public static OpenJobData of(Job job, List<Long> specialtyIds, Integer applicantCount) {
             return new OpenJobData(job, specialtyIds, applicantCount);
+        }
+    }
+
+    @Getter
+    @AllArgsConstructor(access = AccessLevel.PRIVATE)
+    public static class MatchedJobData {
+
+        private final Job job;
+        private final List<Long> specialtyIds;
+        private final JobSubmission pendingSubmission;
+
+        public static MatchedJobData of(Job job, List<Long> specialtyIds, JobSubmission pendingSubmission) {
+            return new MatchedJobData(job, specialtyIds, pendingSubmission);
+        }
+    }
+
+    @Getter
+    @AllArgsConstructor(access = AccessLevel.PRIVATE)
+    public static class MatchedJobListResult {
+
+        private final List<MatchedJobResult> jobs;
+
+        public static MatchedJobListResult of(List<MatchedJobResult> jobs) {
+            return new MatchedJobListResult(jobs);
+        }
+    }
+
+    @Getter
+    @Builder(access = AccessLevel.PRIVATE)
+    @AllArgsConstructor(access = AccessLevel.PRIVATE)
+    public static class MatchedJobResult {
+
+        private final Long jobId;
+        private final String title;
+        private final List<SpecialtyCategoryResult> specialtyCategories;
+        private final LocalDate draftDeadline;
+        private final LocalDate finalDeadline;
+        private final Long studentProfileId;
+        private final String studentNumber;
+        private final String major;
+        private final String submissionType;
+        private final Long pendingSubmissionId;
+
+        public static MatchedJobResult of(
+                MatchedJobData data, Student student, List<SpecialtyCategoryResult> specialtyCategories) {
+            Job job = data.getJob();
+            JobSubmission pendingSubmission = data.getPendingSubmission();
+            return MatchedJobResult.builder()
+                    .jobId(job.getId())
+                    .title(job.getTitle())
+                    .specialtyCategories(specialtyCategories)
+                    .draftDeadline(job.getDraftDeadline())
+                    .finalDeadline(job.getFinalDeadline())
+                    .studentProfileId(student.getId())
+                    .studentNumber(student.getStudentNumber())
+                    .major(student.getMajor())
+                    .submissionType(pendingSubmission == null ? null : pendingSubmission.getSubmissionType().name())
+                    .pendingSubmissionId(pendingSubmission == null ? null : pendingSubmission.getId())
+                    .build();
         }
     }
 
