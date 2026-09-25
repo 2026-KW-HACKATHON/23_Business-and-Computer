@@ -21,6 +21,8 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.gakkum.backend.application.specialty.controller.SpecialtyController;
+import com.gakkum.backend.application.job.controller.JobController;
+import com.gakkum.backend.application.job.facade.JobFacade;
 import com.gakkum.backend.domain.specialty.service.SpecialtyCategoryService;
 import com.gakkum.backend.global.exception.RestAuthenticationEntryPoint;
 import com.gakkum.backend.global.response.ApiResponse;
@@ -29,7 +31,7 @@ import com.gakkum.backend.domain.user.service.UserService;
 import com.gakkum.backend.util.JWTUtil;
 
 @DisplayName("보안 설정 - 기본 거부(default-deny) 인증 정책 검증")
-@WebMvcTest(controllers = {SecurityConfigTest.TestController.class, SpecialtyController.class})
+@WebMvcTest(controllers = {SecurityConfigTest.TestController.class, SpecialtyController.class, JobController.class})
 @Import({SecurityConfig.class, RestAuthenticationEntryPoint.class})
 class SecurityConfigTest {
 
@@ -53,6 +55,9 @@ class SecurityConfigTest {
 
     @MockitoBean
     private SpecialtyCategoryService specialtyCategoryService;
+
+    @MockitoBean
+    private JobFacade jobFacade;
 
     @Test
     @DisplayName("인증 없이 임의의 보호된 API를 호출하면 공통 401 응답 형식으로 반환된다")
@@ -124,6 +129,14 @@ class SecurityConfigTest {
         // GET /specialties 도 다른 API와 동일하게 기본 거부 정책이 적용되는지 검증
         mockMvc.perform(get("/specialties"))
             .andDo(print())
+            .andExpect(status().isUnauthorized())
+            .andExpect(jsonPath("$.error.code").value("COMMON_401"));
+    }
+
+    @Test
+    @DisplayName("인증 없이 보낸 의뢰 목록을 조회하면 401을 반환한다")
+    void openJobsRequiresAuthentication() throws Exception {
+        mockMvc.perform(get("/me/jobs").param("status", "OPEN"))
             .andExpect(status().isUnauthorized())
             .andExpect(jsonPath("$.error.code").value("COMMON_401"));
     }
