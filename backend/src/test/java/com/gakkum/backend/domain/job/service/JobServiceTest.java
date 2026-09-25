@@ -20,6 +20,7 @@ import com.gakkum.backend.domain.job.entity.JobSpecialty;
 import com.gakkum.backend.domain.job.repository.JobRepository;
 import com.gakkum.backend.domain.job.repository.JobApplicationRepository;
 import com.gakkum.backend.domain.job.repository.JobSpecialtyRepository;
+import com.gakkum.backend.domain.job.repository.JobSubmissionRepository;
 import com.gakkum.backend.domain.specialty.repository.SpecialtyRepository;
 import com.gakkum.backend.domain.specialty.repository.StudentSpecialtyRepository;
 import com.gakkum.backend.domain.specialty.service.SpecialtyService;
@@ -40,6 +41,7 @@ class JobServiceTest {
             jobRepository,
             jobSpecialtyRepository,
             jobApplicationRepository,
+            mock(JobSubmissionRepository.class),
             specialtyService);
 
     @Test

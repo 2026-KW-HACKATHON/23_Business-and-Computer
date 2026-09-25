@@ -28,6 +28,7 @@ import com.gakkum.backend.domain.owner.repository.OwnerRepository;
 import com.gakkum.backend.domain.owner.service.OwnerService;
 import com.gakkum.backend.domain.specialty.dto.SpecialtyQueryDto.SpecialtyDetail;
 import com.gakkum.backend.domain.specialty.service.SpecialtyCategoryService;
+import com.gakkum.backend.domain.student.service.StudentService;
 import com.gakkum.backend.domain.user.entity.User;
 import com.gakkum.backend.domain.user.service.UserService;
 import com.gakkum.backend.global.exception.BusinessException;
@@ -44,7 +45,7 @@ class JobFacadeOpenListTest {
     private final JobService jobService = mock(JobService.class);
     private final SpecialtyCategoryService specialtyCategoryService = mock(SpecialtyCategoryService.class);
     private final JobFacade jobFacade = new JobFacade(
-            userService, ownerService, jobService, specialtyCategoryService);
+            userService, ownerService, jobService, specialtyCategoryService, mock(StudentService.class));
 
     @Test
     @DisplayName("인증된 사업주의 OPEN 의뢰에 특기를 대분류별로 묶어 반환한다")

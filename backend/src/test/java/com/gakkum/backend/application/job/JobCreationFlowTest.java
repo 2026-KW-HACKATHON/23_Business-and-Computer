@@ -34,6 +34,7 @@ import com.gakkum.backend.domain.job.entity.JobStatus;
 import com.gakkum.backend.domain.job.repository.JobRepository;
 import com.gakkum.backend.domain.job.repository.JobApplicationRepository;
 import com.gakkum.backend.domain.job.repository.JobSpecialtyRepository;
+import com.gakkum.backend.domain.job.repository.JobSubmissionRepository;
 import com.gakkum.backend.domain.job.service.JobService;
 import com.gakkum.backend.domain.jwt.service.JwtService;
 import com.gakkum.backend.domain.owner.entity.Owner;
@@ -44,6 +45,7 @@ import com.gakkum.backend.domain.specialty.repository.SpecialtyCategoryRepositor
 import com.gakkum.backend.domain.specialty.repository.StudentSpecialtyRepository;
 import com.gakkum.backend.domain.specialty.service.SpecialtyService;
 import com.gakkum.backend.domain.specialty.service.SpecialtyCategoryService;
+import com.gakkum.backend.domain.student.service.StudentService;
 import com.gakkum.backend.domain.user.entity.User;
 import com.gakkum.backend.domain.user.entity.UserRole;
 import com.gakkum.backend.domain.user.repository.UserRepository;
@@ -105,10 +107,11 @@ class JobCreationFlowTest {
         OwnerService ownerService = new OwnerService(ownerRepository);
         SpecialtyService specialtyService = new SpecialtyService(specialtyRepository, studentSpecialtyRepository);
         JobService jobService = new JobService(jobRepository, jobSpecialtyRepository,
-                jobApplicationRepository, specialtyService);
+                jobApplicationRepository, mock(JobSubmissionRepository.class), specialtyService);
         SpecialtyCategoryService specialtyCategoryService =
                 new SpecialtyCategoryService(specialtyCategoryRepository, specialtyRepository);
-        JobFacade facade = new JobFacade(userService, ownerService, jobService, specialtyCategoryService);
+        JobFacade facade = new JobFacade(userService, ownerService, jobService,
+                specialtyCategoryService, mock(StudentService.class));
         JobController controller = new JobController(facade);
 
         mockMvc = MockMvcBuilders.standaloneSetup(controller)
