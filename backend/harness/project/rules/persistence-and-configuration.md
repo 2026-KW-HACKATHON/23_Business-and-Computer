@@ -19,6 +19,7 @@ Protect PostgreSQL data and deployment configuration from implicit schema change
 - Do not enable `ddl-auto` schema mutation, add startup DDL, or assume Hibernate-generated schema is the production migration strategy.
 - Before the first schema change, make an explicit migration-tool and ownership decision; no stable migration entry point currently exists.
 - Treat entity mappings, column nullability, uniqueness, relationships, fetch/cascade behavior, and transaction boundaries as data-contract decisions, not incidental annotations.
+- Prefer Spring Data JPA method-name queries, including projections when only selected fields are needed. Use `@Query` only when a derived method cannot express the query clearly, and document why it is necessary.
 - Do not create physical `FOREIGN KEY` constraints between domain tables. Validate referenced IDs in the application service before creating or updating records.
 - When deleting a referenced record, handle dependent records in the application service within the same transaction according to the domain's deletion policy. Verify missing-reference and deletion behavior with focused tests when those write flows are added.
 - Continue to use `NOT NULL`, `UNIQUE`, and other database constraints where the data contract requires them; the no-physical-FK policy does not remove those constraints.
@@ -49,4 +50,3 @@ Protect PostgreSQL data and deployment configuration from implicit schema change
 - Adding entity relationships with broad cascade or eager fetching by default.
 - Assuming an in-memory database behaves identically to PostgreSQL.
 - Committing local configuration or secrets because the application context otherwise fails to start.
-
