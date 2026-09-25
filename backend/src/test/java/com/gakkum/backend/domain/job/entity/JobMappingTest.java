@@ -8,6 +8,7 @@ import org.hibernate.boot.MetadataSources;
 import org.hibernate.boot.registry.StandardServiceRegistryBuilder;
 import org.hibernate.mapping.Column;
 import org.hibernate.mapping.Table;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import jakarta.persistence.EnumType;
@@ -16,6 +17,7 @@ import jakarta.persistence.Enumerated;
 class JobMappingTest {
 
     @Test
+    @DisplayName("의뢰 테이블은 외래 키 없이 필요한 컬럼에 매핑된다")
     void mapsJobTablesWithoutForeignKeys() throws NoSuchFieldException {
         var registry = new StandardServiceRegistryBuilder()
                 .applySetting("hibernate.dialect", "org.hibernate.dialect.PostgreSQLDialect")
@@ -27,6 +29,7 @@ class JobMappingTest {
                     .addAnnotatedClass(Job.class)
                     .addAnnotatedClass(JobSpecialty.class)
                     .addAnnotatedClass(JobApplication.class)
+                    .addAnnotatedClass(JobSubmission.class)
                     .buildMetadata();
 
             Table jobs = metadata.getEntityBinding(Job.class.getName()).getTable();
@@ -58,6 +61,17 @@ class JobMappingTest {
             assertThat(applications.getUniqueKey("job_applications_job_id_student_profile_id_key").getColumns())
                     .extracting(Column::getName).containsExactly("job_id", "student_profile_id");
 
+            Table submissions = metadata.getEntityBinding(JobSubmission.class.getName()).getTable();
+            assertThat(submissions.getName()).isEqualTo("job_submissions");
+            assertNotNull(submissions, "job_id", "submission_type", "revision_number", "file_urls", "message",
+                    "review_status");
+            assertThat(submissions.getColumn(new Column("file_urls")).getSqlType(metadata)).isEqualTo("jsonb");
+            assertThat(submissions.getColumn(new Column("message")).getSqlType(metadata)).isEqualTo("TEXT");
+            assertThat(submissions.getColumn(new Column("review_comment")).getSqlType(metadata)).isEqualTo("TEXT");
+            assertThat(submissions.getColumn(new Column("reviewed_at")).isNullable()).isTrue();
+            assertThat(submissions.getUniqueKeys()).containsKey("job_submissions_job_id_revision_number_key");
+            assertThat(submissions.getForeignKeyCollection()).isEmpty();
+
             assertThat(jobs.getForeignKeyCollection()).isEmpty();
             assertThat(specialties.getForeignKeyCollection()).isEmpty();
             assertThat(applications.getForeignKeyCollection()).isEmpty();
@@ -66,6 +80,10 @@ class JobMappingTest {
             assertThat(Job.class.getDeclaredField("status").getAnnotation(Enumerated.class).value())
                     .isEqualTo(EnumType.STRING);
             assertThat(JobApplication.class.getDeclaredField("status").getAnnotation(Enumerated.class).value())
+                    .isEqualTo(EnumType.STRING);
+            assertThat(JobSubmission.class.getDeclaredField("submissionType").getAnnotation(Enumerated.class).value())
+                    .isEqualTo(EnumType.STRING);
+            assertThat(JobSubmission.class.getDeclaredField("reviewStatus").getAnnotation(Enumerated.class).value())
                     .isEqualTo(EnumType.STRING);
         } finally {
             StandardServiceRegistryBuilder.destroy(registry);
