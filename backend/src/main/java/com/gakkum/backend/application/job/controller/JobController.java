@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.gakkum.backend.application.job.dto.JobCreateRequest;
+import com.gakkum.backend.application.job.dto.MatchedJobListResponse;
 import com.gakkum.backend.application.job.dto.OpenJobListResponse;
 import com.gakkum.backend.application.job.facade.JobFacade;
 import com.gakkum.backend.global.exception.BusinessException;
@@ -31,13 +32,17 @@ public class JobController {
     }
 
     @GetMapping("/me/jobs")
-    public ResponseEntity<ApiResponse<OpenJobListResponse>> getOpenJobs(
+    public ResponseEntity<ApiResponse<?>> getJobs(
             Authentication authentication, @RequestParam(required = false) String status) {
-        if (!"OPEN".equals(status)) {
-            throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE);
+        if ("OPEN".equals(status)) {
+            OpenJobListResponse response = OpenJobListResponse.from(jobFacade.getOpenJobs(authentication.getName()));
+            return ResponseEntity.ok(ApiResponse.success(response));
+        }
+        if ("MATCHED".equals(status)) {
+            MatchedJobListResponse response = MatchedJobListResponse.from(jobFacade.getMatchedJobs(authentication.getName()));
+            return ResponseEntity.ok(ApiResponse.success(response));
         }
 
-        OpenJobListResponse response = OpenJobListResponse.from(jobFacade.getOpenJobs(authentication.getName()));
-        return ResponseEntity.ok(ApiResponse.success(response));
+        throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE);
     }
 }
