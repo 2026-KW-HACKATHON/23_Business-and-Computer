@@ -60,6 +60,9 @@ public class Job {
     @Column(name = "selected_student_profile_id")
     private Long selectedStudentProfileId;
 
+    @Column(name = "completed_at")
+    private LocalDateTime completedAt;
+
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;

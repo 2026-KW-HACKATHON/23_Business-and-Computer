@@ -37,6 +37,8 @@ class JobMappingTest {
             assertNotNull(jobs, "owner_profile_id", "title", "description", "budget", "draft_deadline",
                     "final_deadline", "revision_count", "status");
             assertThat(jobs.getColumn(new Column("selected_student_profile_id")).isNullable()).isTrue();
+            assertThat(jobs.getColumn(new Column("completed_at")).isNullable()).isTrue();
+            assertThat(jobs.getColumn(new Column("completed_at")).getSqlType(metadata)).isEqualTo("timestamp(6)");
             assertThat(jobs.getColumn(new Column("description")).getSqlType(metadata)).isEqualTo("TEXT");
             assertThat(jobs.getColumn(new Column("budget")).getSqlType(metadata)).isEqualTo("bigint");
             assertThat(jobs.getColumn(new Column("draft_deadline")).getSqlType(metadata)).isEqualTo("date");
