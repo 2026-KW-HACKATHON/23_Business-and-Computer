@@ -171,6 +171,16 @@ class SecurityConfigTest {
             .andExpect(jsonPath("$.error.code").value("COMMON_401"));
     }
 
+    @Test
+    @DisplayName("인증 없이 결제 승인을 요청하면 401을 반환한다")
+    void paymentApprovalRequiresAuthentication() throws Exception {
+        mockMvc.perform(post("/payments/order-123/approve")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"pgToken\":\"pg-123\"}"))
+            .andExpect(status().isUnauthorized())
+            .andExpect(jsonPath("$.error.code").value("COMMON_401"));
+    }
+
     @RestController
     static class TestController {
 

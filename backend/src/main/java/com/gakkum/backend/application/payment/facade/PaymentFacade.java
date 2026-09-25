@@ -1,22 +1,16 @@
 package com.gakkum.backend.application.payment.facade;
 
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
-
 import com.gakkum.backend.application.payment.dto.PaymentPrepareRequest;
-import com.gakkum.backend.domain.job.entity.Job;
-import com.gakkum.backend.domain.job.entity.JobApplication;
-import com.gakkum.backend.domain.job.service.JobService;
-import com.gakkum.backend.domain.owner.entity.Owner;
-import com.gakkum.backend.domain.owner.service.OwnerService;
+import com.gakkum.backend.application.payment.service.PaymentPreparationService;
+import com.gakkum.backend.application.payment.service.PaymentApprovalService;
+import com.gakkum.backend.domain.payment.client.KakaoPayClient;
+import com.gakkum.backend.domain.payment.client.KakaoPayClient.ReadyResult;
+import com.gakkum.backend.domain.payment.dto.PaymentQueryDto.PendingPaymentData;
+import com.gakkum.backend.domain.payment.dto.PaymentQueryDto.ApprovedPaymentData;
 import com.gakkum.backend.domain.payment.dto.PaymentQueryDto.PreparePaymentResult;
-import com.gakkum.backend.domain.payment.entity.Payment;
 import com.gakkum.backend.domain.payment.service.PaymentService;
-import com.gakkum.backend.domain.user.entity.User;
-import com.gakkum.backend.domain.user.entity.UserRole;
-import com.gakkum.backend.domain.user.service.UserService;
 import com.gakkum.backend.global.exception.BusinessException;
-import com.gakkum.backend.global.exception.ErrorCode;
 
 import lombok.RequiredArgsConstructor;
 
@@ -24,22 +18,26 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class PaymentFacade {
 
-    private final UserService userService;
-    private final OwnerService ownerService;
-    private final JobService jobService;
+    private final PaymentPreparationService preparationService;
+    private final KakaoPayClient kakaoPayClient;
     private final PaymentService paymentService;
+    private final PaymentApprovalService approvalService;
 
-    @Transactional
+    public ApprovedPaymentData approvePayment(String username, String orderId, String pgToken) {
+        return approvalService.approve(username, orderId, pgToken);
+    }
+
     public PreparePaymentResult preparePayment(String username, Long jobId, PaymentPrepareRequest request) {
-        User user = userService.getActiveUser(username);
-        if (user.getRole() != UserRole.OWNER) {
-            throw new BusinessException(ErrorCode.PAYMENT_OWNER_REQUIRED);
+        PendingPaymentData pending = preparationService.createPending(username, jobId, request);
+        ReadyResult ready;
+        try {
+            ready = kakaoPayClient.ready(pending);
+        } catch (BusinessException exception) {
+            paymentService.failReady(pending.orderId());
+            throw exception;
         }
-        Owner owner = ownerService.getOwnerProfile(user.getId());
-        Job job = jobService.getPayableJobForUpdate(jobId, owner.getId());
-        JobApplication application = jobService.getPayableApplication(jobId, request.getJobApplicationId());
-        Payment payment = paymentService.preparePayment(job, application, user.getId());
-
-        return PreparePaymentResult.of(payment.getOrderId(), payment.getAmount(), job.getTitle());
+        paymentService.recordKakaoTid(pending.orderId(), ready.tid());
+        return PreparePaymentResult.of(pending.orderId(), pending.amount(), pending.orderName(),
+                ready.nextRedirectPcUrl(), ready.nextRedirectMobileUrl());
     }
 }

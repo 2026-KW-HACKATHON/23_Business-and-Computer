@@ -1,0 +1,112 @@
+package com.gakkum.backend.application.payment.service;
+
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.gakkum.backend.domain.job.repository.JobRepository;
+import com.gakkum.backend.domain.payment.client.KakaoPayClient;
+import com.gakkum.backend.domain.payment.client.KakaoPayClient.PaymentResult;
+import com.gakkum.backend.domain.payment.dto.PaymentQueryDto.ApprovedPaymentData;
+import com.gakkum.backend.domain.payment.entity.Payment;
+import com.gakkum.backend.domain.payment.entity.PaymentStatus;
+import com.gakkum.backend.domain.payment.repository.PaymentRepository;
+import com.gakkum.backend.domain.payment.repository.PaymentRepository.JobIdProjection;
+import com.gakkum.backend.domain.user.entity.User;
+import com.gakkum.backend.domain.user.entity.UserRole;
+import com.gakkum.backend.domain.user.service.UserService;
+import com.gakkum.backend.global.exception.BusinessException;
+import com.gakkum.backend.global.exception.ErrorCode;
+
+import lombok.RequiredArgsConstructor;
+
+@Service
+@RequiredArgsConstructor
+public class PaymentApprovalService {
+
+    private final UserService userService;
+    private final JobRepository jobRepository;
+    private final PaymentRepository paymentRepository;
+    private final KakaoPayClient kakaoPayClient;
+
+    @Transactional
+    public ApprovedPaymentData approve(String username, String orderId, String pgToken) {
+        User user = userService.getActiveUser(username);
+        if (user.getRole() != UserRole.OWNER) {
+            throw new BusinessException(ErrorCode.PAYMENT_FORBIDDEN);
+        }
+
+        Long jobId = paymentRepository.findProjectedByOrderId(orderId)
+                .map(JobIdProjection::getJobId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.PAYMENT_ORDER_NOT_FOUND));
+        jobRepository.findLockedById(jobId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.JOB_NOT_FOUND));
+        Payment payment = paymentRepository.findByOrderId(orderId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.PAYMENT_ORDER_NOT_FOUND));
+        if (!payment.getOwnerUserId().equals(user.getId())) {
+            throw new BusinessException(ErrorCode.PAYMENT_FORBIDDEN);
+        }
+        if (payment.getStatus() == PaymentStatus.PAID) {
+            return result(payment);
+        }
+        if (payment.getStatus() != PaymentStatus.PENDING || payment.getKakaoTid() == null) {
+            throw new BusinessException(ErrorCode.PAYMENT_NOT_AVAILABLE);
+        }
+        if (paymentRepository.existsByJobIdAndStatus(jobId, PaymentStatus.PAID)) {
+            throw new BusinessException(ErrorCode.PAYMENT_ALREADY_PAID);
+        }
+
+        PaymentResult current = kakaoPayClient.order(payment.getKakaoTid());
+        validate(current, payment);
+        if ("SUCCESS_PAYMENT".equals(current.status())) {
+            return recordApproval(payment, current);
+        }
+        if (!isAwaitingApproval(current.status())) {
+            throw new BusinessException(ErrorCode.PAYMENT_NOT_AVAILABLE);
+        }
+
+        PaymentResult approved;
+        try {
+            approved = kakaoPayClient.approve(payment.getKakaoTid(), orderId, user.getId(), pgToken);
+        } catch (BusinessException exception) {
+            if (exception.getErrorCode() != ErrorCode.PAYMENT_APPROVAL_UNAVAILABLE) {
+                throw exception;
+            }
+            PaymentResult afterFailure = kakaoPayClient.order(payment.getKakaoTid());
+            validate(afterFailure, payment);
+            if ("SUCCESS_PAYMENT".equals(afterFailure.status())) {
+                return recordApproval(payment, afterFailure);
+            }
+            throw exception;
+        }
+        validate(approved, payment);
+        return recordApproval(payment, approved);
+    }
+
+    private void validate(PaymentResult result, Payment payment) {
+        if (!payment.getKakaoTid().equals(result.tid())
+                || !kakaoPayClient.cid().equals(result.cid())
+                || !payment.getOrderId().equals(result.orderId())
+                || !payment.getOwnerUserId().equals(result.ownerUserId())
+                || !payment.getAmount().equals(result.amount())) {
+            throw new BusinessException(ErrorCode.PAYMENT_RESULT_MISMATCH);
+        }
+    }
+
+    private ApprovedPaymentData recordApproval(Payment payment, PaymentResult result) {
+        if (result.approvedAt() == null) {
+            throw new BusinessException(ErrorCode.PAYMENT_RESULT_MISMATCH);
+        }
+        payment.approve(result.approvedAt());
+        return result(payment);
+    }
+
+    private ApprovedPaymentData result(Payment payment) {
+        return new ApprovedPaymentData(payment.getOrderId(), payment.getAmount(), payment.getApprovedAt());
+    }
+
+    private boolean isAwaitingApproval(String status) {
+        return "READY".equals(status) || "SEND_TMS".equals(status)
+                || "OPEN_PAYMENT".equals(status) || "SELECT_METHOD".equals(status)
+                || "ARS_WAITING".equals(status) || "AUTH_PASSWORD".equals(status);
+    }
+}

@@ -15,12 +15,16 @@ public class PaymentPrepareResponse {
     private final String orderId;
     private final Long amount;
     private final String orderName;
+    private final String nextRedirectPcUrl;
+    private final String nextRedirectMobileUrl;
 
     public static PaymentPrepareResponse from(PreparePaymentResult result) {
         return PaymentPrepareResponse.builder()
                 .orderId(result.getOrderId())
                 .amount(result.getAmount())
                 .orderName(result.getOrderName())
+                .nextRedirectPcUrl(result.getNextRedirectPcUrl())
+                .nextRedirectMobileUrl(result.getNextRedirectMobileUrl())
                 .build();
     }
 }

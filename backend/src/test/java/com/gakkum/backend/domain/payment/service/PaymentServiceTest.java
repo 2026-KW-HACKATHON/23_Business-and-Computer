@@ -51,6 +51,7 @@ class PaymentServiceTest {
         assertThat(payment.getRefundPolicyAgreedAt()).isEqualTo(NOW);
         assertThat(payment.getStatus()).isEqualTo(PaymentStatus.PENDING);
         assertThat(payment.getPaymentKey()).isNull();
+        assertThat(payment.getKakaoTid()).isNull();
         assertThat(payment.getApprovedAt()).isNull();
         assertThat(payment.getOrderId()).matches("[0-9a-f-]{36}").isNotEqualTo(another.getOrderId());
     }
@@ -92,5 +93,45 @@ class PaymentServiceTest {
                 .isInstanceOfSatisfying(BusinessException.class, exception ->
                         assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.PAYMENT_NOT_AVAILABLE));
         verify(repository, never()).save(any(Payment.class));
+    }
+
+    @Test
+    @DisplayName("PENDING 주문에만 카카오페이 거래번호를 기록한다")
+    void recordsKakaoTidOnlyForPending() {
+        Payment pending = Payment.pending(11L, 21L, USER_ID, "order-123", 100_000L, NOW);
+        when(repository.findByOrderId("order-123")).thenReturn(Optional.of(pending));
+
+        service.recordKakaoTid("order-123", "T1234567890123456789");
+
+        assertThat(pending.getKakaoTid()).isEqualTo("T1234567890123456789");
+        assertThatThrownBy(() -> service.recordKakaoTid("order-123", "T9876543210987654321"))
+                .isInstanceOfSatisfying(BusinessException.class, exception ->
+                        assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.PAYMENT_NOT_AVAILABLE));
+    }
+
+    @Test
+    @DisplayName("더 새 결제가 무효화한 주문은 늦게 도착한 거래번호를 기록하지 않는다")
+    void rejectsSupersededReady() {
+        Payment previous = Payment.pending(11L, 21L, USER_ID, "old-order", 100_000L, NOW);
+        previous.supersede();
+        when(repository.findByOrderId("old-order")).thenReturn(Optional.of(previous));
+
+        assertThatThrownBy(() -> service.recordKakaoTid("old-order", "T1234567890123456789"))
+                .isInstanceOfSatisfying(BusinessException.class, exception ->
+                        assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.PAYMENT_NOT_AVAILABLE));
+        assertThat(previous.getKakaoTid()).isNull();
+        service.failReady("old-order");
+        assertThat(previous.getStatus()).isEqualTo(PaymentStatus.SUPERSEDED);
+    }
+
+    @Test
+    @DisplayName("카카오페이 준비 실패 시 현재 주문을 READY_FAILED로 기록한다")
+    void marksReadyFailed() {
+        Payment pending = Payment.pending(11L, 21L, USER_ID, "order-123", 100_000L, NOW);
+        when(repository.findByOrderId("order-123")).thenReturn(Optional.of(pending));
+
+        service.failReady("order-123");
+
+        assertThat(pending.getStatus()).isEqualTo(PaymentStatus.READY_FAILED);
     }
 }

@@ -30,6 +30,8 @@ class PaymentMappingTest {
             }
             assertThat(payments.getColumn(new Column("payment_key")).isNullable()).isTrue();
             assertThat(payments.getColumn(new Column("payment_key")).getSqlType(metadata)).isEqualTo("TEXT");
+            assertThat(payments.getColumn(new Column("kakao_tid")).isNullable()).isTrue();
+            assertThat(payments.getColumn(new Column("kakao_tid")).isUnique()).isTrue();
             assertThat(payments.getColumn(new Column("approved_at")).isNullable()).isTrue();
             assertThat(payments.getForeignKeyCollection()).isEmpty();
         } finally {

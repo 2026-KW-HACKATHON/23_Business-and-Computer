@@ -53,6 +53,9 @@ public class Payment {
     @Column(name = "payment_key", columnDefinition = "TEXT")
     private String paymentKey;
 
+    @Column(name = "kakao_tid", unique = true, length = 20)
+    private String kakaoTid;
+
     @Column(name = "approved_at")
     private Instant approvedAt;
 
@@ -79,5 +82,26 @@ public class Payment {
             throw new IllegalStateException("Only pending payments can be superseded");
         }
         status = PaymentStatus.SUPERSEDED;
+    }
+
+    public void recordKakaoTid(String tid) {
+        if (status != PaymentStatus.PENDING || kakaoTid != null) {
+            throw new IllegalStateException("Only pending payments without a TID can be prepared");
+        }
+        kakaoTid = tid;
+    }
+
+    public void failReady() {
+        if (status == PaymentStatus.PENDING) {
+            status = PaymentStatus.READY_FAILED;
+        }
+    }
+
+    public void approve(Instant approvedAt) {
+        if (status != PaymentStatus.PENDING || kakaoTid == null || approvedAt == null) {
+            throw new IllegalStateException("Only prepared pending payments can be approved");
+        }
+        status = PaymentStatus.PAID;
+        this.approvedAt = approvedAt;
     }
 }

@@ -5,6 +5,7 @@ import java.time.Instant;
 import java.util.UUID;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.gakkum.backend.domain.job.entity.Job;
 import com.gakkum.backend.domain.job.entity.JobApplication;
@@ -50,5 +51,20 @@ public class PaymentService {
                 Instant.now(clock));
 
         return paymentRepository.save(payment);
+    }
+
+    @Transactional
+    public void recordKakaoTid(String orderId, String tid) {
+        Payment payment = paymentRepository.findByOrderId(orderId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.PAYMENT_NOT_AVAILABLE));
+        if (payment.getStatus() != PaymentStatus.PENDING || payment.getKakaoTid() != null) {
+            throw new BusinessException(ErrorCode.PAYMENT_NOT_AVAILABLE);
+        }
+        payment.recordKakaoTid(tid);
+    }
+
+    @Transactional
+    public void failReady(String orderId) {
+        paymentRepository.findByOrderId(orderId).ifPresent(Payment::failReady);
     }
 }

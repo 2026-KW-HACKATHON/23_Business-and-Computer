@@ -13,6 +13,9 @@ import jakarta.persistence.LockModeType;
 
 public interface JobRepository extends JpaRepository<Job, Long> {
     @Lock(LockModeType.PESSIMISTIC_WRITE)
+    Optional<Job> findLockedById(Long jobId);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
     Optional<Job> findByIdAndOwnerProfileId(Long jobId, Long ownerProfileId);
 
     List<Job> findByOwnerProfileIdAndStatusOrderByCreatedAtDescIdDesc(Long ownerProfileId, JobStatus status);

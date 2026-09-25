@@ -9,6 +9,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.gakkum.backend.application.payment.dto.PaymentPrepareRequest;
 import com.gakkum.backend.application.payment.dto.PaymentPrepareResponse;
+import com.gakkum.backend.application.payment.dto.PaymentApproveRequest;
+import com.gakkum.backend.application.payment.dto.PaymentApproveResponse;
 import com.gakkum.backend.application.payment.facade.PaymentFacade;
 import com.gakkum.backend.global.response.ApiResponse;
 
@@ -29,6 +31,16 @@ public class PaymentController {
             @Valid @RequestBody PaymentPrepareRequest request) {
         PaymentPrepareResponse response = PaymentPrepareResponse.from(
                 paymentFacade.preparePayment(authentication.getName(), jobId, request));
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    @PostMapping("/payments/{orderId}/approve")
+    public ResponseEntity<ApiResponse<PaymentApproveResponse>> approvePayment(
+            Authentication authentication,
+            @PathVariable String orderId,
+            @Valid @RequestBody PaymentApproveRequest request) {
+        PaymentApproveResponse response = PaymentApproveResponse.from(
+                paymentFacade.approvePayment(authentication.getName(), orderId, request.pgToken()));
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 }
