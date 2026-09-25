@@ -40,7 +40,7 @@ public class PaymentController {
             @PathVariable String orderId,
             @Valid @RequestBody PaymentApproveRequest request) {
         PaymentApproveResponse response = PaymentApproveResponse.from(
-                paymentFacade.approvePayment(authentication.getName(), orderId, request.pgToken()));
+                paymentFacade.approvePayment(authentication.getName(), orderId, request.getPgToken()));
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 }
