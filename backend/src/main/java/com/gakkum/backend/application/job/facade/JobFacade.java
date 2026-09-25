@@ -17,6 +17,8 @@ import com.gakkum.backend.domain.job.dto.JobCommandDto.GetOpenJobsCommand;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.ClosedJobData;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.ClosedJobListResult;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.ClosedJobResult;
+import com.gakkum.backend.domain.job.dto.JobQueryDto.JobDetailData;
+import com.gakkum.backend.domain.job.dto.JobQueryDto.JobDetailResult;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.MatchedJobData;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.MatchedJobListResult;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.MatchedJobResult;
@@ -53,6 +55,14 @@ public class JobFacade {
         Owner owner = ownerService.getOwnerProfile(user.getId());
 
         jobService.createJob(request.toCommand(owner.getId()));
+    }
+
+    @Transactional(readOnly = true)
+    public JobDetailResult getJobDetail(String username, Long jobId) {
+        userService.getActiveUser(username);
+        JobDetailData data = jobService.getJobDetail(jobId);
+        Map<Long, SpecialtyDetail> specialtiesById = specialtyCategoryService.getSpecialtyDetails(data.getSpecialtyIds());
+        return JobDetailResult.of(data, groupSpecialties(data.getSpecialtyIds(), specialtiesById));
     }
 
     @Transactional(readOnly = true)

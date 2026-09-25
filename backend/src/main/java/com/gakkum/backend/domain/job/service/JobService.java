@@ -12,6 +12,7 @@ import com.gakkum.backend.domain.job.dto.JobCommandDto.GetClosedJobsCommand;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.GetMatchedJobsCommand;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.GetOpenJobsCommand;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.ClosedJobData;
+import com.gakkum.backend.domain.job.dto.JobQueryDto.JobDetailData;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.MatchedJobData;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.OpenJobData;
 import com.gakkum.backend.domain.job.entity.Job;
@@ -62,6 +63,16 @@ public class JobService {
         jobSpecialtyRepository.saveAll(jobSpecialties);
 
         return savedJob;
+    }
+
+    @Transactional(readOnly = true)
+    public JobDetailData getJobDetail(Long jobId) {
+        Job job = jobRepository.findById(jobId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.JOB_NOT_FOUND));
+        List<Long> specialtyIds = jobSpecialtyRepository.findByJobIdIn(List.of(jobId)).stream()
+                .map(JobSpecialty::getSpecialtyId)
+                .toList();
+        return JobDetailData.of(job, specialtyIds);
     }
 
     /**

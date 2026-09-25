@@ -20,6 +20,47 @@ public final class JobQueryDto {
 
     @Getter
     @AllArgsConstructor(access = AccessLevel.PRIVATE)
+    public static class JobDetailData {
+
+        private final Job job;
+        private final List<Long> specialtyIds;
+
+        public static JobDetailData of(Job job, List<Long> specialtyIds) {
+            return new JobDetailData(job, specialtyIds);
+        }
+    }
+
+    @Getter
+    @Builder(access = AccessLevel.PRIVATE)
+    @AllArgsConstructor(access = AccessLevel.PRIVATE)
+    public static class JobDetailResult {
+
+        private final Long id;
+        private final String title;
+        private final String description;
+        private final Long budget;
+        private final List<SpecialtyCategoryResult> specialtyCategories;
+        private final LocalDate draftDeadline;
+        private final LocalDate finalDeadline;
+        private final Integer revisionCount;
+
+        public static JobDetailResult of(JobDetailData data, List<SpecialtyCategoryResult> specialtyCategories) {
+            Job job = data.getJob();
+            return JobDetailResult.builder()
+                    .id(job.getId())
+                    .title(job.getTitle())
+                    .description(job.getDescription())
+                    .budget(job.getBudget())
+                    .specialtyCategories(specialtyCategories)
+                    .draftDeadline(job.getDraftDeadline())
+                    .finalDeadline(job.getFinalDeadline())
+                    .revisionCount(job.getRevisionCount())
+                    .build();
+        }
+    }
+
+    @Getter
+    @AllArgsConstructor(access = AccessLevel.PRIVATE)
     public static class OpenJobData {
 
         private final Job job;

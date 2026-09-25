@@ -3,6 +3,7 @@ package com.gakkum.backend.application.job.controller;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -10,6 +11,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.gakkum.backend.application.job.dto.ClosedJobListResponse;
 import com.gakkum.backend.application.job.dto.JobCreateRequest;
+import com.gakkum.backend.application.job.dto.JobDetailResponse;
 import com.gakkum.backend.application.job.dto.MatchedJobListResponse;
 import com.gakkum.backend.application.job.dto.OpenJobListResponse;
 import com.gakkum.backend.application.job.facade.JobFacade;
@@ -30,6 +32,16 @@ public class JobController {
     public ResponseEntity<ApiResponse<Void>> createJob(Authentication authentication, @Valid @RequestBody JobCreateRequest request) {
         jobFacade.createJob(authentication.getName(), request);
         return ResponseEntity.ok(ApiResponse.success());
+    }
+
+    @GetMapping("/jobs/{jobId}")
+    public ResponseEntity<ApiResponse<JobDetailResponse>> getJobDetail(
+            Authentication authentication, @PathVariable Long jobId) {
+        if (jobId <= 0) {
+            throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE);
+        }
+        JobDetailResponse response = JobDetailResponse.from(jobFacade.getJobDetail(authentication.getName(), jobId));
+        return ResponseEntity.ok(ApiResponse.success(response));
     }
 
     @GetMapping("/me/jobs")
