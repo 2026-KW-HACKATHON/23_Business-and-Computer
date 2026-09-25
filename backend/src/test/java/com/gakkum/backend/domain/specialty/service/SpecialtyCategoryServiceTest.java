@@ -2,14 +2,17 @@ package com.gakkum.backend.domain.specialty.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
+import java.util.Map;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import com.gakkum.backend.domain.specialty.dto.SpecialtyQueryDto.SpecialtyCategoryResponse;
+import com.gakkum.backend.domain.specialty.dto.SpecialtyQueryDto.SpecialtyDetail;
 import com.gakkum.backend.domain.specialty.entity.Specialty;
 import com.gakkum.backend.domain.specialty.entity.SpecialtyCategory;
 import com.gakkum.backend.domain.specialty.repository.SpecialtyCategoryRepository;
@@ -86,6 +89,30 @@ class SpecialtyCategoryServiceTest {
 
         // 예외 없이 빈 목록이 반환되는지 확인
         assertThat(result).isEmpty();
+    }
+
+    @Test
+    @DisplayName("선택된 특기만 일괄 조회하고 대분류 이름을 함께 반환한다")
+    void returnsDetailsForSelectedSpecialties() {
+        when(specialtyRepository.findAllById(List.of(11L, 21L))).thenReturn(List.of(
+                specialty(11L, 1L, "백엔드"), specialty(21L, 2L, "디자인")));
+        when(specialtyCategoryRepository.findAllById(List.of(1L, 2L))).thenReturn(List.of(
+                category(1L, "개발"), category(2L, "디자인")));
+
+        Map<Long, SpecialtyDetail> result = specialtyCategoryService.getSpecialtyDetails(List.of(11L, 21L));
+
+        assertThat(result).hasSize(2);
+        assertThat(result.get(11L).getName()).isEqualTo("백엔드");
+        assertThat(result.get(11L).getCategoryId()).isEqualTo(1L);
+        assertThat(result.get(11L).getCategoryName()).isEqualTo("개발");
+        assertThat(result.get(21L).getCategoryName()).isEqualTo("디자인");
+    }
+
+    @Test
+    @DisplayName("선택된 특기가 없으면 저장소를 조회하지 않는다")
+    void returnsEmptyDetailsWithoutQueries() {
+        assertThat(specialtyCategoryService.getSpecialtyDetails(List.of())).isEmpty();
+        verifyNoInteractions(specialtyRepository, specialtyCategoryRepository);
     }
 
     // 조회 결과를 사람이 읽기 쉬운 형태로 로그에 출력

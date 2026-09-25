@@ -8,6 +8,7 @@ public enum ErrorCode {
     SPECIALTY_NOT_FOUND(HttpStatus.BAD_REQUEST, "SPECIALTY_400", "존재하지 않는 특기가 포함되어 있습니다."),
     DUPLICATE_SPECIALTY(HttpStatus.BAD_REQUEST, "SPECIALTY_400_DUPLICATE", "중복된 특기가 포함되어 있습니다."),
     BUSINESS_CATEGORY_NOT_FOUND(HttpStatus.BAD_REQUEST, "CATEGORY_400", "존재하지 않는 업종입니다."),
+    JOB_NOT_FOUND(HttpStatus.NOT_FOUND, "JOB_404", "존재하지 않는 의뢰입니다."),
     OWNER_PROFILE_NOT_FOUND(HttpStatus.FORBIDDEN, "OWNER_403", "사장님 프로필이 존재하지 않습니다."),
     UNAUTHORIZED(HttpStatus.UNAUTHORIZED, "COMMON_401", "인증이 필요합니다."),
     DUPLICATE_EMAIL(HttpStatus.CONFLICT, "USER_409_EMAIL", "이미 사용 중인 이메일입니다."),

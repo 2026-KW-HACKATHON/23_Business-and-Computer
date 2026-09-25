@@ -6,7 +6,6 @@ import com.gakkum.backend.domain.jwt.service.JwtService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -15,7 +14,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequiredArgsConstructor
-@Slf4j
 public class JwtController {
 
     private final JwtService jwtService;
@@ -27,7 +25,6 @@ public class JwtController {
             HttpServletRequest request,
             HttpServletResponse response
     ) {
-        log.info("jwtExchangeApi");
         return jwtService.cookie2Header(request, response);
     }
 

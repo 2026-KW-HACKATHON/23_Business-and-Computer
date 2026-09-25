@@ -86,6 +86,7 @@ Automatically enters the workflow when keywords are detected; no user prompt nee
 - No database migration or schema-management convention exists. Do not enable implicit schema mutation or introduce ad hoc production DDL without an explicit migration decision.
 - No stable domain model, API envelope, exception schema, or route-versioning policy exists. Use the feature-based package convention defined in `harness/project/rules/architecture-and-domain.md` without inventing other unstated conventions.
 - Changes to routes, request/response shapes, status codes, authentication behavior, entity mappings, or persisted schema require focused tests and explicit compatibility consideration.
+- For commit requests, follow `harness/project/rules/git-commit-handoff.md`; the user runs staging and commit commands.
 
 ## Project Configuration
 

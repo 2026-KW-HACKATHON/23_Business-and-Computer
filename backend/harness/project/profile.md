@@ -63,6 +63,7 @@ The repository contains only the backend application. The frontend is a separate
 | `harness/project/rules/api-and-security.md` | Adding/changing routes, DTOs, validation, authentication, authorization, error behavior, or CORS |
 | `harness/project/rules/persistence-and-configuration.md` | Changing entities, repositories, schema, datasource settings, environment variables, or dependencies |
 | `harness/project/rules/testing-and-verification.md` | Implementing or reviewing any behavior change and selecting verification scope |
+| `harness/project/rules/git-commit-handoff.md` | Preparing or requesting commits |
 
 ## Reading Sets
 
@@ -74,6 +75,7 @@ The repository contains only the backend application. The frontend is a separate
 | Database or configuration change | `naming-convention.md`, `persistence-and-configuration.md`, `testing-and-verification.md`; also `architecture-and-domain.md` if domain persistence is introduced |
 | Refactor or package move | `architecture-and-domain.md`, `naming-convention.md`, `testing-and-verification.md`; add the other rule covering any changed contract |
 | Dependency or Spring Boot configuration change | `persistence-and-configuration.md`, `api-and-security.md` when security/web behavior is affected, and `testing-and-verification.md` |
+| Commit preparation or request | `git-commit-handoff.md` |
 
 ## Project Hard Constraints
 

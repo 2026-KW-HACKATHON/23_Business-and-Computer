@@ -7,6 +7,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.HandlerMethodValidationException;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import com.gakkum.backend.global.response.ApiResponse;
 
@@ -30,6 +31,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler({
             MethodArgumentNotValidException.class,
             HandlerMethodValidationException.class,
+            MethodArgumentTypeMismatchException.class,
             HttpMessageNotReadableException.class})
     public ResponseEntity<ApiResponse<Void>> handleValidationException(Exception exception) {
         return createErrorResponse(ErrorCode.INVALID_INPUT_VALUE);
