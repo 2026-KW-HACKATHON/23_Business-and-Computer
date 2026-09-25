@@ -1,13 +1,21 @@
 package com.gakkum.backend.domain.job.service;
 
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.gakkum.backend.domain.job.dto.JobCommandDto.CreateJobCommand;
+import com.gakkum.backend.domain.job.dto.JobCommandDto.GetOpenJobsCommand;
+import com.gakkum.backend.domain.job.dto.JobQueryDto.OpenJobData;
 import com.gakkum.backend.domain.job.entity.Job;
+import com.gakkum.backend.domain.job.entity.JobApplication;
+import com.gakkum.backend.domain.job.entity.JobApplicationStatus;
 import com.gakkum.backend.domain.job.entity.JobSpecialty;
+import com.gakkum.backend.domain.job.entity.JobStatus;
+import com.gakkum.backend.domain.job.repository.JobApplicationRepository;
 import com.gakkum.backend.domain.job.repository.JobRepository;
 import com.gakkum.backend.domain.job.repository.JobSpecialtyRepository;
 import com.gakkum.backend.domain.specialty.service.SpecialtyService;
@@ -20,6 +28,7 @@ public class JobService {
 
     private final JobRepository jobRepository;
     private final JobSpecialtyRepository jobSpecialtyRepository;
+    private final JobApplicationRepository jobApplicationRepository;
     private final SpecialtyService specialtyService;
 
     @Transactional
@@ -43,5 +52,41 @@ public class JobService {
         jobSpecialtyRepository.saveAll(jobSpecialties);
 
         return savedJob;
+    }
+
+    /**
+     * 보낸 의뢰 목록 조회 메서드
+     * @param command
+     * @return
+     */
+    @Transactional(readOnly = true)
+    public List<OpenJobData> getOpenJobs(GetOpenJobsCommand command) {
+
+        // 의뢰 목록 조회
+        List<Job> jobs = jobRepository.findByOwnerProfileIdAndStatusOrderByCreatedAtDescIdDesc(
+                command.getOwnerProfileId(), JobStatus.OPEN);
+        if (jobs.isEmpty()) {
+            return List.of();
+        }
+
+        List<Long> jobIds = jobs.stream().map(Job::getId).toList();
+        // 의뢰 목록에 대한 Specialty 를 행으로 모두 가져옴
+        List<JobSpecialty> jobSpecialties = jobSpecialtyRepository.findByJobIdIn(jobIds);
+        // 각 job id 에 Specialty ID 매핑
+        Map<Long, List<JobSpecialty>> specialtiesByJobId = jobSpecialties.stream()
+                .collect(Collectors.groupingBy(JobSpecialty::getJobId));
+
+        Map<Long, Long> applicantCounts = jobApplicationRepository
+                .findByJobIdInAndStatus(jobIds, JobApplicationStatus.PENDING).stream()
+                .collect(Collectors.groupingBy(JobApplication::getJobId, Collectors.counting()));
+
+        return jobs.stream()
+                .map(job -> OpenJobData.of(
+                        job,
+                        specialtiesByJobId.getOrDefault(job.getId(), List.of()).stream()
+                                .map(JobSpecialty::getSpecialtyId)
+                                .toList(),
+                        Math.toIntExact(applicantCounts.getOrDefault(job.getId(), 0L))))
+                .toList();
     }
 }

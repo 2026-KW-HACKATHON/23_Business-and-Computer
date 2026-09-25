@@ -14,6 +14,20 @@ public final class SpecialtyQueryDto {
     private SpecialtyQueryDto() {
     }
 
+    @Getter
+    @AllArgsConstructor(access = AccessLevel.PRIVATE)
+    public static class SpecialtyDetail {
+
+        private final Long id;
+        private final String name;
+        private final Long categoryId;
+        private final String categoryName;
+
+        public static SpecialtyDetail of(Long id, String name, Long categoryId, String categoryName) {
+            return new SpecialtyDetail(id, name, categoryId, categoryName);
+        }
+    }
+
     @AllArgsConstructor(access = AccessLevel.PRIVATE)
     public static class SpecialtyListResponse {
 

@@ -32,6 +32,7 @@ import com.gakkum.backend.domain.job.entity.Job;
 import com.gakkum.backend.domain.job.entity.JobSpecialty;
 import com.gakkum.backend.domain.job.entity.JobStatus;
 import com.gakkum.backend.domain.job.repository.JobRepository;
+import com.gakkum.backend.domain.job.repository.JobApplicationRepository;
 import com.gakkum.backend.domain.job.repository.JobSpecialtyRepository;
 import com.gakkum.backend.domain.job.service.JobService;
 import com.gakkum.backend.domain.jwt.service.JwtService;
@@ -39,8 +40,10 @@ import com.gakkum.backend.domain.owner.entity.Owner;
 import com.gakkum.backend.domain.owner.repository.OwnerRepository;
 import com.gakkum.backend.domain.owner.service.OwnerService;
 import com.gakkum.backend.domain.specialty.repository.SpecialtyRepository;
+import com.gakkum.backend.domain.specialty.repository.SpecialtyCategoryRepository;
 import com.gakkum.backend.domain.specialty.repository.StudentSpecialtyRepository;
 import com.gakkum.backend.domain.specialty.service.SpecialtyService;
+import com.gakkum.backend.domain.specialty.service.SpecialtyCategoryService;
 import com.gakkum.backend.domain.user.entity.User;
 import com.gakkum.backend.domain.user.entity.UserRole;
 import com.gakkum.backend.domain.user.repository.UserRepository;
@@ -69,7 +72,9 @@ class JobCreationFlowTest {
     private final OwnerRepository ownerRepository = mock(OwnerRepository.class);
     private final JobRepository jobRepository = mock(JobRepository.class);
     private final JobSpecialtyRepository jobSpecialtyRepository = mock(JobSpecialtyRepository.class);
+    private final JobApplicationRepository jobApplicationRepository = mock(JobApplicationRepository.class);
     private final SpecialtyRepository specialtyRepository = mock(SpecialtyRepository.class);
+    private final SpecialtyCategoryRepository specialtyCategoryRepository = mock(SpecialtyCategoryRepository.class);
     private final StudentSpecialtyRepository studentSpecialtyRepository = mock(StudentSpecialtyRepository.class);
     private final JwtService jwtService = mock(JwtService.class);
 
@@ -99,8 +104,11 @@ class JobCreationFlowTest {
         UserService userService = new UserService(userRepository, jwtService);
         OwnerService ownerService = new OwnerService(ownerRepository);
         SpecialtyService specialtyService = new SpecialtyService(specialtyRepository, studentSpecialtyRepository);
-        JobService jobService = new JobService(jobRepository, jobSpecialtyRepository, specialtyService);
-        JobFacade facade = new JobFacade(userService, ownerService, jobService);
+        JobService jobService = new JobService(jobRepository, jobSpecialtyRepository,
+                jobApplicationRepository, specialtyService);
+        SpecialtyCategoryService specialtyCategoryService =
+                new SpecialtyCategoryService(specialtyCategoryRepository, specialtyRepository);
+        JobFacade facade = new JobFacade(userService, ownerService, jobService, specialtyCategoryService);
         JobController controller = new JobController(facade);
 
         mockMvc = MockMvcBuilders.standaloneSetup(controller)

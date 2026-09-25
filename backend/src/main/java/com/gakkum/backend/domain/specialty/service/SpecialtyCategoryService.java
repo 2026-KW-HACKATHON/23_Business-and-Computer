@@ -1,5 +1,6 @@
 package com.gakkum.backend.domain.specialty.service;
 
+import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -9,6 +10,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.gakkum.backend.domain.specialty.dto.SpecialtyQueryDto.SpecialtyCategoryResponse;
+import com.gakkum.backend.domain.specialty.dto.SpecialtyQueryDto.SpecialtyDetail;
 import com.gakkum.backend.domain.specialty.dto.SpecialtyQueryDto.SpecialtyResponse;
 import com.gakkum.backend.domain.specialty.entity.Specialty;
 import com.gakkum.backend.domain.specialty.entity.SpecialtyCategory;
@@ -43,5 +45,34 @@ public class SpecialtyCategoryService {
                                 .map(specialty -> SpecialtyResponse.of(specialty.getId(), specialty.getName()))
                                 .toList()))
                 .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public Map<Long, SpecialtyDetail> getSpecialtyDetails(Collection<Long> specialtyIds) {
+
+        // 비어있다면
+        if (specialtyIds.isEmpty()) {
+            return Map.of();
+        }
+
+        List<Specialty> specialties = specialtyRepository.findAllById(specialtyIds);
+        List<Long> categoryIds = specialties.stream()
+                .map(Specialty::getSpecialtyCategoryId)
+                .distinct()
+                .toList();
+        Map<Long, SpecialtyCategory> categoriesById = specialtyCategoryRepository.findAllById(categoryIds).stream()
+                .collect(Collectors.toMap(SpecialtyCategory::getId, category -> category));
+
+        return specialties.stream()
+                .map(specialty -> {
+                    SpecialtyCategory category = categoriesById.get(specialty.getSpecialtyCategoryId());
+                    if (category == null) {
+                        throw new IllegalStateException(
+                                "Specialty category not found: " + specialty.getSpecialtyCategoryId());
+                    }
+                    return SpecialtyDetail.of(
+                            specialty.getId(), specialty.getName(), category.getId(), category.getName());
+                })
+                .collect(Collectors.toMap(SpecialtyDetail::getId, detail -> detail));
     }
 }

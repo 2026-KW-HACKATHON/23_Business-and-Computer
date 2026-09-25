@@ -1,12 +1,27 @@
 package com.gakkum.backend.application.job.facade;
 
+import java.util.Comparator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeMap;
+import java.util.stream.Collectors;
+
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.gakkum.backend.application.job.dto.JobCreateRequest;
+import com.gakkum.backend.domain.job.dto.JobCommandDto.GetOpenJobsCommand;
+import com.gakkum.backend.domain.job.dto.JobQueryDto.OpenJobData;
+import com.gakkum.backend.domain.job.dto.JobQueryDto.OpenJobListResult;
+import com.gakkum.backend.domain.job.dto.JobQueryDto.OpenJobResult;
+import com.gakkum.backend.domain.job.dto.JobQueryDto.SpecialtyCategoryResult;
+import com.gakkum.backend.domain.job.dto.JobQueryDto.SpecialtyResult;
 import com.gakkum.backend.domain.job.service.JobService;
 import com.gakkum.backend.domain.owner.entity.Owner;
 import com.gakkum.backend.domain.owner.service.OwnerService;
+import com.gakkum.backend.domain.specialty.dto.SpecialtyQueryDto.SpecialtyDetail;
+import com.gakkum.backend.domain.specialty.service.SpecialtyCategoryService;
 import com.gakkum.backend.domain.user.entity.User;
 import com.gakkum.backend.domain.user.service.UserService;
 
@@ -19,6 +34,7 @@ public class JobFacade {
     private final UserService userService;
     private final OwnerService ownerService;
     private final JobService jobService;
+    private final SpecialtyCategoryService specialtyCategoryService;
 
     @Transactional
     public void createJob(String username, JobCreateRequest request) {
@@ -26,5 +42,53 @@ public class JobFacade {
         Owner owner = ownerService.getOwnerProfile(user.getId());
 
         jobService.createJob(request.toCommand(owner.getId()));
+    }
+
+    @Transactional(readOnly = true)
+    public OpenJobListResult getOpenJobs(String username) {
+        User user = userService.getActiveUser(username);
+        Owner owner = ownerService.getOwnerProfile(user.getId());
+        List<OpenJobData> jobs = jobService.getOpenJobs(GetOpenJobsCommand.of(owner.getId()));
+
+        // 보낸 의뢰가 없으면 그냥 반환
+        if (jobs.isEmpty()) {
+            return OpenJobListResult.of(List.of());
+        }
+
+        // 특기 목록 조회
+        Set<Long> specialtyIds = jobs.stream()
+                .flatMap(job -> job.getSpecialtyIds().stream())
+                .collect(Collectors.toSet());
+        Map<Long, SpecialtyDetail> specialtiesById = specialtyCategoryService.getSpecialtyDetails(specialtyIds);
+
+        return OpenJobListResult.of(jobs.stream()
+                .map(job -> OpenJobResult.of(job, groupSpecialties(job.getSpecialtyIds(), specialtiesById)))
+                .toList());
+    }
+
+    private List<SpecialtyCategoryResult> groupSpecialties(
+            List<Long> specialtyIds, Map<Long, SpecialtyDetail> specialtiesById) {
+        Map<Long, List<SpecialtyDetail>> byCategory = specialtyIds.stream()
+                .map(id -> {
+                    SpecialtyDetail detail = specialtiesById.get(id);
+                    if (detail == null) {
+                        throw new IllegalStateException("Specialty not found: " + id);
+                    }
+                    return detail;
+                })
+                .sorted(Comparator.comparing(SpecialtyDetail::getId))
+                .collect(Collectors.groupingBy(
+                        SpecialtyDetail::getCategoryId,
+                        TreeMap::new,
+                        Collectors.toList()));
+
+        return byCategory.entrySet().stream()
+                .map(entry -> SpecialtyCategoryResult.of(
+                        entry.getKey(),
+                        entry.getValue().get(0).getCategoryName(),
+                        entry.getValue().stream()
+                                .map(detail -> SpecialtyResult.of(detail.getId(), detail.getName()))
+                                .toList()))
+                .toList();
     }
 }

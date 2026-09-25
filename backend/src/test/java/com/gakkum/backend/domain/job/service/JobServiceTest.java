@@ -18,6 +18,7 @@ import com.gakkum.backend.domain.job.dto.JobCommandDto.CreateJobCommand;
 import com.gakkum.backend.domain.job.entity.Job;
 import com.gakkum.backend.domain.job.entity.JobSpecialty;
 import com.gakkum.backend.domain.job.repository.JobRepository;
+import com.gakkum.backend.domain.job.repository.JobApplicationRepository;
 import com.gakkum.backend.domain.job.repository.JobSpecialtyRepository;
 import com.gakkum.backend.domain.specialty.repository.SpecialtyRepository;
 import com.gakkum.backend.domain.specialty.repository.StudentSpecialtyRepository;
@@ -29,6 +30,7 @@ class JobServiceTest {
 
     private final JobRepository jobRepository = mock(JobRepository.class);
     private final JobSpecialtyRepository jobSpecialtyRepository = mock(JobSpecialtyRepository.class);
+    private final JobApplicationRepository jobApplicationRepository = mock(JobApplicationRepository.class);
     private final SpecialtyRepository specialtyRepository = mock(SpecialtyRepository.class);
     private final StudentSpecialtyRepository studentSpecialtyRepository = mock(StudentSpecialtyRepository.class);
     private final SpecialtyService specialtyService = new SpecialtyService(
@@ -37,6 +39,7 @@ class JobServiceTest {
     private final JobService jobService = new JobService(
             jobRepository,
             jobSpecialtyRepository,
+            jobApplicationRepository,
             specialtyService);
 
     @Test
