@@ -16,6 +16,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.InOrder;
 
 import com.gakkum.backend.domain.job.entity.Job;
+import com.gakkum.backend.domain.chat.service.ChatRoomService;
 import com.gakkum.backend.domain.job.entity.JobApplication;
 import com.gakkum.backend.domain.job.entity.JobApplicationStatus;
 import com.gakkum.backend.domain.job.entity.JobStatus;
@@ -45,9 +46,10 @@ class PaymentApprovalServiceTest {
     private final JobApplicationRepository jobApplicationRepository = mock(JobApplicationRepository.class);
     private final PaymentRepository paymentRepository = mock(PaymentRepository.class);
     private final KakaoPayClient kakaoPayClient = mock(KakaoPayClient.class);
+    private final ChatRoomService chatRoomService = mock(ChatRoomService.class);
     private final PaymentApprovalService service =
             new PaymentApprovalService(userService, jobRepository, jobApplicationRepository,
-                    paymentRepository, kakaoPayClient);
+                    paymentRepository, kakaoPayClient, chatRoomService);
     private Job job;
     private JobApplication application;
 
@@ -90,6 +92,7 @@ class PaymentApprovalServiceTest {
         assertThat(payment.getApprovedAt()).isEqualTo(APPROVED_AT);
         assertMatched();
         assertThat(result.amount()).isEqualTo(100_000L);
+        verify(chatRoomService).createIfAbsent(11L);
         InOrder locks = inOrder(jobRepository, paymentRepository);
         locks.verify(paymentRepository).findProjectedByOrderId("order-123");
         locks.verify(jobRepository).findLockedById(11L);
@@ -107,6 +110,7 @@ class PaymentApprovalServiceTest {
 
         assertThat(result.approvedAt()).isEqualTo(APPROVED_AT);
         assertMatched();
+        verify(chatRoomService).createIfAbsent(11L);
         verify(kakaoPayClient, never()).order(TID);
         verify(kakaoPayClient, never()).approve(TID, "order-123", OWNER_ID, "pg-123");
     }
@@ -197,6 +201,7 @@ class PaymentApprovalServiceTest {
         service.approve("KAKAO_123", "order-123", "pg-123");
 
         assertMatched();
+        verify(chatRoomService).createIfAbsent(11L);
         verify(kakaoPayClient, never()).order(TID);
     }
 
