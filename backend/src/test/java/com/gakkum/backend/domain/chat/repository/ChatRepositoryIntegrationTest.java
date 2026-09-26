@@ -3,6 +3,7 @@ package com.gakkum.backend.domain.chat.repository;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -13,6 +14,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.gakkum.backend.domain.chat.entity.ChatAttachmentUpload;
+import com.gakkum.backend.domain.chat.entity.ChatAttachmentUploadStatus;
 import com.gakkum.backend.domain.chat.entity.ChatMessage;
 import com.gakkum.backend.domain.chat.entity.ChatMessageType;
 import com.gakkum.backend.domain.chat.entity.ChatRoom;
@@ -30,6 +33,9 @@ class ChatRepositoryIntegrationTest {
 
     @Autowired
     private ChatMessageRepository messageRepository;
+
+    @Autowired
+    private ChatAttachmentUploadRepository uploadRepository;
 
     @Test
     @DisplayName("PostgreSQL에서 최신 메시지와 상대방의 안 읽은 메시지를 방별로 집계한다")
@@ -89,6 +95,22 @@ class ChatRepositoryIntegrationTest {
 
         assertThat(messageRepository.findByRoomIdOrderByIdAsc(room.getId()))
                 .extracting(ChatMessage::getId).containsExactly(first.getId(), second.getId());
+    }
+
+    @Test
+    @DisplayName("PostgreSQL은 같은 업로드를 두 메시지에 연결하는 것을 거부한다")
+    void rejectsSameUploadForTwoMessages() {
+        ChatRoom room = roomRepository.saveAndFlush(ChatRoom.create(900006L));
+        ChatAttachmentUpload upload = uploadRepository.saveAndFlush(ChatAttachmentUpload.create(
+                room.getId(), OWNER_ID, ChatMessageType.IMAGE, "시안.png", "image/png", 482133L,
+                LocalDateTime.now().plusHours(1)));
+        messageRepository.saveAndFlush(ChatMessage.createAttachment(OWNER_ID, UUID.randomUUID(), upload));
+
+        assertThat(uploadRepository.findById(upload.getId())).get()
+                .extracting(ChatAttachmentUpload::getStatus).isEqualTo(ChatAttachmentUploadStatus.PENDING);
+        assertThatThrownBy(() -> messageRepository.saveAndFlush(
+                ChatMessage.createAttachment(OWNER_ID, UUID.randomUUID(), upload)))
+                .isInstanceOf(DataIntegrityViolationException.class);
     }
 
     private ChatMessage saveMessage(String roomId, String senderId, String content) {

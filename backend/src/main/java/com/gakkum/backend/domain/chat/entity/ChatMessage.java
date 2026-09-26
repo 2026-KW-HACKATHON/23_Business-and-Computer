@@ -53,6 +53,9 @@ public class ChatMessage {
     @Column(name = "attachment_name", length = 255)
     private String attachmentName;
 
+    @Column(name = "attachment_upload_id")
+    private UUID attachmentUploadId;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -64,6 +67,19 @@ public class ChatMessage {
                 .clientMessageId(clientMessageId)
                 .type(ChatMessageType.TEXT)
                 .content(content)
+                .build();
+    }
+
+    /** 열람 URL은 만료되므로 content에 저장하지 않고 응답을 만들 때 발급한다. */
+    public static ChatMessage createAttachment(String senderUserId, UUID clientMessageId, ChatAttachmentUpload upload) {
+        return ChatMessage.builder()
+                .roomId(upload.getRoomId())
+                .senderUserId(senderUserId)
+                .clientMessageId(clientMessageId)
+                .type(upload.getType())
+                .attachmentKey(upload.getStorageKey())
+                .attachmentName(upload.getFileName())
+                .attachmentUploadId(upload.getId())
                 .build();
     }
 }
