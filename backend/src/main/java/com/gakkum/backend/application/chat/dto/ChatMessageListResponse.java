@@ -33,6 +33,8 @@ public class ChatMessageListResponse {
         private final ChatMessageType type;
         private final String content;
         private final String attachmentName;
+        /** IMAGE·FILE 열람 URL의 만료 시각. TEXT는 null */
+        private final LocalDateTime contentExpiresAt;
         private final LocalDateTime createdAt;
 
         public static Message from(ChatMessage message) {

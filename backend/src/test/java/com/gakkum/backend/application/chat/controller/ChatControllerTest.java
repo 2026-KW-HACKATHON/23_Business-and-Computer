@@ -1,6 +1,7 @@
 package com.gakkum.backend.application.chat.controller;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.nullValue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.doThrow;
@@ -109,6 +110,19 @@ class ChatControllerTest {
                 .andExpect(jsonPath("$.data.messages[0].id").value(17))
                 .andExpect(jsonPath("$.data.messages[0].senderUserId").value("sender-1"))
                 .andExpect(jsonPath("$.data.messages[0].content").value("안녕하세요"));
+    }
+
+    @Test
+    @DisplayName("메시지 내역의 TEXT 메시지는 열람 URL 만료 시각을 null로 반환한다")
+    void returnsNullContentExpiresAtForTextMessage() throws Exception {
+        when(service.getMessages("KAKAO_123", "room-1"))
+                .thenReturn(ChatMessageListResponse.from(List.of(savedMessage(UUID.randomUUID()))));
+
+        mockMvc.perform(get("/chat-rooms/room-1/messages").principal(authentication))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.messages[0].type").value("TEXT"))
+                .andExpect(jsonPath("$.data.messages[0].contentExpiresAt").hasJsonPath())
+                .andExpect(jsonPath("$.data.messages[0].contentExpiresAt").value(nullValue()));
     }
 
     @Test
