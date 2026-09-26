@@ -1,6 +1,8 @@
 package com.gakkum.backend.domain.chat.repository;
 
 import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -9,6 +11,9 @@ import org.springframework.data.repository.query.Param;
 import com.gakkum.backend.domain.chat.entity.ChatMessage;
 
 public interface ChatMessageRepository extends JpaRepository<ChatMessage, Long> {
+
+    Optional<ChatMessage> findByRoomIdAndSenderUserIdAndClientMessageId(
+            String roomId, String senderUserId, UUID clientMessageId);
 
     // 방별 최신 메시지는 파생 쿼리로 한 번에 조회할 수 없어 PostgreSQL DISTINCT ON을 사용한다.
     @Query(value = """

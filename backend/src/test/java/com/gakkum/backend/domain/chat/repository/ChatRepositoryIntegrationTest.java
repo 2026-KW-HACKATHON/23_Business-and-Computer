@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.List;
+import java.util.UUID;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -61,6 +62,19 @@ class ChatRepositoryIntegrationTest {
         roomRepository.saveAndFlush(ChatRoom.create(900002L));
 
         assertThatThrownBy(() -> roomRepository.saveAndFlush(ChatRoom.create(900002L)))
+                .isInstanceOf(DataIntegrityViolationException.class);
+    }
+
+    @Test
+    @DisplayName("PostgreSQL은 같은 방과 발신자의 메시지 UUID 중복을 거부한다")
+    void rejectsDuplicateClientMessageId() {
+        ChatRoom room = roomRepository.saveAndFlush(ChatRoom.create(900003L));
+        UUID clientMessageId = UUID.randomUUID();
+        messageRepository.saveAndFlush(ChatMessage.createText(
+                room.getId(), OWNER_ID, clientMessageId, "첫 메시지"));
+
+        assertThatThrownBy(() -> messageRepository.saveAndFlush(ChatMessage.createText(
+                room.getId(), OWNER_ID, clientMessageId, "다른 메시지")))
                 .isInstanceOf(DataIntegrityViolationException.class);
     }
 

@@ -1,6 +1,7 @@
 package com.gakkum.backend.domain.chat.entity;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 import org.hibernate.annotations.CreationTimestamp;
 
@@ -36,6 +37,9 @@ public class ChatMessage {
     @Column(name = "sender_user_id", nullable = false, length = 26)
     private String senderUserId;
 
+    @Column(name = "client_message_id")
+    private UUID clientMessageId;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 10)
     private ChatMessageType type;
@@ -52,4 +56,14 @@ public class ChatMessage {
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
+
+    public static ChatMessage createText(String roomId, String senderUserId, UUID clientMessageId, String content) {
+        return ChatMessage.builder()
+                .roomId(roomId)
+                .senderUserId(senderUserId)
+                .clientMessageId(clientMessageId)
+                .type(ChatMessageType.TEXT)
+                .content(content)
+                .build();
+    }
 }
