@@ -14,13 +14,17 @@ import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
+import org.springframework.web.client.RestClientResponseException;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import com.gakkum.backend.domain.payment.dto.PaymentQueryDto.PendingPaymentData;
 import com.gakkum.backend.global.exception.BusinessException;
 import com.gakkum.backend.global.exception.ErrorCode;
 
+import lombok.extern.slf4j.Slf4j;
+
 @Component
+@Slf4j
 public class KakaoPayClient {
 
     private static final String BASE_URL = "https://open-api.kakaopay.com";
@@ -74,13 +78,26 @@ public class KakaoPayClient {
                     .body(body)
                     .retrieve()
                     .body(Map.class);
+        } catch (RestClientResponseException exception) {
+            try {
+                Map<?, ?> error = exception.getResponseBodyAs(Map.class);
+                log.warn("KakaoPay ready rejected: HTTP {}, error_code={}, error_message={}",
+                        exception.getStatusCode().value(),
+                        error == null ? null : error.get("error_code"),
+                        error == null ? null : error.get("error_message"));
+            } catch (RuntimeException parseException) {
+                log.warn("KakaoPay ready rejected: HTTP {}", exception.getStatusCode().value());
+            }
+            throw unavailable();
         } catch (RestClientException exception) {
+            log.warn("KakaoPay ready transport failed: {}", exception.toString());
             throw unavailable();
         }
         if (response == null
                 || !(response.get("tid") instanceof String tid) || tid.isBlank() || tid.length() > 20
                 || !(response.get("next_redirect_pc_url") instanceof String pcUrl) || pcUrl.isBlank()
                 || !(response.get("next_redirect_mobile_url") instanceof String mobileUrl) || mobileUrl.isBlank()) {
+            log.warn("KakaoPay ready response is missing a required field");
             throw unavailable();
         }
         return new ReadyResult(tid, pcUrl, mobileUrl);
