@@ -22,6 +22,7 @@ class ChatRoomMappingTest {
         try {
             var metadata = new MetadataSources(registry)
                     .addAnnotatedClass(ChatRoom.class)
+                    .addAnnotatedClass(ChatMessage.class)
                     .buildMetadata();
             Table rooms = metadata.getEntityBinding(ChatRoom.class.getName()).getTable();
 
@@ -29,9 +30,22 @@ class ChatRoomMappingTest {
             assertThat(rooms.getColumn(new Column("id")).getLength()).isEqualTo(26L);
             assertThat(rooms.getColumn(new Column("job_id")).isNullable()).isFalse();
             assertThat(rooms.getColumn(new Column("created_at")).isNullable()).isFalse();
+            assertThat(rooms.getColumn(new Column("owner_last_read_message_id")).isNullable()).isTrue();
+            assertThat(rooms.getColumn(new Column("student_last_read_message_id")).isNullable()).isTrue();
             assertThat(rooms.getUniqueKey("chat_rooms_job_id_key").getColumns())
                     .extracting(Column::getName).containsExactly("job_id");
             assertThat(rooms.getForeignKeyCollection()).isEmpty();
+
+            Table messages = metadata.getEntityBinding(ChatMessage.class.getName()).getTable();
+            assertThat(messages.getName()).isEqualTo("chat_messages");
+            assertThat(messages.getColumn(new Column("room_id")).isNullable()).isFalse();
+            assertThat(messages.getColumn(new Column("room_id")).getLength()).isEqualTo(26L);
+            assertThat(messages.getColumn(new Column("sender_user_id")).isNullable()).isFalse();
+            assertThat(messages.getColumn(new Column("type")).getLength()).isEqualTo(10L);
+            assertThat(messages.getColumn(new Column("content")).getSqlType(metadata)).isEqualTo("TEXT");
+            assertThat(messages.getColumn(new Column("attachment_key")).getSqlType(metadata)).isEqualTo("TEXT");
+            assertThat(messages.getColumn(new Column("attachment_name")).isNullable()).isTrue();
+            assertThat(messages.getForeignKeyCollection()).isEmpty();
         } finally {
             StandardServiceRegistryBuilder.destroy(registry);
         }
