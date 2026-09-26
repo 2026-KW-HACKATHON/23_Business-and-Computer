@@ -6,6 +6,9 @@ import java.time.LocalDateTime;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
+import com.gakkum.backend.global.exception.BusinessException;
+import com.gakkum.backend.global.exception.ErrorCode;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -89,5 +92,17 @@ public class Job {
                 .revisionCount(revisionCount)
                 .status(JobStatus.OPEN)
                 .build();
+    }
+
+    public void match(Long studentProfileId) {
+        if (status == JobStatus.MATCHED && studentProfileId != null
+                && studentProfileId.equals(selectedStudentProfileId)) {
+            return;
+        }
+        if (status != JobStatus.OPEN || selectedStudentProfileId != null || studentProfileId == null) {
+            throw new BusinessException(ErrorCode.PAYMENT_NOT_AVAILABLE);
+        }
+        status = JobStatus.MATCHED;
+        selectedStudentProfileId = studentProfileId;
     }
 }

@@ -16,6 +16,10 @@ import org.junit.jupiter.api.Test;
 import org.mockito.InOrder;
 
 import com.gakkum.backend.domain.job.entity.Job;
+import com.gakkum.backend.domain.job.entity.JobApplication;
+import com.gakkum.backend.domain.job.entity.JobApplicationStatus;
+import com.gakkum.backend.domain.job.entity.JobStatus;
+import com.gakkum.backend.domain.job.repository.JobApplicationRepository;
 import com.gakkum.backend.domain.job.repository.JobRepository;
 import com.gakkum.backend.domain.payment.client.KakaoPayClient;
 import com.gakkum.backend.domain.payment.client.KakaoPayClient.PaymentResult;
@@ -38,10 +42,14 @@ class PaymentApprovalServiceTest {
 
     private final UserService userService = mock(UserService.class);
     private final JobRepository jobRepository = mock(JobRepository.class);
+    private final JobApplicationRepository jobApplicationRepository = mock(JobApplicationRepository.class);
     private final PaymentRepository paymentRepository = mock(PaymentRepository.class);
     private final KakaoPayClient kakaoPayClient = mock(KakaoPayClient.class);
     private final PaymentApprovalService service =
-            new PaymentApprovalService(userService, jobRepository, paymentRepository, kakaoPayClient);
+            new PaymentApprovalService(userService, jobRepository, jobApplicationRepository,
+                    paymentRepository, kakaoPayClient);
+    private Job job;
+    private JobApplication application;
 
     private Payment pending() {
         Payment payment = Payment.pending(11L, 21L, OWNER_ID, "order-123", 100_000L, Instant.EPOCH);
@@ -50,13 +58,17 @@ class PaymentApprovalServiceTest {
     }
 
     private void arrange(Payment payment) {
+        job = Job.builder().id(11L).status(JobStatus.OPEN).build();
+        application = JobApplication.builder().id(21L).jobId(11L).studentProfileId(31L)
+                .status(JobApplicationStatus.PENDING).build();
         when(userService.getActiveUser("KAKAO_123"))
                 .thenReturn(User.builder().id(OWNER_ID).role(UserRole.OWNER).build());
         JobIdProjection projection = mock(JobIdProjection.class);
         when(projection.getJobId()).thenReturn(11L);
         when(paymentRepository.findProjectedByOrderId("order-123")).thenReturn(Optional.of(projection));
-        when(jobRepository.findLockedById(11L)).thenReturn(Optional.of(Job.builder().id(11L).build()));
+        when(jobRepository.findLockedById(11L)).thenReturn(Optional.of(job));
         when(paymentRepository.findByOrderId("order-123")).thenReturn(Optional.of(payment));
+        when(jobApplicationRepository.findById(21L)).thenReturn(Optional.of(application));
         when(kakaoPayClient.cid()).thenReturn("TC0ONETIME");
     }
 
@@ -65,7 +77,7 @@ class PaymentApprovalServiceTest {
     }
 
     @Test
-    @DisplayName("의뢰 잠금 후 주문을 잠그고 카카오페이 승인 결과가 일치할 때만 PAID로 변경한다")
+    @DisplayName("승인 결과가 일치하면 PAID와 선택 지원서 및 의뢰 매칭을 함께 기록한다")
     void approvesMatchingPayment() {
         Payment payment = pending();
         arrange(payment);
@@ -76,6 +88,7 @@ class PaymentApprovalServiceTest {
 
         assertThat(payment.getStatus()).isEqualTo(PaymentStatus.PAID);
         assertThat(payment.getApprovedAt()).isEqualTo(APPROVED_AT);
+        assertMatched();
         assertThat(result.amount()).isEqualTo(100_000L);
         InOrder locks = inOrder(jobRepository, paymentRepository);
         locks.verify(paymentRepository).findProjectedByOrderId("order-123");
@@ -93,6 +106,7 @@ class PaymentApprovalServiceTest {
         ApprovedPaymentData result = service.approve("KAKAO_123", "order-123", "pg-123");
 
         assertThat(result.approvedAt()).isEqualTo(APPROVED_AT);
+        assertMatched();
         verify(kakaoPayClient, never()).order(TID);
         verify(kakaoPayClient, never()).approve(TID, "order-123", OWNER_ID, "pg-123");
     }
@@ -154,6 +168,7 @@ class PaymentApprovalServiceTest {
         service.approve("KAKAO_123", "order-123", "pg-123");
 
         assertThat(payment.getStatus()).isEqualTo(PaymentStatus.PAID);
+        assertMatched();
     }
 
     @Test
@@ -166,7 +181,57 @@ class PaymentApprovalServiceTest {
         service.approve("KAKAO_123", "order-123", "pg-123");
 
         assertThat(payment.getStatus()).isEqualTo(PaymentStatus.PAID);
+        assertMatched();
         verify(kakaoPayClient, never()).approve(TID, "order-123", OWNER_ID, "pg-123");
+    }
+
+    @Test
+    @DisplayName("이미 매칭된 PAID 주문은 상태를 유지하고 카카오페이를 다시 호출하지 않는다")
+    void repeatedPaidApprovalIsIdempotent() {
+        Payment payment = pending();
+        payment.approve(APPROVED_AT);
+        arrange(payment);
+        job.match(31L);
+        application.accept();
+
+        service.approve("KAKAO_123", "order-123", "pg-123");
+
+        assertMatched();
+        verify(kakaoPayClient, never()).order(TID);
+    }
+
+    @Test
+    @DisplayName("승인 전에 지원서가 더 이상 대기 상태가 아니면 카카오페이를 호출하지 않는다")
+    void rejectsUnavailableApplicationBeforeProviderCall() {
+        arrange(pending());
+        application = JobApplication.builder().id(21L).jobId(11L).studentProfileId(31L)
+                .status(JobApplicationStatus.REJECTED).build();
+        when(jobApplicationRepository.findById(21L)).thenReturn(Optional.of(application));
+
+        assertCode(ErrorCode.PAYMENT_NOT_AVAILABLE);
+        verify(kakaoPayClient, never()).order(TID);
+    }
+
+    @Test
+    @DisplayName("승인 전에 의뢰가 이미 다른 학생과 매칭되면 카카오페이를 호출하지 않는다")
+    void rejectsAlreadyMatchedJobBeforeProviderCall() {
+        arrange(pending());
+        job.match(99L);
+
+        assertCode(ErrorCode.PAYMENT_NOT_AVAILABLE);
+        verify(kakaoPayClient, never()).order(TID);
+    }
+
+    @Test
+    @DisplayName("주문의 지원서가 다른 의뢰에 속하면 카카오페이를 호출하지 않는다")
+    void rejectsApplicationFromOtherJob() {
+        arrange(pending());
+        application = JobApplication.builder().id(21L).jobId(12L).studentProfileId(31L)
+                .status(JobApplicationStatus.PENDING).build();
+        when(jobApplicationRepository.findById(21L)).thenReturn(Optional.of(application));
+
+        assertCode(ErrorCode.PAYMENT_NOT_AVAILABLE);
+        verify(kakaoPayClient, never()).order(TID);
     }
 
     @Test
@@ -179,6 +244,7 @@ class PaymentApprovalServiceTest {
 
         assertCode(ErrorCode.PAYMENT_RESULT_MISMATCH);
         assertThat(payment.getStatus()).isEqualTo(PaymentStatus.PENDING);
+        assertUnmatched();
         verify(kakaoPayClient, never()).approve(TID, "order-123", OWNER_ID, "pg-123");
     }
 
@@ -194,6 +260,7 @@ class PaymentApprovalServiceTest {
 
         assertCode(ErrorCode.PAYMENT_RESULT_MISMATCH);
         assertThat(payment.getStatus()).isEqualTo(PaymentStatus.PENDING);
+        assertUnmatched();
     }
 
     @Test
@@ -217,6 +284,19 @@ class PaymentApprovalServiceTest {
 
         assertCode(ErrorCode.PAYMENT_APPROVAL_UNAVAILABLE);
         assertThat(payment.getStatus()).isEqualTo(PaymentStatus.PENDING);
+        assertUnmatched();
+    }
+
+    private void assertMatched() {
+        assertThat(job.getStatus()).isEqualTo(JobStatus.MATCHED);
+        assertThat(job.getSelectedStudentProfileId()).isEqualTo(31L);
+        assertThat(application.getStatus()).isEqualTo(JobApplicationStatus.ACCEPTED);
+    }
+
+    private void assertUnmatched() {
+        assertThat(job.getStatus()).isEqualTo(JobStatus.OPEN);
+        assertThat(job.getSelectedStudentProfileId()).isNull();
+        assertThat(application.getStatus()).isEqualTo(JobApplicationStatus.PENDING);
     }
 
     private void assertCode(ErrorCode expected) {
