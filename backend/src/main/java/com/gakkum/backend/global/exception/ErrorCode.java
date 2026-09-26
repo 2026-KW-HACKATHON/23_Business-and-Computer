@@ -14,6 +14,7 @@ public enum ErrorCode {
     CHAT_MESSAGE_NOT_FOUND(HttpStatus.NOT_FOUND, "CHAT_MESSAGE_404", "채팅방에서 메시지를 찾을 수 없습니다."),
     CHAT_FORBIDDEN(HttpStatus.FORBIDDEN, "CHAT_403", "채팅방에 접근할 수 없습니다."),
     CHAT_MESSAGE_CONFLICT(HttpStatus.CONFLICT, "CHAT_MESSAGE_409", "같은 메시지 ID로 다른 내용을 보낼 수 없습니다."),
+    CHAT_UPLOAD_UNAVAILABLE(HttpStatus.BAD_GATEWAY, "CHAT_UPLOAD_502", "첨부 파일 저장소에 연결하지 못했습니다. 잠시 후 다시 시도해 주세요."),
     PAYMENT_NOT_AVAILABLE(HttpStatus.CONFLICT, "PAYMENT_409_UNAVAILABLE", "결제를 준비할 수 없는 의뢰 또는 지원서입니다."),
     PAYMENT_ALREADY_PAID(HttpStatus.CONFLICT, "PAYMENT_409_PAID", "이미 결제된 의뢰입니다."),
     PAYMENT_OWNER_REQUIRED(HttpStatus.FORBIDDEN, "PAYMENT_403_OWNER", "사장님만 결제를 준비할 수 있습니다."),
