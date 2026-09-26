@@ -13,6 +13,8 @@ import org.springframework.web.bind.annotation.RestController;
 import com.gakkum.backend.application.chat.dto.ChatRoomListResponse;
 import com.gakkum.backend.application.chat.dto.ChatRoomListResponse.Room;
 import com.gakkum.backend.application.chat.dto.ChatMessageListResponse;
+import com.gakkum.backend.application.chat.dto.PrepareAttachmentUploadRequest;
+import com.gakkum.backend.application.chat.dto.PrepareAttachmentUploadResponse;
 import com.gakkum.backend.application.chat.dto.ReadChatRoomRequest;
 import com.gakkum.backend.application.chat.dto.SendTextMessageRequest;
 import com.gakkum.backend.application.chat.dto.SendTextMessageResponse;
@@ -70,5 +72,16 @@ public class ChatController {
         SendMessageResult result = chatFacade.sendTextMessage(request.toCommand(authentication.getName(), roomId));
         return ResponseEntity.status(result.isCreated() ? HttpStatus.CREATED : HttpStatus.OK)
                 .body(ApiResponse.success(SendTextMessageResponse.from(result)));
+    }
+
+    /** 첨부 파일 업로드 준비 API(PresignedURL 반환) */
+    @PostMapping("/chat-rooms/{roomId}/attachments/uploads")
+    public ResponseEntity<ApiResponse<PrepareAttachmentUploadResponse>> prepareAttachmentUpload(
+            Authentication authentication,
+            @PathVariable String roomId,
+            @Valid @RequestBody PrepareAttachmentUploadRequest request) {
+        PrepareAttachmentUploadResponse response = PrepareAttachmentUploadResponse.from(
+                chatFacade.prepareAttachmentUpload(request.toCommand(authentication.getName(), roomId)));
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(response));
     }
 }

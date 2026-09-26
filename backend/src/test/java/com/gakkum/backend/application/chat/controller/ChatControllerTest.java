@@ -17,6 +17,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -36,6 +37,8 @@ import com.gakkum.backend.application.chat.dto.ChatRoomListResponse.Room;
 import com.gakkum.backend.application.chat.facade.ChatFacade;
 import com.gakkum.backend.domain.chat.entity.ChatMessageType;
 import com.gakkum.backend.domain.chat.dto.ChatCommandDto.MarkReadCommand;
+import com.gakkum.backend.domain.chat.dto.ChatCommandDto.PrepareAttachmentUploadCommand;
+import com.gakkum.backend.domain.chat.dto.ChatQueryDto.PrepareAttachmentUploadResult;
 import com.gakkum.backend.domain.chat.dto.ChatCommandDto.SendTextMessageCommand;
 import com.gakkum.backend.domain.chat.dto.ChatQueryDto.SendMessageResult;
 import com.gakkum.backend.domain.chat.entity.ChatMessage;
@@ -273,6 +276,83 @@ class ChatControllerTest {
                 .andExpect(jsonPath("$.error.code").value("CHAT_403"));
     }
 
+    @Test
+    @DisplayName("첨부 업로드 준비는 201과 업로드 ID, URL, 헤더, URL 만료 시각을 반환한다")
+    void preparesAttachmentUpload() throws Exception {
+        UUID uploadId = UUID.randomUUID();
+        when(service.prepareAttachmentUpload(any(PrepareAttachmentUploadCommand.class)))
+                .thenReturn(PrepareAttachmentUploadResult.of(uploadId, "https://upload.example",
+                        Map.of("content-type", "image/png", "x-amz-tagging", "chat-upload=pending"),
+                        LocalDateTime.of(2026, 9, 27, 14, 10)));
+
+        mockMvc.perform(post("/chat-rooms/room-1/attachments/uploads")
+                        .principal(authentication)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(uploadPayload("IMAGE", "시안.png", "image/png", "482133")))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.data.uploadId").value(uploadId.toString()))
+                .andExpect(jsonPath("$.data.uploadUrl").value("https://upload.example"))
+                .andExpect(jsonPath("$.data.uploadHeaders['content-type']").value("image/png"))
+                .andExpect(jsonPath("$.data.uploadHeaders['x-amz-tagging']").value("chat-upload=pending"))
+                .andExpect(jsonPath("$.data.uploadUrlExpiresAt").value("2026-09-27T14:10:00"));
+
+        ArgumentCaptor<PrepareAttachmentUploadCommand> command =
+                ArgumentCaptor.forClass(PrepareAttachmentUploadCommand.class);
+        verify(service).prepareAttachmentUpload(command.capture());
+        assertThat(command.getValue().getUsername()).isEqualTo("KAKAO_123");
+        assertThat(command.getValue().getRoomId()).isEqualTo("room-1");
+        assertThat(command.getValue().getType()).isEqualTo(ChatMessageType.IMAGE);
+        assertThat(command.getValue().getFileName()).isEqualTo("시안.png");
+        assertThat(command.getValue().getContentType()).isEqualTo("image/png");
+        assertThat(command.getValue().getSize()).isEqualTo(482133L);
+    }
+
+    @Test
+    @DisplayName("TEXT 타입, 누락 값, 경로가 들어간 파일명, 0 이하 크기의 업로드 준비는 400으로 거부한다")
+    void rejectsInvalidUploadRequests() throws Exception {
+        List<String> payloads = List.of(
+                uploadPayload("TEXT", "메모.txt", "text/plain", "10"),
+                uploadPayload("VIDEO", "영상.mp4", "video/mp4", "10"),
+                "{\"fileName\":\"시안.png\",\"contentType\":\"image/png\",\"size\":10}",
+                uploadPayload("IMAGE", "   ", "image/png", "10"),
+                uploadPayload("IMAGE", "../시안.png", "image/png", "10"),
+                uploadPayload("IMAGE", "폴더\\\\시안.png", "image/png", "10"),
+                uploadPayload("IMAGE", "x".repeat(252) + ".png", "image/png", "10"),
+                uploadPayload("IMAGE", "시안.png", "", "10"),
+                uploadPayload("IMAGE", "시안.png", "image/png", "0"));
+
+        for (String body : payloads) {
+            mockMvc.perform(post("/chat-rooms/room-1/attachments/uploads")
+                            .principal(authentication)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(body))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.error.code").value("COMMON_400"));
+        }
+        verifyNoInteractions(service);
+    }
+
+    @Test
+    @DisplayName("허용되지 않은 형식과 크기 초과는 각각의 400 오류 코드로 반환한다")
+    void returnsUploadPolicyErrors() throws Exception {
+        when(service.prepareAttachmentUpload(any(PrepareAttachmentUploadCommand.class)))
+                .thenThrow(new BusinessException(ErrorCode.CHAT_UPLOAD_TYPE_NOT_ALLOWED))
+                .thenThrow(new BusinessException(ErrorCode.CHAT_UPLOAD_TOO_LARGE));
+
+        mockMvc.perform(post("/chat-rooms/room-1/attachments/uploads")
+                        .principal(authentication)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(uploadPayload("IMAGE", "견적서.pdf", "application/pdf", "10")))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error.code").value("CHAT_UPLOAD_400_TYPE"));
+        mockMvc.perform(post("/chat-rooms/room-1/attachments/uploads")
+                        .principal(authentication)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(uploadPayload("IMAGE", "시안.png", "image/png", "999999999")))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error.code").value("CHAT_UPLOAD_400_SIZE"));
+    }
+
     private ChatMessage savedMessage(UUID clientMessageId) {
         return ChatMessage.builder().id(17L).roomId("room-1").clientMessageId(clientMessageId)
                 .senderUserId("sender-1").type(ChatMessageType.TEXT).content("안녕하세요")
@@ -289,6 +369,11 @@ class ChatControllerTest {
                 LastMessage.of(ChatMessageType.TEXT, "안녕하세요", LocalDateTime.of(2026, 9, 26, 12, 30)),
                 3L, DeadlineType.DRAFT, LocalDate.of(2026, 10, 10),
                 JobSubmissionReviewStatus.PENDING, "지원 내용");
+    }
+
+    private String uploadPayload(String type, String fileName, String contentType, String size) {
+        return "{\"type\":\"" + type + "\",\"fileName\":\"" + fileName + "\",\"contentType\":\""
+                + contentType + "\",\"size\":" + size + "}";
     }
 
     private String payload(UUID clientMessageId, String content) {
