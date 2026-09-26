@@ -1,9 +1,9 @@
-package com.gakkum.backend.domain.user.service;
+package com.gakkum.backend.util;
 
 import java.math.BigInteger;
 import java.security.SecureRandom;
 
-final class UlidGenerator {
+public final class UlidGenerator {
 
     private static final char[] ALPHABET = "0123456789ABCDEFGHJKMNPQRSTVWXYZ".toCharArray();
     private static final SecureRandom RANDOM = new SecureRandom();
@@ -12,7 +12,7 @@ final class UlidGenerator {
     private UlidGenerator() {
     }
 
-    static String generate() {
+    public static String generate() {
         byte[] bytes = new byte[16];
         long timestamp = System.currentTimeMillis();
         for (int i = 5; i >= 0; i--) {
