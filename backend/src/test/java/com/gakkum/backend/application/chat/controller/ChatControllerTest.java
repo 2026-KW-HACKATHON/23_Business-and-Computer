@@ -38,6 +38,9 @@ import com.gakkum.backend.application.chat.facade.ChatFacade;
 import com.gakkum.backend.domain.chat.entity.ChatMessageType;
 import com.gakkum.backend.domain.chat.dto.ChatCommandDto.MarkReadCommand;
 import com.gakkum.backend.domain.chat.dto.ChatCommandDto.PrepareAttachmentUploadCommand;
+import com.gakkum.backend.domain.chat.dto.ChatCommandDto.SendAttachmentMessageCommand;
+import com.gakkum.backend.domain.chat.dto.ChatQueryDto.SendAttachmentMessageResult;
+import com.gakkum.backend.domain.chat.entity.ChatAttachmentUpload;
 import com.gakkum.backend.domain.chat.dto.ChatQueryDto.PrepareAttachmentUploadResult;
 import com.gakkum.backend.domain.chat.dto.ChatCommandDto.SendTextMessageCommand;
 import com.gakkum.backend.domain.chat.dto.ChatQueryDto.SendMessageResult;
@@ -351,6 +354,123 @@ class ChatControllerTest {
                         .content(uploadPayload("IMAGE", "시안.png", "image/png", "999999999")))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.error.code").value("CHAT_UPLOAD_400_SIZE"));
+    }
+
+    @Test
+    @DisplayName("첨부 메시지를 새로 저장하면 201과 열람 URL, 파일명, URL 만료 시각을 반환한다")
+    void sendsAttachmentMessage() throws Exception {
+        UUID clientMessageId = UUID.randomUUID();
+        ChatMessage saved = savedAttachment(clientMessageId);
+        when(service.sendAttachmentMessage(any(SendAttachmentMessageCommand.class)))
+                .thenReturn(SendAttachmentMessageResult.of(saved, true, "https://view.example",
+                        LocalDateTime.of(2026, 9, 26, 12, 45)));
+
+        mockMvc.perform(post("/chat-rooms/room-1/messages/attachments")
+                        .principal(authentication)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(attachmentPayload(clientMessageId.toString(), "FILE",
+                                saved.getAttachmentUploadId().toString())))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.data.id").value(18))
+                .andExpect(jsonPath("$.data.roomId").value("room-1"))
+                .andExpect(jsonPath("$.data.clientMessageId").value(clientMessageId.toString()))
+                .andExpect(jsonPath("$.data.senderUserId").value("sender-1"))
+                .andExpect(jsonPath("$.data.type").value("FILE"))
+                .andExpect(jsonPath("$.data.content").value("https://view.example"))
+                .andExpect(jsonPath("$.data.attachmentName").value("견적서.pdf"))
+                .andExpect(jsonPath("$.data.contentExpiresAt").value("2026-09-26T12:45:00"))
+                .andExpect(jsonPath("$.data.createdAt").value("2026-09-26T12:30:00"));
+
+        ArgumentCaptor<SendAttachmentMessageCommand> command =
+                ArgumentCaptor.forClass(SendAttachmentMessageCommand.class);
+        verify(service).sendAttachmentMessage(command.capture());
+        assertThat(command.getValue().getUsername()).isEqualTo("KAKAO_123");
+        assertThat(command.getValue().getRoomId()).isEqualTo("room-1");
+        assertThat(command.getValue().getClientMessageId()).isEqualTo(clientMessageId);
+        assertThat(command.getValue().getType()).isEqualTo(ChatMessageType.FILE);
+        assertThat(command.getValue().getUploadId()).isEqualTo(saved.getAttachmentUploadId());
+    }
+
+    @Test
+    @DisplayName("같은 첨부 메시지 재시도에는 200과 기존 메시지 정보를 반환한다")
+    void repeatedAttachmentSendReturnsOk() throws Exception {
+        UUID clientMessageId = UUID.randomUUID();
+        ChatMessage saved = savedAttachment(clientMessageId);
+        when(service.sendAttachmentMessage(any(SendAttachmentMessageCommand.class)))
+                .thenReturn(SendAttachmentMessageResult.of(saved, false, "https://view.example/retry",
+                        LocalDateTime.of(2026, 9, 26, 12, 50)));
+
+        mockMvc.perform(post("/chat-rooms/room-1/messages/attachments")
+                        .principal(authentication)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(attachmentPayload(clientMessageId.toString(), "FILE",
+                                saved.getAttachmentUploadId().toString())))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.id").value(18))
+                .andExpect(jsonPath("$.data.content").value("https://view.example/retry"));
+    }
+
+    @Test
+    @DisplayName("TEXT 타입, 잘못된 UUID, 누락 값의 첨부 메시지 요청은 400으로 거부한다")
+    void rejectsInvalidAttachmentRequests() throws Exception {
+        String uuid = UUID.randomUUID().toString();
+        List<String> payloads = List.of(
+                attachmentPayload(uuid, "TEXT", uuid),
+                attachmentPayload(uuid, "VIDEO", uuid),
+                attachmentPayload("invalid", "IMAGE", uuid),
+                attachmentPayload(uuid, "IMAGE", "invalid"),
+                "{\"type\":\"IMAGE\",\"uploadId\":\"" + uuid + "\"}",
+                "{\"clientMessageId\":\"" + uuid + "\",\"uploadId\":\"" + uuid + "\"}",
+                "{\"clientMessageId\":\"" + uuid + "\",\"type\":\"IMAGE\"}");
+
+        for (String body : payloads) {
+            mockMvc.perform(post("/chat-rooms/room-1/messages/attachments")
+                            .principal(authentication)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(body))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.error.code").value("COMMON_400"));
+        }
+        verifyNoInteractions(service);
+    }
+
+    @Test
+    @DisplayName("첨부 메시지 전송의 업로드 오류는 계약된 상태와 오류 코드로 반환한다")
+    void returnsAttachmentSendErrors() throws Exception {
+        String uuid = UUID.randomUUID().toString();
+        Map<ErrorCode, Integer> errors = Map.of(
+                ErrorCode.CHAT_MESSAGE_CONFLICT, 409,
+                ErrorCode.CHAT_UPLOAD_NOT_FOUND, 404,
+                ErrorCode.CHAT_UPLOAD_TYPE_NOT_ALLOWED, 400,
+                ErrorCode.CHAT_UPLOAD_ALREADY_USED, 409,
+                ErrorCode.CHAT_UPLOAD_NOT_READY, 409,
+                ErrorCode.CHAT_UPLOAD_UNAVAILABLE, 502);
+
+        for (Map.Entry<ErrorCode, Integer> error : errors.entrySet()) {
+            when(service.sendAttachmentMessage(any(SendAttachmentMessageCommand.class)))
+                    .thenThrow(new BusinessException(error.getKey()));
+
+            mockMvc.perform(post("/chat-rooms/room-1/messages/attachments")
+                            .principal(authentication)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(attachmentPayload(uuid, "IMAGE", uuid)))
+                    .andExpect(status().is(error.getValue()))
+                    .andExpect(jsonPath("$.error.code").value(error.getKey().getCode()));
+        }
+    }
+
+    private ChatMessage savedAttachment(UUID clientMessageId) {
+        ChatAttachmentUpload upload = ChatAttachmentUpload.create("room-1", "sender-1", ChatMessageType.FILE,
+                "견적서.pdf", "application/pdf", 1024L, LocalDateTime.of(2026, 9, 26, 13, 30));
+        ChatMessage message = ChatMessage.createAttachment("sender-1", clientMessageId, upload);
+        ReflectionTestUtils.setField(message, "id", 18L);
+        ReflectionTestUtils.setField(message, "createdAt", LocalDateTime.of(2026, 9, 26, 12, 30));
+        return message;
+    }
+
+    private String attachmentPayload(String clientMessageId, String type, String uploadId) {
+        return "{\"clientMessageId\":\"" + clientMessageId + "\",\"type\":\"" + type
+                + "\",\"uploadId\":\"" + uploadId + "\"}";
     }
 
     private ChatMessage savedMessage(UUID clientMessageId) {

@@ -16,9 +16,12 @@ import com.gakkum.backend.application.chat.dto.ChatMessageListResponse;
 import com.gakkum.backend.application.chat.dto.PrepareAttachmentUploadRequest;
 import com.gakkum.backend.application.chat.dto.PrepareAttachmentUploadResponse;
 import com.gakkum.backend.application.chat.dto.ReadChatRoomRequest;
+import com.gakkum.backend.application.chat.dto.SendAttachmentMessageRequest;
+import com.gakkum.backend.application.chat.dto.SendAttachmentMessageResponse;
 import com.gakkum.backend.application.chat.dto.SendTextMessageRequest;
 import com.gakkum.backend.application.chat.dto.SendTextMessageResponse;
 import com.gakkum.backend.application.chat.facade.ChatFacade;
+import com.gakkum.backend.domain.chat.dto.ChatQueryDto.SendAttachmentMessageResult;
 import com.gakkum.backend.domain.chat.dto.ChatQueryDto.SendMessageResult;
 import com.gakkum.backend.global.response.ApiResponse;
 
@@ -83,5 +86,17 @@ public class ChatController {
         PrepareAttachmentUploadResponse response = PrepareAttachmentUploadResponse.from(
                 chatFacade.prepareAttachmentUpload(request.toCommand(authentication.getName(), roomId)));
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(response));
+    }
+
+    /** 사진·파일 메시지 전송 API */
+    @PostMapping("/chat-rooms/{roomId}/messages/attachments")
+    public ResponseEntity<ApiResponse<SendAttachmentMessageResponse>> sendAttachmentMessage(
+            Authentication authentication,
+            @PathVariable String roomId,
+            @Valid @RequestBody SendAttachmentMessageRequest request) {
+        SendAttachmentMessageResult result = chatFacade.sendAttachmentMessage(
+                request.toCommand(authentication.getName(), roomId));
+        return ResponseEntity.status(result.isCreated() ? HttpStatus.CREATED : HttpStatus.OK)
+                .body(ApiResponse.success(SendAttachmentMessageResponse.from(result)));
     }
 }
