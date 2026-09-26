@@ -65,6 +65,39 @@ public class JobService {
         return savedJob;
     }
 
+    /**
+     * 결제를 위한 의뢰 정보 반환
+     * @param jobId
+     * @param ownerProfileId
+     * @return OPEN(시작 전) 상태인 특정 의뢰를 반환
+     */
+    public Job getPayableJobForUpdate(Long jobId, Long ownerProfileId) {
+        Job job = jobRepository.findByIdAndOwnerProfileId(jobId, ownerProfileId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.JOB_NOT_FOUND));
+        if (job.getStatus() != JobStatus.OPEN) {
+            throw new BusinessException(ErrorCode.PAYMENT_NOT_AVAILABLE);
+        }
+        return job;
+    }
+
+    /**
+     * 결제를 위한 지원 정보 반환
+     * @param jobId
+     * @param applicationId
+     * @return 대기중인 지원 정보를 반환
+     */
+    public JobApplication getPayableApplication(Long jobId, Long applicationId) {
+        JobApplication application = jobApplicationRepository.findById(applicationId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.JOB_APPLICATION_NOT_FOUND));
+        if (!application.getJobId().equals(jobId)) {
+            throw new BusinessException(ErrorCode.JOB_APPLICATION_NOT_FOUND);
+        }
+        if (application.getStatus() != JobApplicationStatus.PENDING) {
+            throw new BusinessException(ErrorCode.PAYMENT_NOT_AVAILABLE);
+        }
+        return application;
+    }
+
     @Transactional(readOnly = true)
     public JobDetailData getJobDetail(Long jobId) {
         Job job = jobRepository.findById(jobId)
