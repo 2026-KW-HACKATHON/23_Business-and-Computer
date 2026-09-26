@@ -28,8 +28,9 @@ demo accounts, and the signup and home screens come later.
   with `mode="signup"` or `mode="demo"`. Only the title, button wording, and
   next routes differ.
 - Next routes follow the Notion route table: signup goes to /signup/owner/1 and
-  /signup/student/1; demo goes to /owner and /student. Until those screens
-  exist, the catch-all route sends them to /.
+  /signup/student/1; demo goes to /demo/owner and /demo/student, kept apart
+  from the logged-in homes /owner and /student so the demo mode is visible in
+  the URL. Until those screens exist, the catch-all route sends them to /.
 - The Figma hover variant (character grows from 136px to 160px) becomes a
   press effect, plus hover on devices that support it.
 

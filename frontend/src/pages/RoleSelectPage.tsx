@@ -24,7 +24,7 @@ const ACTIONS: Record<RoleSelectMode, string> = {
 /** 화면 상태 전환표의 라우트 제안. 아직 없는 화면은 만들어지면 연결된다. */
 const NEXT_PATHS: Record<RoleSelectMode, Record<Role, string>> = {
   signup: { owner: "/signup/owner/1", student: "/signup/student/1" },
-  demo: { owner: "/owner", student: "/student" },
+  demo: { owner: "/demo/owner", student: "/demo/student" },
 };
 
 const ROLES: { role: Role; name: string; character: ImageName; badge: ImageName }[] = [
