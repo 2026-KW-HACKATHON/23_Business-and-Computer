@@ -73,4 +73,26 @@ public final class ChatCommandDto {
                     .build();
         }
     }
+
+    @Getter
+    @Builder(access = AccessLevel.PRIVATE)
+    @AllArgsConstructor(access = AccessLevel.PRIVATE)
+    public static class SendAttachmentMessageCommand {
+        private final String username;
+        private final String roomId;
+        private final UUID clientMessageId;
+        private final ChatMessageType type;
+        private final UUID uploadId;
+
+        public static SendAttachmentMessageCommand of(String username, String roomId, UUID clientMessageId,
+                ChatMessageType type, UUID uploadId) {
+            return SendAttachmentMessageCommand.builder()
+                    .username(username)
+                    .roomId(roomId)
+                    .clientMessageId(clientMessageId)
+                    .type(type)
+                    .uploadId(uploadId)
+                    .build();
+        }
+    }
 }

@@ -39,4 +39,18 @@ public final class ChatQueryDto {
             return new PrepareAttachmentUploadResult(uploadId, uploadUrl, uploadHeaders, uploadUrlExpiresAt);
         }
     }
+
+    @Getter
+    @AllArgsConstructor(access = AccessLevel.PRIVATE)
+    public static class SendAttachmentMessageResult {
+        private final ChatMessage message;
+        private final boolean created;
+        private final String contentUrl;
+        private final LocalDateTime contentExpiresAt;
+
+        public static SendAttachmentMessageResult of(ChatMessage message, boolean created, String contentUrl,
+                LocalDateTime contentExpiresAt) {
+            return new SendAttachmentMessageResult(message, created, contentUrl, contentExpiresAt);
+        }
+    }
 }

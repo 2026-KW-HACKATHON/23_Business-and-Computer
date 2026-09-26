@@ -6,6 +6,7 @@ import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -28,6 +29,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InOrder;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.util.unit.DataSize;
 
@@ -35,12 +37,16 @@ import com.gakkum.backend.application.chat.dto.ChatRoomListResponse;
 import com.gakkum.backend.application.chat.dto.DeadlineType;
 import com.gakkum.backend.domain.chat.client.ChatAttachmentStorageClient;
 import com.gakkum.backend.domain.chat.client.ChatAttachmentStorageClient.PresignedUpload;
+import com.gakkum.backend.domain.chat.client.ChatAttachmentStorageClient.PresignedView;
+import com.gakkum.backend.domain.chat.client.ChatAttachmentStorageClient.StoredObject;
 import com.gakkum.backend.domain.chat.service.ChatAttachmentPolicy;
 import com.gakkum.backend.domain.chat.service.ChatService;
 import com.gakkum.backend.domain.chat.dto.ChatCommandDto.MarkReadCommand;
 import com.gakkum.backend.domain.chat.dto.ChatCommandDto.PrepareAttachmentUploadCommand;
+import com.gakkum.backend.domain.chat.dto.ChatCommandDto.SendAttachmentMessageCommand;
 import com.gakkum.backend.domain.chat.dto.ChatCommandDto.SendTextMessageCommand;
 import com.gakkum.backend.domain.chat.dto.ChatQueryDto.PrepareAttachmentUploadResult;
+import com.gakkum.backend.domain.chat.dto.ChatQueryDto.SendAttachmentMessageResult;
 import com.gakkum.backend.domain.chat.dto.ChatQueryDto.SendMessageResult;
 import com.gakkum.backend.domain.chat.entity.ChatAttachmentUpload;
 import com.gakkum.backend.domain.chat.entity.ChatAttachmentUploadStatus;
@@ -88,7 +94,7 @@ class ChatFacadeTest {
     private final Instant now = Instant.parse("2026-09-27T05:00:00Z");
     private final ChatService chatService = new ChatService(roomRepository, messageRepository, uploadRepository,
             new ChatAttachmentPolicy(DataSize.ofMegabytes(10), DataSize.ofMegabytes(50), Duration.ofHours(1)),
-            Clock.fixed(now, ZoneOffset.UTC));
+            storageClient, Clock.fixed(now, ZoneOffset.UTC));
     private final ChatFacade service = new ChatFacade(userService, ownerRepository, studentRepository,
             jobRepository, applicationRepository, submissionRepository, chatService, storageClient);
 
@@ -539,6 +545,196 @@ class ChatFacadeTest {
                         "시안.png", "image/png", 1024L)));
         verify(uploadRepository, never()).save(any(ChatAttachmentUpload.class));
         verifyNoInteractions(storageClient);
+    }
+
+    @Test
+    @DisplayName("업로드된 첨부는 태그 변경 후 메시지로 저장하고 새 열람 URL과 함께 반환한다")
+    void ownerSendsAttachmentMessage() {
+        ChatRoom room = arrangeOwnerSend(JobStatus.MATCHED);
+        ChatAttachmentUpload upload = arrangeUpload(room, OWNER_ID, ChatMessageType.IMAGE);
+        when(storageClient.findObject(upload.getStorageKey()))
+                .thenReturn(Optional.of(new StoredObject(482133L, "image/png")));
+        when(messageRepository.saveAndFlush(any(ChatMessage.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        Instant viewExpiresAt = now.plus(Duration.ofMinutes(15));
+        when(storageClient.presignView(upload.getStorageKey(), ChatMessageType.IMAGE, "시안.png"))
+                .thenReturn(new PresignedView("https://view.example", viewExpiresAt));
+        UUID clientMessageId = UUID.randomUUID();
+
+        SendAttachmentMessageResult result = service.sendAttachmentMessage(SendAttachmentMessageCommand.of(
+                "owner", room.getId(), clientMessageId, ChatMessageType.IMAGE, upload.getId()));
+
+        InOrder order = inOrder(storageClient, messageRepository);
+        order.verify(storageClient).findObject(upload.getStorageKey());
+        order.verify(storageClient).markAttached(upload.getStorageKey());
+        order.verify(messageRepository).saveAndFlush(any(ChatMessage.class));
+        assertThat(upload.getStatus()).isEqualTo(ChatAttachmentUploadStatus.ATTACHED);
+
+        ChatMessage saved = result.getMessage();
+        assertThat(result.isCreated()).isTrue();
+        assertThat(saved.getRoomId()).isEqualTo(room.getId());
+        assertThat(saved.getSenderUserId()).isEqualTo(OWNER_ID);
+        assertThat(saved.getClientMessageId()).isEqualTo(clientMessageId);
+        assertThat(saved.getType()).isEqualTo(ChatMessageType.IMAGE);
+        assertThat(saved.getContent()).isNull();
+        assertThat(saved.getAttachmentKey()).isEqualTo(upload.getStorageKey());
+        assertThat(saved.getAttachmentUploadId()).isEqualTo(upload.getId());
+        assertThat(result.getContentUrl()).isEqualTo("https://view.example");
+        assertThat(result.getContentExpiresAt())
+                .isEqualTo(LocalDateTime.ofInstant(viewExpiresAt, ZoneId.systemDefault()));
+    }
+
+    @Test
+    @DisplayName("같은 UUID, 타입, 업로드의 재요청은 기존 메시지를 새 열람 URL과 반환하고 업로드를 다시 확인하지 않는다")
+    void repeatedAttachmentSendReturnsExistingMessage() {
+        ChatRoom room = arrangeOwnerSend(JobStatus.MATCHED);
+        ChatAttachmentUpload upload = ChatAttachmentUpload.create(room.getId(), OWNER_ID, ChatMessageType.FILE,
+                "견적서.pdf", "application/pdf", 1024L, LocalDateTime.of(2026, 9, 27, 15, 0));
+        UUID clientMessageId = UUID.randomUUID();
+        ChatMessage existing = ChatMessage.createAttachment(OWNER_ID, clientMessageId, upload);
+        when(messageRepository.findByRoomIdAndSenderUserIdAndClientMessageId(
+                room.getId(), OWNER_ID, clientMessageId)).thenReturn(Optional.of(existing));
+        when(storageClient.presignView(upload.getStorageKey(), ChatMessageType.FILE, "견적서.pdf"))
+                .thenReturn(new PresignedView("https://view.example/retry", now.plus(Duration.ofMinutes(15))));
+
+        SendAttachmentMessageResult result = service.sendAttachmentMessage(SendAttachmentMessageCommand.of(
+                "owner", room.getId(), clientMessageId, ChatMessageType.FILE, upload.getId()));
+
+        assertThat(result.isCreated()).isFalse();
+        assertThat(result.getMessage()).isSameAs(existing);
+        assertThat(result.getContentUrl()).isEqualTo("https://view.example/retry");
+        verify(uploadRepository, never()).findById(any());
+        verify(storageClient, never()).findObject(any());
+        verify(storageClient, never()).markAttached(any());
+        verify(messageRepository, never()).saveAndFlush(any(ChatMessage.class));
+    }
+
+    @Test
+    @DisplayName("같은 UUID의 기존 메시지가 TEXT이거나 타입 또는 업로드가 다르면 충돌로 거부한다")
+    void rejectsConflictingAttachmentRetry() {
+        ChatRoom room = arrangeOwnerSend(JobStatus.MATCHED);
+        ChatAttachmentUpload upload = ChatAttachmentUpload.create(room.getId(), OWNER_ID, ChatMessageType.IMAGE,
+                "시안.png", "image/png", 1024L, LocalDateTime.of(2026, 9, 27, 15, 0));
+        UUID textId = UUID.randomUUID();
+        UUID otherUploadId = UUID.randomUUID();
+        UUID otherTypeId = UUID.randomUUID();
+        when(messageRepository.findByRoomIdAndSenderUserIdAndClientMessageId(room.getId(), OWNER_ID, textId))
+                .thenReturn(Optional.of(ChatMessage.createText(room.getId(), OWNER_ID, textId, "안녕하세요")));
+        when(messageRepository.findByRoomIdAndSenderUserIdAndClientMessageId(room.getId(), OWNER_ID, otherUploadId))
+                .thenReturn(Optional.of(ChatMessage.createAttachment(OWNER_ID, otherUploadId, upload)));
+        when(messageRepository.findByRoomIdAndSenderUserIdAndClientMessageId(room.getId(), OWNER_ID, otherTypeId))
+                .thenReturn(Optional.of(ChatMessage.createAttachment(OWNER_ID, otherTypeId, upload)));
+
+        assertCode(ErrorCode.CHAT_MESSAGE_CONFLICT, () -> service.sendAttachmentMessage(
+                SendAttachmentMessageCommand.of("owner", room.getId(), textId, ChatMessageType.IMAGE, upload.getId())));
+        assertCode(ErrorCode.CHAT_MESSAGE_CONFLICT, () -> service.sendAttachmentMessage(
+                SendAttachmentMessageCommand.of("owner", room.getId(), otherUploadId, ChatMessageType.IMAGE,
+                        UUID.randomUUID())));
+        assertCode(ErrorCode.CHAT_MESSAGE_CONFLICT, () -> service.sendAttachmentMessage(
+                SendAttachmentMessageCommand.of("owner", room.getId(), otherTypeId, ChatMessageType.FILE,
+                        upload.getId())));
+        verify(messageRepository, never()).saveAndFlush(any(ChatMessage.class));
+        verifyNoInteractions(storageClient);
+    }
+
+    @Test
+    @DisplayName("없거나 다른 사용자 또는 다른 방의 업로드는 CHAT_UPLOAD_404로 거부한다")
+    void rejectsUnknownUpload() {
+        ChatRoom room = arrangeOwnerSend(JobStatus.MATCHED);
+        UUID missingId = UUID.randomUUID();
+        when(uploadRepository.findById(missingId)).thenReturn(Optional.empty());
+        ChatAttachmentUpload otherUsers = arrangeUpload(room, STUDENT_ID, ChatMessageType.IMAGE);
+        ChatAttachmentUpload otherRooms = arrangeUpload(room(3L, LocalDateTime.now()), OWNER_ID, ChatMessageType.IMAGE);
+
+        for (UUID uploadId : List.of(missingId, otherUsers.getId(), otherRooms.getId())) {
+            assertCode(ErrorCode.CHAT_UPLOAD_NOT_FOUND, () -> service.sendAttachmentMessage(
+                    SendAttachmentMessageCommand.of("owner", room.getId(), UUID.randomUUID(),
+                            ChatMessageType.IMAGE, uploadId)));
+        }
+        verify(messageRepository, never()).saveAndFlush(any(ChatMessage.class));
+        verifyNoInteractions(storageClient);
+    }
+
+    @Test
+    @DisplayName("업로드 타입과 다른 타입은 400, 이미 사용된 업로드와 만료된 업로드는 409로 거부한다")
+    void rejectsMismatchedUsedOrExpiredUpload() {
+        ChatRoom room = arrangeOwnerSend(JobStatus.MATCHED);
+        ChatAttachmentUpload image = arrangeUpload(room, OWNER_ID, ChatMessageType.IMAGE);
+        ChatAttachmentUpload used = arrangeUpload(room, OWNER_ID, ChatMessageType.IMAGE);
+        used.attach();
+        ChatAttachmentUpload expired = ChatAttachmentUpload.create(room.getId(), OWNER_ID, ChatMessageType.IMAGE,
+                "시안.png", "image/png", 482133L, LocalDateTime.ofInstant(now, ZoneId.systemDefault()));
+        when(uploadRepository.findById(expired.getId())).thenReturn(Optional.of(expired));
+
+        assertCode(ErrorCode.CHAT_UPLOAD_TYPE_NOT_ALLOWED, () -> service.sendAttachmentMessage(
+                SendAttachmentMessageCommand.of("owner", room.getId(), UUID.randomUUID(), ChatMessageType.FILE,
+                        image.getId())));
+        assertCode(ErrorCode.CHAT_UPLOAD_ALREADY_USED, () -> service.sendAttachmentMessage(
+                SendAttachmentMessageCommand.of("owner", room.getId(), UUID.randomUUID(), ChatMessageType.IMAGE,
+                        used.getId())));
+        assertCode(ErrorCode.CHAT_UPLOAD_NOT_READY, () -> service.sendAttachmentMessage(
+                SendAttachmentMessageCommand.of("owner", room.getId(), UUID.randomUUID(), ChatMessageType.IMAGE,
+                        expired.getId())));
+        verify(messageRepository, never()).saveAndFlush(any(ChatMessage.class));
+        verifyNoInteractions(storageClient);
+    }
+
+    @Test
+    @DisplayName("S3에 파일이 없거나 크기가 다르면 409로 거부하고 태그와 메시지를 바꾸지 않는다")
+    void rejectsUploadMissingFromStorage() {
+        ChatRoom room = arrangeOwnerSend(JobStatus.MATCHED);
+        ChatAttachmentUpload missing = arrangeUpload(room, OWNER_ID, ChatMessageType.IMAGE);
+        ChatAttachmentUpload resized = arrangeUpload(room, OWNER_ID, ChatMessageType.IMAGE);
+        when(storageClient.findObject(missing.getStorageKey())).thenReturn(Optional.empty());
+        when(storageClient.findObject(resized.getStorageKey()))
+                .thenReturn(Optional.of(new StoredObject(1L, "image/png")));
+
+        for (ChatAttachmentUpload upload : List.of(missing, resized)) {
+            assertCode(ErrorCode.CHAT_UPLOAD_NOT_READY, () -> service.sendAttachmentMessage(
+                    SendAttachmentMessageCommand.of("owner", room.getId(), UUID.randomUUID(),
+                            ChatMessageType.IMAGE, upload.getId())));
+            assertThat(upload.getStatus()).isEqualTo(ChatAttachmentUploadStatus.PENDING);
+        }
+        verify(storageClient, never()).markAttached(any());
+        verify(messageRepository, never()).saveAndFlush(any(ChatMessage.class));
+    }
+
+    @Test
+    @DisplayName("S3 확인에 실패하면 CHAT_UPLOAD_502를 전달하고 메시지를 저장하지 않는다")
+    void propagatesStorageFailure() {
+        ChatRoom room = arrangeOwnerSend(JobStatus.MATCHED);
+        ChatAttachmentUpload upload = arrangeUpload(room, OWNER_ID, ChatMessageType.IMAGE);
+        when(storageClient.findObject(upload.getStorageKey()))
+                .thenThrow(new BusinessException(ErrorCode.CHAT_UPLOAD_UNAVAILABLE));
+
+        assertCode(ErrorCode.CHAT_UPLOAD_UNAVAILABLE, () -> service.sendAttachmentMessage(
+                SendAttachmentMessageCommand.of("owner", room.getId(), UUID.randomUUID(), ChatMessageType.IMAGE,
+                        upload.getId())));
+        assertThat(upload.getStatus()).isEqualTo(ChatAttachmentUploadStatus.PENDING);
+        verify(messageRepository, never()).saveAndFlush(any(ChatMessage.class));
+    }
+
+    @Test
+    @DisplayName("참여자가 아닌 사용자는 첨부 메시지를 보낼 수 없다")
+    void rejectsAttachmentFromNonParticipant() {
+        when(userService.getActiveUser("owner")).thenReturn(User.builder()
+                .id(OWNER_ID).role(UserRole.OWNER).build());
+        when(ownerRepository.findByUserId(OWNER_ID)).thenReturn(Optional.of(Owner.builder().id(99L).build()));
+        ChatRoom room = room(2L, LocalDateTime.now());
+        when(roomRepository.findLockedById(room.getId())).thenReturn(Optional.of(room));
+        when(jobRepository.findById(2L)).thenReturn(Optional.of(job(2L, "의뢰", JobStatus.MATCHED)));
+
+        assertCode(ErrorCode.CHAT_FORBIDDEN, () -> service.sendAttachmentMessage(SendAttachmentMessageCommand.of(
+                "owner", room.getId(), UUID.randomUUID(), ChatMessageType.IMAGE, UUID.randomUUID())));
+        verifyNoInteractions(uploadRepository, storageClient);
+        verify(messageRepository, never()).saveAndFlush(any(ChatMessage.class));
+    }
+
+    private ChatAttachmentUpload arrangeUpload(ChatRoom room, String uploaderUserId, ChatMessageType type) {
+        ChatAttachmentUpload upload = ChatAttachmentUpload.create(room.getId(), uploaderUserId, type,
+                "시안.png", "image/png", 482133L,
+                LocalDateTime.ofInstant(now.plus(Duration.ofHours(1)), ZoneId.systemDefault()));
+        when(uploadRepository.findById(upload.getId())).thenReturn(Optional.of(upload));
+        return upload;
     }
 
     private ChatRoom arrangeOwnerUpload() {

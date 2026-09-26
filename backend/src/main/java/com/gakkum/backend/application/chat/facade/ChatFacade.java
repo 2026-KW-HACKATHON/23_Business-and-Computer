@@ -21,14 +21,17 @@ import com.gakkum.backend.application.chat.dto.ChatMessageListResponse;
 import com.gakkum.backend.application.chat.dto.DeadlineType;
 import com.gakkum.backend.domain.chat.client.ChatAttachmentStorageClient;
 import com.gakkum.backend.domain.chat.client.ChatAttachmentStorageClient.PresignedUpload;
+import com.gakkum.backend.domain.chat.client.ChatAttachmentStorageClient.PresignedView;
 import com.gakkum.backend.domain.chat.service.ChatService;
 import com.gakkum.backend.domain.chat.entity.ChatAttachmentUpload;
 import com.gakkum.backend.domain.chat.entity.ChatMessage;
 import com.gakkum.backend.domain.chat.entity.ChatRoom;
 import com.gakkum.backend.domain.chat.dto.ChatCommandDto.MarkReadCommand;
 import com.gakkum.backend.domain.chat.dto.ChatCommandDto.PrepareAttachmentUploadCommand;
+import com.gakkum.backend.domain.chat.dto.ChatCommandDto.SendAttachmentMessageCommand;
 import com.gakkum.backend.domain.chat.dto.ChatCommandDto.SendTextMessageCommand;
 import com.gakkum.backend.domain.chat.dto.ChatQueryDto.PrepareAttachmentUploadResult;
+import com.gakkum.backend.domain.chat.dto.ChatQueryDto.SendAttachmentMessageResult;
 import com.gakkum.backend.domain.chat.dto.ChatQueryDto.SendMessageResult;
 import com.gakkum.backend.domain.job.entity.Job;
 import com.gakkum.backend.domain.job.entity.JobApplication;
@@ -188,6 +191,23 @@ public class ChatFacade {
                 upload.getStorageKey(), upload.getContentType(), upload.getFileSize());
         return PrepareAttachmentUploadResult.of(upload.getId(), presigned.url(), presigned.headers(),
                 toLocalDateTime(presigned.expiresAt()));
+    }
+
+    @Transactional
+    public SendAttachmentMessageResult sendAttachmentMessage(SendAttachmentMessageCommand command) {
+        User sender = userService.getActiveUser(command.getUsername());
+        ChatRoom room = chatService.findLockedRoom(command.getRoomId());
+        Job job = jobRepository.findById(room.getJobId())
+                .orElseThrow(() -> new BusinessException(ErrorCode.JOB_NOT_FOUND));
+        requireParticipant(sender, job);
+
+        SendMessageResult result = chatService.sendAttachmentMessage(room, sender.getId(),
+                command.getClientMessageId(), command.getType(), command.getUploadId());
+        ChatMessage message = result.getMessage();
+        PresignedView view = chatAttachmentStorageClient.presignView(
+                message.getAttachmentKey(), message.getType(), message.getAttachmentName());
+        return SendAttachmentMessageResult.of(message, result.isCreated(), view.url(),
+                toLocalDateTime(view.expiresAt()));
     }
 
     private List<Job> findJobs(User viewer) {

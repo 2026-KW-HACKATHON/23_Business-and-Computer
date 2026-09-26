@@ -77,6 +77,14 @@ public class ChatAttachmentUpload {
         return upload;
     }
 
+    public boolean isExpired(LocalDateTime now) {
+        return !now.isBefore(expiresAt);
+    }
+
+    public void attach() {
+        status = ChatAttachmentUploadStatus.ATTACHED;
+    }
+
     /** 점을 제외한 소문자 확장자를 반환한다. 확장자가 없으면 빈 문자열이다. */
     public static String extensionOf(String fileName) {
         int dot = fileName.lastIndexOf('.');
