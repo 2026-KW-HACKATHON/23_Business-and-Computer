@@ -78,6 +78,19 @@ class ChatRepositoryIntegrationTest {
                 .isInstanceOf(DataIntegrityViolationException.class);
     }
 
+    @Test
+    @DisplayName("PostgreSQL에서 한 방의 메시지 전체를 ID 오름차순으로 조회한다")
+    void findsMessagesInIdOrder() {
+        ChatRoom room = roomRepository.saveAndFlush(ChatRoom.create(900004L));
+        ChatRoom otherRoom = roomRepository.saveAndFlush(ChatRoom.create(900005L));
+        ChatMessage first = saveMessage(room.getId(), OWNER_ID, "첫 메시지");
+        saveMessage(otherRoom.getId(), OWNER_ID, "다른 방 메시지");
+        ChatMessage second = saveMessage(room.getId(), STUDENT_ID, "두 번째 메시지");
+
+        assertThat(messageRepository.findByRoomIdOrderByIdAsc(room.getId()))
+                .extracting(ChatMessage::getId).containsExactly(first.getId(), second.getId());
+    }
+
     private ChatMessage saveMessage(String roomId, String senderId, String content) {
         return messageRepository.saveAndFlush(ChatMessage.builder()
                 .roomId(roomId)

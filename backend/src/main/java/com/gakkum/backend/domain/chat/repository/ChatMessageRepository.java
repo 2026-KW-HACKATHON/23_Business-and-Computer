@@ -12,6 +12,8 @@ import com.gakkum.backend.domain.chat.entity.ChatMessage;
 
 public interface ChatMessageRepository extends JpaRepository<ChatMessage, Long> {
 
+    List<ChatMessage> findByRoomIdOrderByIdAsc(String roomId);
+
     Optional<ChatMessage> findByRoomIdAndSenderUserIdAndClientMessageId(
             String roomId, String senderUserId, UUID clientMessageId);
 
