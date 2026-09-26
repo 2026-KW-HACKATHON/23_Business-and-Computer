@@ -58,3 +58,6 @@ s3: # 자격 증명은 AWS SDK 기본 체인(환경 변수, 프로필, IAM 역�
 chat-attachment:
   upload-url-ttl: 10m
   view-url-ttl: 15m
+  upload-ttl: 1h # 업로드 준비 후 메시지 전송에 사용할 수 있는 기간
+  image-max-size: 10MB
+  file-max-size: 50MB

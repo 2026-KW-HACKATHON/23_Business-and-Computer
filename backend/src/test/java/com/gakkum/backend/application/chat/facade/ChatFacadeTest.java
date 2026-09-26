@@ -4,14 +4,21 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import java.time.Clock;
+import java.time.Duration;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -22,16 +29,25 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.util.unit.DataSize;
 
 import com.gakkum.backend.application.chat.dto.ChatRoomListResponse;
 import com.gakkum.backend.application.chat.dto.DeadlineType;
+import com.gakkum.backend.domain.chat.client.ChatAttachmentStorageClient;
+import com.gakkum.backend.domain.chat.client.ChatAttachmentStorageClient.PresignedUpload;
+import com.gakkum.backend.domain.chat.service.ChatAttachmentPolicy;
 import com.gakkum.backend.domain.chat.service.ChatService;
 import com.gakkum.backend.domain.chat.dto.ChatCommandDto.MarkReadCommand;
+import com.gakkum.backend.domain.chat.dto.ChatCommandDto.PrepareAttachmentUploadCommand;
 import com.gakkum.backend.domain.chat.dto.ChatCommandDto.SendTextMessageCommand;
+import com.gakkum.backend.domain.chat.dto.ChatQueryDto.PrepareAttachmentUploadResult;
 import com.gakkum.backend.domain.chat.dto.ChatQueryDto.SendMessageResult;
+import com.gakkum.backend.domain.chat.entity.ChatAttachmentUpload;
+import com.gakkum.backend.domain.chat.entity.ChatAttachmentUploadStatus;
 import com.gakkum.backend.domain.chat.entity.ChatMessage;
 import com.gakkum.backend.domain.chat.entity.ChatMessageType;
 import com.gakkum.backend.domain.chat.entity.ChatRoom;
+import com.gakkum.backend.domain.chat.repository.ChatAttachmentUploadRepository;
 import com.gakkum.backend.domain.chat.repository.ChatMessageRepository;
 import com.gakkum.backend.domain.chat.repository.ChatRoomRepository;
 import com.gakkum.backend.domain.job.entity.Job;
@@ -67,9 +83,14 @@ class ChatFacadeTest {
     private final JobSubmissionRepository submissionRepository = mock(JobSubmissionRepository.class);
     private final ChatRoomRepository roomRepository = mock(ChatRoomRepository.class);
     private final ChatMessageRepository messageRepository = mock(ChatMessageRepository.class);
-    private final ChatService chatService = new ChatService(roomRepository, messageRepository);
+    private final ChatAttachmentUploadRepository uploadRepository = mock(ChatAttachmentUploadRepository.class);
+    private final ChatAttachmentStorageClient storageClient = mock(ChatAttachmentStorageClient.class);
+    private final Instant now = Instant.parse("2026-09-27T05:00:00Z");
+    private final ChatService chatService = new ChatService(roomRepository, messageRepository, uploadRepository,
+            new ChatAttachmentPolicy(DataSize.ofMegabytes(10), DataSize.ofMegabytes(50), Duration.ofHours(1)),
+            Clock.fixed(now, ZoneOffset.UTC));
     private final ChatFacade service = new ChatFacade(userService, ownerRepository, studentRepository,
-            jobRepository, applicationRepository, submissionRepository, chatService);
+            jobRepository, applicationRepository, submissionRepository, chatService, storageClient);
 
     @BeforeEach
     void setUp() {
@@ -453,6 +474,79 @@ class ChatFacadeTest {
         assertCode(ErrorCode.CHAT_ROOM_NOT_FOUND, () -> service.sendTextMessage(
                 SendTextMessageCommand.of("owner", "missing", UUID.randomUUID(), "안녕하세요")));
         verify(messageRepository, never()).saveAndFlush(any(ChatMessage.class));
+    }
+
+    @Test
+    @DisplayName("참여자는 업로드 기록을 저장하고 서명된 업로드 URL을 받는다")
+    void participantPreparesAttachmentUpload() {
+        ChatRoom room = arrangeOwnerUpload();
+        when(uploadRepository.save(any(ChatAttachmentUpload.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        Instant urlExpiresAt = now.plus(Duration.ofMinutes(10));
+        when(storageClient.presignUpload(any(), any(), anyLong())).thenReturn(new PresignedUpload(
+                "https://upload.example", Map.of("content-type", "image/png"), urlExpiresAt));
+
+        PrepareAttachmentUploadResult result = service.prepareAttachmentUpload(PrepareAttachmentUploadCommand.of(
+                "owner", room.getId(), ChatMessageType.IMAGE, "시안.PNG", "Image/PNG", 482133L));
+
+        ArgumentCaptor<ChatAttachmentUpload> upload = ArgumentCaptor.forClass(ChatAttachmentUpload.class);
+        verify(uploadRepository).save(upload.capture());
+        ChatAttachmentUpload saved = upload.getValue();
+        assertThat(saved.getRoomId()).isEqualTo(room.getId());
+        assertThat(saved.getUploaderUserId()).isEqualTo(OWNER_ID);
+        assertThat(saved.getType()).isEqualTo(ChatMessageType.IMAGE);
+        assertThat(saved.getFileName()).isEqualTo("시안.PNG");
+        assertThat(saved.getContentType()).isEqualTo("image/png");
+        assertThat(saved.getFileSize()).isEqualTo(482133L);
+        assertThat(saved.getStatus()).isEqualTo(ChatAttachmentUploadStatus.PENDING);
+        assertThat(saved.getExpiresAt())
+                .isEqualTo(LocalDateTime.ofInstant(now.plus(Duration.ofHours(1)), ZoneId.systemDefault()));
+        verify(storageClient).presignUpload(saved.getStorageKey(), "image/png", 482133L);
+
+        assertThat(result.getUploadId()).isEqualTo(saved.getId());
+        assertThat(result.getUploadUrl()).isEqualTo("https://upload.example");
+        assertThat(result.getUploadHeaders()).containsEntry("content-type", "image/png");
+        assertThat(result.getUploadUrlExpiresAt())
+                .isEqualTo(LocalDateTime.ofInstant(urlExpiresAt, ZoneId.systemDefault()));
+    }
+
+    @Test
+    @DisplayName("허용되지 않은 형식은 업로드 기록을 만들거나 URL을 발급하지 않는다")
+    void rejectsDisallowedUploadBeforeSaving() {
+        ChatRoom room = arrangeOwnerUpload();
+
+        assertCode(ErrorCode.CHAT_UPLOAD_TYPE_NOT_ALLOWED, () -> service.prepareAttachmentUpload(
+                PrepareAttachmentUploadCommand.of("owner", room.getId(), ChatMessageType.IMAGE,
+                        "견적서.pdf", "application/pdf", 1024L)));
+        verify(uploadRepository, never()).save(any(ChatAttachmentUpload.class));
+        verifyNoInteractions(storageClient);
+    }
+
+    @Test
+    @DisplayName("참여자가 아니거나 없는 채팅방에는 업로드를 준비할 수 없다")
+    void rejectsUploadFromNonParticipantOrMissingRoom() {
+        when(userService.getActiveUser("owner")).thenReturn(User.builder()
+                .id(OWNER_ID).role(UserRole.OWNER).build());
+        when(ownerRepository.findByUserId(OWNER_ID)).thenReturn(Optional.of(Owner.builder().id(99L).build()));
+        ChatRoom room = room(2L, LocalDateTime.now());
+        when(roomRepository.findById(room.getId())).thenReturn(Optional.of(room));
+        when(roomRepository.findById("missing")).thenReturn(Optional.empty());
+        when(jobRepository.findById(2L)).thenReturn(Optional.of(job(2L, "의뢰", JobStatus.MATCHED)));
+
+        assertCode(ErrorCode.CHAT_FORBIDDEN, () -> service.prepareAttachmentUpload(PrepareAttachmentUploadCommand.of(
+                "owner", room.getId(), ChatMessageType.IMAGE, "시안.png", "image/png", 1024L)));
+        assertCode(ErrorCode.CHAT_ROOM_NOT_FOUND, () -> service.prepareAttachmentUpload(
+                PrepareAttachmentUploadCommand.of("owner", "missing", ChatMessageType.IMAGE,
+                        "시안.png", "image/png", 1024L)));
+        verify(uploadRepository, never()).save(any(ChatAttachmentUpload.class));
+        verifyNoInteractions(storageClient);
+    }
+
+    private ChatRoom arrangeOwnerUpload() {
+        owner();
+        ChatRoom room = room(2L, LocalDateTime.now());
+        when(roomRepository.findById(room.getId())).thenReturn(Optional.of(room));
+        when(jobRepository.findById(2L)).thenReturn(Optional.of(job(2L, "의뢰", JobStatus.MATCHED)));
+        return room;
     }
 
     private ChatRoom arrangeOwnerSend(JobStatus status) {

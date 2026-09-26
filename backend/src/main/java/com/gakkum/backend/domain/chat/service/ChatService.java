@@ -1,5 +1,8 @@
 package com.gakkum.backend.domain.chat.service;
 
+import java.time.Clock;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -9,9 +12,11 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 
 import com.gakkum.backend.domain.chat.dto.ChatQueryDto.SendMessageResult;
+import com.gakkum.backend.domain.chat.entity.ChatAttachmentUpload;
 import com.gakkum.backend.domain.chat.entity.ChatMessage;
 import com.gakkum.backend.domain.chat.entity.ChatMessageType;
 import com.gakkum.backend.domain.chat.entity.ChatRoom;
+import com.gakkum.backend.domain.chat.repository.ChatAttachmentUploadRepository;
 import com.gakkum.backend.domain.chat.repository.ChatMessageRepository;
 import com.gakkum.backend.domain.chat.repository.ChatRoomRepository;
 import com.gakkum.backend.domain.user.entity.UserRole;
@@ -26,6 +31,9 @@ public class ChatService {
 
     private final ChatRoomRepository chatRoomRepository;
     private final ChatMessageRepository chatMessageRepository;
+    private final ChatAttachmentUploadRepository chatAttachmentUploadRepository;
+    private final ChatAttachmentPolicy chatAttachmentPolicy;
+    private final Clock clock;
 
     public List<ChatRoom> findRoomsByJobIds(List<Long> jobIds) {
         return chatRoomRepository.findByJobIdIn(jobIds);
@@ -76,5 +84,15 @@ public class ChatService {
         ChatMessage message = chatMessageRepository.saveAndFlush(ChatMessage.createText(
                 room.getId(), senderUserId, clientMessageId, content));
         return SendMessageResult.of(message, true);
+    }
+
+    public ChatAttachmentUpload createAttachmentUpload(ChatRoom room, String uploaderUserId, ChatMessageType type,
+            String fileName, String contentType, long fileSize) {
+        String validContentType = chatAttachmentPolicy.validate(type, fileName, contentType, fileSize);
+        // createdAt과 같은 JVM 기본 시간대로 저장해 만료 비교 기준을 맞춘다
+        LocalDateTime expiresAt = LocalDateTime.ofInstant(
+                clock.instant().plus(chatAttachmentPolicy.getUploadTtl()), ZoneId.systemDefault());
+        return chatAttachmentUploadRepository.save(ChatAttachmentUpload.create(
+                room.getId(), uploaderUserId, type, fileName, validContentType, fileSize, expiresAt));
     }
 }

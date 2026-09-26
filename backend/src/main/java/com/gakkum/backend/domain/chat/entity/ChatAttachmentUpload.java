@@ -67,7 +67,8 @@ public class ChatAttachmentUpload {
         upload.roomId = roomId;
         upload.uploaderUserId = uploaderUserId;
         upload.type = type;
-        upload.storageKey = "chat/" + roomId + "/" + upload.id + extensionOf(fileName);
+        String extension = extensionOf(fileName);
+        upload.storageKey = "chat/" + roomId + "/" + upload.id + (extension.isEmpty() ? "" : "." + extension);
         upload.fileName = fileName;
         upload.contentType = contentType;
         upload.fileSize = fileSize;
@@ -76,8 +77,9 @@ public class ChatAttachmentUpload {
         return upload;
     }
 
-    private static String extensionOf(String fileName) {
+    /** 점을 제외한 소문자 확장자를 반환한다. 확장자가 없으면 빈 문자열이다. */
+    public static String extensionOf(String fileName) {
         int dot = fileName.lastIndexOf('.');
-        return dot < 0 ? "" : fileName.substring(dot).toLowerCase(Locale.ROOT);
+        return dot < 0 ? "" : fileName.substring(dot + 1).toLowerCase(Locale.ROOT);
     }
 }

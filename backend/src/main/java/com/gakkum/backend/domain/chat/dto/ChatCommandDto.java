@@ -2,6 +2,8 @@ package com.gakkum.backend.domain.chat.dto;
 
 import java.util.UUID;
 
+import com.gakkum.backend.domain.chat.entity.ChatMessageType;
+
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -44,6 +46,30 @@ public final class ChatCommandDto {
                     .roomId(roomId)
                     .clientMessageId(clientMessageId)
                     .content(content)
+                    .build();
+        }
+    }
+
+    @Getter
+    @Builder(access = AccessLevel.PRIVATE)
+    @AllArgsConstructor(access = AccessLevel.PRIVATE)
+    public static class PrepareAttachmentUploadCommand {
+        private final String username;
+        private final String roomId;
+        private final ChatMessageType type;
+        private final String fileName;
+        private final String contentType;
+        private final long size;
+
+        public static PrepareAttachmentUploadCommand of(String username, String roomId, ChatMessageType type,
+                String fileName, String contentType, long size) {
+            return PrepareAttachmentUploadCommand.builder()
+                    .username(username)
+                    .roomId(roomId)
+                    .type(type)
+                    .fileName(fileName)
+                    .contentType(contentType)
+                    .size(size)
                     .build();
         }
     }

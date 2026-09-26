@@ -1,5 +1,8 @@
 package com.gakkum.backend.application.chat.facade;
 
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -16,11 +19,16 @@ import com.gakkum.backend.application.chat.dto.ChatRoomListResponse.LastMessage;
 import com.gakkum.backend.application.chat.dto.ChatRoomListResponse.Room;
 import com.gakkum.backend.application.chat.dto.ChatMessageListResponse;
 import com.gakkum.backend.application.chat.dto.DeadlineType;
+import com.gakkum.backend.domain.chat.client.ChatAttachmentStorageClient;
+import com.gakkum.backend.domain.chat.client.ChatAttachmentStorageClient.PresignedUpload;
 import com.gakkum.backend.domain.chat.service.ChatService;
+import com.gakkum.backend.domain.chat.entity.ChatAttachmentUpload;
 import com.gakkum.backend.domain.chat.entity.ChatMessage;
 import com.gakkum.backend.domain.chat.entity.ChatRoom;
 import com.gakkum.backend.domain.chat.dto.ChatCommandDto.MarkReadCommand;
+import com.gakkum.backend.domain.chat.dto.ChatCommandDto.PrepareAttachmentUploadCommand;
 import com.gakkum.backend.domain.chat.dto.ChatCommandDto.SendTextMessageCommand;
+import com.gakkum.backend.domain.chat.dto.ChatQueryDto.PrepareAttachmentUploadResult;
 import com.gakkum.backend.domain.chat.dto.ChatQueryDto.SendMessageResult;
 import com.gakkum.backend.domain.job.entity.Job;
 import com.gakkum.backend.domain.job.entity.JobApplication;
@@ -55,6 +63,7 @@ public class ChatFacade {
     private final JobApplicationRepository jobApplicationRepository;
     private final JobSubmissionRepository jobSubmissionRepository;
     private final ChatService chatService;
+    private final ChatAttachmentStorageClient chatAttachmentStorageClient;
 
     @Transactional(readOnly = true)
     public ChatRoomListResponse getMyChatRooms(String username) {
@@ -163,6 +172,24 @@ public class ChatFacade {
         return chatService.sendTextMessage(room, sender.getId(), command.getClientMessageId(), command.getContent());
     }
 
+    @Transactional
+    public PrepareAttachmentUploadResult prepareAttachmentUpload(PrepareAttachmentUploadCommand command) {
+        User uploader = userService.getActiveUser(command.getUsername());
+        ChatRoom room = chatService.findRoom(command.getRoomId());
+        Job job = jobRepository.findById(room.getJobId())
+                .orElseThrow(() -> new BusinessException(ErrorCode.JOB_NOT_FOUND));
+
+        // 권한 확인
+        requireParticipant(uploader, job);
+
+        ChatAttachmentUpload upload = chatService.createAttachmentUpload(room, uploader.getId(), command.getType(),
+                command.getFileName(), command.getContentType(), command.getSize());
+        PresignedUpload presigned = chatAttachmentStorageClient.presignUpload(
+                upload.getStorageKey(), upload.getContentType(), upload.getFileSize());
+        return PrepareAttachmentUploadResult.of(upload.getId(), presigned.url(), presigned.headers(),
+                toLocalDateTime(presigned.expiresAt()));
+    }
+
     private List<Job> findJobs(User viewer) {
         if (viewer.getRole() == UserRole.OWNER) {
             Owner owner = ownerRepository.findByUserId(viewer.getId())
@@ -205,6 +232,7 @@ public class ChatFacade {
         }));
     }
 
+    /** 현재 사용자가 채팅방과 연결된 작업(Job)의 참여자인지 확인합니다. */
     private void requireParticipant(User viewer, Job job) {
         if (viewer.getRole() == UserRole.OWNER) {
             Owner owner = ownerRepository.findByUserId(viewer.getId())
@@ -247,6 +275,11 @@ public class ChatFacade {
             case FILE -> message.getAttachmentName();
         };
         return LastMessage.of(message.getType(), preview, message.getCreatedAt());
+    }
+
+    // 만료 시각은 createdAt과 같은 JVM 기본 시간대로 내린다
+    private LocalDateTime toLocalDateTime(Instant instant) {
+        return LocalDateTime.ofInstant(instant, ZoneId.systemDefault());
     }
 
     private static class Counterpart {
