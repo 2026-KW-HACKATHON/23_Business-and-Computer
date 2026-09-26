@@ -44,6 +44,10 @@ dependencies {
 
     // 메일 발송 의존성
     implementation 'org.springframework.boot:spring-boot-starter-mail'
+
+    // 채팅 첨부 파일 S3 저장 의존성
+    implementation platform('software.amazon.awssdk:bom:2.55.6')
+    implementation 'software.amazon.awssdk:s3'
 }
 
 tasks.named('test') {

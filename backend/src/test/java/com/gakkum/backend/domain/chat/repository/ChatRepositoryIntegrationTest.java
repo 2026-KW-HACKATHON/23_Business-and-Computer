@@ -1,0 +1,124 @@
+package com.gakkum.backend.domain.chat.repository;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.UUID;
+
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.gakkum.backend.domain.chat.entity.ChatAttachmentUpload;
+import com.gakkum.backend.domain.chat.entity.ChatAttachmentUploadStatus;
+import com.gakkum.backend.domain.chat.entity.ChatMessage;
+import com.gakkum.backend.domain.chat.entity.ChatMessageType;
+import com.gakkum.backend.domain.chat.entity.ChatRoom;
+import com.gakkum.backend.domain.user.entity.UserRole;
+
+@SpringBootTest
+@Transactional
+class ChatRepositoryIntegrationTest {
+
+    private static final String OWNER_ID = "01K58M6PJV8VAJMXHBHJ2PNB5C";
+    private static final String STUDENT_ID = "01K58M6PJV8VAJMXHBHJ2PNB5D";
+
+    @Autowired
+    private ChatRoomRepository roomRepository;
+
+    @Autowired
+    private ChatMessageRepository messageRepository;
+
+    @Autowired
+    private ChatAttachmentUploadRepository uploadRepository;
+
+    @Test
+    @DisplayName("PostgreSQL에서 최신 메시지와 상대방의 안 읽은 메시지를 방별로 집계한다")
+    void queriesLatestAndUnreadMessages() {
+        ChatRoom room = roomRepository.saveAndFlush(ChatRoom.create(900001L));
+        ChatMessage first = saveMessage(room.getId(), STUDENT_ID, "첫 메시지");
+        saveMessage(room.getId(), OWNER_ID, "내 답장");
+        ChatMessage latest = saveMessage(room.getId(), STUDENT_ID, "최근 메시지");
+
+        assertThat(messageRepository.findLatestByRoomIds(List.of(room.getId())))
+                .extracting(ChatMessage::getId).containsExactly(latest.getId());
+        assertThat(messageRepository.countUnreadByRoomIds(List.of(room.getId()), OWNER_ID, true))
+                .singleElement().satisfies(count -> {
+                    assertThat(count.getRoomId()).isEqualTo(room.getId());
+                    assertThat(count.getUnreadCount()).isEqualTo(2L);
+                });
+        assertThat(messageRepository.countUnreadByRoomIds(List.of(room.getId()), STUDENT_ID, false))
+                .singleElement().extracting(ChatMessageRepository.UnreadCount::getUnreadCount).isEqualTo(1L);
+
+        room.markRead(UserRole.OWNER, first.getId());
+        roomRepository.flush();
+
+        assertThat(messageRepository.countUnreadByRoomIds(List.of(room.getId()), OWNER_ID, true))
+                .singleElement().extracting(ChatMessageRepository.UnreadCount::getUnreadCount).isEqualTo(1L);
+    }
+
+    @Test
+    @DisplayName("PostgreSQL은 같은 의뢰의 두 번째 채팅방을 거부한다")
+    void rejectsSecondRoomForSameJob() {
+        roomRepository.saveAndFlush(ChatRoom.create(900002L));
+
+        assertThatThrownBy(() -> roomRepository.saveAndFlush(ChatRoom.create(900002L)))
+                .isInstanceOf(DataIntegrityViolationException.class);
+    }
+
+    @Test
+    @DisplayName("PostgreSQL은 같은 방과 발신자의 메시지 UUID 중복을 거부한다")
+    void rejectsDuplicateClientMessageId() {
+        ChatRoom room = roomRepository.saveAndFlush(ChatRoom.create(900003L));
+        UUID clientMessageId = UUID.randomUUID();
+        messageRepository.saveAndFlush(ChatMessage.createText(
+                room.getId(), OWNER_ID, clientMessageId, "첫 메시지"));
+
+        assertThatThrownBy(() -> messageRepository.saveAndFlush(ChatMessage.createText(
+                room.getId(), OWNER_ID, clientMessageId, "다른 메시지")))
+                .isInstanceOf(DataIntegrityViolationException.class);
+    }
+
+    @Test
+    @DisplayName("PostgreSQL에서 한 방의 메시지 전체를 ID 오름차순으로 조회한다")
+    void findsMessagesInIdOrder() {
+        ChatRoom room = roomRepository.saveAndFlush(ChatRoom.create(900004L));
+        ChatRoom otherRoom = roomRepository.saveAndFlush(ChatRoom.create(900005L));
+        ChatMessage first = saveMessage(room.getId(), OWNER_ID, "첫 메시지");
+        saveMessage(otherRoom.getId(), OWNER_ID, "다른 방 메시지");
+        ChatMessage second = saveMessage(room.getId(), STUDENT_ID, "두 번째 메시지");
+
+        assertThat(messageRepository.findByRoomIdOrderByIdAsc(room.getId()))
+                .extracting(ChatMessage::getId).containsExactly(first.getId(), second.getId());
+    }
+
+    @Test
+    @DisplayName("PostgreSQL은 같은 업로드를 두 메시지에 연결하는 것을 거부한다")
+    void rejectsSameUploadForTwoMessages() {
+        ChatRoom room = roomRepository.saveAndFlush(ChatRoom.create(900006L));
+        ChatAttachmentUpload upload = uploadRepository.saveAndFlush(ChatAttachmentUpload.create(
+                room.getId(), OWNER_ID, ChatMessageType.IMAGE, "시안.png", "image/png", 482133L,
+                LocalDateTime.now().plusHours(1)));
+        messageRepository.saveAndFlush(ChatMessage.createAttachment(OWNER_ID, UUID.randomUUID(), upload));
+
+        assertThat(uploadRepository.findById(upload.getId())).get()
+                .extracting(ChatAttachmentUpload::getStatus).isEqualTo(ChatAttachmentUploadStatus.PENDING);
+        assertThatThrownBy(() -> messageRepository.saveAndFlush(
+                ChatMessage.createAttachment(OWNER_ID, UUID.randomUUID(), upload)))
+                .isInstanceOf(DataIntegrityViolationException.class);
+    }
+
+    private ChatMessage saveMessage(String roomId, String senderId, String content) {
+        return messageRepository.saveAndFlush(ChatMessage.builder()
+                .roomId(roomId)
+                .senderUserId(senderId)
+                .type(ChatMessageType.TEXT)
+                .content(content)
+                .build());
+    }
+}

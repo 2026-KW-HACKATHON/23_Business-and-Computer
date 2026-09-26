@@ -4,6 +4,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.gakkum.backend.domain.job.entity.Job;
+import com.gakkum.backend.domain.chat.service.ChatRoomService;
 import com.gakkum.backend.domain.job.entity.JobApplication;
 import com.gakkum.backend.domain.job.entity.JobApplicationStatus;
 import com.gakkum.backend.domain.job.entity.JobStatus;
@@ -33,6 +34,7 @@ public class PaymentApprovalService {
     private final JobApplicationRepository jobApplicationRepository;
     private final PaymentRepository paymentRepository;
     private final KakaoPayClient kakaoPayClient;
+    private final ChatRoomService chatRoomService;
 
     @Transactional
     public ApprovedPaymentData approve(String username, String orderId, String pgToken) {
@@ -53,6 +55,7 @@ public class PaymentApprovalService {
         }
         if (payment.getStatus() == PaymentStatus.PAID) {
             match(job, payment);
+            chatRoomService.createIfAbsent(jobId);
             return result(payment);
         }
         if (payment.getStatus() != PaymentStatus.PENDING || payment.getKakaoTid() == null) {
@@ -112,6 +115,7 @@ public class PaymentApprovalService {
         job.match(application.getStudentProfileId());
         application.accept();
         payment.approve(result.approvedAt());
+        chatRoomService.createIfAbsent(job.getId());
         return result(payment);
     }
 

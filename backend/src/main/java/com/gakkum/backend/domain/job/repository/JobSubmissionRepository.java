@@ -9,6 +9,8 @@ import com.gakkum.backend.domain.job.entity.JobSubmission;
 import com.gakkum.backend.domain.job.entity.JobSubmissionReviewStatus;
 
 public interface JobSubmissionRepository extends JpaRepository<JobSubmission, Long> {
+    List<JobSubmission> findByJobIdIn(Collection<Long> jobIds);
+
     List<JobSubmission> findByJobIdInAndReviewStatus(
             Collection<Long> jobIds, JobSubmissionReviewStatus reviewStatus);
 }

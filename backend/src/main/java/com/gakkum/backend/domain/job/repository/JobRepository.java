@@ -20,4 +20,7 @@ public interface JobRepository extends JpaRepository<Job, Long> {
 
     List<Job> findByOwnerProfileIdAndStatusOrderByCreatedAtDescIdDesc(Long ownerProfileId, JobStatus status);
     List<Job> findByOwnerProfileIdAndStatusOrderByCompletedAtDescIdDesc(Long ownerProfileId, JobStatus status);
+
+    List<Job> findByOwnerProfileId(Long ownerProfileId);
+    List<Job> findBySelectedStudentProfileId(Long studentProfileId);
 }
