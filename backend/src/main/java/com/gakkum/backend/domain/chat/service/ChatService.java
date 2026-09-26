@@ -67,10 +67,14 @@ public class ChatService {
         return chatMessageRepository.findByRoomIdOrderByIdAsc(roomId);
     }
 
-    public void markRead(ChatRoom room, UserRole role, Long lastReadMessageId) {
-        ChatMessage message = chatMessageRepository.findById(lastReadMessageId)
+    public ChatMessage findMessage(ChatRoom room, Long messageId) {
+        return chatMessageRepository.findById(messageId)
                 .filter(found -> room.getId().equals(found.getRoomId()))
                 .orElseThrow(() -> new BusinessException(ErrorCode.CHAT_MESSAGE_NOT_FOUND));
+    }
+
+    public void markRead(ChatRoom room, UserRole role, Long lastReadMessageId) {
+        ChatMessage message = findMessage(room, lastReadMessageId);
         room.markRead(role, message.getId());
     }
 

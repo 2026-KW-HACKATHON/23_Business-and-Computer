@@ -56,6 +56,14 @@ public class ChatController {
         return ResponseEntity.ok(ApiResponse.success(chatFacade.getMessages(authentication.getName(), roomId)));
     }
 
+    /** 채팅 메시지 단건 조회 API. 만료된 첨부 열람 URL을 다시 받을 때 사용한다. */
+    @GetMapping("/chat-rooms/{roomId}/messages/{messageId}")
+    public ResponseEntity<ApiResponse<ChatMessageListResponse.Message>> getMessage(
+            Authentication authentication, @PathVariable String roomId, @PathVariable Long messageId) {
+        return ResponseEntity.ok(ApiResponse.success(
+                chatFacade.getMessage(authentication.getName(), roomId, messageId)));
+    }
+
     /** 채팅방 메시지 읽음 처리 API */
     @PutMapping("/chat-rooms/{roomId}/read")
     public ResponseEntity<ApiResponse<Void>> markRead(

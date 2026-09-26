@@ -53,4 +53,21 @@ public final class ChatQueryDto {
             return new SendAttachmentMessageResult(message, created, contentUrl, contentExpiresAt);
         }
     }
+
+    /** 응답에 내려갈 메시지 본문. IMAGE·FILE의 content는 응답마다 새로 발급한 열람 URL이다. */
+    @Getter
+    @AllArgsConstructor(access = AccessLevel.PRIVATE)
+    public static class MessageResult {
+        private final ChatMessage message;
+        private final String content;
+        private final LocalDateTime contentExpiresAt;
+
+        public static MessageResult text(ChatMessage message) {
+            return new MessageResult(message, message.getContent(), null);
+        }
+
+        public static MessageResult attachment(ChatMessage message, String contentUrl, LocalDateTime contentExpiresAt) {
+            return new MessageResult(message, contentUrl, contentExpiresAt);
+        }
+    }
 }

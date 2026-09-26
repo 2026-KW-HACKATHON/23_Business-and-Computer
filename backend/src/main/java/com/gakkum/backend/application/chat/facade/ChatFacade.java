@@ -25,11 +25,13 @@ import com.gakkum.backend.domain.chat.client.ChatAttachmentStorageClient.Presign
 import com.gakkum.backend.domain.chat.service.ChatService;
 import com.gakkum.backend.domain.chat.entity.ChatAttachmentUpload;
 import com.gakkum.backend.domain.chat.entity.ChatMessage;
+import com.gakkum.backend.domain.chat.entity.ChatMessageType;
 import com.gakkum.backend.domain.chat.entity.ChatRoom;
 import com.gakkum.backend.domain.chat.dto.ChatCommandDto.MarkReadCommand;
 import com.gakkum.backend.domain.chat.dto.ChatCommandDto.PrepareAttachmentUploadCommand;
 import com.gakkum.backend.domain.chat.dto.ChatCommandDto.SendAttachmentMessageCommand;
 import com.gakkum.backend.domain.chat.dto.ChatCommandDto.SendTextMessageCommand;
+import com.gakkum.backend.domain.chat.dto.ChatQueryDto.MessageResult;
 import com.gakkum.backend.domain.chat.dto.ChatQueryDto.PrepareAttachmentUploadResult;
 import com.gakkum.backend.domain.chat.dto.ChatQueryDto.SendAttachmentMessageResult;
 import com.gakkum.backend.domain.chat.dto.ChatQueryDto.SendMessageResult;
@@ -105,7 +107,19 @@ public class ChatFacade {
         Job job = jobRepository.findById(room.getJobId())
                 .orElseThrow(() -> new BusinessException(ErrorCode.JOB_NOT_FOUND));
         requireParticipant(viewer, job);
-        return ChatMessageListResponse.from(chatService.findMessages(roomId));
+        return ChatMessageListResponse.from(chatService.findMessages(roomId).stream()
+                .map(this::toMessageResult)
+                .toList());
+    }
+
+    @Transactional(readOnly = true)
+    public ChatMessageListResponse.Message getMessage(String username, String roomId, Long messageId) {
+        User viewer = userService.getActiveUser(username);
+        ChatRoom room = chatService.findRoom(roomId);
+        Job job = jobRepository.findById(room.getJobId())
+                .orElseThrow(() -> new BusinessException(ErrorCode.JOB_NOT_FOUND));
+        requireParticipant(viewer, job);
+        return ChatMessageListResponse.Message.from(toMessageResult(chatService.findMessage(room, messageId)));
     }
 
     private List<Room> toRooms(User viewer, Map<Long, Job> jobsById, List<ChatRoom> rooms) {
@@ -203,11 +217,9 @@ public class ChatFacade {
 
         SendMessageResult result = chatService.sendAttachmentMessage(room, sender.getId(),
                 command.getClientMessageId(), command.getType(), command.getUploadId());
-        ChatMessage message = result.getMessage();
-        PresignedView view = chatAttachmentStorageClient.presignView(
-                message.getAttachmentKey(), message.getType(), message.getAttachmentName());
-        return SendAttachmentMessageResult.of(message, result.isCreated(), view.url(),
-                toLocalDateTime(view.expiresAt()));
+        MessageResult message = toMessageResult(result.getMessage());
+        return SendAttachmentMessageResult.of(result.getMessage(), result.isCreated(), message.getContent(),
+                message.getContentExpiresAt());
     }
 
     private List<Job> findJobs(User viewer) {
@@ -295,6 +307,16 @@ public class ChatFacade {
             case FILE -> message.getAttachmentName();
         };
         return LastMessage.of(message.getType(), preview, message.getCreatedAt());
+    }
+
+    private MessageResult toMessageResult(ChatMessage message) {
+        // 저장소 키가 없는 첨부 행 하나 때문에 대화 내역 전체가 실패하지 않도록 URL 없이 내린다
+        if (message.getType() == ChatMessageType.TEXT || message.getAttachmentKey() == null) {
+            return MessageResult.text(message);
+        }
+        PresignedView view = chatAttachmentStorageClient.presignView(
+                message.getAttachmentKey(), message.getType(), message.getAttachmentName());
+        return MessageResult.attachment(message, view.url(), toLocalDateTime(view.expiresAt()));
     }
 
     // 만료 시각은 createdAt과 같은 JVM 기본 시간대로 내린다

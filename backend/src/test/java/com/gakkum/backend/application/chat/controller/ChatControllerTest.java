@@ -39,6 +39,7 @@ import com.gakkum.backend.domain.chat.entity.ChatMessageType;
 import com.gakkum.backend.domain.chat.dto.ChatCommandDto.MarkReadCommand;
 import com.gakkum.backend.domain.chat.dto.ChatCommandDto.PrepareAttachmentUploadCommand;
 import com.gakkum.backend.domain.chat.dto.ChatCommandDto.SendAttachmentMessageCommand;
+import com.gakkum.backend.domain.chat.dto.ChatQueryDto.MessageResult;
 import com.gakkum.backend.domain.chat.dto.ChatQueryDto.SendAttachmentMessageResult;
 import com.gakkum.backend.domain.chat.entity.ChatAttachmentUpload;
 import com.gakkum.backend.domain.chat.dto.ChatQueryDto.PrepareAttachmentUploadResult;
@@ -109,7 +110,7 @@ class ChatControllerTest {
     @DisplayName("메시지 내역은 메시지 배열을 반환한다")
     void returnsMessages() throws Exception {
         when(service.getMessages("KAKAO_123", "room-1"))
-                .thenReturn(ChatMessageListResponse.from(List.of(savedMessage(UUID.randomUUID()))));
+                .thenReturn(ChatMessageListResponse.from(List.of(MessageResult.text(savedMessage(UUID.randomUUID())))));
 
         mockMvc.perform(get("/chat-rooms/room-1/messages").principal(authentication))
                 .andExpect(status().isOk())
@@ -122,7 +123,7 @@ class ChatControllerTest {
     @DisplayName("메시지 내역의 TEXT 메시지는 열람 URL 만료 시각을 null로 반환한다")
     void returnsNullContentExpiresAtForTextMessage() throws Exception {
         when(service.getMessages("KAKAO_123", "room-1"))
-                .thenReturn(ChatMessageListResponse.from(List.of(savedMessage(UUID.randomUUID()))));
+                .thenReturn(ChatMessageListResponse.from(List.of(MessageResult.text(savedMessage(UUID.randomUUID())))));
 
         mockMvc.perform(get("/chat-rooms/room-1/messages").principal(authentication))
                 .andExpect(status().isOk())
@@ -457,6 +458,56 @@ class ChatControllerTest {
                     .andExpect(status().is(error.getValue()))
                     .andExpect(jsonPath("$.error.code").value(error.getKey().getCode()));
         }
+    }
+
+    @Test
+    @DisplayName("메시지 내역의 IMAGE·FILE 메시지는 열람 URL과 만료 시각을 반환한다")
+    void returnsAttachmentUrlInMessages() throws Exception {
+        ChatMessage attachment = savedAttachment(UUID.randomUUID());
+        when(service.getMessages("KAKAO_123", "room-1")).thenReturn(ChatMessageListResponse.from(List.of(
+                MessageResult.text(savedMessage(UUID.randomUUID())),
+                MessageResult.attachment(attachment, "https://view.example", LocalDateTime.of(2026, 9, 26, 12, 45)))));
+
+        mockMvc.perform(get("/chat-rooms/room-1/messages").principal(authentication))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.messages[0].content").value("안녕하세요"))
+                .andExpect(jsonPath("$.data.messages[0].contentExpiresAt").value(nullValue()))
+                .andExpect(jsonPath("$.data.messages[1].type").value("FILE"))
+                .andExpect(jsonPath("$.data.messages[1].content").value("https://view.example"))
+                .andExpect(jsonPath("$.data.messages[1].attachmentName").value("견적서.pdf"))
+                .andExpect(jsonPath("$.data.messages[1].contentExpiresAt").value("2026-09-26T12:45:00"));
+    }
+
+    @Test
+    @DisplayName("메시지 단건 조회는 목록 항목과 같은 형식으로 새 열람 URL을 반환한다")
+    void returnsSingleMessage() throws Exception {
+        ChatMessage attachment = savedAttachment(UUID.randomUUID());
+        when(service.getMessage("KAKAO_123", "room-1", 18L)).thenReturn(ChatMessageListResponse.Message.from(
+                MessageResult.attachment(attachment, "https://view.example/new", LocalDateTime.of(2026, 9, 26, 13, 0))));
+
+        mockMvc.perform(get("/chat-rooms/room-1/messages/18").principal(authentication))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.id").value(18))
+                .andExpect(jsonPath("$.data.roomId").value("room-1"))
+                .andExpect(jsonPath("$.data.type").value("FILE"))
+                .andExpect(jsonPath("$.data.content").value("https://view.example/new"))
+                .andExpect(jsonPath("$.data.attachmentName").value("견적서.pdf"))
+                .andExpect(jsonPath("$.data.contentExpiresAt").value("2026-09-26T13:00:00"))
+                .andExpect(jsonPath("$.data.createdAt").value("2026-09-26T12:30:00"));
+    }
+
+    @Test
+    @DisplayName("메시지 단건 조회는 숫자가 아닌 ID를 400으로, 없는 메시지를 404로 반환한다")
+    void rejectsInvalidOrMissingSingleMessage() throws Exception {
+        when(service.getMessage("KAKAO_123", "room-1", 99L))
+                .thenThrow(new BusinessException(ErrorCode.CHAT_MESSAGE_NOT_FOUND));
+
+        mockMvc.perform(get("/chat-rooms/room-1/messages/abc").principal(authentication))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error.code").value("COMMON_400"));
+        mockMvc.perform(get("/chat-rooms/room-1/messages/99").principal(authentication))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.error.code").value("CHAT_MESSAGE_404"));
     }
 
     private ChatMessage savedAttachment(UUID clientMessageId) {

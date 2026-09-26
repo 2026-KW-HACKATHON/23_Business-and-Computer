@@ -264,14 +264,84 @@ class ChatFacadeTest {
         ChatRoom room = room(2L, LocalDateTime.now());
         when(roomRepository.findById(room.getId())).thenReturn(Optional.of(room));
         when(jobRepository.findById(2L)).thenReturn(Optional.of(job(2L, "의뢰", JobStatus.MATCHED)));
+        ChatMessage file = ChatMessage.builder().id(2L).roomId(room.getId()).type(ChatMessageType.FILE)
+                .attachmentKey("chat/room/upload.pdf").attachmentName("견적서.pdf").build();
         when(messageRepository.findByRoomIdOrderByIdAsc(room.getId())).thenReturn(List.of(
-                message(1L, room.getId(), ChatMessageType.TEXT, "첫 메시지", null, LocalDateTime.now()),
-                message(2L, room.getId(), ChatMessageType.FILE, null, "견적서.pdf", LocalDateTime.now())));
+                message(1L, room.getId(), ChatMessageType.TEXT, "첫 메시지", null, LocalDateTime.now()), file));
+        Instant viewExpiresAt = now.plus(Duration.ofMinutes(15));
+        when(storageClient.presignView("chat/room/upload.pdf", ChatMessageType.FILE, "견적서.pdf"))
+                .thenReturn(new PresignedView("https://view.example", viewExpiresAt));
 
         var result = service.getMessages("student", room.getId());
 
         assertThat(result.getMessages()).extracting(message -> message.getId()).containsExactly(1L, 2L);
+        assertThat(result.getMessages().get(0).getContent()).isEqualTo("첫 메시지");
+        assertThat(result.getMessages().get(0).getContentExpiresAt()).isNull();
         assertThat(result.getMessages().get(1).getAttachmentName()).isEqualTo("견적서.pdf");
+        assertThat(result.getMessages().get(1).getContent()).isEqualTo("https://view.example");
+        assertThat(result.getMessages().get(1).getContentExpiresAt())
+                .isEqualTo(LocalDateTime.ofInstant(viewExpiresAt, ZoneId.systemDefault()));
+    }
+
+    @Test
+    @DisplayName("저장소 키가 없는 첨부 행은 URL 없이 내려 대화 내역 조회를 실패시키지 않는다")
+    void keylessAttachmentDoesNotBreakMessages() {
+        studentViewer();
+        ChatRoom room = room(2L, LocalDateTime.now());
+        when(roomRepository.findById(room.getId())).thenReturn(Optional.of(room));
+        when(jobRepository.findById(2L)).thenReturn(Optional.of(job(2L, "의뢰", JobStatus.MATCHED)));
+        when(messageRepository.findByRoomIdOrderByIdAsc(room.getId())).thenReturn(List.of(
+                message(3L, room.getId(), ChatMessageType.IMAGE, null, null, LocalDateTime.now())));
+
+        var result = service.getMessages("student", room.getId());
+
+        assertThat(result.getMessages()).singleElement().satisfies(message -> {
+            assertThat(message.getContent()).isNull();
+            assertThat(message.getContentExpiresAt()).isNull();
+        });
+        verifyNoInteractions(storageClient);
+    }
+
+    @Test
+    @DisplayName("참여자는 메시지 단건을 새 열람 URL과 함께 조회한다")
+    void participantGetsSingleMessage() {
+        studentViewer();
+        ChatRoom room = room(2L, LocalDateTime.now());
+        when(roomRepository.findById(room.getId())).thenReturn(Optional.of(room));
+        when(jobRepository.findById(2L)).thenReturn(Optional.of(job(2L, "의뢰", JobStatus.MATCHED)));
+        ChatMessage image = ChatMessage.builder().id(5L).roomId(room.getId()).type(ChatMessageType.IMAGE)
+                .attachmentKey("chat/room/upload.png").attachmentName("시안.png").build();
+        when(messageRepository.findById(5L)).thenReturn(Optional.of(image));
+        Instant viewExpiresAt = now.plus(Duration.ofMinutes(15));
+        when(storageClient.presignView("chat/room/upload.png", ChatMessageType.IMAGE, "시안.png"))
+                .thenReturn(new PresignedView("https://view.example/new", viewExpiresAt));
+
+        var result = service.getMessage("student", room.getId(), 5L);
+
+        assertThat(result.getId()).isEqualTo(5L);
+        assertThat(result.getContent()).isEqualTo("https://view.example/new");
+        assertThat(result.getContentExpiresAt())
+                .isEqualTo(LocalDateTime.ofInstant(viewExpiresAt, ZoneId.systemDefault()));
+    }
+
+    @Test
+    @DisplayName("다른 방의 메시지, 없는 방, 비참여자의 단건 조회는 거부한다")
+    void rejectsInvalidSingleMessageLookup() {
+        studentViewer();
+        ChatRoom room = room(2L, LocalDateTime.now());
+        when(roomRepository.findById(room.getId())).thenReturn(Optional.of(room));
+        when(roomRepository.findById("missing")).thenReturn(Optional.empty());
+        when(jobRepository.findById(2L)).thenReturn(Optional.of(job(2L, "의뢰", JobStatus.MATCHED)));
+        when(messageRepository.findById(7L)).thenReturn(Optional.of(
+                message(7L, "other-room", ChatMessageType.TEXT, "다른 방", null, LocalDateTime.now())));
+
+        assertCode(ErrorCode.CHAT_MESSAGE_NOT_FOUND, () -> service.getMessage("student", room.getId(), 7L));
+        assertCode(ErrorCode.CHAT_ROOM_NOT_FOUND, () -> service.getMessage("student", "missing", 7L));
+
+        when(jobRepository.findById(2L)).thenReturn(Optional.of(Job.builder().id(2L).status(JobStatus.MATCHED)
+                .ownerProfileId(10L).selectedStudentProfileId(99L).build()));
+        assertCode(ErrorCode.CHAT_FORBIDDEN, () -> service.getMessage("student", room.getId(), 7L));
+        verifyNoInteractions(storageClient);
     }
 
     @Test
