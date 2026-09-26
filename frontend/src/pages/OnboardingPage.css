@@ -1,0 +1,95 @@
+.onboarding {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 390px;
+  min-height: 100svh;
+  margin: 0 auto;
+  background: var(--color-white);
+  font-family: var(--font-sans);
+  text-align: center;
+}
+
+.onboarding__skip {
+  padding: 4px 0;
+  border: none;
+  background: none;
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.4;
+  color: var(--role-secondary);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.onboarding__content {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  padding: 50px 16px calc(82px + env(safe-area-inset-bottom));
+}
+
+.onboarding__slide {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  animation: onboarding-fade-in 0.2s ease-out;
+}
+
+.onboarding__title {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: 24px;
+  font-weight: 900;
+  line-height: 29px;
+  letter-spacing: normal;
+  color: var(--color-black);
+  white-space: pre-line;
+}
+
+/* 세 일러스트의 크기가 달라도 가운데 높이를 맞춘다 */
+.onboarding__illustration {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 322px;
+}
+
+.onboarding__illustration img {
+  max-width: 100%;
+  height: auto;
+}
+
+.onboarding__description {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 500;
+  line-height: 22px;
+  color: var(--color-black);
+  white-space: pre-line;
+}
+
+.onboarding__dots {
+  margin-top: 79px;
+}
+
+.onboarding__next {
+  margin-top: auto;
+}
+
+@keyframes onboarding-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .onboarding__slide {
+    animation: none;
+  }
+}
