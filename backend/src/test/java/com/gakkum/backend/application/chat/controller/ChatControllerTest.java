@@ -9,11 +9,13 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -27,16 +29,19 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import com.gakkum.backend.application.chat.dto.ChatRoomListResponse;
 import com.gakkum.backend.application.chat.dto.ChatRoomListResponse.LastMessage;
 import com.gakkum.backend.application.chat.dto.ChatRoomListResponse.Room;
-import com.gakkum.backend.application.chat.service.ChatService;
+import com.gakkum.backend.application.chat.facade.ChatFacade;
 import com.gakkum.backend.domain.chat.entity.ChatMessageType;
 import com.gakkum.backend.domain.chat.dto.ChatCommandDto.MarkReadCommand;
+import com.gakkum.backend.domain.chat.dto.ChatCommandDto.SendTextMessageCommand;
+import com.gakkum.backend.domain.chat.dto.ChatQueryDto.SendMessageResult;
+import com.gakkum.backend.domain.chat.entity.ChatMessage;
 import com.gakkum.backend.global.exception.BusinessException;
 import com.gakkum.backend.global.exception.ErrorCode;
 import com.gakkum.backend.global.exception.GlobalExceptionHandler;
 
 class ChatControllerTest {
 
-    private final ChatService service = mock(ChatService.class);
+    private final ChatFacade service = mock(ChatFacade.class);
     private final UsernamePasswordAuthenticationToken authentication =
             new UsernamePasswordAuthenticationToken("KAKAO_123", null);
     private MockMvc mockMvc;
@@ -109,5 +114,93 @@ class ChatControllerTest {
                         .content("{\"lastReadMessageId\":5}"))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.error.code").value("CHAT_403"));
+    }
+
+    @Test
+    @DisplayName("텍스트 메시지를 새로 저장하면 201과 저장된 메시지 정보를 반환한다")
+    void sendsTextMessage() throws Exception {
+        UUID clientMessageId = UUID.randomUUID();
+        ChatMessage saved = savedMessage(clientMessageId);
+        when(service.sendTextMessage(any(SendTextMessageCommand.class)))
+                .thenReturn(SendMessageResult.of(saved, true));
+
+        mockMvc.perform(post("/chat-rooms/room-1/messages")
+                        .principal(authentication)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(payload(clientMessageId, "안녕하세요")))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.data.id").value(17))
+                .andExpect(jsonPath("$.data.roomId").value("room-1"))
+                .andExpect(jsonPath("$.data.clientMessageId").value(clientMessageId.toString()))
+                .andExpect(jsonPath("$.data.senderUserId").value("sender-1"))
+                .andExpect(jsonPath("$.data.type").value("TEXT"))
+                .andExpect(jsonPath("$.data.content").value("안녕하세요"))
+                .andExpect(jsonPath("$.data.createdAt").value("2026-09-26T12:30:00"));
+
+        ArgumentCaptor<SendTextMessageCommand> command = ArgumentCaptor.forClass(SendTextMessageCommand.class);
+        verify(service).sendTextMessage(command.capture());
+        assertThat(command.getValue().getUsername()).isEqualTo("KAKAO_123");
+        assertThat(command.getValue().getRoomId()).isEqualTo("room-1");
+        assertThat(command.getValue().getClientMessageId()).isEqualTo(clientMessageId);
+        assertThat(command.getValue().getContent()).isEqualTo("안녕하세요");
+    }
+
+    @Test
+    @DisplayName("같은 메시지 재시도에는 200과 기존 메시지 정보를 반환한다")
+    void repeatedSendReturnsOk() throws Exception {
+        UUID clientMessageId = UUID.randomUUID();
+        when(service.sendTextMessage(any(SendTextMessageCommand.class)))
+                .thenReturn(SendMessageResult.of(savedMessage(clientMessageId), false));
+
+        mockMvc.perform(post("/chat-rooms/room-1/messages")
+                        .principal(authentication)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(payload(clientMessageId, "안녕하세요")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.id").value(17));
+    }
+
+    @Test
+    @DisplayName("잘못된 UUID와 공백 본문 및 5000자 초과 본문은 400으로 거부한다")
+    void rejectsInvalidMessageRequests() throws Exception {
+        String uuid = UUID.randomUUID().toString();
+        List<String> payloads = List.of(
+                "{\"clientMessageId\":\"invalid\",\"content\":\"안녕\"}",
+                "{\"content\":\"안녕\"}",
+                "{\"clientMessageId\":\"" + uuid + "\",\"content\":\"   \\n  \"}",
+                "{\"clientMessageId\":\"" + uuid + "\",\"content\":\"" + "x".repeat(5001) + "\"}");
+
+        for (String body : payloads) {
+            mockMvc.perform(post("/chat-rooms/room-1/messages")
+                            .principal(authentication)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(body))
+                    .andExpect(status().isBadRequest());
+        }
+        verifyNoInteractions(service);
+    }
+
+    @Test
+    @DisplayName("권한이 없는 사용자의 메시지 전송은 403을 반환한다")
+    void rejectsMessageFromNonParticipant() throws Exception {
+        when(service.sendTextMessage(any(SendTextMessageCommand.class)))
+                .thenThrow(new BusinessException(ErrorCode.CHAT_FORBIDDEN));
+
+        mockMvc.perform(post("/chat-rooms/room-1/messages")
+                        .principal(authentication)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(payload(UUID.randomUUID(), "안녕하세요")))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.error.code").value("CHAT_403"));
+    }
+
+    private ChatMessage savedMessage(UUID clientMessageId) {
+        return ChatMessage.builder().id(17L).roomId("room-1").clientMessageId(clientMessageId)
+                .senderUserId("sender-1").type(ChatMessageType.TEXT).content("안녕하세요")
+                .createdAt(LocalDateTime.of(2026, 9, 26, 12, 30)).build();
+    }
+
+    private String payload(UUID clientMessageId, String content) {
+        return "{\"clientMessageId\":\"" + clientMessageId + "\",\"content\":\"" + content + "\"}";
     }
 }

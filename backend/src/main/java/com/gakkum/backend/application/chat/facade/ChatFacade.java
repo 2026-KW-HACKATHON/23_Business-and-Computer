@@ -1,4 +1,4 @@
-package com.gakkum.backend.application.chat.service;
+package com.gakkum.backend.application.chat.facade;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -7,17 +7,18 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import org.springframework.stereotype.Service;
+import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.gakkum.backend.application.chat.dto.ChatRoomListResponse;
 import com.gakkum.backend.application.chat.dto.ChatRoomListResponse.LastMessage;
 import com.gakkum.backend.application.chat.dto.ChatRoomListResponse.Room;
+import com.gakkum.backend.domain.chat.service.ChatService;
 import com.gakkum.backend.domain.chat.entity.ChatMessage;
 import com.gakkum.backend.domain.chat.entity.ChatRoom;
 import com.gakkum.backend.domain.chat.dto.ChatCommandDto.MarkReadCommand;
-import com.gakkum.backend.domain.chat.repository.ChatMessageRepository;
-import com.gakkum.backend.domain.chat.repository.ChatRoomRepository;
+import com.gakkum.backend.domain.chat.dto.ChatCommandDto.SendTextMessageCommand;
+import com.gakkum.backend.domain.chat.dto.ChatQueryDto.SendMessageResult;
 import com.gakkum.backend.domain.job.entity.Job;
 import com.gakkum.backend.domain.job.repository.JobRepository;
 import com.gakkum.backend.domain.owner.entity.Owner;
@@ -32,16 +33,15 @@ import com.gakkum.backend.global.exception.ErrorCode;
 
 import lombok.RequiredArgsConstructor;
 
-@Service
+@Component
 @RequiredArgsConstructor
-public class ChatService {
+public class ChatFacade {
 
     private final UserService userService;
     private final OwnerRepository ownerRepository;
     private final StudentRepository studentRepository;
     private final JobRepository jobRepository;
-    private final ChatRoomRepository chatRoomRepository;
-    private final ChatMessageRepository chatMessageRepository;
+    private final ChatService chatService;
 
     @Transactional(readOnly = true)
     public ChatRoomListResponse getMyChatRooms(String username) {
@@ -55,7 +55,7 @@ public class ChatService {
         // 실제로 만들어진 방 선택
         Map<Long, Job> jobsById = jobs.stream().collect(Collectors.toMap(Job::getId, Function.identity()));
         List<ChatRoom> rooms = new ArrayList<>(
-                chatRoomRepository.findByJobIdIn(jobs.stream().map(Job::getId).toList()));
+                chatService.findRoomsByJobIds(jobs.stream().map(Job::getId).toList()));
         if (rooms.isEmpty()) {
             return ChatRoomListResponse.of(List.of());
         }
@@ -64,12 +64,9 @@ public class ChatService {
         Map<Long, Counterpart> counterparts = findCounterparts(viewer.getRole(), rooms.stream()
                 .map(room -> jobsById.get(room.getJobId())).toList());
         List<String> roomIds = rooms.stream().map(ChatRoom::getId).toList();
-        Map<String, ChatMessage> latestByRoom = chatMessageRepository.findLatestByRoomIds(roomIds).stream()
-                .collect(Collectors.toMap(ChatMessage::getRoomId, Function.identity()));
-        Map<String, Long> unreadByRoom = chatMessageRepository.countUnreadByRoomIds(
-                        roomIds, viewer.getId(), viewer.getRole() == UserRole.OWNER).stream()
-                .collect(Collectors.toMap(ChatMessageRepository.UnreadCount::getRoomId,
-                        ChatMessageRepository.UnreadCount::getUnreadCount));
+        Map<String, ChatMessage> latestByRoom = chatService.findLatestMessages(roomIds);
+        Map<String, Long> unreadByRoom = chatService.countUnreadMessages(
+                roomIds, viewer.getId(), viewer.getRole() == UserRole.OWNER);
 
         // 정렬
         rooms.sort((left, right) -> compareRooms(left, right, latestByRoom));
@@ -89,16 +86,23 @@ public class ChatService {
     @Transactional
     public void markRead(MarkReadCommand command) {
         User viewer = userService.getActiveUser(command.getUsername());
-        ChatRoom room = chatRoomRepository.findLockedById(command.getRoomId())
-                .orElseThrow(() -> new BusinessException(ErrorCode.CHAT_ROOM_NOT_FOUND));
+        ChatRoom room = chatService.findLockedRoom(command.getRoomId());
         Job job = jobRepository.findById(room.getJobId())
                 .orElseThrow(() -> new BusinessException(ErrorCode.JOB_NOT_FOUND));
         requireParticipant(viewer, job);
 
-        ChatMessage message = chatMessageRepository.findById(command.getLastReadMessageId())
-                .filter(found -> command.getRoomId().equals(found.getRoomId()))
-                .orElseThrow(() -> new BusinessException(ErrorCode.CHAT_MESSAGE_NOT_FOUND));
-        room.markRead(viewer.getRole(), message.getId());
+        chatService.markRead(room, viewer.getRole(), command.getLastReadMessageId());
+    }
+
+    @Transactional
+    public SendMessageResult sendTextMessage(SendTextMessageCommand command) {
+        User sender = userService.getActiveUser(command.getUsername());
+        ChatRoom room = chatService.findLockedRoom(command.getRoomId());
+        Job job = jobRepository.findById(room.getJobId())
+                .orElseThrow(() -> new BusinessException(ErrorCode.JOB_NOT_FOUND));
+        requireParticipant(sender, job);
+
+        return chatService.sendTextMessage(room, sender.getId(), command.getClientMessageId(), command.getContent());
     }
 
     private List<Job> findJobs(User viewer) {

@@ -1,10 +1,12 @@
-package com.gakkum.backend.application.chat.service;
+package com.gakkum.backend.application.chat.facade;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -12,13 +14,18 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import com.gakkum.backend.application.chat.dto.ChatRoomListResponse;
+import com.gakkum.backend.domain.chat.service.ChatService;
 import com.gakkum.backend.domain.chat.dto.ChatCommandDto.MarkReadCommand;
+import com.gakkum.backend.domain.chat.dto.ChatCommandDto.SendTextMessageCommand;
+import com.gakkum.backend.domain.chat.dto.ChatQueryDto.SendMessageResult;
 import com.gakkum.backend.domain.chat.entity.ChatMessage;
 import com.gakkum.backend.domain.chat.entity.ChatMessageType;
 import com.gakkum.backend.domain.chat.entity.ChatRoom;
@@ -37,7 +44,7 @@ import com.gakkum.backend.domain.user.service.UserService;
 import com.gakkum.backend.global.exception.BusinessException;
 import com.gakkum.backend.global.exception.ErrorCode;
 
-class ChatServiceTest {
+class ChatFacadeTest {
 
     private static final String OWNER_ID = "01K58M6PJV8VAJMXHBHJ2PNB5C";
     private static final String STUDENT_ID = "01K58M6PJV8VAJMXHBHJ2PNB5D";
@@ -48,8 +55,9 @@ class ChatServiceTest {
     private final JobRepository jobRepository = mock(JobRepository.class);
     private final ChatRoomRepository roomRepository = mock(ChatRoomRepository.class);
     private final ChatMessageRepository messageRepository = mock(ChatMessageRepository.class);
-    private final ChatService service = new ChatService(userService, ownerRepository, studentRepository,
-            jobRepository, roomRepository, messageRepository);
+    private final ChatService chatService = new ChatService(roomRepository, messageRepository);
+    private final ChatFacade service = new ChatFacade(userService, ownerRepository, studentRepository,
+            jobRepository, chatService);
 
     @Test
     @DisplayName("사장님 목록은 선택된 학생 정보와 최근 채팅 및 안 읽은 개수를 반환한다")
@@ -211,6 +219,119 @@ class ChatServiceTest {
 
         assertCode(ErrorCode.CHAT_FORBIDDEN, () -> service.markRead(MarkReadCommand.of("student", room.getId(), 5L)));
         assertThat(room.getStudentLastReadMessageId()).isNull();
+    }
+
+    @Test
+    @DisplayName("사장님은 본인의 채팅방에 공백과 줄바꿈을 보존한 텍스트를 보낸다")
+    void ownerSendsText() {
+        ChatRoom room = arrangeOwnerSend(JobStatus.MATCHED);
+        UUID clientMessageId = UUID.randomUUID();
+        String content = "  안녕하세요\n다음 줄  ";
+        ChatMessage saved = ChatMessage.builder().id(15L).roomId(room.getId())
+                .senderUserId(OWNER_ID).clientMessageId(clientMessageId)
+                .type(ChatMessageType.TEXT).content(content).createdAt(LocalDateTime.now()).build();
+        when(messageRepository.saveAndFlush(any(ChatMessage.class))).thenReturn(saved);
+
+        SendMessageResult result = service.sendTextMessage(
+                SendTextMessageCommand.of("owner", room.getId(), clientMessageId, content));
+
+        assertThat(result.isCreated()).isTrue();
+        assertThat(result.getMessage()).isSameAs(saved);
+        ArgumentCaptor<ChatMessage> message = ArgumentCaptor.forClass(ChatMessage.class);
+        verify(messageRepository).saveAndFlush(message.capture());
+        assertThat(message.getValue().getRoomId()).isEqualTo(room.getId());
+        assertThat(message.getValue().getSenderUserId()).isEqualTo(OWNER_ID);
+        assertThat(message.getValue().getClientMessageId()).isEqualTo(clientMessageId);
+        assertThat(message.getValue().getType()).isEqualTo(ChatMessageType.TEXT);
+        assertThat(message.getValue().getContent()).isEqualTo(content);
+        assertThat(room.getOwnerLastReadMessageId()).isNull();
+    }
+
+    @Test
+    @DisplayName("선택된 학생은 종료된 의뢰의 채팅방에도 메시지를 보낼 수 있다")
+    void selectedStudentSendsToClosedJob() {
+        studentViewer();
+        ChatRoom room = room(2L, LocalDateTime.now());
+        when(roomRepository.findLockedById(room.getId())).thenReturn(Optional.of(room));
+        when(jobRepository.findById(2L)).thenReturn(Optional.of(job(2L, "의뢰", JobStatus.CLOSED)));
+        UUID clientMessageId = UUID.randomUUID();
+        ChatMessage saved = ChatMessage.builder().id(16L).roomId(room.getId())
+                .senderUserId(STUDENT_ID).clientMessageId(clientMessageId)
+                .type(ChatMessageType.TEXT).content("완료했습니다").build();
+        when(messageRepository.saveAndFlush(any(ChatMessage.class))).thenReturn(saved);
+
+        SendMessageResult result = service.sendTextMessage(
+                SendTextMessageCommand.of("student", room.getId(), clientMessageId, "완료했습니다"));
+
+        assertThat(result.isCreated()).isTrue();
+        verify(messageRepository).saveAndFlush(any(ChatMessage.class));
+    }
+
+    @Test
+    @DisplayName("같은 UUID와 본문의 재요청은 저장된 메시지를 반환하고 다시 저장하지 않는다")
+    void repeatedSendReturnsExistingMessage() {
+        ChatRoom room = arrangeOwnerSend(JobStatus.MATCHED);
+        UUID clientMessageId = UUID.randomUUID();
+        ChatMessage existing = ChatMessage.builder().id(15L).roomId(room.getId())
+                .senderUserId(OWNER_ID).clientMessageId(clientMessageId)
+                .type(ChatMessageType.TEXT).content("안녕하세요").build();
+        when(messageRepository.findByRoomIdAndSenderUserIdAndClientMessageId(
+                room.getId(), OWNER_ID, clientMessageId)).thenReturn(Optional.of(existing));
+
+        SendMessageResult result = service.sendTextMessage(
+                SendTextMessageCommand.of("owner", room.getId(), clientMessageId, "안녕하세요"));
+
+        assertThat(result.isCreated()).isFalse();
+        assertThat(result.getMessage()).isSameAs(existing);
+        verify(messageRepository, never()).saveAndFlush(any(ChatMessage.class));
+    }
+
+    @Test
+    @DisplayName("같은 UUID에 다른 본문을 보내면 충돌로 거부한다")
+    void rejectsDifferentContentForSameClientId() {
+        ChatRoom room = arrangeOwnerSend(JobStatus.MATCHED);
+        UUID clientMessageId = UUID.randomUUID();
+        when(messageRepository.findByRoomIdAndSenderUserIdAndClientMessageId(
+                room.getId(), OWNER_ID, clientMessageId)).thenReturn(Optional.of(
+                        ChatMessage.builder().type(ChatMessageType.TEXT).content("기존 내용").build()));
+
+        assertCode(ErrorCode.CHAT_MESSAGE_CONFLICT, () -> service.sendTextMessage(
+                SendTextMessageCommand.of("owner", room.getId(), clientMessageId, "다른 내용")));
+        verify(messageRepository, never()).saveAndFlush(any(ChatMessage.class));
+    }
+
+    @Test
+    @DisplayName("참여자가 아닌 사용자는 메시지를 저장할 수 없다")
+    void rejectsMessageFromNonParticipant() {
+        when(userService.getActiveUser("owner")).thenReturn(User.builder()
+                .id(OWNER_ID).role(UserRole.OWNER).build());
+        when(ownerRepository.findByUserId(OWNER_ID)).thenReturn(Optional.of(Owner.builder().id(99L).build()));
+        ChatRoom room = room(2L, LocalDateTime.now());
+        when(roomRepository.findLockedById(room.getId())).thenReturn(Optional.of(room));
+        when(jobRepository.findById(2L)).thenReturn(Optional.of(job(2L, "의뢰", JobStatus.MATCHED)));
+
+        assertCode(ErrorCode.CHAT_FORBIDDEN, () -> service.sendTextMessage(
+                SendTextMessageCommand.of("owner", room.getId(), UUID.randomUUID(), "안녕하세요")));
+        verify(messageRepository, never()).saveAndFlush(any(ChatMessage.class));
+    }
+
+    @Test
+    @DisplayName("존재하지 않는 채팅방에는 메시지를 보낼 수 없다")
+    void rejectsMessageToMissingRoom() {
+        owner();
+        when(roomRepository.findLockedById("missing")).thenReturn(Optional.empty());
+
+        assertCode(ErrorCode.CHAT_ROOM_NOT_FOUND, () -> service.sendTextMessage(
+                SendTextMessageCommand.of("owner", "missing", UUID.randomUUID(), "안녕하세요")));
+        verify(messageRepository, never()).saveAndFlush(any(ChatMessage.class));
+    }
+
+    private ChatRoom arrangeOwnerSend(JobStatus status) {
+        owner();
+        ChatRoom room = room(2L, LocalDateTime.now());
+        when(roomRepository.findLockedById(room.getId())).thenReturn(Optional.of(room));
+        when(jobRepository.findById(2L)).thenReturn(Optional.of(job(2L, "의뢰", status)));
+        return room;
     }
 
     private void owner() {
