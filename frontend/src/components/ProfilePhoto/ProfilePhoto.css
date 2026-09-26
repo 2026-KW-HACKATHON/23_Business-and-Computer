@@ -1,0 +1,42 @@
+.profile-photo {
+  position: relative;
+  width: 132px;
+  height: 132px;
+  flex-shrink: 0;
+}
+
+.profile-photo__empty,
+.profile-photo__image {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: var(--role-muted);
+}
+
+.profile-photo__image {
+  object-fit: cover;
+}
+
+.profile-photo__add {
+  position: absolute;
+  left: 97px;
+  top: 97px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  width: 29px;
+  height: 29px;
+  border: 2px solid var(--color-white);
+  border-radius: 50%;
+  background: var(--color-main);
+  cursor: pointer;
+}
+
+.profile-photo__input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}

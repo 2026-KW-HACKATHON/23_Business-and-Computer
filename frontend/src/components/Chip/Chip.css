@@ -1,0 +1,65 @@
+.chip {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  box-sizing: border-box;
+  border-radius: 999px;
+  font-family: var(--font-sans);
+  font-weight: 500;
+  color: var(--text-body);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.chip--selected {
+  font-weight: 700;
+  color: var(--color-black);
+}
+
+/* 업종 칩 */
+.chip--filled {
+  gap: 5px;
+  height: 36px;
+  padding: 0 14px;
+  border: none;
+  background: var(--role-muted);
+  font-size: 14px;
+  line-height: 20px;
+}
+
+.chip--filled.chip--selected {
+  padding-left: 9px;
+  background: var(--color-owner);
+}
+
+/* 전공역량·특기 칩 */
+.chip--outlined {
+  gap: 4px;
+  height: 32px;
+  padding: 0 12px;
+  border: 1px solid var(--role-border);
+  background: var(--color-white);
+  font-size: 13px;
+  line-height: 16px;
+}
+
+.chip--outlined.chip--selected {
+  gap: 5px;
+  padding-left: 7px;
+  border: 1.5px solid var(--color-black);
+}
+
+.chip__check {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  background: var(--color-main);
+}
+
+.chip:focus-visible {
+  outline: 2px solid var(--color-black);
+  outline-offset: 2px;
+}

@@ -1,0 +1,19 @@
+.step-indicator {
+  display: flex;
+  gap: 6px;
+  height: 5px;
+}
+
+.step-indicator__bar {
+  flex: 1;
+  border-radius: 50px;
+  background: var(--role-border);
+}
+
+.step-indicator--owner .step-indicator__bar--done {
+  background: var(--color-owner);
+}
+
+.step-indicator--student .step-indicator__bar--done {
+  background: var(--color-student);
+}

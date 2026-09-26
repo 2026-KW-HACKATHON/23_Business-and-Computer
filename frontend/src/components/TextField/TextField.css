@@ -1,0 +1,49 @@
+.text-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+.text-field__input {
+  box-sizing: border-box;
+  width: 100%;
+  height: 52px;
+  padding: 0 13px;
+  border: 1px solid var(--input-border);
+  border-radius: 8px;
+  background: var(--color-white);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--text-title);
+  outline: none;
+}
+
+.text-field__input::placeholder {
+  color: var(--text-placeholder);
+}
+
+.text-field__input:focus {
+  border-color: var(--color-black);
+}
+
+/* 인증이 끝나 잠긴 칸 */
+.text-field__input:read-only {
+  background: var(--role-muted);
+  border-color: var(--role-border);
+}
+
+.text-field__input--invalid,
+.text-field__input--invalid:focus {
+  border-color: var(--color-danger);
+}
+
+.text-field__error {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--color-danger);
+  text-align: left;
+}

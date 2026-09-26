@@ -1,0 +1,52 @@
+.app-bar {
+  position: relative;
+  flex-shrink: 0;
+  padding-top: env(safe-area-inset-top);
+  background: var(--color-white);
+  font-family: var(--font-sans);
+}
+
+.app-bar--muted {
+  background: var(--role-muted);
+}
+
+.app-bar__row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 56px;
+  padding: 0 16px;
+  box-sizing: border-box;
+}
+
+.app-bar__back {
+  padding: 0;
+  border: none;
+  background: none;
+  font-family: var(--font-sans);
+  font-size: 20px;
+  font-weight: 500;
+  color: var(--text-title);
+  cursor: pointer;
+}
+
+.app-bar__title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  line-height: normal;
+  letter-spacing: normal;
+  color: var(--text-title);
+  white-space: nowrap;
+}
+
+.app-bar__right {
+  margin-left: auto;
+}
+
+.app-bar__bottom {
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  bottom: 0;
+}
