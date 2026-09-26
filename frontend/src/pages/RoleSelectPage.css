@@ -1,0 +1,127 @@
+.role-select {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 390px;
+  min-height: 100svh;
+  margin: 0 auto;
+  background: var(--color-white);
+  font-family: var(--font-sans);
+}
+
+.role-select__content {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  /* 아래 여백은 피그마의 빈 앱바 높이(56px)만큼 */
+  padding: 0 29px calc(56px + env(safe-area-inset-bottom));
+}
+
+/* 두 로고는 앱바와 캐릭터 사이 흰 여백의 가운데에 온다 (캐릭터·버튼 간격은 고정) */
+.role-select__brand {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 0;
+}
+
+.role-select__tagline {
+  margin-top: 18px;
+}
+
+.role-select__characters {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 51px;
+}
+
+/* 피그마의 호버 배리언트(136 → 160px)를 누름 효과로 옮겼다 */
+.role-select__character {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 160px;
+  height: 160px;
+  padding: 0;
+  border: none;
+  border-radius: 16px;
+  background: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.role-select__character img {
+  transition: transform 0.15s ease-out;
+}
+
+.role-select__character:active img {
+  transform: scale(1.18);
+}
+
+@media (hover: hover) {
+  .role-select__character:hover img {
+    transform: scale(1.18);
+  }
+}
+
+.role-select__character:focus-visible,
+.role-select__button:focus-visible {
+  outline: 2px solid var(--color-black);
+  outline-offset: 2px;
+}
+
+.role-select__buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 37px;
+  width: 100%;
+}
+
+.role-select__button {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+  height: 87px;
+  padding: 0 20px;
+  border: none;
+  border-radius: 16px;
+  background: var(--role-muted);
+  box-shadow: 0 4px 4px rgba(0, 0, 0, 0.25);
+  font-family: var(--font-sans);
+  text-align: left;
+  cursor: pointer;
+  transition:
+    transform 0.08s ease,
+    box-shadow 0.08s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.role-select__button:active {
+  transform: translateY(4px);
+  box-shadow: none;
+}
+
+/* 뱃지 파일(72px)은 그림자 여백을 포함한다. 보이는 흰 원은 56px */
+.role-select__badge {
+  flex-shrink: 0;
+  margin: -8px;
+}
+
+.role-select__label {
+  flex: 1;
+  font-size: 17px;
+  font-weight: 500;
+  line-height: 30px;
+  color: var(--text-body);
+  white-space: nowrap;
+}
+
+.role-select__name {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--color-black);
+}
