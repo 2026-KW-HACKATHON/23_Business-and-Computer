@@ -1,0 +1,59 @@
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 52px;
+  padding: 0 20px;
+  border: none;
+  border-radius: 14px;
+  font-family: var(--font-sans);
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 19px;
+  letter-spacing: -0.16px;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    transform 0.08s ease,
+    box-shadow 0.08s ease;
+}
+
+.button--full {
+  width: 100%;
+}
+
+.button--owner {
+  background: var(--color-owner);
+  color: var(--color-black);
+  box-shadow: 0 4px 0 var(--color-owner-shadow);
+}
+
+.button--student {
+  background: var(--color-student);
+  color: var(--color-white);
+  box-shadow: 0 4px 0 var(--color-student-shadow);
+}
+
+.button--secondary {
+  background: var(--role-muted);
+  color: var(--color-black);
+  box-shadow: 0 4px 0 var(--input-border);
+}
+
+/* 눌렀을 때 받침이 사라지고 4px 내려간다 */
+.button:active:not(:disabled) {
+  transform: translateY(4px);
+  box-shadow: none;
+}
+
+.button:disabled {
+  background: var(--role-border);
+  color: var(--role-secondary);
+  box-shadow: none;
+  cursor: default;
+}
+
+.button:focus-visible {
+  outline: 2px solid var(--color-black);
+  outline-offset: 2px;
+}
