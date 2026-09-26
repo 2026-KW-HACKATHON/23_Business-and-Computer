@@ -47,6 +47,15 @@ public class ChatService {
                 .orElseThrow(() -> new BusinessException(ErrorCode.CHAT_ROOM_NOT_FOUND));
     }
 
+    public ChatRoom findRoom(String roomId) {
+        return chatRoomRepository.findById(roomId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.CHAT_ROOM_NOT_FOUND));
+    }
+
+    public List<ChatMessage> findMessages(String roomId) {
+        return chatMessageRepository.findByRoomIdOrderByIdAsc(roomId);
+    }
+
     public void markRead(ChatRoom room, UserRole role, Long lastReadMessageId) {
         ChatMessage message = chatMessageRepository.findById(lastReadMessageId)
                 .filter(found -> room.getId().equals(found.getRoomId()))
