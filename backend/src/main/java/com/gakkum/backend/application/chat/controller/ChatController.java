@@ -11,6 +11,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.gakkum.backend.application.chat.dto.ChatRoomListResponse;
+import com.gakkum.backend.application.chat.dto.ChatRoomListResponse.Room;
+import com.gakkum.backend.application.chat.dto.ChatMessageListResponse;
 import com.gakkum.backend.application.chat.dto.ReadChatRoomRequest;
 import com.gakkum.backend.application.chat.dto.SendTextMessageRequest;
 import com.gakkum.backend.application.chat.dto.SendTextMessageResponse;
@@ -27,11 +29,29 @@ public class ChatController {
 
     private final ChatFacade chatFacade;
 
+    /**
+     * 내 채팅방 목록 조회 API
+     */
     @GetMapping("/me/chat-rooms")
     public ResponseEntity<ApiResponse<ChatRoomListResponse>> getMyChatRooms(Authentication authentication) {
         return ResponseEntity.ok(ApiResponse.success(chatFacade.getMyChatRooms(authentication.getName())));
     }
 
+    /** 채팅방 입장 정보 조회 API */
+    @GetMapping("/chat-rooms/{roomId}")
+    public ResponseEntity<ApiResponse<Room>> getChatRoom(
+            Authentication authentication, @PathVariable String roomId) {
+        return ResponseEntity.ok(ApiResponse.success(chatFacade.getChatRoom(authentication.getName(), roomId)));
+    }
+
+    /** 채팅방 대화 내역 조회 API */
+    @GetMapping("/chat-rooms/{roomId}/messages")
+    public ResponseEntity<ApiResponse<ChatMessageListResponse>> getMessages(
+            Authentication authentication, @PathVariable String roomId) {
+        return ResponseEntity.ok(ApiResponse.success(chatFacade.getMessages(authentication.getName(), roomId)));
+    }
+
+    /** 채팅방 메시지 읽음 처리 API */
     @PutMapping("/chat-rooms/{roomId}/read")
     public ResponseEntity<ApiResponse<Void>> markRead(
             Authentication authentication,
@@ -41,6 +61,7 @@ public class ChatController {
         return ResponseEntity.ok(ApiResponse.success());
     }
 
+    /** 텍스트 메시지 전송 API */
     @PostMapping("/chat-rooms/{roomId}/messages")
     public ResponseEntity<ApiResponse<SendTextMessageResponse>> sendTextMessage(
             Authentication authentication,

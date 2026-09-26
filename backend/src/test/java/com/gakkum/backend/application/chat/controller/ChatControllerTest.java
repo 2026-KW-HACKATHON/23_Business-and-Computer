@@ -13,6 +13,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -27,6 +28,8 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import com.gakkum.backend.application.chat.dto.ChatRoomListResponse;
+import com.gakkum.backend.application.chat.dto.ChatMessageListResponse;
+import com.gakkum.backend.application.chat.dto.DeadlineType;
 import com.gakkum.backend.application.chat.dto.ChatRoomListResponse.LastMessage;
 import com.gakkum.backend.application.chat.dto.ChatRoomListResponse.Room;
 import com.gakkum.backend.application.chat.facade.ChatFacade;
@@ -35,9 +38,13 @@ import com.gakkum.backend.domain.chat.dto.ChatCommandDto.MarkReadCommand;
 import com.gakkum.backend.domain.chat.dto.ChatCommandDto.SendTextMessageCommand;
 import com.gakkum.backend.domain.chat.dto.ChatQueryDto.SendMessageResult;
 import com.gakkum.backend.domain.chat.entity.ChatMessage;
+import com.gakkum.backend.domain.chat.entity.ChatRoom;
+import com.gakkum.backend.domain.job.entity.Job;
+import com.gakkum.backend.domain.job.entity.JobSubmissionReviewStatus;
 import com.gakkum.backend.global.exception.BusinessException;
 import com.gakkum.backend.global.exception.ErrorCode;
 import com.gakkum.backend.global.exception.GlobalExceptionHandler;
+import org.springframework.test.util.ReflectionTestUtils;
 
 class ChatControllerTest {
 
@@ -56,10 +63,7 @@ class ChatControllerTest {
     @Test
     @DisplayName("채팅방 목록은 개수와 상대방, 의뢰, 최근 메시지 정보를 반환한다")
     void returnsChatRooms() throws Exception {
-        when(service.getMyChatRooms("KAKAO_123")).thenReturn(ChatRoomListResponse.of(List.of(
-                Room.of("01K58M6PJV8VAJMXHBHJ2PNB5C", 11L, "의뢰 제목", "학생 이름", "student.png",
-                        LastMessage.of(ChatMessageType.TEXT, "안녕하세요", LocalDateTime.of(2026, 9, 26, 12, 30)),
-                        3L))));
+        when(service.getMyChatRooms("KAKAO_123")).thenReturn(ChatRoomListResponse.of(List.of(roomResponse())));
 
         mockMvc.perform(get("/me/chat-rooms").principal(authentication))
                 .andExpect(status().isOk())
@@ -68,9 +72,70 @@ class ChatControllerTest {
                 .andExpect(jsonPath("$.data.rooms[0].jobTitle").value("의뢰 제목"))
                 .andExpect(jsonPath("$.data.rooms[0].counterpartName").value("학생 이름"))
                 .andExpect(jsonPath("$.data.rooms[0].counterpartProfileImageUrl").value("student.png"))
+                .andExpect(jsonPath("$.data.rooms[0].deadlineType").value("DRAFT"))
+                .andExpect(jsonPath("$.data.rooms[0].deadlineDate").value("2026-10-10"))
+                .andExpect(jsonPath("$.data.rooms[0].submissionReviewStatus").value("PENDING"))
+                .andExpect(jsonPath("$.data.rooms[0].budget").value(300000))
+                .andExpect(jsonPath("$.data.rooms[0].revisionCount").value(2))
+                .andExpect(jsonPath("$.data.rooms[0].draftDeadline").value("2026-10-10"))
+                .andExpect(jsonPath("$.data.rooms[0].finalDeadline").value("2026-10-20"))
+                .andExpect(jsonPath("$.data.rooms[0].applicationContent").value("지원 내용"))
                 .andExpect(jsonPath("$.data.rooms[0].lastMessage.preview").value("안녕하세요"))
                 .andExpect(jsonPath("$.data.rooms[0].lastMessage.createdAt").value("2026-09-26T12:30:00"))
                 .andExpect(jsonPath("$.data.rooms[0].unreadCount").value(3));
+    }
+
+    @Test
+    @DisplayName("채팅방 단건 조회는 목록과 같은 방 정보를 반환한다")
+    void returnsChatRoom() throws Exception {
+        when(service.getChatRoom("KAKAO_123", "01K58M6PJV8VAJMXHBHJ2PNB5C"))
+                .thenReturn(roomResponse());
+
+        mockMvc.perform(get("/chat-rooms/01K58M6PJV8VAJMXHBHJ2PNB5C").principal(authentication))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.jobTitle").value("의뢰 제목"))
+                .andExpect(jsonPath("$.data.deadlineType").value("DRAFT"))
+                .andExpect(jsonPath("$.data.applicationContent").value("지원 내용"));
+    }
+
+    @Test
+    @DisplayName("메시지 내역은 메시지 배열을 반환한다")
+    void returnsMessages() throws Exception {
+        when(service.getMessages("KAKAO_123", "room-1"))
+                .thenReturn(ChatMessageListResponse.from(List.of(savedMessage(UUID.randomUUID()))));
+
+        mockMvc.perform(get("/chat-rooms/room-1/messages").principal(authentication))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.messages[0].id").value(17))
+                .andExpect(jsonPath("$.data.messages[0].senderUserId").value("sender-1"))
+                .andExpect(jsonPath("$.data.messages[0].content").value("안녕하세요"));
+    }
+
+    @Test
+    @DisplayName("비참여자의 채팅방 입장과 대화 내역 조회는 403을 반환한다")
+    void rejectsRoomReadsFromNonParticipant() throws Exception {
+        when(service.getChatRoom("KAKAO_123", "room-1"))
+                .thenThrow(new BusinessException(ErrorCode.CHAT_FORBIDDEN));
+        when(service.getMessages("KAKAO_123", "room-1"))
+                .thenThrow(new BusinessException(ErrorCode.CHAT_FORBIDDEN));
+
+        mockMvc.perform(get("/chat-rooms/room-1").principal(authentication))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.error.code").value("CHAT_403"));
+        mockMvc.perform(get("/chat-rooms/room-1/messages").principal(authentication))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.error.code").value("CHAT_403"));
+    }
+
+    @Test
+    @DisplayName("존재하지 않는 채팅방 입장은 404를 반환한다")
+    void missingRoomReturnsNotFound() throws Exception {
+        when(service.getChatRoom("KAKAO_123", "missing"))
+                .thenThrow(new BusinessException(ErrorCode.CHAT_ROOM_NOT_FOUND));
+
+        mockMvc.perform(get("/chat-rooms/missing").principal(authentication))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.error.code").value("CHAT_ROOM_404"));
     }
 
     @Test
@@ -198,6 +263,18 @@ class ChatControllerTest {
         return ChatMessage.builder().id(17L).roomId("room-1").clientMessageId(clientMessageId)
                 .senderUserId("sender-1").type(ChatMessageType.TEXT).content("안녕하세요")
                 .createdAt(LocalDateTime.of(2026, 9, 26, 12, 30)).build();
+    }
+
+    private Room roomResponse() {
+        ChatRoom room = ChatRoom.create(11L);
+        ReflectionTestUtils.setField(room, "id", "01K58M6PJV8VAJMXHBHJ2PNB5C");
+        Job job = Job.builder().id(11L).title("의뢰 제목").budget(300000L).revisionCount(2)
+                .draftDeadline(LocalDate.of(2026, 10, 10))
+                .finalDeadline(LocalDate.of(2026, 10, 20)).build();
+        return Room.of(room, job, "학생 이름", "student.png",
+                LastMessage.of(ChatMessageType.TEXT, "안녕하세요", LocalDateTime.of(2026, 9, 26, 12, 30)),
+                3L, DeadlineType.DRAFT, LocalDate.of(2026, 10, 10),
+                JobSubmissionReviewStatus.PENDING, "지원 내용");
     }
 
     private String payload(UUID clientMessageId, String content) {
