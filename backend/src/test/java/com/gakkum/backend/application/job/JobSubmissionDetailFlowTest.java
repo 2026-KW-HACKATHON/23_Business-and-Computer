@@ -99,6 +99,25 @@ class JobSubmissionDetailFlowTest {
     }
 
     @Test
+    @DisplayName("수정 요청에 쓸 수 있도록 검토 대기 제출물의 submissionId를 함께 반환한다")
+    void returnsSubmissionId() throws Exception {
+        givenOwnerWithStudent();
+        givenPendingSubmission(JobSubmission.builder()
+                .id(81L)
+                .jobId(42L)
+                .submissionType(JobSubmissionType.DRAFT)
+                .revisionNumber(0)
+                .fileUrls(List.of("https://example.com/draft.pdf"))
+                .message("초안입니다.")
+                .reviewStatus(JobSubmissionReviewStatus.PENDING)
+                .build());
+
+        mockMvc.perform(get("/jobs/42/submission").principal(authentication))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.submissionId").value(81));
+    }
+
+    @Test
     @DisplayName("수정안 제출물을 수정 번호와 저장된 파일 순서 그대로 반환한다")
     void returnsRevisionSubmissionPreservingFileOrder() throws Exception {
         givenOwnerWithStudent();

@@ -14,6 +14,7 @@ import lombok.Getter;
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 public class JobSubmissionDetailResponse {
 
+    private final Long submissionId;
     private final String title;
     private final String studentName;
     private final String submissionType;
@@ -23,6 +24,7 @@ public class JobSubmissionDetailResponse {
 
     public static JobSubmissionDetailResponse from(JobSubmissionDetailResult result) {
         return JobSubmissionDetailResponse.builder()
+                .submissionId(result.getSubmissionId())
                 .title(result.getTitle())
                 .studentName(result.getStudentName())
                 .submissionType(result.getSubmissionType())
