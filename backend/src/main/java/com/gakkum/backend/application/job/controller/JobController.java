@@ -1,5 +1,6 @@
 package com.gakkum.backend.application.job.controller;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -12,9 +13,13 @@ import org.springframework.web.bind.annotation.RestController;
 import com.gakkum.backend.application.job.dto.ClosedJobListResponse;
 import com.gakkum.backend.application.job.dto.JobCreateRequest;
 import com.gakkum.backend.application.job.dto.JobDetailResponse;
+import com.gakkum.backend.application.job.dto.JobSubmissionCreateRequest;
+import com.gakkum.backend.application.job.dto.JobSubmissionCreateResponse;
 import com.gakkum.backend.application.job.dto.JobSubmissionDetailResponse;
 import com.gakkum.backend.application.job.dto.MatchedJobListResponse;
 import com.gakkum.backend.application.job.dto.OpenJobListResponse;
+import com.gakkum.backend.application.job.dto.PrepareSubmissionFileUploadRequest;
+import com.gakkum.backend.application.job.dto.PrepareSubmissionFileUploadResponse;
 import com.gakkum.backend.application.job.facade.JobFacade;
 import com.gakkum.backend.global.exception.BusinessException;
 import com.gakkum.backend.global.exception.ErrorCode;
@@ -54,6 +59,32 @@ public class JobController {
         JobSubmissionDetailResponse response = JobSubmissionDetailResponse.from(
                 jobFacade.getPendingSubmission(authentication.getName(), jobId));
         return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    /** 매칭된 학생의 작업물 파일 업로드 준비 API(PresignedURL과 제출에 쓸 공개 파일 URL 반환) */
+    @PostMapping("/jobs/{jobId}/submission/uploads")
+    public ResponseEntity<ApiResponse<PrepareSubmissionFileUploadResponse>> prepareSubmissionFileUpload(
+            Authentication authentication, @PathVariable Long jobId,
+            @Valid @RequestBody PrepareSubmissionFileUploadRequest request) {
+        if (jobId <= 0) {
+            throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE);
+        }
+        PrepareSubmissionFileUploadResponse response = PrepareSubmissionFileUploadResponse.from(
+                jobFacade.prepareSubmissionFileUpload(request.toCommand(authentication.getName(), jobId)));
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(response));
+    }
+
+    /** 매칭된 학생의 첫 초안 제출 API */
+    @PostMapping("/jobs/{jobId}/submission")
+    public ResponseEntity<ApiResponse<JobSubmissionCreateResponse>> submitDraft(
+            Authentication authentication, @PathVariable Long jobId,
+            @Valid @RequestBody JobSubmissionCreateRequest request) {
+        if (jobId <= 0) {
+            throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE);
+        }
+        JobSubmissionCreateResponse response = JobSubmissionCreateResponse.from(
+                jobFacade.submitDraft(request.toCommand(authentication.getName(), jobId)));
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(response));
     }
 
     @GetMapping("/me/jobs")
