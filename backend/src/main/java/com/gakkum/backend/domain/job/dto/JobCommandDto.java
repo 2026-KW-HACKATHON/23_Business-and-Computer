@@ -88,6 +88,32 @@ public final class JobCommandDto {
     @Getter
     @Builder(access = AccessLevel.PRIVATE)
     @AllArgsConstructor(access = AccessLevel.PRIVATE)
+    public static class GetJobResultCommand {
+
+        private final Long jobId;
+        private final Long ownerProfileId;
+        private final Long studentProfileId;
+
+        /** 의뢰한 사장님으로 결과물을 조회한다. */
+        public static GetJobResultCommand ofOwner(Long jobId, Long ownerProfileId) {
+            return GetJobResultCommand.builder()
+                    .jobId(jobId)
+                    .ownerProfileId(ownerProfileId)
+                    .build();
+        }
+
+        /** 담당 학생으로 결과물을 조회한다. */
+        public static GetJobResultCommand ofStudent(Long jobId, Long studentProfileId) {
+            return GetJobResultCommand.builder()
+                    .jobId(jobId)
+                    .studentProfileId(studentProfileId)
+                    .build();
+        }
+    }
+
+    @Getter
+    @Builder(access = AccessLevel.PRIVATE)
+    @AllArgsConstructor(access = AccessLevel.PRIVATE)
     public static class RequestJobSubmissionRevisionCommand {
 
         private final Long jobId;

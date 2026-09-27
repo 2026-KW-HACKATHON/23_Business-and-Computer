@@ -15,6 +15,7 @@ import com.gakkum.backend.domain.job.dto.JobCommandDto.CompleteJobSubmissionComm
 import com.gakkum.backend.domain.job.dto.JobCommandDto.CreateJobCommand;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.CreateJobSubmissionCommand;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.GetClosedJobsCommand;
+import com.gakkum.backend.domain.job.dto.JobCommandDto.GetJobResultCommand;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.GetJobSubmissionCommand;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.GetMatchedJobsCommand;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.GetOpenJobsCommand;
@@ -22,6 +23,7 @@ import com.gakkum.backend.domain.job.dto.JobCommandDto.GetStudentMatchedJobsComm
 import com.gakkum.backend.domain.job.dto.JobCommandDto.RequestJobSubmissionRevisionCommand;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.ClosedJobData;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.JobDetailData;
+import com.gakkum.backend.domain.job.dto.JobQueryDto.JobResultData;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.JobSubmissionDetailData;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.MatchedJobData;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.OpenJobData;
@@ -244,7 +246,7 @@ public class JobService {
         if (submission.getRevisionNumber() >= job.getRevisionCount()) {
             throw new BusinessException(ErrorCode.JOB_SUBMISSION_REVISION_LIMIT_EXCEEDED);
         }
-        submission.requestRevision();
+        submission.requestRevision(now());
     }
 
     /**
@@ -264,6 +266,42 @@ public class JobService {
         }
         submission.approve();
         job.complete(now());
+    }
+
+    /**
+     * 완료된(CLOSED) 의뢰의 결과물과 전체 제출 이력을 조회한다.
+     * 존재하지 않는 의뢰, 요청자가 의뢰한 사장님·담당 학생이 아닌 의뢰, 완료되지 않은 의뢰는 모두 같은 404로 거부한다.
+     * @param command 사장님 또는 학생 프로필 ID 중 하나만 채워진 요청
+     * @return 수정 번호 오름차순 제출물과 최종 승인된 제출물
+     */
+    @Transactional(readOnly = true)
+    public JobResultData getJobResult(GetJobResultCommand command) {
+        Job job = jobRepository.findById(command.getJobId())
+                .filter(found -> found.getStatus() == JobStatus.CLOSED)
+                .filter(found -> isResultViewer(found, command))
+                .orElseThrow(() -> new BusinessException(ErrorCode.JOB_RESULT_NOT_FOUND));
+        if (job.getCompletedAt() == null || job.getSelectedStudentProfileId() == null) {
+            throw new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR);
+        }
+
+        // 완료된 의뢰는 마지막 제출물이 사장님이 최종 승인한 제출물이어야 함
+        List<JobSubmission> submissions = jobSubmissionRepository.findByJobIdOrderByRevisionNumberAsc(job.getId());
+        if (submissions.isEmpty()) {
+            throw new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR);
+        }
+        JobSubmission approved = submissions.get(submissions.size() - 1);
+        if (approved.getReviewStatus() != JobSubmissionReviewStatus.APPROVED) {
+            throw new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR);
+        }
+        return JobResultData.of(job, submissions, approved);
+    }
+
+    private boolean isResultViewer(Job job, GetJobResultCommand command) {
+        if (command.getOwnerProfileId() != null) {
+            return command.getOwnerProfileId().equals(job.getOwnerProfileId());
+        }
+        return command.getStudentProfileId() != null
+                && command.getStudentProfileId().equals(job.getSelectedStudentProfileId());
     }
 
     private int nextRevisionNumber(Job job) {

@@ -20,4 +20,6 @@ public interface JobSubmissionRepository extends JpaRepository<JobSubmission, Lo
     boolean existsByJobId(Long jobId);
 
     Optional<JobSubmission> findFirstByJobIdOrderByRevisionNumberDesc(Long jobId);
+
+    List<JobSubmission> findByJobIdOrderByRevisionNumberAsc(Long jobId);
 }

@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.gakkum.backend.domain.payment.dto.PaymentCommandDto.PreparePaymentCommand;
+import com.gakkum.backend.domain.payment.dto.PaymentQueryDto.ApprovedPaymentData;
 import com.gakkum.backend.domain.payment.entity.Payment;
 import com.gakkum.backend.domain.payment.entity.PaymentStatus;
 import com.gakkum.backend.domain.payment.repository.PaymentRepository;
@@ -70,5 +71,20 @@ public class PaymentService {
     @Transactional
     public void failReady(String orderId) {
         paymentRepository.findByOrderId(orderId).ifPresent(Payment::failReady);
+    }
+
+    /**
+     * 의뢰의 결제 완료(PAID) 주문 조회. 매칭 이후 의뢰에는 결제 완료 주문이 반드시 있어야 한다.
+     * @param jobId
+     * @return 주문 ID, 결제 금액, 결제 승인 시각
+     */
+    @Transactional(readOnly = true)
+    public ApprovedPaymentData getPaidPayment(Long jobId) {
+        Payment payment = paymentRepository.findByJobIdAndStatus(jobId, PaymentStatus.PAID)
+                .orElseThrow(() -> new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR));
+        if (payment.getApprovedAt() == null) {
+            throw new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR);
+        }
+        return new ApprovedPaymentData(payment.getOrderId(), payment.getAmount(), payment.getApprovedAt());
     }
 }

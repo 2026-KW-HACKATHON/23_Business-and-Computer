@@ -9,6 +9,9 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.time.Clock;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.Optional;
 
 import org.junit.jupiter.api.DisplayName;
@@ -31,11 +34,13 @@ import com.gakkum.backend.global.exception.ErrorCode;
 
 class JobSubmissionRevisionRequestServiceTest {
 
+    private static final Instant NOW = Instant.parse("2026-09-28T03:15:30Z");
+
     private final JobRepository jobRepository = mock(JobRepository.class);
     private final JobSubmissionRepository jobSubmissionRepository = mock(JobSubmissionRepository.class);
     private final JobService jobService = new JobService(
             jobRepository, mock(JobSpecialtyRepository.class), mock(JobApplicationRepository.class),
-            jobSubmissionRepository, Clock.systemUTC());
+            jobSubmissionRepository, Clock.fixed(NOW, ZoneId.of("UTC")));
 
     @Test
     @DisplayName("검토 대기 초안에 수정을 요청하면 잠근 의뢰 안에서 REVISION_REQUESTED로 바꾼다")
@@ -47,6 +52,17 @@ class JobSubmissionRevisionRequestServiceTest {
 
         assertThat(submission.getReviewStatus()).isEqualTo(JobSubmissionReviewStatus.REVISION_REQUESTED);
         verify(jobRepository).findByIdAndOwnerProfileId(42L, 5L);
+    }
+
+    @Test
+    @DisplayName("수정을 요청하면 서버 로컬 시각 기준 요청 시각을 reviewedAt에 기록한다")
+    void recordsRevisionRequestedAt() {
+        givenOwnedJob(JobStatus.MATCHED, 2);
+        JobSubmission submission = givenSubmission(81L, 42L, 0, JobSubmissionReviewStatus.PENDING);
+
+        jobService.requestRevision(command(81L));
+
+        assertThat(submission.getReviewedAt()).isEqualTo(LocalDateTime.ofInstant(NOW, ZoneId.systemDefault()));
     }
 
     @Test
@@ -68,6 +84,7 @@ class JobSubmissionRevisionRequestServiceTest {
 
         assertError(() -> jobService.requestRevision(command(88L)), ErrorCode.JOB_SUBMISSION_REVISION_LIMIT_EXCEEDED);
         assertThat(submission.getReviewStatus()).isEqualTo(JobSubmissionReviewStatus.PENDING);
+        assertThat(submission.getReviewedAt()).isNull();
     }
 
     @Test
