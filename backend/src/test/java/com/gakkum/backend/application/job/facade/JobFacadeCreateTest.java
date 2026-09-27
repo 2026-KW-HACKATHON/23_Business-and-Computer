@@ -27,6 +27,7 @@ import com.gakkum.backend.domain.job.service.JobService;
 import com.gakkum.backend.domain.owner.entity.Owner;
 import com.gakkum.backend.domain.owner.repository.OwnerRepository;
 import com.gakkum.backend.domain.owner.service.OwnerService;
+import com.gakkum.backend.domain.payment.service.PaymentService;
 import com.gakkum.backend.domain.specialty.service.SpecialtyCategoryService;
 import com.gakkum.backend.domain.specialty.service.SpecialtyService;
 import com.gakkum.backend.domain.student.service.StudentService;
@@ -48,7 +49,7 @@ class JobFacadeCreateTest {
     private final JobFacade jobFacade = new JobFacade(
             userService, new OwnerService(ownerRepository), jobService, mock(SpecialtyCategoryService.class),
             specialtyService, mock(StudentService.class),
-            mock(JobSubmissionFileStorageClient.class), mock(ChatAttachmentPolicy.class));
+            mock(JobSubmissionFileStorageClient.class), mock(ChatAttachmentPolicy.class), mock(PaymentService.class));
 
     @Test
     @DisplayName("의뢰 생성 시 퍼사드가 특기 ID를 먼저 검증한 뒤 사업주 프로필 ID로 의뢰 생성을 맡긴다")

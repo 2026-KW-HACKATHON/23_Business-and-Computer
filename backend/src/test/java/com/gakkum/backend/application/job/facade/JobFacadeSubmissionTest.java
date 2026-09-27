@@ -34,6 +34,7 @@ import com.gakkum.backend.domain.job.entity.JobSubmissionReviewStatus;
 import com.gakkum.backend.domain.job.entity.JobSubmissionType;
 import com.gakkum.backend.domain.job.service.JobService;
 import com.gakkum.backend.domain.owner.service.OwnerService;
+import com.gakkum.backend.domain.payment.service.PaymentService;
 import com.gakkum.backend.domain.specialty.service.SpecialtyCategoryService;
 import com.gakkum.backend.domain.specialty.service.SpecialtyService;
 import com.gakkum.backend.domain.student.entity.Student;
@@ -59,7 +60,7 @@ class JobFacadeSubmissionTest {
     private final JobFacade jobFacade = new JobFacade(
             userService, mock(OwnerService.class), jobService, mock(SpecialtyCategoryService.class),
             mock(SpecialtyService.class), studentService,
-            storageClient, chatAttachmentPolicy);
+            storageClient, chatAttachmentPolicy, mock(PaymentService.class));
 
     @Test
     @DisplayName("업로드 준비는 채팅 첨부 규칙으로 검증한 형식으로 서명하고 공개 파일 URL을 반환한다")

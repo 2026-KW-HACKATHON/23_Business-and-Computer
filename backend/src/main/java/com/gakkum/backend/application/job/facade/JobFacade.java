@@ -1,6 +1,7 @@
 package com.gakkum.backend.application.job.facade;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.Comparator;
@@ -22,6 +23,7 @@ import com.gakkum.backend.domain.job.dto.JobCommandDto.CompleteJobSubmissionComm
 import com.gakkum.backend.domain.job.dto.JobCommandDto.CreateJobCommand;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.CreateJobSubmissionCommand;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.GetClosedJobsCommand;
+import com.gakkum.backend.domain.job.dto.JobCommandDto.GetJobResultCommand;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.GetJobSubmissionCommand;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.GetMatchedJobsCommand;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.GetOpenJobsCommand;
@@ -33,6 +35,8 @@ import com.gakkum.backend.domain.job.dto.JobQueryDto.ClosedJobListResult;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.ClosedJobResult;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.JobDetailData;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.JobDetailResult;
+import com.gakkum.backend.domain.job.dto.JobQueryDto.JobResultData;
+import com.gakkum.backend.domain.job.dto.JobQueryDto.JobResultResult;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.JobSubmissionCreateResult;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.JobSubmissionDetailData;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.JobSubmissionDetailResult;
@@ -53,6 +57,8 @@ import com.gakkum.backend.domain.job.entity.JobSubmission;
 import com.gakkum.backend.domain.job.service.JobService;
 import com.gakkum.backend.domain.owner.entity.Owner;
 import com.gakkum.backend.domain.owner.service.OwnerService;
+import com.gakkum.backend.domain.payment.dto.PaymentQueryDto.ApprovedPaymentData;
+import com.gakkum.backend.domain.payment.service.PaymentService;
 import com.gakkum.backend.domain.specialty.dto.SpecialtyQueryDto.SpecialtyDetail;
 import com.gakkum.backend.domain.specialty.service.SpecialtyCategoryService;
 import com.gakkum.backend.domain.specialty.service.SpecialtyService;
@@ -78,6 +84,7 @@ public class JobFacade {
     private final StudentService studentService;
     private final JobSubmissionFileStorageClient jobSubmissionFileStorageClient;
     private final ChatAttachmentPolicy chatAttachmentPolicy;
+    private final PaymentService paymentService;
 
     @Transactional
     public void createJob(String username, JobCreateRequest request) {
@@ -107,6 +114,32 @@ public class JobFacade {
         Student student = studentService.getStudentProfile(data.getJob().getSelectedStudentProfileId());
         User studentUser = userService.getUser(student.getUserId());
         return JobSubmissionDetailResult.of(data, studentUser);
+    }
+
+    /** 완료된 의뢰의 결과물을 의뢰한 사장님 또는 담당 학생에게 보여준다. 작업 시작일은 결제 승인일이다. */
+    @Transactional(readOnly = true)
+    public JobResultResult getJobResult(String username, Long jobId) {
+        User user = userService.getActiveUser(username);
+        JobResultData data = jobService.getJobResult(toJobResultCommand(user, jobId));
+
+        Student student = studentService.getStudentProfile(data.getJob().getSelectedStudentProfileId());
+        User studentUser = userService.getUser(student.getUserId());
+        ApprovedPaymentData payment = paymentService.getPaidPayment(jobId);
+        return JobResultResult.of(data, studentUser, LocalDate.ofInstant(payment.approvedAt(), ZoneId.systemDefault()));
+    }
+
+    /** 사장님·학생 외 사용자와 학생 프로필이 없는 학생은 조회 권한이 없으므로 결과물이 없는 것과 같이 거부한다. */
+    private GetJobResultCommand toJobResultCommand(User user, Long jobId) {
+        if (user.getRole() == UserRole.OWNER) {
+            Owner owner = ownerService.getOwnerProfile(user.getId());
+            return GetJobResultCommand.ofOwner(jobId, owner.getId());
+        }
+        if (user.getRole() == UserRole.STUDENT) {
+            Student student = studentService.findStudentProfileByUserId(user.getId())
+                    .orElseThrow(() -> new BusinessException(ErrorCode.JOB_RESULT_NOT_FOUND));
+            return GetJobResultCommand.ofStudent(jobId, student.getId());
+        }
+        throw new BusinessException(ErrorCode.JOB_RESULT_NOT_FOUND);
     }
 
     /** 매칭된 학생에게 작업물 파일 업로드 URL과 제출에 쓸 공개 URL을 발급한다. 형식·크기는 채팅 첨부 규칙을 따른다. */

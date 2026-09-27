@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.gakkum.backend.application.job.dto.ClosedJobListResponse;
 import com.gakkum.backend.application.job.dto.JobCreateRequest;
 import com.gakkum.backend.application.job.dto.JobDetailResponse;
+import com.gakkum.backend.application.job.dto.JobResultResponse;
 import com.gakkum.backend.application.job.dto.JobSubmissionCreateRequest;
 import com.gakkum.backend.application.job.dto.JobSubmissionCreateResponse;
 import com.gakkum.backend.application.job.dto.JobSubmissionDetailResponse;
@@ -59,6 +60,17 @@ public class JobController {
         }
         JobSubmissionDetailResponse response = JobSubmissionDetailResponse.from(
                 jobFacade.getPendingSubmission(authentication.getName(), jobId));
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    /** 완료된 의뢰의 최종 결과물과 작업 이력 조회 API(의뢰한 사장님과 담당 학생만 조회 가능) */
+    @GetMapping("/jobs/{jobId}/result")
+    public ResponseEntity<ApiResponse<JobResultResponse>> getJobResult(
+            Authentication authentication, @PathVariable Long jobId) {
+        if (jobId <= 0) {
+            throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE);
+        }
+        JobResultResponse response = JobResultResponse.from(jobFacade.getJobResult(authentication.getName(), jobId));
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 

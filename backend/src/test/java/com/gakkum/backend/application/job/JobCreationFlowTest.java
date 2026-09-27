@@ -43,6 +43,7 @@ import com.gakkum.backend.domain.jwt.service.JwtService;
 import com.gakkum.backend.domain.owner.entity.Owner;
 import com.gakkum.backend.domain.owner.repository.OwnerRepository;
 import com.gakkum.backend.domain.owner.service.OwnerService;
+import com.gakkum.backend.domain.payment.service.PaymentService;
 import com.gakkum.backend.domain.specialty.repository.SpecialtyRepository;
 import com.gakkum.backend.domain.specialty.repository.SpecialtyCategoryRepository;
 import com.gakkum.backend.domain.specialty.repository.StudentSpecialtyRepository;
@@ -115,7 +116,7 @@ class JobCreationFlowTest {
                 new SpecialtyCategoryService(specialtyCategoryRepository, specialtyRepository);
         JobFacade facade = new JobFacade(userService, ownerService, jobService,
                 specialtyCategoryService, specialtyService, mock(StudentService.class),
-                mock(JobSubmissionFileStorageClient.class), mock(ChatAttachmentPolicy.class));
+                mock(JobSubmissionFileStorageClient.class), mock(ChatAttachmentPolicy.class), mock(PaymentService.class));
         JobController controller = new JobController(facade);
 
         mockMvc = MockMvcBuilders.standaloneSetup(controller)
