@@ -78,6 +78,7 @@ public final class JobQueryDto {
     @AllArgsConstructor(access = AccessLevel.PRIVATE)
     public static class JobSubmissionDetailResult {
 
+        private final Long submissionId;
         private final String title;
         private final String studentName;
         private final String submissionType;
@@ -88,6 +89,7 @@ public final class JobQueryDto {
         public static JobSubmissionDetailResult of(JobSubmissionDetailData data, User student) {
             JobSubmission submission = data.getSubmission();
             return JobSubmissionDetailResult.builder()
+                    .submissionId(submission.getId())
                     .title(data.getJob().getTitle())
                     .studentName(student.getName())
                     .submissionType(submission.getSubmissionType().name())
@@ -158,6 +160,19 @@ public final class JobQueryDto {
 
         public static MatchedJobData of(Job job, List<Long> specialtyIds, JobSubmission pendingSubmission) {
             return new MatchedJobData(job, specialtyIds, pendingSubmission);
+        }
+    }
+
+    @Getter
+    @AllArgsConstructor(access = AccessLevel.PRIVATE)
+    public static class StudentMatchedJobData {
+
+        private final Job job;
+        private final List<Long> specialtyIds;
+        private final JobSubmission latestSubmission;
+
+        public static StudentMatchedJobData of(Job job, List<Long> specialtyIds, JobSubmission latestSubmission) {
+            return new StudentMatchedJobData(job, specialtyIds, latestSubmission);
         }
     }
 
@@ -262,6 +277,50 @@ public final class JobQueryDto {
                     .major(student.getMajor())
                     .submissionType(pendingSubmission == null ? null : pendingSubmission.getSubmissionType().name())
                     .pendingSubmissionId(pendingSubmission == null ? null : pendingSubmission.getId())
+                    .build();
+        }
+    }
+
+    @Getter
+    @AllArgsConstructor(access = AccessLevel.PRIVATE)
+    public static class StudentMatchedJobListResult {
+
+        private final List<StudentMatchedJobResult> jobs;
+
+        public static StudentMatchedJobListResult of(List<StudentMatchedJobResult> jobs) {
+            return new StudentMatchedJobListResult(jobs);
+        }
+    }
+
+    @Getter
+    @Builder(access = AccessLevel.PRIVATE)
+    @AllArgsConstructor(access = AccessLevel.PRIVATE)
+    public static class StudentMatchedJobResult {
+
+        private final Long jobId;
+        private final String title;
+        private final List<SpecialtyCategoryResult> specialtyCategories;
+        private final Long budget;
+        private final LocalDate draftDeadline;
+        private final LocalDate finalDeadline;
+        private final Integer revisionCount;
+        private final String submissionType;
+        private final String reviewStatus;
+
+        public static StudentMatchedJobResult of(
+                StudentMatchedJobData data, List<SpecialtyCategoryResult> specialtyCategories) {
+            Job job = data.getJob();
+            JobSubmission latest = data.getLatestSubmission();
+            return StudentMatchedJobResult.builder()
+                    .jobId(job.getId())
+                    .title(job.getTitle())
+                    .specialtyCategories(specialtyCategories)
+                    .budget(job.getBudget())
+                    .draftDeadline(job.getDraftDeadline())
+                    .finalDeadline(job.getFinalDeadline())
+                    .revisionCount(job.getRevisionCount())
+                    .submissionType(latest == null ? null : latest.getSubmissionType().name())
+                    .reviewStatus(latest == null ? null : latest.getReviewStatus().name())
                     .build();
         }
     }

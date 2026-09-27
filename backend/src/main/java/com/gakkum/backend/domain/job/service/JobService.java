@@ -14,11 +14,14 @@ import com.gakkum.backend.domain.job.dto.JobCommandDto.GetClosedJobsCommand;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.GetJobSubmissionCommand;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.GetMatchedJobsCommand;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.GetOpenJobsCommand;
+import com.gakkum.backend.domain.job.dto.JobCommandDto.GetStudentMatchedJobsCommand;
+import com.gakkum.backend.domain.job.dto.JobCommandDto.RequestJobSubmissionRevisionCommand;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.ClosedJobData;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.JobDetailData;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.JobSubmissionDetailData;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.MatchedJobData;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.OpenJobData;
+import com.gakkum.backend.domain.job.dto.JobQueryDto.StudentMatchedJobData;
 import com.gakkum.backend.domain.job.entity.Job;
 import com.gakkum.backend.domain.job.entity.JobApplication;
 import com.gakkum.backend.domain.job.entity.JobApplicationStatus;
@@ -218,6 +221,31 @@ public class JobService {
         }
     }
 
+    /**
+     * 사장님이 검토 대기(PENDING) 제출물에 수정을 요청한다.
+     * 의뢰 행을 잠가 같은 의뢰의 수정 요청·수정안 제출을 순서대로 처리한다.
+     * 요청 후 학생이 낼 수정안 번호(현재 번호 + 1)가 수정 가능 횟수를 넘으면 거부한다.
+     * @param command
+     */
+    @Transactional
+    public void requestRevision(RequestJobSubmissionRevisionCommand command) {
+        Job job = jobRepository.findByIdAndOwnerProfileId(command.getJobId(), command.getOwnerProfileId())
+                .orElseThrow(() -> new BusinessException(ErrorCode.JOB_NOT_FOUND));
+        JobSubmission submission = jobSubmissionRepository.findById(command.getSubmissionId())
+                .filter(found -> found.getJobId().equals(job.getId()))
+                .orElseThrow(() -> new BusinessException(ErrorCode.JOB_SUBMISSION_NOT_FOUND));
+        if (job.getStatus() != JobStatus.MATCHED) {
+            throw new BusinessException(ErrorCode.JOB_SUBMISSION_REVIEW_NOT_AVAILABLE);
+        }
+        if (submission.getReviewStatus() != JobSubmissionReviewStatus.PENDING) {
+            throw new BusinessException(ErrorCode.JOB_SUBMISSION_ALREADY_REVIEWED);
+        }
+        if (submission.getRevisionNumber() >= job.getRevisionCount()) {
+            throw new BusinessException(ErrorCode.JOB_SUBMISSION_REVISION_LIMIT_EXCEEDED);
+        }
+        submission.requestRevision();
+    }
+
     private int nextRevisionNumber(Job job) {
         JobSubmission latest = jobSubmissionRepository.findFirstByJobIdOrderByRevisionNumberDesc(job.getId())
                 .filter(submission -> submission.getReviewStatus() == JobSubmissionReviewStatus.REVISION_REQUESTED)
@@ -298,6 +326,38 @@ public class JobService {
                                 .map(JobSpecialty::getSpecialtyId)
                                 .toList(),
                         pendingSubmissionsByJobId.get(job.getId())))
+                .toList();
+    }
+
+    /**
+     * 학생 본인과 매칭된 진행 중(MATCHED) 의뢰를 생성 최신순으로 조회하고 의뢰별 최신 제출물을 연결한다.
+     * @param command
+     * @return 제출물이 없는 의뢰는 latestSubmission이 null
+     */
+    @Transactional(readOnly = true)
+    public List<StudentMatchedJobData> getStudentMatchedJobs(GetStudentMatchedJobsCommand command) {
+        List<Job> jobs = jobRepository.findBySelectedStudentProfileIdAndStatusOrderByCreatedAtDescIdDesc(
+                command.getStudentProfileId(), JobStatus.MATCHED);
+        if (jobs.isEmpty()) {
+            return List.of();
+        }
+
+        List<Long> jobIds = jobs.stream().map(Job::getId).toList();
+        Map<Long, List<JobSpecialty>> specialtiesByJobId = jobSpecialtyRepository.findByJobIdIn(jobIds).stream()
+                .collect(Collectors.groupingBy(JobSpecialty::getJobId));
+        Map<Long, JobSubmission> latestSubmissionsByJobId = jobSubmissionRepository.findByJobIdIn(jobIds).stream()
+                .collect(Collectors.toMap(
+                        JobSubmission::getJobId,
+                        submission -> submission,
+                        (left, right) -> left.getRevisionNumber() >= right.getRevisionNumber() ? left : right));
+
+        return jobs.stream()
+                .map(job -> StudentMatchedJobData.of(
+                        job,
+                        specialtiesByJobId.getOrDefault(job.getId(), List.of()).stream()
+                                .map(JobSpecialty::getSpecialtyId)
+                                .toList(),
+                        latestSubmissionsByJobId.get(job.getId())))
                 .toList();
     }
 

@@ -44,6 +44,20 @@ public final class JobCommandDto {
     @Getter
     @Builder(access = AccessLevel.PRIVATE)
     @AllArgsConstructor(access = AccessLevel.PRIVATE)
+    public static class GetStudentMatchedJobsCommand {
+
+        private final Long studentProfileId;
+
+        public static GetStudentMatchedJobsCommand of(Long studentProfileId) {
+            return GetStudentMatchedJobsCommand.builder()
+                    .studentProfileId(studentProfileId)
+                    .build();
+        }
+    }
+
+    @Getter
+    @Builder(access = AccessLevel.PRIVATE)
+    @AllArgsConstructor(access = AccessLevel.PRIVATE)
     public static class GetClosedJobsCommand {
 
         private final Long ownerProfileId;
@@ -66,6 +80,24 @@ public final class JobCommandDto {
         public static GetJobSubmissionCommand of(Long jobId, Long ownerProfileId) {
             return GetJobSubmissionCommand.builder()
                     .jobId(jobId)
+                    .ownerProfileId(ownerProfileId)
+                    .build();
+        }
+    }
+
+    @Getter
+    @Builder(access = AccessLevel.PRIVATE)
+    @AllArgsConstructor(access = AccessLevel.PRIVATE)
+    public static class RequestJobSubmissionRevisionCommand {
+
+        private final Long jobId;
+        private final Long submissionId;
+        private final Long ownerProfileId;
+
+        public static RequestJobSubmissionRevisionCommand of(Long jobId, Long submissionId, Long ownerProfileId) {
+            return RequestJobSubmissionRevisionCommand.builder()
+                    .jobId(jobId)
+                    .submissionId(submissionId)
                     .ownerProfileId(ownerProfileId)
                     .build();
         }

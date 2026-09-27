@@ -23,7 +23,9 @@ import com.gakkum.backend.domain.job.dto.JobCommandDto.GetClosedJobsCommand;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.GetJobSubmissionCommand;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.GetMatchedJobsCommand;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.GetOpenJobsCommand;
+import com.gakkum.backend.domain.job.dto.JobCommandDto.GetStudentMatchedJobsCommand;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.PrepareSubmissionFileUploadCommand;
+import com.gakkum.backend.domain.job.dto.JobCommandDto.RequestJobSubmissionRevisionCommand;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.ClosedJobData;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.ClosedJobListResult;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.ClosedJobResult;
@@ -41,6 +43,9 @@ import com.gakkum.backend.domain.job.dto.JobQueryDto.OpenJobResult;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.PrepareSubmissionFileUploadResult;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.SpecialtyCategoryResult;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.SpecialtyResult;
+import com.gakkum.backend.domain.job.dto.JobQueryDto.StudentMatchedJobData;
+import com.gakkum.backend.domain.job.dto.JobQueryDto.StudentMatchedJobListResult;
+import com.gakkum.backend.domain.job.dto.JobQueryDto.StudentMatchedJobResult;
 import com.gakkum.backend.domain.job.dto.JobSubmissionFileType;
 import com.gakkum.backend.domain.job.entity.JobSubmission;
 import com.gakkum.backend.domain.job.service.JobService;
@@ -141,6 +146,14 @@ public class JobFacade {
         return JobSubmissionCreateResult.from(submission);
     }
 
+    /** 사장님 본인 의뢰의 검토 대기 제출물에 수정을 요청한다. */
+    @Transactional
+    public void requestRevision(String username, Long jobId, Long submissionId) {
+        User user = userService.getActiveUser(username);
+        Owner owner = ownerService.getOwnerProfile(user.getId());
+        jobService.requestRevision(RequestJobSubmissionRevisionCommand.of(jobId, submissionId, owner.getId()));
+    }
+
     @Transactional(readOnly = true)
     public OpenJobListResult getOpenJobs(String username) {
         User user = userService.getActiveUser(username);
@@ -187,6 +200,38 @@ public class JobFacade {
                         job,
                         studentsById.get(job.getJob().getSelectedStudentProfileId()),
                         groupSpecialties(job.getSpecialtyIds(), specialtiesById)))
+                .toList());
+    }
+
+    /** 진행중 의뢰 목록을 학생용 응답으로 내려야 하는 사용자인지 확인한다. */
+    @Transactional(readOnly = true)
+    public boolean isStudent(String username) {
+        return userService.getActiveUser(username).getRole() == UserRole.STUDENT;
+    }
+
+    /** 학생 본인과 매칭된 진행 중 의뢰를 최신 제출물 상태와 함께 조회한다. */
+    @Transactional(readOnly = true)
+    public StudentMatchedJobListResult getStudentMatchedJobs(String username) {
+        User user = userService.getActiveUser(username);
+        if (user.getRole() != UserRole.STUDENT) {
+            throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE);
+        }
+        Student student = studentService.findStudentProfileByUserId(user.getId())
+                .orElseThrow(() -> new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR));
+        List<StudentMatchedJobData> jobs = jobService.getStudentMatchedJobs(
+                GetStudentMatchedJobsCommand.of(student.getId()));
+
+        if (jobs.isEmpty()) {
+            return StudentMatchedJobListResult.of(List.of());
+        }
+
+        Set<Long> specialtyIds = jobs.stream()
+                .flatMap(job -> job.getSpecialtyIds().stream())
+                .collect(Collectors.toSet());
+        Map<Long, SpecialtyDetail> specialtiesById = specialtyCategoryService.getSpecialtyDetails(specialtyIds);
+
+        return StudentMatchedJobListResult.of(jobs.stream()
+                .map(job -> StudentMatchedJobResult.of(job, groupSpecialties(job.getSpecialtyIds(), specialtiesById)))
                 .toList());
     }
 

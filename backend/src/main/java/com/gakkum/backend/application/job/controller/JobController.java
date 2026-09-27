@@ -20,6 +20,7 @@ import com.gakkum.backend.application.job.dto.MatchedJobListResponse;
 import com.gakkum.backend.application.job.dto.OpenJobListResponse;
 import com.gakkum.backend.application.job.dto.PrepareSubmissionFileUploadRequest;
 import com.gakkum.backend.application.job.dto.PrepareSubmissionFileUploadResponse;
+import com.gakkum.backend.application.job.dto.StudentMatchedJobListResponse;
 import com.gakkum.backend.application.job.facade.JobFacade;
 import com.gakkum.backend.global.exception.BusinessException;
 import com.gakkum.backend.global.exception.ErrorCode;
@@ -100,11 +101,27 @@ public class JobController {
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(response));
     }
 
+    /** 사장님이 검토 대기 제출물에 수정을 요청하는 API */
+    @PostMapping("/jobs/{jobId}/submissions/{submissionId}/revision-request")
+    public ResponseEntity<ApiResponse<Void>> requestRevision(
+            Authentication authentication, @PathVariable Long jobId, @PathVariable Long submissionId) {
+        if (jobId <= 0 || submissionId <= 0) {
+            throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE);
+        }
+        jobFacade.requestRevision(authentication.getName(), jobId, submissionId);
+        return ResponseEntity.ok(ApiResponse.success());
+    }
+
     @GetMapping("/me/jobs")
     public ResponseEntity<ApiResponse<?>> getJobs(
             Authentication authentication, @RequestParam(required = false) String status) {
         if ("OPEN".equals(status)) {
             OpenJobListResponse response = OpenJobListResponse.from(jobFacade.getOpenJobs(authentication.getName()));
+            return ResponseEntity.ok(ApiResponse.success(response));
+        }
+        if ("MATCHED".equals(status) && jobFacade.isStudent(authentication.getName())) {
+            StudentMatchedJobListResponse response = StudentMatchedJobListResponse.from(
+                    jobFacade.getStudentMatchedJobs(authentication.getName()));
             return ResponseEntity.ok(ApiResponse.success(response));
         }
         if ("MATCHED".equals(status)) {
