@@ -23,6 +23,8 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import com.gakkum.backend.application.job.controller.JobController;
 import com.gakkum.backend.application.job.facade.JobFacade;
+import com.gakkum.backend.domain.chat.service.ChatAttachmentPolicy;
+import com.gakkum.backend.domain.job.client.JobSubmissionFileStorageClient;
 import com.gakkum.backend.domain.job.entity.Job;
 import com.gakkum.backend.domain.job.entity.JobSpecialty;
 import com.gakkum.backend.domain.job.entity.JobStatus;
@@ -72,7 +74,8 @@ class JobDetailFlowTest {
         SpecialtyCategoryService specialtyCategoryService =
                 new SpecialtyCategoryService(specialtyCategoryRepository, specialtyRepository);
         JobFacade facade = new JobFacade(userService, mock(OwnerService.class), jobService,
-                specialtyCategoryService, mock(StudentService.class));
+                specialtyCategoryService, mock(StudentService.class),
+                mock(JobSubmissionFileStorageClient.class), mock(ChatAttachmentPolicy.class));
         mockMvc = MockMvcBuilders.standaloneSetup(new JobController(facade))
                 .setControllerAdvice(new GlobalExceptionHandler())
                 .build();

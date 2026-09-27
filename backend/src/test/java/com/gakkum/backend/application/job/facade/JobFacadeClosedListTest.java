@@ -18,6 +18,8 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
 import com.gakkum.backend.application.job.dto.ClosedJobListResponse;
+import com.gakkum.backend.domain.chat.service.ChatAttachmentPolicy;
+import com.gakkum.backend.domain.job.client.JobSubmissionFileStorageClient;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.GetClosedJobsCommand;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.ClosedJobData;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.ClosedJobListResult;
@@ -50,7 +52,8 @@ class JobFacadeClosedListTest {
     private final SpecialtyCategoryService specialtyCategoryService = mock(SpecialtyCategoryService.class);
     private final StudentService studentService = mock(StudentService.class);
     private final JobFacade jobFacade = new JobFacade(
-            userService, ownerService, jobService, specialtyCategoryService, studentService);
+            userService, ownerService, jobService, specialtyCategoryService, studentService,
+            mock(JobSubmissionFileStorageClient.class), mock(ChatAttachmentPolicy.class));
 
     @Test
     @DisplayName("CLOSED 의뢰를 작업자 이름과 카테고리, 완료 날짜가 있는 배열 응답으로 조립한다")

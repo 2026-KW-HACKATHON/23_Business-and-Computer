@@ -18,6 +18,8 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
+import com.gakkum.backend.domain.chat.service.ChatAttachmentPolicy;
+import com.gakkum.backend.domain.job.client.JobSubmissionFileStorageClient;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.GetOpenJobsCommand;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.OpenJobData;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.OpenJobListResult;
@@ -45,7 +47,8 @@ class JobFacadeOpenListTest {
     private final JobService jobService = mock(JobService.class);
     private final SpecialtyCategoryService specialtyCategoryService = mock(SpecialtyCategoryService.class);
     private final JobFacade jobFacade = new JobFacade(
-            userService, ownerService, jobService, specialtyCategoryService, mock(StudentService.class));
+            userService, ownerService, jobService, specialtyCategoryService, mock(StudentService.class),
+            mock(JobSubmissionFileStorageClient.class), mock(ChatAttachmentPolicy.class));
 
     @Test
     @DisplayName("인증된 사업주의 OPEN 의뢰에 특기를 대분류별로 묶어 반환한다")
