@@ -24,7 +24,6 @@ import com.gakkum.backend.domain.job.repository.JobApplicationRepository;
 import com.gakkum.backend.domain.job.repository.JobRepository;
 import com.gakkum.backend.domain.job.repository.JobSpecialtyRepository;
 import com.gakkum.backend.domain.job.repository.JobSubmissionRepository;
-import com.gakkum.backend.domain.specialty.service.SpecialtyService;
 import com.gakkum.backend.global.exception.BusinessException;
 import com.gakkum.backend.global.exception.ErrorCode;
 
@@ -34,7 +33,7 @@ class JobSubmissionDetailServiceTest {
     private final JobSubmissionRepository jobSubmissionRepository = mock(JobSubmissionRepository.class);
     private final JobService jobService = new JobService(
             jobRepository, mock(JobSpecialtyRepository.class), mock(JobApplicationRepository.class),
-            jobSubmissionRepository, mock(SpecialtyService.class), Clock.systemUTC());
+            jobSubmissionRepository, Clock.systemUTC());
 
     @Test
     @DisplayName("본인 의뢰의 검토 대기 제출물을 의뢰와 함께 반환한다")

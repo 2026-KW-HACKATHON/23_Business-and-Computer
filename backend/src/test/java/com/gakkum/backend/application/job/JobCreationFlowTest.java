@@ -110,11 +110,11 @@ class JobCreationFlowTest {
         OwnerService ownerService = new OwnerService(ownerRepository);
         SpecialtyService specialtyService = new SpecialtyService(specialtyRepository, studentSpecialtyRepository);
         JobService jobService = new JobService(jobRepository, jobSpecialtyRepository,
-                jobApplicationRepository, mock(JobSubmissionRepository.class), specialtyService, Clock.systemUTC());
+                jobApplicationRepository, mock(JobSubmissionRepository.class), Clock.systemUTC());
         SpecialtyCategoryService specialtyCategoryService =
                 new SpecialtyCategoryService(specialtyCategoryRepository, specialtyRepository);
         JobFacade facade = new JobFacade(userService, ownerService, jobService,
-                specialtyCategoryService, mock(StudentService.class),
+                specialtyCategoryService, specialtyService, mock(StudentService.class),
                 mock(JobSubmissionFileStorageClient.class), mock(ChatAttachmentPolicy.class));
         JobController controller = new JobController(facade);
 

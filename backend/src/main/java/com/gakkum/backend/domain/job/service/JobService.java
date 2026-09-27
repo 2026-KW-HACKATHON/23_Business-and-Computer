@@ -38,7 +38,6 @@ import com.gakkum.backend.domain.job.repository.JobApplicationRepository;
 import com.gakkum.backend.domain.job.repository.JobRepository;
 import com.gakkum.backend.domain.job.repository.JobSpecialtyRepository;
 import com.gakkum.backend.domain.job.repository.JobSubmissionRepository;
-import com.gakkum.backend.domain.specialty.service.SpecialtyService;
 import com.gakkum.backend.global.exception.BusinessException;
 import com.gakkum.backend.global.exception.ErrorCode;
 
@@ -52,13 +51,10 @@ public class JobService {
     private final JobSpecialtyRepository jobSpecialtyRepository;
     private final JobApplicationRepository jobApplicationRepository;
     private final JobSubmissionRepository jobSubmissionRepository;
-    private final SpecialtyService specialtyService;
     private final Clock clock;
 
     @Transactional
     public Job createJob(CreateJobCommand command) {
-        specialtyService.validateSpecialtyIds(command.getSpecialtyIds());
-
         Job job = Job.create(
                 command.getOwnerProfileId(),
                 command.getTitle(),

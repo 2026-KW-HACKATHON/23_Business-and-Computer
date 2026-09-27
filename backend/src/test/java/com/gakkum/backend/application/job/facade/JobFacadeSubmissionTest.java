@@ -35,6 +35,7 @@ import com.gakkum.backend.domain.job.entity.JobSubmissionType;
 import com.gakkum.backend.domain.job.service.JobService;
 import com.gakkum.backend.domain.owner.service.OwnerService;
 import com.gakkum.backend.domain.specialty.service.SpecialtyCategoryService;
+import com.gakkum.backend.domain.specialty.service.SpecialtyService;
 import com.gakkum.backend.domain.student.entity.Student;
 import com.gakkum.backend.domain.student.service.StudentService;
 import com.gakkum.backend.domain.user.entity.User;
@@ -56,7 +57,8 @@ class JobFacadeSubmissionTest {
     private final JobSubmissionFileStorageClient storageClient = mock(JobSubmissionFileStorageClient.class);
     private final ChatAttachmentPolicy chatAttachmentPolicy = mock(ChatAttachmentPolicy.class);
     private final JobFacade jobFacade = new JobFacade(
-            userService, mock(OwnerService.class), jobService, mock(SpecialtyCategoryService.class), studentService,
+            userService, mock(OwnerService.class), jobService, mock(SpecialtyCategoryService.class),
+            mock(SpecialtyService.class), studentService,
             storageClient, chatAttachmentPolicy);
 
     @Test

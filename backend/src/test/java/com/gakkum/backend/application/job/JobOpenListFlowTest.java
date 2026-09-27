@@ -88,11 +88,11 @@ class JobOpenListFlowTest {
         SpecialtyService specialtyService = new SpecialtyService(specialtyRepository, studentSpecialtyRepository);
         JobService jobService = new JobService(
                 jobRepository, jobSpecialtyRepository, jobApplicationRepository,
-                mock(JobSubmissionRepository.class), specialtyService, Clock.systemUTC());
+                mock(JobSubmissionRepository.class), Clock.systemUTC());
         SpecialtyCategoryService specialtyCategoryService =
                 new SpecialtyCategoryService(specialtyCategoryRepository, specialtyRepository);
         JobFacade facade = new JobFacade(userService, ownerService, jobService,
-                specialtyCategoryService, mock(StudentService.class),
+                specialtyCategoryService, specialtyService, mock(StudentService.class),
                 mock(JobSubmissionFileStorageClient.class), mock(ChatAttachmentPolicy.class));
 
         mockMvc = MockMvcBuilders.standaloneSetup(new JobController(facade))

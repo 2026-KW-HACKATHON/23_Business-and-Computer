@@ -19,6 +19,7 @@ import com.gakkum.backend.domain.chat.service.ChatAttachmentPolicy;
 import com.gakkum.backend.domain.job.client.JobSubmissionFileStorageClient;
 import com.gakkum.backend.domain.job.client.JobSubmissionFileStorageClient.PresignedFileUpload;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.CompleteJobSubmissionCommand;
+import com.gakkum.backend.domain.job.dto.JobCommandDto.CreateJobCommand;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.CreateJobSubmissionCommand;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.GetClosedJobsCommand;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.GetJobSubmissionCommand;
@@ -54,6 +55,7 @@ import com.gakkum.backend.domain.owner.entity.Owner;
 import com.gakkum.backend.domain.owner.service.OwnerService;
 import com.gakkum.backend.domain.specialty.dto.SpecialtyQueryDto.SpecialtyDetail;
 import com.gakkum.backend.domain.specialty.service.SpecialtyCategoryService;
+import com.gakkum.backend.domain.specialty.service.SpecialtyService;
 import com.gakkum.backend.domain.student.entity.Student;
 import com.gakkum.backend.domain.student.service.StudentService;
 import com.gakkum.backend.domain.user.entity.User;
@@ -72,6 +74,7 @@ public class JobFacade {
     private final OwnerService ownerService;
     private final JobService jobService;
     private final SpecialtyCategoryService specialtyCategoryService;
+    private final SpecialtyService specialtyService;
     private final StudentService studentService;
     private final JobSubmissionFileStorageClient jobSubmissionFileStorageClient;
     private final ChatAttachmentPolicy chatAttachmentPolicy;
@@ -80,8 +83,10 @@ public class JobFacade {
     public void createJob(String username, JobCreateRequest request) {
         User user = userService.getActiveUser(username);
         Owner owner = ownerService.getOwnerProfile(user.getId());
+        CreateJobCommand command = request.toCommand(owner.getId());
+        specialtyService.validateSpecialtyIds(command.getSpecialtyIds());
 
-        jobService.createJob(request.toCommand(owner.getId()));
+        jobService.createJob(command);
     }
 
     @Transactional(readOnly = true)

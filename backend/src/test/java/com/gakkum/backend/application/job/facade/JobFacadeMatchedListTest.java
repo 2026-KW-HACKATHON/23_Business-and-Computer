@@ -33,6 +33,7 @@ import com.gakkum.backend.domain.owner.repository.OwnerRepository;
 import com.gakkum.backend.domain.owner.service.OwnerService;
 import com.gakkum.backend.domain.specialty.dto.SpecialtyQueryDto.SpecialtyDetail;
 import com.gakkum.backend.domain.specialty.service.SpecialtyCategoryService;
+import com.gakkum.backend.domain.specialty.service.SpecialtyService;
 import com.gakkum.backend.domain.student.entity.Student;
 import com.gakkum.backend.domain.student.service.StudentService;
 import com.gakkum.backend.domain.user.entity.User;
@@ -55,7 +56,8 @@ class JobFacadeMatchedListTest {
     private final SpecialtyCategoryService specialtyCategoryService = mock(SpecialtyCategoryService.class);
     private final StudentService studentService = mock(StudentService.class);
     private final JobFacade jobFacade = new JobFacade(
-            userService, ownerService, jobService, specialtyCategoryService, studentService,
+            userService, ownerService, jobService, specialtyCategoryService,
+            mock(SpecialtyService.class), studentService,
             mock(JobSubmissionFileStorageClient.class), mock(ChatAttachmentPolicy.class));
 
     @Test

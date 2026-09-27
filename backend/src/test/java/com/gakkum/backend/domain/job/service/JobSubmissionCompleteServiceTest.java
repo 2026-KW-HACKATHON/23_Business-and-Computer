@@ -32,7 +32,6 @@ import com.gakkum.backend.domain.job.repository.JobApplicationRepository;
 import com.gakkum.backend.domain.job.repository.JobRepository;
 import com.gakkum.backend.domain.job.repository.JobSpecialtyRepository;
 import com.gakkum.backend.domain.job.repository.JobSubmissionRepository;
-import com.gakkum.backend.domain.specialty.service.SpecialtyService;
 import com.gakkum.backend.global.exception.BusinessException;
 import com.gakkum.backend.global.exception.ErrorCode;
 
@@ -45,7 +44,7 @@ class JobSubmissionCompleteServiceTest {
     private final JobSubmissionRepository jobSubmissionRepository = mock(JobSubmissionRepository.class);
     private final JobService jobService = new JobService(
             jobRepository, mock(JobSpecialtyRepository.class), mock(JobApplicationRepository.class),
-            jobSubmissionRepository, mock(SpecialtyService.class), Clock.fixed(NOW, ZoneId.of("UTC")));
+            jobSubmissionRepository, Clock.fixed(NOW, ZoneId.of("UTC")));
 
     @ParameterizedTest
     @EnumSource(JobSubmissionType.class)

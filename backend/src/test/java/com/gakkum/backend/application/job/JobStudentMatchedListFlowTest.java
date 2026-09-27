@@ -77,10 +77,10 @@ class JobStudentMatchedListFlowTest {
     void setUp() {
         UserService userService = new UserService(userRepository, mock(JwtService.class));
         JobService jobService = new JobService(jobRepository, jobSpecialtyRepository,
-                mock(JobApplicationRepository.class), jobSubmissionRepository, mock(SpecialtyService.class),
+                mock(JobApplicationRepository.class), jobSubmissionRepository,
                 Clock.systemUTC());
         JobFacade facade = new JobFacade(userService, new OwnerService(ownerRepository), jobService,
-                specialtyCategoryService, new StudentService(studentRepository),
+                specialtyCategoryService, mock(SpecialtyService.class), new StudentService(studentRepository),
                 mock(JobSubmissionFileStorageClient.class), mock(ChatAttachmentPolicy.class));
         mockMvc = MockMvcBuilders.standaloneSetup(new JobController(facade))
                 .setControllerAdvice(new GlobalExceptionHandler())

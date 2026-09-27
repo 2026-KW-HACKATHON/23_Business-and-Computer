@@ -24,7 +24,6 @@ import com.gakkum.backend.domain.job.repository.JobApplicationRepository;
 import com.gakkum.backend.domain.job.repository.JobRepository;
 import com.gakkum.backend.domain.job.repository.JobSpecialtyRepository;
 import com.gakkum.backend.domain.job.repository.JobSubmissionRepository;
-import com.gakkum.backend.domain.specialty.service.SpecialtyService;
 
 class JobOpenListServiceTest {
 
@@ -33,7 +32,7 @@ class JobOpenListServiceTest {
     private final JobApplicationRepository jobApplicationRepository = mock(JobApplicationRepository.class);
     private final JobService jobService = new JobService(
             jobRepository, jobSpecialtyRepository, jobApplicationRepository,
-            mock(JobSubmissionRepository.class), mock(SpecialtyService.class), Clock.systemUTC());
+            mock(JobSubmissionRepository.class), Clock.systemUTC());
 
     @Test
     @DisplayName("해당 사업주의 OPEN 의뢰와 특기 ID, 대기 중 지원 수를 조회한다")

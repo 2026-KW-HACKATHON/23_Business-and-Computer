@@ -71,11 +71,11 @@ class JobDetailFlowTest {
         SpecialtyService specialtyService = new SpecialtyService(specialtyRepository,
                 mock(StudentSpecialtyRepository.class));
         JobService jobService = new JobService(jobRepository, jobSpecialtyRepository,
-                mock(JobApplicationRepository.class), mock(JobSubmissionRepository.class), specialtyService, Clock.systemUTC());
+                mock(JobApplicationRepository.class), mock(JobSubmissionRepository.class), Clock.systemUTC());
         SpecialtyCategoryService specialtyCategoryService =
                 new SpecialtyCategoryService(specialtyCategoryRepository, specialtyRepository);
         JobFacade facade = new JobFacade(userService, mock(OwnerService.class), jobService,
-                specialtyCategoryService, mock(StudentService.class),
+                specialtyCategoryService, specialtyService, mock(StudentService.class),
                 mock(JobSubmissionFileStorageClient.class), mock(ChatAttachmentPolicy.class));
         mockMvc = MockMvcBuilders.standaloneSetup(new JobController(facade))
                 .setControllerAdvice(new GlobalExceptionHandler())

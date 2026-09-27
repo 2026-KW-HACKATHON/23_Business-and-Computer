@@ -29,7 +29,6 @@ import com.gakkum.backend.domain.job.repository.JobApplicationRepository;
 import com.gakkum.backend.domain.job.repository.JobRepository;
 import com.gakkum.backend.domain.job.repository.JobSpecialtyRepository;
 import com.gakkum.backend.domain.job.repository.JobSubmissionRepository;
-import com.gakkum.backend.domain.specialty.service.SpecialtyService;
 import com.gakkum.backend.global.exception.BusinessException;
 import com.gakkum.backend.global.exception.ErrorCode;
 
@@ -41,7 +40,7 @@ class JobSubmissionRevisionServiceTest {
     private final JobSubmissionRepository jobSubmissionRepository = mock(JobSubmissionRepository.class);
     private final JobService jobService = new JobService(
             jobRepository, mock(JobSpecialtyRepository.class), mock(JobApplicationRepository.class),
-            jobSubmissionRepository, mock(SpecialtyService.class), Clock.systemUTC());
+            jobSubmissionRepository, Clock.systemUTC());
 
     @Test
     @DisplayName("초안에 수정 요청이 오면 첫 수정안을 REVISION, 수정 번호 1, 검토 대기로 저장한다")

@@ -24,7 +24,6 @@ import com.gakkum.backend.domain.job.repository.JobApplicationRepository;
 import com.gakkum.backend.domain.job.repository.JobRepository;
 import com.gakkum.backend.domain.job.repository.JobSpecialtyRepository;
 import com.gakkum.backend.domain.job.repository.JobSubmissionRepository;
-import com.gakkum.backend.domain.specialty.service.SpecialtyService;
 
 class JobMatchedListServiceTest {
 
@@ -34,7 +33,7 @@ class JobMatchedListServiceTest {
     private final JobSubmissionRepository jobSubmissionRepository = mock(JobSubmissionRepository.class);
     private final JobService jobService = new JobService(
             jobRepository, jobSpecialtyRepository, jobApplicationRepository,
-            jobSubmissionRepository, mock(SpecialtyService.class), Clock.systemUTC());
+            jobSubmissionRepository, Clock.systemUTC());
 
     @Test
     @DisplayName("해당 사업주의 MATCHED 의뢰를 최신순으로 조회하고 대기 중 제출물만 연결한다")

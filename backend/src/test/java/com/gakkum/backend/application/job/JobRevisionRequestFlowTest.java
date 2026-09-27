@@ -66,10 +66,10 @@ class JobRevisionRequestFlowTest {
     void setUp() {
         UserService userService = new UserService(userRepository, mock(JwtService.class));
         JobService jobService = new JobService(jobRepository, mock(JobSpecialtyRepository.class),
-                mock(JobApplicationRepository.class), jobSubmissionRepository, mock(SpecialtyService.class),
+                mock(JobApplicationRepository.class), jobSubmissionRepository,
                 Clock.systemUTC());
         JobFacade facade = new JobFacade(userService, new OwnerService(ownerRepository), jobService,
-                mock(SpecialtyCategoryService.class), new StudentService(mock(StudentRepository.class)),
+                mock(SpecialtyCategoryService.class), mock(SpecialtyService.class), new StudentService(mock(StudentRepository.class)),
                 mock(JobSubmissionFileStorageClient.class), mock(ChatAttachmentPolicy.class));
         mockMvc = MockMvcBuilders.standaloneSetup(new JobController(facade))
                 .setControllerAdvice(new GlobalExceptionHandler())

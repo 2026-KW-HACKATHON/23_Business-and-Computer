@@ -1,10 +1,8 @@
 package com.gakkum.backend.domain.job.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -22,32 +20,21 @@ import com.gakkum.backend.domain.job.repository.JobRepository;
 import com.gakkum.backend.domain.job.repository.JobApplicationRepository;
 import com.gakkum.backend.domain.job.repository.JobSpecialtyRepository;
 import com.gakkum.backend.domain.job.repository.JobSubmissionRepository;
-import com.gakkum.backend.domain.specialty.repository.SpecialtyRepository;
-import com.gakkum.backend.domain.specialty.repository.StudentSpecialtyRepository;
-import com.gakkum.backend.domain.specialty.service.SpecialtyService;
-import com.gakkum.backend.global.exception.BusinessException;
-import com.gakkum.backend.global.exception.ErrorCode;
 
 class JobServiceTest {
 
     private final JobRepository jobRepository = mock(JobRepository.class);
     private final JobSpecialtyRepository jobSpecialtyRepository = mock(JobSpecialtyRepository.class);
     private final JobApplicationRepository jobApplicationRepository = mock(JobApplicationRepository.class);
-    private final SpecialtyRepository specialtyRepository = mock(SpecialtyRepository.class);
-    private final StudentSpecialtyRepository studentSpecialtyRepository = mock(StudentSpecialtyRepository.class);
-    private final SpecialtyService specialtyService = new SpecialtyService(
-            specialtyRepository,
-            studentSpecialtyRepository);
     private final JobService jobService = new JobService(
             jobRepository,
             jobSpecialtyRepository,
             jobApplicationRepository,
             mock(JobSubmissionRepository.class),
-            specialtyService, Clock.systemUTC());
+            Clock.systemUTC());
 
     @Test
     void createsJobWithSpecialties() {
-        when(specialtyRepository.countByIdIn(List.of(1L, 2L))).thenReturn(2L);
         when(jobRepository.save(any(Job.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         CreateJobCommand command = CreateJobCommand.of(
@@ -78,26 +65,5 @@ class JobServiceTest {
         assertThat(specialtiesCaptor.getValue())
                 .extracting(JobSpecialty::getSpecialtyId)
                 .containsExactly(1L, 2L);
-    }
-
-    @Test
-    void rejectsWhenSpecialtyDoesNotExist() {
-        when(specialtyRepository.countByIdIn(List.of(1L, 99L))).thenReturn(1L);
-
-        CreateJobCommand command = CreateJobCommand.of(
-                10L,
-                List.of(1L, 99L),
-                "의뢰 제목",
-                "맡기고 싶은 일",
-                500000L,
-                LocalDate.of(2026, 1, 1),
-                LocalDate.of(2026, 1, 15),
-                1);
-
-        assertThatThrownBy(() -> jobService.createJob(command))
-                .isInstanceOfSatisfying(BusinessException.class, exception ->
-                        assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.SPECIALTY_NOT_FOUND));
-
-        verify(jobRepository, never()).save(any(Job.class));
     }
 }
