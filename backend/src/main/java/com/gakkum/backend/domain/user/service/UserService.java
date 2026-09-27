@@ -119,6 +119,12 @@ public class UserService extends DefaultOAuth2UserService {
         return findPendingUser(username);
     }
 
+    /** 잠기지 않은 가입 대기(PENDING) 사용자를 조회한다. */
+    @Transactional(readOnly = true)
+    public User getPendingUser(String username) {
+        return findPendingUser(username);
+    }
+
     @Transactional(readOnly = true)
     public User getActiveUser(String username) {
         return userRepository.findByUsernameAndIsLock(username, false)
