@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.gakkum.backend.application.job.dto.ClosedJobListResponse;
 import com.gakkum.backend.application.job.dto.JobCreateRequest;
 import com.gakkum.backend.application.job.dto.JobDetailResponse;
+import com.gakkum.backend.application.job.dto.JobSubmissionDetailResponse;
 import com.gakkum.backend.application.job.dto.MatchedJobListResponse;
 import com.gakkum.backend.application.job.dto.OpenJobListResponse;
 import com.gakkum.backend.application.job.facade.JobFacade;
@@ -41,6 +42,17 @@ public class JobController {
             throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE);
         }
         JobDetailResponse response = JobDetailResponse.from(jobFacade.getJobDetail(authentication.getName(), jobId));
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    @GetMapping("/jobs/{jobId}/submission")
+    public ResponseEntity<ApiResponse<JobSubmissionDetailResponse>> getPendingSubmission(
+            Authentication authentication, @PathVariable Long jobId) {
+        if (jobId <= 0) {
+            throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE);
+        }
+        JobSubmissionDetailResponse response = JobSubmissionDetailResponse.from(
+                jobFacade.getPendingSubmission(authentication.getName(), jobId));
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
