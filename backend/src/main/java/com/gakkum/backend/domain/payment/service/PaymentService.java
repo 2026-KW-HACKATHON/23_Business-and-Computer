@@ -7,8 +7,7 @@ import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.gakkum.backend.domain.job.entity.Job;
-import com.gakkum.backend.domain.job.entity.JobApplication;
+import com.gakkum.backend.domain.payment.dto.PaymentCommandDto.PreparePaymentCommand;
 import com.gakkum.backend.domain.payment.entity.Payment;
 import com.gakkum.backend.domain.payment.entity.PaymentStatus;
 import com.gakkum.backend.domain.payment.repository.PaymentRepository;
@@ -24,30 +23,35 @@ public class PaymentService {
     private final PaymentRepository paymentRepository;
     private final Clock clock;
 
-    public Payment preparePayment(Job job, JobApplication application, String ownerUserId) {
+    /**
+     * 결제 대기(PENDING) 주문 생성. 결제 가능한 의뢰·지원인지는 호출하는 쪽이 먼저 검증하고 값만 넘긴다.
+     * @param command 의뢰 ID, 지원 ID, 사장님 사용자 ID, 서버 기준 결제 금액(의뢰 예산)
+     * @return 저장된 PENDING 주문
+     */
+    public Payment preparePayment(PreparePaymentCommand command) {
 
-        // 예외: 의뢰의 가격이 없거나 0 이하인 경우
-        if (job.getBudget() == null || job.getBudget() <= 0) {
+        // 예외: 결제 금액(의뢰 가격)이 없거나 0 이하인 경우
+        if (command.getAmount() == null || command.getAmount() <= 0) {
             throw new BusinessException(ErrorCode.PAYMENT_NOT_AVAILABLE);
         }
         // 예외: 이미 결제가 완료된 의뢰(Job)인 경우
-        if (paymentRepository.existsByJobIdAndStatus(job.getId(), PaymentStatus.PAID)) {
+        if (paymentRepository.existsByJobIdAndStatus(command.getJobId(), PaymentStatus.PAID)) {
             throw new BusinessException(ErrorCode.PAYMENT_ALREADY_PAID);
         }
 
         // 이미 PENDING 상태의 결제 시도가 있다면(현재가 재시도) 이전 요청을 무효 처리
-        paymentRepository.findByJobIdAndStatus(job.getId(), PaymentStatus.PENDING)
+        paymentRepository.findByJobIdAndStatus(command.getJobId(), PaymentStatus.PENDING)
                 .ifPresent(previous -> {
                     previous.supersede();
                     paymentRepository.flush();
                 });
 
         Payment payment = Payment.pending(
-                job.getId(),
-                application.getId(),
-                ownerUserId,
+                command.getJobId(),
+                command.getJobApplicationId(),
+                command.getOwnerUserId(),
                 UUID.randomUUID().toString(),
-                job.getBudget(),
+                command.getAmount(),
                 Instant.now(clock));
 
         return paymentRepository.save(payment);
