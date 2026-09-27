@@ -6,6 +6,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import java.time.Clock;
 import java.util.List;
 
 import org.junit.jupiter.api.DisplayName;
@@ -33,7 +34,7 @@ class JobStudentMatchedListServiceTest {
     private final JobSubmissionRepository jobSubmissionRepository = mock(JobSubmissionRepository.class);
     private final JobService jobService = new JobService(
             jobRepository, jobSpecialtyRepository, jobApplicationRepository,
-            jobSubmissionRepository, mock(SpecialtyService.class));
+            jobSubmissionRepository, mock(SpecialtyService.class), Clock.systemUTC());
 
     @Test
     @DisplayName("학생 본인의 MATCHED 의뢰를 최신순으로 조회하고 초안 미제출·검토 대기·수정 요청·승인 의뢰를 모두 최신 제출물과 연결한다")

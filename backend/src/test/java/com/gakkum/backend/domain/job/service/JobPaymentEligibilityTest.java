@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import java.time.Clock;
 import java.util.Optional;
 
 import org.junit.jupiter.api.DisplayName;
@@ -27,7 +28,7 @@ class JobPaymentEligibilityTest {
     private final JobRepository jobRepository = mock(JobRepository.class);
     private final JobApplicationRepository applicationRepository = mock(JobApplicationRepository.class);
     private final JobService service = new JobService(jobRepository, mock(JobSpecialtyRepository.class),
-            applicationRepository, mock(JobSubmissionRepository.class), mock(SpecialtyService.class));
+            applicationRepository, mock(JobSubmissionRepository.class), mock(SpecialtyService.class), Clock.systemUTC());
 
     @Test
     @DisplayName("소유한 OPEN 의뢰와 해당 의뢰의 PENDING 지원서만 결제할 수 있다")

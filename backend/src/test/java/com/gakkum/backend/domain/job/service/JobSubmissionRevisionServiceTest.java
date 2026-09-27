@@ -8,6 +8,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.time.Clock;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
@@ -40,7 +41,7 @@ class JobSubmissionRevisionServiceTest {
     private final JobSubmissionRepository jobSubmissionRepository = mock(JobSubmissionRepository.class);
     private final JobService jobService = new JobService(
             jobRepository, mock(JobSpecialtyRepository.class), mock(JobApplicationRepository.class),
-            jobSubmissionRepository, mock(SpecialtyService.class));
+            jobSubmissionRepository, mock(SpecialtyService.class), Clock.systemUTC());
 
     @Test
     @DisplayName("초안에 수정 요청이 오면 첫 수정안을 REVISION, 수정 번호 1, 검토 대기로 저장한다")

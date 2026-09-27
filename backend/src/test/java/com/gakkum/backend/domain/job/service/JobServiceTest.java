@@ -8,6 +8,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.time.Clock;
 import java.time.LocalDate;
 import java.util.List;
 
@@ -42,7 +43,7 @@ class JobServiceTest {
             jobSpecialtyRepository,
             jobApplicationRepository,
             mock(JobSubmissionRepository.class),
-            specialtyService);
+            specialtyService, Clock.systemUTC());
 
     @Test
     void createsJobWithSpecialties() {

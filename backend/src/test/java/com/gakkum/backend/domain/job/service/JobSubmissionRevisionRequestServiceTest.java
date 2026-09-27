@@ -8,6 +8,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.time.Clock;
 import java.util.Optional;
 
 import org.junit.jupiter.api.DisplayName;
@@ -35,7 +36,7 @@ class JobSubmissionRevisionRequestServiceTest {
     private final JobSubmissionRepository jobSubmissionRepository = mock(JobSubmissionRepository.class);
     private final JobService jobService = new JobService(
             jobRepository, mock(JobSpecialtyRepository.class), mock(JobApplicationRepository.class),
-            jobSubmissionRepository, mock(SpecialtyService.class));
+            jobSubmissionRepository, mock(SpecialtyService.class), Clock.systemUTC());
 
     @Test
     @DisplayName("검토 대기 초안에 수정을 요청하면 잠근 의뢰 안에서 REVISION_REQUESTED로 바꾼다")

@@ -7,6 +7,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -34,7 +35,7 @@ class JobClosedListServiceTest {
     private final JobSubmissionRepository jobSubmissionRepository = mock(JobSubmissionRepository.class);
     private final JobService jobService = new JobService(
             jobRepository, jobSpecialtyRepository, jobApplicationRepository,
-            jobSubmissionRepository, mock(SpecialtyService.class));
+            jobSubmissionRepository, mock(SpecialtyService.class), Clock.systemUTC());
 
     @Test
     @DisplayName("사업주의 CLOSED 의뢰를 완료 시각과 ID 최신순으로 조회하고 특기를 일괄 연결한다")

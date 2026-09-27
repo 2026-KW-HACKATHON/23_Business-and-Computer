@@ -9,6 +9,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.time.Clock;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.Optional;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -46,12 +49,13 @@ import com.gakkum.backend.domain.user.repository.UserRepository;
 import com.gakkum.backend.domain.user.service.UserService;
 import com.gakkum.backend.global.exception.GlobalExceptionHandler;
 
-@DisplayName("사장님 수정 요청 전체 흐름 (POST /jobs/{jobId}/submissions/{submissionId}/revision-request)")
-class JobRevisionRequestFlowTest {
+@DisplayName("사장님 완료 요청 전체 흐름 (POST /jobs/{jobId}/submissions/{submissionId}/complete)")
+class JobCompleteFlowTest {
 
     private static final String USERNAME = "KAKAO_12345";
     private static final String OWNER_USER_ID = "01K58M6PJV8VAJMXHBHJ2PNB5C";
-    private static final String URL = "/jobs/42/submissions/81/revision-request";
+    private static final Instant NOW = Instant.parse("2026-09-28T03:15:30Z");
+    private static final String URL = "/jobs/42/submissions/81/complete";
 
     private final UserRepository userRepository = mock(UserRepository.class);
     private final OwnerRepository ownerRepository = mock(OwnerRepository.class);
@@ -67,7 +71,7 @@ class JobRevisionRequestFlowTest {
         UserService userService = new UserService(userRepository, mock(JwtService.class));
         JobService jobService = new JobService(jobRepository, mock(JobSpecialtyRepository.class),
                 mock(JobApplicationRepository.class), jobSubmissionRepository, mock(SpecialtyService.class),
-                Clock.systemUTC());
+                Clock.fixed(NOW, ZoneId.of("UTC")));
         JobFacade facade = new JobFacade(userService, new OwnerService(ownerRepository), jobService,
                 mock(SpecialtyCategoryService.class), new StudentService(mock(StudentRepository.class)),
                 mock(JobSubmissionFileStorageClient.class), mock(ChatAttachmentPolicy.class));
@@ -77,10 +81,10 @@ class JobRevisionRequestFlowTest {
     }
 
     @Test
-    @DisplayName("본인 의뢰의 검토 대기 제출물에 수정을 요청하면 200과 data 없는 성공 응답을 반환한다")
-    void requestsRevision() throws Exception {
+    @DisplayName("본인 의뢰의 검토 대기 제출물을 완료하면 200과 data 없는 성공 응답을 반환하고 의뢰를 종료한다")
+    void completesSubmission() throws Exception {
         givenActiveOwner();
-        givenOwnedJob(JobStatus.MATCHED);
+        Job job = givenOwnedJob(JobStatus.MATCHED);
         JobSubmission submission = givenSubmission(JobSubmissionReviewStatus.PENDING);
 
         mockMvc.perform(post(URL).principal(authentication))
@@ -88,19 +92,34 @@ class JobRevisionRequestFlowTest {
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data").doesNotExist())
                 .andExpect(jsonPath("$.error").doesNotExist());
-        assertThat(submission.getReviewStatus()).isEqualTo(JobSubmissionReviewStatus.REVISION_REQUESTED);
+        assertThat(submission.getReviewStatus()).isEqualTo(JobSubmissionReviewStatus.APPROVED);
+        assertThat(job.getStatus()).isEqualTo(JobStatus.CLOSED);
+        assertThat(job.getCompletedAt()).isEqualTo(LocalDateTime.ofInstant(NOW, ZoneId.systemDefault()));
     }
 
     @Test
-    @DisplayName("같은 제출물에 다시 수정을 요청하면 409 JOB_SUBMISSION_409_REVIEWED를 반환한다")
-    void rejectsDuplicateRequest() throws Exception {
+    @DisplayName("이미 완료된 의뢰를 다시 완료하면 409 JOB_SUBMISSION_409_REVIEW_STATUS를 반환한다")
+    void rejectsDuplicateComplete() throws Exception {
         givenActiveOwner();
-        givenOwnedJob(JobStatus.MATCHED);
+        givenOwnedJob(JobStatus.CLOSED);
+        givenSubmission(JobSubmissionReviewStatus.APPROVED);
+
+        mockMvc.perform(post(URL).principal(authentication))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.error.code").value("JOB_SUBMISSION_409_REVIEW_STATUS"));
+    }
+
+    @Test
+    @DisplayName("수정 요청된 제출물을 완료하면 409 JOB_SUBMISSION_409_REVIEWED를 반환한다")
+    void rejectsRevisionRequestedSubmission() throws Exception {
+        givenActiveOwner();
+        Job job = givenOwnedJob(JobStatus.MATCHED);
         givenSubmission(JobSubmissionReviewStatus.REVISION_REQUESTED);
 
         mockMvc.perform(post(URL).principal(authentication))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.error.code").value("JOB_SUBMISSION_409_REVIEWED"));
+        assertThat(job.getStatus()).isEqualTo(JobStatus.MATCHED);
     }
 
     @Test
@@ -127,18 +146,6 @@ class JobRevisionRequestFlowTest {
     }
 
     @Test
-    @DisplayName("진행 중이 아닌 의뢰이면 409 JOB_SUBMISSION_409_REVIEW_STATUS를 반환한다")
-    void rejectsClosedJob() throws Exception {
-        givenActiveOwner();
-        givenOwnedJob(JobStatus.CLOSED);
-        givenSubmission(JobSubmissionReviewStatus.PENDING);
-
-        mockMvc.perform(post(URL).principal(authentication))
-                .andExpect(status().isConflict())
-                .andExpect(jsonPath("$.error.code").value("JOB_SUBMISSION_409_REVIEW_STATUS"));
-    }
-
-    @Test
     @DisplayName("사업주 프로필이 없는 사용자(학생 포함)는 403 OWNER_403으로 거부하고 의뢰를 조회하지 않는다")
     void rejectsUserWithoutOwnerProfile() throws Exception {
         when(userRepository.findByUsernameAndIsLock(USERNAME, false)).thenReturn(Optional.of(
@@ -154,10 +161,10 @@ class JobRevisionRequestFlowTest {
     @Test
     @DisplayName("의뢰 ID나 제출물 ID가 0 이하이면 400을 반환하고 조회하지 않는다")
     void rejectsNonPositiveIds() throws Exception {
-        mockMvc.perform(post("/jobs/42/submissions/0/revision-request").principal(authentication))
+        mockMvc.perform(post("/jobs/42/submissions/0/complete").principal(authentication))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.error.code").value("COMMON_400"));
-        mockMvc.perform(post("/jobs/0/submissions/81/revision-request").principal(authentication))
+        mockMvc.perform(post("/jobs/0/submissions/81/complete").principal(authentication))
                 .andExpect(status().isBadRequest());
         verifyNoInteractions(userRepository, jobRepository, jobSubmissionRepository);
     }
@@ -168,14 +175,16 @@ class JobRevisionRequestFlowTest {
         when(ownerRepository.findByUserId(OWNER_USER_ID)).thenReturn(Optional.of(Owner.builder().id(5L).build()));
     }
 
-    private void givenOwnedJob(JobStatus status) {
-        when(jobRepository.findByIdAndOwnerProfileId(42L, 5L)).thenReturn(Optional.of(Job.builder()
+    private Job givenOwnedJob(JobStatus status) {
+        Job job = Job.builder()
                 .id(42L)
                 .ownerProfileId(5L)
                 .status(status)
                 .selectedStudentProfileId(7L)
                 .revisionCount(2)
-                .build()));
+                .build();
+        when(jobRepository.findByIdAndOwnerProfileId(42L, 5L)).thenReturn(Optional.of(job));
+        return job;
     }
 
     private JobSubmission givenSubmission(JobSubmissionReviewStatus reviewStatus) {

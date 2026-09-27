@@ -8,6 +8,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import java.time.Clock;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
@@ -70,7 +71,7 @@ class JobDetailFlowTest {
         SpecialtyService specialtyService = new SpecialtyService(specialtyRepository,
                 mock(StudentSpecialtyRepository.class));
         JobService jobService = new JobService(jobRepository, jobSpecialtyRepository,
-                mock(JobApplicationRepository.class), mock(JobSubmissionRepository.class), specialtyService);
+                mock(JobApplicationRepository.class), mock(JobSubmissionRepository.class), specialtyService, Clock.systemUTC());
         SpecialtyCategoryService specialtyCategoryService =
                 new SpecialtyCategoryService(specialtyCategoryRepository, specialtyRepository);
         JobFacade facade = new JobFacade(userService, mock(OwnerService.class), jobService,
