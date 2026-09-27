@@ -5,7 +5,6 @@ import java.time.LocalDateTime;
 import org.hibernate.annotations.CreationTimestamp;
 
 import com.gakkum.backend.util.UlidGenerator;
-import com.gakkum.backend.domain.user.entity.UserRole;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -47,11 +46,13 @@ public class ChatRoom {
         return chatRoom;
     }
 
-    public void markRead(UserRole role, Long messageId) {
-        if (role == UserRole.OWNER && (ownerLastReadMessageId == null || messageId > ownerLastReadMessageId)) {
-            ownerLastReadMessageId = messageId;
-        } else if (role == UserRole.STUDENT
-                && (studentLastReadMessageId == null || messageId > studentLastReadMessageId)) {
+    /** 사장님(owner) 또는 학생 쪽 읽음 위치를 앞으로만 옮긴다. */
+    public void markRead(boolean owner, Long messageId) {
+        if (owner) {
+            if (ownerLastReadMessageId == null || messageId > ownerLastReadMessageId) {
+                ownerLastReadMessageId = messageId;
+            }
+        } else if (studentLastReadMessageId == null || messageId > studentLastReadMessageId) {
             studentLastReadMessageId = messageId;
         }
     }
