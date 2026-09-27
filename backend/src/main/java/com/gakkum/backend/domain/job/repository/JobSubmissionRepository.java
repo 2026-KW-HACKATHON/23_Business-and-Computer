@@ -2,6 +2,7 @@ package com.gakkum.backend.domain.job.repository;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 
@@ -13,4 +14,6 @@ public interface JobSubmissionRepository extends JpaRepository<JobSubmission, Lo
 
     List<JobSubmission> findByJobIdInAndReviewStatus(
             Collection<Long> jobIds, JobSubmissionReviewStatus reviewStatus);
+
+    Optional<JobSubmission> findByJobIdAndReviewStatus(Long jobId, JobSubmissionReviewStatus reviewStatus);
 }

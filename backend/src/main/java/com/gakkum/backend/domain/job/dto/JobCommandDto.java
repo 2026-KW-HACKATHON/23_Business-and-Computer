@@ -58,6 +58,22 @@ public final class JobCommandDto {
     @Getter
     @Builder(access = AccessLevel.PRIVATE)
     @AllArgsConstructor(access = AccessLevel.PRIVATE)
+    public static class GetJobSubmissionCommand {
+
+        private final Long jobId;
+        private final Long ownerProfileId;
+
+        public static GetJobSubmissionCommand of(Long jobId, Long ownerProfileId) {
+            return GetJobSubmissionCommand.builder()
+                    .jobId(jobId)
+                    .ownerProfileId(ownerProfileId)
+                    .build();
+        }
+    }
+
+    @Getter
+    @Builder(access = AccessLevel.PRIVATE)
+    @AllArgsConstructor(access = AccessLevel.PRIVATE)
     public static class CreateJobCommand {
 
         private final Long ownerProfileId;

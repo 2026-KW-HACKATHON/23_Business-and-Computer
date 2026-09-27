@@ -9,6 +9,7 @@ public enum ErrorCode {
     DUPLICATE_SPECIALTY(HttpStatus.BAD_REQUEST, "SPECIALTY_400_DUPLICATE", "중복된 특기가 포함되어 있습니다."),
     BUSINESS_CATEGORY_NOT_FOUND(HttpStatus.BAD_REQUEST, "CATEGORY_400", "존재하지 않는 업종입니다."),
     JOB_NOT_FOUND(HttpStatus.NOT_FOUND, "JOB_404", "존재하지 않는 의뢰입니다."),
+    JOB_SUBMISSION_NOT_FOUND(HttpStatus.NOT_FOUND, "JOB_SUBMISSION_404", "검토 대기 중인 제출물이 없습니다."),
     JOB_APPLICATION_NOT_FOUND(HttpStatus.NOT_FOUND, "JOB_APPLICATION_404", "존재하지 않는 지원서입니다."),
     CHAT_ROOM_NOT_FOUND(HttpStatus.NOT_FOUND, "CHAT_ROOM_404", "존재하지 않는 채팅방입니다."),
     CHAT_MESSAGE_NOT_FOUND(HttpStatus.NOT_FOUND, "CHAT_MESSAGE_404", "채팅방에서 메시지를 찾을 수 없습니다."),
