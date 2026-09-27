@@ -61,6 +61,43 @@ public final class JobQueryDto {
 
     @Getter
     @AllArgsConstructor(access = AccessLevel.PRIVATE)
+    public static class JobSubmissionDetailData {
+
+        private final Job job;
+        private final JobSubmission submission;
+
+        public static JobSubmissionDetailData of(Job job, JobSubmission submission) {
+            return new JobSubmissionDetailData(job, submission);
+        }
+    }
+
+    @Getter
+    @Builder(access = AccessLevel.PRIVATE)
+    @AllArgsConstructor(access = AccessLevel.PRIVATE)
+    public static class JobSubmissionDetailResult {
+
+        private final String title;
+        private final String studentName;
+        private final String submissionType;
+        private final List<String> fileUrls;
+        private final String message;
+        private final Integer revisionNumber;
+
+        public static JobSubmissionDetailResult of(JobSubmissionDetailData data, User student) {
+            JobSubmission submission = data.getSubmission();
+            return JobSubmissionDetailResult.builder()
+                    .title(data.getJob().getTitle())
+                    .studentName(student.getName())
+                    .submissionType(submission.getSubmissionType().name())
+                    .fileUrls(List.copyOf(submission.getFileUrls()))
+                    .message(submission.getMessage())
+                    .revisionNumber(submission.getRevisionNumber())
+                    .build();
+        }
+    }
+
+    @Getter
+    @AllArgsConstructor(access = AccessLevel.PRIVATE)
     public static class OpenJobData {
 
         private final Job job;

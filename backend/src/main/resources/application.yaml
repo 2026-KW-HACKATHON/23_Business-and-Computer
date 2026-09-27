@@ -55,9 +55,13 @@ kakao-pay:
 s3: # 자격 증명은 AWS SDK 기본 체인(환경 변수, 프로필, IAM 역할)에서 읽는다
   bucket: ${S3_BUCKET}
   region: ${S3_REGION:ap-northeast-2}
+  image-bucket: ${S3_IMAGE_BUCKET} # 프로필·매장 사진용 공개 읽기 버킷. s3.region과 같은 리전이어야 한다
 chat-attachment:
   upload-url-ttl: 10m
   view-url-ttl: 15m
   upload-ttl: 1h # 업로드 준비 후 메시지 전송에 사용할 수 있는 기간
   image-max-size: 10MB
   file-max-size: 50MB
+media-image:
+  upload-url-ttl: 10m
+  max-size: 10MB

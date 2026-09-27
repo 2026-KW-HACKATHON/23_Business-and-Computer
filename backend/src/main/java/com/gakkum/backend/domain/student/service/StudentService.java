@@ -43,6 +43,20 @@ public class StudentService {
     }
 
     /**
+     * 의뢰에 선택된 학생 프로필 단건 조회
+     * @param studentProfileId
+     * @return 학생 프로필, 없으면 참조 무결성 오류(500)
+     */
+    @Transactional(readOnly = true)
+    public Student getStudentProfile(Long studentProfileId) {
+        if (studentProfileId == null) {
+            throw new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR);
+        }
+        return studentRepository.findById(studentProfileId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR));
+    }
+
+    /**
      * 진행 중(MATCHED)인 의뢰 목록에 대한 학생 정보를 반환
      * @param studentProfileIds
      * @return

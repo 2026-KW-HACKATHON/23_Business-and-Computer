@@ -126,6 +126,19 @@ public class UserService extends DefaultOAuth2UserService {
     }
 
     @Transactional(readOnly = true)
+    public User getUser(String userId) {
+        if (userId == null) {
+            throw new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR);
+        }
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR));
+        if (user.getName() == null) {
+            throw new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR);
+        }
+        return user;
+    }
+
+    @Transactional(readOnly = true)
     public Map<String, User> getUsersByIds(Collection<String> userIds) {
         if (userIds.stream().anyMatch(id -> id == null)) {
             throw new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR);

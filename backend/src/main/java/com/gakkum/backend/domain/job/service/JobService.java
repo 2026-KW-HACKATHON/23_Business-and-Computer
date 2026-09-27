@@ -9,10 +9,12 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.gakkum.backend.domain.job.dto.JobCommandDto.CreateJobCommand;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.GetClosedJobsCommand;
+import com.gakkum.backend.domain.job.dto.JobCommandDto.GetJobSubmissionCommand;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.GetMatchedJobsCommand;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.GetOpenJobsCommand;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.ClosedJobData;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.JobDetailData;
+import com.gakkum.backend.domain.job.dto.JobQueryDto.JobSubmissionDetailData;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.MatchedJobData;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.OpenJobData;
 import com.gakkum.backend.domain.job.entity.Job;
@@ -106,6 +108,26 @@ public class JobService {
                 .map(JobSpecialty::getSpecialtyId)
                 .toList();
         return JobDetailData.of(job, specialtyIds);
+    }
+
+    /**
+     * 사장님 본인 의뢰의 검토 대기(PENDING) 제출물 조회
+     * @param command
+     * @return 의뢰와 현재 검토 대기 중인 초안 또는 수정안
+     */
+    @Transactional(readOnly = true)
+    public JobSubmissionDetailData getPendingSubmission(GetJobSubmissionCommand command) {
+        Job job = jobRepository.findByIdAndOwnerProfileId(command.getJobId(), command.getOwnerProfileId())
+                .orElseThrow(() -> new BusinessException(ErrorCode.JOB_NOT_FOUND));
+        JobSubmission submission = jobSubmissionRepository
+                .findByJobIdAndReviewStatus(job.getId(), JobSubmissionReviewStatus.PENDING)
+                .orElseThrow(() -> new BusinessException(ErrorCode.JOB_SUBMISSION_NOT_FOUND));
+
+        // 제출물이 있는 의뢰는 선택된 학생이 반드시 있어야 함
+        if (job.getSelectedStudentProfileId() == null) {
+            throw new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR);
+        }
+        return JobSubmissionDetailData.of(job, submission);
     }
 
     /**
