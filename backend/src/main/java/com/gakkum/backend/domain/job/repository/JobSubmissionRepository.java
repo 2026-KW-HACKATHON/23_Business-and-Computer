@@ -18,4 +18,6 @@ public interface JobSubmissionRepository extends JpaRepository<JobSubmission, Lo
     Optional<JobSubmission> findByJobIdAndReviewStatus(Long jobId, JobSubmissionReviewStatus reviewStatus);
 
     boolean existsByJobId(Long jobId);
+
+    Optional<JobSubmission> findFirstByJobIdOrderByRevisionNumberDesc(Long jobId);
 }

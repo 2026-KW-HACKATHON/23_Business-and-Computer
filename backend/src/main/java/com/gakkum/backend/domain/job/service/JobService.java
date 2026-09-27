@@ -184,6 +184,51 @@ public class JobService {
         }
     }
 
+    /**
+     * 수정안을 제출할 수 있는지 확인. 파일 저장소 확인 전에 빠르게 거절하기 위해 사용한다.
+     * @param jobId
+     * @param studentProfileId
+     */
+    @Transactional(readOnly = true)
+    public void validateRevisionSubmittable(Long jobId, Long studentProfileId) {
+        nextRevisionNumber(getSubmittableJob(jobId, studentProfileId));
+    }
+
+    /**
+     * 수정안 제출. 최신 제출물이 수정 요청(REVISION_REQUESTED) 상태일 때만 다음 번호로 저장한다.
+     * 최종 마감일이 지나도 제출할 수 있다.
+     * 의뢰 행을 잠가 같은 의뢰의 동시 제출을 순서대로 처리하고, 유니크 제약 충돌도 수정 요청 없음으로 본다.
+     * @param command
+     * @param studentProfileId
+     * @return 저장된 수정안(revisionNumber = 최신 번호 + 1, PENDING)
+     */
+    @Transactional
+    public JobSubmission submitRevision(CreateJobSubmissionCommand command, Long studentProfileId) {
+        Job job = jobRepository.findLockedById(command.getJobId())
+                .orElseThrow(() -> new BusinessException(ErrorCode.JOB_NOT_FOUND));
+        validateSubmittable(job, studentProfileId);
+        int revisionNumber = nextRevisionNumber(job);
+
+        try {
+            return jobSubmissionRepository.saveAndFlush(JobSubmission.create(
+                    job.getId(), JobSubmissionType.REVISION, revisionNumber, command.getFileUrls(),
+                    command.getMessage()));
+        } catch (DataIntegrityViolationException exception) {
+            throw new BusinessException(ErrorCode.JOB_SUBMISSION_REVISION_NOT_REQUESTED);
+        }
+    }
+
+    private int nextRevisionNumber(Job job) {
+        JobSubmission latest = jobSubmissionRepository.findFirstByJobIdOrderByRevisionNumberDesc(job.getId())
+                .filter(submission -> submission.getReviewStatus() == JobSubmissionReviewStatus.REVISION_REQUESTED)
+                .orElseThrow(() -> new BusinessException(ErrorCode.JOB_SUBMISSION_REVISION_NOT_REQUESTED));
+        int revisionNumber = latest.getRevisionNumber() + 1;
+        if (revisionNumber > job.getRevisionCount()) {
+            throw new BusinessException(ErrorCode.JOB_SUBMISSION_REVISION_LIMIT_EXCEEDED);
+        }
+        return revisionNumber;
+    }
+
     private void validateSubmittable(Job job, Long studentProfileId) {
         if (!studentProfileId.equals(job.getSelectedStudentProfileId())) {
             throw new BusinessException(ErrorCode.JOB_SUBMISSION_FORBIDDEN);
