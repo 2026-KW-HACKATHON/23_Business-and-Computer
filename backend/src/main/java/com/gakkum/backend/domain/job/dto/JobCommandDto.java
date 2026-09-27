@@ -74,6 +74,53 @@ public final class JobCommandDto {
     @Getter
     @Builder(access = AccessLevel.PRIVATE)
     @AllArgsConstructor(access = AccessLevel.PRIVATE)
+    public static class PrepareSubmissionFileUploadCommand {
+
+        private final String username;
+        private final Long jobId;
+        private final JobSubmissionFileType type;
+        private final String fileName;
+        private final String contentType;
+        private final long size;
+
+        public static PrepareSubmissionFileUploadCommand of(
+                String username, Long jobId, JobSubmissionFileType type, String fileName, String contentType,
+                long size) {
+            return PrepareSubmissionFileUploadCommand.builder()
+                    .username(username)
+                    .jobId(jobId)
+                    .type(type)
+                    .fileName(fileName)
+                    .contentType(contentType)
+                    .size(size)
+                    .build();
+        }
+    }
+
+    @Getter
+    @Builder(access = AccessLevel.PRIVATE)
+    @AllArgsConstructor(access = AccessLevel.PRIVATE)
+    public static class CreateJobSubmissionCommand {
+
+        private final String username;
+        private final Long jobId;
+        private final List<String> fileUrls;
+        private final String message;
+
+        public static CreateJobSubmissionCommand of(
+                String username, Long jobId, List<String> fileUrls, String message) {
+            return CreateJobSubmissionCommand.builder()
+                    .username(username)
+                    .jobId(jobId)
+                    .fileUrls(List.copyOf(fileUrls))
+                    .message(message)
+                    .build();
+        }
+    }
+
+    @Getter
+    @Builder(access = AccessLevel.PRIVATE)
+    @AllArgsConstructor(access = AccessLevel.PRIVATE)
     public static class CreateJobCommand {
 
         private final Long ownerProfileId;

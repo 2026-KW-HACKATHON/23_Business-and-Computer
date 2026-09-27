@@ -1,7 +1,9 @@
 package com.gakkum.backend.domain.job.dto;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 
 import com.gakkum.backend.domain.job.entity.Job;
 import com.gakkum.backend.domain.job.entity.JobSubmission;
@@ -92,6 +94,43 @@ public final class JobQueryDto {
                     .fileUrls(List.copyOf(submission.getFileUrls()))
                     .message(submission.getMessage())
                     .revisionNumber(submission.getRevisionNumber())
+                    .build();
+        }
+    }
+
+    @Getter
+    @AllArgsConstructor(access = AccessLevel.PRIVATE)
+    public static class PrepareSubmissionFileUploadResult {
+
+        private final String uploadUrl;
+        private final Map<String, String> uploadHeaders;
+        private final LocalDateTime uploadUrlExpiresAt;
+        private final String fileUrl;
+
+        public static PrepareSubmissionFileUploadResult of(String uploadUrl, Map<String, String> uploadHeaders,
+                LocalDateTime uploadUrlExpiresAt, String fileUrl) {
+            return new PrepareSubmissionFileUploadResult(uploadUrl, uploadHeaders, uploadUrlExpiresAt, fileUrl);
+        }
+    }
+
+    @Getter
+    @Builder(access = AccessLevel.PRIVATE)
+    @AllArgsConstructor(access = AccessLevel.PRIVATE)
+    public static class JobSubmissionCreateResult {
+
+        private final Long submissionId;
+        private final Long jobId;
+        private final String submissionType;
+        private final Integer revisionNumber;
+        private final String reviewStatus;
+
+        public static JobSubmissionCreateResult from(JobSubmission submission) {
+            return JobSubmissionCreateResult.builder()
+                    .submissionId(submission.getId())
+                    .jobId(submission.getJobId())
+                    .submissionType(submission.getSubmissionType().name())
+                    .revisionNumber(submission.getRevisionNumber())
+                    .reviewStatus(submission.getReviewStatus().name())
                     .build();
         }
     }

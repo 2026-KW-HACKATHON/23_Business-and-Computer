@@ -4,10 +4,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.gakkum.backend.domain.job.dto.JobCommandDto.CreateJobCommand;
+import com.gakkum.backend.domain.job.dto.JobCommandDto.CreateJobSubmissionCommand;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.GetClosedJobsCommand;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.GetJobSubmissionCommand;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.GetMatchedJobsCommand;
@@ -23,6 +25,7 @@ import com.gakkum.backend.domain.job.entity.JobApplicationStatus;
 import com.gakkum.backend.domain.job.entity.JobSpecialty;
 import com.gakkum.backend.domain.job.entity.JobSubmission;
 import com.gakkum.backend.domain.job.entity.JobSubmissionReviewStatus;
+import com.gakkum.backend.domain.job.entity.JobSubmissionType;
 import com.gakkum.backend.domain.job.entity.JobStatus;
 import com.gakkum.backend.domain.job.repository.JobApplicationRepository;
 import com.gakkum.backend.domain.job.repository.JobRepository;
@@ -128,6 +131,66 @@ public class JobService {
             throw new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR);
         }
         return JobSubmissionDetailData.of(job, submission);
+    }
+
+    /**
+     * 학생이 작업물 파일을 올릴 수 있는 의뢰인지 확인
+     * @param jobId
+     * @param studentProfileId
+     * @return 요청한 학생이 매칭된 진행 중(MATCHED) 의뢰
+     */
+    @Transactional(readOnly = true)
+    public Job getSubmittableJob(Long jobId, Long studentProfileId) {
+        Job job = jobRepository.findById(jobId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.JOB_NOT_FOUND));
+        validateSubmittable(job, studentProfileId);
+        return job;
+    }
+
+    /**
+     * 첫 초안을 제출할 수 있는지 확인. 파일 저장소 확인 전에 빠르게 거절하기 위해 사용한다.
+     * @param jobId
+     * @param studentProfileId
+     */
+    @Transactional(readOnly = true)
+    public void validateDraftSubmittable(Long jobId, Long studentProfileId) {
+        getSubmittableJob(jobId, studentProfileId);
+        if (jobSubmissionRepository.existsByJobId(jobId)) {
+            throw new BusinessException(ErrorCode.JOB_SUBMISSION_ALREADY_EXISTS);
+        }
+    }
+
+    /**
+     * 첫 초안 제출. 마감일이 지나도 제출할 수 있다.
+     * 의뢰 행을 잠가 같은 의뢰의 동시 제출을 순서대로 처리하고, 유니크 제약 충돌도 중복 제출로 본다.
+     * @param command
+     * @param studentProfileId
+     * @return 저장된 초안(revisionNumber 0, PENDING)
+     */
+    @Transactional
+    public JobSubmission submitDraft(CreateJobSubmissionCommand command, Long studentProfileId) {
+        Job job = jobRepository.findLockedById(command.getJobId())
+                .orElseThrow(() -> new BusinessException(ErrorCode.JOB_NOT_FOUND));
+        validateSubmittable(job, studentProfileId);
+        if (jobSubmissionRepository.existsByJobId(job.getId())) {
+            throw new BusinessException(ErrorCode.JOB_SUBMISSION_ALREADY_EXISTS);
+        }
+
+        try {
+            return jobSubmissionRepository.saveAndFlush(JobSubmission.create(
+                    job.getId(), JobSubmissionType.DRAFT, 0, command.getFileUrls(), command.getMessage()));
+        } catch (DataIntegrityViolationException exception) {
+            throw new BusinessException(ErrorCode.JOB_SUBMISSION_ALREADY_EXISTS);
+        }
+    }
+
+    private void validateSubmittable(Job job, Long studentProfileId) {
+        if (!studentProfileId.equals(job.getSelectedStudentProfileId())) {
+            throw new BusinessException(ErrorCode.JOB_SUBMISSION_FORBIDDEN);
+        }
+        if (job.getStatus() != JobStatus.MATCHED) {
+            throw new BusinessException(ErrorCode.JOB_SUBMISSION_NOT_AVAILABLE);
+        }
     }
 
     /**
