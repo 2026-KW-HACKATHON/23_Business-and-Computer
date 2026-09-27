@@ -122,18 +122,22 @@ public class JobFacade {
     public JobSubmissionCreateResult submitDraft(CreateJobSubmissionCommand command) {
         Student student = getSubmittingStudent(command.getUsername());
         jobService.validateDraftSubmittable(command.getJobId(), student.getId());
-
-        List<String> keys = command.getFileUrls().stream()
-                .map(fileUrl -> jobSubmissionFileStorageClient.findKey(fileUrl, command.getJobId(), student.getId())
-                        .orElseThrow(() -> new BusinessException(ErrorCode.JOB_SUBMISSION_FILE_URL_INVALID)))
-                .toList();
-        for (String key : keys) {
-            if (!jobSubmissionFileStorageClient.exists(key)) {
-                throw new BusinessException(ErrorCode.JOB_SUBMISSION_FILE_NOT_UPLOADED);
-            }
-        }
+        validateUploadedFiles(command, student.getId());
 
         JobSubmission submission = jobService.submitDraft(command, student.getId());
+        return JobSubmissionCreateResult.from(submission);
+    }
+
+    /**
+     * 매칭된 학생의 수정안 제출. 수정 번호는 서버가 정한다.
+     * 파일 저장소 확인이 DB 트랜잭션과 커넥션을 붙잡지 않도록 이 메서드에는 트랜잭션을 두지 않는다.
+     */
+    public JobSubmissionCreateResult submitRevision(CreateJobSubmissionCommand command) {
+        Student student = getSubmittingStudent(command.getUsername());
+        jobService.validateRevisionSubmittable(command.getJobId(), student.getId());
+        validateUploadedFiles(command, student.getId());
+
+        JobSubmission submission = jobService.submitRevision(command, student.getId());
         return JobSubmissionCreateResult.from(submission);
     }
 
@@ -229,6 +233,19 @@ public class JobFacade {
         }
         return studentService.findStudentProfileByUserId(user.getId())
                 .orElseThrow(() -> new BusinessException(ErrorCode.JOB_SUBMISSION_FORBIDDEN));
+    }
+
+    /** 모든 URL이 이 의뢰·학생용으로 발급한 경로인지 먼저 확인한 뒤 실제 업로드 여부를 확인한다. */
+    private void validateUploadedFiles(CreateJobSubmissionCommand command, Long studentProfileId) {
+        List<String> keys = command.getFileUrls().stream()
+                .map(fileUrl -> jobSubmissionFileStorageClient.findKey(fileUrl, command.getJobId(), studentProfileId)
+                        .orElseThrow(() -> new BusinessException(ErrorCode.JOB_SUBMISSION_FILE_URL_INVALID)))
+                .toList();
+        for (String key : keys) {
+            if (!jobSubmissionFileStorageClient.exists(key)) {
+                throw new BusinessException(ErrorCode.JOB_SUBMISSION_FILE_NOT_UPLOADED);
+            }
+        }
     }
 
     // 만료 시각은 다른 API 응답과 같은 JVM 기본 시간대로 내린다

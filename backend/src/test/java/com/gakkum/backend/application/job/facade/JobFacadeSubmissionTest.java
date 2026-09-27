@@ -179,6 +179,63 @@ class JobFacadeSubmissionTest {
         verifyNoInteractions(storageClient);
     }
 
+    @Test
+    @DisplayName("수정안도 URL과 업로드를 확인한 뒤 저장하고 REVISION 결과를 반환한다")
+    void submitsRevision() {
+        givenStudent(UserRole.STUDENT);
+        when(storageClient.findKey(FILE_URL, 42L, 7L)).thenReturn(Optional.of(KEY));
+        when(storageClient.exists(KEY)).thenReturn(true);
+        CreateJobSubmissionCommand command = command(List.of(FILE_URL));
+        when(jobService.submitRevision(command, 7L)).thenReturn(JobSubmission.builder()
+                .id(82L)
+                .jobId(42L)
+                .submissionType(JobSubmissionType.REVISION)
+                .revisionNumber(1)
+                .reviewStatus(JobSubmissionReviewStatus.PENDING)
+                .build());
+
+        JobSubmissionCreateResult result = jobFacade.submitRevision(command);
+
+        verify(jobService).validateRevisionSubmittable(42L, 7L);
+        assertThat(result.getSubmissionId()).isEqualTo(82L);
+        assertThat(result.getSubmissionType()).isEqualTo("REVISION");
+        assertThat(result.getRevisionNumber()).isEqualTo(1);
+        assertThat(result.getReviewStatus()).isEqualTo("PENDING");
+    }
+
+    @Test
+    @DisplayName("수정안에 발급하지 않은 URL이 있으면 JOB_SUBMISSION_400_FILE_URL로 거부하고 저장하지 않는다")
+    void rejectsRevisionWithForeignUrl() {
+        givenStudent(UserRole.STUDENT);
+        when(storageClient.findKey(anyString(), anyLong(), anyLong())).thenReturn(Optional.empty());
+
+        assertError(() -> jobFacade.submitRevision(command(List.of("https://evil.example.com/a.pdf"))),
+                ErrorCode.JOB_SUBMISSION_FILE_URL_INVALID);
+        verify(storageClient, never()).exists(anyString());
+        verify(jobService, never()).submitRevision(any(), anyLong());
+    }
+
+    @Test
+    @DisplayName("수정 요청이 없으면 S3 확인 전에 JOB_SUBMISSION_409_REVISION_NOT_REQUESTED로 거부한다")
+    void rejectsRevisionNotRequestedBeforeStorageCheck() {
+        givenStudent(UserRole.STUDENT);
+        doThrow(new BusinessException(ErrorCode.JOB_SUBMISSION_REVISION_NOT_REQUESTED))
+                .when(jobService).validateRevisionSubmittable(42L, 7L);
+
+        assertError(() -> jobFacade.submitRevision(command(List.of(FILE_URL))),
+                ErrorCode.JOB_SUBMISSION_REVISION_NOT_REQUESTED);
+        verifyNoInteractions(storageClient);
+    }
+
+    @Test
+    @DisplayName("학생이 아닌 사용자의 수정안은 JOB_SUBMISSION_403으로 거부한다")
+    void rejectsRevisionFromNonStudent() {
+        givenStudent(UserRole.OWNER);
+
+        assertError(() -> jobFacade.submitRevision(command(List.of(FILE_URL))), ErrorCode.JOB_SUBMISSION_FORBIDDEN);
+        verifyNoInteractions(jobService, storageClient);
+    }
+
     private void givenStudent(UserRole role) {
         when(userService.getActiveUser(USERNAME)).thenReturn(
                 User.builder().id(USER_ID).username(USERNAME).role(role).build());
