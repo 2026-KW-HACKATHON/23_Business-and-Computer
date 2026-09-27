@@ -9,7 +9,9 @@ import static org.mockito.Mockito.when;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.stream.IntStream;
 
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -147,6 +149,22 @@ class OwnerControllerTest {
         assertThat(validator.validate(request))
                 .extracting(violation -> violation.getPropertyPath().toString())
                 .contains("storeImageUrls[1].<list element>", "storeImageUrls[2].<list element>", "profileImageUrl");
+    }
+
+    @Test
+    @DisplayName("매장 사진 URL은 5개까지 허용하고 6개부터 거부한다")
+    void limitsStoreImageUrlsToFive() {
+        List<String> five = IntStream.rangeClosed(1, 5)
+                .mapToObj(index -> "https://image.example.com/store-" + index + ".png")
+                .toList();
+        List<String> six = IntStream.rangeClosed(1, 6)
+                .mapToObj(index -> "https://image.example.com/store-" + index + ".png")
+                .toList();
+
+        assertThat(validator.validate(validRequest("1234567890", five))).isEmpty();
+        assertThat(validator.validate(validRequest("1234567890", six)))
+                .extracting(violation -> violation.getPropertyPath().toString())
+                .containsExactly("storeImageUrls");
     }
 
     @Test

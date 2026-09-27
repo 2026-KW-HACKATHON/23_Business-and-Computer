@@ -51,6 +51,7 @@ public class OwnerRegistrationRequest {
 
     private String description;
 
+    @Size(max = 5)
     private List<@NotBlank @Size(max = 255) @Pattern(regexp = "^https?://\\S+$") String> storeImageUrls;
 
     @Size(max = 255)
