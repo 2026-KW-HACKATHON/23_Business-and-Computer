@@ -1,5 +1,8 @@
 package com.gakkum.backend.domain.job.service;
 
+import java.time.Clock;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -8,6 +11,7 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.gakkum.backend.domain.job.dto.JobCommandDto.CompleteJobSubmissionCommand;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.CreateJobCommand;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.CreateJobSubmissionCommand;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.GetClosedJobsCommand;
@@ -49,6 +53,7 @@ public class JobService {
     private final JobApplicationRepository jobApplicationRepository;
     private final JobSubmissionRepository jobSubmissionRepository;
     private final SpecialtyService specialtyService;
+    private final Clock clock;
 
     @Transactional
     public Job createJob(CreateJobCommand command) {
@@ -246,6 +251,25 @@ public class JobService {
         submission.requestRevision();
     }
 
+    /**
+     * 사장님이 검토 대기(PENDING) 초안 또는 수정안을 최종 결과로 수락하고 의뢰를 즉시 종료한다.
+     * 의뢰 행을 잠가 같은 의뢰의 수정 요청·수정안 제출과 순서대로 처리한다.
+     * @param command
+     */
+    @Transactional
+    public void completeSubmission(CompleteJobSubmissionCommand command) {
+        Job job = jobRepository.findByIdAndOwnerProfileId(command.getJobId(), command.getOwnerProfileId())
+                .orElseThrow(() -> new BusinessException(ErrorCode.JOB_NOT_FOUND));
+        JobSubmission submission = jobSubmissionRepository.findById(command.getSubmissionId())
+                .filter(found -> found.getJobId().equals(job.getId()))
+                .orElseThrow(() -> new BusinessException(ErrorCode.JOB_SUBMISSION_NOT_FOUND));
+        if (job.getStatus() != JobStatus.MATCHED) {
+            throw new BusinessException(ErrorCode.JOB_SUBMISSION_REVIEW_NOT_AVAILABLE);
+        }
+        submission.approve();
+        job.complete(now());
+    }
+
     private int nextRevisionNumber(Job job) {
         JobSubmission latest = jobSubmissionRepository.findFirstByJobIdOrderByRevisionNumberDesc(job.getId())
                 .filter(submission -> submission.getReviewStatus() == JobSubmissionReviewStatus.REVISION_REQUESTED)
@@ -387,5 +411,10 @@ public class JobService {
                                 .map(JobSpecialty::getSpecialtyId)
                                 .toList()))
                 .toList();
+    }
+
+    // createdAt과 같은 JVM 기본 시간대로 완료 시각을 기록한다
+    private LocalDateTime now() {
+        return LocalDateTime.ofInstant(clock.instant(), ZoneId.systemDefault());
     }
 }

@@ -98,4 +98,12 @@ public class JobSubmission {
         }
         reviewStatus = JobSubmissionReviewStatus.REVISION_REQUESTED;
     }
+
+    /** 검토 대기(PENDING) 제출물만 최종 결과로 승인(APPROVED)할 수 있다. */
+    public void approve() {
+        if (reviewStatus != JobSubmissionReviewStatus.PENDING) {
+            throw new BusinessException(ErrorCode.JOB_SUBMISSION_ALREADY_REVIEWED);
+        }
+        reviewStatus = JobSubmissionReviewStatus.APPROVED;
+    }
 }

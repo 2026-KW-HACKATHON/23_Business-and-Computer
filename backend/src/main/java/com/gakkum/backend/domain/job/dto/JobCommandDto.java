@@ -106,6 +106,24 @@ public final class JobCommandDto {
     @Getter
     @Builder(access = AccessLevel.PRIVATE)
     @AllArgsConstructor(access = AccessLevel.PRIVATE)
+    public static class CompleteJobSubmissionCommand {
+
+        private final Long jobId;
+        private final Long submissionId;
+        private final Long ownerProfileId;
+
+        public static CompleteJobSubmissionCommand of(Long jobId, Long submissionId, Long ownerProfileId) {
+            return CompleteJobSubmissionCommand.builder()
+                    .jobId(jobId)
+                    .submissionId(submissionId)
+                    .ownerProfileId(ownerProfileId)
+                    .build();
+        }
+    }
+
+    @Getter
+    @Builder(access = AccessLevel.PRIVATE)
+    @AllArgsConstructor(access = AccessLevel.PRIVATE)
     public static class PrepareSubmissionFileUploadCommand {
 
         private final String username;

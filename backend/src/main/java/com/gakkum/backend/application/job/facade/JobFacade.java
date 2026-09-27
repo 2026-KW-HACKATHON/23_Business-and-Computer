@@ -18,6 +18,7 @@ import com.gakkum.backend.domain.chat.entity.ChatMessageType;
 import com.gakkum.backend.domain.chat.service.ChatAttachmentPolicy;
 import com.gakkum.backend.domain.job.client.JobSubmissionFileStorageClient;
 import com.gakkum.backend.domain.job.client.JobSubmissionFileStorageClient.PresignedFileUpload;
+import com.gakkum.backend.domain.job.dto.JobCommandDto.CompleteJobSubmissionCommand;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.CreateJobSubmissionCommand;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.GetClosedJobsCommand;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.GetJobSubmissionCommand;
@@ -152,6 +153,14 @@ public class JobFacade {
         User user = userService.getActiveUser(username);
         Owner owner = ownerService.getOwnerProfile(user.getId());
         jobService.requestRevision(RequestJobSubmissionRevisionCommand.of(jobId, submissionId, owner.getId()));
+    }
+
+    /** 사장님 본인 의뢰의 검토 대기 제출물을 최종 결과로 수락하고 의뢰를 종료한다. */
+    @Transactional
+    public void completeSubmission(String username, Long jobId, Long submissionId) {
+        User user = userService.getActiveUser(username);
+        Owner owner = ownerService.getOwnerProfile(user.getId());
+        jobService.completeSubmission(CompleteJobSubmissionCommand.of(jobId, submissionId, owner.getId()));
     }
 
     @Transactional(readOnly = true)

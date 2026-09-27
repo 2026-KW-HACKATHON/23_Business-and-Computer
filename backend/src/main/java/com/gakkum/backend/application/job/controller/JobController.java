@@ -112,6 +112,17 @@ public class JobController {
         return ResponseEntity.ok(ApiResponse.success());
     }
 
+    /** 사장님이 검토 대기 제출물을 최종 결과로 수락해 의뢰를 즉시 완료하는 API */
+    @PostMapping("/jobs/{jobId}/submissions/{submissionId}/complete")
+    public ResponseEntity<ApiResponse<Void>> completeSubmission(
+            Authentication authentication, @PathVariable Long jobId, @PathVariable Long submissionId) {
+        if (jobId <= 0 || submissionId <= 0) {
+            throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE);
+        }
+        jobFacade.completeSubmission(authentication.getName(), jobId, submissionId);
+        return ResponseEntity.ok(ApiResponse.success());
+    }
+
     @GetMapping("/me/jobs")
     public ResponseEntity<ApiResponse<?>> getJobs(
             Authentication authentication, @RequestParam(required = false) String status) {
