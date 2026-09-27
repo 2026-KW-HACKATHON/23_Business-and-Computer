@@ -12,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.gakkum.backend.application.job.dto.JobCreateRequest;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.GetClosedJobsCommand;
+import com.gakkum.backend.domain.job.dto.JobCommandDto.GetJobSubmissionCommand;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.GetMatchedJobsCommand;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.GetOpenJobsCommand;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.ClosedJobData;
@@ -19,6 +20,8 @@ import com.gakkum.backend.domain.job.dto.JobQueryDto.ClosedJobListResult;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.ClosedJobResult;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.JobDetailData;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.JobDetailResult;
+import com.gakkum.backend.domain.job.dto.JobQueryDto.JobSubmissionDetailData;
+import com.gakkum.backend.domain.job.dto.JobQueryDto.JobSubmissionDetailResult;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.MatchedJobData;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.MatchedJobListResult;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.MatchedJobResult;
@@ -63,6 +66,18 @@ public class JobFacade {
         JobDetailData data = jobService.getJobDetail(jobId);
         Map<Long, SpecialtyDetail> specialtiesById = specialtyCategoryService.getSpecialtyDetails(data.getSpecialtyIds());
         return JobDetailResult.of(data, groupSpecialties(data.getSpecialtyIds(), specialtiesById));
+    }
+
+    @Transactional(readOnly = true)
+    public JobSubmissionDetailResult getPendingSubmission(String username, Long jobId) {
+        User user = userService.getActiveUser(username);
+        Owner owner = ownerService.getOwnerProfile(user.getId());
+        JobSubmissionDetailData data = jobService.getPendingSubmission(
+                GetJobSubmissionCommand.of(jobId, owner.getId()));
+
+        Student student = studentService.getStudentProfile(data.getJob().getSelectedStudentProfileId());
+        User studentUser = userService.getUser(student.getUserId());
+        return JobSubmissionDetailResult.of(data, studentUser);
     }
 
     @Transactional(readOnly = true)
