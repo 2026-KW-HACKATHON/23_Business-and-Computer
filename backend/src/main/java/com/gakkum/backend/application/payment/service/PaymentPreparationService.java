@@ -9,6 +9,7 @@ import com.gakkum.backend.domain.job.entity.JobApplication;
 import com.gakkum.backend.domain.job.service.JobService;
 import com.gakkum.backend.domain.owner.entity.Owner;
 import com.gakkum.backend.domain.owner.service.OwnerService;
+import com.gakkum.backend.domain.payment.dto.PaymentCommandDto.PreparePaymentCommand;
 import com.gakkum.backend.domain.payment.dto.PaymentQueryDto.PendingPaymentData;
 import com.gakkum.backend.domain.payment.entity.Payment;
 import com.gakkum.backend.domain.payment.service.PaymentService;
@@ -38,7 +39,8 @@ public class PaymentPreparationService {
         Owner owner = ownerService.getOwnerProfile(user.getId());
         Job job = jobService.getPayableJobForUpdate(jobId, owner.getId());
         JobApplication application = jobService.getPayableApplication(jobId, request.getJobApplicationId());
-        Payment payment = paymentService.preparePayment(job, application, user.getId());
+        Payment payment = paymentService.preparePayment(PreparePaymentCommand.of(
+                job.getId(), application.getId(), user.getId(), job.getBudget()));
         return new PendingPaymentData(payment.getOrderId(), payment.getAmount(), job.getTitle(), user.getId());
     }
 }

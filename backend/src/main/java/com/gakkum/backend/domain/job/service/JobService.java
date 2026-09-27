@@ -1,34 +1,45 @@
 package com.gakkum.backend.domain.job.service;
 
+import java.time.Clock;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.gakkum.backend.domain.job.dto.JobCommandDto.CompleteJobSubmissionCommand;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.CreateJobCommand;
+import com.gakkum.backend.domain.job.dto.JobCommandDto.CreateJobSubmissionCommand;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.GetClosedJobsCommand;
+import com.gakkum.backend.domain.job.dto.JobCommandDto.GetJobResultCommand;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.GetJobSubmissionCommand;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.GetMatchedJobsCommand;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.GetOpenJobsCommand;
+import com.gakkum.backend.domain.job.dto.JobCommandDto.GetStudentMatchedJobsCommand;
+import com.gakkum.backend.domain.job.dto.JobCommandDto.RequestJobSubmissionRevisionCommand;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.ClosedJobData;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.JobDetailData;
+import com.gakkum.backend.domain.job.dto.JobQueryDto.JobResultData;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.JobSubmissionDetailData;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.MatchedJobData;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.OpenJobData;
+import com.gakkum.backend.domain.job.dto.JobQueryDto.StudentMatchedJobData;
 import com.gakkum.backend.domain.job.entity.Job;
 import com.gakkum.backend.domain.job.entity.JobApplication;
 import com.gakkum.backend.domain.job.entity.JobApplicationStatus;
 import com.gakkum.backend.domain.job.entity.JobSpecialty;
 import com.gakkum.backend.domain.job.entity.JobSubmission;
 import com.gakkum.backend.domain.job.entity.JobSubmissionReviewStatus;
+import com.gakkum.backend.domain.job.entity.JobSubmissionType;
 import com.gakkum.backend.domain.job.entity.JobStatus;
 import com.gakkum.backend.domain.job.repository.JobApplicationRepository;
 import com.gakkum.backend.domain.job.repository.JobRepository;
 import com.gakkum.backend.domain.job.repository.JobSpecialtyRepository;
 import com.gakkum.backend.domain.job.repository.JobSubmissionRepository;
-import com.gakkum.backend.domain.specialty.service.SpecialtyService;
 import com.gakkum.backend.global.exception.BusinessException;
 import com.gakkum.backend.global.exception.ErrorCode;
 
@@ -42,12 +53,10 @@ public class JobService {
     private final JobSpecialtyRepository jobSpecialtyRepository;
     private final JobApplicationRepository jobApplicationRepository;
     private final JobSubmissionRepository jobSubmissionRepository;
-    private final SpecialtyService specialtyService;
+    private final Clock clock;
 
     @Transactional
     public Job createJob(CreateJobCommand command) {
-        specialtyService.validateSpecialtyIds(command.getSpecialtyIds());
-
         Job job = Job.create(
                 command.getOwnerProfileId(),
                 command.getTitle(),
@@ -131,6 +140,191 @@ public class JobService {
     }
 
     /**
+     * 학생이 작업물 파일을 올릴 수 있는 의뢰인지 확인
+     * @param jobId
+     * @param studentProfileId
+     * @return 요청한 학생이 매칭된 진행 중(MATCHED) 의뢰
+     */
+    @Transactional(readOnly = true)
+    public Job getSubmittableJob(Long jobId, Long studentProfileId) {
+        Job job = jobRepository.findById(jobId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.JOB_NOT_FOUND));
+        validateSubmittable(job, studentProfileId);
+        return job;
+    }
+
+    /**
+     * 첫 초안을 제출할 수 있는지 확인. 파일 저장소 확인 전에 빠르게 거절하기 위해 사용한다.
+     * @param jobId
+     * @param studentProfileId
+     */
+    @Transactional(readOnly = true)
+    public void validateDraftSubmittable(Long jobId, Long studentProfileId) {
+        getSubmittableJob(jobId, studentProfileId);
+        if (jobSubmissionRepository.existsByJobId(jobId)) {
+            throw new BusinessException(ErrorCode.JOB_SUBMISSION_ALREADY_EXISTS);
+        }
+    }
+
+    /**
+     * 첫 초안 제출. 마감일이 지나도 제출할 수 있다.
+     * 의뢰 행을 잠가 같은 의뢰의 동시 제출을 순서대로 처리하고, 유니크 제약 충돌도 중복 제출로 본다.
+     * @param command
+     * @param studentProfileId
+     * @return 저장된 초안(revisionNumber 0, PENDING)
+     */
+    @Transactional
+    public JobSubmission submitDraft(CreateJobSubmissionCommand command, Long studentProfileId) {
+        Job job = jobRepository.findLockedById(command.getJobId())
+                .orElseThrow(() -> new BusinessException(ErrorCode.JOB_NOT_FOUND));
+        validateSubmittable(job, studentProfileId);
+        if (jobSubmissionRepository.existsByJobId(job.getId())) {
+            throw new BusinessException(ErrorCode.JOB_SUBMISSION_ALREADY_EXISTS);
+        }
+
+        try {
+            return jobSubmissionRepository.saveAndFlush(JobSubmission.create(
+                    job.getId(), JobSubmissionType.DRAFT, 0, command.getFileUrls(), command.getMessage()));
+        } catch (DataIntegrityViolationException exception) {
+            throw new BusinessException(ErrorCode.JOB_SUBMISSION_ALREADY_EXISTS);
+        }
+    }
+
+    /**
+     * 수정안을 제출할 수 있는지 확인. 파일 저장소 확인 전에 빠르게 거절하기 위해 사용한다.
+     * @param jobId
+     * @param studentProfileId
+     */
+    @Transactional(readOnly = true)
+    public void validateRevisionSubmittable(Long jobId, Long studentProfileId) {
+        nextRevisionNumber(getSubmittableJob(jobId, studentProfileId));
+    }
+
+    /**
+     * 수정안 제출. 최신 제출물이 수정 요청(REVISION_REQUESTED) 상태일 때만 다음 번호로 저장한다.
+     * 최종 마감일이 지나도 제출할 수 있다.
+     * 의뢰 행을 잠가 같은 의뢰의 동시 제출을 순서대로 처리하고, 유니크 제약 충돌도 수정 요청 없음으로 본다.
+     * @param command
+     * @param studentProfileId
+     * @return 저장된 수정안(revisionNumber = 최신 번호 + 1, PENDING)
+     */
+    @Transactional
+    public JobSubmission submitRevision(CreateJobSubmissionCommand command, Long studentProfileId) {
+        Job job = jobRepository.findLockedById(command.getJobId())
+                .orElseThrow(() -> new BusinessException(ErrorCode.JOB_NOT_FOUND));
+        validateSubmittable(job, studentProfileId);
+        int revisionNumber = nextRevisionNumber(job);
+
+        try {
+            return jobSubmissionRepository.saveAndFlush(JobSubmission.create(
+                    job.getId(), JobSubmissionType.REVISION, revisionNumber, command.getFileUrls(),
+                    command.getMessage()));
+        } catch (DataIntegrityViolationException exception) {
+            throw new BusinessException(ErrorCode.JOB_SUBMISSION_REVISION_NOT_REQUESTED);
+        }
+    }
+
+    /**
+     * 사장님이 검토 대기(PENDING) 제출물에 수정을 요청한다.
+     * 의뢰 행을 잠가 같은 의뢰의 수정 요청·수정안 제출을 순서대로 처리한다.
+     * 요청 후 학생이 낼 수정안 번호(현재 번호 + 1)가 수정 가능 횟수를 넘으면 거부한다.
+     * @param command
+     */
+    @Transactional
+    public void requestRevision(RequestJobSubmissionRevisionCommand command) {
+        Job job = jobRepository.findByIdAndOwnerProfileId(command.getJobId(), command.getOwnerProfileId())
+                .orElseThrow(() -> new BusinessException(ErrorCode.JOB_NOT_FOUND));
+        JobSubmission submission = jobSubmissionRepository.findById(command.getSubmissionId())
+                .filter(found -> found.getJobId().equals(job.getId()))
+                .orElseThrow(() -> new BusinessException(ErrorCode.JOB_SUBMISSION_NOT_FOUND));
+        if (job.getStatus() != JobStatus.MATCHED) {
+            throw new BusinessException(ErrorCode.JOB_SUBMISSION_REVIEW_NOT_AVAILABLE);
+        }
+        if (submission.getReviewStatus() != JobSubmissionReviewStatus.PENDING) {
+            throw new BusinessException(ErrorCode.JOB_SUBMISSION_ALREADY_REVIEWED);
+        }
+        if (submission.getRevisionNumber() >= job.getRevisionCount()) {
+            throw new BusinessException(ErrorCode.JOB_SUBMISSION_REVISION_LIMIT_EXCEEDED);
+        }
+        submission.requestRevision(now());
+    }
+
+    /**
+     * 사장님이 검토 대기(PENDING) 초안 또는 수정안을 최종 결과로 수락하고 의뢰를 즉시 종료한다.
+     * 의뢰 행을 잠가 같은 의뢰의 수정 요청·수정안 제출과 순서대로 처리한다.
+     * @param command
+     */
+    @Transactional
+    public void completeSubmission(CompleteJobSubmissionCommand command) {
+        Job job = jobRepository.findByIdAndOwnerProfileId(command.getJobId(), command.getOwnerProfileId())
+                .orElseThrow(() -> new BusinessException(ErrorCode.JOB_NOT_FOUND));
+        JobSubmission submission = jobSubmissionRepository.findById(command.getSubmissionId())
+                .filter(found -> found.getJobId().equals(job.getId()))
+                .orElseThrow(() -> new BusinessException(ErrorCode.JOB_SUBMISSION_NOT_FOUND));
+        if (job.getStatus() != JobStatus.MATCHED) {
+            throw new BusinessException(ErrorCode.JOB_SUBMISSION_REVIEW_NOT_AVAILABLE);
+        }
+        submission.approve();
+        job.complete(now());
+    }
+
+    /**
+     * 완료된(CLOSED) 의뢰의 결과물과 전체 제출 이력을 조회한다.
+     * 존재하지 않는 의뢰, 요청자가 의뢰한 사장님·담당 학생이 아닌 의뢰, 완료되지 않은 의뢰는 모두 같은 404로 거부한다.
+     * @param command 사장님 또는 학생 프로필 ID 중 하나만 채워진 요청
+     * @return 수정 번호 오름차순 제출물과 최종 승인된 제출물
+     */
+    @Transactional(readOnly = true)
+    public JobResultData getJobResult(GetJobResultCommand command) {
+        Job job = jobRepository.findById(command.getJobId())
+                .filter(found -> found.getStatus() == JobStatus.CLOSED)
+                .filter(found -> isResultViewer(found, command))
+                .orElseThrow(() -> new BusinessException(ErrorCode.JOB_RESULT_NOT_FOUND));
+        if (job.getCompletedAt() == null || job.getSelectedStudentProfileId() == null) {
+            throw new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR);
+        }
+
+        // 완료된 의뢰는 마지막 제출물이 사장님이 최종 승인한 제출물이어야 함
+        List<JobSubmission> submissions = jobSubmissionRepository.findByJobIdOrderByRevisionNumberAsc(job.getId());
+        if (submissions.isEmpty()) {
+            throw new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR);
+        }
+        JobSubmission approved = submissions.get(submissions.size() - 1);
+        if (approved.getReviewStatus() != JobSubmissionReviewStatus.APPROVED) {
+            throw new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR);
+        }
+        return JobResultData.of(job, submissions, approved);
+    }
+
+    private boolean isResultViewer(Job job, GetJobResultCommand command) {
+        if (command.getOwnerProfileId() != null) {
+            return command.getOwnerProfileId().equals(job.getOwnerProfileId());
+        }
+        return command.getStudentProfileId() != null
+                && command.getStudentProfileId().equals(job.getSelectedStudentProfileId());
+    }
+
+    private int nextRevisionNumber(Job job) {
+        JobSubmission latest = jobSubmissionRepository.findFirstByJobIdOrderByRevisionNumberDesc(job.getId())
+                .filter(submission -> submission.getReviewStatus() == JobSubmissionReviewStatus.REVISION_REQUESTED)
+                .orElseThrow(() -> new BusinessException(ErrorCode.JOB_SUBMISSION_REVISION_NOT_REQUESTED));
+        int revisionNumber = latest.getRevisionNumber() + 1;
+        if (revisionNumber > job.getRevisionCount()) {
+            throw new BusinessException(ErrorCode.JOB_SUBMISSION_REVISION_LIMIT_EXCEEDED);
+        }
+        return revisionNumber;
+    }
+
+    private void validateSubmittable(Job job, Long studentProfileId) {
+        if (!studentProfileId.equals(job.getSelectedStudentProfileId())) {
+            throw new BusinessException(ErrorCode.JOB_SUBMISSION_FORBIDDEN);
+        }
+        if (job.getStatus() != JobStatus.MATCHED) {
+            throw new BusinessException(ErrorCode.JOB_SUBMISSION_NOT_AVAILABLE);
+        }
+    }
+
+    /**
      * 보낸 의뢰 목록 조회 메서드
      * @param command
      * @return
@@ -193,6 +387,38 @@ public class JobService {
                 .toList();
     }
 
+    /**
+     * 학생 본인과 매칭된 진행 중(MATCHED) 의뢰를 생성 최신순으로 조회하고 의뢰별 최신 제출물을 연결한다.
+     * @param command
+     * @return 제출물이 없는 의뢰는 latestSubmission이 null
+     */
+    @Transactional(readOnly = true)
+    public List<StudentMatchedJobData> getStudentMatchedJobs(GetStudentMatchedJobsCommand command) {
+        List<Job> jobs = jobRepository.findBySelectedStudentProfileIdAndStatusOrderByCreatedAtDescIdDesc(
+                command.getStudentProfileId(), JobStatus.MATCHED);
+        if (jobs.isEmpty()) {
+            return List.of();
+        }
+
+        List<Long> jobIds = jobs.stream().map(Job::getId).toList();
+        Map<Long, List<JobSpecialty>> specialtiesByJobId = jobSpecialtyRepository.findByJobIdIn(jobIds).stream()
+                .collect(Collectors.groupingBy(JobSpecialty::getJobId));
+        Map<Long, JobSubmission> latestSubmissionsByJobId = jobSubmissionRepository.findByJobIdIn(jobIds).stream()
+                .collect(Collectors.toMap(
+                        JobSubmission::getJobId,
+                        submission -> submission,
+                        (left, right) -> left.getRevisionNumber() >= right.getRevisionNumber() ? left : right));
+
+        return jobs.stream()
+                .map(job -> StudentMatchedJobData.of(
+                        job,
+                        specialtiesByJobId.getOrDefault(job.getId(), List.of()).stream()
+                                .map(JobSpecialty::getSpecialtyId)
+                                .toList(),
+                        latestSubmissionsByJobId.get(job.getId())))
+                .toList();
+    }
+
     @Transactional(readOnly = true)
     public List<ClosedJobData> getClosedJobs(GetClosedJobsCommand command) {
         List<Job> jobs = jobRepository.findByOwnerProfileIdAndStatusOrderByCompletedAtDescIdDesc(
@@ -219,5 +445,10 @@ public class JobService {
                                 .map(JobSpecialty::getSpecialtyId)
                                 .toList()))
                 .toList();
+    }
+
+    // createdAt과 같은 JVM 기본 시간대로 완료 시각을 기록한다
+    private LocalDateTime now() {
+        return LocalDateTime.ofInstant(clock.instant(), ZoneId.systemDefault());
     }
 }

@@ -44,6 +44,20 @@ public final class JobCommandDto {
     @Getter
     @Builder(access = AccessLevel.PRIVATE)
     @AllArgsConstructor(access = AccessLevel.PRIVATE)
+    public static class GetStudentMatchedJobsCommand {
+
+        private final Long studentProfileId;
+
+        public static GetStudentMatchedJobsCommand of(Long studentProfileId) {
+            return GetStudentMatchedJobsCommand.builder()
+                    .studentProfileId(studentProfileId)
+                    .build();
+        }
+    }
+
+    @Getter
+    @Builder(access = AccessLevel.PRIVATE)
+    @AllArgsConstructor(access = AccessLevel.PRIVATE)
     public static class GetClosedJobsCommand {
 
         private final Long ownerProfileId;
@@ -67,6 +81,115 @@ public final class JobCommandDto {
             return GetJobSubmissionCommand.builder()
                     .jobId(jobId)
                     .ownerProfileId(ownerProfileId)
+                    .build();
+        }
+    }
+
+    @Getter
+    @Builder(access = AccessLevel.PRIVATE)
+    @AllArgsConstructor(access = AccessLevel.PRIVATE)
+    public static class GetJobResultCommand {
+
+        private final Long jobId;
+        private final Long ownerProfileId;
+        private final Long studentProfileId;
+
+        /** 의뢰한 사장님으로 결과물을 조회한다. */
+        public static GetJobResultCommand ofOwner(Long jobId, Long ownerProfileId) {
+            return GetJobResultCommand.builder()
+                    .jobId(jobId)
+                    .ownerProfileId(ownerProfileId)
+                    .build();
+        }
+
+        /** 담당 학생으로 결과물을 조회한다. */
+        public static GetJobResultCommand ofStudent(Long jobId, Long studentProfileId) {
+            return GetJobResultCommand.builder()
+                    .jobId(jobId)
+                    .studentProfileId(studentProfileId)
+                    .build();
+        }
+    }
+
+    @Getter
+    @Builder(access = AccessLevel.PRIVATE)
+    @AllArgsConstructor(access = AccessLevel.PRIVATE)
+    public static class RequestJobSubmissionRevisionCommand {
+
+        private final Long jobId;
+        private final Long submissionId;
+        private final Long ownerProfileId;
+
+        public static RequestJobSubmissionRevisionCommand of(Long jobId, Long submissionId, Long ownerProfileId) {
+            return RequestJobSubmissionRevisionCommand.builder()
+                    .jobId(jobId)
+                    .submissionId(submissionId)
+                    .ownerProfileId(ownerProfileId)
+                    .build();
+        }
+    }
+
+    @Getter
+    @Builder(access = AccessLevel.PRIVATE)
+    @AllArgsConstructor(access = AccessLevel.PRIVATE)
+    public static class CompleteJobSubmissionCommand {
+
+        private final Long jobId;
+        private final Long submissionId;
+        private final Long ownerProfileId;
+
+        public static CompleteJobSubmissionCommand of(Long jobId, Long submissionId, Long ownerProfileId) {
+            return CompleteJobSubmissionCommand.builder()
+                    .jobId(jobId)
+                    .submissionId(submissionId)
+                    .ownerProfileId(ownerProfileId)
+                    .build();
+        }
+    }
+
+    @Getter
+    @Builder(access = AccessLevel.PRIVATE)
+    @AllArgsConstructor(access = AccessLevel.PRIVATE)
+    public static class PrepareSubmissionFileUploadCommand {
+
+        private final String username;
+        private final Long jobId;
+        private final JobSubmissionFileType type;
+        private final String fileName;
+        private final String contentType;
+        private final long size;
+
+        public static PrepareSubmissionFileUploadCommand of(
+                String username, Long jobId, JobSubmissionFileType type, String fileName, String contentType,
+                long size) {
+            return PrepareSubmissionFileUploadCommand.builder()
+                    .username(username)
+                    .jobId(jobId)
+                    .type(type)
+                    .fileName(fileName)
+                    .contentType(contentType)
+                    .size(size)
+                    .build();
+        }
+    }
+
+    @Getter
+    @Builder(access = AccessLevel.PRIVATE)
+    @AllArgsConstructor(access = AccessLevel.PRIVATE)
+    public static class CreateJobSubmissionCommand {
+
+        private final String username;
+        private final Long jobId;
+        private final List<String> fileUrls;
+        private final String message;
+
+        public static CreateJobSubmissionCommand of(
+                String username, Long jobId, List<String> fileUrls, String message) {
+            return CreateJobSubmissionCommand.builder()
+                    .username(username)
+                    .jobId(jobId)
+                    .fileUrls(List.copyOf(fileUrls))
+                    .message(message)
                     .build();
         }
     }

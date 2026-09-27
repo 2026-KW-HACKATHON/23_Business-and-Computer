@@ -175,7 +175,7 @@ public class ChatFacade {
                 .orElseThrow(() -> new BusinessException(ErrorCode.JOB_NOT_FOUND));
         requireParticipant(viewer, job);
 
-        chatService.markRead(room, viewer.getRole(), command.getLastReadMessageId());
+        chatService.markRead(room, viewer.getRole() == UserRole.OWNER, command.getLastReadMessageId());
     }
 
     @Transactional

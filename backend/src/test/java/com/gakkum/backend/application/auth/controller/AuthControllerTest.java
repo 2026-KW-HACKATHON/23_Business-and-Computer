@@ -20,8 +20,8 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
+import com.gakkum.backend.application.auth.facade.AuthFacade;
 import com.gakkum.backend.domain.auth.dto.AuthCommandDto.VerifyOwnerBusinessCommand;
-import com.gakkum.backend.domain.auth.service.AuthService;
 import com.gakkum.backend.global.exception.GlobalExceptionHandler;
 
 import static org.mockito.Mockito.mock;
@@ -29,14 +29,14 @@ import static org.mockito.Mockito.mock;
 @DisplayName("인증 API")
 class AuthControllerTest {
 
-    private final AuthService authService = mock(AuthService.class);
+    private final AuthFacade authFacade = mock(AuthFacade.class);
     private final UsernamePasswordAuthenticationToken authentication =
             new UsernamePasswordAuthenticationToken("KAKAO_12345", null);
     private MockMvc mockMvc;
 
     @BeforeEach
     void setUp() {
-        mockMvc = MockMvcBuilders.standaloneSetup(new AuthController(authService))
+        mockMvc = MockMvcBuilders.standaloneSetup(new AuthController(authFacade))
                 .setControllerAdvice(new GlobalExceptionHandler())
                 .build();
     }
@@ -50,7 +50,7 @@ class AuthControllerTest {
                 .content("{\"email\":\"STUDENT@KW.AC.KR\"}"))
             .andExpect(status().isOk())
             .andExpect(content().json("{\"success\":true}", true));
-        verify(authService).sendStudentEmailVerification("KAKAO_12345", "student@kw.ac.kr");
+        verify(authFacade).sendStudentEmailVerification("KAKAO_12345", "student@kw.ac.kr");
 
         mockMvc.perform(post("/auth/student-verification/email/verify")
                 .principal(authentication)
@@ -58,7 +58,7 @@ class AuthControllerTest {
                 .content("{\"email\":\"STUDENT@KW.AC.KR\",\"code\":\"123456\"}"))
             .andExpect(status().isOk())
             .andExpect(content().json("{\"success\":true}", true));
-        verify(authService).verifyStudentEmail("KAKAO_12345", "student@kw.ac.kr", "123456");
+        verify(authFacade).verifyStudentEmail("KAKAO_12345", "student@kw.ac.kr", "123456");
     }
 
     @Test
@@ -82,7 +82,7 @@ class AuthControllerTest {
     @Test
     @DisplayName("사업자 인증 요청을 정규화하고 일치 여부를 공통 응답으로 반환한다")
     void verifiesOwnerBusiness() throws Exception {
-        when(authService.verifyOwnerBusiness(any(VerifyOwnerBusinessCommand.class))).thenReturn(true);
+        when(authFacade.verifyOwnerBusiness(any(VerifyOwnerBusinessCommand.class))).thenReturn(true);
 
         mockMvc.perform(post("/auth/owner-verification/business")
                 .principal(authentication)
@@ -93,7 +93,7 @@ class AuthControllerTest {
             .andExpect(content().json("{\"success\":true,\"data\":{\"verified\":true}}", true));
         ArgumentCaptor<VerifyOwnerBusinessCommand> captor =
                 ArgumentCaptor.forClass(VerifyOwnerBusinessCommand.class);
-        verify(authService).verifyOwnerBusiness(captor.capture());
+        verify(authFacade).verifyOwnerBusiness(captor.capture());
         assertThat(captor.getValue().getUsername()).isEqualTo("KAKAO_12345");
         assertThat(captor.getValue().getBusinessNumber()).isEqualTo("1234567890");
         assertThat(captor.getValue().getOpenedAt()).isEqualTo(java.time.LocalDate.of(2020, 3, 1));

@@ -2,7 +2,9 @@ package com.gakkum.backend.application.payment.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
@@ -10,6 +12,7 @@ import java.time.Instant;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 
 import com.gakkum.backend.application.payment.dto.PaymentPrepareRequest;
 import com.gakkum.backend.domain.job.entity.Job;
@@ -17,6 +20,7 @@ import com.gakkum.backend.domain.job.entity.JobApplication;
 import com.gakkum.backend.domain.job.service.JobService;
 import com.gakkum.backend.domain.owner.entity.Owner;
 import com.gakkum.backend.domain.owner.service.OwnerService;
+import com.gakkum.backend.domain.payment.dto.PaymentCommandDto.PreparePaymentCommand;
 import com.gakkum.backend.domain.payment.dto.PaymentQueryDto.PendingPaymentData;
 import com.gakkum.backend.domain.payment.entity.Payment;
 import com.gakkum.backend.domain.payment.service.PaymentService;
@@ -49,7 +53,7 @@ class PaymentPreparationServiceTest {
         when(ownerService.getOwnerProfile(USER_ID)).thenReturn(owner);
         when(jobService.getPayableJobForUpdate(11L, 7L)).thenReturn(job);
         when(jobService.getPayableApplication(11L, 21L)).thenReturn(application);
-        when(paymentService.preparePayment(job, application, USER_ID)).thenReturn(payment);
+        when(paymentService.preparePayment(any(PreparePaymentCommand.class))).thenReturn(payment);
 
         PendingPaymentData result = service.createPending("KAKAO_123", 11L, PaymentPrepareRequest.of(21L, true));
 
@@ -57,6 +61,12 @@ class PaymentPreparationServiceTest {
         assertThat(result.amount()).isEqualTo(100_000L);
         assertThat(result.orderName()).isEqualTo("포스터 제작");
         assertThat(result.ownerUserId()).isEqualTo(USER_ID);
+        ArgumentCaptor<PreparePaymentCommand> command = ArgumentCaptor.forClass(PreparePaymentCommand.class);
+        verify(paymentService).preparePayment(command.capture());
+        assertThat(command.getValue().getJobId()).isEqualTo(11L);
+        assertThat(command.getValue().getJobApplicationId()).isEqualTo(21L);
+        assertThat(command.getValue().getOwnerUserId()).isEqualTo(USER_ID);
+        assertThat(command.getValue().getAmount()).isEqualTo(100_000L);
     }
 
     @Test

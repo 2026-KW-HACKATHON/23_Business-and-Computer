@@ -10,7 +10,7 @@ import com.gakkum.backend.application.auth.dto.OwnerBusinessVerificationRequest;
 import com.gakkum.backend.application.auth.dto.OwnerBusinessVerificationResponse;
 import com.gakkum.backend.application.auth.dto.StudentEmailSendRequest;
 import com.gakkum.backend.application.auth.dto.StudentEmailVerifyRequest;
-import com.gakkum.backend.domain.auth.service.AuthService;
+import com.gakkum.backend.application.auth.facade.AuthFacade;
 import com.gakkum.backend.global.response.ApiResponse;
 
 import jakarta.validation.Valid;
@@ -20,26 +20,26 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class AuthController {
 
-    private final AuthService authService;
+    private final AuthFacade authFacade;
 
     @PostMapping("/auth/student-verification/email")
     public ResponseEntity<ApiResponse<Void>> sendStudentEmailVerification(Authentication authentication,
                                                  @Valid @RequestBody StudentEmailSendRequest request) {
-        authService.sendStudentEmailVerification(authentication.getName(), request.normalizedEmail());
+        authFacade.sendStudentEmailVerification(authentication.getName(), request.normalizedEmail());
         return ResponseEntity.ok(ApiResponse.success());
     }
 
     @PostMapping("/auth/student-verification/email/verify")
     public ResponseEntity<ApiResponse<Void>> verifyStudentEmail(Authentication authentication,
                                                    @Valid @RequestBody StudentEmailVerifyRequest request) {
-        authService.verifyStudentEmail(authentication.getName(), request.normalizedEmail(), request.code());
+        authFacade.verifyStudentEmail(authentication.getName(), request.normalizedEmail(), request.code());
         return ResponseEntity.ok(ApiResponse.success());
     }
 
     @PostMapping("/auth/owner-verification/business")
     public ResponseEntity<ApiResponse<OwnerBusinessVerificationResponse>> verifyOwnerBusiness(
             Authentication authentication, @Valid @RequestBody OwnerBusinessVerificationRequest request) {
-        boolean verified = authService.verifyOwnerBusiness(request.toCommand(authentication.getName()));
+        boolean verified = authFacade.verifyOwnerBusiness(request.toCommand(authentication.getName()));
         return ResponseEntity.ok(ApiResponse.success(OwnerBusinessVerificationResponse.of(verified)));
     }
 }

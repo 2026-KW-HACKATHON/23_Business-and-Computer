@@ -8,6 +8,9 @@ import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.annotations.UpdateTimestamp;
 import org.hibernate.type.SqlTypes;
 
+import com.gakkum.backend.global.exception.BusinessException;
+import com.gakkum.backend.global.exception.ErrorCode;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -86,5 +89,22 @@ public class JobSubmission {
                 .message(message)
                 .reviewStatus(JobSubmissionReviewStatus.PENDING)
                 .build();
+    }
+
+    /** 검토 대기(PENDING) 제출물만 수정 요청 상태로 바꿀 수 있고, 요청 시각을 reviewedAt에 기록한다. */
+    public void requestRevision(LocalDateTime requestedAt) {
+        if (reviewStatus != JobSubmissionReviewStatus.PENDING) {
+            throw new BusinessException(ErrorCode.JOB_SUBMISSION_ALREADY_REVIEWED);
+        }
+        reviewStatus = JobSubmissionReviewStatus.REVISION_REQUESTED;
+        reviewedAt = requestedAt;
+    }
+
+    /** 검토 대기(PENDING) 제출물만 최종 결과로 승인(APPROVED)할 수 있다. */
+    public void approve() {
+        if (reviewStatus != JobSubmissionReviewStatus.PENDING) {
+            throw new BusinessException(ErrorCode.JOB_SUBMISSION_ALREADY_REVIEWED);
+        }
+        reviewStatus = JobSubmissionReviewStatus.APPROVED;
     }
 }

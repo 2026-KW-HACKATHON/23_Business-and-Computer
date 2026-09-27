@@ -19,7 +19,6 @@ import com.gakkum.backend.domain.chat.entity.ChatAttachmentUploadStatus;
 import com.gakkum.backend.domain.chat.entity.ChatMessage;
 import com.gakkum.backend.domain.chat.entity.ChatMessageType;
 import com.gakkum.backend.domain.chat.entity.ChatRoom;
-import com.gakkum.backend.domain.user.entity.UserRole;
 
 @SpringBootTest
 @Transactional
@@ -55,7 +54,7 @@ class ChatRepositoryIntegrationTest {
         assertThat(messageRepository.countUnreadByRoomIds(List.of(room.getId()), STUDENT_ID, false))
                 .singleElement().extracting(ChatMessageRepository.UnreadCount::getUnreadCount).isEqualTo(1L);
 
-        room.markRead(UserRole.OWNER, first.getId());
+        room.markRead(true, first.getId());
         roomRepository.flush();
 
         assertThat(messageRepository.countUnreadByRoomIds(List.of(room.getId()), OWNER_ID, true))

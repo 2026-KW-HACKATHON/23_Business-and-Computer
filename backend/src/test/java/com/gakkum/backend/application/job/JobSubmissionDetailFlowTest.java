@@ -7,6 +7,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import java.time.Clock;
 import java.util.List;
 import java.util.Optional;
 
@@ -19,6 +20,8 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import com.gakkum.backend.application.job.controller.JobController;
 import com.gakkum.backend.application.job.facade.JobFacade;
+import com.gakkum.backend.domain.chat.service.ChatAttachmentPolicy;
+import com.gakkum.backend.domain.job.client.JobSubmissionFileStorageClient;
 import com.gakkum.backend.domain.job.entity.Job;
 import com.gakkum.backend.domain.job.entity.JobStatus;
 import com.gakkum.backend.domain.job.entity.JobSubmission;
@@ -33,6 +36,7 @@ import com.gakkum.backend.domain.jwt.service.JwtService;
 import com.gakkum.backend.domain.owner.entity.Owner;
 import com.gakkum.backend.domain.owner.repository.OwnerRepository;
 import com.gakkum.backend.domain.owner.service.OwnerService;
+import com.gakkum.backend.domain.payment.service.PaymentService;
 import com.gakkum.backend.domain.specialty.service.SpecialtyCategoryService;
 import com.gakkum.backend.domain.specialty.service.SpecialtyService;
 import com.gakkum.backend.domain.student.entity.Student;
@@ -65,9 +69,11 @@ class JobSubmissionDetailFlowTest {
     void setUp() {
         UserService userService = new UserService(userRepository, mock(JwtService.class));
         JobService jobService = new JobService(jobRepository, mock(JobSpecialtyRepository.class),
-                mock(JobApplicationRepository.class), jobSubmissionRepository, mock(SpecialtyService.class));
+                mock(JobApplicationRepository.class), jobSubmissionRepository,
+                Clock.systemUTC());
         JobFacade facade = new JobFacade(userService, new OwnerService(ownerRepository), jobService,
-                mock(SpecialtyCategoryService.class), new StudentService(studentRepository));
+                mock(SpecialtyCategoryService.class), mock(SpecialtyService.class), new StudentService(studentRepository),
+                mock(JobSubmissionFileStorageClient.class), mock(ChatAttachmentPolicy.class), mock(PaymentService.class));
         mockMvc = MockMvcBuilders.standaloneSetup(new JobController(facade))
                 .setControllerAdvice(new GlobalExceptionHandler())
                 .build();
@@ -93,6 +99,25 @@ class JobSubmissionDetailFlowTest {
                 .andExpect(jsonPath("$.data.revisionNumber").value(0))
                 .andExpect(jsonPath("$.data.reviewStatus").doesNotExist())
                 .andExpect(jsonPath("$.data.revisionCount").doesNotExist());
+    }
+
+    @Test
+    @DisplayName("수정 요청에 쓸 수 있도록 검토 대기 제출물의 submissionId를 함께 반환한다")
+    void returnsSubmissionId() throws Exception {
+        givenOwnerWithStudent();
+        givenPendingSubmission(JobSubmission.builder()
+                .id(81L)
+                .jobId(42L)
+                .submissionType(JobSubmissionType.DRAFT)
+                .revisionNumber(0)
+                .fileUrls(List.of("https://example.com/draft.pdf"))
+                .message("초안입니다.")
+                .reviewStatus(JobSubmissionReviewStatus.PENDING)
+                .build());
+
+        mockMvc.perform(get("/jobs/42/submission").principal(authentication))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.submissionId").value(81));
     }
 
     @Test

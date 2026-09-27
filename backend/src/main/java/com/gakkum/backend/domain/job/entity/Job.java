@@ -105,4 +105,13 @@ public class Job {
         status = JobStatus.MATCHED;
         selectedStudentProfileId = studentProfileId;
     }
+
+    /** 진행 중(MATCHED) 의뢰만 종료(CLOSED)하고 완료 시각을 기록한다. */
+    public void complete(LocalDateTime completedAt) {
+        if (status != JobStatus.MATCHED) {
+            throw new BusinessException(ErrorCode.JOB_SUBMISSION_REVIEW_NOT_AVAILABLE);
+        }
+        status = JobStatus.CLOSED;
+        this.completedAt = completedAt;
+    }
 }

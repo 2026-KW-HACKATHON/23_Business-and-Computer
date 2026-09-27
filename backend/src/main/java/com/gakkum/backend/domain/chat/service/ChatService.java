@@ -21,7 +21,6 @@ import com.gakkum.backend.domain.chat.entity.ChatRoom;
 import com.gakkum.backend.domain.chat.repository.ChatAttachmentUploadRepository;
 import com.gakkum.backend.domain.chat.repository.ChatMessageRepository;
 import com.gakkum.backend.domain.chat.repository.ChatRoomRepository;
-import com.gakkum.backend.domain.user.entity.UserRole;
 import com.gakkum.backend.global.exception.BusinessException;
 import com.gakkum.backend.global.exception.ErrorCode;
 
@@ -73,9 +72,15 @@ public class ChatService {
                 .orElseThrow(() -> new BusinessException(ErrorCode.CHAT_MESSAGE_NOT_FOUND));
     }
 
-    public void markRead(ChatRoom room, UserRole role, Long lastReadMessageId) {
+    /**
+     * 참여자의 읽음 위치를 갱신한다. 참여자 여부와 역할 판단은 호출하는 퍼사드가 먼저 수행한다.
+     * @param room
+     * @param owner 사장님 쪽 읽음 위치이면 true, 학생 쪽이면 false
+     * @param lastReadMessageId
+     */
+    public void markRead(ChatRoom room, boolean owner, Long lastReadMessageId) {
         ChatMessage message = findMessage(room, lastReadMessageId);
-        room.markRead(role, message.getId());
+        room.markRead(owner, message.getId());
     }
 
     public SendMessageResult sendTextMessage(ChatRoom room, String senderUserId, UUID clientMessageId, String content) {

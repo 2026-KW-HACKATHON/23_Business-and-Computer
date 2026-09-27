@@ -24,9 +24,6 @@ import com.gakkum.backend.domain.auth.client.NtsBusinessVerificationClient;
 import com.gakkum.backend.domain.auth.dto.AuthCommandDto.VerifyOwnerBusinessCommand;
 import com.gakkum.backend.domain.auth.entity.StudentEmailVerification;
 import com.gakkum.backend.domain.auth.repository.StudentEmailVerificationRepository;
-import com.gakkum.backend.domain.user.entity.User;
-import com.gakkum.backend.domain.user.entity.UserRole;
-import com.gakkum.backend.domain.user.repository.UserRepository;
 import com.gakkum.backend.global.exception.BusinessException;
 import com.gakkum.backend.global.exception.ErrorCode;
 
@@ -37,7 +34,6 @@ public class AuthService {
     private static final BCryptPasswordEncoder CODE_ENCODER = new BCryptPasswordEncoder();
     private static final String VERIFICATION_MAIL_TEMPLATE = "mail/student-email-verification.html";
 
-    private final UserRepository userRepository;
     private final StudentEmailVerificationRepository verificationRepository;
     private final JavaMailSender mailSender;
     private final NtsBusinessVerificationClient businessVerificationClient;
@@ -46,13 +42,11 @@ public class AuthService {
     private final String verificationMailTemplate;
 
     public AuthService(
-            UserRepository userRepository,
             StudentEmailVerificationRepository verificationRepository,
             JavaMailSender mailSender,
             NtsBusinessVerificationClient businessVerificationClient,
             Clock clock,
             @Value("${spring.mail.username}") String senderAddress) {
-        this.userRepository = userRepository;
         this.verificationRepository = verificationRepository;
         this.mailSender = mailSender;
         this.businessVerificationClient = businessVerificationClient;
@@ -61,25 +55,25 @@ public class AuthService {
         this.verificationMailTemplate = loadTemplate(VERIFICATION_MAIL_TEMPLATE);
     }
 
+    /**
+     * 사업자등록정보 진위 확인. 가입 대기 사용자 검증은 호출하는 퍼사드가 먼저 수행한다.
+     * @param command
+     * @return 국세청 확인 결과
+     */
     public boolean verifyOwnerBusiness(VerifyOwnerBusinessCommand command) {
-        User user = userRepository.findByUsernameAndIsLock(command.getUsername(), false)
-                .orElseThrow(() -> new BusinessException(ErrorCode.UNAUTHORIZED));
-        if (user.getRole() != UserRole.PENDING) {
-            throw new BusinessException(ErrorCode.ALREADY_REGISTERED);
-        }
         return businessVerificationClient.verify(
                 command.getBusinessNumber(), command.getOpenedAt(), command.getRepresentativeName());
     }
 
+    /**
+     * 학생 이메일 인증번호 발송. 가입 대기 여부와 이메일 중복은 호출하는 퍼사드가 먼저 검증한다.
+     * @param userId 검증을 마친 가입 대기 사용자 ID
+     * @param email
+     */
     @Transactional
-    public void sendStudentEmailVerification(String username, String email) {
-        User user = pendingUser(username);
-        if (userRepository.existsByEmailIgnoreCase(email)) {
-            throw new BusinessException(ErrorCode.DUPLICATE_EMAIL);
-        }
-
+    public void sendStudentEmailVerification(String userId, String email) {
         Instant now = clock.instant();
-        StudentEmailVerification verification = verificationRepository.findById(user.getId()).orElse(null);
+        StudentEmailVerification verification = verificationRepository.findById(userId).orElse(null);
         if (verification != null && verification.getSentAt().plusSeconds(60).isAfter(now)) {
             throw new BusinessException(ErrorCode.STUDENT_EMAIL_VERIFICATION_COOLDOWN);
         }
@@ -91,7 +85,7 @@ public class AuthService {
                 && CODE_ENCODER.matches(code, verification.getCodeHash()));
         String codeHash = CODE_ENCODER.encode(code);
         if (verification == null) {
-            verification = StudentEmailVerification.create(user.getId(), email, codeHash, now);
+            verification = StudentEmailVerification.create(userId, email, codeHash, now);
         } else {
             verification.renew(email, codeHash, now);
         }
@@ -112,10 +106,15 @@ public class AuthService {
         }
     }
 
+    /**
+     * 학생 이메일 인증번호 확인. 오입력 횟수는 예외를 던져도 저장되어야 하므로 BusinessException에 롤백하지 않는다.
+     * @param userId 검증을 마친 가입 대기 사용자 ID
+     * @param email
+     * @param code
+     */
     @Transactional(noRollbackFor = BusinessException.class)
-    public void verifyStudentEmail(String username, String email, String code) {
-        User user = pendingUser(username);
-        StudentEmailVerification verification = verificationRepository.findById(user.getId())
+    public void verifyStudentEmail(String userId, String email, String code) {
+        StudentEmailVerification verification = verificationRepository.findById(userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.STUDENT_EMAIL_VERIFICATION_INVALID));
         Instant now = clock.instant();
         if (!verification.getEmail().equals(email)
@@ -133,10 +132,13 @@ public class AuthService {
         verification.markVerified(now);
     }
 
+    /**
+     * 가입 시 검증된 학생 이메일을 한 번 소비한다. 사용자 검증은 호출하는 퍼사드가 먼저 수행한다.
+     * @param userId 검증을 마친 가입 대기 사용자 ID
+     * @param email
+     */
     @Transactional
     public void consumeVerifiedStudentEmail(String userId, String email) {
-        userRepository.findByIdAndIsLockFalse(userId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.UNAUTHORIZED));
         StudentEmailVerification verification = verificationRepository.findById(userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.STUDENT_EMAIL_VERIFICATION_REQUIRED));
         Instant verifiedAt = verification.getVerifiedAt();
@@ -154,14 +156,5 @@ public class AuthService {
         } catch (IOException exception) {
             throw new UncheckedIOException("메일 템플릿을 읽을 수 없습니다: " + path, exception);
         }
-    }
-
-    private User pendingUser(String username) {
-        User user = userRepository.findByUsernameAndIsLockFalse(username)
-                .orElseThrow(() -> new BusinessException(ErrorCode.UNAUTHORIZED));
-        if (user.getRole() != UserRole.PENDING) {
-            throw new BusinessException(ErrorCode.ALREADY_REGISTERED);
-        }
-        return user;
     }
 }

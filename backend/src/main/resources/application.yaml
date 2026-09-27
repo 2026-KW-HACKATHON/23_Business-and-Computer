@@ -65,3 +65,5 @@ chat-attachment:
 media-image:
   upload-url-ttl: 10m
   max-size: 10MB
+job-submission-file: # 초안·수정안 파일은 s3.image-bucket의 job-submissions/ 경로에 공개로 저장한다
+  upload-url-ttl: 10m

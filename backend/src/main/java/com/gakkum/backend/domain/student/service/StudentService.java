@@ -2,6 +2,7 @@ package com.gakkum.backend.domain.student.service;
 
 import java.util.Collection;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
@@ -54,6 +55,16 @@ public class StudentService {
         }
         return studentRepository.findById(studentProfileId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR));
+    }
+
+    /**
+     * 사용자 ID로 학생 프로필 조회
+     * @param userId
+     * @return 학생 프로필, 학생이 아니면 빈 값
+     */
+    @Transactional(readOnly = true)
+    public Optional<Student> findStudentProfileByUserId(String userId) {
+        return studentRepository.findByUserId(userId);
     }
 
     /**
