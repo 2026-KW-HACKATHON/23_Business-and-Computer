@@ -37,7 +37,7 @@ import com.gakkum.backend.global.exception.BusinessException;
 import com.gakkum.backend.global.exception.ErrorCode;
 import com.gakkum.backend.global.exception.GlobalExceptionHandler;
 
-@DisplayName("학생 초안 제출 컨트롤러 (POST /jobs/{jobId}/submission, /uploads)")
+@DisplayName("학생 작업물 제출 컨트롤러 (POST /jobs/{jobId}/submission, /uploads, /revisions)")
 class JobSubmissionCreateControllerTest {
 
     private static final String USERNAME = "KAKAO_12345";
@@ -161,6 +161,68 @@ class JobSubmissionCreateControllerTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.error.code").value("COMMON_400"));
         verifyNoInteractions(jobFacade);
+    }
+
+    @Test
+    @DisplayName("수정안 제출은 201과 REVISION, 서버가 정한 수정 번호, PENDING을 반환한다")
+    void returnsCreatedRevision() throws Exception {
+        when(jobFacade.submitRevision(any())).thenReturn(JobSubmissionCreateResult.from(JobSubmission.builder()
+                .id(82L)
+                .jobId(42L)
+                .submissionType(JobSubmissionType.REVISION)
+                .revisionNumber(1)
+                .reviewStatus(JobSubmissionReviewStatus.PENDING)
+                .build()));
+
+        mockMvc.perform(post("/jobs/42/submission/revisions").principal(authentication)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"fileUrls\":[\"" + FILE_URL + "\"],\"message\":\" 요청하신 내용을 반영했습니다. \"}"))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.submissionId").value(82))
+                .andExpect(jsonPath("$.data.jobId").value(42))
+                .andExpect(jsonPath("$.data.submissionType").value("REVISION"))
+                .andExpect(jsonPath("$.data.revisionNumber").value(1))
+                .andExpect(jsonPath("$.data.reviewStatus").value("PENDING"));
+
+        ArgumentCaptor<CreateJobSubmissionCommand> captor = ArgumentCaptor.forClass(CreateJobSubmissionCommand.class);
+        verify(jobFacade).submitRevision(captor.capture());
+        assertThat(captor.getValue().getJobId()).isEqualTo(42L);
+        assertThat(captor.getValue().getFileUrls()).containsExactly(FILE_URL);
+        assertThat(captor.getValue().getMessage()).isEqualTo("요청하신 내용을 반영했습니다.");
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {
+            "{\"fileUrls\":[],\"message\":\"수정\"}",
+            "{\"fileUrls\":[\"" + FILE_URL + "\"],\"message\":\"   \"}",
+            "{\"fileUrls\":[\"" + FILE_URL + "\",\"" + FILE_URL + "\"],\"message\":\"수정\"}"})
+    @DisplayName("수정안 요청도 초안과 같은 파일 목록·메시지 검증으로 COMMON_400을 반환한다")
+    void rejectsInvalidRevisionRequest(String body) throws Exception {
+        mockMvc.perform(post("/jobs/42/submission/revisions").principal(authentication)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error.code").value("COMMON_400"));
+        verifyNoInteractions(jobFacade);
+    }
+
+    @Test
+    @DisplayName("수정안 거부는 수정 요청 없음·횟수 초과를 409 에러 코드로 구분해 응답한다")
+    void mapsRevisionErrors() throws Exception {
+        when(jobFacade.submitRevision(any()))
+                .thenThrow(new BusinessException(ErrorCode.JOB_SUBMISSION_REVISION_NOT_REQUESTED))
+                .thenThrow(new BusinessException(ErrorCode.JOB_SUBMISSION_REVISION_LIMIT_EXCEEDED));
+        String body = "{\"fileUrls\":[\"" + FILE_URL + "\"],\"message\":\"수정\"}";
+
+        mockMvc.perform(post("/jobs/42/submission/revisions").principal(authentication)
+                        .contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.error.code").value("JOB_SUBMISSION_409_REVISION_NOT_REQUESTED"));
+        mockMvc.perform(post("/jobs/42/submission/revisions").principal(authentication)
+                        .contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.error.code").value("JOB_SUBMISSION_409_REVISION_LIMIT"));
     }
 
     @Test

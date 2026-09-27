@@ -87,6 +87,19 @@ public class JobController {
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(response));
     }
 
+    /** 수정 요청을 받은 매칭 학생의 수정안 제출 API */
+    @PostMapping("/jobs/{jobId}/submission/revisions")
+    public ResponseEntity<ApiResponse<JobSubmissionCreateResponse>> submitRevision(
+            Authentication authentication, @PathVariable Long jobId,
+            @Valid @RequestBody JobSubmissionCreateRequest request) {
+        if (jobId <= 0) {
+            throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE);
+        }
+        JobSubmissionCreateResponse response = JobSubmissionCreateResponse.from(
+                jobFacade.submitRevision(request.toCommand(authentication.getName(), jobId)));
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(response));
+    }
+
     @GetMapping("/me/jobs")
     public ResponseEntity<ApiResponse<?>> getJobs(
             Authentication authentication, @RequestParam(required = false) String status) {
