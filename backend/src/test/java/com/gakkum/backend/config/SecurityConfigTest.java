@@ -27,6 +27,8 @@ import com.gakkum.backend.application.media.facade.MediaFacade;
 import com.gakkum.backend.application.job.facade.JobFacade;
 import com.gakkum.backend.application.payment.controller.PaymentController;
 import com.gakkum.backend.application.payment.facade.PaymentFacade;
+import com.gakkum.backend.application.review.controller.ReviewController;
+import com.gakkum.backend.application.review.facade.ReviewFacade;
 import com.gakkum.backend.domain.specialty.service.SpecialtyCategoryService;
 import com.gakkum.backend.global.exception.RestAuthenticationEntryPoint;
 import com.gakkum.backend.global.response.ApiResponse;
@@ -36,7 +38,7 @@ import com.gakkum.backend.util.JWTUtil;
 
 @DisplayName("보안 설정 - 기본 거부(default-deny) 인증 정책 검증")
 @WebMvcTest(controllers = {SecurityConfigTest.TestController.class, SpecialtyController.class,
-        JobController.class, PaymentController.class, MediaController.class})
+        JobController.class, PaymentController.class, MediaController.class, ReviewController.class})
 @Import({SecurityConfig.class, RestAuthenticationEntryPoint.class})
 class SecurityConfigTest {
 
@@ -70,12 +72,25 @@ class SecurityConfigTest {
     @MockitoBean
     private MediaFacade mediaFacade;
 
+    @MockitoBean
+    private ReviewFacade reviewFacade;
+
     @Test
     @DisplayName("인증 없이 사진 업로드 URL을 요청하면 401을 반환한다")
     void imageUploadPreparationRequiresAuthentication() throws Exception {
         mockMvc.perform(post("/media/images/uploads")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"purpose\":\"PROFILE\",\"fileName\":\"me.png\",\"contentType\":\"image/png\",\"size\":1}"))
+            .andExpect(status().isUnauthorized())
+            .andExpect(jsonPath("$.error.code").value("COMMON_401"));
+    }
+
+    @Test
+    @DisplayName("인증 없이 리뷰를 작성하면 401을 반환한다")
+    void reviewCreationRequiresAuthentication() throws Exception {
+        mockMvc.perform(post("/jobs/42/reviews")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"content\":\"좋았어요\",\"rating\":5}"))
             .andExpect(status().isUnauthorized())
             .andExpect(jsonPath("$.error.code").value("COMMON_401"));
     }

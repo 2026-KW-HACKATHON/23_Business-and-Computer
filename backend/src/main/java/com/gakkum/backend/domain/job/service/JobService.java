@@ -296,6 +296,28 @@ public class JobService {
         return JobResultData.of(job, submissions, approved);
     }
 
+    /**
+     * 사장님 본인의 완료된(CLOSED) 의뢰를 잠가 반환한다. 같은 의뢰의 리뷰 작성을 순서대로 처리하기 위해 사용한다.
+     * 존재하지 않거나 다른 사장님의 의뢰는 404, 완료되지 않은 의뢰는 409로 거부한다.
+     * @param jobId
+     * @param ownerProfileId
+     * @return 담당 학생이 정해진 완료 의뢰
+     */
+    @Transactional
+    public Job getReviewableJobForUpdate(Long jobId, Long ownerProfileId) {
+        Job job = jobRepository.findByIdAndOwnerProfileId(jobId, ownerProfileId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.JOB_NOT_FOUND));
+        if (job.getStatus() != JobStatus.CLOSED) {
+            throw new BusinessException(ErrorCode.REVIEW_NOT_AVAILABLE);
+        }
+
+        // 완료된 의뢰는 담당 학생이 반드시 있어야 함
+        if (job.getSelectedStudentProfileId() == null) {
+            throw new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR);
+        }
+        return job;
+    }
+
     private boolean isResultViewer(Job job, GetJobResultCommand command) {
         if (command.getOwnerProfileId() != null) {
             return command.getOwnerProfileId().equals(job.getOwnerProfileId());
