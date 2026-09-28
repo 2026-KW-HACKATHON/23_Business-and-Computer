@@ -6,10 +6,12 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -26,6 +28,7 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import com.gakkum.backend.application.review.facade.ReviewFacade;
 import com.gakkum.backend.domain.review.dto.ReviewCommandDto.CreateReviewCommand;
 import com.gakkum.backend.domain.review.dto.ReviewQueryDto.ReviewCreateResult;
+import com.gakkum.backend.domain.review.dto.ReviewQueryDto.StudentReviewResult;
 import com.gakkum.backend.domain.review.entity.Review;
 import com.gakkum.backend.domain.review.entity.ReviewPositivePoint;
 import com.gakkum.backend.global.exception.GlobalExceptionHandler;
@@ -148,6 +151,42 @@ class ReviewControllerTest {
         mockMvc.perform(post("/jobs/0/reviews").principal(authentication)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"content\":\"좋았어요\",\"rating\":5}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error.code").value("COMMON_400"));
+        verifyNoInteractions(reviewFacade);
+    }
+
+    @Test
+    @DisplayName("받은 리뷰 조회는 200과 제출물 ID, 의뢰 제목, 매장 이름, 별점, 작성일, 좋은 점 코드, 내용을 반환한다")
+    void returnsStudentReview() throws Exception {
+        when(reviewFacade.getStudentReview(USERNAME, 42L)).thenReturn(StudentReviewResult.of(
+                Review.builder()
+                        .jobId(42L)
+                        .rating(5)
+                        .createdAt(LocalDateTime.of(2026, 9, 28, 21, 30, 15))
+                        .positivePoints(List.of(ReviewPositivePoint.QUALITY_OUTPUT, ReviewPositivePoint.KINDNESS))
+                        .content("꼼꼼하게 작업해 주셨어요.")
+                        .build(),
+                82L, "가을 메뉴 포스터 디자인", "가꿈 베이커리"));
+
+        mockMvc.perform(get("/jobs/42/review").principal(authentication))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.submissionId").value(82))
+                .andExpect(jsonPath("$.data.jobTitle").value("가을 메뉴 포스터 디자인"))
+                .andExpect(jsonPath("$.data.storeName").value("가꿈 베이커리"))
+                .andExpect(jsonPath("$.data.rating").value(5))
+                .andExpect(jsonPath("$.data.createdAt").value("2026-09-28"))
+                .andExpect(jsonPath("$.data.positivePoints[0]").value("QUALITY_OUTPUT"))
+                .andExpect(jsonPath("$.data.positivePoints[1]").value("KINDNESS"))
+                .andExpect(jsonPath("$.data.content").value("꼼꼼하게 작업해 주셨어요."))
+                .andExpect(jsonPath("$.error").doesNotExist());
+    }
+
+    @Test
+    @DisplayName("받은 리뷰 조회에서 의뢰 ID가 0 이하이면 COMMON_400으로 거부한다")
+    void rejectsNonPositiveJobIdOnLookup() throws Exception {
+        mockMvc.perform(get("/jobs/0/review").principal(authentication))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.error.code").value("COMMON_400"));
         verifyNoInteractions(reviewFacade);
