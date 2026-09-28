@@ -41,6 +41,20 @@ public class OwnerService {
         }
     }
 
+    /**
+     * 사장님 프로필 ID로 현재 프로필 조회
+     * @param ownerProfileId
+     * @return 사장님 프로필, 없으면 참조 무결성 오류(500)
+     */
+    @Transactional(readOnly = true)
+    public Owner getOwnerProfileById(Long ownerProfileId) {
+        if (ownerProfileId == null) {
+            throw new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR);
+        }
+        return ownerRepository.findById(ownerProfileId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR));
+    }
+
     @Transactional(readOnly = true)
     public Owner getOwnerProfile(String userId) {
         return ownerRepository.findByUserId(userId)

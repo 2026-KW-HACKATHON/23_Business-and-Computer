@@ -66,6 +66,18 @@ public final class JobQueryDto {
 
     @Getter
     @AllArgsConstructor(access = AccessLevel.PRIVATE)
+    public static class ReviewedJobData {
+
+        private final Job job;
+        private final JobSubmission approvedSubmission;
+
+        public static ReviewedJobData of(Job job, JobSubmission approvedSubmission) {
+            return new ReviewedJobData(job, approvedSubmission);
+        }
+    }
+
+    @Getter
+    @AllArgsConstructor(access = AccessLevel.PRIVATE)
     public static class JobSubmissionDetailData {
 
         private final Job job;
