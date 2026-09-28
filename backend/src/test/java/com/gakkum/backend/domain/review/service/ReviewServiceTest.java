@@ -9,6 +9,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
+import java.util.Optional;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -70,6 +71,23 @@ class ReviewServiceTest {
         when(reviewRepository.saveAndFlush(any())).thenThrow(new DataIntegrityViolationException("reviews_job_id_key"));
 
         assertError(() -> reviewService.createReview(command(List.of()), 5L, 7L), ErrorCode.REVIEW_ALREADY_EXISTS);
+    }
+
+    @Test
+    @DisplayName("요청한 학생이 받은 의뢰 리뷰를 반환한다")
+    void getsStudentReview() {
+        Review review = Review.builder().id(301L).jobId(42L).studentProfileId(7L).build();
+        when(reviewRepository.findByJobIdAndStudentProfileId(42L, 7L)).thenReturn(Optional.of(review));
+
+        assertThat(reviewService.getStudentReview(42L, 7L)).isSameAs(review);
+    }
+
+    @Test
+    @DisplayName("리뷰가 없거나 다른 학생의 리뷰면 REVIEW_404로 거부한다")
+    void rejectsMissingStudentReview() {
+        when(reviewRepository.findByJobIdAndStudentProfileId(42L, 8L)).thenReturn(Optional.empty());
+
+        assertError(() -> reviewService.getStudentReview(42L, 8L), ErrorCode.REVIEW_NOT_FOUND);
     }
 
     private static CreateReviewCommand command(List<ReviewPositivePoint> positivePoints) {

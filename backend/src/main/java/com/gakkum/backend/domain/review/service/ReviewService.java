@@ -40,4 +40,17 @@ public class ReviewService {
             throw new BusinessException(ErrorCode.REVIEW_ALREADY_EXISTS);
         }
     }
+
+    /**
+     * 학생이 받은 의뢰 리뷰 단건 조회.
+     * 의뢰가 없거나, 요청한 학생이 리뷰 대상이 아니거나, 리뷰가 없으면 모두 같은 404로 거부한다.
+     * @param jobId
+     * @param studentProfileId 요청한 학생 프로필 ID
+     * @return 요청한 학생이 받은 리뷰
+     */
+    @Transactional(readOnly = true)
+    public Review getStudentReview(Long jobId, Long studentProfileId) {
+        return reviewRepository.findByJobIdAndStudentProfileId(jobId, studentProfileId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.REVIEW_NOT_FOUND));
+    }
 }

@@ -27,6 +27,7 @@ import com.gakkum.backend.domain.job.dto.JobQueryDto.JobResultData;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.JobSubmissionDetailData;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.MatchedJobData;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.OpenJobData;
+import com.gakkum.backend.domain.job.dto.JobQueryDto.ReviewedJobData;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.StudentMatchedJobData;
 import com.gakkum.backend.domain.job.entity.Job;
 import com.gakkum.backend.domain.job.entity.JobApplication;
@@ -316,6 +317,22 @@ public class JobService {
             throw new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR);
         }
         return job;
+    }
+
+    /**
+     * 리뷰가 작성된 의뢰와 최종 승인된 제출물을 조회한다. 리뷰 권한 확인이 끝난 뒤에만 호출한다.
+     * 리뷰가 있는데 의뢰나 승인 제출물이 없으면 데이터 이상으로 보고 500으로 거부한다.
+     * @param jobId
+     * @return 의뢰와 최종 승인(APPROVED)된 초안 또는 수정안
+     */
+    @Transactional(readOnly = true)
+    public ReviewedJobData getReviewedJob(Long jobId) {
+        Job job = jobRepository.findById(jobId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR));
+        JobSubmission approved = jobSubmissionRepository
+                .findByJobIdAndReviewStatus(job.getId(), JobSubmissionReviewStatus.APPROVED)
+                .orElseThrow(() -> new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR));
+        return ReviewedJobData.of(job, approved);
     }
 
     private boolean isResultViewer(Job job, GetJobResultCommand command) {

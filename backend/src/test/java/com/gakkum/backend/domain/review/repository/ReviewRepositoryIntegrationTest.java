@@ -80,6 +80,19 @@ class ReviewRepositoryIntegrationTest {
     }
 
     @Test
+    @DisplayName("PostgreSQL에서 의뢰 ID와 리뷰 대상 학생 프로필 ID가 모두 맞을 때만 리뷰를 찾는다")
+    void findsReviewByJobAndStudent() {
+        Job job = saveClosedJob();
+        Review saved = reviewRepository.saveAndFlush(Review.create(job.getId(), 5L, 7L,
+                List.of(ReviewPositivePoint.KINDNESS), "친절했어요.", 5));
+
+        assertThat(reviewRepository.findByJobIdAndStudentProfileId(job.getId(), 7L))
+                .get().extracting(Review::getId).isEqualTo(saved.getId());
+        assertThat(reviewRepository.findByJobIdAndStudentProfileId(job.getId(), 8L)).isEmpty();
+        assertThat(reviewRepository.findByJobIdAndStudentProfileId(saveClosedJob().getId(), 7L)).isEmpty();
+    }
+
+    @Test
     @DisplayName("PostgreSQL은 같은 의뢰의 두 번째 리뷰를 유니크 제약으로 거부한다")
     void rejectsSecondReviewForSameJob() {
         Job job = saveClosedJob();

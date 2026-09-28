@@ -14,8 +14,11 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 
+import com.gakkum.backend.domain.job.dto.JobQueryDto.ReviewedJobData;
 import com.gakkum.backend.domain.job.entity.Job;
 import com.gakkum.backend.domain.job.entity.JobStatus;
+import com.gakkum.backend.domain.job.entity.JobSubmission;
+import com.gakkum.backend.domain.job.entity.JobSubmissionReviewStatus;
 import com.gakkum.backend.domain.job.repository.JobApplicationRepository;
 import com.gakkum.backend.domain.job.repository.JobRepository;
 import com.gakkum.backend.domain.job.repository.JobSpecialtyRepository;
@@ -26,9 +29,10 @@ import com.gakkum.backend.global.exception.ErrorCode;
 class JobReviewableServiceTest {
 
     private final JobRepository jobRepository = mock(JobRepository.class);
+    private final JobSubmissionRepository jobSubmissionRepository = mock(JobSubmissionRepository.class);
     private final JobService jobService = new JobService(
             jobRepository, mock(JobSpecialtyRepository.class), mock(JobApplicationRepository.class),
-            mock(JobSubmissionRepository.class), Clock.systemUTC());
+            jobSubmissionRepository, Clock.systemUTC());
 
     @Test
     @DisplayName("사장님 본인의 완료된 의뢰를 잠금 조회로 반환한다")
@@ -61,6 +65,34 @@ class JobReviewableServiceTest {
         givenOwnedJob(JobStatus.CLOSED, null);
 
         assertError(() -> jobService.getReviewableJobForUpdate(42L, 5L), ErrorCode.INTERNAL_SERVER_ERROR);
+    }
+
+    @Test
+    @DisplayName("리뷰가 작성된 의뢰와 최종 승인된 제출물을 함께 반환한다")
+    void returnsReviewedJobWithApprovedSubmission() {
+        Job job = Job.builder().id(42L).ownerProfileId(5L).status(JobStatus.CLOSED).build();
+        JobSubmission approved = JobSubmission.builder().id(82L).jobId(42L).revisionNumber(1)
+                .reviewStatus(JobSubmissionReviewStatus.APPROVED).build();
+        when(jobRepository.findById(42L)).thenReturn(Optional.of(job));
+        when(jobSubmissionRepository.findByJobIdAndReviewStatus(42L, JobSubmissionReviewStatus.APPROVED))
+                .thenReturn(Optional.of(approved));
+
+        ReviewedJobData data = jobService.getReviewedJob(42L);
+
+        assertThat(data.getJob()).isSameAs(job);
+        assertThat(data.getApprovedSubmission()).isSameAs(approved);
+    }
+
+    @Test
+    @DisplayName("리뷰가 있는데 의뢰나 승인된 제출물이 없으면 데이터 이상으로 보고 COMMON_500으로 거부한다")
+    void rejectsReviewedJobWithoutData() {
+        when(jobRepository.findById(42L)).thenReturn(Optional.empty());
+        assertError(() -> jobService.getReviewedJob(42L), ErrorCode.INTERNAL_SERVER_ERROR);
+
+        when(jobRepository.findById(42L)).thenReturn(Optional.of(Job.builder().id(42L).build()));
+        when(jobSubmissionRepository.findByJobIdAndReviewStatus(42L, JobSubmissionReviewStatus.APPROVED))
+                .thenReturn(Optional.empty());
+        assertError(() -> jobService.getReviewedJob(42L), ErrorCode.INTERNAL_SERVER_ERROR);
     }
 
     private Job givenOwnedJob(JobStatus status, Long selectedStudentProfileId) {
