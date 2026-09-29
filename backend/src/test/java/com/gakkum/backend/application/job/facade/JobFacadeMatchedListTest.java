@@ -18,7 +18,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
-import com.gakkum.backend.application.job.dto.MatchedJobListResponse;
+import com.gakkum.backend.application.job.dto.JobListResponse;
 import com.gakkum.backend.domain.chat.service.ChatAttachmentPolicy;
 import com.gakkum.backend.domain.job.client.JobSubmissionFileStorageClient;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.GetMatchedJobsCommand;
@@ -84,7 +84,7 @@ class JobFacadeMatchedListTest {
                         22L, SpecialtyDetail.of(22L, "콘텐츠 디자인", 2L, "디자인")));
 
         MatchedJobListResult result = jobFacade.getMatchedJobs(USERNAME);
-        MatchedJobListResponse response = MatchedJobListResponse.from(result);
+        JobListResponse.MatchedJobList response = JobListResponse.MatchedJobList.from(result);
 
         assertThat(response.getJobs()).extracting(job -> job.getJobId()).containsExactly(42L, 43L, 44L);
         assertThat(response.getJobs().get(0).getDraftDeadline()).isEqualTo(LocalDate.of(2026, 10, 10));
