@@ -27,6 +27,9 @@ import lombok.NoArgsConstructor;
 @Table(name = "payments")
 public class Payment {
 
+    // 진행 중 의뢰 취소 시 결제 금액 중 학생에게 지급하는 비율(%)
+    private static final long STUDENT_COMPENSATION_PERCENT = 20;
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -61,6 +64,15 @@ public class Payment {
 
     @Column(name = "approved_at")
     private Instant approvedAt;
+
+    @Column(name = "refund_amount")
+    private Long refundAmount;
+
+    @Column(name = "student_compensation_amount")
+    private Long studentCompensationAmount;
+
+    @Column(name = "refunded_at")
+    private Instant refundedAt;
 
     public static Payment pending(
             Long jobId,
@@ -109,5 +121,16 @@ public class Payment {
         }
         status = PaymentStatus.PAID;
         this.approvedAt = approvedAt;
+    }
+
+    /** 결제 완료(PAID) 주문을 의뢰 취소로 환불 처리한다. 학생 보상금은 원 단위 버림, 나머지를 환불 금액으로 둔다. */
+    public void refundOnCancel(Instant refundedAt) {
+        if (status != PaymentStatus.PAID) {
+            throw new BusinessException(ErrorCode.PAYMENT_NOT_AVAILABLE);
+        }
+        studentCompensationAmount = amount * STUDENT_COMPENSATION_PERCENT / 100;
+        refundAmount = amount - studentCompensationAmount;
+        status = PaymentStatus.REFUNDED;
+        this.refundedAt = refundedAt;
     }
 }

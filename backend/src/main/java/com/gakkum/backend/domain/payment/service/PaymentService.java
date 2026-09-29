@@ -9,6 +9,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.gakkum.backend.domain.payment.dto.PaymentCommandDto.PreparePaymentCommand;
 import com.gakkum.backend.domain.payment.dto.PaymentQueryDto.ApprovedPaymentData;
+import com.gakkum.backend.domain.payment.dto.PaymentQueryDto.RefundedPaymentData;
 import com.gakkum.backend.domain.payment.entity.Payment;
 import com.gakkum.backend.domain.payment.entity.PaymentStatus;
 import com.gakkum.backend.domain.payment.repository.PaymentRepository;
@@ -71,6 +72,21 @@ public class PaymentService {
     @Transactional
     public void failReady(String orderId) {
         paymentRepository.findByOrderId(orderId).ifPresent(Payment::failReady);
+    }
+
+    /**
+     * 취소된 진행 중 의뢰의 결제 완료(PAID) 주문을 환불 처리한다. 결제 금액의 20%는 학생 보상금으로 남기고 나머지를 환불한다.
+     * 해커톤 범위에서는 카카오페이 결제 취소 API를 호출하지 않고 환불 금액만 기록한다.
+     * @param jobId
+     * @return 결제 금액, 학생 보상금, 환불 금액, 환불 처리 시각
+     */
+    @Transactional
+    public RefundedPaymentData refundOnCancel(Long jobId) {
+        Payment payment = paymentRepository.findByJobIdAndStatus(jobId, PaymentStatus.PAID)
+                .orElseThrow(() -> new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR));
+        payment.refundOnCancel(Instant.now(clock));
+        return new RefundedPaymentData(payment.getAmount(), payment.getStudentCompensationAmount(),
+                payment.getRefundAmount(), payment.getRefundedAt());
     }
 
     /**

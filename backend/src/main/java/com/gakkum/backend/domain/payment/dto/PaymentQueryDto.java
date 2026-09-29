@@ -17,6 +17,9 @@ public final class PaymentQueryDto {
     public record ApprovedPaymentData(String orderId, Long amount, Instant approvedAt) {
     }
 
+    public record RefundedPaymentData(Long amount, Long studentCompensationAmount, Long refundAmount, Instant refundedAt) {
+    }
+
     @Getter
     @AllArgsConstructor(access = AccessLevel.PRIVATE)
     public static class PreparePaymentResult {

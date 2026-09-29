@@ -19,6 +19,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.InOrder;
 
 import com.gakkum.backend.domain.payment.dto.PaymentCommandDto.PreparePaymentCommand;
+import com.gakkum.backend.domain.payment.dto.PaymentQueryDto.RefundedPaymentData;
 import com.gakkum.backend.domain.payment.entity.Payment;
 import com.gakkum.backend.domain.payment.entity.PaymentStatus;
 import com.gakkum.backend.domain.payment.repository.PaymentRepository;
@@ -132,5 +133,29 @@ class PaymentServiceTest {
         service.failReady("order-123");
 
         assertThat(pending.getStatus()).isEqualTo(PaymentStatus.READY_FAILED);
+    }
+
+    @Test
+    @DisplayName("의뢰 취소 시 결제 완료 주문을 REFUNDED로 바꾸고 학생 보상금 20%를 뺀 환불 금액을 기록한다")
+    void refundsPaidPaymentOnCancel() {
+        Payment paid = Payment.pending(11L, 21L, USER_ID, "order-123", 100_000L, NOW);
+        paid.recordKakaoTid("T1234567890123456789");
+        paid.approve(NOW);
+        when(repository.findByJobIdAndStatus(11L, PaymentStatus.PAID)).thenReturn(Optional.of(paid));
+
+        RefundedPaymentData result = service.refundOnCancel(11L);
+
+        assertThat(result).isEqualTo(new RefundedPaymentData(100_000L, 20_000L, 80_000L, NOW));
+        assertThat(paid.getStatus()).isEqualTo(PaymentStatus.REFUNDED);
+    }
+
+    @Test
+    @DisplayName("취소할 진행 중 의뢰에 결제 완료 주문이 없으면 데이터 무결성 오류로 처리한다")
+    void rejectsRefundWithoutPaidPayment() {
+        when(repository.findByJobIdAndStatus(11L, PaymentStatus.PAID)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.refundOnCancel(11L))
+                .isInstanceOfSatisfying(BusinessException.class, exception ->
+                        assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.INTERNAL_SERVER_ERROR));
     }
 }
