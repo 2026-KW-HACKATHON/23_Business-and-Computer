@@ -37,6 +37,8 @@ import com.gakkum.backend.global.exception.ErrorCode;
 
 class JobSubmissionCompleteServiceTest {
 
+    private static final List<JobStatus> CLOSED_STATUSES = List.of(JobStatus.CLOSED, JobStatus.CANCELLED);
+
     private static final Instant NOW = Instant.parse("2026-09-28T03:15:30Z");
     private static final LocalDateTime EXPECTED_COMPLETED_AT = LocalDateTime.ofInstant(NOW, ZoneId.systemDefault());
 
@@ -67,7 +69,7 @@ class JobSubmissionCompleteServiceTest {
         Job job = givenOwnedJob(JobStatus.MATCHED);
         givenSubmission(81L, 42L, JobSubmissionType.DRAFT, JobSubmissionReviewStatus.PENDING);
         jobService.completeSubmission(command(81L));
-        when(jobRepository.findByOwnerProfileIdAndStatusOrderByCompletedAtDescIdDesc(5L, JobStatus.CLOSED))
+        when(jobRepository.findByOwnerProfileIdAndStatusInOrderByCompletedAtDescIdDesc(5L, CLOSED_STATUSES))
                 .thenReturn(List.of(job));
 
         List<ClosedJobData> closedJobs = jobService.getClosedJobs(GetClosedJobsCommand.of(5L));

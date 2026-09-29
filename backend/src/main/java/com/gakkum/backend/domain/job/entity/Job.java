@@ -63,6 +63,7 @@ public class Job {
     @Column(name = "selected_student_profile_id")
     private Long selectedStudentProfileId;
 
+    // 완료(CLOSED) 또는 취소(CANCELLED)로 종료된 시각
     @Column(name = "completed_at")
     private LocalDateTime completedAt;
 
@@ -113,5 +114,14 @@ public class Job {
         }
         status = JobStatus.CLOSED;
         this.completedAt = completedAt;
+    }
+
+    /** 모집 중(OPEN) 또는 진행 중(MATCHED) 의뢰만 취소(CANCELLED)하고 종료 시각을 기록한다. */
+    public void cancel(LocalDateTime cancelledAt) {
+        if (status != JobStatus.OPEN && status != JobStatus.MATCHED) {
+            throw new BusinessException(ErrorCode.JOB_CANCEL_NOT_AVAILABLE);
+        }
+        status = JobStatus.CANCELLED;
+        this.completedAt = cancelledAt;
     }
 }

@@ -7,6 +7,7 @@ import java.time.ZoneId;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
@@ -19,6 +20,7 @@ import com.gakkum.backend.domain.chat.entity.ChatMessageType;
 import com.gakkum.backend.domain.chat.service.ChatAttachmentPolicy;
 import com.gakkum.backend.domain.job.client.JobSubmissionFileStorageClient;
 import com.gakkum.backend.domain.job.client.JobSubmissionFileStorageClient.PresignedFileUpload;
+import com.gakkum.backend.domain.job.dto.JobCommandDto.CancelJobCommand;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.CompleteJobSubmissionCommand;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.CreateJobCommand;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.CreateJobSubmissionCommand;
@@ -30,9 +32,11 @@ import com.gakkum.backend.domain.job.dto.JobCommandDto.GetOpenJobsCommand;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.GetStudentMatchedJobsCommand;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.PrepareSubmissionFileUploadCommand;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.RequestJobSubmissionRevisionCommand;
+import com.gakkum.backend.domain.job.dto.JobQueryDto.CancelledJobData;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.ClosedJobData;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.ClosedJobListResult;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.ClosedJobResult;
+import com.gakkum.backend.domain.job.dto.JobQueryDto.JobCancelResult;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.JobDetailData;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.JobDetailResult;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.JobResultData;
@@ -58,6 +62,7 @@ import com.gakkum.backend.domain.job.service.JobService;
 import com.gakkum.backend.domain.owner.entity.Owner;
 import com.gakkum.backend.domain.owner.service.OwnerService;
 import com.gakkum.backend.domain.payment.dto.PaymentQueryDto.ApprovedPaymentData;
+import com.gakkum.backend.domain.payment.dto.PaymentQueryDto.RefundedPaymentData;
 import com.gakkum.backend.domain.payment.service.PaymentService;
 import com.gakkum.backend.domain.specialty.dto.SpecialtyQueryDto.SpecialtyDetail;
 import com.gakkum.backend.domain.specialty.service.SpecialtyCategoryService;
@@ -201,6 +206,16 @@ public class JobFacade {
         jobService.completeSubmission(CompleteJobSubmissionCommand.of(jobId, submissionId, owner.getId()));
     }
 
+    /** 사장님 본인 의뢰를 취소한다. 결제 후 진행 중이던 의뢰는 학생 보상금을 뺀 금액을 환불 처리한다. */
+    @Transactional
+    public JobCancelResult cancelJob(String username, Long jobId) {
+        User user = userService.getActiveUser(username);
+        Owner owner = ownerService.getOwnerProfile(user.getId());
+        CancelledJobData cancelled = jobService.cancelJob(CancelJobCommand.of(jobId, owner.getId()));
+        RefundedPaymentData refund = cancelled.isPaid() ? paymentService.refundOnCancel(jobId) : null;
+        return JobCancelResult.of(cancelled.getJob(), refund);
+    }
+
     @Transactional(readOnly = true)
     public OpenJobListResult getOpenJobs(String username) {
         User user = userService.getActiveUser(username);
@@ -292,8 +307,10 @@ public class JobFacade {
             return ClosedJobListResult.of(List.of());
         }
 
+        // 모집 중에 취소된 의뢰는 매칭된 학생이 없다
         Map<Long, Student> studentsById = studentService.getStudentProfilesByIds(jobs.stream()
                 .map(job -> job.getJob().getSelectedStudentProfileId())
+                .filter(Objects::nonNull)
                 .distinct()
                 .toList());
         Map<String, User> workersById = userService.getUsersByIds(studentsById.values().stream()
@@ -307,11 +324,12 @@ public class JobFacade {
 
         return ClosedJobListResult.of(jobs.stream()
                 .map(job -> {
-                    Student student = studentsById.get(job.getJob().getSelectedStudentProfileId());
+                    Long studentProfileId = job.getJob().getSelectedStudentProfileId();
+                    Student student = studentProfileId == null ? null : studentsById.get(studentProfileId);
                     return ClosedJobResult.of(
                             job,
                             student,
-                            workersById.get(student.getUserId()),
+                            student == null ? null : workersById.get(student.getUserId()),
                             groupSpecialties(job.getSpecialtyIds(), specialtiesById));
                 })
                 .toList());

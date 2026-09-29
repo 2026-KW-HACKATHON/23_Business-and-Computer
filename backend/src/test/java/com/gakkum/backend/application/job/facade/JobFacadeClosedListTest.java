@@ -8,6 +8,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
@@ -121,6 +122,27 @@ class JobFacadeClosedListTest {
                 .isInstanceOfSatisfying(BusinessException.class, exception ->
                         assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.INTERNAL_SERVER_ERROR));
         verifyNoInteractions(specialtyCategoryService);
+    }
+
+    @Test
+    @DisplayName("모집 중에 취소된 의뢰는 매칭 학생 없이 matchedWorker null, 진행 단계 CANCELLED로 조립한다")
+    void assemblesCancelledOpenJobWithoutWorker() {
+        givenOwner();
+        when(jobService.getClosedJobs(any(GetClosedJobsCommand.class))).thenReturn(List.of(
+                ClosedJobData.of(job(45L, null, LocalDateTime.of(2026, 9, 28, 9, 0)), List.of(), JobProgressStage.CANCELLED),
+                ClosedJobData.of(job(42L, 21L, LocalDateTime.of(2026, 9, 25, 18, 0)), List.of(), JobProgressStage.COMPLETED)));
+        when(studentService.getStudentProfilesByIds(List.of(21L))).thenReturn(Map.of(
+                21L, Student.builder().id(21L).userId(WORKER_USER_ID_1).build()));
+        when(userService.getUsersByIds(any())).thenReturn(Map.of(
+                WORKER_USER_ID_1, User.builder().id(WORKER_USER_ID_1).name("김람가").build()));
+
+        JobListResponse.ClosedJobList response = JobListResponse.ClosedJobList.from(jobFacade.getClosedJobs(USERNAME));
+
+        assertThat(response.getJobs().get(0).getMatchedWorker()).isNull();
+        assertThat(response.getJobs().get(0).getProgressStage()).isEqualTo(JobProgressStage.CANCELLED);
+        assertThat(response.getJobs().get(0).getCompletedAt()).isEqualTo(LocalDate.of(2026, 9, 28));
+        assertThat(response.getJobs().get(1).getMatchedWorker().getName()).isEqualTo("김람가");
+        verify(studentService).getStudentProfilesByIds(List.of(21L));
     }
 
     private void givenOwner() {

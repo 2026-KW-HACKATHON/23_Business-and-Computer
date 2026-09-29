@@ -106,7 +106,7 @@ public final class JobListResponse {
                     .specialtyCategories(result.getSpecialtyCategories().stream()
                             .map(ClosedSpecialtyCategory::from)
                             .toList())
-                    .matchedWorker(MatchedWorker.from(result.getMatchedWorker()))
+                    .matchedWorker(result.getMatchedWorker() == null ? null : MatchedWorker.from(result.getMatchedWorker()))
                     .completedAt(result.getCompletedAt())
                     .progressStage(result.getProgressStage())
                     .build();

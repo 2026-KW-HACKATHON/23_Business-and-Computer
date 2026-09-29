@@ -11,6 +11,7 @@ import com.gakkum.backend.domain.job.entity.JobProgressStage;
 import com.gakkum.backend.domain.job.entity.JobSubmission;
 import com.gakkum.backend.domain.job.entity.JobSubmissionReviewStatus;
 import com.gakkum.backend.domain.job.entity.JobSubmissionType;
+import com.gakkum.backend.domain.payment.dto.PaymentQueryDto.RefundedPaymentData;
 import com.gakkum.backend.domain.student.entity.Student;
 import com.gakkum.backend.domain.user.entity.User;
 
@@ -327,9 +328,46 @@ public final class JobQueryDto {
                     .jobId(job.getId())
                     .title(job.getTitle())
                     .specialtyCategories(specialtyCategories)
-                    .matchedWorker(MatchedWorkerResult.of(student.getId(), worker.getName()))
+                    .matchedWorker(student == null ? null : MatchedWorkerResult.of(student.getId(), worker.getName()))
                     .completedAt(job.getCompletedAt().toLocalDate())
                     .progressStage(data.getProgressStage())
+                    .build();
+        }
+    }
+
+    /** 취소된 의뢰와 취소 전 결제 완료(MATCHED) 여부 */
+    @Getter
+    @AllArgsConstructor(access = AccessLevel.PRIVATE)
+    public static class CancelledJobData {
+
+        private final Job job;
+        private final boolean paid;
+
+        public static CancelledJobData of(Job job, boolean paid) {
+            return new CancelledJobData(job, paid);
+        }
+    }
+
+    @Getter
+    @Builder(access = AccessLevel.PRIVATE)
+    @AllArgsConstructor(access = AccessLevel.PRIVATE)
+    public static class JobCancelResult {
+
+        private final Long jobId;
+        private final String status;
+        private final Long paidAmount;
+        private final Long studentCompensationAmount;
+        private final Long refundAmount;
+        private final LocalDateTime cancelledAt;
+
+        public static JobCancelResult of(Job job, RefundedPaymentData refund) {
+            return JobCancelResult.builder()
+                    .jobId(job.getId())
+                    .status(job.getStatus().name())
+                    .paidAmount(refund == null ? 0L : refund.amount())
+                    .studentCompensationAmount(refund == null ? 0L : refund.studentCompensationAmount())
+                    .refundAmount(refund == null ? 0L : refund.refundAmount())
+                    .cancelledAt(job.getCompletedAt())
                     .build();
         }
     }

@@ -6,5 +6,6 @@ public enum JobProgressStage {
     STARTED,  // 시작
     DRAFT,  // 초안
     REVISION,  // 수정
-    COMPLETED  // 완료
+    COMPLETED,  // 완료
+    CANCELLED  // 취소
 }

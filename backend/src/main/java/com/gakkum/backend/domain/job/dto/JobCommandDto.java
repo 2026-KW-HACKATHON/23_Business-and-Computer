@@ -150,6 +150,22 @@ public final class JobCommandDto {
     @Getter
     @Builder(access = AccessLevel.PRIVATE)
     @AllArgsConstructor(access = AccessLevel.PRIVATE)
+    public static class CancelJobCommand {
+
+        private final Long jobId;
+        private final Long ownerProfileId;
+
+        public static CancelJobCommand of(Long jobId, Long ownerProfileId) {
+            return CancelJobCommand.builder()
+                    .jobId(jobId)
+                    .ownerProfileId(ownerProfileId)
+                    .build();
+        }
+    }
+
+    @Getter
+    @Builder(access = AccessLevel.PRIVATE)
+    @AllArgsConstructor(access = AccessLevel.PRIVATE)
     public static class PrepareSubmissionFileUploadCommand {
 
         private final String username;

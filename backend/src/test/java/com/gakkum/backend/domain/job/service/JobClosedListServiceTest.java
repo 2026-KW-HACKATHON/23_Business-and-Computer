@@ -17,6 +17,7 @@ import org.junit.jupiter.api.Test;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.GetClosedJobsCommand;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.ClosedJobData;
 import com.gakkum.backend.domain.job.entity.Job;
+import com.gakkum.backend.domain.job.entity.JobProgressStage;
 import com.gakkum.backend.domain.job.entity.JobSpecialty;
 import com.gakkum.backend.domain.job.entity.JobStatus;
 import com.gakkum.backend.domain.job.repository.JobApplicationRepository;
@@ -27,6 +28,8 @@ import com.gakkum.backend.global.exception.BusinessException;
 import com.gakkum.backend.global.exception.ErrorCode;
 
 class JobClosedListServiceTest {
+
+    private static final List<JobStatus> CLOSED_STATUSES = List.of(JobStatus.CLOSED, JobStatus.CANCELLED);
 
     private final JobRepository jobRepository = mock(JobRepository.class);
     private final JobSpecialtyRepository jobSpecialtyRepository = mock(JobSpecialtyRepository.class);
@@ -39,7 +42,7 @@ class JobClosedListServiceTest {
     @Test
     @DisplayName("사업주의 CLOSED 의뢰를 완료 시각과 ID 최신순으로 조회하고 특기를 일괄 연결한다")
     void returnsClosedJobsWithSpecialties() {
-        when(jobRepository.findByOwnerProfileIdAndStatusOrderByCompletedAtDescIdDesc(5L, JobStatus.CLOSED))
+        when(jobRepository.findByOwnerProfileIdAndStatusInOrderByCompletedAtDescIdDesc(5L, CLOSED_STATUSES))
                 .thenReturn(List.of(
                         job(44L, LocalDateTime.of(2026, 9, 27, 10, 0)),
                         job(43L, LocalDateTime.of(2026, 9, 25, 10, 0)),
@@ -55,7 +58,7 @@ class JobClosedListServiceTest {
         assertThat(result.get(0).getSpecialtyIds()).containsExactly(21L);
         assertThat(result.get(1).getSpecialtyIds()).isEmpty();
         assertThat(result.get(2).getSpecialtyIds()).containsExactly(12L, 11L);
-        verify(jobRepository).findByOwnerProfileIdAndStatusOrderByCompletedAtDescIdDesc(5L, JobStatus.CLOSED);
+        verify(jobRepository).findByOwnerProfileIdAndStatusInOrderByCompletedAtDescIdDesc(5L, CLOSED_STATUSES);
         verify(jobSpecialtyRepository).findByJobIdIn(List.of(44L, 43L, 42L));
         verifyNoInteractions(jobApplicationRepository, jobSubmissionRepository);
     }
@@ -63,7 +66,7 @@ class JobClosedListServiceTest {
     @Test
     @DisplayName("CLOSED 의뢰가 없으면 빈 목록을 반환하고 특기를 조회하지 않는다")
     void returnsEmptyList() {
-        when(jobRepository.findByOwnerProfileIdAndStatusOrderByCompletedAtDescIdDesc(5L, JobStatus.CLOSED))
+        when(jobRepository.findByOwnerProfileIdAndStatusInOrderByCompletedAtDescIdDesc(5L, CLOSED_STATUSES))
                 .thenReturn(List.of());
 
         assertThat(jobService.getClosedJobs(GetClosedJobsCommand.of(5L))).isEmpty();
@@ -73,13 +76,32 @@ class JobClosedListServiceTest {
     @Test
     @DisplayName("CLOSED 의뢰에 완료 시각이 없으면 조회를 실패시킨다")
     void rejectsMissingCompletionDate() {
-        when(jobRepository.findByOwnerProfileIdAndStatusOrderByCompletedAtDescIdDesc(5L, JobStatus.CLOSED))
+        when(jobRepository.findByOwnerProfileIdAndStatusInOrderByCompletedAtDescIdDesc(5L, CLOSED_STATUSES))
                 .thenReturn(List.of(job(42L, null)));
 
         assertThatThrownBy(() -> jobService.getClosedJobs(GetClosedJobsCommand.of(5L)))
                 .isInstanceOfSatisfying(BusinessException.class, exception ->
                         assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.INTERNAL_SERVER_ERROR));
         verifyNoInteractions(jobSpecialtyRepository);
+    }
+
+    @Test
+    @DisplayName("취소된(CANCELLED) 의뢰도 완료 목록에 함께 담고 진행 단계를 취소로 계산한다")
+    void includesCancelledJobs() {
+        Job cancelled = Job.builder()
+                .id(45L)
+                .ownerProfileId(5L)
+                .status(JobStatus.CANCELLED)
+                .completedAt(LocalDateTime.of(2026, 9, 28, 10, 0))
+                .build();
+        when(jobRepository.findByOwnerProfileIdAndStatusInOrderByCompletedAtDescIdDesc(5L, CLOSED_STATUSES))
+                .thenReturn(List.of(cancelled, job(44L, LocalDateTime.of(2026, 9, 27, 10, 0))));
+        when(jobSpecialtyRepository.findByJobIdIn(List.of(45L, 44L))).thenReturn(List.of());
+
+        List<ClosedJobData> result = jobService.getClosedJobs(GetClosedJobsCommand.of(5L));
+
+        assertThat(result).extracting(ClosedJobData::getProgressStage)
+                .containsExactly(JobProgressStage.CANCELLED, JobProgressStage.COMPLETED);
     }
 
     private Job job(Long id, LocalDateTime completedAt) {
