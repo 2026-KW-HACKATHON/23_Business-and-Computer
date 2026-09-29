@@ -17,7 +17,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
-import com.gakkum.backend.application.job.dto.ClosedJobListResponse;
+import com.gakkum.backend.application.job.dto.JobListResponse;
 import com.gakkum.backend.domain.chat.service.ChatAttachmentPolicy;
 import com.gakkum.backend.domain.job.client.JobSubmissionFileStorageClient;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.GetClosedJobsCommand;
@@ -79,7 +79,7 @@ class JobFacadeClosedListTest {
                         21L, SpecialtyDetail.of(21L, "영상", 5L, "사진·영상")));
 
         ClosedJobListResult result = jobFacade.getClosedJobs(USERNAME);
-        ClosedJobListResponse response = ClosedJobListResponse.from(result);
+        JobListResponse.ClosedJobList response = JobListResponse.ClosedJobList.from(result);
         String json = new ObjectMapper().writeValueAsString(ApiResponse.success(response));
 
         assertThat(response.getJobs()).extracting(item -> item.getJobId()).containsExactly(44L, 42L);
@@ -101,7 +101,7 @@ class JobFacadeClosedListTest {
         givenOwner();
         when(jobService.getClosedJobs(any(GetClosedJobsCommand.class))).thenReturn(List.of());
 
-        ClosedJobListResponse response = ClosedJobListResponse.from(jobFacade.getClosedJobs(USERNAME));
+        JobListResponse.ClosedJobList response = JobListResponse.ClosedJobList.from(jobFacade.getClosedJobs(USERNAME));
 
         assertThat(new ObjectMapper().writeValueAsString(ApiResponse.success(response)))
                 .contains("\"data\":[]");
