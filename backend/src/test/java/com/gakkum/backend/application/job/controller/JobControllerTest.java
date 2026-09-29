@@ -32,6 +32,7 @@ import com.gakkum.backend.domain.job.dto.JobQueryDto.OpenJobListResult;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.OpenJobResult;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.SpecialtyCategoryResult;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.SpecialtyResult;
+import com.gakkum.backend.domain.job.entity.JobProgressStage;
 import com.gakkum.backend.domain.job.entity.Job;
 import com.gakkum.backend.domain.job.entity.JobSubmission;
 import com.gakkum.backend.domain.job.entity.JobSubmissionType;
@@ -68,7 +69,7 @@ class JobControllerTest {
                 .revisionCount(2)
                 .build();
         OpenJobResult result = OpenJobResult.of(
-                OpenJobData.of(job, List.of(11L, 12L), 3),
+                OpenJobData.of(job, List.of(11L, 12L), 3, JobProgressStage.REQUESTED),
                 List.of(SpecialtyCategoryResult.of(1L, "개발", List.of(
                         SpecialtyResult.of(11L, "백엔드"),
                         SpecialtyResult.of(12L, "프론트엔드")))));
@@ -87,7 +88,8 @@ class JobControllerTest {
                 .andExpect(jsonPath("$.data.jobs[0].draftDeadline").value("2026-10-10"))
                 .andExpect(jsonPath("$.data.jobs[0].finalDeadline").value("2026-10-20"))
                 .andExpect(jsonPath("$.data.jobs[0].revisionCount").value(2))
-                .andExpect(jsonPath("$.data.jobs[0].applicantCount").value(3));
+                .andExpect(jsonPath("$.data.jobs[0].applicantCount").value(3))
+                .andExpect(jsonPath("$.data.jobs[0].progressStage").value("REQUESTED"));
         verify(jobFacade).getOpenJobs(USERNAME);
     }
 
@@ -118,7 +120,8 @@ class JobControllerTest {
                         JobSubmission.builder()
                                 .id(81L)
                                 .submissionType(JobSubmissionType.DRAFT)
-                                .build()),
+                                .build(),
+                        JobProgressStage.DRAFT),
                 Student.builder()
                         .id(7L)
                         .studentNumber("2023123456")
@@ -141,7 +144,8 @@ class JobControllerTest {
                 .andExpect(jsonPath("$.data.jobs[0].studentNumber").value("2023123456"))
                 .andExpect(jsonPath("$.data.jobs[0].major").value("컴퓨터정보공학부"))
                 .andExpect(jsonPath("$.data.jobs[0].submissionType").value("DRAFT"))
-                .andExpect(jsonPath("$.data.jobs[0].pendingSubmissionId").value(81));
+                .andExpect(jsonPath("$.data.jobs[0].pendingSubmissionId").value(81))
+                .andExpect(jsonPath("$.data.jobs[0].progressStage").value("DRAFT"));
         verify(jobFacade).getMatchedJobs(USERNAME);
     }
 
@@ -172,13 +176,14 @@ class JobControllerTest {
                 .major("미디어학부")
                 .build();
         MatchedJobResult result = MatchedJobResult.of(
-                MatchedJobData.of(job, List.of(), null), student, List.of());
+                MatchedJobData.of(job, List.of(), null, JobProgressStage.STARTED), student, List.of());
         when(jobFacade.getMatchedJobs(USERNAME)).thenReturn(MatchedJobListResult.of(List.of(result)));
 
         mockMvc.perform(get("/me/jobs").param("status", "MATCHED").principal(authentication))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.jobs[0].submissionType").value(nullValue()))
-                .andExpect(jsonPath("$.data.jobs[0].pendingSubmissionId").value(nullValue()));
+                .andExpect(jsonPath("$.data.jobs[0].pendingSubmissionId").value(nullValue()))
+                .andExpect(jsonPath("$.data.jobs[0].progressStage").value("STARTED"));
     }
 
     @Test
@@ -191,7 +196,7 @@ class JobControllerTest {
                 .completedAt(LocalDateTime.of(2026, 9, 25, 18, 30))
                 .build();
         ClosedJobResult result = ClosedJobResult.of(
-                ClosedJobData.of(job, List.of(11L)),
+                ClosedJobData.of(job, List.of(11L), JobProgressStage.COMPLETED),
                 Student.builder().id(21L).build(),
                 User.builder().name("김람가").build(),
                 List.of(SpecialtyCategoryResult.of(3L, "디자인", List.of())));
@@ -202,6 +207,7 @@ class JobControllerTest {
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data").isArray())
                 .andExpect(jsonPath("$.data[0].jobId").value(42))
+                .andExpect(jsonPath("$.data[0].progressStage").value("COMPLETED"))
                 .andExpect(jsonPath("$.data[0].title").value("가게 메뉴판 디자인"))
                 .andExpect(jsonPath("$.data[0].specialtyCategories[0].id").value(3))
                 .andExpect(jsonPath("$.data[0].specialtyCategories[0].name").value("디자인"))

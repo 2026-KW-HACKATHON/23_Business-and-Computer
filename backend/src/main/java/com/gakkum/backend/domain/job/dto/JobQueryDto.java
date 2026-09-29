@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Map;
 
 import com.gakkum.backend.domain.job.entity.Job;
+import com.gakkum.backend.domain.job.entity.JobProgressStage;
 import com.gakkum.backend.domain.job.entity.JobSubmission;
 import com.gakkum.backend.domain.job.entity.JobSubmissionReviewStatus;
 import com.gakkum.backend.domain.job.entity.JobSubmissionType;
@@ -29,9 +30,10 @@ public final class JobQueryDto {
 
         private final Job job;
         private final List<Long> specialtyIds;
+        private final JobProgressStage progressStage;
 
-        public static JobDetailData of(Job job, List<Long> specialtyIds) {
-            return new JobDetailData(job, specialtyIds);
+        public static JobDetailData of(Job job, List<Long> specialtyIds, JobProgressStage progressStage) {
+            return new JobDetailData(job, specialtyIds, progressStage);
         }
     }
 
@@ -48,6 +50,7 @@ public final class JobQueryDto {
         private final LocalDate draftDeadline;
         private final LocalDate finalDeadline;
         private final Integer revisionCount;
+        private final JobProgressStage progressStage;
 
         public static JobDetailResult of(JobDetailData data, List<SpecialtyCategoryResult> specialtyCategories) {
             Job job = data.getJob();
@@ -60,6 +63,7 @@ public final class JobQueryDto {
                     .draftDeadline(job.getDraftDeadline())
                     .finalDeadline(job.getFinalDeadline())
                     .revisionCount(job.getRevisionCount())
+                    .progressStage(data.getProgressStage())
                     .build();
         }
     }
@@ -242,9 +246,11 @@ public final class JobQueryDto {
         private final Job job;
         private final List<Long> specialtyIds;
         private final Integer applicantCount;
+        private final JobProgressStage progressStage;
 
-        public static OpenJobData of(Job job, List<Long> specialtyIds, Integer applicantCount) {
-            return new OpenJobData(job, specialtyIds, applicantCount);
+        public static OpenJobData of(
+                Job job, List<Long> specialtyIds, Integer applicantCount, JobProgressStage progressStage) {
+            return new OpenJobData(job, specialtyIds, applicantCount, progressStage);
         }
     }
 
@@ -255,9 +261,11 @@ public final class JobQueryDto {
         private final Job job;
         private final List<Long> specialtyIds;
         private final JobSubmission pendingSubmission;
+        private final JobProgressStage progressStage;
 
-        public static MatchedJobData of(Job job, List<Long> specialtyIds, JobSubmission pendingSubmission) {
-            return new MatchedJobData(job, specialtyIds, pendingSubmission);
+        public static MatchedJobData of(
+                Job job, List<Long> specialtyIds, JobSubmission pendingSubmission, JobProgressStage progressStage) {
+            return new MatchedJobData(job, specialtyIds, pendingSubmission, progressStage);
         }
     }
 
@@ -268,9 +276,11 @@ public final class JobQueryDto {
         private final Job job;
         private final List<Long> specialtyIds;
         private final JobSubmission latestSubmission;
+        private final JobProgressStage progressStage;
 
-        public static StudentMatchedJobData of(Job job, List<Long> specialtyIds, JobSubmission latestSubmission) {
-            return new StudentMatchedJobData(job, specialtyIds, latestSubmission);
+        public static StudentMatchedJobData of(
+                Job job, List<Long> specialtyIds, JobSubmission latestSubmission, JobProgressStage progressStage) {
+            return new StudentMatchedJobData(job, specialtyIds, latestSubmission, progressStage);
         }
     }
 
@@ -280,9 +290,10 @@ public final class JobQueryDto {
 
         private final Job job;
         private final List<Long> specialtyIds;
+        private final JobProgressStage progressStage;
 
-        public static ClosedJobData of(Job job, List<Long> specialtyIds) {
-            return new ClosedJobData(job, specialtyIds);
+        public static ClosedJobData of(Job job, List<Long> specialtyIds, JobProgressStage progressStage) {
+            return new ClosedJobData(job, specialtyIds, progressStage);
         }
     }
 
@@ -307,6 +318,7 @@ public final class JobQueryDto {
         private final List<SpecialtyCategoryResult> specialtyCategories;
         private final MatchedWorkerResult matchedWorker;
         private final LocalDate completedAt;
+        private final JobProgressStage progressStage;
 
         public static ClosedJobResult of(
                 ClosedJobData data, Student student, User worker, List<SpecialtyCategoryResult> specialtyCategories) {
@@ -317,6 +329,7 @@ public final class JobQueryDto {
                     .specialtyCategories(specialtyCategories)
                     .matchedWorker(MatchedWorkerResult.of(student.getId(), worker.getName()))
                     .completedAt(job.getCompletedAt().toLocalDate())
+                    .progressStage(data.getProgressStage())
                     .build();
         }
     }
@@ -359,6 +372,7 @@ public final class JobQueryDto {
         private final String major;
         private final String submissionType;
         private final Long pendingSubmissionId;
+        private final JobProgressStage progressStage;
 
         public static MatchedJobResult of(
                 MatchedJobData data, Student student, List<SpecialtyCategoryResult> specialtyCategories) {
@@ -375,6 +389,7 @@ public final class JobQueryDto {
                     .major(student.getMajor())
                     .submissionType(pendingSubmission == null ? null : pendingSubmission.getSubmissionType().name())
                     .pendingSubmissionId(pendingSubmission == null ? null : pendingSubmission.getId())
+                    .progressStage(data.getProgressStage())
                     .build();
         }
     }
@@ -404,6 +419,7 @@ public final class JobQueryDto {
         private final Integer revisionCount;
         private final String submissionType;
         private final String reviewStatus;
+        private final JobProgressStage progressStage;
 
         public static StudentMatchedJobResult of(
                 StudentMatchedJobData data, List<SpecialtyCategoryResult> specialtyCategories) {
@@ -419,6 +435,7 @@ public final class JobQueryDto {
                     .revisionCount(job.getRevisionCount())
                     .submissionType(latest == null ? null : latest.getSubmissionType().name())
                     .reviewStatus(latest == null ? null : latest.getReviewStatus().name())
+                    .progressStage(data.getProgressStage())
                     .build();
         }
     }
@@ -446,6 +463,7 @@ public final class JobQueryDto {
         private final LocalDate finalDeadline;
         private final Integer revisionCount;
         private final Integer applicantCount;
+        private final JobProgressStage progressStage;
 
         public static OpenJobResult of(OpenJobData data, List<SpecialtyCategoryResult> specialtyCategories) {
             Job job = data.getJob();
@@ -457,6 +475,7 @@ public final class JobQueryDto {
                     .finalDeadline(job.getFinalDeadline())
                     .revisionCount(job.getRevisionCount())
                     .applicantCount(data.getApplicantCount())
+                    .progressStage(data.getProgressStage())
                     .build();
         }
     }

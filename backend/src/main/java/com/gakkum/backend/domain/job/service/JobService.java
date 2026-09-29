@@ -32,6 +32,7 @@ import com.gakkum.backend.domain.job.dto.JobQueryDto.StudentMatchedJobData;
 import com.gakkum.backend.domain.job.entity.Job;
 import com.gakkum.backend.domain.job.entity.JobApplication;
 import com.gakkum.backend.domain.job.entity.JobApplicationStatus;
+import com.gakkum.backend.domain.job.entity.JobProgressStage;
 import com.gakkum.backend.domain.job.entity.JobSpecialty;
 import com.gakkum.backend.domain.job.entity.JobSubmission;
 import com.gakkum.backend.domain.job.entity.JobSubmissionReviewStatus;
@@ -117,7 +118,10 @@ public class JobService {
         List<Long> specialtyIds = jobSpecialtyRepository.findByJobIdIn(List.of(jobId)).stream()
                 .map(JobSpecialty::getSpecialtyId)
                 .toList();
-        return JobDetailData.of(job, specialtyIds);
+        JobSubmission latest = job.getStatus() == JobStatus.MATCHED
+                ? jobSubmissionRepository.findFirstByJobIdOrderByRevisionNumberDesc(jobId).orElse(null)
+                : null;
+        return JobDetailData.of(job, specialtyIds, calculateProgressStage(job, latest));
     }
 
     /**
@@ -395,7 +399,8 @@ public class JobService {
                         specialtiesByJobId.getOrDefault(job.getId(), List.of()).stream()
                                 .map(JobSpecialty::getSpecialtyId)
                                 .toList(),
-                        Math.toIntExact(applicantCounts.getOrDefault(job.getId(), 0L))))
+                        Math.toIntExact(applicantCounts.getOrDefault(job.getId(), 0L)),
+                        calculateProgressStage(job, null)))
                 .toList();
     }
 
@@ -412,17 +417,22 @@ public class JobService {
         List<Long> jobIds = jobs.stream().map(Job::getId).toList();
         Map<Long, List<JobSpecialty>> specialtiesByJobId = jobSpecialtyRepository.findByJobIdIn(jobIds).stream()
                 .collect(Collectors.groupingBy(JobSpecialty::getJobId));
-        Map<Long, JobSubmission> pendingSubmissionsByJobId = jobSubmissionRepository
-                .findByJobIdInAndReviewStatus(jobIds, JobSubmissionReviewStatus.PENDING).stream()
-                .collect(Collectors.toMap(JobSubmission::getJobId, submission -> submission));
+        Map<Long, JobSubmission> latestSubmissionsByJobId = latestSubmissionsByJobId(jobIds);
 
         return jobs.stream()
-                .map(job -> MatchedJobData.of(
-                        job,
-                        specialtiesByJobId.getOrDefault(job.getId(), List.of()).stream()
-                                .map(JobSpecialty::getSpecialtyId)
-                                .toList(),
-                        pendingSubmissionsByJobId.get(job.getId())))
+                .map(job -> {
+                    JobSubmission latest = latestSubmissionsByJobId.get(job.getId());
+                    // 검토 대기 제출물은 항상 최신 제출물이다
+                    JobSubmission pending = latest != null
+                            && latest.getReviewStatus() == JobSubmissionReviewStatus.PENDING ? latest : null;
+                    return MatchedJobData.of(
+                            job,
+                            specialtiesByJobId.getOrDefault(job.getId(), List.of()).stream()
+                                    .map(JobSpecialty::getSpecialtyId)
+                                    .toList(),
+                            pending,
+                            calculateProgressStage(job, latest));
+                })
                 .toList();
     }
 
@@ -442,11 +452,7 @@ public class JobService {
         List<Long> jobIds = jobs.stream().map(Job::getId).toList();
         Map<Long, List<JobSpecialty>> specialtiesByJobId = jobSpecialtyRepository.findByJobIdIn(jobIds).stream()
                 .collect(Collectors.groupingBy(JobSpecialty::getJobId));
-        Map<Long, JobSubmission> latestSubmissionsByJobId = jobSubmissionRepository.findByJobIdIn(jobIds).stream()
-                .collect(Collectors.toMap(
-                        JobSubmission::getJobId,
-                        submission -> submission,
-                        (left, right) -> left.getRevisionNumber() >= right.getRevisionNumber() ? left : right));
+        Map<Long, JobSubmission> latestSubmissionsByJobId = latestSubmissionsByJobId(jobIds);
 
         return jobs.stream()
                 .map(job -> StudentMatchedJobData.of(
@@ -454,7 +460,8 @@ public class JobService {
                         specialtiesByJobId.getOrDefault(job.getId(), List.of()).stream()
                                 .map(JobSpecialty::getSpecialtyId)
                                 .toList(),
-                        latestSubmissionsByJobId.get(job.getId())))
+                        latestSubmissionsByJobId.get(job.getId()),
+                        calculateProgressStage(job, latestSubmissionsByJobId.get(job.getId()))))
                 .toList();
     }
 
@@ -482,8 +489,38 @@ public class JobService {
                         job,
                         specialtiesByJobId.getOrDefault(job.getId(), List.of()).stream()
                                 .map(JobSpecialty::getSpecialtyId)
-                                .toList()))
+                                .toList(),
+                        calculateProgressStage(job, null)))
                 .toList();
+    }
+
+    private Map<Long, JobSubmission> latestSubmissionsByJobId(List<Long> jobIds) {
+        return jobSubmissionRepository.findByJobIdIn(jobIds).stream()
+                .collect(Collectors.toMap(
+                        JobSubmission::getJobId,
+                        submission -> submission,
+                        (left, right) -> left.getRevisionNumber() >= right.getRevisionNumber() ? left : right));
+    }
+
+    /**
+     * 의뢰 상태와 최신 제출물로 현재 진행 단계를 계산한다. 저장하지 않는다.
+     * 진행 중(MATCHED)에서는 제출물이 없으면 시작, 수정 요청이 있었거나 수정안이 제출됐으면 수정, 그 외에는 초안이다.
+     * @param job
+     * @param latestSubmission MATCHED 의뢰의 최신 제출물(없으면 null). 다른 상태에서는 사용하지 않는다.
+     */
+    private JobProgressStage calculateProgressStage(Job job, JobSubmission latestSubmission) {
+        return switch (job.getStatus()) {
+            case OPEN -> JobProgressStage.REQUESTED;
+            case CLOSED -> JobProgressStage.COMPLETED;
+            case MATCHED -> {
+                if (latestSubmission == null) {
+                    yield JobProgressStage.STARTED;
+                }
+                boolean inRevision = latestSubmission.getSubmissionType() == JobSubmissionType.REVISION
+                        || latestSubmission.getReviewStatus() == JobSubmissionReviewStatus.REVISION_REQUESTED;
+                yield inRevision ? JobProgressStage.REVISION : JobProgressStage.DRAFT;
+            }
+        };
     }
 
     // createdAt과 같은 JVM 기본 시간대로 완료 시각을 기록한다

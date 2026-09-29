@@ -7,6 +7,7 @@ import com.gakkum.backend.domain.job.dto.JobQueryDto.MatchedJobListResult;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.MatchedJobResult;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.SpecialtyCategoryResult;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.SpecialtyResult;
+import com.gakkum.backend.domain.job.entity.JobProgressStage;
 
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -40,6 +41,7 @@ public class MatchedJobListResponse {
         private final String major;
         private final String submissionType;
         private final Long pendingSubmissionId;
+        private final JobProgressStage progressStage;
 
         public static JobResponse from(MatchedJobResult result) {
             return JobResponse.builder()
@@ -55,6 +57,7 @@ public class MatchedJobListResponse {
                     .major(result.getMajor())
                     .submissionType(result.getSubmissionType())
                     .pendingSubmissionId(result.getPendingSubmissionId())
+                    .progressStage(result.getProgressStage())
                     .build();
         }
     }

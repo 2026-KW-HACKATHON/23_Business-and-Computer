@@ -24,6 +24,7 @@ import com.gakkum.backend.domain.job.client.JobSubmissionFileStorageClient;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.GetMatchedJobsCommand;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.MatchedJobData;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.MatchedJobListResult;
+import com.gakkum.backend.domain.job.entity.JobProgressStage;
 import com.gakkum.backend.domain.job.entity.Job;
 import com.gakkum.backend.domain.job.entity.JobSubmission;
 import com.gakkum.backend.domain.job.entity.JobSubmissionType;
@@ -66,9 +67,11 @@ class JobFacadeMatchedListTest {
     void assemblesMatchedJobs() {
         givenOwner();
         when(jobService.getMatchedJobs(any(GetMatchedJobsCommand.class))).thenReturn(List.of(
-                MatchedJobData.of(job(42L, 7L), List.of(12L, 11L), submission(81L, JobSubmissionType.DRAFT)),
-                MatchedJobData.of(job(43L, 8L), List.of(21L), submission(87L, JobSubmissionType.REVISION)),
-                MatchedJobData.of(job(44L, 9L), List.of(22L), null)));
+                MatchedJobData.of(job(42L, 7L), List.of(12L, 11L), submission(81L, JobSubmissionType.DRAFT),
+                        JobProgressStage.DRAFT),
+                MatchedJobData.of(job(43L, 8L), List.of(21L), submission(87L, JobSubmissionType.REVISION),
+                        JobProgressStage.REVISION),
+                MatchedJobData.of(job(44L, 9L), List.of(22L), null, JobProgressStage.STARTED)));
         when(studentService.getStudentProfilesByIds(List.of(7L, 8L, 9L))).thenReturn(Map.of(
                 7L, student(7L, "2023123456", "컴퓨터정보공학부"),
                 8L, student(8L, "2024123456", "시각디자인학부"),

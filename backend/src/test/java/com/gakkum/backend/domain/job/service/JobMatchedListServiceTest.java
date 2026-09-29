@@ -15,6 +15,7 @@ import org.junit.jupiter.api.Test;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.GetMatchedJobsCommand;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.MatchedJobData;
 import com.gakkum.backend.domain.job.entity.Job;
+import com.gakkum.backend.domain.job.entity.JobProgressStage;
 import com.gakkum.backend.domain.job.entity.JobSpecialty;
 import com.gakkum.backend.domain.job.entity.JobStatus;
 import com.gakkum.backend.domain.job.entity.JobSubmission;
@@ -44,8 +45,7 @@ class JobMatchedListServiceTest {
                 JobSpecialty.create(42L, 12L),
                 JobSpecialty.create(43L, 21L),
                 JobSpecialty.create(44L, 22L)));
-        when(jobSubmissionRepository.findByJobIdInAndReviewStatus(
-                List.of(44L, 43L, 42L), JobSubmissionReviewStatus.PENDING)).thenReturn(List.of(
+        when(jobSubmissionRepository.findByJobIdIn(List.of(44L, 43L, 42L))).thenReturn(List.of(
                 submission(81L, 42L, JobSubmissionType.DRAFT),
                 submission(87L, 43L, JobSubmissionType.REVISION)));
 
@@ -56,9 +56,10 @@ class JobMatchedListServiceTest {
         assertThat(result.get(1).getPendingSubmission().getSubmissionType()).isEqualTo(JobSubmissionType.REVISION);
         assertThat(result.get(2).getPendingSubmission().getId()).isEqualTo(81L);
         assertThat(result.get(2).getSpecialtyIds()).containsExactly(12L);
+        assertThat(result).extracting(MatchedJobData::getProgressStage).containsExactly(
+                JobProgressStage.STARTED, JobProgressStage.REVISION, JobProgressStage.DRAFT);
         verify(jobRepository).findByOwnerProfileIdAndStatusOrderByCreatedAtDescIdDesc(5L, JobStatus.MATCHED);
-        verify(jobSubmissionRepository).findByJobIdInAndReviewStatus(
-                List.of(44L, 43L, 42L), JobSubmissionReviewStatus.PENDING);
+        verify(jobSubmissionRepository).findByJobIdIn(List.of(44L, 43L, 42L));
         verifyNoInteractions(jobApplicationRepository);
     }
 
