@@ -7,6 +7,7 @@ import com.gakkum.backend.domain.job.dto.JobQueryDto.SpecialtyCategoryResult;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.SpecialtyResult;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.StudentMatchedJobListResult;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.StudentMatchedJobResult;
+import com.gakkum.backend.domain.job.entity.JobProgressStage;
 
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -39,6 +40,7 @@ public class StudentMatchedJobListResponse {
         private final Integer revisionCount;
         private final String submissionType;
         private final String reviewStatus;
+        private final JobProgressStage progressStage;
 
         public static JobResponse from(StudentMatchedJobResult result) {
             return JobResponse.builder()
@@ -53,6 +55,7 @@ public class StudentMatchedJobListResponse {
                     .revisionCount(result.getRevisionCount())
                     .submissionType(result.getSubmissionType())
                     .reviewStatus(result.getReviewStatus())
+                    .progressStage(result.getProgressStage())
                     .build();
         }
     }

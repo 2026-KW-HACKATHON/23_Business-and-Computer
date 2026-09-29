@@ -8,6 +8,7 @@ import com.gakkum.backend.domain.job.dto.JobQueryDto.ClosedJobListResult;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.ClosedJobResult;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.MatchedWorkerResult;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.SpecialtyCategoryResult;
+import com.gakkum.backend.domain.job.entity.JobProgressStage;
 
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -40,6 +41,7 @@ public class ClosedJobListResponse {
         private final List<SpecialtyCategoryResponse> specialtyCategories;
         private final MatchedWorkerResponse matchedWorker;
         private final LocalDate completedAt;
+        private final JobProgressStage progressStage;
 
         public static JobResponse from(ClosedJobResult result) {
             return JobResponse.builder()
@@ -50,6 +52,7 @@ public class ClosedJobListResponse {
                             .toList())
                     .matchedWorker(MatchedWorkerResponse.from(result.getMatchedWorker()))
                     .completedAt(result.getCompletedAt())
+                    .progressStage(result.getProgressStage())
                     .build();
         }
     }

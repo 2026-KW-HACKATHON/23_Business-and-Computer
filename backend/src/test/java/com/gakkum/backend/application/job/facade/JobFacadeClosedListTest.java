@@ -23,6 +23,7 @@ import com.gakkum.backend.domain.job.client.JobSubmissionFileStorageClient;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.GetClosedJobsCommand;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.ClosedJobData;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.ClosedJobListResult;
+import com.gakkum.backend.domain.job.entity.JobProgressStage;
 import com.gakkum.backend.domain.job.entity.Job;
 import com.gakkum.backend.domain.job.service.JobService;
 import com.gakkum.backend.domain.owner.entity.Owner;
@@ -63,8 +64,8 @@ class JobFacadeClosedListTest {
     void assemblesClosedJobs() {
         givenOwner();
         when(jobService.getClosedJobs(any(GetClosedJobsCommand.class))).thenReturn(List.of(
-                ClosedJobData.of(job(44L, 32L, LocalDateTime.of(2026, 9, 27, 9, 30)), List.of(21L)),
-                ClosedJobData.of(job(42L, 21L, LocalDateTime.of(2026, 9, 25, 18, 0)), List.of(12L, 11L, 21L))));
+                ClosedJobData.of(job(44L, 32L, LocalDateTime.of(2026, 9, 27, 9, 30)), List.of(21L), JobProgressStage.COMPLETED),
+                ClosedJobData.of(job(42L, 21L, LocalDateTime.of(2026, 9, 25, 18, 0)), List.of(12L, 11L, 21L), JobProgressStage.COMPLETED)));
         when(studentService.getStudentProfilesByIds(List.of(32L, 21L))).thenReturn(Map.of(
                 21L, Student.builder().id(21L).userId(WORKER_USER_ID_1).build(),
                 32L, Student.builder().id(32L).userId(WORKER_USER_ID_2).build()));
@@ -112,7 +113,7 @@ class JobFacadeClosedListTest {
     void rejectsMissingStudent() {
         givenOwner();
         when(jobService.getClosedJobs(any(GetClosedJobsCommand.class))).thenReturn(List.of(
-                ClosedJobData.of(job(42L, 21L, LocalDateTime.of(2026, 9, 25, 18, 0)), List.of())));
+                ClosedJobData.of(job(42L, 21L, LocalDateTime.of(2026, 9, 25, 18, 0)), List.of(), JobProgressStage.COMPLETED)));
         when(studentService.getStudentProfilesByIds(List.of(21L)))
                 .thenThrow(new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR));
 

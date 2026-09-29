@@ -6,6 +6,7 @@ import java.util.List;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.JobDetailResult;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.SpecialtyCategoryResult;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.SpecialtyResult;
+import com.gakkum.backend.domain.job.entity.JobProgressStage;
 
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -25,6 +26,7 @@ public class JobDetailResponse {
     private final LocalDate draftDeadline;
     private final LocalDate finalDeadline;
     private final Integer revisionCount;
+    private final JobProgressStage progressStage;
 
     public static JobDetailResponse from(JobDetailResult result) {
         return JobDetailResponse.builder()
@@ -38,6 +40,7 @@ public class JobDetailResponse {
                 .draftDeadline(result.getDraftDeadline())
                 .finalDeadline(result.getFinalDeadline())
                 .revisionCount(result.getRevisionCount())
+                .progressStage(result.getProgressStage())
                 .build();
     }
 

@@ -23,6 +23,7 @@ import com.gakkum.backend.domain.job.client.JobSubmissionFileStorageClient;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.GetOpenJobsCommand;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.OpenJobData;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.OpenJobListResult;
+import com.gakkum.backend.domain.job.entity.JobProgressStage;
 import com.gakkum.backend.domain.job.entity.Job;
 import com.gakkum.backend.domain.job.service.JobService;
 import com.gakkum.backend.domain.owner.entity.Owner;
@@ -58,8 +59,8 @@ class JobFacadeOpenListTest {
     void assemblesOpenJobsWithSpecialtyCategories() {
         givenOwner();
         when(jobService.getOpenJobs(any(GetOpenJobsCommand.class))).thenReturn(List.of(
-                OpenJobData.of(job(42L, "웹사이트 제작"), List.of(12L, 21L, 11L), 3),
-                OpenJobData.of(job(41L, "포스터 제작"), List.of(21L), 0)));
+                OpenJobData.of(job(42L, "웹사이트 제작"), List.of(12L, 21L, 11L), 3, JobProgressStage.REQUESTED),
+                OpenJobData.of(job(41L, "포스터 제작"), List.of(21L), 0, JobProgressStage.REQUESTED)));
         when(specialtyCategoryService.getSpecialtyDetails(Set.of(11L, 12L, 21L))).thenReturn(Map.of(
                 11L, SpecialtyDetail.of(11L, "백엔드", 1L, "개발"),
                 12L, SpecialtyDetail.of(12L, "프론트엔드", 1L, "개발"),
