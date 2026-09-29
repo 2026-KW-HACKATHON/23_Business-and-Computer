@@ -33,6 +33,9 @@ class PaymentMappingTest {
             assertThat(payments.getColumn(new Column("kakao_tid")).isNullable()).isTrue();
             assertThat(payments.getColumn(new Column("kakao_tid")).isUnique()).isTrue();
             assertThat(payments.getColumn(new Column("approved_at")).isNullable()).isTrue();
+            for (String name : new String[] { "refund_amount", "student_compensation_amount", "refunded_at" }) {
+                assertThat(payments.getColumn(new Column(name)).isNullable()).as(name).isTrue();
+            }
             assertThat(payments.getForeignKeyCollection()).isEmpty();
         } finally {
             StandardServiceRegistryBuilder.destroy(registry);

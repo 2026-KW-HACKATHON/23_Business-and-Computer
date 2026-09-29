@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.gakkum.backend.application.job.dto.JobCancelResponse;
 import com.gakkum.backend.application.job.dto.JobCreateRequest;
 import com.gakkum.backend.application.job.dto.JobDetailResponse;
 import com.gakkum.backend.application.job.dto.JobListResponse;
@@ -127,6 +128,17 @@ public class JobController {
         }
         jobFacade.completeSubmission(authentication.getName(), jobId, submissionId);
         return ResponseEntity.ok(ApiResponse.success());
+    }
+
+    /** 사장님이 모집 중 또는 진행 중인 본인 의뢰를 취소하는 API(진행 중이면 학생 보상금 20%를 뺀 금액 환불 처리) */
+    @PostMapping("/jobs/{jobId}/cancel")
+    public ResponseEntity<ApiResponse<JobCancelResponse>> cancelJob(
+            Authentication authentication, @PathVariable Long jobId) {
+        if (jobId <= 0) {
+            throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE);
+        }
+        JobCancelResponse response = JobCancelResponse.from(jobFacade.cancelJob(authentication.getName(), jobId));
+        return ResponseEntity.ok(ApiResponse.success(response));
     }
 
     @GetMapping("/me/jobs")

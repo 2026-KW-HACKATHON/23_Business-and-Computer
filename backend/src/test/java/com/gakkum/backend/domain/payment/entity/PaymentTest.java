@@ -36,6 +36,46 @@ class PaymentTest {
         assertThat(payment.getStatus()).isEqualTo(PaymentStatus.PENDING);
     }
 
+    @Test
+    void refundOnCancelKeepsTwentyPercentForStudentAndRefundsRest() {
+        Payment payment = paidPayment(100_000L);
+
+        payment.refundOnCancel(NOW);
+
+        assertThat(payment.getStatus()).isEqualTo(PaymentStatus.REFUNDED);
+        assertThat(payment.getStudentCompensationAmount()).isEqualTo(20_000L);
+        assertThat(payment.getRefundAmount()).isEqualTo(80_000L);
+        assertThat(payment.getRefundedAt()).isEqualTo(NOW);
+    }
+
+    @Test
+    void refundOnCancelRoundsStudentCompensationDownAndRefundsRemainder() {
+        Payment payment = paidPayment(10_001L);
+
+        payment.refundOnCancel(NOW);
+
+        assertThat(payment.getStudentCompensationAmount()).isEqualTo(2_000L);
+        assertThat(payment.getRefundAmount()).isEqualTo(8_001L);
+    }
+
+    @Test
+    void refundOnCancelRejectsUnpaidOrAlreadyRefundedPayment() {
+        Payment pending = Payment.pending(11L, 21L, "owner-123", "order-123", 100_000L, NOW);
+        assertPaymentError(() -> pending.refundOnCancel(NOW), ErrorCode.PAYMENT_NOT_AVAILABLE);
+
+        Payment refunded = paidPayment(100_000L);
+        refunded.refundOnCancel(NOW);
+        assertPaymentError(() -> refunded.refundOnCancel(NOW), ErrorCode.PAYMENT_NOT_AVAILABLE);
+        assertThat(refunded.getRefundAmount()).isEqualTo(80_000L);
+    }
+
+    private Payment paidPayment(Long amount) {
+        Payment payment = Payment.pending(11L, 21L, "owner-123", "order-123", amount, NOW);
+        payment.recordKakaoTid("T123");
+        payment.approve(NOW);
+        return payment;
+    }
+
     private void assertPaymentError(Runnable action, ErrorCode errorCode) {
         assertThatThrownBy(action::run)
                 .isInstanceOfSatisfying(BusinessException.class, exception ->

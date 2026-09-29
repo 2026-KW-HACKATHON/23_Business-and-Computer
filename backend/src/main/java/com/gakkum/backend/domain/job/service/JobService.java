@@ -11,6 +11,7 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.gakkum.backend.domain.job.dto.JobCommandDto.CancelJobCommand;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.CompleteJobSubmissionCommand;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.CreateJobCommand;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.CreateJobSubmissionCommand;
@@ -21,6 +22,7 @@ import com.gakkum.backend.domain.job.dto.JobCommandDto.GetMatchedJobsCommand;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.GetOpenJobsCommand;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.GetStudentMatchedJobsCommand;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.RequestJobSubmissionRevisionCommand;
+import com.gakkum.backend.domain.job.dto.JobQueryDto.CancelledJobData;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.ClosedJobData;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.JobDetailData;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.JobResultData;
@@ -274,6 +276,21 @@ public class JobService {
     }
 
     /**
+     * 사장님 본인의 모집 중(OPEN) 또는 진행 중(MATCHED) 의뢰를 취소한다.
+     * 의뢰 행을 잠가 같은 의뢰의 결제 승인·제출물 검토와 순서대로 처리한다.
+     * @param command
+     * @return 취소된 의뢰와 취소 전 결제 완료(MATCHED) 여부
+     */
+    @Transactional
+    public CancelledJobData cancelJob(CancelJobCommand command) {
+        Job job = jobRepository.findByIdAndOwnerProfileId(command.getJobId(), command.getOwnerProfileId())
+                .orElseThrow(() -> new BusinessException(ErrorCode.JOB_NOT_FOUND));
+        boolean paid = job.getStatus() == JobStatus.MATCHED;
+        job.cancel(now());
+        return CancelledJobData.of(job, paid);
+    }
+
+    /**
      * 완료된(CLOSED) 의뢰의 결과물과 전체 제출 이력을 조회한다.
      * 존재하지 않는 의뢰, 요청자가 의뢰한 사장님·담당 학생이 아닌 의뢰, 완료되지 않은 의뢰는 모두 같은 404로 거부한다.
      * @param command 사장님 또는 학생 프로필 ID 중 하나만 채워진 요청
@@ -467,8 +484,8 @@ public class JobService {
 
     @Transactional(readOnly = true)
     public List<ClosedJobData> getClosedJobs(GetClosedJobsCommand command) {
-        List<Job> jobs = jobRepository.findByOwnerProfileIdAndStatusOrderByCompletedAtDescIdDesc(
-                command.getOwnerProfileId(), JobStatus.CLOSED);
+        List<Job> jobs = jobRepository.findByOwnerProfileIdAndStatusInOrderByCompletedAtDescIdDesc(
+                command.getOwnerProfileId(), List.of(JobStatus.CLOSED, JobStatus.CANCELLED));
         if (jobs.isEmpty()) {
             return List.of();
         }
@@ -512,6 +529,7 @@ public class JobService {
         return switch (job.getStatus()) {
             case OPEN -> JobProgressStage.REQUESTED;
             case CLOSED -> JobProgressStage.COMPLETED;
+            case CANCELLED -> JobProgressStage.CANCELLED;
             case MATCHED -> {
                 if (latestSubmission == null) {
                     yield JobProgressStage.STARTED;
