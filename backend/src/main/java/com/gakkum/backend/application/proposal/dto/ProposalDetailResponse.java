@@ -4,7 +4,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.ProposalStudentResult;
-import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.ReceivedProposalResult;
+import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.ProposalDetailResult;
 import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.SpecialtyCategoryResult;
 import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.SpecialtyResult;
 
@@ -31,7 +31,7 @@ public class ProposalDetailResponse {
     private final List<String> referenceImageUrls;
     private final LocalDateTime createdAt;
 
-    public static ProposalDetailResponse from(ReceivedProposalResult result) {
+    public static ProposalDetailResponse from(ProposalDetailResult result) {
         return ProposalDetailResponse.builder()
                 .proposalId(result.getProposalId())
                 .title(result.getTitle())

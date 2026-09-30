@@ -33,12 +33,12 @@ public class ProposalController {
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(response));
     }
 
-    /** 사장님이 본인이 받은 제안의 내용과 제안한 학생 정보를 조회하는 API */
+    /** 인증 사용자가 제안의 내용과 제안한 학생 정보를 조회하는 API */
     @GetMapping("/proposals/{proposalId}")
-    public ResponseEntity<ApiResponse<ProposalDetailResponse>> getReceivedProposal(
+    public ResponseEntity<ApiResponse<ProposalDetailResponse>> getProposalDetail(
             Authentication authentication, @PathVariable Long proposalId) {
         ProposalDetailResponse response = ProposalDetailResponse.from(
-                proposalFacade.getReceivedProposal(authentication.getName(), proposalId));
+                proposalFacade.getProposalDetail(authentication.getName(), proposalId));
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 }

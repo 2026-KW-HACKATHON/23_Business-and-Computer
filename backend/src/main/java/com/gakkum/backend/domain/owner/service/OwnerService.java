@@ -1,5 +1,9 @@
 package com.gakkum.backend.domain.owner.service;
 
+import java.util.Collection;
+import java.util.Map;
+import java.util.stream.Collectors;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -67,5 +71,22 @@ public class OwnerService {
     public Owner getOwnerProfile(String userId) {
         return ownerRepository.findByUserId(userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.OWNER_PROFILE_NOT_FOUND));
+    }
+
+    /**
+     * 사장님 프로필 ID별 매장 이름을 한 번에 조회한다.
+     * @return 요청한 프로필 중 하나라도 없으면 참조 무결성 오류(500)
+     */
+    @Transactional(readOnly = true)
+    public Map<Long, String> getStoreNames(Collection<Long> ownerProfileIds) {
+        if (ownerProfileIds.isEmpty()) {
+            return Map.of();
+        }
+        Map<Long, String> storeNames = ownerRepository.findAllById(ownerProfileIds).stream()
+                .collect(Collectors.toMap(Owner::getId, Owner::getStoreName));
+        if (!storeNames.keySet().containsAll(ownerProfileIds)) {
+            throw new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR);
+        }
+        return storeNames;
     }
 }

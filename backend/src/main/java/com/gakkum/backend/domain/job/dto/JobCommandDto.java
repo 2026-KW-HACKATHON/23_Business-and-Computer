@@ -1,6 +1,7 @@
 package com.gakkum.backend.domain.job.dto;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 import lombok.AccessLevel;
@@ -242,6 +243,30 @@ public final class JobCommandDto {
                     .draftDeadline(draftDeadline)
                     .finalDeadline(finalDeadline)
                     .revisionCount(revisionCount)
+                    .build();
+        }
+    }
+
+    /** 탐색 목록의 의뢰 조회 조건. 경계 값은 이전 페이지 마지막 카드 위치이고 그 뒤의 의뢰만 limit개까지 읽는다. */
+    @Getter
+    @Builder(access = AccessLevel.PRIVATE)
+    @AllArgsConstructor(access = AccessLevel.PRIVATE)
+    public static class GetExploreJobsCommand {
+
+        private final Long specialtyCategoryId;
+        private final boolean oldestFirst;
+        private final LocalDateTime createdAtBound;
+        private final Long idBound;
+        private final int limit;
+
+        public static GetExploreJobsCommand of(Long specialtyCategoryId, boolean oldestFirst,
+                LocalDateTime createdAtBound, Long idBound, int limit) {
+            return GetExploreJobsCommand.builder()
+                    .specialtyCategoryId(specialtyCategoryId)
+                    .oldestFirst(oldestFirst)
+                    .createdAtBound(createdAtBound)
+                    .idBound(idBound)
+                    .limit(limit)
                     .build();
         }
     }

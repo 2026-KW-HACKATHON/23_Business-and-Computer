@@ -31,23 +31,36 @@ public final class ProposalQueryDto {
         }
     }
 
-    /** 사장님이 받은 제안과 제안에 선택된 소분류 ID */
+    /** 제안과 제안에 선택된 소분류 ID */
     @Getter
     @AllArgsConstructor(access = AccessLevel.PRIVATE)
-    public static class ReceivedProposalData {
+    public static class ProposalDetailData {
 
         private final Proposal proposal;
         private final List<Long> specialtyIds;
 
-        public static ReceivedProposalData of(Proposal proposal, List<Long> specialtyIds) {
-            return new ReceivedProposalData(proposal, List.copyOf(specialtyIds));
+        public static ProposalDetailData of(Proposal proposal, List<Long> specialtyIds) {
+            return new ProposalDetailData(proposal, List.copyOf(specialtyIds));
+        }
+    }
+
+    /** 탐색 목록의 제안 카드 재료. 제안과 제안에 선택된 소분류 ID */
+    @Getter
+    @AllArgsConstructor(access = AccessLevel.PRIVATE)
+    public static class ExploreProposalData {
+
+        private final Proposal proposal;
+        private final List<Long> specialtyIds;
+
+        public static ExploreProposalData of(Proposal proposal, List<Long> specialtyIds) {
+            return new ExploreProposalData(proposal, List.copyOf(specialtyIds));
         }
     }
 
     @Getter
     @Builder(access = AccessLevel.PRIVATE)
     @AllArgsConstructor(access = AccessLevel.PRIVATE)
-    public static class ReceivedProposalResult {
+    public static class ProposalDetailResult {
 
         private final Long proposalId;
         private final String title;
@@ -62,9 +75,9 @@ public final class ProposalQueryDto {
         private final List<String> referenceImageUrls;
         private final LocalDateTime createdAt;
 
-        public static ReceivedProposalResult of(Proposal proposal, Student student, User studentUser,
+        public static ProposalDetailResult of(Proposal proposal, Student student, User studentUser,
                 List<SpecialtyCategoryResult> specialtyCategories) {
-            return ReceivedProposalResult.builder()
+            return ProposalDetailResult.builder()
                     .proposalId(proposal.getId())
                     .title(proposal.getTitle())
                     .likeCount(proposal.getLikeCount())

@@ -285,6 +285,20 @@ public final class JobQueryDto {
         }
     }
 
+    /** 탐색 목록의 의뢰 카드 재료. 진행 단계는 의뢰 상태와 최신 제출물에서 계산한 값이다. */
+    @Getter
+    @AllArgsConstructor(access = AccessLevel.PRIVATE)
+    public static class ExploreJobData {
+
+        private final Job job;
+        private final List<Long> specialtyIds;
+        private final JobProgressStage progressStage;
+
+        public static ExploreJobData of(Job job, List<Long> specialtyIds, JobProgressStage progressStage) {
+            return new ExploreJobData(job, List.copyOf(specialtyIds), progressStage);
+        }
+    }
+
     @Getter
     @AllArgsConstructor(access = AccessLevel.PRIVATE)
     public static class ClosedJobData {
