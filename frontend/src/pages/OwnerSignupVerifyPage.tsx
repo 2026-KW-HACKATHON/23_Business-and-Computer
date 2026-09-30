@@ -12,7 +12,7 @@ import "./OwnerSignupVerifyPage.css";
 
 /**
  * 피그마 「회원가입 - 프로필 입력(사장님) 2/3 · 사장님 인증」.
- * 상태 = 인증 전 / 인증 완료 / 오류 · 정보 불일치 / 오류 · 휴업·폐업 (화면 하나 + 상태값 하나)
+ * 상태 = 인증 전 / 인증 완료 / 오류 · 정보 불일치 (화면 하나 + 상태값 하나)
  */
 function OwnerSignupVerifyPage() {
   const navigate = useNavigate();
@@ -56,8 +56,7 @@ function OwnerSignupVerifyPage() {
             inputMode="numeric"
             value={business.number}
             readOnly={verified}
-            invalid={check === "mismatch" || check === "closed"}
-            errorText={check === "closed" ? "휴업·폐업한 사업자는 가입할 수 없어요" : undefined}
+            invalid={check === "mismatch"}
             onChange={(e) => edit({ number: formatBusinessNumber(e.target.value) })}
           />
           <TextField

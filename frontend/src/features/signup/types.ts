@@ -1,7 +1,7 @@
 import type { StoreCategory } from "../../types/storeCategory";
 
 /** 사업자 인증 결과. idle = 아직 인증 전 */
-export type BusinessCheck = "idle" | "verified" | "mismatch" | "closed";
+export type BusinessCheck = "idle" | "verified" | "mismatch";
 
 export interface BusinessInfo {
   /** 입력 그대로 (예: 123-45-67890) */

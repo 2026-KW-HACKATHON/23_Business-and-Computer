@@ -7,8 +7,8 @@ Accepted
 ## Context
 
 Figma 「1. 공통」 has the owner signup: 1/3 가게 정보 입력, 2/3 사장님 인증
-(states 인증 전 / 인증 완료 / 오류 · 정보 불일치 / 오류 · 휴업·폐업), 3/3 프로필
-입력, and 회원가입 완료. The Notion 「화면 상태 전환표」 fixes the routes
+(states 인증 전 / 인증 완료 / 오류 · 정보 불일치), 3/3 프로필 입력, and
+회원가입 완료. The Notion 「화면 상태 전환표」 fixes the routes
 /signup/owner/1, /2, /3, /done and says the hackathon business check is a MOCK
 that only checks the format.
 
@@ -55,6 +55,3 @@ ship the screens first and wire the API in a later change.
   access token as `Authorization: Bearer`, which `apiFetch` does not add yet.
 - `POST /auth/owner` takes `categoryId`, but the backend has no 업종 seed data
   or list API yet; agree on the id mapping with the backend before wiring it.
-- The backend check only returns `verified: true/false`, so the 오류 · 휴업·폐업
-  state (`check === "closed"`) is rendered but not reachable until the backend
-  reports business status.
