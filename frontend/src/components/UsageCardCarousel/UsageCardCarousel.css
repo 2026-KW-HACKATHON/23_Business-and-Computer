@@ -26,6 +26,10 @@
 
 .usage-carousel__track {
   display: flex;
+}
+
+/* 시간은 UsageCardCarousel.tsx 의 SLIDE_MS 와 같게 둔다 */
+.usage-carousel__track--animate {
   transition: transform 0.3s ease-out;
 }
 
@@ -41,7 +45,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .usage-carousel__track {
+  .usage-carousel__track--animate {
     transition: none;
   }
 }
