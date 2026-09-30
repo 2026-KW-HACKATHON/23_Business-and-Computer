@@ -1,95 +1,143 @@
 .onboarding {
+  position: relative;
   display: flex;
   flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 64px;
+  box-sizing: border-box;
   width: 100%;
   max-width: 390px;
   min-height: 100svh;
   margin: 0 auto;
+  /* 위아래를 같게 두어 가운데 정렬을 맞추고, 아래는 안내 문구 자리를 남긴다 */
+  padding: calc(72px + env(safe-area-inset-top)) 20px calc(72px + env(safe-area-inset-bottom));
+  border: none;
   background: var(--color-white);
   font-family: var(--font-sans);
   text-align: center;
-}
-
-.onboarding__skip {
-  padding: 4px 0;
-  border: none;
-  background: none;
-  font-family: var(--font-sans);
-  font-size: 12px;
-  font-weight: 400;
-  line-height: 1.4;
-  color: var(--role-secondary);
-  text-decoration: underline;
   cursor: pointer;
+  transition: opacity 0.3s ease-out;
+  -webkit-tap-highlight-color: transparent;
 }
 
-.onboarding__content {
-  display: flex;
-  flex: 1;
-  flex-direction: column;
-  align-items: center;
-  padding: 50px 16px calc(82px + env(safe-area-inset-bottom));
+.onboarding--leaving {
+  opacity: 0;
 }
 
-.onboarding__slide {
+.onboarding__hero {
   display: flex;
   flex-direction: column;
   align-items: center;
-  animation: onboarding-fade-in 0.2s ease-out;
+  gap: 28px;
+}
+
+.onboarding__app-icon {
+  border-radius: 22px;
+  outline: 1px solid rgba(0, 0, 0, 0.06);
+  outline-offset: -1px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
 }
 
 .onboarding__title {
-  margin: 0;
-  font-family: var(--font-sans);
-  font-size: 24px;
-  font-weight: 900;
-  line-height: 29px;
-  letter-spacing: normal;
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1.35;
   color: var(--color-black);
   white-space: pre-line;
 }
 
-/* 세 일러스트의 크기가 달라도 가운데 높이를 맞춘다 */
-.onboarding__illustration {
+.onboarding__flow {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  box-sizing: border-box;
+  width: 100%;
+  padding: 24px;
+  border-radius: 20px;
+  background: var(--role-muted);
+  text-align: left;
+}
+
+.onboarding__flow-title {
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 19px;
+  color: var(--color-black);
+}
+
+.onboarding__steps {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.onboarding__step {
+  position: relative;
   display: flex;
   align-items: center;
-  justify-content: center;
-  height: 322px;
-}
-
-.onboarding__illustration img {
-  max-width: 100%;
-  height: auto;
-}
-
-.onboarding__description {
-  margin: 0;
+  gap: 14px;
+  height: 32px;
   font-size: 18px;
-  font-weight: 500;
-  line-height: 22px;
+  font-weight: 700;
   color: var(--color-black);
-  white-space: pre-line;
+  opacity: 0;
+  animation: onboarding-step-in 0.3s ease-out forwards;
 }
 
-.onboarding__dots {
-  margin-top: 79px;
+/* 앞 단계 원 아래에서 이 단계 원 위까지 잇는 선 (원 위로 지나가면 숫자를 가린다) */
+.onboarding__step + .onboarding__step::before {
+  content: "";
+  position: absolute;
+  top: -18px;
+  left: 15px;
+  width: 2px;
+  height: 18px;
+  background: var(--color-black);
 }
 
-.onboarding__next {
-  margin-top: auto;
+.onboarding__step-number {
+  position: relative;
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--color-black);
+  font-size: 15px;
+  color: var(--color-main);
 }
 
-@keyframes onboarding-fade-in {
+.onboarding__note {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: calc(40px + env(safe-area-inset-bottom));
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--text-body);
+}
+
+@keyframes onboarding-step-in {
   from {
     opacity: 0;
+    transform: translateY(6px);
   }
   to {
     opacity: 1;
+    transform: none;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .onboarding__slide {
+  .onboarding__step {
+    opacity: 1;
     animation: none;
+  }
+
+  .onboarding {
+    transition: none;
   }
 }

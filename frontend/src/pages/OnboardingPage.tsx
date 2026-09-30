@@ -1,87 +1,73 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { AppBar, AppImage, Button, PageDots, preloadImages } from "../components";
-import type { ImageName } from "../components";
+import { AppImage } from "../components";
 import { markOnboardingSeen } from "../features/onboarding";
 import "./OnboardingPage.css";
 
-interface Slide {
-  title: string;
-  description: string;
-  image: ImageName;
-}
+/** 한 단계씩 차례로 나타난다 (0.4초 간격, 5단계면 약 2초) */
+const FLOW_STEPS = ["제안 또는 의뢰", "작업 시작", "초안", "수정", "완료"];
 
-/** 피그마 「1. 공통 (온보딩·로그인)」 › 온보딩 (단계 = 1 / 2 / 3) */
-const SLIDES: Slide[] = [
-  {
-    title: "가게의 가능성,\n청년의 아이디어로 가꾸다",
-    description: "대학생과 사장님이\n함께 만드는 새로운 가능성",
-    image: "onboarding1",
-  },
-  {
-    title: "사장님의 의뢰와\n학생의 제안이 만나는 곳",
-    description: "사장님의 의뢰와 학생의 제안이\n오가는 양방향 소통",
-    image: "onboarding2",
-  },
-  {
-    title: "서로를 가장 잘 아는 이웃이기에\n더 확실한 파트너",
-    description: "일상 속에서 가게를 경험해 온\n대학생의 이해도와 안전한 협업 환경",
-    image: "onboarding3",
-  },
-];
+/** 다 나타난 뒤 1초 더 머물러 모두 3초 */
+const AUTO_LEAVE_MS = 3000;
+const FADE_OUT_MS = 300;
 
+/** 피그마 「1. 공통 (온보딩·로그인)」 › 로그인 전 히어로 (잠깐 보임) */
 function OnboardingPage() {
   const navigate = useNavigate();
-  const [step, setStep] = useState(0);
-  const slide = SLIDES[step];
-  const isLast = step === SLIDES.length - 1;
+  const [leaving, setLeaving] = useState(false);
+  const left = useRef(false);
+
+  // 본 것으로 저장하고 로그인으로 간다. 뒤로 가기로 돌아오지 않게 교체한다.
+  const leave = useCallback(
+    (fade: boolean) => {
+      if (left.current) return;
+      left.current = true;
+      markOnboardingSeen();
+      if (!fade) {
+        navigate("/login", { replace: true });
+        return;
+      }
+      setLeaving(true);
+      window.setTimeout(() => navigate("/login", { replace: true }), FADE_OUT_MS);
+    },
+    [navigate],
+  );
 
   useEffect(() => {
-    preloadImages(["onboarding2", "onboarding3"]);
-  }, []);
-
-  // 「시작하기」와 「SKIP」 모두 본 것으로 저장하고 로그인으로 간다. 뒤로 가기로 돌아오지 않게 교체한다.
-  const finish = () => {
-    markOnboardingSeen();
-    navigate("/login", { replace: true });
-  };
-
-  const handleNext = () => {
-    if (isLast) {
-      finish();
-      return;
-    }
-    setStep(step + 1);
-  };
+    const timer = window.setTimeout(() => leave(true), AUTO_LEAVE_MS);
+    return () => window.clearTimeout(timer);
+  }, [leave]);
 
   return (
-    <div className="onboarding">
-      <AppBar
-        right={
-          <button type="button" className="onboarding__skip" onClick={finish}>
-            SKIP &gt;&gt;
-          </button>
-        }
-      />
+    <button
+      type="button"
+      className={`onboarding${leaving ? " onboarding--leaving" : ""}`}
+      onClick={() => leave(false)}
+      aria-label="가꿈 소개. 누르면 로그인으로 넘어가요"
+    >
+      <span className="onboarding__hero">
+        <AppImage name="appIcon" className="onboarding__app-icon" priority />
+        <span className="onboarding__title">{"월계1동 가게와 광운대생,\n가꿈에서 만나요"}</span>
+      </span>
 
-      <main className="onboarding__content">
-        <section key={step} className="onboarding__slide" aria-live="polite">
-          <h2 className="onboarding__title">{slide.title}</h2>
-          <div className="onboarding__illustration">
-            <AppImage name={slide.image} priority={step === 0} />
-          </div>
-          <p className="onboarding__description">{slide.description}</p>
-        </section>
+      <span className="onboarding__flow">
+        <span className="onboarding__flow-title">저희 서비스의 흐름이에요</span>
+        <span className="onboarding__steps">
+          {FLOW_STEPS.map((label, i) => (
+            <span
+              key={label}
+              className="onboarding__step"
+              style={{ animationDelay: `${i * 0.4}s` }}
+            >
+              <span className="onboarding__step-number">{i + 1}</span>
+              {label}
+            </span>
+          ))}
+        </span>
+      </span>
 
-        <div className="onboarding__dots">
-          <PageDots total={SLIDES.length} current={step + 1} />
-        </div>
-
-        <Button fullWidth className="onboarding__next" onClick={handleNext}>
-          {isLast ? "시작하기" : "다음으로"}
-        </Button>
-      </main>
-    </div>
+      <span className="onboarding__note">작업비는 가꿈이 맡아 두었다가 완료되면 학생에게 보내요</span>
+    </button>
   );
 }
 
