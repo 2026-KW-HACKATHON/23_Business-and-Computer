@@ -1,0 +1,237 @@
+/* 패널이 화면 아래까지 이어지도록 본문 아래 여백은 없앤다 */
+.student-signup-profile__body {
+  padding-bottom: 0;
+}
+
+.student-signup-profile__head {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+}
+
+.student-signup-profile__who {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.student-signup-profile__name {
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 26px;
+  color: var(--color-black);
+}
+
+.student-signup-profile__school {
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 18px;
+  color: var(--text-body);
+}
+
+.student-signup-profile__intro {
+  margin-top: 15px;
+}
+
+.student-signup-profile__title {
+  margin: 30px 0 0;
+  font-size: 20px;
+  font-weight: 700;
+  line-height: normal;
+  letter-spacing: normal;
+  color: var(--color-black);
+}
+
+/* 외부 포트폴리오: 회색 카드 안에 제목과 링크 입력 */
+.student-signup-profile__portfolio {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  box-sizing: border-box;
+  max-width: 291px;
+  margin-top: 8px;
+  padding: 12px 17px;
+  border-radius: 10px;
+  background: var(--color-background);
+  cursor: text;
+}
+
+.student-signup-profile__portfolio-title {
+  font-size: 12px;
+  font-weight: 700;
+  line-height: normal;
+  color: var(--color-black);
+}
+
+.student-signup-profile__portfolio-link {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.student-signup-profile__portfolio-link input {
+  flex: 1;
+  min-width: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  font-family: var(--font-sans);
+  font-size: 12px;
+  color: var(--text-title);
+  outline: none;
+}
+
+.student-signup-profile__portfolio-link input::placeholder {
+  color: var(--role-secondary);
+  text-decoration: underline;
+}
+
+.student-signup-profile__portfolio:focus-within {
+  outline: 2px solid var(--color-black);
+  outline-offset: 2px;
+}
+
+/* 역량 뱃지 · 자격증 패널: 위 모서리만 둥글고 화면 아래까지 이어진다 */
+.student-signup-profile__panel {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  margin-top: 19px;
+  padding: 15px 26px 32px;
+  border-radius: 25px 25px 0 0;
+  background: var(--color-background);
+}
+
+.student-signup-profile__panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.student-signup-profile__panel-title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 17px;
+  letter-spacing: normal;
+  color: var(--color-black);
+}
+
+.student-signup-profile__count {
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 16px;
+  color: var(--color-black);
+}
+
+.student-signup-profile__guide {
+  margin: 4px 0 0;
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--role-secondary);
+}
+
+.student-signup-profile__guide--limit {
+  color: var(--color-danger);
+}
+
+.student-signup-profile__groups {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  margin-top: 16px;
+}
+
+.student-signup-profile__group-title {
+  margin: 0 0 8px;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 16px;
+  letter-spacing: normal;
+  color: var(--role-secondary);
+}
+
+.student-signup-profile__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.student-signup-profile__certs {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 28px;
+}
+
+.student-signup-profile__certs-title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 17px;
+  letter-spacing: normal;
+  color: var(--color-black);
+}
+
+.student-signup-profile__certs-guide {
+  margin: 4px 0 0;
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--role-secondary);
+}
+
+.student-signup-profile__cert-row {
+  display: flex;
+  gap: 8px;
+}
+
+.student-signup-profile__cert-input {
+  flex: 1;
+  min-width: 0;
+  box-sizing: border-box;
+  height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--role-border);
+  border-radius: 10px;
+  background: var(--color-white);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 17px;
+  color: var(--text-title);
+  outline: none;
+}
+
+.student-signup-profile__cert-input::placeholder {
+  color: var(--text-placeholder);
+}
+
+.student-signup-profile__cert-input:focus {
+  border-color: var(--color-black);
+}
+
+.student-signup-profile__cert-input--date {
+  flex: 0 0 104px;
+}
+
+.student-signup-profile__cert-add {
+  height: 40px;
+  border: 1px dashed var(--input-border);
+  border-radius: 10px;
+  background: var(--color-white);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 16px;
+  color: var(--text-body);
+  cursor: pointer;
+}
+
+/* 본문만 스크롤하고 버튼은 아래에 고정 (위쪽 옅은 선) */
+.student-signup-profile__footer {
+  position: sticky;
+  bottom: 0;
+  padding-top: 12px;
+  background: var(--color-white);
+  box-shadow: 0 -1px 0 rgba(0, 0, 0, 0.06);
+}
