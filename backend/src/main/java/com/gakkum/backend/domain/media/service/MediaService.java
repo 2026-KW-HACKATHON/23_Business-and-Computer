@@ -5,6 +5,7 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Value;
@@ -19,7 +20,7 @@ import com.gakkum.backend.global.exception.BusinessException;
 import com.gakkum.backend.global.exception.ErrorCode;
 
 /**
- * 프로필·매장 사진의 허용 형식과 크기를 검증하고 업로드 URL을 발급한다.
+ * 프로필·매장·제안 사진의 허용 형식과 크기를 검증하고 업로드 URL을 발급한다.
  * 확장자와 MIME 짝은 설정 실수로 검증이 풀리지 않도록 코드에서 관리한다.
  */
 @Service
@@ -53,10 +54,42 @@ public class MediaService {
             throw new BusinessException(ErrorCode.MEDIA_UPLOAD_TOO_LARGE);
         }
 
-        String key = "images/" + purpose.getKeyPrefix() + "/" + userId + "/" + UUID.randomUUID() + "." + extension;
+        String key = keyPrefix(userId, purpose) + UUID.randomUUID() + "." + extension;
         PresignedImageUpload presigned = mediaImageStorageClient.presignUpload(key, normalized, size);
         return PrepareImageUploadResult.of(presigned.url(), presigned.headers(),
                 toLocalDateTime(presigned.expiresAt()), presigned.imageUrl());
+    }
+
+    /**
+     * 이 사용자·용도로 발급한 형태의 공개 이미지 URL이면 저장소 키를 반환한다.
+     * 발급 시와 같이 UUID 파일명과 허용 확장자로 이루어진 키만 인정한다.
+     */
+    public Optional<String> findImageKey(String userId, ImagePurpose purpose, String imageUrl) {
+        String prefix = keyPrefix(userId, purpose);
+        return mediaImageStorageClient.findKey(imageUrl, prefix)
+                .filter(key -> isIssuedFileName(key.substring(prefix.length())));
+    }
+
+    /** 공개 이미지가 실제로 업로드되어 있는지 확인한다. */
+    public boolean isImageUploaded(String key) {
+        return mediaImageStorageClient.exists(key);
+    }
+
+    private static String keyPrefix(String userId, ImagePurpose purpose) {
+        return "images/" + purpose.getKeyPrefix() + "/" + userId + "/";
+    }
+
+    private static boolean isIssuedFileName(String fileName) {
+        int dot = fileName.lastIndexOf('.');
+        if (dot < 0 || !CONTENT_TYPES.containsKey(fileName.substring(dot + 1))) {
+            return false;
+        }
+        try {
+            String uuid = fileName.substring(0, dot);
+            return UUID.fromString(uuid).toString().equals(uuid);
+        } catch (IllegalArgumentException exception) {
+            return false;
+        }
     }
 
     private static String extensionOf(String fileName) {
