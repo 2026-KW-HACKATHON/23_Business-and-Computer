@@ -2,7 +2,8 @@
 
 ## Status
 
-Accepted
+Accepted. The screen content (three slides) is superseded by ADR 0007; the
+route and first-run flag still apply.
 
 ## Context
 
