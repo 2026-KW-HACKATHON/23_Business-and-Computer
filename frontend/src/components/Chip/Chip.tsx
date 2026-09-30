@@ -5,7 +5,7 @@ import "./Chip.css";
 interface ChipProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, "children"> {
   label: string;
   selected?: boolean;
-  /** filled = 업종 칩(회색·노랑), outlined = 역량 칩(흰색·검정 테두리) */
+  /** filled = 업종 칩(회색 → 노랑), outlined = 역량 칩(흰색 테두리 칩 → 자주 바탕) */
   variant?: "filled" | "outlined";
 }
 
@@ -23,12 +23,7 @@ function Chip({
 
   return (
     <button type={type} className={classes} aria-pressed={selected} {...rest}>
-      {selected && variant === "filled" && <AppImage name="iconCheckCircle18" />}
-      {selected && variant === "outlined" && (
-        <span className="chip__check">
-          <AppImage name="iconCheck11" />
-        </span>
-      )}
+      {selected && <AppImage name="iconCheckCircle18" />}
       {label}
     </button>
   );

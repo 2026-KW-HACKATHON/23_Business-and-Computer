@@ -16,7 +16,7 @@ function OwnerSignupDonePage() {
       <main className="owner-signup-done__body">
         <AppImage name="doneOwner" priority />
         <h1 className="owner-signup-done__title">{`${draft.name.trim()} 사장님,\n가입을 환영해요`}</h1>
-        <p className="owner-signup-done__description">{"학생 제안이 오면\n문자로 알려드릴게요"}</p>
+        <p className="owner-signup-done__description">{"학생 제안이 오면\n인앱 알림으로 알려드릴게요"}</p>
       </main>
 
       <footer className="owner-signup__footer">

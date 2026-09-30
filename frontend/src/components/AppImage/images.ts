@@ -45,7 +45,6 @@ import iconTabHome from "../../assets/icons/tab-home.svg";
 import iconTabSearch from "../../assets/icons/tab-search.svg";
 import iconTabChat from "../../assets/icons/tab-chat.svg";
 import iconChevronRight14 from "../../assets/icons/chevron-right-14.svg";
-import iconCheck11 from "../../assets/icons/check-11.svg";
 import iconCheckCircle18 from "../../assets/icons/check-circle-18.svg";
 import iconCheckSuccess14 from "../../assets/icons/check-success-14.svg";
 import iconLock16 from "../../assets/icons/lock-16.svg";
@@ -122,7 +121,6 @@ export const IMAGES = {
   iconTabSearch: { src: iconTabSearch, width: 24, height: 24, alt: "" },
   iconTabChat: { src: iconTabChat, width: 24, height: 24, alt: "" },
   iconChevronRight14: { src: iconChevronRight14, width: 14, height: 14, alt: "" },
-  iconCheck11: { src: iconCheck11, width: 11, height: 11, alt: "" },
   iconCheckCircle18: { src: iconCheckCircle18, width: 18, height: 18, alt: "" },
   iconCheckSuccess14: { src: iconCheckSuccess14, width: 14, height: 14, alt: "" },
   iconLock16: { src: iconLock16, width: 16, height: 16, alt: "" },
