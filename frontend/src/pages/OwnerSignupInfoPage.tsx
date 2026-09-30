@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { AppBar, Button, Checkbox, Chip, StepIndicator, TextField } from "../components";
 import { TermsSheet, isStoreInfoComplete, useOwnerSignup } from "../features/signup";
 import { STORE_CATEGORIES } from "../types/storeCategory";
-import "./OwnerSignupPage.css";
+import "./SignupPage.css";
 import "./OwnerSignupInfoPage.css";
 
 /** 피그마 「회원가입 - 프로필 입력(사장님) 1/3」 */
@@ -13,7 +13,7 @@ function OwnerSignupInfoPage() {
   const [termsOpen, setTermsOpen] = useState(false);
 
   return (
-    <div className="owner-signup">
+    <div className="signup">
       <AppBar
         title="가게 정보 입력"
         onBack={() => navigate("/signup/role")}
@@ -21,9 +21,9 @@ function OwnerSignupInfoPage() {
         bottom={<StepIndicator total={3} current={1} tone="owner" />}
       />
 
-      <main className="owner-signup__body">
-        <section className="owner-signup__section">
-          <h2 className="owner-signup__section-title">사장님 정보</h2>
+      <main className="signup__body">
+        <section className="signup__section">
+          <h2 className="signup__section-title">사장님 정보</h2>
           <TextField
             placeholder="이름"
             aria-label="이름"
@@ -33,8 +33,8 @@ function OwnerSignupInfoPage() {
           />
         </section>
 
-        <section className="owner-signup__section">
-          <h2 className="owner-signup__section-title">업종</h2>
+        <section className="signup__section">
+          <h2 className="signup__section-title">업종</h2>
           <div className="owner-signup-info__chips" role="group" aria-label="업종 (하나만 선택)">
             {STORE_CATEGORIES.map((category) => (
               <Chip
@@ -47,9 +47,9 @@ function OwnerSignupInfoPage() {
           </div>
         </section>
 
-        <section className="owner-signup__section">
-          <h2 className="owner-signup__section-title">가게 세부 정보</h2>
-          <div className="owner-signup__fields">
+        <section className="signup__section">
+          <h2 className="signup__section-title">가게 세부 정보</h2>
+          <div className="signup__fields">
             <TextField
               placeholder="가게 이름"
               aria-label="가게 이름"
@@ -64,7 +64,7 @@ function OwnerSignupInfoPage() {
               onChange={(e) => update({ storeAddress: e.target.value })}
             />
           </div>
-          <div className="owner-signup-info__terms">
+          <div className="signup__terms owner-signup-info__terms">
             <Checkbox
               checked={draft.agreedToTerms}
               onChange={(agreedToTerms) => update({ agreedToTerms })}
@@ -72,7 +72,7 @@ function OwnerSignupInfoPage() {
             />
             <button
               type="button"
-              className="owner-signup-info__terms-view"
+              className="signup__terms-view"
               onClick={() => setTermsOpen(true)}
             >
               보기
@@ -81,7 +81,7 @@ function OwnerSignupInfoPage() {
         </section>
       </main>
 
-      <footer className="owner-signup__footer">
+      <footer className="signup__footer">
         <Button fullWidth disabled={!isStoreInfoComplete(draft)} onClick={() => navigate("/signup/owner/2")}>
           다음
         </Button>

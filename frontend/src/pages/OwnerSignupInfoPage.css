@@ -5,23 +5,5 @@
 }
 
 .owner-signup-info__terms {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
   margin-top: 16px;
-  padding-left: 2px;
-}
-
-.owner-signup-info__terms-view {
-  flex-shrink: 0;
-  padding: 2px 0;
-  border: none;
-  background: none;
-  font-family: var(--font-sans);
-  font-size: 13px;
-  font-weight: 500;
-  line-height: 1.4;
-  color: var(--role-secondary);
-  text-decoration: underline;
-  cursor: pointer;
 }

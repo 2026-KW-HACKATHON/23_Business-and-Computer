@@ -7,7 +7,7 @@ import {
   useOwnerSignup,
 } from "../features/signup";
 import type { BusinessInfo } from "../features/signup";
-import "./OwnerSignupPage.css";
+import "./SignupPage.css";
 import "./OwnerSignupVerifyPage.css";
 
 /**
@@ -39,7 +39,7 @@ function OwnerSignupVerifyPage() {
   };
 
   return (
-    <div className="owner-signup">
+    <div className="signup">
       <AppBar
         title="사장님 인증"
         onBack={() => navigate("/signup/owner/1")}
@@ -47,9 +47,9 @@ function OwnerSignupVerifyPage() {
         bottom={<StepIndicator total={3} current={2} tone="owner" />}
       />
 
-      <main className="owner-signup__body">
-        <h2 className="owner-signup__section-title">가게 인증하기</h2>
-        <div className="owner-signup__fields">
+      <main className="signup__body">
+        <h2 className="signup__section-title">가게 인증하기</h2>
+        <div className="signup__fields">
           <TextField
             placeholder="사업자등록번호"
             aria-label="사업자등록번호"
@@ -91,7 +91,7 @@ function OwnerSignupVerifyPage() {
         )}
       </main>
 
-      <footer className="owner-signup__footer">
+      <footer className="signup__footer">
         {verified ? (
           <Button fullWidth onClick={() => navigate("/signup/owner/3")}>
             다음

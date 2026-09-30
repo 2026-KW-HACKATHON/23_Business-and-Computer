@@ -4,7 +4,7 @@ import { Navigate, useNavigate } from "react-router-dom";
 import { AppBar, Button, ProfilePhoto, StepIndicator, StoreInfo, TextField } from "../components";
 import { useOwnerSignup } from "../features/signup";
 import { useObjectUrls } from "../hooks/useObjectUrls";
-import "./OwnerSignupPage.css";
+import "./SignupPage.css";
 import "./OwnerSignupProfilePage.css";
 
 const MAX_STORE_PHOTOS = 5;
@@ -53,7 +53,7 @@ function OwnerSignupProfilePage() {
   );
 
   return (
-    <div className="owner-signup">
+    <div className="signup">
       <AppBar
         title="프로필 입력"
         onBack={() => navigate("/signup/owner/2")}
@@ -61,7 +61,7 @@ function OwnerSignupProfilePage() {
         bottom={<StepIndicator total={3} current={3} tone="owner" />}
       />
 
-      <main className="owner-signup__body">
+      <main className="signup__body">
         <div className="owner-signup-profile__head">
           <ProfilePhoto src={profileUrl} onSelect={(profilePhoto) => update({ profilePhoto })} />
           <StoreInfo storeName={draft.storeName} ownerName={draft.name} address={draft.storeAddress} />
@@ -117,7 +117,7 @@ function OwnerSignupProfilePage() {
         )}
       </main>
 
-      <footer className="owner-signup__footer">
+      <footer className="signup__footer">
         <Button fullWidth onClick={handleComplete}>
           회원가입 완료
         </Button>

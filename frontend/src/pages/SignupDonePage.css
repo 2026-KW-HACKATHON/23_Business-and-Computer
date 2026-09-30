@@ -1,10 +1,10 @@
-.owner-signup-done {
+.signup-done {
   padding-top: env(safe-area-inset-top);
   text-align: center;
 }
 
 /* 피그마에서 일러스트는 화면 위에서 241px (상태바 44px 포함) */
-.owner-signup-done__body {
+.signup-done__body {
   display: flex;
   flex: 1;
   flex-direction: column;
@@ -12,7 +12,7 @@
   padding: min(197px, 22svh) 20px 24px;
 }
 
-.owner-signup-done__title {
+.signup-done__title {
   margin: 2px 0 0;
   font-size: 26px;
   font-weight: 700;
@@ -22,7 +22,7 @@
   white-space: pre-line;
 }
 
-.owner-signup-done__description {
+.signup-done__description {
   margin: 20px 0 0;
   font-size: 19px;
   font-weight: 400;
