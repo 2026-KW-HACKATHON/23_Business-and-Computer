@@ -10,15 +10,20 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.springframework.data.domain.Limit;
 
 import com.gakkum.backend.domain.proposal.dto.ProposalCommandDto.CreateProposalCommand;
-import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.ReceivedProposalData;
+import com.gakkum.backend.domain.proposal.dto.ProposalCommandDto.GetExploreProposalsCommand;
+import com.gakkum.backend.domain.proposal.dto.ProposalExploreOrder;
+import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.ExploreProposalData;
+import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.ProposalDetailData;
 import com.gakkum.backend.domain.proposal.entity.Proposal;
 import com.gakkum.backend.domain.proposal.entity.ProposalSpecialty;
 import com.gakkum.backend.domain.proposal.repository.ProposalRepository;
@@ -75,28 +80,114 @@ class ProposalServiceTest {
     }
 
     @Test
-    @DisplayName("수신 사장님으로 제한해 찾은 제안과 제안에 선택된 소분류 ID를 반환한다")
-    void returnsReceivedProposalWithSpecialtyIds() {
+    @DisplayName("수신 사장님과 무관하게 ID로 찾은 제안과 제안에 선택된 소분류 ID를 반환한다")
+    void returnsProposalDetailWithSpecialtyIds() {
         Proposal proposal = Proposal.builder().id(31L).ownerProfileId(5L).build();
-        when(proposalRepository.findByIdAndOwnerProfileId(31L, 5L)).thenReturn(Optional.of(proposal));
+        when(proposalRepository.findById(31L)).thenReturn(Optional.of(proposal));
         when(proposalSpecialtyRepository.findByProposalId(31L)).thenReturn(List.of(
                 ProposalSpecialty.create(31L, 4L),
                 ProposalSpecialty.create(31L, 1L)));
 
-        ReceivedProposalData data = proposalService.getReceivedProposal(31L, 5L);
+        ProposalDetailData data = proposalService.getProposalDetail(31L);
 
         assertThat(data.getProposal()).isSameAs(proposal);
         assertThat(data.getSpecialtyIds()).containsExactly(4L, 1L);
     }
 
     @Test
-    @DisplayName("없는 제안이나 다른 사장님이 받은 제안은 PROPOSAL_404로 거부하고 소분류를 조회하지 않는다")
-    void rejectsMissingOrOthersProposal() {
-        when(proposalRepository.findByIdAndOwnerProfileId(31L, 6L)).thenReturn(Optional.empty());
+    @DisplayName("없는 제안은 PROPOSAL_404로 거부하고 소분류를 조회하지 않는다")
+    void rejectsMissingProposal() {
+        when(proposalRepository.findById(31L)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> proposalService.getReceivedProposal(31L, 6L))
+        assertThatThrownBy(() -> proposalService.getProposalDetail(31L))
                 .isInstanceOfSatisfying(BusinessException.class, exception ->
                         assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.PROPOSAL_NOT_FOUND));
         verify(proposalSpecialtyRepository, never()).findByProposalId(anyLong());
+    }
+
+    @Test
+    @DisplayName("탐색 제안은 정렬별 저장소 조회에 분류·커서 경계·개수를 넘기고 제안별 소분류 ID를 붙인다")
+    void returnsExploreProposalsWithSpecialtyIds() {
+        LocalDateTime bound = LocalDateTime.of(2026, 9, 30, 10, 0);
+        Proposal first = Proposal.builder().id(32L).build();
+        Proposal second = Proposal.builder().id(31L).build();
+        when(proposalRepository.findExploreByLikesInCategory(3L, 5, bound, 40L, Limit.of(21)))
+                .thenReturn(List.of(first, second));
+        when(proposalSpecialtyRepository.findByProposalIdIn(List.of(32L, 31L))).thenReturn(List.of(
+                ProposalSpecialty.create(31L, 2L),
+                ProposalSpecialty.create(32L, 7L),
+                ProposalSpecialty.create(32L, 1L)));
+
+        List<ExploreProposalData> data = proposalService.getExploreProposals(GetExploreProposalsCommand.of(
+                3L, ProposalExploreOrder.LIKES, 5, bound, 40L, 21));
+
+        assertThat(data).extracting(ExploreProposalData::getProposal).containsExactly(first, second);
+        assertThat(data.get(0).getSpecialtyIds()).containsExactly(7L, 1L);
+        assertThat(data.get(1).getSpecialtyIds()).containsExactly(2L);
+    }
+
+    @Test
+    @DisplayName("대분류가 있으면 정렬별 분류 쿼리 하나로 읽고, 결과가 없으면 소분류를 조회하지 않는다")
+    void usesCategoryQueryPerOrder() {
+        LocalDateTime bound = LocalDateTime.of(2026, 9, 30, 10, 0);
+
+        for (ProposalExploreOrder order : ProposalExploreOrder.values()) {
+            assertThat(proposalService.getExploreProposals(
+                    GetExploreProposalsCommand.of(4L, order, 5, bound, 9L, 3))).isEmpty();
+        }
+
+        verify(proposalRepository).findExploreLatestInCategory(4L, bound, 9L, Limit.of(3));
+        verify(proposalRepository).findExploreOldestInCategory(4L, bound, 9L, Limit.of(3));
+        verify(proposalRepository).findExploreByLikesInCategory(4L, 5, bound, 9L, Limit.of(3));
+        verify(proposalSpecialtyRepository, never()).findByProposalIdIn(any());
+    }
+
+    @Test
+    @DisplayName("대분류 없는 최신순은 경계 시각과 같은 행부터 읽고 남은 개수만큼 경계 이전 행을 이어 붙인다")
+    void readsLatestSegmentsInOrder() {
+        LocalDateTime bound = LocalDateTime.of(2026, 9, 30, 10, 0);
+        Proposal sameTime = Proposal.builder().id(8L).build();
+        Proposal earlier = Proposal.builder().id(20L).build();
+        when(proposalRepository.findByCreatedAtAndIdLessThanOrderByIdDesc(bound, 9L, Limit.of(3)))
+                .thenReturn(List.of(sameTime));
+        when(proposalRepository.findByCreatedAtLessThanOrderByCreatedAtDescIdDesc(bound, Limit.of(2)))
+                .thenReturn(List.of(earlier));
+
+        List<ExploreProposalData> data = proposalService.getExploreProposals(
+                GetExploreProposalsCommand.of(null, ProposalExploreOrder.LATEST, null, bound, 9L, 3));
+
+        assertThat(data).extracting(ExploreProposalData::getProposal).containsExactly(sameTime, earlier);
+    }
+
+    @Test
+    @DisplayName("대분류 없는 오래된순은 경계 시각과 같은 행으로 개수가 차면 경계 이후 구간을 조회하지 않는다")
+    void skipsLaterSegmentWhenFilled() {
+        LocalDateTime bound = LocalDateTime.of(2026, 9, 30, 10, 0);
+        when(proposalRepository.findByCreatedAtAndIdGreaterThanOrderByIdAsc(bound, 9L, Limit.of(2)))
+                .thenReturn(List.of(Proposal.builder().id(10L).build(), Proposal.builder().id(11L).build()));
+
+        assertThat(proposalService.getExploreProposals(
+                GetExploreProposalsCommand.of(null, ProposalExploreOrder.OLDEST, null, bound, 9L, 2))).hasSize(2);
+        verify(proposalRepository, never()).findByCreatedAtGreaterThanOrderByCreatedAtAscIdAsc(any(), any());
+    }
+
+    @Test
+    @DisplayName("대분류 없는 좋아요순은 같은 좋아요·같은 시각, 같은 좋아요·이전 시각, 더 적은 좋아요 순으로 이어 읽는다")
+    void readsLikesSegmentsInOrder() {
+        LocalDateTime bound = LocalDateTime.of(2026, 9, 30, 10, 0);
+        Proposal first = Proposal.builder().id(1L).build();
+        Proposal second = Proposal.builder().id(2L).build();
+        Proposal third = Proposal.builder().id(3L).build();
+        when(proposalRepository.findByLikeCountAndCreatedAtAndIdLessThanOrderByIdDesc(5, bound, 9L, Limit.of(4)))
+                .thenReturn(List.of(first));
+        when(proposalRepository.findByLikeCountAndCreatedAtLessThanOrderByCreatedAtDescIdDesc(5, bound, Limit.of(3)))
+                .thenReturn(List.of(second));
+        when(proposalRepository.findByLikeCountLessThanOrderByLikeCountDescCreatedAtDescIdDesc(5, Limit.of(2)))
+                .thenReturn(List.of(third));
+
+        List<ExploreProposalData> data = proposalService.getExploreProposals(
+                GetExploreProposalsCommand.of(null, ProposalExploreOrder.LIKES, 5, bound, 9L, 4));
+
+        assertThat(data).extracting(ExploreProposalData::getProposal).containsExactly(first, second, third);
     }
 }

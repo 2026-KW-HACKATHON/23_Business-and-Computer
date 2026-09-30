@@ -9,6 +9,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,6 +23,7 @@ import com.gakkum.backend.domain.proposal.service.ProposalService;
 
 /** 각 테스트는 트랜잭션 안에서 실행되고 끝나면 롤백된다. */
 @SpringBootTest
+@ActiveProfiles("local")
 @Transactional
 class ProposalRepositoryIntegrationTest {
 
@@ -131,16 +133,6 @@ class ProposalRepositoryIntegrationTest {
                 .setParameter("id", saved.getId())
                 .executeUpdate())
                 .hasStackTraceContaining("proposals_like_count_check");
-    }
-
-    @Test
-    @DisplayName("PostgreSQL에서 받은 제안은 수신 사장님 프로필 ID가 일치할 때만 조회한다")
-    void findsProposalOnlyForReceivingOwner() {
-        Proposal saved = proposalService.createProposal(command(List.of(1L), List.of()), 7L);
-        proposalRepository.flush();
-
-        assertThat(proposalRepository.findByIdAndOwnerProfileId(saved.getId(), 5L)).isPresent();
-        assertThat(proposalRepository.findByIdAndOwnerProfileId(saved.getId(), 6L)).isEmpty();
     }
 
     private CreateProposalCommand command(List<Long> specialtyIds, List<String> imageUrls) {

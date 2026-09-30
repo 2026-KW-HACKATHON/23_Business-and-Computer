@@ -11,12 +11,11 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.gakkum.backend.domain.media.dto.ImagePurpose;
 import com.gakkum.backend.domain.media.service.MediaService;
-import com.gakkum.backend.domain.owner.entity.Owner;
 import com.gakkum.backend.domain.owner.service.OwnerService;
 import com.gakkum.backend.domain.proposal.dto.ProposalCommandDto.CreateProposalCommand;
 import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.ProposalCreateResult;
-import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.ReceivedProposalData;
-import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.ReceivedProposalResult;
+import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.ProposalDetailData;
+import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.ProposalDetailResult;
 import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.SpecialtyCategoryResult;
 import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.SpecialtyResult;
 import com.gakkum.backend.domain.proposal.entity.Proposal;
@@ -62,19 +61,18 @@ public class ProposalFacade {
     }
 
     /**
-     * 사장님이 받은 제안 상세. 사장님 프로필이 없으면 403, 없는 제안이나 다른 사장님이 받은 제안은 404다.
-     * 수신 사장님으로 제한해 제안을 찾은 뒤에만 학생 정보와 특기를 조회한다.
+     * 제안 상세. 활성 사용자라면 역할과 무관하게 모든 제안을 볼 수 있고 없는 제안은 404다.
+     * 제안을 찾은 뒤에만 학생 정보와 특기를 조회한다.
      */
     @Transactional(readOnly = true)
-    public ReceivedProposalResult getReceivedProposal(String username, Long proposalId) {
-        User user = userService.getActiveUser(username);
-        Owner owner = ownerService.getOwnerProfile(user.getId());
-        ReceivedProposalData data = proposalService.getReceivedProposal(proposalId, owner.getId());
+    public ProposalDetailResult getProposalDetail(String username, Long proposalId) {
+        userService.getActiveUser(username);
+        ProposalDetailData data = proposalService.getProposalDetail(proposalId);
 
         Student student = studentService.getStudentProfile(data.getProposal().getStudentProfileId());
         User studentUser = userService.getUser(student.getUserId());
         Map<Long, SpecialtyDetail> specialtiesById = specialtyCategoryService.getSpecialtyDetails(data.getSpecialtyIds());
-        return ReceivedProposalResult.of(data.getProposal(), student, studentUser,
+        return ProposalDetailResult.of(data.getProposal(), student, studentUser,
                 groupSpecialties(data.getSpecialtyIds(), specialtiesById));
     }
 

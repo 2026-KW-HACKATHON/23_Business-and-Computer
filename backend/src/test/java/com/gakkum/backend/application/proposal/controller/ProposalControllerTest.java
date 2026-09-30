@@ -33,7 +33,7 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import com.gakkum.backend.application.proposal.facade.ProposalFacade;
 import com.gakkum.backend.domain.proposal.dto.ProposalCommandDto.CreateProposalCommand;
 import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.ProposalCreateResult;
-import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.ReceivedProposalResult;
+import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.ProposalDetailResult;
 import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.SpecialtyCategoryResult;
 import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.SpecialtyResult;
 import com.gakkum.backend.domain.proposal.entity.Proposal;
@@ -157,8 +157,8 @@ class ProposalControllerTest {
     }
 
     @Test
-    @DisplayName("받은 제안 상세는 200과 제안 내용, 학생 정보, 대분류별 특기를 반환한다")
-    void returnsReceivedProposal() throws Exception {
+    @DisplayName("제안 상세는 200과 제안 내용, 학생 정보, 대분류별 특기를 반환한다")
+    void returnsProposalDetail() throws Exception {
         Proposal proposal = Proposal.builder()
                 .id(31L)
                 .title("메뉴판 개선 제안")
@@ -178,8 +178,8 @@ class ProposalControllerTest {
                 SpecialtyCategoryResult.of(1L, "디자인", List.of(SpecialtyResult.of(3L, "로고 디자인"))),
                 SpecialtyCategoryResult.of(2L, "영상", List.of(
                         SpecialtyResult.of(11L, "숏폼 촬영"), SpecialtyResult.of(12L, "영상 편집"))));
-        when(proposalFacade.getReceivedProposal(USERNAME, 31L))
-                .thenReturn(ReceivedProposalResult.of(proposal, student, studentUser, categories));
+        when(proposalFacade.getProposalDetail(USERNAME, 31L))
+                .thenReturn(ProposalDetailResult.of(proposal, student, studentUser, categories));
 
         mockMvc.perform(get("/proposals/31").principal(authentication))
                 .andExpect(status().isOk())
@@ -208,17 +208,17 @@ class ProposalControllerTest {
                 .andExpect(jsonPath("$.data.createdAt").exists());
     }
 
-    static Stream<Arguments> receivedProposalErrors() {
+    static Stream<Arguments> proposalDetailErrors() {
         return Stream.of(
-                Arguments.of(ErrorCode.OWNER_PROFILE_NOT_FOUND, 403, "OWNER_403"),
+                Arguments.of(ErrorCode.UNAUTHORIZED, 401, "COMMON_401"),
                 Arguments.of(ErrorCode.PROPOSAL_NOT_FOUND, 404, "PROPOSAL_404"));
     }
 
     @ParameterizedTest(name = "{2}")
-    @MethodSource("receivedProposalErrors")
-    @DisplayName("받은 제안 상세의 비사장님·없는 제안·타인 제안 오류는 공통 오류 응답 형식으로 반환한다")
-    void returnsReceivedProposalError(ErrorCode errorCode, int status, String code) throws Exception {
-        when(proposalFacade.getReceivedProposal(USERNAME, 31L)).thenThrow(new BusinessException(errorCode));
+    @MethodSource("proposalDetailErrors")
+    @DisplayName("제안 상세의 비활성 사용자·없는 제안 오류는 공통 오류 응답 형식으로 반환한다")
+    void returnsProposalDetailError(ErrorCode errorCode, int status, String code) throws Exception {
+        when(proposalFacade.getProposalDetail(USERNAME, 31L)).thenThrow(new BusinessException(errorCode));
 
         mockMvc.perform(get("/proposals/31").principal(authentication))
                 .andExpect(status().is(status))
@@ -233,7 +233,7 @@ class ProposalControllerTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.error.code").value("COMMON_400"));
-        verify(proposalFacade, never()).getReceivedProposal(anyString(), anyLong());
+        verify(proposalFacade, never()).getProposalDetail(anyString(), anyLong());
     }
 
     private static String body(String specialtyIds, String title, String customerProblem, String proposedFee,

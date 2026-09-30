@@ -21,16 +21,17 @@ import java.util.Optional;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.mockito.InOrder;
 
 import com.gakkum.backend.domain.media.dto.ImagePurpose;
 import com.gakkum.backend.domain.media.service.MediaService;
-import com.gakkum.backend.domain.owner.entity.Owner;
 import com.gakkum.backend.domain.owner.service.OwnerService;
 import com.gakkum.backend.domain.proposal.dto.ProposalCommandDto.CreateProposalCommand;
 import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.ProposalCreateResult;
-import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.ReceivedProposalData;
-import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.ReceivedProposalResult;
+import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.ProposalDetailData;
+import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.ProposalDetailResult;
 import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.SpecialtyCategoryResult;
 import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.SpecialtyResult;
 import com.gakkum.backend.domain.proposal.entity.Proposal;
@@ -190,20 +191,20 @@ class ProposalFacadeTest {
     }
 
     @Test
-    @DisplayName("사장님이 받은 제안을 학생 정보와 대분류별로 묶은 특기와 함께 반환한다")
-    void returnsReceivedProposal() {
-        givenOwner();
+    @DisplayName("제안 상세를 학생 정보와 대분류별로 묶은 특기와 함께 반환한다")
+    void returnsProposalDetail() {
+        givenUser(UserRole.OWNER);
         LocalDateTime createdAt = LocalDateTime.of(2026, 9, 30, 10, 0);
         Proposal proposal = receivedProposal(List.of(IMAGE_URL_1, IMAGE_URL_2), createdAt);
-        when(proposalService.getReceivedProposal(31L, 5L))
-                .thenReturn(ReceivedProposalData.of(proposal, List.of(12L, 3L, 11L)));
+        when(proposalService.getProposalDetail(31L))
+                .thenReturn(ProposalDetailData.of(proposal, List.of(12L, 3L, 11L)));
         givenProposingStudent();
         when(specialtyCategoryService.getSpecialtyDetails(List.of(12L, 3L, 11L))).thenReturn(Map.of(
                 12L, SpecialtyDetail.of(12L, "영상 편집", 2L, "영상"),
                 3L, SpecialtyDetail.of(3L, "로고 디자인", 1L, "디자인"),
                 11L, SpecialtyDetail.of(11L, "숏폼 촬영", 2L, "영상")));
 
-        ReceivedProposalResult result = proposalFacade.getReceivedProposal(USERNAME, 31L);
+        ProposalDetailResult result = proposalFacade.getProposalDetail(USERNAME, 31L);
 
         assertThat(result.getProposalId()).isEqualTo(31L);
         assertThat(result.getTitle()).isEqualTo("메뉴판 개선 제안");
@@ -232,38 +233,55 @@ class ProposalFacadeTest {
 
     @Test
     @DisplayName("사진이 없는 제안은 빈 사진 목록으로 반환한다")
-    void returnsReceivedProposalWithoutImages() {
-        givenOwner();
-        when(proposalService.getReceivedProposal(31L, 5L)).thenReturn(ReceivedProposalData.of(
+    void returnsProposalDetailWithoutImages() {
+        givenUser(UserRole.OWNER);
+        when(proposalService.getProposalDetail(31L)).thenReturn(ProposalDetailData.of(
                 receivedProposal(List.of(), LocalDateTime.of(2026, 9, 30, 10, 0)), List.of(3L)));
         givenProposingStudent();
         when(specialtyCategoryService.getSpecialtyDetails(List.of(3L)))
                 .thenReturn(Map.of(3L, SpecialtyDetail.of(3L, "로고 디자인", 1L, "디자인")));
 
-        ReceivedProposalResult result = proposalFacade.getReceivedProposal(USERNAME, 31L);
+        ProposalDetailResult result = proposalFacade.getProposalDetail(USERNAME, 31L);
 
         assertThat(result.getReferenceImageUrls()).isEmpty();
     }
 
-    @Test
-    @DisplayName("사장님 프로필이 없는 사용자는 OWNER_403으로 거부하고 제안·학생·특기를 조회하지 않는다")
-    void rejectsNonOwnerForReceivedProposal() {
-        givenUser(UserRole.STUDENT);
-        when(ownerService.getOwnerProfile(USER_ID)).thenThrow(new BusinessException(ErrorCode.OWNER_PROFILE_NOT_FOUND));
+    @ParameterizedTest(name = "{0}")
+    @EnumSource(value = UserRole.class, names = { "STUDENT", "OWNER" })
+    @DisplayName("학생과 수신자가 아닌 사장님도 사장님 프로필 확인 없이 제안 상세를 조회한다")
+    void returnsProposalDetailToAnyAuthenticatedUser(UserRole role) {
+        givenUser(role);
+        when(proposalService.getProposalDetail(31L)).thenReturn(ProposalDetailData.of(
+                receivedProposal(List.of(), LocalDateTime.of(2026, 9, 30, 10, 0)), List.of(3L)));
+        givenProposingStudent();
+        when(specialtyCategoryService.getSpecialtyDetails(List.of(3L)))
+                .thenReturn(Map.of(3L, SpecialtyDetail.of(3L, "로고 디자인", 1L, "디자인")));
 
-        assertError(() -> proposalFacade.getReceivedProposal(USERNAME, 31L), ErrorCode.OWNER_PROFILE_NOT_FOUND);
-        verifyNoInteractions(proposalService, studentService, specialtyCategoryService);
-        verify(userService, never()).getUser(anyString());
+        ProposalDetailResult result = proposalFacade.getProposalDetail(USERNAME, 31L);
+
+        assertThat(result.getProposalId()).isEqualTo(31L);
+        assertThat(result.getStudent().getStudentNumber()).isEqualTo("20260001");
+        assertThat(result.getProposedFee()).isEqualTo(50000L);
+        verify(ownerService, never()).getOwnerProfile(anyString());
     }
 
     @Test
-    @DisplayName("없는 제안이나 다른 사장님이 받은 제안은 PROPOSAL_404로 거부하고 학생·특기를 조회하지 않는다")
-    void rejectsProposalNotReceivedByOwner() {
-        givenOwner();
-        when(proposalService.getReceivedProposal(31L, 5L))
+    @DisplayName("비활성 사용자는 UNAUTHORIZED로 거부하고 제안을 조회하지 않는다")
+    void rejectsInactiveUserForProposalDetail() {
+        when(userService.getActiveUser(USERNAME)).thenThrow(new BusinessException(ErrorCode.UNAUTHORIZED));
+
+        assertError(() -> proposalFacade.getProposalDetail(USERNAME, 31L), ErrorCode.UNAUTHORIZED);
+        verifyNoInteractions(proposalService, studentService, specialtyCategoryService);
+    }
+
+    @Test
+    @DisplayName("없는 제안은 PROPOSAL_404로 거부하고 학생·특기를 조회하지 않는다")
+    void rejectsMissingProposal() {
+        givenUser(UserRole.STUDENT);
+        when(proposalService.getProposalDetail(31L))
                 .thenThrow(new BusinessException(ErrorCode.PROPOSAL_NOT_FOUND));
 
-        assertError(() -> proposalFacade.getReceivedProposal(USERNAME, 31L), ErrorCode.PROPOSAL_NOT_FOUND);
+        assertError(() -> proposalFacade.getProposalDetail(USERNAME, 31L), ErrorCode.PROPOSAL_NOT_FOUND);
         verifyNoInteractions(studentService, specialtyCategoryService);
         verify(userService, never()).getUser(anyString());
     }
@@ -271,11 +289,6 @@ class ProposalFacadeTest {
     private void givenUser(UserRole role) {
         when(userService.getActiveUser(USERNAME)).thenReturn(
                 User.builder().id(USER_ID).username(USERNAME).role(role).build());
-    }
-
-    private void givenOwner() {
-        givenUser(UserRole.OWNER);
-        when(ownerService.getOwnerProfile(USER_ID)).thenReturn(Owner.builder().id(5L).userId(USER_ID).build());
     }
 
     private void givenProposingStudent() {
