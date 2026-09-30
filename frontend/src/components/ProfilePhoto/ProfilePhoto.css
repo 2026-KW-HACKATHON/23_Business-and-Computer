@@ -19,14 +19,14 @@
 
 .profile-photo__add {
   position: absolute;
-  left: 97px;
-  top: 97px;
+  left: 98px;
+  top: 98px;
   display: flex;
   align-items: center;
   justify-content: center;
   box-sizing: border-box;
-  width: 29px;
-  height: 29px;
+  width: 27px;
+  height: 27px;
   border: 2px solid var(--color-white);
   border-radius: 50%;
   background: var(--color-main);
