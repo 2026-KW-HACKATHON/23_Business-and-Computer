@@ -55,6 +55,14 @@ public class OwnerService {
                 .orElseThrow(() -> new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR));
     }
 
+    /** 요청에서 지정한 사장님 프로필이 존재하는지 확인한다. */
+    @Transactional(readOnly = true)
+    public void validateOwnerProfileExists(Long ownerProfileId) {
+        if (!ownerRepository.existsById(ownerProfileId)) {
+            throw new BusinessException(ErrorCode.OWNER_NOT_FOUND);
+        }
+    }
+
     @Transactional(readOnly = true)
     public Owner getOwnerProfile(String userId) {
         return ownerRepository.findByUserId(userId)

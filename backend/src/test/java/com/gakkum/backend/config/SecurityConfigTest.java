@@ -27,6 +27,8 @@ import com.gakkum.backend.application.media.facade.MediaFacade;
 import com.gakkum.backend.application.job.facade.JobFacade;
 import com.gakkum.backend.application.payment.controller.PaymentController;
 import com.gakkum.backend.application.payment.facade.PaymentFacade;
+import com.gakkum.backend.application.proposal.controller.ProposalController;
+import com.gakkum.backend.application.proposal.facade.ProposalFacade;
 import com.gakkum.backend.application.review.controller.ReviewController;
 import com.gakkum.backend.application.review.facade.ReviewFacade;
 import com.gakkum.backend.domain.specialty.service.SpecialtyCategoryService;
@@ -38,7 +40,8 @@ import com.gakkum.backend.util.JWTUtil;
 
 @DisplayName("보안 설정 - 기본 거부(default-deny) 인증 정책 검증")
 @WebMvcTest(controllers = {SecurityConfigTest.TestController.class, SpecialtyController.class,
-        JobController.class, PaymentController.class, MediaController.class, ReviewController.class})
+        JobController.class, PaymentController.class, MediaController.class, ReviewController.class,
+        ProposalController.class})
 @Import({SecurityConfig.class, RestAuthenticationEntryPoint.class})
 class SecurityConfigTest {
 
@@ -74,6 +77,27 @@ class SecurityConfigTest {
 
     @MockitoBean
     private ReviewFacade reviewFacade;
+
+    @MockitoBean
+    private ProposalFacade proposalFacade;
+
+    @Test
+    @DisplayName("인증 없이 제안을 보내면 401을 반환한다")
+    void proposalCreationRequiresAuthentication() throws Exception {
+        mockMvc.perform(post("/proposals")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{}"))
+            .andExpect(status().isUnauthorized())
+            .andExpect(jsonPath("$.error.code").value("COMMON_401"));
+    }
+
+    @Test
+    @DisplayName("인증 없이 받은 제안 상세를 조회하면 401을 반환한다")
+    void receivedProposalDetailRequiresAuthentication() throws Exception {
+        mockMvc.perform(get("/proposals/31"))
+            .andExpect(status().isUnauthorized())
+            .andExpect(jsonPath("$.error.code").value("COMMON_401"));
+    }
 
     @Test
     @DisplayName("인증 없이 사진 업로드 URL을 요청하면 401을 반환한다")

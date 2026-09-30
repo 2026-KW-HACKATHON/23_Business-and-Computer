@@ -14,6 +14,7 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.Map;
+import java.util.Optional;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -103,5 +104,49 @@ class MediaServiceTest {
                 USER_ID, ImagePurpose.STORE, "store.png", "image/png", max + 1))
                 .isInstanceOfSatisfying(BusinessException.class,
                         exception -> assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.MEDIA_UPLOAD_TOO_LARGE));
+    }
+
+    @Test
+    @DisplayName("제안 사진은 proposal 경로에 저장한다")
+    void usesProposalPrefix() {
+        service.prepareImageUpload(USER_ID, ImagePurpose.PROPOSAL, "참고.png", "image/png", 100);
+
+        ArgumentCaptor<String> keyCaptor = ArgumentCaptor.forClass(String.class);
+        verify(storageClient).presignUpload(keyCaptor.capture(), eq("image/png"), eq(100L));
+        assertThat(keyCaptor.getValue()).matches("images/proposal/" + USER_ID + "/[0-9a-f-]{36}\\.png");
+    }
+
+    @Test
+    @DisplayName("사용자·용도 경로 아래 UUID 파일명과 허용 확장자로 된 사진 URL만 저장소 키로 인정한다")
+    void findsOnlyIssuedImageKeys() {
+        String prefix = "images/proposal/" + USER_ID + "/";
+        String uuid = "0b4f2a3e-6a8c-4a39-9f55-8f1d8f0b2c11";
+        when(storageClient.findKey(anyString(), eq(prefix))).thenAnswer(invocation -> {
+            String url = invocation.getArgument(0);
+            String base = "https://images.example.com/" + prefix;
+            return url.startsWith(base) ? Optional.of(prefix + url.substring(base.length())) : Optional.empty();
+        });
+
+        assertThat(service.findImageKey(USER_ID, ImagePurpose.PROPOSAL,
+                "https://images.example.com/" + prefix + uuid + ".webp")).contains(prefix + uuid + ".webp");
+        assertThat(service.findImageKey(USER_ID, ImagePurpose.PROPOSAL,
+                "https://images.example.com/" + prefix + uuid + ".gif")).isEmpty();
+        assertThat(service.findImageKey(USER_ID, ImagePurpose.PROPOSAL,
+                "https://images.example.com/" + prefix + uuid.toUpperCase() + ".png")).isEmpty();
+        assertThat(service.findImageKey(USER_ID, ImagePurpose.PROPOSAL,
+                "https://images.example.com/" + prefix + "photo.png")).isEmpty();
+        assertThat(service.findImageKey(USER_ID, ImagePurpose.PROPOSAL,
+                "https://images.example.com/" + prefix + uuid)).isEmpty();
+        assertThat(service.findImageKey(USER_ID, ImagePurpose.PROPOSAL,
+                "https://evil.example.com/" + prefix + uuid + ".png")).isEmpty();
+    }
+
+    @Test
+    @DisplayName("사진 업로드 여부는 저장소 객체 존재 여부로 판단한다")
+    void checksImageUploaded() {
+        when(storageClient.exists("images/proposal/u/a.png")).thenReturn(true);
+
+        assertThat(service.isImageUploaded("images/proposal/u/a.png")).isTrue();
+        assertThat(service.isImageUploaded("images/proposal/u/b.png")).isFalse();
     }
 }

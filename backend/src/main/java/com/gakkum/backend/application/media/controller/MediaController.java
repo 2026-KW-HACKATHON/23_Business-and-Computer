@@ -21,7 +21,7 @@ public class MediaController {
 
     private final MediaFacade mediaFacade;
 
-    /** 프로필·매장 사진 업로드 준비 API(PresignedURL과 공개 이미지 URL 반환) */
+    /** 프로필·매장·제안 사진 업로드 준비 API(PresignedURL과 공개 이미지 URL 반환) */
     @PostMapping("/media/images/uploads")
     public ResponseEntity<ApiResponse<PrepareImageUploadResponse>> prepareImageUpload(
             Authentication authentication,
