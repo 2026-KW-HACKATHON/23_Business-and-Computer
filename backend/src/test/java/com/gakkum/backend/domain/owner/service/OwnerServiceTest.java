@@ -10,6 +10,7 @@ import static org.mockito.Mockito.when;
 import java.time.LocalDate;
 import java.util.List;
 
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
@@ -65,5 +66,17 @@ class OwnerServiceTest {
         assertThatThrownBy(() -> ownerService.validateBusinessNumberAvailable("12341453312"))
                 .isInstanceOfSatisfying(BusinessException.class, exception ->
                         assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.DUPLICATE_BUSINESS_NUMBER));
+    }
+
+    @Test
+    @DisplayName("지정한 사장님 프로필이 있으면 통과하고 없으면 OWNER_404로 거부한다")
+    void validatesOwnerProfileExists() {
+        when(ownerRepository.existsById(5L)).thenReturn(true);
+        when(ownerRepository.existsById(6L)).thenReturn(false);
+
+        ownerService.validateOwnerProfileExists(5L);
+        assertThatThrownBy(() -> ownerService.validateOwnerProfileExists(6L))
+                .isInstanceOfSatisfying(BusinessException.class,
+                        exception -> assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.OWNER_NOT_FOUND));
     }
 }
