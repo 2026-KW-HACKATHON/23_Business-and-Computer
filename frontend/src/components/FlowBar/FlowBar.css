@@ -1,0 +1,121 @@
+.flow-bar {
+  display: flex;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-family: var(--font-sans);
+}
+
+.flow-bar__step {
+  position: relative;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+/* 앞 단계 원과 잇는 선. 원(24px) 양옆으로 6px씩 띄운다 */
+.flow-bar__step + .flow-bar__step::before {
+  content: "";
+  position: absolute;
+  top: 11px;
+  right: calc(50% + 18px);
+  width: calc(100% - 36px);
+  height: 2px;
+  border-radius: 1px;
+  background: var(--role-border);
+}
+
+.flow-bar__step--linked::before {
+  background: var(--color-black);
+}
+
+.flow-bar__circle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+}
+
+.flow-bar__label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-placeholder);
+  white-space: nowrap;
+}
+
+.flow-bar__sub {
+  margin-top: -6px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-placeholder);
+  white-space: nowrap;
+}
+
+/* 지남: 검정 원 + 연노랑 체크 */
+.flow-bar__step--done .flow-bar__circle {
+  background: var(--color-black);
+  color: var(--color-main);
+}
+
+.flow-bar__step--done .flow-bar__label {
+  color: var(--text-body);
+}
+
+/* 지금: 역할 색 원 + 옅은 테두리 + 가운데 점 */
+.flow-bar__step--current .flow-bar__circle::after {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.flow-bar--owner .flow-bar__step--current .flow-bar__circle {
+  background: var(--color-owner);
+  box-shadow: 0 0 0 4px rgba(254, 211, 77, 0.35);
+}
+
+.flow-bar--owner .flow-bar__step--current .flow-bar__circle::after {
+  background: var(--color-black);
+}
+
+.flow-bar--student .flow-bar__step--current .flow-bar__circle {
+  background: var(--color-student);
+  box-shadow: 0 0 0 4px rgba(152, 39, 76, 0.35);
+}
+
+.flow-bar--student .flow-bar__step--current .flow-bar__circle::after {
+  background: var(--color-white);
+}
+
+.flow-bar__step--current .flow-bar__label,
+.flow-bar__step--current .flow-bar__sub {
+  font-weight: 700;
+  color: var(--color-black);
+}
+
+/* 아직: 흰 원 + 회색 테두리 */
+.flow-bar__step--todo .flow-bar__circle {
+  border: 2px solid var(--role-border);
+  background: var(--color-white);
+}
+
+/* 건너뜀: 흰 원 + 가운데 짧은 줄 */
+.flow-bar__step--skipped .flow-bar__circle {
+  border: 1.5px solid var(--input-border);
+  background: var(--color-white);
+}
+
+.flow-bar__step--skipped .flow-bar__circle::after {
+  content: "";
+  width: 8px;
+  height: 2px;
+  border-radius: 1px;
+  background: var(--text-placeholder);
+}

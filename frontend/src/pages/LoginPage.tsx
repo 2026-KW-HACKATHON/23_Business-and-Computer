@@ -1,5 +1,11 @@
 import { useNavigate } from "react-router-dom";
-import { AppImage, DemoButton, KakaoLoginButton, TextButton } from "../components";
+import {
+  AppImage,
+  DemoButton,
+  KakaoLoginButton,
+  TextButton,
+  UsageCardCarousel,
+} from "../components";
 import { socialLoginUrl } from "../features/auth";
 import "./LoginPage.css";
 
@@ -17,13 +23,9 @@ function LoginPage() {
   return (
     <div className="login">
       <main className="login__body">
-        <div className="login__hero">
-          <AppImage name="appIcon" className="login__app-icon" priority />
-          <div className="login__copy">
-            <h1 className="login__title">{"월계1동 가게와 광운대생,\n가꿈에서 만나요"}</h1>
-            <p className="login__description">사장님은 의뢰하고, 학생은 제안해요</p>
-          </div>
-        </div>
+        <AppImage name="logoGakkum" width={120} priority />
+        <h1 className="login__title">가꿈은 이렇게 돌아가요</h1>
+        <UsageCardCarousel className="login__usage" />
       </main>
 
       <footer className="login__footer">

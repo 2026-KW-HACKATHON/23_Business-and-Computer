@@ -2,7 +2,8 @@
 
 ## Status
 
-Accepted
+Accepted. The login and role-select layouts are updated by ADR 0007; the
+routes, demo entry, and Notion link rules here still apply.
 
 ## Context
 

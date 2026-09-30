@@ -1,0 +1,74 @@
+.role-card {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  box-sizing: border-box;
+  min-width: 0;
+  padding: 20px 16px;
+  border: 1px solid var(--role-border);
+  border-radius: 24px;
+  background: var(--color-white);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.06);
+  font-family: var(--font-sans);
+  text-align: center;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.role-card:focus-visible {
+  outline: 2px solid var(--color-black);
+  outline-offset: 2px;
+}
+
+.role-card__character {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 128px;
+  height: 128px;
+}
+
+/* 피그마의 호버 배리언트(캐릭터가 칸을 꽉 채움)를 누름 효과로 옮겼다 */
+.role-card__character img {
+  transition: transform 0.15s ease-out;
+}
+
+.role-card:active .role-card__character img {
+  transform: scale(1.18);
+}
+
+@media (hover: hover) {
+  .role-card:hover .role-card__character img {
+    transform: scale(1.18);
+  }
+}
+
+.role-card__name {
+  margin-top: 12px;
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 24px;
+  color: var(--text-title);
+}
+
+.role-card__description {
+  margin-top: 4px;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 16px;
+  color: var(--role-secondary);
+  white-space: nowrap;
+}
+
+/* <button> 과 달리 <span> 은 기본이 content-box 라 폭을 맞춰 준다 */
+.role-card__action {
+  box-sizing: border-box;
+  margin-top: 16px;
+}
+
+/* 버튼 모양은 Button.css 를 쓰고, 카드를 누를 때 함께 눌린다 */
+.role-card:active .role-card__action {
+  transform: translateY(4px);
+  box-shadow: none;
+}

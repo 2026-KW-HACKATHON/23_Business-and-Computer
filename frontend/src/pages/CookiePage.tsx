@@ -23,7 +23,7 @@ function CookiePage() {
       try {
         const tokens = await exchangeCookieForTokens();
         saveTokens(tokens);
-        navigate("/", { replace: true });
+        navigate("/home", { replace: true });
       } catch {
         navigate("/login", { replace: true });
       }

@@ -15,48 +15,26 @@
 .login__body {
   display: flex;
   flex: 1;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 0 16px 24px;
-}
-
-.login__hero {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 28px;
-}
-
-.login__app-icon {
-  border-radius: 22px;
-  outline: 1px solid rgba(0, 0, 0, 0.06);
-  outline-offset: -1px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
-}
-
-.login__copy {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
+  gap: 17px;
+  padding: 16px 20px 24px;
 }
 
 .login__title {
   margin: 0;
   font-family: var(--font-sans);
-  font-size: 26px;
+  font-size: 20px;
   font-weight: 700;
-  line-height: 1.35;
+  line-height: 24px;
   letter-spacing: normal;
   color: var(--color-black);
-  white-space: pre-line;
 }
 
-.login__description {
-  margin: 0;
-  font-size: 17px;
-  font-weight: 400;
-  line-height: 1.5;
-  color: var(--text-body);
+/* 피그마에서 카드 자리(332px)는 아래쪽에 붙고 위가 비어 있다. 작은 화면에서는 줄어든다 */
+.login__usage {
+  margin-top: clamp(16px, 10svh, 85px);
 }
 
 .login__footer {
