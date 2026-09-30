@@ -1,0 +1,9 @@
+.owner-signup-info__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.owner-signup-info__terms {
+  margin-top: 16px;
+}

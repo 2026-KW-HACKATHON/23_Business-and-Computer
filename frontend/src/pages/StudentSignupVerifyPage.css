@@ -1,0 +1,35 @@
+/* 피그마에서 안내 문구는 앱바 아래 50px, 이메일 칸은 101px */
+.student-signup-verify__guide {
+  margin: 21px 0 31px;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 20px;
+  color: var(--text-title);
+}
+
+.text-field__trailing .student-signup-verify__change {
+  font-weight: 500;
+  color: var(--color-student);
+}
+
+.student-signup-verify__timer {
+  font-weight: 500;
+  color: var(--color-danger);
+  font-variant-numeric: tabular-nums;
+}
+
+/* 인증번호 칸 아래: 왼쪽 오류 문구, 오른쪽 재발송 */
+.student-signup-verify__code-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 4px;
+}
+
+.student-signup-verify__error {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: normal;
+  color: var(--color-danger);
+}

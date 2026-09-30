@@ -1,4 +1,3 @@
-import { useId } from "react";
 import AppImage from "../AppImage/AppImage";
 import "./ProfilePhoto.css";
 
@@ -8,21 +7,24 @@ interface ProfilePhotoProps {
   onSelect: (file: File) => void;
 }
 
+/**
+ * 내 프로필 사진 (사장님·학생 공통). 동그라미 어디를 눌러도 사진을 고르고,
+ * 오른쪽 아래 +는 아직 사진이 없을 때만 보인다.
+ */
 function ProfilePhoto({ src, onSelect }: ProfilePhotoProps) {
-  const inputId = useId();
-
   return (
-    <div className="profile-photo">
+    <label className="profile-photo" aria-label={src ? "프로필 사진 바꾸기" : "프로필 사진 추가"}>
       {src ? (
-        <img className="profile-photo__image" src={src} alt="내 프로필 사진" />
+        <img className="profile-photo__image" src={src} alt="" />
       ) : (
-        <div className="profile-photo__empty" />
+        <>
+          <span className="profile-photo__empty" />
+          <span className="profile-photo__add" aria-hidden="true">
+            <AppImage name="iconPlus13" />
+          </span>
+        </>
       )}
-      <label htmlFor={inputId} className="profile-photo__add" aria-label="프로필 사진 추가">
-        <AppImage name="iconPlus13" />
-      </label>
       <input
-        id={inputId}
         className="profile-photo__input"
         type="file"
         accept="image/*"
@@ -32,7 +34,7 @@ function ProfilePhoto({ src, onSelect }: ProfilePhotoProps) {
           e.target.value = "";
         }}
       />
-    </div>
+    </label>
   );
 }
 

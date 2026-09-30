@@ -1,0 +1,66 @@
+/* 회원가입 화면 공통 틀 (사장님·학생): 회색 앱바 + 단계 막대, 흰 본문, 아래 고정 버튼 */
+.signup {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 390px;
+  min-height: 100svh;
+  margin: 0 auto;
+  background: var(--color-white);
+  font-family: var(--font-sans);
+  text-align: left;
+}
+
+.signup__body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  padding: 29px 16px 24px;
+}
+
+.signup__section-title {
+  margin: 0 0 12px;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 17px;
+  letter-spacing: normal;
+  color: var(--color-black);
+}
+
+/* 섹션 사이 24px (칸 아래 → 다음 섹션 제목) */
+.signup__section + .signup__section {
+  margin-top: 24px;
+}
+
+.signup__fields {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* 피그마에서 버튼 아래는 74px(홈 인디케이터 포함). 안전 영역이 큰 기기에서는 그만큼 더 띄운다 */
+.signup__footer {
+  padding: 8px 16px max(74px, calc(40px + env(safe-area-inset-bottom)));
+}
+
+/* 「이용약관에 모두 동의해요」 + 오른쪽 「보기」 */
+.signup__terms {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding-left: 2px;
+}
+
+.signup__terms-view {
+  flex-shrink: 0;
+  padding: 2px 0;
+  border: none;
+  background: none;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.4;
+  color: var(--role-secondary);
+  text-decoration: underline;
+  cursor: pointer;
+}

@@ -1,0 +1,4 @@
+/* 피그마에서 약관 줄은 버튼 바로 위(17px)에 붙어 있다 */
+.student-signup-info__terms {
+  margin-bottom: 17px;
+}
