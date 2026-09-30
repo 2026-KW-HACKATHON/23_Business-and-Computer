@@ -64,6 +64,7 @@ public final class ProposalQueryDto {
 
         private final Long proposalId;
         private final String title;
+        private final String storeName;
         private final Integer likeCount;
         private final List<SpecialtyCategoryResult> specialtyCategories;
         private final ProposalStudentResult student;
@@ -75,11 +76,12 @@ public final class ProposalQueryDto {
         private final List<String> referenceImageUrls;
         private final LocalDateTime createdAt;
 
-        public static ProposalDetailResult of(Proposal proposal, Student student, User studentUser,
+        public static ProposalDetailResult of(Proposal proposal, String storeName, Student student, User studentUser,
                 List<SpecialtyCategoryResult> specialtyCategories) {
             return ProposalDetailResult.builder()
                     .proposalId(proposal.getId())
                     .title(proposal.getTitle())
+                    .storeName(storeName)
                     .likeCount(proposal.getLikeCount())
                     .specialtyCategories(specialtyCategories)
                     .student(ProposalStudentResult.of(student, studentUser))

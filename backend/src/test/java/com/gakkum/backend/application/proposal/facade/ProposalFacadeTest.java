@@ -27,6 +27,7 @@ import org.mockito.InOrder;
 
 import com.gakkum.backend.domain.media.dto.ImagePurpose;
 import com.gakkum.backend.domain.media.service.MediaService;
+import com.gakkum.backend.domain.owner.entity.Owner;
 import com.gakkum.backend.domain.owner.service.OwnerService;
 import com.gakkum.backend.domain.proposal.dto.ProposalCommandDto.CreateProposalCommand;
 import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.ProposalCreateResult;
@@ -199,6 +200,7 @@ class ProposalFacadeTest {
         when(proposalService.getProposalDetail(31L))
                 .thenReturn(ProposalDetailData.of(proposal, List.of(12L, 3L, 11L)));
         givenProposingStudent();
+        givenStore();
         when(specialtyCategoryService.getSpecialtyDetails(List.of(12L, 3L, 11L))).thenReturn(Map.of(
                 12L, SpecialtyDetail.of(12L, "영상 편집", 2L, "영상"),
                 3L, SpecialtyDetail.of(3L, "로고 디자인", 1L, "디자인"),
@@ -208,6 +210,8 @@ class ProposalFacadeTest {
 
         assertThat(result.getProposalId()).isEqualTo(31L);
         assertThat(result.getTitle()).isEqualTo("메뉴판 개선 제안");
+        assertThat(result.getStoreName()).isEqualTo("가게 이름");
+        verify(ownerService).getOwnerProfileById(5L);
         assertThat(result.getLikeCount()).isEqualTo(4);
         assertThat(result.getCustomerProblem()).isEqualTo("메뉴를 알아보기 어렵습니다.");
         assertThat(result.getProposedSolution()).isEqualTo("사진 메뉴판으로 바꿉니다.");
@@ -238,6 +242,7 @@ class ProposalFacadeTest {
         when(proposalService.getProposalDetail(31L)).thenReturn(ProposalDetailData.of(
                 receivedProposal(List.of(), LocalDateTime.of(2026, 9, 30, 10, 0)), List.of(3L)));
         givenProposingStudent();
+        givenStore();
         when(specialtyCategoryService.getSpecialtyDetails(List.of(3L)))
                 .thenReturn(Map.of(3L, SpecialtyDetail.of(3L, "로고 디자인", 1L, "디자인")));
 
@@ -254,6 +259,7 @@ class ProposalFacadeTest {
         when(proposalService.getProposalDetail(31L)).thenReturn(ProposalDetailData.of(
                 receivedProposal(List.of(), LocalDateTime.of(2026, 9, 30, 10, 0)), List.of(3L)));
         givenProposingStudent();
+        givenStore();
         when(specialtyCategoryService.getSpecialtyDetails(List.of(3L)))
                 .thenReturn(Map.of(3L, SpecialtyDetail.of(3L, "로고 디자인", 1L, "디자인")));
 
@@ -271,7 +277,7 @@ class ProposalFacadeTest {
         when(userService.getActiveUser(USERNAME)).thenThrow(new BusinessException(ErrorCode.UNAUTHORIZED));
 
         assertError(() -> proposalFacade.getProposalDetail(USERNAME, 31L), ErrorCode.UNAUTHORIZED);
-        verifyNoInteractions(proposalService, studentService, specialtyCategoryService);
+        verifyNoInteractions(proposalService, ownerService, studentService, specialtyCategoryService);
     }
 
     @Test
@@ -282,13 +288,17 @@ class ProposalFacadeTest {
                 .thenThrow(new BusinessException(ErrorCode.PROPOSAL_NOT_FOUND));
 
         assertError(() -> proposalFacade.getProposalDetail(USERNAME, 31L), ErrorCode.PROPOSAL_NOT_FOUND);
-        verifyNoInteractions(studentService, specialtyCategoryService);
+        verifyNoInteractions(ownerService, studentService, specialtyCategoryService);
         verify(userService, never()).getUser(anyString());
     }
 
     private void givenUser(UserRole role) {
         when(userService.getActiveUser(USERNAME)).thenReturn(
                 User.builder().id(USER_ID).username(USERNAME).role(role).build());
+    }
+
+    private void givenStore() {
+        when(ownerService.getOwnerProfileById(5L)).thenReturn(Owner.builder().id(5L).storeName("가게 이름").build());
     }
 
     private void givenProposingStudent() {

@@ -179,13 +179,14 @@ class ProposalControllerTest {
                 SpecialtyCategoryResult.of(2L, "영상", List.of(
                         SpecialtyResult.of(11L, "숏폼 촬영"), SpecialtyResult.of(12L, "영상 편집"))));
         when(proposalFacade.getProposalDetail(USERNAME, 31L))
-                .thenReturn(ProposalDetailResult.of(proposal, student, studentUser, categories));
+                .thenReturn(ProposalDetailResult.of(proposal, "가게 이름", student, studentUser, categories));
 
         mockMvc.perform(get("/proposals/31").principal(authentication))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.proposalId").value(31))
                 .andExpect(jsonPath("$.data.title").value("메뉴판 개선 제안"))
+                .andExpect(jsonPath("$.data.storeName").value("가게 이름"))
                 .andExpect(jsonPath("$.data.likeCount").value(4))
                 .andExpect(jsonPath("$.data.specialtyCategories.length()").value(2))
                 .andExpect(jsonPath("$.data.specialtyCategories[0].id").value(1))
