@@ -1,0 +1,14 @@
+.category-badge {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: var(--role-muted);
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 16px;
+  color: var(--text-body);
+  white-space: nowrap;
+}

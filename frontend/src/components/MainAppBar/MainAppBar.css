@@ -1,0 +1,72 @@
+.main-app-bar {
+  flex-shrink: 0;
+  padding-top: env(safe-area-inset-top);
+  background: var(--role-muted);
+  font-family: var(--font-sans);
+}
+
+.main-app-bar__row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-sizing: border-box;
+  height: 56px;
+  padding: 0 16px;
+}
+
+.main-app-bar__logo {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 4px;
+}
+
+.main-app-bar__title {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 700;
+  line-height: normal;
+  letter-spacing: normal;
+  color: var(--color-black);
+}
+
+.main-app-bar__actions {
+  display: flex;
+  gap: 10px;
+  margin-left: auto;
+}
+
+.main-app-bar__icon {
+  position: relative;
+  display: flex;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+}
+
+/* 안 읽은 알림: 종 오른쪽 위 역할 색 점 + 배경색 테두리 */
+.main-app-bar__icon--unread::after {
+  content: "";
+  position: absolute;
+  top: 3px;
+  right: 5px;
+  box-sizing: border-box;
+  width: 10px;
+  height: 10px;
+  border: 2px solid var(--role-muted);
+  border-radius: 50%;
+  background: var(--color-owner);
+}
+
+.main-app-bar--student .main-app-bar__icon--unread::after {
+  background: var(--color-student);
+}
+
+.main-app-bar__icon:focus-visible {
+  outline: 2px solid var(--color-black);
+  outline-offset: 2px;
+  border-radius: 8px;
+}

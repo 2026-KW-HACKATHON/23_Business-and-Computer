@@ -1,0 +1,30 @@
+.empathy-count {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 4px;
+  box-sizing: border-box;
+  height: 24px;
+  padding: 4px 10px;
+  border: none;
+  border-radius: 999px;
+  background: var(--role-muted);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 16px;
+  color: var(--role-secondary);
+}
+
+.empathy-count--on {
+  color: var(--color-black);
+}
+
+button.empathy-count {
+  cursor: pointer;
+}
+
+button.empathy-count:focus-visible {
+  outline: 2px solid var(--color-black);
+  outline-offset: 2px;
+}

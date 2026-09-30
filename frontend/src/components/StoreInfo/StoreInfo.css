@@ -1,0 +1,39 @@
+.store-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  font-family: var(--font-sans);
+  text-align: left;
+}
+
+.store-info__name {
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 26px;
+  color: var(--color-black);
+}
+
+.store-info__owner {
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 18px;
+  color: var(--text-body);
+}
+
+.store-info__address {
+  display: flex;
+  align-items: flex-start;
+  gap: 4px;
+  margin-top: 4px;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 16px;
+  color: var(--text-placeholder);
+  white-space: pre-line;
+}
+
+.store-info__pin {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
