@@ -21,6 +21,8 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.gakkum.backend.application.specialty.controller.SpecialtyController;
+import com.gakkum.backend.application.explore.controller.ExploreController;
+import com.gakkum.backend.application.explore.facade.ExploreFacade;
 import com.gakkum.backend.application.job.controller.JobController;
 import com.gakkum.backend.application.media.controller.MediaController;
 import com.gakkum.backend.application.media.facade.MediaFacade;
@@ -41,7 +43,7 @@ import com.gakkum.backend.util.JWTUtil;
 @DisplayName("보안 설정 - 기본 거부(default-deny) 인증 정책 검증")
 @WebMvcTest(controllers = {SecurityConfigTest.TestController.class, SpecialtyController.class,
         JobController.class, PaymentController.class, MediaController.class, ReviewController.class,
-        ProposalController.class})
+        ProposalController.class, ExploreController.class})
 @Import({SecurityConfig.class, RestAuthenticationEntryPoint.class})
 class SecurityConfigTest {
 
@@ -81,6 +83,17 @@ class SecurityConfigTest {
     @MockitoBean
     private ProposalFacade proposalFacade;
 
+    @MockitoBean
+    private ExploreFacade exploreFacade;
+
+    @Test
+    @DisplayName("인증 없이 탐색 목록을 조회하면 401을 반환한다")
+    void exploreRequiresAuthentication() throws Exception {
+        mockMvc.perform(get("/explore").param("type", "PROPOSAL").param("sort", "LIKES"))
+            .andExpect(status().isUnauthorized())
+            .andExpect(jsonPath("$.error.code").value("COMMON_401"));
+    }
+
     @Test
     @DisplayName("인증 없이 제안을 보내면 401을 반환한다")
     void proposalCreationRequiresAuthentication() throws Exception {
@@ -92,7 +105,7 @@ class SecurityConfigTest {
     }
 
     @Test
-    @DisplayName("인증 없이 받은 제안 상세를 조회하면 401을 반환한다")
+    @DisplayName("인증 없이 제안 상세를 조회하면 401을 반환한다")
     void receivedProposalDetailRequiresAuthentication() throws Exception {
         mockMvc.perform(get("/proposals/31"))
             .andExpect(status().isUnauthorized())
