@@ -17,6 +17,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.transaction.support.TransactionTemplate;
 
@@ -32,6 +33,7 @@ import com.gakkum.backend.global.exception.ErrorCode;
 
 /** 동시 작성은 트랜잭션을 나눠 커밋해야 하므로 클래스 트랜잭션 대신 직접 데이터를 정리한다. */
 @SpringBootTest
+@ActiveProfiles("local")
 class ReviewRepositoryIntegrationTest {
 
     @Autowired
