@@ -3,11 +3,14 @@ package com.gakkum.backend.domain.job.service;
 import java.time.Clock;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.domain.Limit;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -16,6 +19,7 @@ import com.gakkum.backend.domain.job.dto.JobCommandDto.CompleteJobSubmissionComm
 import com.gakkum.backend.domain.job.dto.JobCommandDto.CreateJobCommand;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.CreateJobSubmissionCommand;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.GetClosedJobsCommand;
+import com.gakkum.backend.domain.job.dto.JobCommandDto.GetExploreJobsCommand;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.GetJobResultCommand;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.GetJobSubmissionCommand;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.GetMatchedJobsCommand;
@@ -24,6 +28,7 @@ import com.gakkum.backend.domain.job.dto.JobCommandDto.GetStudentMatchedJobsComm
 import com.gakkum.backend.domain.job.dto.JobCommandDto.RequestJobSubmissionRevisionCommand;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.CancelledJobData;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.ClosedJobData;
+import com.gakkum.backend.domain.job.dto.JobQueryDto.ExploreJobData;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.JobDetailData;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.JobResultData;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.JobSubmissionDetailData;
@@ -509,6 +514,76 @@ public class JobService {
                                 .toList(),
                         calculateProgressStage(job, null)))
                 .toList();
+    }
+
+    /**
+     * 탐색 목록용으로 취소되지 않은 의뢰를 커서 경계 뒤부터 정렬 순서대로 limit개까지 읽는다.
+     * 진행 단계 계산에 필요한 최신 제출물은 진행 중(MATCHED) 의뢰만 한 번에 조회한다.
+     */
+    @Transactional(readOnly = true)
+    public List<ExploreJobData> getExploreJobs(GetExploreJobsCommand command) {
+        List<Job> jobs = findExploreJobs(command);
+        if (jobs.isEmpty()) {
+            return List.of();
+        }
+
+        List<Long> jobIds = jobs.stream().map(Job::getId).toList();
+        Map<Long, List<JobSpecialty>> specialtiesByJobId = jobSpecialtyRepository.findByJobIdIn(jobIds).stream()
+                .collect(Collectors.groupingBy(JobSpecialty::getJobId));
+        List<Long> matchedJobIds = jobs.stream()
+                .filter(job -> job.getStatus() == JobStatus.MATCHED)
+                .map(Job::getId)
+                .toList();
+        Map<Long, JobSubmission> latestSubmissionsByJobId =
+                matchedJobIds.isEmpty() ? Map.of() : latestSubmissionsByJobId(matchedJobIds);
+
+        return jobs.stream()
+                .map(job -> ExploreJobData.of(
+                        job,
+                        specialtiesByJobId.getOrDefault(job.getId(), List.of()).stream()
+                                .map(JobSpecialty::getSpecialtyId)
+                                .toList(),
+                        calculateProgressStage(job, latestSubmissionsByJobId.get(job.getId()))))
+                .toList();
+    }
+
+    private List<Job> findExploreJobs(GetExploreJobsCommand command) {
+        Long categoryId = command.getSpecialtyCategoryId();
+        LocalDateTime createdAt = command.getCreatedAtBound();
+        Long idBound = command.getIdBound();
+        if (categoryId != null) {
+            Limit limit = Limit.of(command.getLimit());
+            return command.isOldestFirst()
+                    ? jobRepository.findExploreOldestInCategory(
+                            JobStatus.CANCELLED, categoryId, createdAt, idBound, limit)
+                    : jobRepository.findExploreLatestInCategory(
+                            JobStatus.CANCELLED, categoryId, createdAt, idBound, limit);
+        }
+        if (command.isOldestFirst()) {
+            return readInSegments(command.getLimit(),
+                    limit -> jobRepository.findByStatusNotAndCreatedAtAndIdGreaterThanOrderByIdAsc(
+                            JobStatus.CANCELLED, createdAt, idBound, limit),
+                    limit -> jobRepository.findByStatusNotAndCreatedAtGreaterThanOrderByCreatedAtAscIdAsc(
+                            JobStatus.CANCELLED, createdAt, limit));
+        }
+        return readInSegments(command.getLimit(),
+                limit -> jobRepository.findByStatusNotAndCreatedAtAndIdLessThanOrderByIdDesc(
+                        JobStatus.CANCELLED, createdAt, idBound, limit),
+                limit -> jobRepository.findByStatusNotAndCreatedAtLessThanOrderByCreatedAtDescIdDesc(
+                        JobStatus.CANCELLED, createdAt, limit));
+    }
+
+    /** 커서 경계 뒤를 정렬 순서상 앞 구간부터 읽어 limit개를 채운다. 채워지면 남은 구간은 조회하지 않는다. */
+    @SafeVarargs
+    private static List<Job> readInSegments(int limit, Function<Limit, List<Job>>... segments) {
+        List<Job> jobs = new ArrayList<>();
+        for (Function<Limit, List<Job>> segment : segments) {
+            if (jobs.size() >= limit) {
+                break;
+            }
+            jobs.addAll(segment.apply(Limit.of(limit - jobs.size())));
+        }
+        return jobs;
     }
 
     private Map<Long, JobSubmission> latestSubmissionsByJobId(List<Long> jobIds) {
