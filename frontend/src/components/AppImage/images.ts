@@ -1,16 +1,16 @@
 import logoGakkum from "../../assets/brand/logo-gakkum.svg";
 import appIcon from "../../assets/brand/app-icon.png";
-import tagline from "../../assets/brand/tagline.png";
 import splashTagline from "../../assets/brand/splash-tagline.png";
+import taglineRole from "../../assets/brand/tagline-role.png";
 import characterOwner from "../../assets/characters/owner.svg";
 import characterStudent from "../../assets/characters/student.svg";
-import characterBadgeOwner from "../../assets/characters/badge-owner.svg";
-import characterBadgeStudent from "../../assets/characters/badge-student.svg";
 import splashOwner from "../../assets/characters/splash-owner.webp";
 import splashStudent from "../../assets/characters/splash-student.webp";
-import onboarding1 from "../../assets/illustrations/onboarding-1.webp";
-import onboarding2 from "../../assets/illustrations/onboarding-2.webp";
-import onboarding3 from "../../assets/illustrations/onboarding-3.webp";
+import miniOwner from "../../assets/characters/mini-owner.svg";
+import miniStudent from "../../assets/characters/mini-student.svg";
+import usageProposal from "../../assets/illustrations/usage-proposal.webp";
+import usageEmpathy from "../../assets/illustrations/usage-empathy.webp";
+import usageRequest from "../../assets/illustrations/usage-request.webp";
 import doneOwner from "../../assets/illustrations/done-owner.webp";
 import doneStudent from "../../assets/illustrations/done-student.webp";
 import doneOwnerThumbsUp from "../../assets/illustrations/done-owner-thumbs-up.webp";
@@ -39,21 +39,19 @@ import iconCardRequest from "../../assets/icons/card-request.webp";
 import iconHeart from "../../assets/icons/heart.webp";
 import iconLink from "../../assets/icons/link.webp";
 import iconHeartEmpty from "../../assets/icons/heart-empty-16.svg";
-import iconLightbulb from "../../assets/icons/lightbulb-24.svg";
 import iconBell from "../../assets/icons/bell.svg";
 import iconMy from "../../assets/icons/my.svg";
 import iconTabHome from "../../assets/icons/tab-home.svg";
 import iconTabSearch from "../../assets/icons/tab-search.svg";
-import iconTabRequest from "../../assets/icons/tab-request.svg";
 import iconTabChat from "../../assets/icons/tab-chat.svg";
 import iconChevronRight14 from "../../assets/icons/chevron-right-14.svg";
-import iconChevronRight20 from "../../assets/icons/chevron-right-20.svg";
 import iconCheck11 from "../../assets/icons/check-11.svg";
 import iconCheckCircle18 from "../../assets/icons/check-circle-18.svg";
 import iconCheckSuccess14 from "../../assets/icons/check-success-14.svg";
 import iconLock16 from "../../assets/icons/lock-16.svg";
 import iconLocation12 from "../../assets/icons/location-12.svg";
 import iconPlus13 from "../../assets/icons/plus-13.svg";
+import iconFilter14 from "../../assets/icons/filter-14.svg";
 
 export interface ImageInfo {
   src: string;
@@ -68,21 +66,22 @@ export const IMAGES = {
   // 브랜드
   logoGakkum: { src: logoGakkum, width: 180, height: 87, alt: "가꿈" },
   appIcon: { src: appIcon, width: 96, height: 96, alt: "가꿈 앱 아이콘" },
-  tagline: { src: tagline, width: 118, height: 38, alt: "학생과 사장님이 함께 가게를 꿈꾼다." },
   splashTagline: { src: splashTagline, width: 180, height: 51, alt: "학생과 사장님이 함께 가게를 꿈꾼다." },
+  taglineRole: { src: taglineRole, width: 174, height: 58, alt: "가게에 필요한 작업을 학생이 전공을 살려 해드려요" },
 
   // 캐릭터
   characterOwner: { src: characterOwner, width: 160, height: 160, alt: "사장님 캐릭터" },
   characterStudent: { src: characterStudent, width: 160, height: 160, alt: "학생 캐릭터" },
-  characterBadgeOwner: { src: characterBadgeOwner, width: 72, height: 72, alt: "" },
-  characterBadgeStudent: { src: characterBadgeStudent, width: 72, height: 72, alt: "" },
   splashOwner: { src: splashOwner, width: 156, height: 156, alt: "" },
   splashStudent: { src: splashStudent, width: 156, height: 156, alt: "" },
+  // 메인 앱바 로고 옆 작은 캐릭터
+  miniOwner: { src: miniOwner, width: 21.571, height: 24, alt: "" },
+  miniStudent: { src: miniStudent, width: 21.176, height: 24, alt: "" },
 
   // 일러스트
-  onboarding1: { src: onboarding1, width: 318, height: 212, alt: "" },
-  onboarding2: { src: onboarding2, width: 290, height: 290, alt: "" },
-  onboarding3: { src: onboarding3, width: 290, height: 193, alt: "" },
+  usageProposal: { src: usageProposal, width: 350, height: 199, alt: "학생이 사장님에게 제안해요" },
+  usageEmpathy: { src: usageEmpathy, width: 350, height: 199, alt: "다른 학생들이 제안에 공감해요" },
+  usageRequest: { src: usageRequest, width: 350, height: 199, alt: "사장님이 의뢰하고 학생이 지원해요" },
   doneOwner: { src: doneOwner, width: 120, height: 120, alt: "" },
   doneStudent: { src: doneStudent, width: 120, height: 120, alt: "" },
   doneOwnerThumbsUp: { src: doneOwnerThumbsUp, width: 120, height: 120, alt: "" },
@@ -117,26 +116,24 @@ export const IMAGES = {
 
   // 아이콘 (선)
   iconHeartEmpty: { src: iconHeartEmpty, width: 16, height: 16, alt: "" },
-  iconLightbulb: { src: iconLightbulb, width: 24, height: 24, alt: "" },
   iconBell: { src: iconBell, width: 32, height: 32, alt: "알림" },
   iconMy: { src: iconMy, width: 32, height: 32, alt: "내 정보" },
   iconTabHome: { src: iconTabHome, width: 24, height: 24, alt: "" },
   iconTabSearch: { src: iconTabSearch, width: 24, height: 24, alt: "" },
-  iconTabRequest: { src: iconTabRequest, width: 24, height: 24, alt: "" },
   iconTabChat: { src: iconTabChat, width: 24, height: 24, alt: "" },
   iconChevronRight14: { src: iconChevronRight14, width: 14, height: 14, alt: "" },
-  iconChevronRight20: { src: iconChevronRight20, width: 20, height: 20, alt: "" },
   iconCheck11: { src: iconCheck11, width: 11, height: 11, alt: "" },
   iconCheckCircle18: { src: iconCheckCircle18, width: 18, height: 18, alt: "" },
   iconCheckSuccess14: { src: iconCheckSuccess14, width: 14, height: 14, alt: "" },
   iconLock16: { src: iconLock16, width: 16, height: 16, alt: "" },
   iconLocation12: { src: iconLocation12, width: 12, height: 12, alt: "" },
   iconPlus13: { src: iconPlus13, width: 13, height: 13, alt: "" },
+  iconFilter14: { src: iconFilter14, width: 14, height: 14, alt: "" },
 } satisfies Record<string, ImageInfo>;
 
 export type ImageName = keyof typeof IMAGES;
 
-/** 다음 화면에서 쓸 이미지를 미리 받아 둔다 (예: 온보딩 2·3단계). */
+/** 다음 화면에서 쓸 이미지를 미리 받아 둔다 (예: 사용법 카드 2·3장). */
 export function preloadImages(names: ImageName[]): void {
   names.forEach((name) => {
     const img = new Image();
