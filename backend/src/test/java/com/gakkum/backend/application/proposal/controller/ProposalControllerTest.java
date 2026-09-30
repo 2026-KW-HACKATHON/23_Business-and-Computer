@@ -2,14 +2,20 @@ package com.gakkum.backend.application.proposal.controller;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import java.time.LocalDateTime;
+import java.util.List;
 import java.util.stream.Stream;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -27,12 +33,17 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import com.gakkum.backend.application.proposal.facade.ProposalFacade;
 import com.gakkum.backend.domain.proposal.dto.ProposalCommandDto.CreateProposalCommand;
 import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.ProposalCreateResult;
+import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.ReceivedProposalResult;
+import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.SpecialtyCategoryResult;
+import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.SpecialtyResult;
 import com.gakkum.backend.domain.proposal.entity.Proposal;
+import com.gakkum.backend.domain.student.entity.Student;
+import com.gakkum.backend.domain.user.entity.User;
 import com.gakkum.backend.global.exception.BusinessException;
 import com.gakkum.backend.global.exception.ErrorCode;
 import com.gakkum.backend.global.exception.GlobalExceptionHandler;
 
-@DisplayName("학생 제안 전송 컨트롤러 (POST /proposals)")
+@DisplayName("제안 컨트롤러 (POST /proposals, GET /proposals/{proposalId})")
 class ProposalControllerTest {
 
     private static final String USERNAME = "KAKAO_12345";
@@ -143,6 +154,86 @@ class ProposalControllerTest {
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.error.code").value("PROPOSAL_403_STUDENT"));
+    }
+
+    @Test
+    @DisplayName("받은 제안 상세는 200과 제안 내용, 학생 정보, 대분류별 특기를 반환한다")
+    void returnsReceivedProposal() throws Exception {
+        Proposal proposal = Proposal.builder()
+                .id(31L)
+                .title("메뉴판 개선 제안")
+                .customerProblem("메뉴를 알아보기 어렵습니다.")
+                .proposedSolution("사진 메뉴판으로 바꿉니다.")
+                .workPlan("촬영 후 편집합니다.")
+                .proposedFee(50000L)
+                .draftDays(3)
+                .finalDays(7)
+                .referenceImageUrls(List.of(IMAGE_URL))
+                .likeCount(4)
+                .createdAt(LocalDateTime.of(2026, 9, 30, 10, 0))
+                .build();
+        Student student = Student.builder().id(7L).major("시각디자인학부").studentNumber("20260001").build();
+        User studentUser = User.builder().name("김학생").build();
+        List<SpecialtyCategoryResult> categories = List.of(
+                SpecialtyCategoryResult.of(1L, "디자인", List.of(SpecialtyResult.of(3L, "로고 디자인"))),
+                SpecialtyCategoryResult.of(2L, "영상", List.of(
+                        SpecialtyResult.of(11L, "숏폼 촬영"), SpecialtyResult.of(12L, "영상 편집"))));
+        when(proposalFacade.getReceivedProposal(USERNAME, 31L))
+                .thenReturn(ReceivedProposalResult.of(proposal, student, studentUser, categories));
+
+        mockMvc.perform(get("/proposals/31").principal(authentication))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.proposalId").value(31))
+                .andExpect(jsonPath("$.data.title").value("메뉴판 개선 제안"))
+                .andExpect(jsonPath("$.data.likeCount").value(4))
+                .andExpect(jsonPath("$.data.specialtyCategories.length()").value(2))
+                .andExpect(jsonPath("$.data.specialtyCategories[0].id").value(1))
+                .andExpect(jsonPath("$.data.specialtyCategories[0].name").value("디자인"))
+                .andExpect(jsonPath("$.data.specialtyCategories[0].specialties[0].id").value(3))
+                .andExpect(jsonPath("$.data.specialtyCategories[0].specialties[0].name").value("로고 디자인"))
+                .andExpect(jsonPath("$.data.specialtyCategories[1].specialties[1].id").value(12))
+                .andExpect(jsonPath("$.data.specialtyCategories[1].specialties[1].name").value("영상 편집"))
+                .andExpect(jsonPath("$.data.student.studentProfileId").value(7))
+                .andExpect(jsonPath("$.data.student.name").value("김학생"))
+                .andExpect(jsonPath("$.data.student.major").value("시각디자인학부"))
+                .andExpect(jsonPath("$.data.student.studentNumber").value("20260001"))
+                .andExpect(jsonPath("$.data.customerProblem").value("메뉴를 알아보기 어렵습니다."))
+                .andExpect(jsonPath("$.data.proposedSolution").value("사진 메뉴판으로 바꿉니다."))
+                .andExpect(jsonPath("$.data.workPlan").value("촬영 후 편집합니다."))
+                .andExpect(jsonPath("$.data.proposedFee").value(50000))
+                .andExpect(jsonPath("$.data.finalDays").value(7))
+                .andExpect(jsonPath("$.data.draftDays").doesNotExist())
+                .andExpect(jsonPath("$.data.referenceImageUrls[0]").value(IMAGE_URL))
+                .andExpect(jsonPath("$.data.createdAt").exists());
+    }
+
+    static Stream<Arguments> receivedProposalErrors() {
+        return Stream.of(
+                Arguments.of(ErrorCode.OWNER_PROFILE_NOT_FOUND, 403, "OWNER_403"),
+                Arguments.of(ErrorCode.PROPOSAL_NOT_FOUND, 404, "PROPOSAL_404"));
+    }
+
+    @ParameterizedTest(name = "{2}")
+    @MethodSource("receivedProposalErrors")
+    @DisplayName("받은 제안 상세의 비사장님·없는 제안·타인 제안 오류는 공통 오류 응답 형식으로 반환한다")
+    void returnsReceivedProposalError(ErrorCode errorCode, int status, String code) throws Exception {
+        when(proposalFacade.getReceivedProposal(USERNAME, 31L)).thenThrow(new BusinessException(errorCode));
+
+        mockMvc.perform(get("/proposals/31").principal(authentication))
+                .andExpect(status().is(status))
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.error.code").value(code));
+    }
+
+    @Test
+    @DisplayName("숫자가 아닌 제안 ID는 COMMON_400으로 거부하고 파사드를 호출하지 않는다")
+    void rejectsInvalidProposalId() throws Exception {
+        mockMvc.perform(get("/proposals/abc").principal(authentication))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.error.code").value("COMMON_400"));
+        verify(proposalFacade, never()).getReceivedProposal(anyString(), anyLong());
     }
 
     private static String body(String specialtyIds, String title, String customerProblem, String proposedFee,

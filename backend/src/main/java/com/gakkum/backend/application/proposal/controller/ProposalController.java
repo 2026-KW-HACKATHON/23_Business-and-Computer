@@ -3,12 +3,15 @@ package com.gakkum.backend.application.proposal.controller;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.gakkum.backend.application.proposal.dto.ProposalCreateRequest;
 import com.gakkum.backend.application.proposal.dto.ProposalCreateResponse;
+import com.gakkum.backend.application.proposal.dto.ProposalDetailResponse;
 import com.gakkum.backend.application.proposal.facade.ProposalFacade;
 import com.gakkum.backend.global.response.ApiResponse;
 
@@ -28,5 +31,14 @@ public class ProposalController {
         ProposalCreateResponse response = ProposalCreateResponse.from(
                 proposalFacade.createProposal(request.toCommand(authentication.getName())));
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(response));
+    }
+
+    /** 사장님이 본인이 받은 제안의 내용과 제안한 학생 정보를 조회하는 API */
+    @GetMapping("/proposals/{proposalId}")
+    public ResponseEntity<ApiResponse<ProposalDetailResponse>> getReceivedProposal(
+            Authentication authentication, @PathVariable Long proposalId) {
+        ProposalDetailResponse response = ProposalDetailResponse.from(
+                proposalFacade.getReceivedProposal(authentication.getName(), proposalId));
+        return ResponseEntity.ok(ApiResponse.success(response));
     }
 }

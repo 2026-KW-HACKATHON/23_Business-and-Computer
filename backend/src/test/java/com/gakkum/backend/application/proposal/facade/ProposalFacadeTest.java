@@ -2,6 +2,7 @@ package com.gakkum.backend.application.proposal.facade;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -13,7 +14,9 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import org.junit.jupiter.api.DisplayName;
@@ -22,11 +25,18 @@ import org.mockito.InOrder;
 
 import com.gakkum.backend.domain.media.dto.ImagePurpose;
 import com.gakkum.backend.domain.media.service.MediaService;
+import com.gakkum.backend.domain.owner.entity.Owner;
 import com.gakkum.backend.domain.owner.service.OwnerService;
 import com.gakkum.backend.domain.proposal.dto.ProposalCommandDto.CreateProposalCommand;
 import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.ProposalCreateResult;
+import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.ReceivedProposalData;
+import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.ReceivedProposalResult;
+import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.SpecialtyCategoryResult;
+import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.SpecialtyResult;
 import com.gakkum.backend.domain.proposal.entity.Proposal;
 import com.gakkum.backend.domain.proposal.service.ProposalService;
+import com.gakkum.backend.domain.specialty.dto.SpecialtyQueryDto.SpecialtyDetail;
+import com.gakkum.backend.domain.specialty.service.SpecialtyCategoryService;
 import com.gakkum.backend.domain.specialty.service.SpecialtyService;
 import com.gakkum.backend.domain.student.entity.Student;
 import com.gakkum.backend.domain.student.service.StudentService;
@@ -40,6 +50,7 @@ class ProposalFacadeTest {
 
     private static final String USERNAME = "KAKAO_12345";
     private static final String USER_ID = "01K58M6PJV8VAJMXHBHJ2PNB5C";
+    private static final String STUDENT_USER_ID = "01K58M6PJV8VAJMXHBHJ2PNB5D";
     private static final String IMAGE_URL_1 = "https://bucket/images/proposal/" + USER_ID + "/a.png";
     private static final String IMAGE_URL_2 = "https://bucket/images/proposal/" + USER_ID + "/b.png";
     private static final String KEY_1 = "images/proposal/" + USER_ID + "/a.png";
@@ -49,10 +60,12 @@ class ProposalFacadeTest {
     private final StudentService studentService = mock(StudentService.class);
     private final OwnerService ownerService = mock(OwnerService.class);
     private final SpecialtyService specialtyService = mock(SpecialtyService.class);
+    private final SpecialtyCategoryService specialtyCategoryService = mock(SpecialtyCategoryService.class);
     private final MediaService mediaService = mock(MediaService.class);
     private final ProposalService proposalService = mock(ProposalService.class);
     private final ProposalFacade proposalFacade = new ProposalFacade(
-            userService, studentService, ownerService, specialtyService, mediaService, proposalService);
+            userService, studentService, ownerService, specialtyService, specialtyCategoryService, mediaService,
+            proposalService);
 
     @Test
     @DisplayName("학생이 존재하는 사장님과 소분류, 업로드된 본인 사진으로 제안을 보내면 저장하고 제안 ID를 반환한다")
@@ -176,9 +189,118 @@ class ProposalFacadeTest {
         order.verify(proposalService).createProposal(command, 7L);
     }
 
+    @Test
+    @DisplayName("사장님이 받은 제안을 학생 정보와 대분류별로 묶은 특기와 함께 반환한다")
+    void returnsReceivedProposal() {
+        givenOwner();
+        LocalDateTime createdAt = LocalDateTime.of(2026, 9, 30, 10, 0);
+        Proposal proposal = receivedProposal(List.of(IMAGE_URL_1, IMAGE_URL_2), createdAt);
+        when(proposalService.getReceivedProposal(31L, 5L))
+                .thenReturn(ReceivedProposalData.of(proposal, List.of(12L, 3L, 11L)));
+        givenProposingStudent();
+        when(specialtyCategoryService.getSpecialtyDetails(List.of(12L, 3L, 11L))).thenReturn(Map.of(
+                12L, SpecialtyDetail.of(12L, "영상 편집", 2L, "영상"),
+                3L, SpecialtyDetail.of(3L, "로고 디자인", 1L, "디자인"),
+                11L, SpecialtyDetail.of(11L, "숏폼 촬영", 2L, "영상")));
+
+        ReceivedProposalResult result = proposalFacade.getReceivedProposal(USERNAME, 31L);
+
+        assertThat(result.getProposalId()).isEqualTo(31L);
+        assertThat(result.getTitle()).isEqualTo("메뉴판 개선 제안");
+        assertThat(result.getLikeCount()).isEqualTo(4);
+        assertThat(result.getCustomerProblem()).isEqualTo("메뉴를 알아보기 어렵습니다.");
+        assertThat(result.getProposedSolution()).isEqualTo("사진 메뉴판으로 바꿉니다.");
+        assertThat(result.getWorkPlan()).isEqualTo("촬영 후 편집합니다.");
+        assertThat(result.getProposedFee()).isEqualTo(50000L);
+        assertThat(result.getFinalDays()).isEqualTo(7);
+        assertThat(result.getReferenceImageUrls()).containsExactly(IMAGE_URL_1, IMAGE_URL_2);
+        assertThat(result.getCreatedAt()).isEqualTo(createdAt);
+        assertThat(result.getStudent().getStudentProfileId()).isEqualTo(7L);
+        assertThat(result.getStudent().getName()).isEqualTo("김학생");
+        assertThat(result.getStudent().getMajor()).isEqualTo("시각디자인학부");
+        assertThat(result.getStudent().getStudentNumber()).isEqualTo("20260001");
+        assertThat(result.getSpecialtyCategories())
+                .extracting(SpecialtyCategoryResult::getId, SpecialtyCategoryResult::getName)
+                .containsExactly(tuple(1L, "디자인"), tuple(2L, "영상"));
+        assertThat(result.getSpecialtyCategories().get(0).getSpecialties())
+                .extracting(SpecialtyResult::getId, SpecialtyResult::getName)
+                .containsExactly(tuple(3L, "로고 디자인"));
+        assertThat(result.getSpecialtyCategories().get(1).getSpecialties())
+                .extracting(SpecialtyResult::getId, SpecialtyResult::getName)
+                .containsExactly(tuple(11L, "숏폼 촬영"), tuple(12L, "영상 편집"));
+    }
+
+    @Test
+    @DisplayName("사진이 없는 제안은 빈 사진 목록으로 반환한다")
+    void returnsReceivedProposalWithoutImages() {
+        givenOwner();
+        when(proposalService.getReceivedProposal(31L, 5L)).thenReturn(ReceivedProposalData.of(
+                receivedProposal(List.of(), LocalDateTime.of(2026, 9, 30, 10, 0)), List.of(3L)));
+        givenProposingStudent();
+        when(specialtyCategoryService.getSpecialtyDetails(List.of(3L)))
+                .thenReturn(Map.of(3L, SpecialtyDetail.of(3L, "로고 디자인", 1L, "디자인")));
+
+        ReceivedProposalResult result = proposalFacade.getReceivedProposal(USERNAME, 31L);
+
+        assertThat(result.getReferenceImageUrls()).isEmpty();
+    }
+
+    @Test
+    @DisplayName("사장님 프로필이 없는 사용자는 OWNER_403으로 거부하고 제안·학생·특기를 조회하지 않는다")
+    void rejectsNonOwnerForReceivedProposal() {
+        givenUser(UserRole.STUDENT);
+        when(ownerService.getOwnerProfile(USER_ID)).thenThrow(new BusinessException(ErrorCode.OWNER_PROFILE_NOT_FOUND));
+
+        assertError(() -> proposalFacade.getReceivedProposal(USERNAME, 31L), ErrorCode.OWNER_PROFILE_NOT_FOUND);
+        verifyNoInteractions(proposalService, studentService, specialtyCategoryService);
+        verify(userService, never()).getUser(anyString());
+    }
+
+    @Test
+    @DisplayName("없는 제안이나 다른 사장님이 받은 제안은 PROPOSAL_404로 거부하고 학생·특기를 조회하지 않는다")
+    void rejectsProposalNotReceivedByOwner() {
+        givenOwner();
+        when(proposalService.getReceivedProposal(31L, 5L))
+                .thenThrow(new BusinessException(ErrorCode.PROPOSAL_NOT_FOUND));
+
+        assertError(() -> proposalFacade.getReceivedProposal(USERNAME, 31L), ErrorCode.PROPOSAL_NOT_FOUND);
+        verifyNoInteractions(studentService, specialtyCategoryService);
+        verify(userService, never()).getUser(anyString());
+    }
+
     private void givenUser(UserRole role) {
         when(userService.getActiveUser(USERNAME)).thenReturn(
                 User.builder().id(USER_ID).username(USERNAME).role(role).build());
+    }
+
+    private void givenOwner() {
+        givenUser(UserRole.OWNER);
+        when(ownerService.getOwnerProfile(USER_ID)).thenReturn(Owner.builder().id(5L).userId(USER_ID).build());
+    }
+
+    private void givenProposingStudent() {
+        when(studentService.getStudentProfile(7L)).thenReturn(Student.builder()
+                .id(7L).userId(STUDENT_USER_ID).major("시각디자인학부").studentNumber("20260001").build());
+        when(userService.getUser(STUDENT_USER_ID))
+                .thenReturn(User.builder().id(STUDENT_USER_ID).name("김학생").role(UserRole.STUDENT).build());
+    }
+
+    private Proposal receivedProposal(List<String> imageUrls, LocalDateTime createdAt) {
+        return Proposal.builder()
+                .id(31L)
+                .studentProfileId(7L)
+                .ownerProfileId(5L)
+                .title("메뉴판 개선 제안")
+                .customerProblem("메뉴를 알아보기 어렵습니다.")
+                .proposedSolution("사진 메뉴판으로 바꿉니다.")
+                .workPlan("촬영 후 편집합니다.")
+                .proposedFee(50000L)
+                .draftDays(3)
+                .finalDays(7)
+                .referenceImageUrls(imageUrls)
+                .likeCount(4)
+                .createdAt(createdAt)
+                .build();
     }
 
     private void givenStudentProfile() {
