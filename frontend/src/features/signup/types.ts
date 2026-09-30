@@ -38,3 +38,39 @@ export const EMPTY_OWNER_SIGNUP: OwnerSignupDraft = {
   storePhotos: [],
   completed: false,
 };
+
+export interface Certificate {
+  name: string;
+  /** 예: 2024.03 */
+  acquiredAt: string;
+}
+
+/** 학생 가입 3단계에서 모으는 값. 가입이 끝나거나 화면을 떠나면 버린다 */
+export interface StudentSignupDraft {
+  name: string;
+  department: string;
+  studentNumber: string;
+  agreedToTerms: boolean;
+  /** 인증을 마친 학교 메일. 인증 전에는 빈 값 */
+  verifiedEmail: string;
+  intro: string;
+  portfolioUrl: string;
+  badges: string[];
+  certificates: Certificate[];
+  profilePhoto: File | null;
+  completed: boolean;
+}
+
+export const EMPTY_STUDENT_SIGNUP: StudentSignupDraft = {
+  name: "",
+  department: "",
+  studentNumber: "",
+  agreedToTerms: false,
+  verifiedEmail: "",
+  intro: "",
+  portfolioUrl: "",
+  badges: [],
+  certificates: [{ name: "", acquiredAt: "" }],
+  profilePhoto: null,
+  completed: false,
+};
