@@ -62,17 +62,18 @@ public class ProposalFacade {
 
     /**
      * 제안 상세. 활성 사용자라면 역할과 무관하게 모든 제안을 볼 수 있고 없는 제안은 404다.
-     * 제안을 찾은 뒤에만 학생 정보와 특기를 조회한다.
+     * 제안을 찾은 뒤에만 매장(현재 이름)·학생 정보·특기를 조회한다.
      */
     @Transactional(readOnly = true)
     public ProposalDetailResult getProposalDetail(String username, Long proposalId) {
         userService.getActiveUser(username);
         ProposalDetailData data = proposalService.getProposalDetail(proposalId);
 
+        String storeName = ownerService.getOwnerProfileById(data.getProposal().getOwnerProfileId()).getStoreName();
         Student student = studentService.getStudentProfile(data.getProposal().getStudentProfileId());
         User studentUser = userService.getUser(student.getUserId());
         Map<Long, SpecialtyDetail> specialtiesById = specialtyCategoryService.getSpecialtyDetails(data.getSpecialtyIds());
-        return ProposalDetailResult.of(data.getProposal(), student, studentUser,
+        return ProposalDetailResult.of(data.getProposal(), storeName, student, studentUser,
                 groupSpecialties(data.getSpecialtyIds(), specialtiesById));
     }
 

@@ -20,6 +20,7 @@ public class ProposalDetailResponse {
 
     private final Long proposalId;
     private final String title;
+    private final String storeName;
     private final Integer likeCount;
     private final List<SpecialtyCategory> specialtyCategories;
     private final ProposalStudent student;
@@ -35,6 +36,7 @@ public class ProposalDetailResponse {
         return ProposalDetailResponse.builder()
                 .proposalId(result.getProposalId())
                 .title(result.getTitle())
+                .storeName(result.getStoreName())
                 .likeCount(result.getLikeCount())
                 .specialtyCategories(result.getSpecialtyCategories().stream()
                         .map(SpecialtyCategory::from)
