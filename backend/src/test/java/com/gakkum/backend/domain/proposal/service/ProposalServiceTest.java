@@ -1,23 +1,30 @@
 package com.gakkum.backend.domain.proposal.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
+import java.util.Optional;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
 import com.gakkum.backend.domain.proposal.dto.ProposalCommandDto.CreateProposalCommand;
+import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.ReceivedProposalData;
 import com.gakkum.backend.domain.proposal.entity.Proposal;
 import com.gakkum.backend.domain.proposal.entity.ProposalSpecialty;
 import com.gakkum.backend.domain.proposal.repository.ProposalRepository;
 import com.gakkum.backend.domain.proposal.repository.ProposalSpecialtyRepository;
+import com.gakkum.backend.global.exception.BusinessException;
+import com.gakkum.backend.global.exception.ErrorCode;
 
 class ProposalServiceTest {
 
@@ -65,5 +72,31 @@ class ProposalServiceTest {
                 .containsExactly(
                         tuple(31L, 1L),
                         tuple(31L, 2L));
+    }
+
+    @Test
+    @DisplayName("수신 사장님으로 제한해 찾은 제안과 제안에 선택된 소분류 ID를 반환한다")
+    void returnsReceivedProposalWithSpecialtyIds() {
+        Proposal proposal = Proposal.builder().id(31L).ownerProfileId(5L).build();
+        when(proposalRepository.findByIdAndOwnerProfileId(31L, 5L)).thenReturn(Optional.of(proposal));
+        when(proposalSpecialtyRepository.findByProposalId(31L)).thenReturn(List.of(
+                ProposalSpecialty.create(31L, 4L),
+                ProposalSpecialty.create(31L, 1L)));
+
+        ReceivedProposalData data = proposalService.getReceivedProposal(31L, 5L);
+
+        assertThat(data.getProposal()).isSameAs(proposal);
+        assertThat(data.getSpecialtyIds()).containsExactly(4L, 1L);
+    }
+
+    @Test
+    @DisplayName("없는 제안이나 다른 사장님이 받은 제안은 PROPOSAL_404로 거부하고 소분류를 조회하지 않는다")
+    void rejectsMissingOrOthersProposal() {
+        when(proposalRepository.findByIdAndOwnerProfileId(31L, 6L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> proposalService.getReceivedProposal(31L, 6L))
+                .isInstanceOfSatisfying(BusinessException.class, exception ->
+                        assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.PROPOSAL_NOT_FOUND));
+        verify(proposalSpecialtyRepository, never()).findByProposalId(anyLong());
     }
 }

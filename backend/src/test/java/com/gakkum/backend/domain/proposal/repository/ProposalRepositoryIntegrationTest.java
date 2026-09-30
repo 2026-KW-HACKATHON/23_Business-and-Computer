@@ -133,6 +133,16 @@ class ProposalRepositoryIntegrationTest {
                 .hasStackTraceContaining("proposals_like_count_check");
     }
 
+    @Test
+    @DisplayName("PostgreSQL에서 받은 제안은 수신 사장님 프로필 ID가 일치할 때만 조회한다")
+    void findsProposalOnlyForReceivingOwner() {
+        Proposal saved = proposalService.createProposal(command(List.of(1L), List.of()), 7L);
+        proposalRepository.flush();
+
+        assertThat(proposalRepository.findByIdAndOwnerProfileId(saved.getId(), 5L)).isPresent();
+        assertThat(proposalRepository.findByIdAndOwnerProfileId(saved.getId(), 6L)).isEmpty();
+    }
+
     private CreateProposalCommand command(List<Long> specialtyIds, List<String> imageUrls) {
         return CreateProposalCommand.of("KAKAO_12345", 5L, specialtyIds, "메뉴판 개선 제안", "가".repeat(500),
                 "사진 메뉴판으로 바꿉니다.", "촬영 후 편집합니다.", 50000L, 0, 7, imageUrls);
