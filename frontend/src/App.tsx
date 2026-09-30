@@ -4,6 +4,11 @@ import IntroPage from './pages/IntroPage'
 import LoginPage from './pages/LoginPage'
 import RoleSelectPage from './pages/RoleSelectPage'
 import CookiePage from './pages/CookiePage'
+import OwnerSignupLayout from './pages/OwnerSignupLayout'
+import OwnerSignupInfoPage from './pages/OwnerSignupInfoPage'
+import OwnerSignupVerifyPage from './pages/OwnerSignupVerifyPage'
+import OwnerSignupProfilePage from './pages/OwnerSignupProfilePage'
+import OwnerSignupDonePage from './pages/OwnerSignupDonePage'
 
 function App() {
   return (
@@ -14,6 +19,14 @@ function App() {
       <Route path="/login" element={<LoginPage />} />
       <Route path="/signup/role" element={<RoleSelectPage mode="signup" />} />
       <Route path="/demo/role" element={<RoleSelectPage mode="demo" />} />
+      {/* Owner signup steps share their input through the layout route. */}
+      <Route path="/signup/owner" element={<OwnerSignupLayout />}>
+        <Route index element={<Navigate to="1" replace />} />
+        <Route path="1" element={<OwnerSignupInfoPage />} />
+        <Route path="2" element={<OwnerSignupVerifyPage />} />
+        <Route path="3" element={<OwnerSignupProfilePage />} />
+        <Route path="done" element={<OwnerSignupDonePage />} />
+      </Route>
       {/* Backend redirects here after a successful social login. */}
       <Route path="/cookie" element={<CookiePage />} />
       <Route path="*" element={<Navigate to="/home" replace />} />
