@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted
+Accepted. Home moved from / to /home in ADR 0009; the cookie flow here still applies.
 
 ## Context
 

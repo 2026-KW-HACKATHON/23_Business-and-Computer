@@ -2,8 +2,7 @@
 
 ## Status
 
-Accepted. The screen content (three slides) is superseded by ADR 0007; the
-route and first-run flag still apply.
+Superseded by ADR 0007 (screen content) and ADR 0009 (route and first-run flag removed).
 
 ## Context
 
@@ -15,12 +14,12 @@ or home, but the splash is not implemented yet.
 
 ## Decision
 
-- Add /onboarding rendered by `src/pages/OnboardingPage.tsx`. The step
+- Add /onboarding rendered by src/pages/OnboardingPage.tsx (removed). The step
   (1 / 2 / 3) is component state, not a route, matching the Figma variant set
   「온보딩」.
 - 「시작하기」 and 「SKIP」 call `markOnboardingSeen()` and navigate to /login
   with `replace`, so browser back does not return to onboarding.
-- The seen flag lives behind `src/features/onboarding` (`hasSeenOnboarding`,
+- The seen flag lives behind src/features/onboarding (removed) (`hasSeenOnboarding`,
   `markOnboardingSeen`), stored in `localStorage` under `onboardingSeen`.
   Storage errors are swallowed: a failed read counts as first run.
 
@@ -41,5 +40,5 @@ or home, but the splash is not implemented yet.
 ## Agent Guidance
 
 - When the splash is built, read `hasSeenOnboarding()` from
-  `src/features/onboarding` to choose between /onboarding and /login.
+  src/features/onboarding (removed) to choose between /onboarding and /login.
 - Keep slide copy and images in sync with the Figma variant set 「온보딩」.

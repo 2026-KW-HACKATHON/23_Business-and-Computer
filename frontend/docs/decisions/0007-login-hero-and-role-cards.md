@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted
+Accepted. The /onboarding route and first-run flag are replaced by ADR 0009; the intro now lives at /.
 
 ## Context
 
