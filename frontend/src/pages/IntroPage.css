@@ -1,4 +1,4 @@
-.onboarding {
+.intro {
   position: relative;
   display: flex;
   flex-direction: column;
@@ -21,25 +21,25 @@
   -webkit-tap-highlight-color: transparent;
 }
 
-.onboarding--leaving {
+.intro--leaving {
   opacity: 0;
 }
 
-.onboarding__hero {
+.intro__hero {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 28px;
 }
 
-.onboarding__app-icon {
+.intro__app-icon {
   border-radius: 22px;
   outline: 1px solid rgba(0, 0, 0, 0.06);
   outline-offset: -1px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
 }
 
-.onboarding__title {
+.intro__title {
   font-size: 26px;
   font-weight: 700;
   line-height: 1.35;
@@ -47,7 +47,7 @@
   white-space: pre-line;
 }
 
-.onboarding__flow {
+.intro__flow {
   display: flex;
   flex-direction: column;
   gap: 20px;
@@ -59,20 +59,20 @@
   text-align: left;
 }
 
-.onboarding__flow-title {
+.intro__flow-title {
   font-size: 16px;
   font-weight: 700;
   line-height: 19px;
   color: var(--color-black);
 }
 
-.onboarding__steps {
+.intro__steps {
   display: flex;
   flex-direction: column;
   gap: 18px;
 }
 
-.onboarding__step {
+.intro__step {
   position: relative;
   display: flex;
   align-items: center;
@@ -82,11 +82,11 @@
   font-weight: 700;
   color: var(--color-black);
   opacity: 0;
-  animation: onboarding-step-in 0.3s ease-out forwards;
+  animation: intro-step-in 0.3s ease-out forwards;
 }
 
 /* 앞 단계 원 아래에서 이 단계 원 위까지 잇는 선 (원 위로 지나가면 숫자를 가린다) */
-.onboarding__step + .onboarding__step::before {
+.intro__step + .intro__step::before {
   content: "";
   position: absolute;
   top: -18px;
@@ -96,7 +96,7 @@
   background: var(--color-black);
 }
 
-.onboarding__step-number {
+.intro__step-number {
   position: relative;
   display: flex;
   flex-shrink: 0;
@@ -110,7 +110,7 @@
   color: var(--color-main);
 }
 
-.onboarding__note {
+.intro__note {
   position: absolute;
   left: 0;
   right: 0;
@@ -120,7 +120,7 @@
   color: var(--text-body);
 }
 
-@keyframes onboarding-step-in {
+@keyframes intro-step-in {
   from {
     opacity: 0;
     transform: translateY(6px);
@@ -132,12 +132,12 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .onboarding__step {
+  .intro__step {
     opacity: 1;
     animation: none;
   }
 
-  .onboarding {
+  .intro {
     transition: none;
   }
 }
