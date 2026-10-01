@@ -8,13 +8,16 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.springframework.data.domain.Limit;
 
 import com.gakkum.backend.domain.owner.dto.OwnerCommandDto.CreateOwnerProfileCommand;
+import com.gakkum.backend.domain.owner.dto.OwnerCommandDto.GetExploreStoresCommand;
 import com.gakkum.backend.domain.owner.entity.Owner;
 import com.gakkum.backend.domain.owner.repository.OwnerRepository;
 import com.gakkum.backend.global.exception.BusinessException;
@@ -78,5 +81,23 @@ class OwnerServiceTest {
         assertThatThrownBy(() -> ownerService.validateOwnerProfileExists(6L))
                 .isInstanceOfSatisfying(BusinessException.class,
                         exception -> assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.OWNER_NOT_FOUND));
+    }
+
+    @Test
+    @DisplayName("탐색용 매장은 정렬 방향과 업종 유무에 맞는 쿼리 하나로 경계와 개수를 넘겨 읽는다")
+    void readsExploreStoresWithMatchingQuery() {
+        LocalDateTime bound = LocalDateTime.of(2026, 9, 30, 10, 0);
+        Owner store = Owner.builder().id(7L).storeName("가꿈 카페").build();
+        when(ownerRepository.findExploreLatest(bound, 9L, Limit.of(21))).thenReturn(List.of(store));
+
+        assertThat(ownerService.getExploreStores(GetExploreStoresCommand.of(null, false, bound, 9L, 21)))
+                .containsExactly(store);
+        ownerService.getExploreStores(GetExploreStoresCommand.of(null, true, bound, 9L, 21));
+        ownerService.getExploreStores(GetExploreStoresCommand.of(3L, false, bound, 9L, 21));
+        ownerService.getExploreStores(GetExploreStoresCommand.of(3L, true, bound, 9L, 21));
+
+        verify(ownerRepository).findExploreOldest(bound, 9L, Limit.of(21));
+        verify(ownerRepository).findExploreLatestInCategory(3L, bound, 9L, Limit.of(21));
+        verify(ownerRepository).findExploreOldestInCategory(3L, bound, 9L, Limit.of(21));
     }
 }

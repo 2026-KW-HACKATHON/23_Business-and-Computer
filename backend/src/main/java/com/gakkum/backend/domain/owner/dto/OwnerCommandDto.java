@@ -1,6 +1,7 @@
 package com.gakkum.backend.domain.owner.dto;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 import lombok.AccessLevel;
@@ -41,6 +42,30 @@ public final class OwnerCommandDto {
                     .description(description)
                     .profileImageUrl(profileImageUrl)
                     .storeImageUrls(storeImageUrls)
+                    .build();
+        }
+    }
+
+    /** 탐색 목록용 매장 조회 조건. 경계는 정렬 키 (createdAt, id)이고 businessCategoryId가 null이면 전체 업종이다. */
+    @Getter
+    @Builder(access = AccessLevel.PRIVATE)
+    @AllArgsConstructor(access = AccessLevel.PRIVATE)
+    public static class GetExploreStoresCommand {
+
+        private final Long businessCategoryId;
+        private final boolean oldestFirst;
+        private final LocalDateTime createdAtBound;
+        private final Long idBound;
+        private final int limit;
+
+        public static GetExploreStoresCommand of(Long businessCategoryId, boolean oldestFirst,
+                LocalDateTime createdAtBound, Long idBound, int limit) {
+            return GetExploreStoresCommand.builder()
+                    .businessCategoryId(businessCategoryId)
+                    .oldestFirst(oldestFirst)
+                    .createdAtBound(createdAtBound)
+                    .idBound(idBound)
+                    .limit(limit)
                     .build();
         }
     }
