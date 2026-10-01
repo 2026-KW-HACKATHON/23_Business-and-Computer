@@ -1,11 +1,13 @@
 package com.gakkum.backend.application.explore.dto;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 import com.gakkum.backend.domain.job.entity.Job;
 import com.gakkum.backend.domain.job.entity.JobProgressStage;
 import com.gakkum.backend.domain.job.entity.JobStatus;
+import com.gakkum.backend.domain.owner.entity.Owner;
 import com.gakkum.backend.domain.proposal.entity.Proposal;
 
 import lombok.AccessLevel;
@@ -117,6 +119,57 @@ public final class ExploreQueryDto {
 
         public static SpecialtyResult of(Long id, String name) {
             return new SpecialtyResult(id, name);
+        }
+    }
+
+    /** 정렬된 매장 한 페이지. 다음 페이지가 없으면 nextCursor는 null이다. */
+    @Getter
+    @AllArgsConstructor(access = AccessLevel.PRIVATE)
+    public static class StoreExploreResult {
+
+        private final List<StoreItemResult> items;
+        private final String nextCursor;
+        private final boolean hasNext;
+
+        public static StoreExploreResult of(List<StoreItemResult> items, String nextCursor) {
+            return new StoreExploreResult(List.copyOf(items), nextCursor, nextCursor != null);
+        }
+    }
+
+    /** 사장님 프로필 하나를 매장 하나로 본다. createdAt은 개업일이 아닌 프로필 생성 시각이다. */
+    @Getter
+    @Builder(access = AccessLevel.PRIVATE)
+    @AllArgsConstructor(access = AccessLevel.PRIVATE)
+    public static class StoreItemResult {
+
+        private final String storeName;
+        private final String profileImageUrl;
+        private final BusinessCategoryResult businessCategory;
+        private final String storeAddress;
+        private final Long ownerProfileId;
+        private final LocalDateTime createdAt;
+
+        public static StoreItemResult of(Owner owner, BusinessCategoryResult businessCategory) {
+            return StoreItemResult.builder()
+                    .storeName(owner.getStoreName())
+                    .profileImageUrl(owner.getProfileImageUrl())
+                    .businessCategory(businessCategory)
+                    .storeAddress(owner.getStoreAddress())
+                    .ownerProfileId(owner.getId())
+                    .createdAt(owner.getCreatedAt())
+                    .build();
+        }
+    }
+
+    @Getter
+    @AllArgsConstructor(access = AccessLevel.PRIVATE)
+    public static class BusinessCategoryResult {
+
+        private final Long id;
+        private final String name;
+
+        public static BusinessCategoryResult of(Long id, String name) {
+            return new BusinessCategoryResult(id, name);
         }
     }
 }

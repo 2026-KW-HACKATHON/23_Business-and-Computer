@@ -35,4 +35,28 @@ public final class ExploreCommandDto {
                     .build();
         }
     }
+
+    /** 검증을 마친 매장 탐색 조건. cursor가 null이면 첫 페이지다. */
+    @Getter
+    @Builder(access = AccessLevel.PRIVATE)
+    @AllArgsConstructor(access = AccessLevel.PRIVATE)
+    public static class StoreExploreCommand {
+
+        private final String username;
+        private final StoreExploreSort sort;
+        private final Long businessCategoryId;
+        private final int size;
+        private final StoreExploreCursor cursor;
+
+        public static StoreExploreCommand of(String username, StoreExploreSort sort, Long businessCategoryId,
+                int size, StoreExploreCursor cursor) {
+            return StoreExploreCommand.builder()
+                    .username(username)
+                    .sort(sort)
+                    .businessCategoryId(businessCategoryId)
+                    .size(size)
+                    .cursor(cursor)
+                    .build();
+        }
+    }
 }

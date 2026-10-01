@@ -95,6 +95,14 @@ class SecurityConfigTest {
     }
 
     @Test
+    @DisplayName("인증 없이 매장 목록을 조회하면 401을 반환한다")
+    void storeExploreRequiresAuthentication() throws Exception {
+        mockMvc.perform(get("/explore/stores").param("sort", "LATEST").param("businessCategoryId", "3"))
+            .andExpect(status().isUnauthorized())
+            .andExpect(jsonPath("$.error.code").value("COMMON_401"));
+    }
+
+    @Test
     @DisplayName("인증 없이 제안을 보내면 401을 반환한다")
     void proposalCreationRequiresAuthentication() throws Exception {
         mockMvc.perform(post("/proposals")

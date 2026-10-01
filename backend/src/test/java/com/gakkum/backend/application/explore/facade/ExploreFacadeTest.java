@@ -30,6 +30,7 @@ import com.gakkum.backend.application.explore.dto.ExploreQueryDto.SpecialtyCateg
 import com.gakkum.backend.application.explore.dto.ExploreQueryDto.SpecialtyResult;
 import com.gakkum.backend.application.explore.dto.ExploreSort;
 import com.gakkum.backend.application.explore.dto.ExploreType;
+import com.gakkum.backend.domain.category.service.BusinessCategoryService;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.GetExploreJobsCommand;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.ExploreJobData;
 import com.gakkum.backend.domain.job.entity.Job;
@@ -62,7 +63,8 @@ class ExploreFacadeTest {
     private final OwnerService ownerService = mock(OwnerService.class);
     private final SpecialtyCategoryService specialtyCategoryService = mock(SpecialtyCategoryService.class);
     private final ExploreFacade exploreFacade = new ExploreFacade(
-            userService, proposalService, jobService, ownerService, specialtyCategoryService);
+            userService, proposalService, jobService, ownerService, specialtyCategoryService,
+            mock(BusinessCategoryService.class));
 
     @Test
     @DisplayName("최신순 전체 탐색은 두 종류를 size+1개씩 읽어 생성 시각, 같은 시각은 제안 먼저, ID 순으로 병합한다")
@@ -175,7 +177,8 @@ class ExploreFacadeTest {
     void boundsForOldestJobCursorAndFirstPage() {
         ProposalService firstProposalService = mock(ProposalService.class);
         JobService firstJobService = mock(JobService.class);
-        new ExploreFacade(userService, firstProposalService, firstJobService, ownerService, specialtyCategoryService)
+        new ExploreFacade(userService, firstProposalService, firstJobService, ownerService, specialtyCategoryService,
+                mock(BusinessCategoryService.class))
                 .explore(command(ExploreType.ALL, ExploreSort.OLDEST, 20, null));
         ArgumentCaptor<GetExploreJobsCommand> firstJob = ArgumentCaptor.forClass(GetExploreJobsCommand.class);
         verify(firstJobService).getExploreJobs(firstJob.capture());
