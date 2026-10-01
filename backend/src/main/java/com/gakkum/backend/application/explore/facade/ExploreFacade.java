@@ -12,19 +12,28 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.gakkum.backend.application.explore.dto.ExploreCommandDto.ExploreCommand;
+import com.gakkum.backend.application.explore.dto.ExploreCommandDto.StoreExploreCommand;
 import com.gakkum.backend.application.explore.dto.ExploreCursor;
 import com.gakkum.backend.application.explore.dto.ExploreItemType;
+import com.gakkum.backend.application.explore.dto.ExploreQueryDto.BusinessCategoryResult;
 import com.gakkum.backend.application.explore.dto.ExploreQueryDto.ExploreItemResult;
 import com.gakkum.backend.application.explore.dto.ExploreQueryDto.ExploreResult;
 import com.gakkum.backend.application.explore.dto.ExploreQueryDto.JobCardResult;
 import com.gakkum.backend.application.explore.dto.ExploreQueryDto.ProposalCardResult;
 import com.gakkum.backend.application.explore.dto.ExploreQueryDto.SpecialtyCategoryResult;
 import com.gakkum.backend.application.explore.dto.ExploreQueryDto.SpecialtyResult;
+import com.gakkum.backend.application.explore.dto.ExploreQueryDto.StoreExploreResult;
+import com.gakkum.backend.application.explore.dto.ExploreQueryDto.StoreItemResult;
 import com.gakkum.backend.application.explore.dto.ExploreSort;
 import com.gakkum.backend.application.explore.dto.ExploreType;
+import com.gakkum.backend.application.explore.dto.StoreExploreCursor;
+import com.gakkum.backend.application.explore.dto.StoreExploreSort;
+import com.gakkum.backend.domain.category.service.BusinessCategoryService;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.GetExploreJobsCommand;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.ExploreJobData;
 import com.gakkum.backend.domain.job.service.JobService;
+import com.gakkum.backend.domain.owner.dto.OwnerCommandDto.GetExploreStoresCommand;
+import com.gakkum.backend.domain.owner.entity.Owner;
 import com.gakkum.backend.domain.owner.service.OwnerService;
 import com.gakkum.backend.domain.proposal.dto.ProposalCommandDto.GetExploreProposalsCommand;
 import com.gakkum.backend.domain.proposal.dto.ProposalExploreOrder;
@@ -32,7 +41,11 @@ import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.ExploreProposalDa
 import com.gakkum.backend.domain.proposal.service.ProposalService;
 import com.gakkum.backend.domain.specialty.dto.SpecialtyQueryDto.SpecialtyDetail;
 import com.gakkum.backend.domain.specialty.service.SpecialtyCategoryService;
+import com.gakkum.backend.domain.user.entity.User;
+import com.gakkum.backend.domain.user.entity.UserRole;
 import com.gakkum.backend.domain.user.service.UserService;
+import com.gakkum.backend.global.exception.BusinessException;
+import com.gakkum.backend.global.exception.ErrorCode;
 
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -52,6 +65,7 @@ public class ExploreFacade {
     private final JobService jobService;
     private final OwnerService ownerService;
     private final SpecialtyCategoryService specialtyCategoryService;
+    private final BusinessCategoryService businessCategoryService;
 
     /**
      * 제안과 의뢰를 한 목록으로 탐색한다. 종류마다 커서 뒤의 카드를 size+1개까지 읽어 병합하고,
@@ -78,6 +92,51 @@ public class ExploreFacade {
         List<Candidate> page = hasNext ? candidates.subList(0, command.getSize()) : candidates;
         String nextCursor = hasNext ? toCursor(command, page.get(page.size() - 1)).encode() : null;
         return ExploreResult.of(toItems(page), nextCursor);
+    }
+
+    /**
+     * 학생이 매장(사장님 프로필) 목록을 탐색한다. 커서 뒤의 매장을 size+1개까지 읽어
+     * 한 개가 남으면 다음 페이지가 있다고 보고 이번 페이지 마지막 매장으로 커서를 만든다.
+     * 업종 이름은 이번 페이지 매장에 대해서만 묶어서 조회한다.
+     */
+    @Transactional(readOnly = true)
+    public StoreExploreResult exploreStores(StoreExploreCommand command) {
+        User user = userService.getActiveUser(command.getUsername());
+        if (user.getRole() != UserRole.STUDENT) {
+            throw new BusinessException(ErrorCode.STORE_STUDENT_REQUIRED);
+        }
+        Long businessCategoryId = command.getBusinessCategoryId();
+        if (businessCategoryId != null) {
+            businessCategoryService.validateCategoryExists(businessCategoryId);
+        }
+
+        boolean oldestFirst = command.getSort() == StoreExploreSort.OLDEST;
+        StoreExploreCursor cursor = command.getCursor();
+        LocalDateTime createdAtBound = cursor == null
+                ? (oldestFirst ? OLDEST_START : LATEST_START)
+                : cursor.getCreatedAt();
+        long idBound = cursor == null ? (oldestFirst ? Long.MIN_VALUE : Long.MAX_VALUE) : cursor.getId();
+        List<Owner> stores = ownerService.getExploreStores(GetExploreStoresCommand.of(
+                businessCategoryId, oldestFirst, createdAtBound, idBound, command.getSize() + 1));
+
+        boolean hasNext = stores.size() > command.getSize();
+        List<Owner> page = hasNext ? stores.subList(0, command.getSize()) : stores;
+        String nextCursor = null;
+        if (hasNext) {
+            Owner last = page.get(page.size() - 1);
+            nextCursor = StoreExploreCursor.of(
+                    command.getSort(), businessCategoryId, last.getCreatedAt(), last.getId()).encode();
+        }
+
+        Map<Long, String> categoryNames = businessCategoryService.getCategoryNames(page.stream()
+                .map(Owner::getCategoryId)
+                .distinct()
+                .toList());
+        List<StoreItemResult> items = page.stream()
+                .map(store -> StoreItemResult.of(store, BusinessCategoryResult.of(
+                        store.getCategoryId(), categoryNames.get(store.getCategoryId()))))
+                .toList();
+        return StoreExploreResult.of(items, nextCursor);
     }
 
     private GetExploreProposalsCommand proposalCommand(ExploreCommand command, int limit) {

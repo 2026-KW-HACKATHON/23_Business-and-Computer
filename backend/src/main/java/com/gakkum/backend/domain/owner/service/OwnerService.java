@@ -1,13 +1,16 @@
 package com.gakkum.backend.domain.owner.service;
 
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import org.springframework.data.domain.Limit;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.gakkum.backend.domain.owner.dto.OwnerCommandDto.CreateOwnerProfileCommand;
+import com.gakkum.backend.domain.owner.dto.OwnerCommandDto.GetExploreStoresCommand;
 import com.gakkum.backend.domain.owner.entity.Owner;
 import com.gakkum.backend.domain.owner.repository.OwnerRepository;
 import com.gakkum.backend.global.exception.BusinessException;
@@ -88,5 +91,22 @@ public class OwnerService {
             throw new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR);
         }
         return storeNames;
+    }
+
+    /** 탐색 목록용으로 매장(사장님 프로필)을 커서 경계 뒤부터 정렬 순서대로 limit개까지 읽는다. */
+    @Transactional(readOnly = true)
+    public List<Owner> getExploreStores(GetExploreStoresCommand command) {
+        Limit limit = Limit.of(command.getLimit());
+        Long categoryId = command.getBusinessCategoryId();
+        if (categoryId == null) {
+            return command.isOldestFirst()
+                    ? ownerRepository.findExploreOldest(command.getCreatedAtBound(), command.getIdBound(), limit)
+                    : ownerRepository.findExploreLatest(command.getCreatedAtBound(), command.getIdBound(), limit);
+        }
+        return command.isOldestFirst()
+                ? ownerRepository.findExploreOldestInCategory(
+                        categoryId, command.getCreatedAtBound(), command.getIdBound(), limit)
+                : ownerRepository.findExploreLatestInCategory(
+                        categoryId, command.getCreatedAtBound(), command.getIdBound(), limit);
     }
 }

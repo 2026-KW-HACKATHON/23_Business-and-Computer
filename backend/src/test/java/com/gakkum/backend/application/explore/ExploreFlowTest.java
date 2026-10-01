@@ -32,6 +32,7 @@ import com.gakkum.backend.application.explore.dto.ExploreItemType;
 import com.gakkum.backend.application.explore.dto.ExploreSort;
 import com.gakkum.backend.application.explore.dto.ExploreType;
 import com.gakkum.backend.application.explore.facade.ExploreFacade;
+import com.gakkum.backend.domain.category.service.BusinessCategoryService;
 import com.gakkum.backend.domain.job.entity.Job;
 import com.gakkum.backend.domain.job.entity.JobSpecialty;
 import com.gakkum.backend.domain.job.entity.JobStatus;
@@ -95,7 +96,8 @@ class ExploreFlowTest {
                 new JobService(jobRepository, jobSpecialtyRepository, mock(JobApplicationRepository.class),
                         jobSubmissionRepository, Clock.systemUTC()),
                 new OwnerService(ownerRepository),
-                new SpecialtyCategoryService(specialtyCategoryRepository, specialtyRepository));
+                new SpecialtyCategoryService(specialtyCategoryRepository, specialtyRepository),
+                mock(BusinessCategoryService.class));
 
         mockMvc = MockMvcBuilders.standaloneSetup(new ExploreController(facade))
                 .setControllerAdvice(new GlobalExceptionHandler())

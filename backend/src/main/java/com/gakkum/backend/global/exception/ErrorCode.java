@@ -52,6 +52,7 @@ public enum ErrorCode {
     PROPOSAL_IMAGE_URL_INVALID(HttpStatus.BAD_REQUEST, "PROPOSAL_400_IMAGE_URL", "제안용으로 발급된 사진 URL이 아닙니다."),
     PROPOSAL_IMAGE_NOT_UPLOADED(HttpStatus.CONFLICT, "PROPOSAL_409_IMAGE_NOT_UPLOADED", "업로드가 끝나지 않은 사진이 있습니다."),
     PROPOSAL_NOT_FOUND(HttpStatus.NOT_FOUND, "PROPOSAL_404", "존재하지 않는 제안입니다."),
+    STORE_STUDENT_REQUIRED(HttpStatus.FORBIDDEN, "STORE_403_STUDENT", "학생만 매장 목록을 조회할 수 있습니다."),
     OWNER_NOT_FOUND(HttpStatus.NOT_FOUND, "OWNER_404", "존재하지 않는 사장님입니다."),
     OWNER_PROFILE_NOT_FOUND(HttpStatus.FORBIDDEN, "OWNER_403", "사장님 프로필이 존재하지 않습니다."),
     UNAUTHORIZED(HttpStatus.UNAUTHORIZED, "COMMON_401", "인증이 필요합니다."),
