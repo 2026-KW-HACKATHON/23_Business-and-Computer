@@ -19,6 +19,7 @@ export {
 } from "./lib/studentInfo";
 export type {
   BusinessCheck,
+  BusinessCheckResult,
   BusinessInfo,
   Certificate,
   OwnerSignupDraft,

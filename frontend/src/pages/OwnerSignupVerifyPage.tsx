@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { AppBar, Button, StepIndicator, TextField } from "../components";
 import {
@@ -13,6 +14,7 @@ import "./OwnerSignupVerifyPage.css";
 /**
  * 피그마 「회원가입 - 프로필 입력(사장님) 2/3 · 사장님 인증」.
  * 상태 = 인증 전 / 인증 완료 / 오류 · 정보 불일치 (화면 하나 + 상태값 하나)
+ * 인증 중·서버 오류는 피그마에 없어 버튼 문구와 안내 문구로만 보여준다 (ADR 0012).
  */
 function OwnerSignupVerifyPage() {
   const navigate = useNavigate();
@@ -20,12 +22,23 @@ function OwnerSignupVerifyPage() {
   const { business } = draft;
   const { check } = business;
   const verified = check === "verified";
+  const checking = check === "checking";
+  // 응답 전에 값을 고치거나 화면을 떠나면 번호가 바뀌어 늦게 온 응답을 버린다
+  const requestId = useRef(0);
+
+  useEffect(() => {
+    const latest = requestId;
+    return () => {
+      latest.current += 1;
+    };
+  }, []);
 
   // 1단계를 건너뛰고 들어오면(새로고침 포함) 역할 선택부터 다시
   if (!isStoreInfoComplete(draft)) return <Navigate to="/signup/role" replace />;
 
   // 값을 고치면 오류 표시를 지우고 인증 전으로 돌아간다
   const edit = (patch: Partial<BusinessInfo>) => {
+    requestId.current += 1;
     update({ business: { ...business, ...patch, check: "idle" } });
   };
 
@@ -34,8 +47,22 @@ function OwnerSignupVerifyPage() {
     business.openedAt.trim() !== "" &&
     business.representative.trim() !== "";
 
-  const handleVerify = () => {
-    update({ business: { ...business, check: checkBusinessInfo(business) } });
+  const handleVerify = async () => {
+    const id = ++requestId.current;
+    const info = business;
+    update({ business: { ...info, check: "checking" } });
+
+    const result = await checkBusinessInfo(info);
+    if (id !== requestId.current) return;
+
+    if (result === "unauthorized") {
+      navigate("/login", { replace: true });
+    } else if (result === "alreadyRegistered") {
+      window.alert("이미 가입을 마친 계정이에요");
+      navigate("/home", { replace: true });
+    } else {
+      update({ business: { ...info, check: result } });
+    }
   };
 
   return (
@@ -80,6 +107,12 @@ function OwnerSignupVerifyPage() {
           />
         </div>
 
+        {check === "error" && (
+          <p className="owner-signup-verify__error" role="alert">
+            잠시 후 다시 시도해 주세요
+          </p>
+        )}
+
         {verified && (
           <div className="owner-signup-verify__done" role="status">
             <span className="owner-signup-verify__success">가게 인증이 완료되었어요</span>
@@ -96,8 +129,8 @@ function OwnerSignupVerifyPage() {
             다음
           </Button>
         ) : (
-          <Button fullWidth disabled={!filled} onClick={handleVerify}>
-            인증하기
+          <Button fullWidth disabled={!filled || checking} onClick={() => void handleVerify()}>
+            {checking ? "인증 중..." : "인증하기"}
           </Button>
         )}
       </footer>

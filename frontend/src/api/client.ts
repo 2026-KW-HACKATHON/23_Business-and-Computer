@@ -6,13 +6,23 @@
 
 export const BACKEND_API_BASE_URL: string = import.meta.env.VITE_BACKEND_API_BASE_URL;
 
+/** Common backend envelope (`global/response/ApiResponse`). Null fields are omitted. */
+export interface ApiResponse<T> {
+  success: boolean;
+  data?: T;
+  error?: { code: string; message: string };
+}
+
 export class ApiError extends Error {
   readonly status: number;
+  /** Backend `ErrorCode` code (e.g. `COMMON_400`), when the error body has one. */
+  readonly code: string | undefined;
 
-  constructor(status: number, message: string) {
+  constructor(status: number, message: string, code?: string) {
     super(message);
     this.name = "ApiError";
     this.status = status;
+    this.code = code;
   }
 }
 
@@ -24,15 +34,21 @@ export class ApiError extends Error {
 export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
   // Always send JSON content type: the backend JWT endpoints declare
   // `consumes = application/json`, so a request without it is rejected with 415
-  // even when it has no body.
+  // even when it has no body. Merge headers last so a caller's headers (e.g.
+  // Authorization) add to it instead of replacing it.
   const response = await fetch(`${BACKEND_API_BASE_URL}${path}`, {
     credentials: "include",
-    headers: { "Content-Type": "application/json", ...init.headers },
     ...init,
+    headers: { "Content-Type": "application/json", ...init.headers },
   });
 
   if (!response.ok) {
-    throw new ApiError(response.status, `Request to ${path} failed (${response.status})`);
+    const body = (await response.json().catch(() => null)) as ApiResponse<unknown> | null;
+    throw new ApiError(
+      response.status,
+      `Request to ${path} failed (${response.status})`,
+      body?.error?.code,
+    );
   }
 
   return response.json() as Promise<T>;
