@@ -50,7 +50,8 @@ class StudentControllerTest {
         assertThat(response.getBody().isSuccess()).isTrue();
         assertThat(response.getBody().getData().getAccessToken()).isEqualTo("access-token");
         assertThat(servletResponse.getHeader("Set-Cookie"))
-                .contains("refreshToken=refresh-token", "HttpOnly", "SameSite=Lax", "Path=/");
+                .contains("refreshToken=refresh-token", "HttpOnly", "Secure", "SameSite=None", "Path=/", "Max-Age=604800")
+                .doesNotContain("Domain");
 
         String json = new ObjectMapper().writeValueAsString(response.getBody());
         assertThat(json).contains("\"accessToken\":\"access-token\"");

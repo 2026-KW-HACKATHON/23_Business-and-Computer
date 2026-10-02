@@ -145,7 +145,11 @@ class StudentRegistrationFlowTest {
             .andExpect(header().string(HttpHeaders.SET_COOKIE, Matchers.allOf(
                     Matchers.containsString("refreshToken=student-refresh-token"),
                     Matchers.containsString("HttpOnly"),
-                    Matchers.containsString("SameSite=Lax"))));
+                    Matchers.containsString("Secure"),
+                    Matchers.containsString("SameSite=None"),
+                    Matchers.containsString("Path=/"),
+                    Matchers.containsString("Max-Age=604800"),
+                    Matchers.not(Matchers.containsString("Domain")))));
 
         assertThat(pendingUser.getRole()).isEqualTo(UserRole.STUDENT);
         assertThat(pendingUser.getEmail()).isEqualTo("kwangwoon@kw.ac.kr");

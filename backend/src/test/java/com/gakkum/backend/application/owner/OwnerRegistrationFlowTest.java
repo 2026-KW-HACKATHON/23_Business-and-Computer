@@ -121,8 +121,11 @@ class OwnerRegistrationFlowTest {
             .andExpect(header().string(HttpHeaders.SET_COOKIE, Matchers.allOf(
                     Matchers.containsString("refreshToken=owner-refresh-token"),
                     Matchers.containsString("HttpOnly"),
-                    Matchers.containsString("SameSite=Lax"),
-                    Matchers.containsString("Path=/"))));
+                    Matchers.containsString("Secure"),
+                    Matchers.containsString("SameSite=None"),
+                    Matchers.containsString("Path=/"),
+                    Matchers.containsString("Max-Age=604800"),
+                    Matchers.not(Matchers.containsString("Domain")))));
 
         assertThat(pendingUser.getRole()).isEqualTo(UserRole.OWNER);
         assertThat(pendingUser.getName()).isEqualTo("김사장");

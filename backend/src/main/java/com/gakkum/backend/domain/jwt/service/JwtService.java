@@ -73,20 +73,12 @@ public class JwtService {
         refreshRepository.flush(); // 같은 트랜잭션 내부라 : 삭제 -> 생성 문제 해결
         refreshRepository.save(newRefreshEntity);
 
-        // 기존 쿠키 제거
-        Cookie refreshCookie = new Cookie("refreshToken", null);
-        refreshCookie.setHttpOnly(true);
-        refreshCookie.setSecure(false);
-        refreshCookie.setPath("/");
-        refreshCookie.setMaxAge(10);
-        response.addCookie(refreshCookie);
-
-        // ResponseCookie 방식
+        // 새 쿠키로 덮어쓰기
         ResponseCookie newCookie = ResponseCookie.from("refreshToken", newRefreshToken)
                 .path("/")
-                .sameSite("Lax")
+                .sameSite("None")
                 .httpOnly(true)
-                .secure(false)  // https 때 true
+                .secure(true)
                 .maxAge(7 * 24 * 60 * 60)
                 .build();
 
@@ -146,21 +138,17 @@ public class JwtService {
 
         // 기존 Refresh 토큰 제거
         removeRefresh(refreshToken);
-        Cookie expired = new Cookie("refreshToken", null);
-        expired.setHttpOnly(true);
-        expired.setSecure(false);
-        expired.setPath("/");
-        expired.setMaxAge(0);
-        response.addCookie(expired);
 
-        // 쿠키 세팅
-        Cookie newCookie = new Cookie("refreshToken", newRefreshToken);
-        newCookie.setHttpOnly(true);
-        newCookie.setSecure(false);
-        newCookie.setPath("/");
-        newCookie.setMaxAge(7 * 24 * 60 * 60);
+        // 새 쿠키로 덮어쓰기
+        ResponseCookie newCookie = ResponseCookie.from("refreshToken", newRefreshToken)
+                .path("/")
+                .sameSite("None")
+                .httpOnly(true)
+                .secure(true)
+                .maxAge(7 * 24 * 60 * 60)
+                .build();
 
-        response.addCookie(newCookie);
+        response.addHeader(HttpHeaders.SET_COOKIE, newCookie.toString());
 
         refreshRepository.flush(); // 같은 트랜잭션 내부라 : 삭제 -> 생성 문제 해결
         refreshRepository.save(newRefreshEntity);
