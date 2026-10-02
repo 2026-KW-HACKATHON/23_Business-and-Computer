@@ -34,7 +34,7 @@ class SocialSuccessHandlerTest {
                 new MockHttpServletRequest(),
                 response,
                 new UsernamePasswordAuthenticationToken("KAKAO_12345", null,
-                        List.of(new SimpleGrantedAuthority("PENDING"))));
+                        List.of(new SimpleGrantedAuthority("ROLE_PENDING"))));
 
         verify(jwtService).addRefresh("KAKAO_12345", "refresh-token");
         assertThat(response.getHeaders(HttpHeaders.SET_COOKIE)).singleElement().asString()
