@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { AppImage } from "../components";
-import { isLoggedIn } from "../features/auth";
+import { landingPath } from "../features/auth";
 import "./IntroPage.css";
 
 /** 한 단계씩 차례로 나타난다 (0.4초 간격, 5단계면 약 2초) */
@@ -20,12 +20,13 @@ function IntroPage() {
   const [leaving, setLeaving] = useState(false);
   const left = useRef(false);
 
-  // 로그인했으면 홈, 아니면 로그인으로 간다. 뒤로 가기로 돌아오지 않게 교체한다.
+  // 로그인 안 했으면 로그인, 가입 전이면 역할 선택, 가입했으면 역할에 맞는 홈.
+  // 뒤로 가기로 돌아오지 않게 교체한다.
   const leave = useCallback(
     (fade: boolean) => {
       if (left.current) return;
       left.current = true;
-      const next = isLoggedIn() ? "/home" : "/login";
+      const next = landingPath();
       if (!fade) {
         navigate(next, { replace: true });
         return;
