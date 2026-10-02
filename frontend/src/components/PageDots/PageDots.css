@@ -1,0 +1,20 @@
+.page-dots {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  height: 16px;
+  padding: 0 8px;
+  border-radius: 8px;
+  background: var(--input-border);
+}
+
+.page-dots__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--color-white);
+}
+
+.page-dots__dot--active {
+  background: var(--role-secondary);
+}

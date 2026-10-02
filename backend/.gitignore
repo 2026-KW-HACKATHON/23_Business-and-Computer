@@ -39,6 +39,10 @@ out/
 ### macOS ###
 .DS_Store
 
+### Local IDEA ###
+.idea
+../.idea
+
 ### Logs ###
 *.log
 logs/

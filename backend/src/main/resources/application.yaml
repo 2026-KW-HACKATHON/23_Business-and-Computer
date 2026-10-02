@@ -1,3 +1,69 @@
 spring:
   application:
     name: backend
+  datasource:
+    url: ${DATABASE_URL}
+    driver-class-name: org.postgresql.Driver
+
+    hikari:
+      maximum-pool-size: ${DATABASE_MAX_POOL_SIZE}
+      minimum-idle: ${DATABASE_MIN_POOL_SIZE}
+      connection-timeout: ${DATABASE_CONNECTION_TIMEOUT}
+      idle-timeout: ${DATABASE_IDLE_TIMEOUT}
+      max-lifetime: ${DATABASE_MAX_LIFETIME}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+  security:
+    oauth2:
+      client:
+        registration:
+          kakao:
+            client-name: Kakao
+            client-id: ${KAKAO_CLIENT_ID}
+            client-secret: ${KAKAO_CLIENT_SECRET}
+            client-authentication-method: client_secret_post
+            authorization-grant-type: authorization_code
+            redirect-uri: ${KAKAO_REDIRECT_URI}
+        provider:
+          kakao:
+            authorization-uri: https://kauth.kakao.com/oauth/authorize
+            token-uri: https://kauth.kakao.com/oauth/token
+            user-info-uri: https://kapi.kakao.com/v2/user/me
+            user-name-attribute: id
+  mail:
+    host: ${MAIL_HOST}
+    port: ${MAIL_PORT}
+    username: ${MAIL_USERNAME}
+    password: ${MAIL_PASSWORD}
+    properties:
+      mail.smtp.auth: true
+      mail.smtp.starttls.enable: true
+      mail.smtp.connectiontimeout: 5000
+      mail.smtp.timeout: 5000
+      mail.smtp.writetimeout: 5000
+jwt:
+  secret: ${JWT_SECRET}
+  access-token-expiration: 3600000 # 1시간
+  refresh-token-expiration: 604800000 # 7일
+nts-businessman:
+  service-key: ${NTS_BUSINESSMAN_SERVICE_KEY}
+kakao-pay:
+  cid: ${KAKAO_PAY_CID:TC0ONETIME}
+  secret-key: ${KAKAO_PAY_SECRET_KEY}
+  frontend-base-url: ${KAKAO_PAY_FRONTEND_BASE_URL}
+s3: # 자격 증명은 AWS SDK 기본 체인(환경 변수, 프로필, IAM 역할)에서 읽는다
+  bucket: ${S3_BUCKET}
+  region: ${S3_REGION:ap-northeast-1}
+  image-bucket: ${S3_IMAGE_BUCKET} # 프로필·매장 사진용 공개 읽기 버킷. s3.region과 같은 리전이어야 한다
+chat-attachment:
+  upload-url-ttl: 10m
+  view-url-ttl: 15m
+  upload-ttl: 1h # 업로드 준비 후 메시지 전송에 사용할 수 있는 기간
+  image-max-size: 10MB
+  file-max-size: 50MB
+media-image:
+  upload-url-ttl: 10m
+  max-size: 10MB
+job-submission-file: # 초안·수정안 파일은 s3.image-bucket의 job-submissions/ 경로에 공개로 저장한다
+  upload-url-ttl: 10m

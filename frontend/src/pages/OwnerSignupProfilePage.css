@@ -1,0 +1,121 @@
+.owner-signup-profile__head {
+  display: flex;
+  align-items: center;
+  gap: 19px;
+}
+
+.owner-signup-profile__description {
+  margin-top: 16px;
+}
+
+.owner-signup-profile__photos-title {
+  margin: 63px 0 0;
+  font-size: 20px;
+  font-weight: 700;
+  line-height: normal;
+  letter-spacing: normal;
+  color: var(--color-black);
+}
+
+.owner-signup-profile__optional {
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.owner-signup-profile__photos-note {
+  margin: 4px 0 0;
+  font-size: 12px;
+  line-height: normal;
+  color: var(--role-secondary);
+}
+
+.owner-signup-profile__upload {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  box-sizing: border-box;
+  height: 230px;
+  margin-top: 13px;
+  border: 1px dashed var(--input-border);
+  border-radius: 8px;
+  font-size: 12px;
+  color: var(--role-secondary);
+  cursor: pointer;
+}
+
+.owner-signup-profile__plus {
+  font-size: 96px;
+  font-weight: 400;
+  line-height: 71px;
+  color: var(--role-secondary);
+}
+
+.owner-signup-profile__plus--small {
+  font-size: 40px;
+  line-height: 1;
+}
+
+.owner-signup-profile__input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.owner-signup-profile__upload:focus-within,
+.owner-signup-profile__add:focus-within {
+  outline: 2px solid var(--color-black);
+  outline-offset: 2px;
+}
+
+.owner-signup-profile__grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin: 13px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.owner-signup-profile__thumb {
+  position: relative;
+  aspect-ratio: 1;
+  overflow: hidden;
+  border-radius: 8px;
+  background: var(--role-muted);
+}
+
+.owner-signup-profile__thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.owner-signup-profile__remove {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: rgba(12, 12, 12, 0.6);
+  font-size: 12px;
+  color: var(--color-white);
+  cursor: pointer;
+}
+
+.owner-signup-profile__add {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  aspect-ratio: 1;
+  border: 1px dashed var(--input-border);
+  border-radius: 8px;
+  cursor: pointer;
+}

@@ -1,0 +1,24 @@
+/* 피그마 「0. 스타일 가이드」 · 공유 컴포넌트 변수 기준 */
+:root {
+  --color-main: #fef0b5;
+  --color-owner: #fed34d;
+  --color-owner-shadow: #d9a91f;
+  --color-student: #98274c;
+  --color-student-shadow: #6a1b35;
+  --color-black: #0c0c0c;
+  --color-white: #ffffff;
+  --color-background: #f9fafb;
+  --color-success: #1f883d;
+  --color-danger: #f04452;
+
+  --role-muted: #f2f4f6;
+  --role-secondary: #6b7684;
+  --role-border: #e5e8eb;
+
+  --text-title: #191f28;
+  --text-body: #4e5968;
+  --text-placeholder: #8b95a1;
+  --input-border: #d0d5db;
+
+  --font-sans: "Noto Sans KR", system-ui, -apple-system, "Apple SD Gothic Neo", sans-serif;
+}

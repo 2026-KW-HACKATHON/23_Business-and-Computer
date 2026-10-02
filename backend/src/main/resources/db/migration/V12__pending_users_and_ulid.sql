@@ -1,0 +1,10 @@
+ALTER TABLE users
+    ALTER COLUMN user_id TYPE VARCHAR(26) USING user_id::VARCHAR(26),
+    ALTER COLUMN email DROP NOT NULL,
+    ALTER COLUMN name DROP NOT NULL;
+
+ALTER TABLE student_profiles
+    ALTER COLUMN user_id TYPE VARCHAR(26) USING user_id::VARCHAR(26);
+
+ALTER TABLE owner_profiles
+    ALTER COLUMN user_id TYPE VARCHAR(26) USING user_id::VARCHAR(26);

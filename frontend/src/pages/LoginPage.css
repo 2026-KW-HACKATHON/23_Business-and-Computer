@@ -1,0 +1,60 @@
+.login {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 390px;
+  min-height: 100svh;
+  margin: 0 auto;
+  padding-top: env(safe-area-inset-top);
+  box-sizing: border-box;
+  background: var(--color-white);
+  font-family: var(--font-sans);
+  text-align: center;
+}
+
+.login__body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 17px;
+  padding: 16px 20px 24px;
+}
+
+.login__title {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 24px;
+  letter-spacing: normal;
+  color: var(--color-black);
+}
+
+/* 피그마에서 카드 자리(332px)는 아래쪽에 붙고 위가 비어 있다. 작은 화면에서는 줄어든다 */
+.login__usage {
+  margin-top: clamp(16px, 10svh, 85px);
+}
+
+.login__footer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  padding: 0 16px calc(40px + env(safe-area-inset-bottom));
+}
+
+.login__buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+}
+
+.login__notion {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 8px;
+}

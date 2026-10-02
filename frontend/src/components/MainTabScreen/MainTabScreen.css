@@ -1,0 +1,44 @@
+.main-tab-screen {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 390px;
+  height: 100svh;
+  margin: 0 auto;
+  overflow: hidden;
+  background: var(--color-white);
+  font-family: var(--font-sans);
+  text-align: left;
+}
+
+/* 탭바와 플로팅 버튼에 마지막 내용이 가리지 않게 아래를 140px 비운다 */
+.main-tab-screen__scroll {
+  flex: 1;
+  min-height: 0;
+  padding-bottom: calc(140px + env(safe-area-inset-bottom));
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  /* 휴대폰처럼 스크롤 막대가 폭을 차지하지 않게 숨긴다 */
+  scrollbar-width: none;
+}
+
+.main-tab-screen__scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.main-tab-screen__fab {
+  position: absolute;
+  right: 16px;
+  bottom: calc(84px + env(safe-area-inset-bottom));
+}
+
+.main-tab-screen__tab-bar {
+  position: absolute;
+  right: 16px;
+  bottom: calc(14px + env(safe-area-inset-bottom));
+  left: 16px;
+  width: auto;
+  margin: 0 auto;
+}

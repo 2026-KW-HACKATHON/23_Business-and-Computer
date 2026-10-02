@@ -1,0 +1,29 @@
+/* 색·글자는 카카오 로그인 디자인 가이드 기준 */
+.kakao-login-button {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 52px;
+  border: none;
+  border-radius: 12px;
+  background: #fee500;
+  font-family: var(--font-sans);
+  font-size: 16px;
+  font-weight: 700;
+  color: rgba(0, 0, 0, 0.85);
+  cursor: pointer;
+}
+
+.kakao-login-button__symbol {
+  position: absolute;
+  left: 20px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.kakao-login-button:focus-visible {
+  outline: 2px solid var(--color-black);
+  outline-offset: 2px;
+}

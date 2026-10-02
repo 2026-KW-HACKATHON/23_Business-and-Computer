@@ -1,0 +1,27 @@
+.download-button {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 4px;
+  height: 30px;
+  padding: 0 12px;
+  border: none;
+  border-radius: 999px;
+  background: var(--role-muted);
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 16px;
+  color: var(--color-black);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.download-button:active {
+  background: var(--role-border);
+}
+
+.download-button:focus-visible {
+  outline: 2px solid var(--color-black);
+  outline-offset: 2px;
+}

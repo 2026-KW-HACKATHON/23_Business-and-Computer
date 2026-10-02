@@ -1,0 +1,53 @@
+.deadline-badge {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 4px;
+  box-sizing: border-box;
+  height: 24px;
+  padding: 0 10px;
+  border: 1px solid var(--color-black);
+  border-radius: 999px;
+  background: var(--color-white);
+  font-family: var(--font-sans);
+  font-size: 12px;
+  line-height: 16px;
+  white-space: nowrap;
+}
+
+.deadline-badge--final {
+  border-width: 1.5px;
+}
+
+.deadline-badge__stage {
+  font-weight: 500;
+  color: var(--role-secondary);
+}
+
+.deadline-badge--final .deadline-badge__stage {
+  color: var(--color-black);
+}
+
+/* 형광펜은 글자 아래쪽 7px, 양옆으로 2px 넘친다 */
+.deadline-badge__due {
+  position: relative;
+  isolation: isolate;
+  font-weight: 700;
+  color: var(--color-black);
+}
+
+.deadline-badge__due::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  top: 9px;
+  left: -2px;
+  right: -2px;
+  height: 7px;
+  border-radius: 2px;
+  background: var(--color-main);
+}
+
+.deadline-badge--final .deadline-badge__due::before {
+  background: var(--color-owner);
+}

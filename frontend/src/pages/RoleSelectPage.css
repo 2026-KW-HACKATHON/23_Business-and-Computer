@@ -1,0 +1,34 @@
+.role-select {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 390px;
+  min-height: 100svh;
+  margin: 0 auto;
+  background: var(--color-white);
+  font-family: var(--font-sans);
+}
+
+.role-select__content {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  /* 아래 여백은 피그마의 빈 앱바 높이(56px)만큼 */
+  padding: 0 24px calc(56px + env(safe-area-inset-bottom));
+}
+
+/* 피그마에서는 앱바 아래 100px. 키가 작은 화면에서는 줄어든다 */
+.role-select__brand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: min(100px, 12svh);
+}
+
+.role-select__cards {
+  display: flex;
+  gap: 14px;
+  width: 100%;
+  margin-top: 56px;
+}

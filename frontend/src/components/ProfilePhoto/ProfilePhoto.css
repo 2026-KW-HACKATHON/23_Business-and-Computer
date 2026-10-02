@@ -1,0 +1,53 @@
+/* 동그라미 전체가 파일 고르기 버튼이다 */
+.profile-photo {
+  position: relative;
+  display: block;
+  width: 132px;
+  height: 132px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.profile-photo:focus-within {
+  outline: 2px solid var(--color-black);
+  outline-offset: 2px;
+}
+
+.profile-photo__empty,
+.profile-photo__image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: var(--role-muted);
+}
+
+.profile-photo__image {
+  object-fit: cover;
+}
+
+/* 사진이 없을 때만 보이는 + */
+.profile-photo__add {
+  position: absolute;
+  left: 98px;
+  top: 98px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  width: 27px;
+  height: 27px;
+  border: 2px solid var(--color-white);
+  border-radius: 50%;
+  background: var(--color-main);
+}
+
+.profile-photo__input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}

@@ -1,0 +1,83 @@
+.text-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+/* 테두리는 칸 전체에 두고, 입력과 오른쪽 요소가 그 안에 나란히 선다 */
+.text-field__box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-sizing: border-box;
+  width: 100%;
+  height: 52px;
+  padding: 0 13px;
+  border: 1px solid var(--input-border);
+  border-radius: 8px;
+  background: var(--color-white);
+}
+
+.text-field__box:focus-within {
+  border-color: var(--color-black);
+}
+
+/* 인증이 끝나 잠긴 칸 */
+.text-field__box--locked,
+.text-field__box--locked:focus-within {
+  background: var(--role-muted);
+  border-color: var(--role-border);
+}
+
+.text-field__box--invalid,
+.text-field__box--invalid:focus-within {
+  border-color: var(--color-danger);
+}
+
+.text-field__input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  padding: 0;
+  border: none;
+  background: transparent;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--text-title);
+  outline: none;
+}
+
+.text-field__input::placeholder {
+  color: var(--text-placeholder);
+}
+
+.text-field__trailing {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--role-secondary);
+  white-space: nowrap;
+}
+
+.text-field__trailing button {
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+.text-field__error {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--color-danger);
+  text-align: left;
+}
