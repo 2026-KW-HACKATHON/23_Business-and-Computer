@@ -2,7 +2,8 @@ name: AWS Connection Check
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
     paths:
       - .github/workflows/aws-connection-check.yml
 
@@ -16,12 +17,6 @@ jobs:
     timeout-minutes: 5
 
     steps:
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v6.3.0
-        with:
-          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
-          aws-region: ${{ vars.AWS_REGION }}
-
       - name: Inspect OIDC claims
         run: |
           node --input-type=module <<'NODE'
@@ -33,6 +28,7 @@ jobs:
               Authorization: `Bearer ${process.env.ACTIONS_ID_TOKEN_REQUEST_TOKEN}`
             }
           });
+
           if (!response.ok) {
             throw new Error(`OIDC request failed: ${response.status}`);
           }
@@ -41,6 +37,7 @@ jobs:
           const claims = JSON.parse(
             Buffer.from(value.split('.')[1], 'base64url').toString('utf8')
           );
+
           console.log(JSON.stringify({
             sub: claims.sub,
             aud: claims.aud,
@@ -48,6 +45,12 @@ jobs:
             ref: claims.ref
           }, null, 2));
           NODE
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v6.3.0
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
 
       - name: Verify AWS identity
         run: aws sts get-caller-identity
