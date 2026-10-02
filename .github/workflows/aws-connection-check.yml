@@ -17,35 +17,6 @@ jobs:
     timeout-minutes: 5
 
     steps:
-      - name: Inspect OIDC claims
-        run: |
-          node --input-type=module <<'NODE'
-          const url = new URL(process.env.ACTIONS_ID_TOKEN_REQUEST_URL);
-          url.searchParams.set('audience', 'sts.amazonaws.com');
-
-          const response = await fetch(url, {
-            headers: {
-              Authorization: `Bearer ${process.env.ACTIONS_ID_TOKEN_REQUEST_TOKEN}`
-            }
-          });
-
-          if (!response.ok) {
-            throw new Error(`OIDC request failed: ${response.status}`);
-          }
-
-          const { value } = await response.json();
-          const claims = JSON.parse(
-            Buffer.from(value.split('.')[1], 'base64url').toString('utf8')
-          );
-
-          console.log(JSON.stringify({
-            sub: claims.sub,
-            aud: claims.aud,
-            repository: claims.repository,
-            ref: claims.ref
-          }, null, 2));
-          NODE
-
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v6.3.0
         with:
@@ -54,3 +25,24 @@ jobs:
 
       - name: Verify AWS identity
         run: aws sts get-caller-identity
+
+      - name: Verify SSM command execution
+        env:
+          EC2_INSTANCE_ID: ${{ vars.EC2_INSTANCE_ID }}
+        run: |
+          COMMAND_ID=$(aws ssm send-command \
+            --instance-ids "$EC2_INSTANCE_ID" \
+            --document-name "AWS-RunShellScript" \
+            --parameters '{"commands":["whoami"]}' \
+            --query 'Command.CommandId' \
+            --output text)
+
+          aws ssm wait command-executed \
+            --command-id "$COMMAND_ID" \
+            --instance-id "$EC2_INSTANCE_ID"
+
+          aws ssm get-command-invocation \
+            --command-id "$COMMAND_ID" \
+            --instance-id "$EC2_INSTANCE_ID" \
+            --query '{Status:Status,Output:StandardOutputContent}' \
+            --output json
