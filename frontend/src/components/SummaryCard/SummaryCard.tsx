@@ -13,14 +13,21 @@ interface SummaryCardProps {
   items: SummaryItem[];
   /** 넣으면 칸을 누를 수 있다 */
   onSelect?: (index: number) => void;
+  /** 넣으면 탭처럼 쓴다. 고른 칸은 회색 알약 + 굵은 글자 (내 활동) */
+  selectedIndex?: number;
   className?: string;
 }
 
 /** 홈 위쪽 요약 카드 (글래스). 스크롤할 때 위에 고정해서 쓴다 */
-function SummaryCard({ items, onSelect, className = "" }: SummaryCardProps) {
+function SummaryCard({ items, onSelect, selectedIndex, className = "" }: SummaryCardProps) {
+  const tabs = selectedIndex !== undefined;
   return (
-    <div className={`summary-card ${className}`.trim()}>
+    <div className={`summary-card${tabs ? " summary-card--tabs" : ""} ${className}`.trim()}>
       {items.map(({ label, count, unit = "건" }, i) => {
+        const selected = i === selectedIndex;
+        const itemClass = `summary-card__item${selected ? " summary-card__item--selected" : ""}`;
+        // 탭 모양에서는 고른 칸 양옆 구분선을 지운다
+        const showDivider = i > 0 && !(tabs && (selected || i - 1 === selectedIndex));
         const content = (
           <>
             <span className="summary-card__label">{label}</span>
@@ -32,13 +39,18 @@ function SummaryCard({ items, onSelect, className = "" }: SummaryCardProps) {
         );
         return (
           <Fragment key={label}>
-            {i > 0 && <span className="summary-card__divider" aria-hidden="true" />}
+            {showDivider && <span className="summary-card__divider" aria-hidden="true" />}
             {onSelect ? (
-              <button type="button" className="summary-card__item" onClick={() => onSelect(i)}>
+              <button
+                type="button"
+                className={itemClass}
+                aria-pressed={tabs ? selected : undefined}
+                onClick={() => onSelect(i)}
+              >
                 {content}
               </button>
             ) : (
-              <div className="summary-card__item">{content}</div>
+              <div className={itemClass}>{content}</div>
             )}
           </Fragment>
         );

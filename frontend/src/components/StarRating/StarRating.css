@@ -1,0 +1,30 @@
+.star-rating {
+  display: inline-flex;
+  gap: 6px;
+  font-family: var(--font-sans);
+  font-weight: 700;
+  line-height: 1;
+}
+
+.star-rating__star {
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  line-height: 1;
+  color: #e5e8eb;
+}
+
+button.star-rating__star {
+  cursor: pointer;
+}
+
+.star-rating__star--on {
+  color: var(--color-owner);
+}
+
+button.star-rating__star:focus-visible {
+  outline: 2px solid var(--color-black);
+  outline-offset: 2px;
+  border-radius: 4px;
+}

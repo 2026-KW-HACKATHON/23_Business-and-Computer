@@ -69,3 +69,21 @@
   width: 9px;
   height: 9px;
 }
+
+/* 가게 정보 수정의 가게 사진 */
+.profile-photo--medium {
+  width: 88px;
+  height: 88px;
+}
+
+.profile-photo--medium .profile-photo__add {
+  left: 64px;
+  top: 64px;
+  width: 22px;
+  height: 22px;
+}
+
+.profile-photo--medium .profile-photo__add img {
+  width: 11px;
+  height: 11px;
+}
