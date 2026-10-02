@@ -10,14 +10,16 @@ interface TaskRowProps {
   lines: string[];
   /** 회색 줄 아래 굵은 진행 상태 (예: 학생 모집 중) */
   status?: string;
-  /** 오른쪽 버튼 묶음 (예: 채팅 + 상세보기) */
+  /** 넣으면 줄 전체가 버튼이 되고 오른쪽에 › 가 붙는다 */
+  onClick?: () => void;
+  /** 오른쪽 버튼 묶음. onClick 을 넣은 줄에서는 쓰지 않는다 */
   trailing?: ReactNode;
 }
 
-/** 홈 목록 한 줄. 종류 아이콘 + 제목 · 회색 줄 + 오른쪽 버튼 */
-function TaskRow({ kind, title, lines, status, trailing }: TaskRowProps) {
-  return (
-    <div className="task-row">
+/** 홈 목록 한 줄. 종류 아이콘 + 제목 · 회색 줄 + 오른쪽 › (또는 버튼) */
+function TaskRow({ kind, title, lines, status, onClick, trailing }: TaskRowProps) {
+  const body = (
+    <>
       <WorkKindIcon kind={kind} />
       <span className="task-row__content">
         <span className="task-row__title">{title}</span>
@@ -28,6 +30,23 @@ function TaskRow({ kind, title, lines, status, trailing }: TaskRowProps) {
         </span>
         {status && <span className="task-row__status">{status}</span>}
       </span>
+    </>
+  );
+
+  if (onClick) {
+    return (
+      <button type="button" className="task-row task-row--link" onClick={onClick}>
+        {body}
+        <span className="task-row__chevron" aria-hidden="true">
+          ›
+        </span>
+      </button>
+    );
+  }
+
+  return (
+    <div className="task-row">
+      {body}
       {trailing && <div className="task-row__trailing">{trailing}</div>}
     </div>
   );

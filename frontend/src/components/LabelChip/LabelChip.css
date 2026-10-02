@@ -1,0 +1,17 @@
+.label-chip {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  box-sizing: border-box;
+  height: 32px;
+  padding: 0 12px;
+  border: 1px solid var(--role-border);
+  border-radius: 999px;
+  background: var(--color-white);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 16px;
+  color: var(--text-body);
+  white-space: nowrap;
+}

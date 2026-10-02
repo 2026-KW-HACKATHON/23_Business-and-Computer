@@ -2,7 +2,8 @@ import type { ReactNode } from "react";
 import "./AppBar.css";
 
 interface AppBarProps {
-  title?: string;
+  /** 글자 또는 모양이 있는 제목 (예: 채팅 상대 사진 + 이름) */
+  title?: ReactNode;
   /** 넣으면 왼쪽에 ← 버튼이 생긴다 */
   onBack?: () => void;
   /** 오른쪽 영역 (예: SKIP) */
