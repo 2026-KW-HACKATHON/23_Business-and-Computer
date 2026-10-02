@@ -14,6 +14,7 @@ import StudentSignupInfoPage from './pages/StudentSignupInfoPage'
 import StudentSignupVerifyPage from './pages/StudentSignupVerifyPage'
 import StudentSignupProfilePage from './pages/StudentSignupProfilePage'
 import StudentSignupDonePage from './pages/StudentSignupDonePage'
+import OwnerHomePage from './pages/OwnerHomePage'
 
 function App() {
   return (
@@ -39,6 +40,9 @@ function App() {
         <Route path="3" element={<StudentSignupProfilePage />} />
         <Route path="done" element={<StudentSignupDonePage />} />
       </Route>
+      <Route path="/owner" element={<OwnerHomePage />} />
+      {/* Owner screens not built yet fall back to the owner home. */}
+      <Route path="/owner/*" element={<Navigate to="/owner" replace />} />
       {/* Backend redirects here after a successful social login. */}
       <Route path="/cookie" element={<CookiePage />} />
       <Route path="*" element={<Navigate to="/home" replace />} />
