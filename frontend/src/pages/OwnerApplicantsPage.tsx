@@ -103,7 +103,9 @@ function OwnerApplicantsPage() {
                 <div className="owner-applicants__actions">
                   <Button
                     variant="secondary"
-                    onClick={() => navigate(OWNER_PATHS.student(student.id))}
+                    onClick={() =>
+                      navigate(OWNER_PATHS.student(student.id), { state: { requestId: request.id } })
+                    }
                   >
                     프로필 보기
                   </Button>

@@ -1,0 +1,36 @@
+.owner-explore-detail__notice {
+  display: flex;
+  gap: 6px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: #f9fafb;
+  font-size: 12px;
+  line-height: 17px;
+  color: var(--role-secondary);
+  word-break: keep-all;
+}
+
+.owner-explore-detail__notice b {
+  flex-shrink: 0;
+}
+
+.owner-explore-detail__store {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px;
+  border: 1px solid #e5e8eb;
+  border-radius: 16px;
+}
+
+.owner-explore-detail__store strong {
+  font-size: 15px;
+  line-height: 20px;
+  color: var(--color-black);
+}
+
+.owner-explore-detail__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}

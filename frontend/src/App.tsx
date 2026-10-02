@@ -26,6 +26,23 @@ import OwnerRequestPage from './pages/OwnerRequestPage'
 import OwnerApplicantsPage from './pages/OwnerApplicantsPage'
 import OwnerChatRoomPage from './pages/OwnerChatRoomPage'
 import OwnerRequestNewPage from './pages/OwnerRequestNewPage'
+import OwnerRequestContentPage from './pages/OwnerRequestContentPage'
+import OwnerRequestConfirmPage from './pages/OwnerRequestConfirmPage'
+import OwnerRequestDonePage from './pages/OwnerRequestDonePage'
+import OwnerStudentPage from './pages/OwnerStudentPage'
+import OwnerAssignPage from './pages/OwnerAssignPage'
+import OwnerPayPage from './pages/OwnerPayPage'
+import OwnerProposalAcceptPage from './pages/OwnerProposalAcceptPage'
+import OwnerRevisionPage from './pages/OwnerRevisionPage'
+import OwnerReviewPage from './pages/OwnerReviewPage'
+import OwnerReviewDonePage from './pages/OwnerReviewDonePage'
+import OwnerWorkCancelPage from './pages/OwnerWorkCancelPage'
+import OwnerWorkCanceledPage from './pages/OwnerWorkCanceledPage'
+import OwnerExploreProposalPage from './pages/OwnerExploreProposalPage'
+import OwnerExploreRequestPage from './pages/OwnerExploreRequestPage'
+import OwnerStoreEditPage from './pages/OwnerStoreEditPage'
+import OwnerPaymentsPage from './pages/OwnerPaymentsPage'
+import OwnerActivityPage from './pages/OwnerActivityPage'
 
 function App() {
   return (
@@ -56,13 +73,30 @@ function App() {
       <Route path="/owner/chats" element={<OwnerChatsPage />} />
       <Route path="/owner/notifications" element={<OwnerNotificationsPage />} />
       <Route path="/owner/me" element={<OwnerMePage />} />
+      <Route path="/owner/me/store" element={<OwnerStoreEditPage />} />
+      <Route path="/owner/me/payments" element={<OwnerPaymentsPage />} />
+      <Route path="/owner/requests" element={<OwnerActivityPage />} />
       <Route path="/owner/chats/:workId" element={<OwnerChatRoomPage />} />
       <Route path="/owner/works/:workId/check" element={<OwnerWorkCheckPage />} />
       <Route path="/owner/works/:workId/result" element={<OwnerWorkResultPage />} />
       <Route path="/owner/proposals/:proposalId" element={<OwnerProposalPage />} />
       <Route path="/owner/requests/new" element={<OwnerRequestNewPage />} />
+      <Route path="/owner/requests/new/2" element={<OwnerRequestContentPage />} />
+      <Route path="/owner/requests/new/3" element={<OwnerRequestConfirmPage />} />
+      <Route path="/owner/requests/new/done" element={<OwnerRequestDonePage />} />
       <Route path="/owner/requests/:requestId" element={<OwnerRequestPage />} />
       <Route path="/owner/requests/:requestId/applicants" element={<OwnerApplicantsPage />} />
+      <Route path="/owner/requests/:requestId/assign/:studentId" element={<OwnerAssignPage />} />
+      <Route path="/owner/students/:studentId" element={<OwnerStudentPage />} />
+      <Route path="/owner/works/:workId/pay" element={<OwnerPayPage />} />
+      <Route path="/owner/works/:workId/revision" element={<OwnerRevisionPage />} />
+      <Route path="/owner/works/:workId/review" element={<OwnerReviewPage />} />
+      <Route path="/owner/works/:workId/review/done" element={<OwnerReviewDonePage />} />
+      <Route path="/owner/works/:workId/cancel" element={<OwnerWorkCancelPage />} />
+      <Route path="/owner/works/:workId/canceled" element={<OwnerWorkCanceledPage />} />
+      <Route path="/explore/proposals/:proposalId" element={<OwnerExploreProposalPage />} />
+      <Route path="/explore/requests/:requestId" element={<OwnerExploreRequestPage />} />
+      <Route path="/owner/proposals/:proposalId/accept" element={<OwnerProposalAcceptPage />} />
       {/* Owner screens not built yet fall back to the owner home. */}
       <Route path="/owner/*" element={<Navigate to="/owner" replace />} />
       {/* Backend redirects here after a successful social login. */}

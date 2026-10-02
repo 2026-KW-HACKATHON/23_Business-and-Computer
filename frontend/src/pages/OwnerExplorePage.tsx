@@ -69,7 +69,7 @@ function OwnerExplorePage() {
                   kind={item.kind}
                   title={item.title}
                   field={item.field}
-                  place={`${item.storeName} · ${item.street}`}
+                  storeName={item.storeName}
                   empathyCount={item.empathyCount}
                   deadline={
                     item.deadline && {

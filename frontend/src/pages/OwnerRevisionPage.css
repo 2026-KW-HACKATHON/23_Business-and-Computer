@@ -1,0 +1,153 @@
+.owner-revision {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  padding: 20px 16px 32px;
+  font-family: var(--font-sans);
+}
+
+.owner-revision__work {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px 16px;
+  border: 1px solid #e5e8eb;
+  border-radius: 16px;
+}
+
+.owner-revision__work-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.owner-revision__work-title {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 21px;
+  letter-spacing: normal;
+  color: var(--color-black);
+}
+
+.owner-revision__meta {
+  font-size: 13px;
+  line-height: 17px;
+  color: var(--role-secondary);
+}
+
+.owner-revision__intro {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.owner-revision__title {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 30px;
+  letter-spacing: normal;
+  color: var(--color-black);
+}
+
+.owner-revision__description {
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--role-secondary);
+}
+
+/* 피그마: 「자세히 적어 주세요」는 15px, 입력칸은 132px 이상 */
+.owner-revision .request-field {
+  gap: 8px;
+}
+
+.owner-revision .request-field__label {
+  font-size: 15px;
+  line-height: 20px;
+}
+
+.owner-revision .request-field__textarea {
+  min-height: 104px;
+}
+
+.owner-revision__photos {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.owner-revision__photo-button {
+  display: flex;
+  align-items: center;
+  box-sizing: border-box;
+  padding: 14px;
+  border: 1px dashed #d0d5db;
+  border-radius: 12px;
+  background: #f9fafb;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 18px;
+  color: var(--text-body);
+  cursor: pointer;
+}
+
+.owner-revision__photo-button:focus-within {
+  outline: 2px solid var(--color-black);
+  outline-offset: 2px;
+}
+
+.owner-revision__photo-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+
+.owner-revision__photo-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.owner-revision__photo-list li {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 100%;
+  padding: 4px 6px 4px 10px;
+  border-radius: 999px;
+  background: var(--role-muted);
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--text-body);
+}
+
+.owner-revision__photo-list span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.owner-revision__photo-list button {
+  flex-shrink: 0;
+  padding: 0 2px;
+  border: none;
+  background: none;
+  font-size: 11px;
+  color: var(--role-secondary);
+  cursor: pointer;
+}
+
+.owner-revision__note {
+  font-size: 12px;
+  line-height: 17px;
+  color: #8b95a1;
+}

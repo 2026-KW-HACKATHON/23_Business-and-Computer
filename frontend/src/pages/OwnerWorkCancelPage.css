@@ -1,0 +1,123 @@
+.owner-cancel {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 16px 16px 32px;
+  font-family: var(--font-sans);
+}
+
+.owner-cancel__work {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px 16px;
+  border: 1px solid #e5e8eb;
+  border-radius: 16px;
+}
+
+.owner-cancel__work-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.owner-cancel__work-title {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 21px;
+  letter-spacing: normal;
+  color: var(--color-black);
+}
+
+.owner-cancel__meta {
+  font-size: 13px;
+  line-height: 17px;
+  color: var(--role-secondary);
+}
+
+.owner-cancel__intro {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.owner-cancel__title {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 30px;
+  letter-spacing: normal;
+  color: var(--color-black);
+}
+
+.owner-cancel__description {
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--role-secondary);
+  word-break: keep-all;
+}
+
+/* 피그마: 칸 이름 15px, 입력칸 높이 96px */
+.owner-cancel .request-field {
+  gap: 8px;
+}
+
+.owner-cancel .request-field__label {
+  font-size: 15px;
+  line-height: 20px;
+}
+
+.owner-cancel .request-field__textarea {
+  min-height: 46px;
+}
+
+.owner-cancel__readonly {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.owner-cancel__readonly-label {
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 20px;
+  color: var(--color-black);
+}
+
+.owner-cancel__readonly-text {
+  box-sizing: border-box;
+  min-height: 96px;
+  padding: 14px;
+  border: 1px solid #e5e8eb;
+  border-radius: 12px;
+  font-size: 15px;
+  line-height: 22px;
+  color: var(--color-black);
+  white-space: pre-line;
+  word-break: keep-all;
+  overflow-wrap: break-word;
+}
+
+.owner-cancel__report {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 12px 12px 14px;
+  border-radius: 12px;
+  background: #fff4f4;
+}
+
+.owner-cancel__report span {
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 18px;
+  color: var(--color-black);
+  word-break: keep-all;
+}
