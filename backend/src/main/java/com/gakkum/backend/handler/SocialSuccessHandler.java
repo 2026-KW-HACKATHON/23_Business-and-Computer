@@ -39,9 +39,9 @@ public class SocialSuccessHandler implements AuthenticationSuccessHandler {
         // 응답
         ResponseCookie cookie = ResponseCookie.from("refreshToken", refreshToken)
                 .path("/")
-                .sameSite("Lax")
+                .sameSite("None")
                 .httpOnly(true)
-                .secure(false)  // local
+                .secure(true)
                 .maxAge(60)
                 .build();
         response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
