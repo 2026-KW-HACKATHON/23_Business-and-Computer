@@ -1,3 +1,7 @@
+logging:
+  pattern:
+    level: '%5p [%X{tid:-}]'
+
 spring:
   application:
     name: backend
