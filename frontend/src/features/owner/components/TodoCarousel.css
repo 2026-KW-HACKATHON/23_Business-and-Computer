@@ -60,7 +60,8 @@
   font-weight: 700;
   line-height: normal;
   color: var(--color-black);
-  overflow-wrap: anywhere;
+  word-break: keep-all;
+  overflow-wrap: break-word;
 }
 
 .todo-carousel__meta {

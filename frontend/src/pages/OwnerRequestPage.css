@@ -1,0 +1,84 @@
+.owner-request__terms {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px;
+  border: 1px solid var(--role-border);
+  border-radius: 16px;
+}
+
+.owner-request__cancel {
+  align-self: flex-end;
+}
+
+.owner-request__tasks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.owner-request__guide {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 16px;
+  background: #f9fafb;
+}
+
+.owner-request__guide-title {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 20px;
+  letter-spacing: normal;
+  color: var(--color-black);
+}
+
+.owner-request__guide-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.owner-request__guide-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.owner-request__guide-number {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--color-main);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 16px;
+  color: var(--color-black);
+}
+
+.owner-request__guide-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 20px;
+  color: var(--color-black);
+}
+
+.owner-request__guide-text > small {
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 16px;
+  color: var(--role-secondary);
+}

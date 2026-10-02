@@ -1,0 +1,119 @@
+.owner-result {
+  padding-top: 16px;
+  padding-bottom: 40px;
+}
+
+.owner-result__done {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  height: 24px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: var(--color-main);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 16px;
+  color: var(--color-black);
+}
+
+.owner-result__files {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.owner-result__file {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 12px 12px 14px;
+  border: 1px solid var(--role-border);
+  border-radius: 12px;
+}
+
+.owner-result__file-icon {
+  font-size: 16px;
+  line-height: 20px;
+}
+
+.owner-result__file-info {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.owner-result__file-name {
+  overflow: hidden;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 18px;
+  color: var(--color-black);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.owner-result__file-size {
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--text-placeholder);
+}
+
+.owner-result__history {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px;
+  border-radius: 16px;
+  background: #f9fafb;
+}
+
+.owner-result__history-title {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 20px;
+  letter-spacing: normal;
+  color: var(--color-black);
+}
+
+.owner-result__history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.owner-result__history-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  line-height: 19px;
+  color: var(--color-black);
+}
+
+.owner-result__history-dot {
+  flex-shrink: 0;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-owner);
+}
+
+.owner-result__history-date {
+  flex-shrink: 0;
+  width: 64px;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 18px;
+  color: var(--role-secondary);
+}
