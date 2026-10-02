@@ -12,7 +12,7 @@ export const SAMPLE_WORKS: OwnerWork[] = [
     kind: "request",
     title: "인스타 게시물 5개 제작",
     field: "홍보",
-    student: { name: "박지은", department: "시각디자인학과" },
+    student: { id: "student-jieun", name: "박지은", department: "국제통상학부", year: "25학번" },
     budget: 50000,
     draftDue: "2026-09-22",
     finalDue: "2026-09-29",
@@ -36,7 +36,7 @@ export const SAMPLE_WORKS: OwnerWork[] = [
     kind: "request",
     title: "메뉴판 디자인 변경",
     field: "디자인",
-    student: { name: "김광운" },
+    student: { id: "student-kwangwoon", name: "김광운", department: "경영학부", year: "24학번" },
     budget: 60000,
     draftDue: "2026-09-29",
     finalDue: "2026-10-02",
@@ -64,6 +64,7 @@ export const SAMPLE_WORKS: OwnerWork[] = [
     status: "completed",
     completedOn: "2026-09-12",
     completedBy: "owner",
+    reviewed: false,
     files: [
       { name: "메뉴판_최종.pdf", size: "8.4MB" },
       { name: "메뉴판_원본.ai", size: "32.0MB" },
@@ -92,6 +93,7 @@ export const SAMPLE_WORKS: OwnerWork[] = [
     status: "completed",
     completedOn: "2026-09-03",
     completedBy: "auto",
+    reviewed: false,
     files: [{ name: "계정_운영_안내.pdf", size: "2.3MB" }],
     studentMessage: "비밀번호는 채팅으로 따로 보내 드렸어요. 첫 게시물 3개도 올려 두었어요!",
     history: [
@@ -116,6 +118,7 @@ export const SAMPLE_WORKS: OwnerWork[] = [
     status: "completed",
     completedOn: "2026-08-26",
     completedBy: "owner",
+    reviewed: true,
     files: [{ name: "새_매장사진_10장.zip", size: "26.5MB" }],
     studentMessage: "낮과 저녁 사진을 섞어 올렸어요. 원본도 함께 드려요.",
     history: [
@@ -140,6 +143,7 @@ export const SAMPLE_WORKS: OwnerWork[] = [
     status: "completed",
     completedOn: "2026-08-14",
     completedBy: "owner",
+    reviewed: true,
     files: [
       { name: "치킨플러스_로고_최종.png", size: "24.1MB" },
       { name: "치킨플러스_로고_원본.ai", size: "48.6MB" },
@@ -152,6 +156,33 @@ export const SAMPLE_WORKS: OwnerWork[] = [
       { date: "2026-08-09", text: "수정 요청 · 캐릭터 단순하게" },
       { date: "2026-08-14", text: "최종본 도착 · 사장님이 완료 확인" },
     ],
+  },
+  {
+    id: "work-060",
+    kind: "request",
+    title: "간판 시안",
+    field: "디자인",
+    student: { name: "이은서" },
+    budget: 80000,
+    draftDue: "2026-08-12",
+    finalDue: "2026-08-18",
+    revisionLimit: 1,
+    revisionCount: 0,
+    plan: "가게 간판 시안 2가지를 만들어 드릴게요.",
+    planSentOn: "2026-07-25",
+    status: "canceled",
+    files: [],
+    history: [
+      { date: "2026-07-28", text: "안전결제 · 작업 시작" },
+      { date: "2026-08-10", text: "작업 중 취소 · 64,000원 환불" },
+    ],
+    cancel: {
+      canceledOn: "2026-08-10",
+      refund: 64000,
+      stage: "inProgress",
+      reason: "작업이 필요없어졌어요.",
+      message: "가게 사정으로 간판 교체를 미루게 됐어요. 죄송해요.",
+    },
   },
 ];
 
@@ -268,6 +299,44 @@ export const SAMPLE_REQUESTS: OwnerRequest[] = [
       "봄 신메뉴 3가지(허니갈릭, 치즈볼, 양념 반반)를 알리는 A4 전단지를 만들고 싶어요. 광운대 앞에서 나눠 줄 거라 학생들이 좋아할 느낌이면 좋겠어요.",
     attachments: ["신메뉴_사진.jpg", "지난_전단지.jpg"],
     applicants: [],
+  },
+  {
+    id: "req-105",
+    title: "가게 소개 홈페이지",
+    field: "개발·IT",
+    budget: 100000,
+    draftDue: "2026-09-30",
+    finalDue: "2026-10-07",
+    revisionLimit: 2,
+    tasks: ["가게 홈페이지"],
+    description:
+      "메뉴와 영업시간, 오시는 길을 한 화면에서 볼 수 있는 간단한 가게 소개 홈페이지를 만들고 싶어요.",
+    attachments: ["가게_외관.jpg"],
+    applicants: [
+      {
+        student: {
+          id: "student-minjun",
+          name: "오민준",
+          department: "소프트웨어학부",
+          year: "22학번",
+          rating: 4.8,
+          completedCount: 3,
+        },
+        badges: ["가게 홈페이지", "메뉴판(QR,웹,모바일)"],
+        plan: "모바일에서 보기 좋은 한 장짜리 홈페이지를 만들어 드릴게요.\n· 내용: 메뉴 · 영업시간 · 오시는 길 · 전화 걸기 버튼\n· 일정: 9월 30일까지 초안, 수정 요청이 오면 10월 7일까지 최종본을 드려요.\n· 결과물: 홈페이지 주소와 고칠 수 있는 원본 파일",
+      },
+      {
+        student: {
+          id: "student-seoyeon",
+          name: "박서연",
+          department: "정보융합학부",
+          year: "23학번",
+          completedCount: 0,
+        },
+        badges: ["가게 홈페이지"],
+        plan: "노션으로 바로 고칠 수 있는 가게 소개 페이지를 만들어 드릴게요.\n· 일정: 9월 29일까지 초안, 수정 요청이 오면 10월 5일까지 최종본을 드려요.\n· 첫 작업이라 초안 전에 구성을 먼저 보여 드릴게요.",
+      },
+    ],
   },
 ];
 

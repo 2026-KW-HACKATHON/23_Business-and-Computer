@@ -1,4 +1,5 @@
 import type { Field } from "../../types/field";
+import type { StoreCategory } from "../../types/storeCategory";
 import type { WorkKind } from "../../types/workKind";
 
 /** 마감 단계. draft = 초안, final = 최종 */
@@ -8,6 +9,10 @@ export interface StudentRef {
   name: string;
   /** 있으면 이름 앞에 붙인다 (예: 시각디자인학과) */
   department?: string;
+  /** 프로필로 갈 때 쓴다 */
+  id?: string;
+  /** 「24학번」 */
+  year?: string;
 }
 
 interface TodoBase {
@@ -65,6 +70,31 @@ export interface OwnerWaitingItem {
   status: WaitingStatus;
 }
 
+/** 의뢰 등록 1/3 에서 고른 일 하나 */
+export interface PickedTask {
+  field: Field;
+  task: string;
+}
+
+/** 초안 마감 · 최종 마감 ("2026-09-27", 아직 안 골랐으면 "") */
+export interface DueDates {
+  draftDue: string;
+  finalDue: string;
+}
+
+/** 의뢰 등록 2/3 에서 적는 내용 */
+export interface RequestContent {
+  title: string;
+  description: string;
+  /** 원. 아직 안 적었으면 0 */
+  budget: number;
+  /** "2026-09-27". 아직 안 골랐으면 "" */
+  draftDue: string;
+  finalDue: string;
+  /** 최소 1회 */
+  revisions: number;
+}
+
 /** 「이런 의뢰는 어때요?」 예시. 누르면 의뢰 등록을 이 내용으로 채워 시작한다 */
 export interface RequestExample {
   id: string;
@@ -73,6 +103,8 @@ export interface RequestExample {
   task: string;
   /** 줄바꿈(\n)까지 그대로 보여 준다 */
   title: string;
+  /** 의뢰 등록 2/3 에 미리 채워 둘 내용 */
+  content: RequestContent;
 }
 
 /** 「끝난 일」 한 줄 (id = 작업) */
@@ -104,8 +136,6 @@ export interface ExploreItem {
   title: string;
   field: Field;
   storeName: string;
-  /** 가게가 있는 길 이름 (예: 석계로) */
-  street: string;
   /** 제안만 */
   empathyCount?: number;
   /** 의뢰만: 아직 모집 중이면 마감 (YYYY-MM-DD) */
@@ -168,7 +198,7 @@ export interface OwnerProfile {
   counts: { sent: number; proposals: number; inProgress: number; done: number };
 }
 
-export type WorkStatus = "inProgress" | "submitted" | "completed";
+export type WorkStatus = "inProgress" | "submitted" | "completed" | "canceled";
 
 export interface WorkFile {
   name: string;
@@ -207,6 +237,16 @@ export interface OwnerWork {
   files: WorkFile[];
   studentMessage?: string;
   history: WorkHistoryItem[];
+  /** 후기를 남겼는지 (completed) */
+  reviewed?: boolean;
+  /** 취소된 작업 (canceled). stage = 취소한 때, message = 학생에게 남긴 말 */
+  cancel?: {
+    canceledOn: string;
+    refund: number;
+    stage: "beforeStart" | "inProgress";
+    reason: string;
+    message?: string;
+  };
 }
 
 /** 프로필로 갈 수 있는 학생 */
@@ -272,3 +312,110 @@ export interface OwnerChatThread {
   workId: string;
   messages: ChatMessage[];
 }
+
+/** 가게 정보 수정 */
+export interface OwnerStore {
+  storeName: string;
+  category: StoreCategory;
+  address: string;
+  addressDetail: string;
+  phone: string;
+  intro: string;
+  /** 사업자 정보는 인증된 값이라 바꿀 수 없다 */
+  representative: string;
+  businessNumber: string;
+}
+
+export type PaymentStatus = "escrowed" | "settled" | "partialRefund" | "fullRefund";
+
+/** 결제 내역 한 줄 (작업 하나) */
+export interface OwnerPayment {
+  id: string;
+  workId: string;
+  title: string;
+  studentName: string;
+  amount: number;
+  paidOn: string;
+  status: PaymentStatus;
+  settledOn?: string;
+  /** 7일 지나 자동 완료되어 정산됐는지 */
+  autoCompleted?: boolean;
+  refund?: { on: string; amount: number };
+}
+
+export interface PaymentSummary {
+  thisMonth: number;
+  escrowed: number;
+  settled: number;
+}
+
+export type PaymentMethod = "kakaoPay" | "card" | "transfer";
+
+/** 안전결제할 의뢰와 고른 학생 */
+export interface OwnerCheckout {
+  workId: string;
+  request: OwnerRequest;
+  applicant: Applicant;
+}
+
+export interface StudentCertificate {
+  name: string;
+  /** "2025-03" */
+  acquiredOn: string;
+}
+
+/** 학생이 받은 사장님 후기 */
+export interface StudentReview {
+  storeName: string;
+  workTitle: string;
+  rating: number;
+  text: string;
+  date: string;
+}
+
+/** 학생 프로필 (뱃지 · 자격증 · 후기) */
+export interface StudentProfile extends StudentProfileRef {
+  /** 한 줄 소개 */
+  intro: string;
+  proposalCount: number;
+  noShowCount: number;
+  /** 마감을 지킨 비율 (%). 완료한 작업이 없으면 비운다 */
+  onTimeRate?: number;
+  badges: string[];
+  certificates: StudentCertificate[];
+  /** 「notion.so/…」처럼 https:// 없이 */
+  portfolioUrl?: string;
+  /** 최근 것부터 */
+  reviews: StudentReview[];
+}
+
+/** 탐색 상세: 다른 가게가 받은 제안 (읽기 전용, 희망 작업비 · 예상 기간은 숨김) */
+export interface ExploreProposalDetail {
+  id: string;
+  kind: "proposal";
+  title: string;
+  field: Field;
+  storeName: string;
+  receivedOn: string;
+  /** 제목 아래 상태 (예: 수락됨) */
+  statusLabel: string;
+  empathyCount: number;
+  student: StudentProfileRef;
+  problem: string;
+  solution: string;
+  attachments: string[];
+}
+
+/** 탐색 상세: 다른 가게가 올린 의뢰 (읽기 전용, 작업비 · 마감일은 숨김) */
+export interface ExploreRequestDetail {
+  id: string;
+  kind: "request";
+  title: string;
+  field: Field;
+  storeName: string;
+  tasks: string[];
+  description: string;
+  attachments: string[];
+}
+
+export type ExploreDetail = ExploreProposalDetail | ExploreRequestDetail;
