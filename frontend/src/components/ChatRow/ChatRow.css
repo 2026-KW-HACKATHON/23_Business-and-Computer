@@ -1,0 +1,105 @@
+.chat-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  box-sizing: border-box;
+  width: 100%;
+  padding: 14px 16px;
+  border: none;
+  background: none;
+  font-family: var(--font-sans);
+  text-align: left;
+  cursor: pointer;
+}
+
+.chat-row:focus-visible {
+  outline: 2px solid var(--color-black);
+  outline-offset: -2px;
+}
+
+.chat-row__content {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.chat-row__head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  white-space: nowrap;
+}
+
+.chat-row__name {
+  flex-shrink: 0;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 20px;
+  color: var(--color-black);
+}
+
+.chat-row__work {
+  overflow: hidden;
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--text-placeholder);
+  text-overflow: ellipsis;
+}
+
+.chat-row__status {
+  font-size: 12px;
+  font-weight: 700;
+  line-height: normal;
+  color: var(--color-black);
+}
+
+.chat-row__message {
+  overflow: hidden;
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--text-body);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.chat-row__side {
+  display: flex;
+  flex-shrink: 0;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+
+.chat-row__time {
+  font-size: 11px;
+  line-height: 14px;
+  color: var(--text-placeholder);
+  white-space: nowrap;
+}
+
+.chat-row__unread {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 14px;
+}
+
+.chat-row--owner .chat-row__unread {
+  background: var(--color-owner);
+  color: var(--color-black);
+}
+
+.chat-row--student .chat-row__unread {
+  background: var(--color-student);
+  color: var(--color-white);
+}

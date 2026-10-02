@@ -1,0 +1,215 @@
+.owner-new {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  padding: 20px 16px 32px;
+}
+
+.owner-new__intro {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.owner-new__title {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 30px;
+  letter-spacing: normal;
+  color: var(--color-black);
+}
+
+.owner-new__description {
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--role-secondary);
+}
+
+.owner-new__fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.owner-new__field {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  box-sizing: border-box;
+  padding: 14px;
+  border: 1px solid #eef0f3;
+  border-radius: 16px;
+  background: #f9fafb;
+  font-family: var(--font-sans);
+  text-align: left;
+  cursor: pointer;
+}
+
+/* 고르면 흰 바탕 + 2px 검정 테두리. 크기가 변하지 않게 안쪽 여백을 1px 줄인다 */
+.owner-new__field--selected {
+  padding: 13px;
+  border: 2px solid var(--color-black);
+  background: var(--color-white);
+}
+
+.owner-new__field:focus-visible {
+  outline: 2px solid var(--color-black);
+  outline-offset: 2px;
+}
+
+.owner-new__field-check {
+  position: absolute;
+  top: 13px;
+  right: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--color-main);
+  color: var(--color-black);
+}
+
+.owner-new__field-check svg {
+  width: 12px;
+  height: 12px;
+}
+
+.owner-new__field-name {
+  margin-top: 4px;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 21px;
+  color: var(--color-black);
+}
+
+.owner-new__field-sub {
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--role-secondary);
+}
+
+.owner-new__field--selected .owner-new__field-sub {
+  font-weight: 700;
+  color: var(--color-black);
+}
+
+.owner-new__tasks {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.owner-new__tasks-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--text-placeholder);
+}
+
+.owner-new__tasks-title {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 21px;
+  letter-spacing: normal;
+  color: var(--color-black);
+}
+
+.owner-new__group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+  border-radius: 16px;
+  background: #f9fafb;
+}
+
+.owner-new__group-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 17px;
+  color: var(--role-secondary);
+}
+
+.owner-new__group-head > strong {
+  font-size: 15px;
+  line-height: 20px;
+  color: var(--color-black);
+}
+
+.owner-new__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.owner-new__group-note {
+  font-size: 13px;
+  line-height: 19px;
+  color: var(--role-secondary);
+}
+
+.owner-new__footer {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* 고른 일 요약: 가로로 넘긴다 */
+.owner-new__picked {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  white-space: nowrap;
+}
+
+.owner-new__picked::-webkit-scrollbar {
+  display: none;
+}
+
+.owner-new__picked > strong {
+  flex-shrink: 0;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 17px;
+  color: var(--color-black);
+}
+
+.owner-new__picked-item {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 4px;
+  height: 28px;
+  padding: 0 8px 0 10px;
+  border-radius: 999px;
+  background: var(--role-muted);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 16px;
+  color: var(--text-title);
+}
+
+.owner-new__picked-item > button {
+  padding: 0;
+  border: none;
+  background: none;
+  font-size: 11px;
+  line-height: 14px;
+  color: var(--text-placeholder);
+  cursor: pointer;
+}

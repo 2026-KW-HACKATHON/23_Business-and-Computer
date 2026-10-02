@@ -1,0 +1,88 @@
+.notification-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  box-sizing: border-box;
+  width: 100%;
+  padding: 14px 16px;
+  border: none;
+  background: none;
+  font-family: var(--font-sans);
+  text-align: left;
+  cursor: pointer;
+}
+
+.notification-row:focus-visible {
+  outline: 2px solid var(--color-black);
+  outline-offset: -2px;
+}
+
+.notification-row--owner.notification-row--unread {
+  background: #fffbeb;
+}
+
+.notification-row--student.notification-row--unread {
+  background: #fdf2f5;
+}
+
+.notification-row__icon {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--role-muted);
+  font-size: 18px;
+  line-height: 22px;
+}
+
+.notification-row__content {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.notification-row__title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 20px;
+  color: var(--color-black);
+}
+
+.notification-row--unread .notification-row__title {
+  font-weight: 700;
+}
+
+.notification-row__dot {
+  flex-shrink: 0;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+}
+
+.notification-row--owner .notification-row__dot {
+  background: var(--color-owner);
+}
+
+.notification-row--student .notification-row__dot {
+  background: var(--color-student);
+}
+
+.notification-row__body {
+  font-size: 13px;
+  line-height: 19px;
+  color: var(--text-body);
+}
+
+.notification-row__time {
+  font-size: 11px;
+  line-height: 14px;
+  color: var(--text-placeholder);
+}

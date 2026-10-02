@@ -2,8 +2,7 @@ name: AWS Connection Check
 
 on:
   push:
-    branches:
-      - main
+    branches: [main]
     paths:
       - .github/workflows/aws-connection-check.yml
 
@@ -23,11 +22,5 @@ jobs:
           role-to-assume: ${{ vars.AWS_ROLE_ARN }}
           aws-region: ${{ vars.AWS_REGION }}
 
-      - name: Login to Amazon ECR
-        id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v2
-
-      - name: Verify ECR registry
-        env:
-          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-        run: printf '%s\n' "$ECR_REGISTRY"
+      - name: Verify AWS identity
+        run: aws sts get-caller-identity

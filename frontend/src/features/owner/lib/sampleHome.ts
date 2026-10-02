@@ -9,7 +9,7 @@ export const SAMPLE_OWNER_HOME: OwnerHome = {
   todos: [
     {
       type: "draftArrived",
-      id: "req-101",
+      id: "work-101",
       kind: "request",
       title: "인스타 게시물 5개 제작",
       field: "홍보",
@@ -38,13 +38,12 @@ export const SAMPLE_OWNER_HOME: OwnerHome = {
   ],
   working: [
     {
-      id: "req-103",
+      id: "work-103",
       kind: "request",
       title: "메뉴판 디자인 변경",
       student: { name: "김광운" },
       stage: "draft",
       due: "2026-09-29",
-      chatId: "chat-301",
     },
   ],
   waiting: [
@@ -58,34 +57,34 @@ export const SAMPLE_OWNER_HOME: OwnerHome = {
     },
   ],
   examples: [
-    { id: "example-review", field: "분석", title: "손님 리뷰에서\n아쉬운 점을 찾아 드려요" },
-    { id: "example-booking", field: "개발·IT", title: "전화 대신 받는\n예약서를 만들어 드려요" },
-    { id: "example-coupon", field: "디자인", title: "단골 쿠폰·도장카드를\n만들어 드려요" },
+    { id: "example-review", field: "분석", task: "리뷰 분석", title: "손님 리뷰에서\n아쉬운 점을 찾아 드려요" },
+    { id: "example-booking", field: "개발·IT", task: "온라인 예약·주문서", title: "전화 대신 받는\n예약서를 만들어 드려요" },
+    { id: "example-coupon", field: "디자인", task: "쿠폰·스티커·명함 디자인", title: "단골 쿠폰·도장카드를\n만들어 드려요" },
   ],
   done: [
     {
-      id: "req-090",
+      id: "work-090",
       kind: "request",
       title: "메뉴판 제작",
       student: { name: "김광운" },
       completedOn: "2026-09-12",
     },
     {
-      id: "req-085",
+      id: "work-085",
       kind: "request",
       title: "인스타 계정 만들기",
       student: { name: "정하은" },
       completedOn: "2026-09-03",
     },
     {
-      id: "prop-150",
+      id: "work-080",
       kind: "proposal",
       title: "네이버 지도 사진 정리",
       student: { name: "박누리" },
       completedOn: "2026-08-26",
     },
     {
-      id: "req-070",
+      id: "work-070",
       kind: "request",
       title: "가게 로고 만들기",
       student: { name: "이은서" },
