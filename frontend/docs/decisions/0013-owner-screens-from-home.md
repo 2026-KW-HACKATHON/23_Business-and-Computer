@@ -61,11 +61,8 @@ them yet.
 
 ## Agent Guidance
 
-- Not built yet, and their buttons fall back to /owner: 의뢰 등록 2/3 · 3/3,
-  수정 요청, 후기 작성, 제안 수락, 이 학생에게 맡기기, 학생 프로필, 작업 취소,
-  가게 정보 수정, 결제 내역, 내 활동 (/owner/requests?tab=), and the 탐색
-  상세 screens (/explore/proposals/:id, /explore/requests/:id). 의뢰 취소,
-  문제 신고, and 신고 have no action until their popups are built.
+- The screens one level further (registration 2/3 · 3/3, payment,
+  revision, review, cancel, explore details) are in ADR 0014.
 - Backend integration: replace the hooks in `useOwnerData.ts`, mark
   notifications read on the server, send chat messages over the planned
   WebSocket, and serve files through signed URLs for 「받기」.

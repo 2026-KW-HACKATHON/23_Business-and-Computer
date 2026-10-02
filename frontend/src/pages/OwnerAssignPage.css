@@ -1,0 +1,133 @@
+.owner-assign {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 20px 16px 32px;
+  font-family: var(--font-sans);
+}
+
+.owner-assign__intro {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.owner-assign__title {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 32px;
+  letter-spacing: normal;
+  color: var(--color-black);
+  white-space: pre-line;
+}
+
+.owner-assign__description {
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--role-secondary);
+}
+
+.owner-assign__card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid #e5e8eb;
+  border-radius: 16px;
+  background: var(--color-white);
+}
+
+.owner-assign__student {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.owner-assign__student-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.owner-assign__name {
+  font-size: 17px;
+  line-height: 22px;
+  color: var(--color-black);
+}
+
+.owner-assign__meta {
+  font-size: 13px;
+  line-height: 17px;
+  color: var(--role-secondary);
+  white-space: pre-line;
+}
+
+.owner-assign__plan {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 14px 14px;
+  border-radius: 12px;
+  background: var(--role-muted);
+}
+
+.owner-assign__plan-label {
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 17px;
+  color: var(--role-secondary);
+}
+
+.owner-assign__plan-line {
+  font-size: 14px;
+  line-height: 22px;
+  color: var(--color-black);
+  word-break: keep-all;
+  overflow-wrap: break-word;
+}
+
+.owner-assign__request-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.owner-assign__request-title {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 21px;
+  letter-spacing: normal;
+  color: var(--color-black);
+}
+
+.owner-assign__process {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 16px;
+  background: #f9fafb;
+}
+
+.owner-assign__process-title {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 20px;
+  letter-spacing: normal;
+  color: var(--color-black);
+}
+
+.owner-assign__actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}

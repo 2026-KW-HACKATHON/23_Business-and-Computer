@@ -5,8 +5,8 @@ interface ProfilePhotoProps {
   /** 고른 사진의 미리보기 주소. 없으면 회색 원 */
   src?: string;
   onSelect: (file: File) => void;
-  /** large = 132px (가입), small = 72px (내 정보) */
-  size?: "large" | "small";
+  /** large = 132px (가입), medium = 88px (가게 정보 수정), small = 72px (내 정보) */
+  size?: "large" | "medium" | "small";
 }
 
 /**

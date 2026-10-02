@@ -1,0 +1,65 @@
+.refund-guide {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.refund-guide__example {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: var(--role-muted);
+}
+
+.refund-guide__example > strong {
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--color-black);
+}
+
+.refund-guide__example dl {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+}
+
+.refund-guide__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.refund-guide__row dt {
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--role-secondary);
+}
+
+.refund-guide__row dd {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 19px;
+  color: var(--color-black);
+}
+
+.refund-guide__row--total dt {
+  font-weight: 500;
+  color: var(--color-black);
+}
+
+.refund-guide__row--total dd {
+  font-size: 17px;
+  line-height: 22px;
+}
+
+.refund-guide__note {
+  font-size: 12px;
+  line-height: 18px;
+  color: #8b95a1;
+  word-break: keep-all;
+}

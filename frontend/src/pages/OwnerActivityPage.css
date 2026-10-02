@@ -1,0 +1,230 @@
+.owner-activity {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 8px 16px 40px;
+}
+
+.owner-activity__payments {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.owner-activity__payments-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.owner-activity__list-title {
+  display: flex;
+  gap: 6px;
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 24px;
+  letter-spacing: normal;
+  color: var(--color-black);
+}
+
+.owner-activity__list-title > span {
+  color: var(--role-secondary);
+}
+
+.owner-activity__list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.owner-activity__card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid var(--role-border);
+  border-radius: 16px;
+  background: var(--color-white);
+}
+
+/* 머리 · 분류 · 마감 줄은 서로 6px */
+.owner-activity__head + .owner-activity__meta,
+.owner-activity__meta + .owner-activity__line {
+  margin-top: -6px;
+}
+
+.owner-activity__head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.owner-activity__title {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 24px;
+  letter-spacing: normal;
+  color: var(--color-black);
+  word-break: keep-all;
+}
+
+.owner-activity__meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  line-height: 16px;
+  color: var(--role-secondary);
+}
+
+.owner-activity__push {
+  margin-left: auto;
+}
+
+.owner-activity__line {
+  font-size: 13px;
+  line-height: 16px;
+  color: var(--role-secondary);
+}
+
+.owner-activity__divider {
+  height: 1px;
+  background: var(--role-border);
+}
+
+.owner-activity__box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 12px 12px 14px;
+  border-radius: 12px;
+  background: var(--role-muted);
+}
+
+.owner-activity__box--column {
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.owner-activity__excerpt {
+  align-self: stretch;
+  font-size: 15px;
+  line-height: 22px;
+  color: var(--color-black);
+}
+
+.owner-activity__dot {
+  flex-shrink: 0;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-owner);
+}
+
+.owner-activity__status {
+  flex: 1;
+  min-width: 0;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 18px;
+  color: var(--color-black);
+}
+
+.owner-activity__student {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.owner-activity__student-info {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.owner-activity__student-name {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+  line-height: 16px;
+  color: var(--role-secondary);
+}
+
+.owner-activity__student-name > strong {
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 17px;
+  color: var(--color-black);
+}
+
+.owner-activity__student-dept {
+  font-size: 13px;
+  line-height: 16px;
+  color: var(--role-secondary);
+}
+
+.owner-activity__actions {
+  display: flex;
+  gap: 8px;
+}
+
+.owner-activity__actions > .button--owner {
+  flex: 1;
+}
+
+.owner-activity__actions > .button--secondary {
+  flex: 0 0 104px;
+}
+
+.owner-activity__trouble {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--text-placeholder);
+}
+
+.owner-activity__trouble > span {
+  margin-right: auto;
+}
+
+.owner-activity__chip {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  height: 24px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: var(--role-muted);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 16px;
+  color: var(--text-body);
+}
+
+.owner-activity__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.owner-activity__reviewed {
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 16px;
+  color: var(--role-secondary);
+}

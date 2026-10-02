@@ -53,3 +53,15 @@ export function formatDayChip(isoDateTime: string): string {
   const date = new Date(isoDateTime);
   return `${monthDay(date)} (${WEEKDAYS[date.getDay()]})`;
 }
+
+/** 오늘 날짜 "2026-10-02" (날짜 입력의 min 값) */
+export function todayIsoDate(now = new Date()): string {
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  return `${now.getFullYear()}-${month}-${day}`;
+}
+
+/** "2026-09-11" → "2026.09.11", "2025-03" → "2025.03" */
+export function formatDotDate(isoDate: string): string {
+  return isoDate.split("-").join(".");
+}

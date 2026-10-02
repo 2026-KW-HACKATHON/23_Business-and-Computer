@@ -1,0 +1,78 @@
+.report-sheet {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: var(--role-muted);
+  font-family: var(--font-sans);
+}
+
+.report-sheet__to {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px 8px;
+}
+
+.report-sheet__to span {
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--role-secondary);
+}
+
+.report-sheet__to strong {
+  font-size: 14px;
+  line-height: 19px;
+  color: var(--color-black);
+  overflow-wrap: anywhere;
+}
+
+.report-sheet__divider {
+  width: 100%;
+  height: 1px;
+  margin: 0;
+  border: 0;
+  background: var(--role-border);
+}
+
+.report-sheet__title {
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--color-black);
+}
+
+.report-sheet__list {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--color-black);
+}
+
+.report-sheet__list li::before {
+  content: "· ";
+}
+
+.report-sheet__list li span {
+  display: block;
+  padding-left: 12px;
+}
+
+.report-sheet__actions {
+  display: flex;
+  gap: 8px;
+}
+
+.report-sheet__close {
+  flex-shrink: 0;
+  width: 120px;
+}
+
+.report-sheet__send {
+  flex: 1;
+}

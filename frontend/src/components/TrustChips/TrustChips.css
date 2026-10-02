@@ -1,0 +1,45 @@
+.trust-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-family: var(--font-sans);
+}
+
+.trust-chips__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  box-sizing: border-box;
+  height: 26px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: var(--role-muted);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 16px;
+  color: #333d4b;
+  white-space: nowrap;
+}
+
+.trust-chips__chip--verified {
+  padding-left: 5px;
+}
+
+.trust-chips__check {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  background: var(--color-main);
+  color: var(--color-black);
+}
+
+.trust-chips__check svg {
+  width: 10px;
+  height: 10px;
+}

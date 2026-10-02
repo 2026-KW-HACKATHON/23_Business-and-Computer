@@ -1,0 +1,123 @@
+.owner-pay {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  padding: 20px 16px 32px;
+  font-family: var(--font-sans);
+}
+
+.owner-pay__card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid #e5e8eb;
+  border-radius: 16px;
+  background: var(--color-white);
+}
+
+.owner-pay__student {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.owner-pay__student-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.owner-pay__student-info strong {
+  font-size: 16px;
+  line-height: 21px;
+  color: var(--color-black);
+}
+
+.owner-pay__student-info span {
+  font-size: 13px;
+  line-height: 17px;
+  color: var(--role-secondary);
+  white-space: pre-line;
+}
+
+.owner-pay__divider {
+  width: 100%;
+  height: 1px;
+  margin: 0;
+  border: 0;
+  background: #f2f4f6;
+}
+
+.owner-pay__work {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 20px;
+  color: var(--color-black);
+}
+
+.owner-pay__terms {
+  font-size: 13px;
+  line-height: 17px;
+  color: var(--role-secondary);
+}
+
+/* 제안 수락 화면 */
+.owner-pay--accept {
+  gap: 22px;
+  padding-top: 16px;
+}
+
+.owner-pay__intro {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.owner-pay__title {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 30px;
+  letter-spacing: normal;
+  color: var(--color-black);
+}
+
+.owner-pay__description {
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--role-secondary);
+  white-space: pre-line;
+}
+
+.owner-pay__summary {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px 16px;
+  border: 1px solid #e5e8eb;
+  border-radius: 16px;
+}
+
+.owner-pay__summary-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.owner-pay__summary-title {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 21px;
+  letter-spacing: normal;
+  color: var(--color-black);
+}

@@ -11,8 +11,7 @@ interface ExploreCardProps {
   kind: WorkKind;
   title: string;
   field: Field;
-  /** 「월계분식 · 석계로」 */
-  place: string;
+  storeName: string;
   /** 제안만: 공감 수 */
   empathyCount?: number;
   /** 의뢰만: 모집 중일 때 마감 (예: 9월 27일까지) */
@@ -27,7 +26,7 @@ function ExploreCard({
   kind,
   title,
   field,
-  place,
+  storeName,
   empathyCount,
   deadline,
   status,
@@ -43,7 +42,7 @@ function ExploreCard({
       </div>
       <div className="explore-card__meta">
         <CategoryBadge field={field} />
-        <span className="explore-card__place">{place}</span>
+        <span className="explore-card__store">{storeName}</span>
       </div>
       {status && <p className="explore-card__status">{status}</p>}
       <div className="explore-card__divider" />
