@@ -1,0 +1,26 @@
+name: AWS Connection Check
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/aws-connection-check.yml
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v6.3.0
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Verify AWS identity
+        run: aws sts get-caller-identity
