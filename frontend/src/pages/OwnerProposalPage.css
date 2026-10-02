@@ -1,0 +1,57 @@
+.owner-proposal {
+  gap: 24px;
+}
+
+.owner-proposal__empathy {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: #fff4f4;
+}
+
+.owner-proposal__empathy-title {
+  display: block;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 20px;
+  color: var(--color-black);
+}
+
+.owner-proposal__empathy-sub {
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--role-secondary);
+}
+
+.owner-proposal__student {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px;
+  border: 1px solid var(--role-border);
+  border-radius: 16px;
+}
+
+.owner-proposal__student-info {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.owner-proposal__student-name {
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 21px;
+  color: var(--color-black);
+}
+
+.owner-proposal__student-sub {
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--role-secondary);
+  white-space: pre-line;
+}

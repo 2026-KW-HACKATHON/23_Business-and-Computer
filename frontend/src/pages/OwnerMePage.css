@@ -1,0 +1,99 @@
+.owner-me__profile {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 20px 16px 16px;
+}
+
+.owner-me__head {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.owner-me__badges {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.owner-me__verified {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  box-sizing: border-box;
+  height: 26px;
+  padding: 0 10px 0 5px;
+  border-radius: 999px;
+  background: var(--role-muted);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 16px;
+  color: var(--text-title);
+}
+
+.owner-me__verified-check {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--color-main);
+  color: var(--color-black);
+}
+
+.owner-me__verified-check svg {
+  width: 10px;
+  height: 10px;
+}
+
+.owner-me__edit {
+  margin-left: auto;
+  height: 32px;
+  padding: 0 14px;
+  border: 1px solid var(--role-border);
+  border-radius: 999px;
+  background: var(--color-white);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 16px;
+  color: var(--text-title);
+  cursor: pointer;
+}
+
+.owner-me__edit:focus-visible {
+  outline: 2px solid var(--color-black);
+  outline-offset: 2px;
+}
+
+/* 섹션 사이 8px 회색 띠 */
+.owner-me__section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px;
+  border-top: 8px solid var(--role-muted);
+}
+
+.owner-me__section--settings {
+  gap: 16px;
+  padding-bottom: 40px;
+}
+
+.owner-me__group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.owner-me__section-title {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 21px;
+  letter-spacing: normal;
+  color: var(--color-black);
+}

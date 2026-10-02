@@ -60,4 +60,5 @@
   font-weight: 500;
   line-height: 20px;
   color: var(--text-body);
+  white-space: pre-line;
 }

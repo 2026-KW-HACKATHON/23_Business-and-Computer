@@ -1,14 +1,16 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Button, CategoryBadge, ChatButton, SectionHeader, TaskRow } from "../components";
+import { CategoryBadge, SectionHeader, TaskRow } from "../components";
 import {
   OWNER_PATHS,
   OwnerTabScreen,
   TodoCarousel,
+  WorkPlanSheet,
   WAITING_STATUS_LABEL,
   deadlineText,
   studentLabel,
   useOwnerHome,
+  useOwnerWork,
 } from "../features/owner";
 import type { OwnerTodo } from "../features/owner";
 import { formatMonthDay } from "../lib/date";
@@ -25,9 +27,19 @@ function OwnerHomePage() {
   // 끝난 일은 접힌 채 최근 1건만 보인다
   const [doneExpanded, setDoneExpanded] = useState(false);
   const doneRows = doneExpanded ? home.done : home.done.slice(0, 1);
+  // 「학생이 작업 중」 줄을 누르면 작업계획서 바텀시트
+  const [planWorkId, setPlanWorkId] = useState<string>();
+  const planWork = useOwnerWork(planWorkId);
 
   const openTodo = (todo: OwnerTodo) => {
-    navigate(todo.kind === "proposal" ? OWNER_PATHS.proposal(todo.id) : OWNER_PATHS.request(todo.id));
+    switch (todo.type) {
+      case "draftArrived":
+        return navigate(OWNER_PATHS.workCheck(todo.id));
+      case "proposalArrived":
+        return navigate(OWNER_PATHS.proposal(todo.id));
+      case "applicants":
+        return navigate(OWNER_PATHS.requestApplicants(todo.id));
+    }
   };
 
   return (
@@ -49,22 +61,7 @@ function OwnerHomePage() {
                 kind={work.kind}
                 title={work.title}
                 lines={[studentLabel(work.student), deadlineText(work.stage, work.due)]}
-                trailing={
-                  <>
-                    <ChatButton
-                      role="owner"
-                      label={`${work.student.name} 학생과 채팅`}
-                      onClick={() => navigate(OWNER_PATHS.chat(work.chatId))}
-                    />
-                    <Button
-                      variant="secondary"
-                      size="small"
-                      onClick={() => navigate(OWNER_PATHS.request(work.id))}
-                    >
-                      상세보기
-                    </Button>
-                  </>
-                }
+                onClick={() => setPlanWorkId(work.id)}
               />
             ))}
           </div>
@@ -82,15 +79,7 @@ function OwnerHomePage() {
                 title={item.title}
                 lines={[deadlineText(item.stage, item.due)]}
                 status={WAITING_STATUS_LABEL[item.status]}
-                trailing={
-                  <Button
-                    variant="secondary"
-                    size="small"
-                    onClick={() => navigate(OWNER_PATHS.request(item.id))}
-                  >
-                    상세보기
-                  </Button>
-                }
+                onClick={() => navigate(OWNER_PATHS.request(item.id))}
               />
             ))}
           </div>
@@ -102,7 +91,7 @@ function OwnerHomePage() {
           <SectionHeader
             title="이런 의뢰는 어때요?"
             actionLabel="더 보기 ›"
-            onAction={() => navigate(OWNER_PATHS.requestExamples)}
+            onAction={() => navigate(OWNER_PATHS.explore)}
           />
         </div>
         <ul className="owner-home__examples">
@@ -138,20 +127,18 @@ function OwnerHomePage() {
                 kind={item.kind}
                 title={item.title}
                 lines={[studentLabel(item.student), `완료 : ${formatMonthDay(item.completedOn)}`]}
-                trailing={
-                  <Button
-                    variant="secondary"
-                    size="small"
-                    onClick={() => navigate(OWNER_PATHS.requestResult(item.id))}
-                  >
-                    결과물 보기
-                  </Button>
-                }
+                onClick={() => navigate(OWNER_PATHS.workResult(item.id))}
               />
             ))}
           </div>
         </section>
       )}
+
+      <WorkPlanSheet
+        work={planWork}
+        onClose={() => setPlanWorkId(undefined)}
+        onChat={() => planWork && navigate(OWNER_PATHS.chat(planWork.id))}
+      />
     </OwnerTabScreen>
   );
 }

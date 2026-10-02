@@ -1,0 +1,40 @@
+.attachment-tiles {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.attachment-tiles__tile {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: flex-start;
+  min-width: 0;
+  box-sizing: border-box;
+  padding: 0 0 10px 10px;
+  border-radius: 12px;
+  background: var(--role-muted);
+}
+
+.attachment-tiles__name {
+  display: inline-flex;
+  align-items: center;
+  max-width: calc(100% - 10px);
+  box-sizing: border-box;
+  height: 22px;
+  padding: 0 8px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.55);
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 14px;
+  color: var(--color-white);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
