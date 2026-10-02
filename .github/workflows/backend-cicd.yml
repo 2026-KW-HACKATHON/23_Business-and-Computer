@@ -47,30 +47,24 @@ jobs:
       SPRING_DATASOURCE_URL: jdbc:postgresql://127.0.0.1:5432/gakkum_ci
       SPRING_DATASOURCE_USERNAME: gakkum_ci
       SPRING_DATASOURCE_PASSWORD: gakkum_ci
-    
       DATABASE_URL: "jdbc:postgresql://127.0.0.1:5432/gakkum_ci?user=gakkum_ci&password=gakkum_ci"
       DATABASE_MAX_POOL_SIZE: "5"
       DATABASE_MIN_POOL_SIZE: "1"
       DATABASE_CONNECTION_TIMEOUT: "30000"
       DATABASE_IDLE_TIMEOUT: "600000"
       DATABASE_MAX_LIFETIME: "1800000"
-
       KAKAO_CLIENT_ID: ci-client-id
       KAKAO_CLIENT_SECRET: ci-client-secret
       KAKAO_REDIRECT_URI: http://localhost:8080/login/oauth2/code/kakao
-
       MAIL_HOST: localhost
       MAIL_PORT: "587"
       MAIL_USERNAME: ci@example.com
       MAIL_PASSWORD: ci-mail-password
-
       JWT_SECRET: ci-test-secret-at-least-32-bytes-long
       NTS_BUSINESSMAN_SERVICE_KEY: ci-nts-key
-
       KAKAO_PAY_CID: TC0ONETIME
       KAKAO_PAY_SECRET_KEY: ci-payment-secret
       KAKAO_PAY_FRONTEND_BASE_URL: http://localhost:5173
-
       S3_BUCKET: gakkum-ci-private
       S3_IMAGE_BUCKET: gakkum-ci-public
       S3_REGION: ap-northeast-1
@@ -105,3 +99,63 @@ jobs:
             backend/build/test-results/test/
           retention-days: 7
           if-no-files-found: warn
+
+  build-and-push:
+    needs: test
+    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+
+    permissions:
+      contents: read
+      id-token: write
+
+    outputs:
+      image: ${{ steps.image.outputs.image }}
+      digest: ${{ steps.build.outputs.digest }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v6.3.0
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: ecr-login
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Set image tag
+        id: image
+        env:
+          ECR_REGISTRY: ${{ steps.ecr-login.outputs.registry }}
+          ECR_REPOSITORY: ${{ vars.ECR_REPOSITORY }}
+          IMAGE_TAG: sha-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+        run: |
+          IMAGE="$ECR_REGISTRY/$ECR_REPOSITORY"
+          echo "image=$IMAGE" >> "$GITHUB_OUTPUT"
+          echo "tag=$IMAGE:$IMAGE_TAG" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Build and push image
+        id: build
+        uses: docker/build-push-action@v7
+        with:
+          context: ./backend
+          file: ./backend/Dockerfile
+          platforms: ${{ vars.IMAGE_PLATFORM }}
+          push: true
+          tags: ${{ steps.image.outputs.tag }}
+
+      - name: Record image
+        env:
+          IMAGE_TAG: ${{ steps.image.outputs.tag }}
+          IMAGE_REF: ${{ steps.image.outputs.image }}@${{ steps.build.outputs.digest }}
+        run: |
+          echo "Tag: $IMAGE_TAG" >> "$GITHUB_STEP_SUMMARY"
+          echo "Image: $IMAGE_REF" >> "$GITHUB_STEP_SUMMARY"
