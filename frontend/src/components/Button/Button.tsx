@@ -7,12 +7,15 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: "primary" | "secondary";
   /** 사장님 = 노랑, 학생 = 자주 */
   tone?: Role;
+  /** large = 52px, medium = 48px (카드 안), small = 40px (목록 줄 안) */
+  size?: "large" | "medium" | "small";
   fullWidth?: boolean;
 }
 
 function Button({
   variant = "primary",
   tone = "owner",
+  size = "large",
   fullWidth = false,
   type = "button",
   className = "",
@@ -21,6 +24,7 @@ function Button({
   const classes = [
     "button",
     variant === "primary" ? `button--${tone}` : "button--secondary",
+    size === "large" ? "" : `button--${size}`,
     fullWidth ? "button--full" : "",
     className,
   ]
