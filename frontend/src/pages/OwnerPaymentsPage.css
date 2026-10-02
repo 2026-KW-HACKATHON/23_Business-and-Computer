@@ -1,0 +1,124 @@
+.owner-payments {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 16px 16px 32px;
+}
+
+.owner-payments__note {
+  margin-top: -8px;
+  font-size: 12px;
+  line-height: 17px;
+  color: var(--text-placeholder);
+}
+
+.owner-payments__month {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.owner-payments__month-title {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 18px;
+  letter-spacing: normal;
+  color: var(--role-secondary);
+}
+
+.owner-payments__list {
+  margin: 0;
+  padding: 0 16px;
+  border: 1px solid var(--role-border);
+  border-radius: 16px;
+  list-style: none;
+}
+
+.owner-payments__list > li + li {
+  border-top: 1px solid var(--role-muted);
+}
+
+.owner-payments__row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  box-sizing: border-box;
+  width: 100%;
+  padding: 14px 0;
+  border: none;
+  background: none;
+  font-family: var(--font-sans);
+  text-align: left;
+  cursor: pointer;
+}
+
+.owner-payments__row:focus-visible {
+  outline: 2px solid var(--color-black);
+  outline-offset: 2px;
+  border-radius: 8px;
+}
+
+.owner-payments__info {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.owner-payments__title {
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 20px;
+  color: var(--color-black);
+}
+
+.owner-payments__detail {
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--text-placeholder);
+}
+
+.owner-payments__side {
+  display: flex;
+  flex-shrink: 0;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+
+.owner-payments__amount {
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 20px;
+  color: var(--color-black);
+}
+
+.owner-payments__status {
+  display: inline-flex;
+  align-items: center;
+  height: 20px;
+  padding: 0 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 14px;
+}
+
+.owner-payments__status--escrowed {
+  background: #fff8d6;
+  color: var(--color-black);
+}
+
+.owner-payments__status--settled {
+  background: var(--role-muted);
+  color: var(--text-body);
+}
+
+.owner-payments__status--partialRefund,
+.owner-payments__status--fullRefund {
+  background: #fff4f4;
+  color: var(--color-danger);
+}

@@ -1,0 +1,192 @@
+.request-field {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  font-family: var(--font-sans);
+}
+
+.request-field__label {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 6px;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 21px;
+  color: var(--color-black);
+}
+
+.request-field__label small {
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 16px;
+  color: #8b95a1;
+}
+
+/* 피그마 입력칸은 모서리 12px */
+.request-field__input .text-field__box {
+  border-radius: 12px;
+}
+
+.request-field__budget .text-field__input {
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.request-field__budget .text-field__trailing {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--role-secondary);
+}
+
+.request-field__textarea-box {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  box-sizing: border-box;
+  padding: 14px;
+  border: 1px solid var(--input-border);
+  border-radius: 12px;
+  background: var(--color-white);
+}
+
+.request-field__textarea-box:focus-within {
+  border-color: var(--color-black);
+}
+
+.request-field__textarea {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 88px;
+  padding: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-family: var(--font-sans);
+  font-size: 15px;
+  line-height: 22px;
+  color: var(--color-black);
+  resize: none;
+}
+
+.request-field__count {
+  font-size: 12px;
+  line-height: 16px;
+  color: #8b95a1;
+  text-align: right;
+}
+
+.request-field__dues {
+  display: flex;
+  gap: 8px;
+}
+
+.request-field__due {
+  position: relative;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  box-sizing: border-box;
+  padding: 12px 14px;
+  border: 1px solid var(--input-border);
+  border-radius: 12px;
+  background: var(--color-white);
+  cursor: pointer;
+}
+
+.request-field__due:focus-within {
+  border-color: var(--color-black);
+}
+
+.request-field__due-label {
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--role-secondary);
+}
+
+.request-field__due-value {
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 20px;
+  color: var(--color-black);
+}
+
+.request-field__due-value--empty {
+  font-weight: 400;
+  color: #8b95a1;
+}
+
+/* 날짜 입력은 칸 전체를 덮고 보이지 않는다. 고른 날은 위 글자로 보여 준다 */
+.request-field__due-input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.request-field__stepper {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  box-sizing: border-box;
+  padding: 10px 10px 10px 14px;
+  border: 1px solid var(--input-border);
+  border-radius: 12px;
+}
+
+.request-field__stepper > p {
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--role-secondary);
+  word-break: keep-all;
+}
+
+.request-field__step-button {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 1px solid #d0d5db;
+  border-radius: 999px;
+  background: var(--color-white);
+  font-family: var(--font-sans);
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 22px;
+  color: var(--color-black);
+  cursor: pointer;
+}
+
+.request-field__step-button:disabled {
+  border-color: transparent;
+  background: var(--role-muted);
+  color: #c4cad1;
+  cursor: default;
+}
+
+.request-field__step-button:focus-visible {
+  outline: 2px solid var(--color-black);
+  outline-offset: 2px;
+}
+
+.request-field__revisions {
+  flex-shrink: 0;
+  width: 40px;
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 24px;
+  color: var(--color-black);
+  text-align: center;
+}

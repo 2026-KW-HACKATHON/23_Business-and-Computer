@@ -1,0 +1,61 @@
+.refund-breakdown {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: var(--role-muted);
+  font-family: var(--font-sans);
+}
+
+.refund-breakdown__title {
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--color-black);
+}
+
+.refund-breakdown__rows {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+}
+
+.refund-breakdown__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.refund-breakdown__row dt {
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--role-secondary);
+}
+
+.refund-breakdown__row dd {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 19px;
+  color: var(--color-black);
+  white-space: nowrap;
+}
+
+.refund-breakdown__row--total dt {
+  font-weight: 500;
+  color: var(--color-black);
+}
+
+.refund-breakdown__row--total dd {
+  font-size: 18px;
+  line-height: 23px;
+}
+
+.refund-breakdown__note {
+  font-size: 12px;
+  line-height: 17px;
+  color: #8b95a1;
+  word-break: keep-all;
+}

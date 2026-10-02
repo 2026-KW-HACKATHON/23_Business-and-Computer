@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { AppImage, Button, Chip, FIELD_ICONS, StepIndicator, SubScreen } from "../components";
-import { OWNER_PATHS, useRequestExample } from "../features/owner";
+import { OWNER_PATHS, readNewRequestState, useRequestExample } from "../features/owner";
+import type { NewRequestState, PickedTask } from "../features/owner";
 import { useBack } from "../hooks/useBack";
 import { FIELDS } from "../types/field";
 import type { Field } from "../types/field";
@@ -21,14 +22,10 @@ const FIELD_HINTS: Record<Field, string> = {
 /** 분야마다 고를 수 있는 일 (학생 역량 뱃지와 같은 목록) */
 const TASKS_BY_FIELD = new Map(SPECIALTY_BADGES.map(({ field, badges }) => [field, badges]));
 
-interface PickedTask {
-  field: Field;
-  task: string;
-}
-
 /**
  * 피그마 「의뢰 등록 1/3 - 기본 정보」. 분야를 고르고 분야마다 필요한 일을 고른다.
- * 홈 「이런 의뢰는 어때요?」 예시로 들어오면 그 예시의 분야와 일이 골라져 있다 (B-2).
+ * 홈 「이런 의뢰는 어때요?」 예시로 들어오면 그 예시의 분야와 일이 골라져 있고,
+ * 2/3 에는 예시 내용이 채워져 있다 (B-2).
  */
 function OwnerRequestNewPage() {
   const navigate = useNavigate();
@@ -36,9 +33,13 @@ function OwnerRequestNewPage() {
   const back = useBack(OWNER_PATHS.home);
   const exampleId = (location.state as { exampleId?: string } | null)?.exampleId;
   const example = useRequestExample(exampleId);
-  const [fields, setFields] = useState<Field[]>(example ? [example.field] : []);
+  // 2/3 에서 ← 로 돌아오면 저장해 둔 값으로 시작한다
+  const saved = readNewRequestState(location.state);
+  const [fields, setFields] = useState<Field[]>(
+    saved?.fields ?? (example ? [example.field] : []),
+  );
   const [picked, setPicked] = useState<PickedTask[]>(
-    example ? [{ field: example.field, task: example.task }] : [],
+    saved?.picked ?? (example ? [{ field: example.field, task: example.task }] : []),
   );
 
   const countOf = (field: Field) => picked.filter((p) => p.field === field).length;
@@ -66,6 +67,12 @@ function OwnerRequestNewPage() {
   // 기타는 고를 일이 없어 다음 단계에서 적는다
   const canNext = picked.length > 0 || fields.includes("기타");
 
+  const goNext = () => {
+    const next: NewRequestState = { ...saved, exampleId, fields, picked };
+    navigate(location.pathname, { replace: true, state: next });
+    navigate(OWNER_PATHS.newRequestStep(2), { state: next });
+  };
+
   return (
     <SubScreen
       title="의뢰 등록"
@@ -92,7 +99,7 @@ function OwnerRequestNewPage() {
           <Button
             fullWidth
             disabled={!canNext}
-            onClick={() => navigate(OWNER_PATHS.newRequestStep(2), { state: { fields, picked } })}
+            onClick={goNext}
           >
             다음
           </Button>
@@ -164,6 +171,7 @@ function OwnerRequestNewPage() {
                         <Chip
                           key={task}
                           variant="outlined"
+                          tone="owner"
                           label={task}
                           selected={isPicked(field, task)}
                           onClick={() => toggleTask(field, task)}

@@ -31,7 +31,7 @@ public class SocialSuccessHandler implements AuthenticationSuccessHandler {
         String role = authentication.getAuthorities().iterator().next().getAuthority();
 
         // JWT(Refresh) 발급
-        String refreshToken = jwtUtil.createJWT(username, "ROLE_" + role, false);
+        String refreshToken = jwtUtil.createJWT(username, role, false);
 
         // 발급한 Refresh DB 테이블 저장 (Refresh whitelist)
         jwtService.addRefresh(username, refreshToken);

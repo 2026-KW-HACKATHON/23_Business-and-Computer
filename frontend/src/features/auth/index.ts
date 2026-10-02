@@ -6,4 +6,6 @@ export {
   clearTokens,
   isLoggedIn,
 } from "./lib/tokenStorage";
+export { getUserRole, landingPath } from "./lib/session";
+export type { UserRole } from "./lib/session";
 export type { SocialProvider, TokenPair } from "./types";
