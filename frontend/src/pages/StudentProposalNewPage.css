@@ -396,14 +396,17 @@
 }
 
 /* 3/4 예상 기간 두 칸 */
+/* 두 칸이 반씩 나눠 가진다 (입력칸 기본 너비로 늘어나 화면 밖으로 밀리지 않게) */
 .student-new__days-row {
   display: flex;
   gap: 10px;
+  width: 100%;
 }
 
 .student-new__days {
   display: flex;
   flex: 1;
+  min-width: 0;
   flex-direction: column;
   gap: 6px;
   font-size: 13px;
