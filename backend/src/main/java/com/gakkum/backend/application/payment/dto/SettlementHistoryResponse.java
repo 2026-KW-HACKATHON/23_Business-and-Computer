@@ -6,6 +6,7 @@ import java.util.List;
 import com.gakkum.backend.domain.payment.dto.PaymentQueryDto.SettlementHistoryItemResult;
 import com.gakkum.backend.domain.payment.dto.PaymentQueryDto.SettlementHistoryMonthResult;
 import com.gakkum.backend.domain.payment.dto.PaymentQueryDto.SettlementHistoryResult;
+import com.gakkum.backend.domain.payment.dto.PaymentQueryDto.SettlementHistorySummaryResult;
 import com.gakkum.backend.domain.payment.dto.SettlementHistoryStatus;
 
 import lombok.AccessLevel;
@@ -16,10 +17,26 @@ import lombok.Getter;
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 public class SettlementHistoryResponse {
 
+    private final Summary summary;
     private final List<Month> months;
 
     public static SettlementHistoryResponse from(SettlementHistoryResult result) {
-        return new SettlementHistoryResponse(result.getMonths().stream().map(Month::from).toList());
+        return new SettlementHistoryResponse(
+                Summary.from(result.getSummary()), result.getMonths().stream().map(Month::from).toList());
+    }
+
+    @Getter
+    @AllArgsConstructor(access = AccessLevel.PRIVATE)
+    public static class Summary {
+
+        private final Long thisMonthWorkAmount;
+        private final Long scheduledAmount;
+        private final Long totalSettledAmount;
+
+        public static Summary from(SettlementHistorySummaryResult result) {
+            return new Summary(
+                    result.getThisMonthWorkAmount(), result.getScheduledAmount(), result.getTotalSettledAmount());
+        }
     }
 
     @Getter

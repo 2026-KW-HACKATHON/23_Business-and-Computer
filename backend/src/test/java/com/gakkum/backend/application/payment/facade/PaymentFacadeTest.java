@@ -9,6 +9,8 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.time.Clock;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.InOrder;
@@ -36,7 +38,7 @@ class PaymentFacadeTest {
     private final PaymentApprovalService approvalService = mock(PaymentApprovalService.class);
     private final PaymentFacade facade = new PaymentFacade(preparationService, kakaoPayClient, paymentService,
             approvalService, mock(UserService.class), mock(JobService.class), mock(StudentService.class),
-            mock(OwnerService.class));
+            mock(OwnerService.class), Clock.systemUTC());
     private final PaymentPrepareRequest request = PaymentPrepareRequest.of(21L, true);
     private final PendingPaymentData pending = new PendingPaymentData("order-123", 100_000L, "포스터 제작", "owner-123");
 

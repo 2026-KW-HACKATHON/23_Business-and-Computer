@@ -34,11 +34,13 @@ import com.gakkum.backend.domain.payment.dto.PaymentQueryDto.PaymentHistoryData;
 import com.gakkum.backend.domain.payment.dto.PaymentQueryDto.PaymentHistoryItemResult;
 import com.gakkum.backend.domain.payment.dto.PaymentQueryDto.PaymentHistoryMonthResult;
 import com.gakkum.backend.domain.payment.dto.PaymentQueryDto.PaymentHistoryResult;
+import com.gakkum.backend.domain.payment.dto.PaymentQueryDto.PaymentHistorySummaryResult;
 import com.gakkum.backend.domain.payment.dto.PaymentQueryDto.PreparePaymentResult;
 import com.gakkum.backend.domain.payment.dto.PaymentQueryDto.ApprovedPaymentData;
 import com.gakkum.backend.domain.payment.dto.PaymentQueryDto.SettlementHistoryItemResult;
 import com.gakkum.backend.domain.payment.dto.PaymentQueryDto.SettlementHistoryMonthResult;
 import com.gakkum.backend.domain.payment.dto.PaymentQueryDto.SettlementHistoryResult;
+import com.gakkum.backend.domain.payment.dto.PaymentQueryDto.SettlementHistorySummaryResult;
 import com.gakkum.backend.domain.payment.dto.SettlementHistoryStatus;
 import com.gakkum.backend.domain.payment.entity.Payment;
 import com.gakkum.backend.global.exception.BusinessException;
@@ -165,12 +167,13 @@ class PaymentControllerTest {
     }
 
     @Test
-    @DisplayName("결제 내역 조회는 인증 사용자를 Facade에 전달하고 월별 결제 내역을 반환한다")
+    @DisplayName("결제 내역 조회는 인증 사용자를 Facade에 전달하고 요약 금액과 월별 결제 내역을 반환한다")
     void returnsPaymentHistory() throws Exception {
         Payment payment = Payment.pending(42L, 21L, "owner-123", "order-123", 100_000L, Instant.EPOCH);
         payment.recordKakaoTid("T1234567890123456789");
         payment.approve(Instant.parse("2026-10-02T03:00:00Z"));
-        when(paymentFacade.getPaymentHistory(USERNAME)).thenReturn(PaymentHistoryResult.of(List.of(
+        when(paymentFacade.getPaymentHistory(USERNAME)).thenReturn(PaymentHistoryResult.of(
+                PaymentHistorySummaryResult.of(300_000L, 100_000L, 3_000_000_000L), List.of(
                 PaymentHistoryMonthResult.of("2026-10", List.of(PaymentHistoryItemResult.of(
                         PaymentHistoryData.from(payment), "매장 홍보 포스터 제작", 0L, "김학생",
                         PaymentHistoryStatus.HELD))))));
@@ -178,6 +181,11 @@ class PaymentControllerTest {
         mockMvc.perform(get("/payments").principal(authentication))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.length()").value(2))
+                .andExpect(jsonPath("$.data.summary.length()").value(3))
+                .andExpect(jsonPath("$.data.summary.thisMonthPaymentAmount").value(300000))
+                .andExpect(jsonPath("$.data.summary.heldAmount").value(100000))
+                .andExpect(jsonPath("$.data.summary.totalSettledAmount").value(3000000000L))
                 .andExpect(jsonPath("$.data.months.length()").value(1))
                 .andExpect(jsonPath("$.data.months[0].yearMonth").value("2026-10"))
                 .andExpect(jsonPath("$.data.months[0].payments.length()").value(1))
@@ -193,13 +201,17 @@ class PaymentControllerTest {
     }
 
     @Test
-    @DisplayName("결제 내역이 없으면 200과 빈 월 목록을 반환한다")
+    @DisplayName("결제 내역이 없으면 200과 0원 요약, 빈 월 목록을 반환한다")
     void returnsEmptyPaymentHistory() throws Exception {
-        when(paymentFacade.getPaymentHistory(USERNAME)).thenReturn(PaymentHistoryResult.of(List.of()));
+        when(paymentFacade.getPaymentHistory(USERNAME)).thenReturn(
+                PaymentHistoryResult.of(PaymentHistorySummaryResult.of(0L, 0L, 0L), List.of()));
 
         mockMvc.perform(get("/payments").principal(authentication))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.summary.thisMonthPaymentAmount").value(0))
+                .andExpect(jsonPath("$.data.summary.heldAmount").value(0))
+                .andExpect(jsonPath("$.data.summary.totalSettledAmount").value(0))
                 .andExpect(jsonPath("$.data.months").isArray())
                 .andExpect(jsonPath("$.data.months").isEmpty());
     }
@@ -220,9 +232,10 @@ class PaymentControllerTest {
     }
 
     @Test
-    @DisplayName("정산 내역 조회는 인증 사용자를 Facade에 전달하고 월별 정산 내역을 반환한다")
+    @DisplayName("정산 내역 조회는 인증 사용자를 Facade에 전달하고 요약 금액과 월별 정산 내역을 반환한다")
     void returnsSettlementHistory() throws Exception {
-        when(paymentFacade.getSettlementHistory(USERNAME)).thenReturn(SettlementHistoryResult.of(List.of(
+        when(paymentFacade.getSettlementHistory(USERNAME)).thenReturn(SettlementHistoryResult.of(
+                SettlementHistorySummaryResult.of(120_000L, 100_000L, 3_000_000_000L), List.of(
                 SettlementHistoryMonthResult.of("2026-10", List.of(
                         SettlementHistoryItemResult.of(43L, "매장 홍보 포스터 제작", 100_000L, null, "가꿈 카페",
                                 SettlementHistoryStatus.SCHEDULED),
@@ -232,6 +245,11 @@ class PaymentControllerTest {
         mockMvc.perform(get("/settlements").principal(authentication))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.length()").value(2))
+                .andExpect(jsonPath("$.data.summary.length()").value(3))
+                .andExpect(jsonPath("$.data.summary.thisMonthWorkAmount").value(120000))
+                .andExpect(jsonPath("$.data.summary.scheduledAmount").value(100000))
+                .andExpect(jsonPath("$.data.summary.totalSettledAmount").value(3000000000L))
                 .andExpect(jsonPath("$.data.months.length()").value(1))
                 .andExpect(jsonPath("$.data.months[0].yearMonth").value("2026-10"))
                 .andExpect(jsonPath("$.data.months[0].settlements.length()").value(2))
@@ -250,13 +268,17 @@ class PaymentControllerTest {
     }
 
     @Test
-    @DisplayName("정산 내역이 없으면 200과 빈 월 목록을 반환한다")
+    @DisplayName("정산 내역이 없으면 200과 0원 요약, 빈 월 목록을 반환한다")
     void returnsEmptySettlementHistory() throws Exception {
-        when(paymentFacade.getSettlementHistory(USERNAME)).thenReturn(SettlementHistoryResult.of(List.of()));
+        when(paymentFacade.getSettlementHistory(USERNAME)).thenReturn(
+                SettlementHistoryResult.of(SettlementHistorySummaryResult.of(0L, 0L, 0L), List.of()));
 
         mockMvc.perform(get("/settlements").principal(authentication))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.summary.thisMonthWorkAmount").value(0))
+                .andExpect(jsonPath("$.data.summary.scheduledAmount").value(0))
+                .andExpect(jsonPath("$.data.summary.totalSettledAmount").value(0))
                 .andExpect(jsonPath("$.data.months").isArray())
                 .andExpect(jsonPath("$.data.months").isEmpty());
     }

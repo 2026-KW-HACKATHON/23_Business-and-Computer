@@ -9,9 +9,11 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
+import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -35,6 +37,7 @@ import com.gakkum.backend.domain.payment.dto.PaymentQueryDto.SettlementHistoryDa
 import com.gakkum.backend.domain.payment.dto.PaymentQueryDto.SettlementHistoryItemResult;
 import com.gakkum.backend.domain.payment.dto.PaymentQueryDto.SettlementHistoryMonthResult;
 import com.gakkum.backend.domain.payment.dto.PaymentQueryDto.SettlementHistoryResult;
+import com.gakkum.backend.domain.payment.dto.PaymentQueryDto.SettlementHistorySummaryResult;
 import com.gakkum.backend.domain.payment.dto.SettlementHistoryStatus;
 import com.gakkum.backend.domain.payment.entity.Payment;
 import com.gakkum.backend.domain.payment.entity.PaymentStatus;
@@ -60,9 +63,7 @@ class SettlementHistoryFacadeTest {
     private final JobService jobService = mock(JobService.class);
     private final StudentService studentService = mock(StudentService.class);
     private final OwnerService ownerService = mock(OwnerService.class);
-    private final PaymentFacade facade = new PaymentFacade(mock(PaymentPreparationService.class),
-            mock(KakaoPayClient.class), paymentService, mock(PaymentApprovalService.class),
-            userService, jobService, studentService, ownerService);
+    private PaymentFacade facade = facadeAt("2026-10-15T00:00:00Z");
 
     private final List<SettlementHistoryData> payments = new ArrayList<>();
     private final Map<Long, Job> jobsById = new HashMap<>();
@@ -313,6 +314,122 @@ class SettlementHistoryFacadeTest {
         assertError(ErrorCode.INTERNAL_SERVER_ERROR);
     }
 
+    @Test
+    @DisplayName("요약은 이번 달 승인 건의 수령액과 전 기간 정산 예정·정산 완료 금액을 합산한다")
+    void summarizesThisMonthScheduledAndSettledAmounts() {
+        paid(45L, "2026-10-03T03:00:00Z", JobStatus.MATCHED, null, 100_000L);
+        paid(44L, "2026-10-02T03:00:00Z", JobStatus.CLOSED, "2026-10-10T09:30:00", 70_000L);
+        refunded(43L, "2026-10-01T03:00:00Z", "2026-10-01T04:00:00Z", JobStatus.CANCELLED);
+        paid(42L, "2026-09-10T03:00:00Z", JobStatus.MATCHED, null, 50_000L);
+        paid(41L, "2026-08-10T03:00:00Z", JobStatus.CLOSED, "2026-08-20T09:30:00", 30_000L);
+
+        SettlementHistorySummaryResult summary = facade.getSettlementHistory(USERNAME).getSummary();
+
+        // 취소 건(10만 원 결제)은 원결제 금액이 아니라 착수 보상 2만 원으로 합산한다
+        assertThat(summary.getThisMonthWorkAmount()).isEqualTo(190_000L);
+        assertThat(summary.getScheduledAmount()).isEqualTo(150_000L);
+        assertThat(summary.getTotalSettledAmount()).isEqualTo(120_000L);
+    }
+
+    @Test
+    @DisplayName("요약의 착수 보상은 다시 계산하지 않고 저장된 학생 보상금으로 합산한다")
+    void summarizesStoredCompensationWithoutRecalculation() {
+        add(refundedStub(12_345L, Instant.parse("2026-10-01T04:00:00Z")), JobStatus.CANCELLED,
+                "2026-10-01T13:00:00");
+
+        SettlementHistorySummaryResult summary = facade.getSettlementHistory(USERNAME).getSummary();
+
+        assertThat(summary.getThisMonthWorkAmount()).isEqualTo(12_345L);
+        assertThat(summary.getScheduledAmount()).isZero();
+        assertThat(summary.getTotalSettledAmount()).isEqualTo(12_345L);
+    }
+
+    @Test
+    @DisplayName("지난달 승인되어 이번 달 완료·보상된 건은 이번 달 작업비에서 빼고 정산 완료 합계에는 포함한다")
+    void excludesLastMonthApprovalFromThisMonthAmount() {
+        paid(42L, "2026-09-25T03:00:00Z", JobStatus.CLOSED, "2026-10-08T12:00:00", 70_000L);
+        refunded(41L, "2026-09-20T03:00:00Z", "2026-10-05T03:00:00Z", JobStatus.CANCELLED);
+
+        SettlementHistorySummaryResult summary = facade.getSettlementHistory(USERNAME).getSummary();
+
+        assertThat(summary.getThisMonthWorkAmount()).isZero();
+        assertThat(summary.getScheduledAmount()).isZero();
+        assertThat(summary.getTotalSettledAmount()).isEqualTo(90_000L);
+    }
+
+    @Test
+    @DisplayName("이번 달은 한국 시간 기준이며 월말 UTC 시각의 현재 시각과 승인 시각을 한국 시간 월로 판정한다")
+    void decidesThisMonthInKoreanTimeAtMonthBoundary() {
+        // 현재 시각: 한국 시간 2026-10-01 00:00:00
+        facade = facadeAt("2026-09-30T15:00:00Z");
+        paid(42L, "2026-09-30T15:00:00Z", JobStatus.MATCHED, null, 100_000L);
+        paid(41L, "2026-09-30T14:59:59Z", JobStatus.MATCHED, null, 50_000L);
+
+        assertThat(facade.getSettlementHistory(USERNAME).getSummary().getThisMonthWorkAmount())
+                .isEqualTo(100_000L);
+
+        // 현재 시각: 한국 시간 2026-09-30 23:59:59
+        facade = facadeAt("2026-09-30T14:59:59Z");
+
+        assertThat(facade.getSettlementHistory(USERNAME).getSummary().getThisMonthWorkAmount())
+                .isEqualTo(50_000L);
+    }
+
+    @Test
+    @DisplayName("연말 UTC 시각도 한국 시간 기준 새해 1월로 판정하고 작년 같은 달과 섞지 않는다")
+    void decidesThisMonthInKoreanTimeAtYearBoundary() {
+        // 현재 시각: 한국 시간 2026-01-01 00:00:00
+        facade = facadeAt("2025-12-31T15:00:00Z");
+        paid(43L, "2025-12-31T15:00:00Z", JobStatus.MATCHED, null, 100_000L);
+        paid(42L, "2025-12-31T14:59:59Z", JobStatus.MATCHED, null, 50_000L);
+        paid(41L, "2025-01-15T03:00:00Z", JobStatus.CLOSED, "2025-01-20T09:00:00", 30_000L);
+
+        SettlementHistorySummaryResult summary = facade.getSettlementHistory(USERNAME).getSummary();
+
+        assertThat(summary.getThisMonthWorkAmount()).isEqualTo(100_000L);
+        assertThat(summary.getScheduledAmount()).isEqualTo(150_000L);
+        assertThat(summary.getTotalSettledAmount()).isEqualTo(30_000L);
+    }
+
+    @Test
+    @DisplayName("정산 내역이 없거나 이번 달 승인 건이 없으면 해당 요약 금액은 0이다")
+    void returnsZeroSummaryWithoutSettlements() {
+        SettlementHistorySummaryResult empty = facade.getSettlementHistory(USERNAME).getSummary();
+
+        assertThat(empty.getThisMonthWorkAmount()).isZero();
+        assertThat(empty.getScheduledAmount()).isZero();
+        assertThat(empty.getTotalSettledAmount()).isZero();
+
+        paid(41L, "2026-09-10T03:00:00Z", JobStatus.MATCHED, null, 50_000L);
+        SettlementHistorySummaryResult noneThisMonth = facade.getSettlementHistory(USERNAME).getSummary();
+
+        assertThat(noneThisMonth.getThisMonthWorkAmount()).isZero();
+        assertThat(noneThisMonth.getScheduledAmount()).isEqualTo(50_000L);
+        assertThat(noneThisMonth.getTotalSettledAmount()).isZero();
+    }
+
+    @Test
+    @DisplayName("요약 금액 합계가 Integer 범위를 넘어도 정확하게 합산한다")
+    void summarizesAmountsBeyondIntegerRange() {
+        paid(44L, "2026-10-04T03:00:00Z", JobStatus.MATCHED, null, 2_000_000_000L);
+        paid(43L, "2026-10-03T03:00:00Z", JobStatus.MATCHED, null, 2_000_000_000L);
+        paid(42L, "2026-10-02T03:00:00Z", JobStatus.CLOSED, "2026-10-10T09:30:00", 2_000_000_000L);
+        paid(41L, "2026-10-01T03:00:00Z", JobStatus.CLOSED, "2026-10-10T09:30:00", 2_000_000_000L);
+
+        SettlementHistorySummaryResult summary = facade.getSettlementHistory(USERNAME).getSummary();
+
+        assertThat(summary.getThisMonthWorkAmount()).isEqualTo(8_000_000_000L);
+        assertThat(summary.getScheduledAmount()).isEqualTo(4_000_000_000L);
+        assertThat(summary.getTotalSettledAmount()).isEqualTo(4_000_000_000L);
+    }
+
+    private PaymentFacade facadeAt(String now) {
+        return new PaymentFacade(mock(PaymentPreparationService.class),
+                mock(KakaoPayClient.class), paymentService, mock(PaymentApprovalService.class),
+                userService, jobService, studentService, ownerService,
+                Clock.fixed(Instant.parse(now), ZoneOffset.UTC));
+    }
+
     private void assertError(ErrorCode errorCode) {
         assertThatThrownBy(() -> facade.getSettlementHistory(USERNAME))
                 .isInstanceOfSatisfying(BusinessException.class, exception ->
@@ -320,7 +437,11 @@ class SettlementHistoryFacadeTest {
     }
 
     private void paid(Long jobId, String approvedAt, JobStatus jobStatus, String completedAt) {
-        add(payment(jobId, approvedAt), jobStatus, completedAt);
+        paid(jobId, approvedAt, jobStatus, completedAt, 100_000L);
+    }
+
+    private void paid(Long jobId, String approvedAt, JobStatus jobStatus, String completedAt, Long amount) {
+        add(payment(jobId, approvedAt, amount), jobStatus, completedAt);
     }
 
     private void refunded(Long jobId, String approvedAt, String refundedAt, JobStatus jobStatus) {
@@ -331,7 +452,11 @@ class SettlementHistoryFacadeTest {
 
     // 지원서 ID는 의뢰 ID + 1000으로 둔다
     private Payment payment(Long jobId, String approvedAt) {
-        Payment payment = Payment.pending(jobId, jobId + 1000, OWNER_USER_ID, "order-" + jobId, 100_000L,
+        return payment(jobId, approvedAt, 100_000L);
+    }
+
+    private Payment payment(Long jobId, String approvedAt, Long amount) {
+        Payment payment = Payment.pending(jobId, jobId + 1000, OWNER_USER_ID, "order-" + jobId, amount,
                 Instant.EPOCH);
         payment.recordKakaoTid("T" + jobId);
         payment.approve(Instant.parse(approvedAt));

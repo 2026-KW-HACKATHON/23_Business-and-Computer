@@ -62,10 +62,26 @@ public final class PaymentQueryDto {
     @AllArgsConstructor(access = AccessLevel.PRIVATE)
     public static class PaymentHistoryResult {
 
+        private final PaymentHistorySummaryResult summary;
         private final List<PaymentHistoryMonthResult> months;
 
-        public static PaymentHistoryResult of(List<PaymentHistoryMonthResult> months) {
-            return new PaymentHistoryResult(months);
+        public static PaymentHistoryResult of(
+                PaymentHistorySummaryResult summary, List<PaymentHistoryMonthResult> months) {
+            return new PaymentHistoryResult(summary, months);
+        }
+    }
+
+    @Getter
+    @AllArgsConstructor(access = AccessLevel.PRIVATE)
+    public static class PaymentHistorySummaryResult {
+
+        private final Long thisMonthPaymentAmount;
+        private final Long heldAmount;
+        private final Long totalSettledAmount;
+
+        public static PaymentHistorySummaryResult of(
+                Long thisMonthPaymentAmount, Long heldAmount, Long totalSettledAmount) {
+            return new PaymentHistorySummaryResult(thisMonthPaymentAmount, heldAmount, totalSettledAmount);
         }
     }
 
@@ -123,10 +139,26 @@ public final class PaymentQueryDto {
     @AllArgsConstructor(access = AccessLevel.PRIVATE)
     public static class SettlementHistoryResult {
 
+        private final SettlementHistorySummaryResult summary;
         private final List<SettlementHistoryMonthResult> months;
 
-        public static SettlementHistoryResult of(List<SettlementHistoryMonthResult> months) {
-            return new SettlementHistoryResult(months);
+        public static SettlementHistoryResult of(
+                SettlementHistorySummaryResult summary, List<SettlementHistoryMonthResult> months) {
+            return new SettlementHistoryResult(summary, months);
+        }
+    }
+
+    @Getter
+    @AllArgsConstructor(access = AccessLevel.PRIVATE)
+    public static class SettlementHistorySummaryResult {
+
+        private final Long thisMonthWorkAmount;
+        private final Long scheduledAmount;
+        private final Long totalSettledAmount;
+
+        public static SettlementHistorySummaryResult of(
+                Long thisMonthWorkAmount, Long scheduledAmount, Long totalSettledAmount) {
+            return new SettlementHistorySummaryResult(thisMonthWorkAmount, scheduledAmount, totalSettledAmount);
         }
     }
 

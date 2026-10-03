@@ -1,5 +1,6 @@
 package com.gakkum.backend.application.payment.facade;
 
+import java.time.Clock;
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.time.ZoneId;
@@ -26,6 +27,7 @@ import com.gakkum.backend.domain.payment.dto.PaymentQueryDto.PaymentHistoryData;
 import com.gakkum.backend.domain.payment.dto.PaymentQueryDto.PaymentHistoryItemResult;
 import com.gakkum.backend.domain.payment.dto.PaymentQueryDto.PaymentHistoryMonthResult;
 import com.gakkum.backend.domain.payment.dto.PaymentQueryDto.PaymentHistoryResult;
+import com.gakkum.backend.domain.payment.dto.PaymentQueryDto.PaymentHistorySummaryResult;
 import com.gakkum.backend.domain.payment.dto.PaymentQueryDto.PendingPaymentData;
 import com.gakkum.backend.domain.payment.dto.PaymentQueryDto.ApprovedPaymentData;
 import com.gakkum.backend.domain.payment.dto.PaymentQueryDto.PreparePaymentResult;
@@ -33,6 +35,7 @@ import com.gakkum.backend.domain.payment.dto.PaymentQueryDto.SettlementHistoryDa
 import com.gakkum.backend.domain.payment.dto.PaymentQueryDto.SettlementHistoryItemResult;
 import com.gakkum.backend.domain.payment.dto.PaymentQueryDto.SettlementHistoryMonthResult;
 import com.gakkum.backend.domain.payment.dto.PaymentQueryDto.SettlementHistoryResult;
+import com.gakkum.backend.domain.payment.dto.PaymentQueryDto.SettlementHistorySummaryResult;
 import com.gakkum.backend.domain.payment.dto.SettlementHistoryStatus;
 import com.gakkum.backend.domain.payment.entity.PaymentStatus;
 import com.gakkum.backend.domain.payment.service.PaymentService;
@@ -61,6 +64,7 @@ public class PaymentFacade {
     private final JobService jobService;
     private final StudentService studentService;
     private final OwnerService ownerService;
+    private final Clock clock;
 
     public ApprovedPaymentData approvePayment(String username, String orderId, String pgToken) {
         return approvalService.approve(username, orderId, pgToken);
@@ -83,6 +87,7 @@ public class PaymentFacade {
     /**
      * 사장님 본인의 결제 내역. 승인 시각의 한국 시간 월별로 묶어 최신순으로 반환한다.
      * 결제가 있으면 의뢰·지원서·학생 프로필·사용자를 중복 없이 모아 한 번씩만 조회한다. 참조 누락은 각 일괄 조회가 500으로 거부한다.
+     * 요약 금액은 같은 내역에서 합산한다. 이번 달 결제액은 환불액을 빼지 않은 최초 결제액이고, 보관·정산 완료 금액은 전 기간 합계다.
      */
     @Transactional(readOnly = true)
     public PaymentHistoryResult getPaymentHistory(String username) {
@@ -93,7 +98,7 @@ public class PaymentFacade {
         }
         List<PaymentHistoryData> payments = paymentService.getPaymentHistory(user.getId());
         if (payments.isEmpty()) {
-            return PaymentHistoryResult.of(List.of());
+            return PaymentHistoryResult.of(PaymentHistorySummaryResult.of(0L, 0L, 0L), List.of());
         }
 
         Map<Long, Job> jobsById = jobService.getJobsByIds(payments.stream()
@@ -115,6 +120,10 @@ public class PaymentFacade {
 
         // 결제는 이미 승인 시각 최신순이라 처음 만나는 순서가 곧 월 내림차순이다
         Map<YearMonth, List<PaymentHistoryItemResult>> itemsByMonth = new LinkedHashMap<>();
+        YearMonth thisMonth = YearMonth.now(clock.withZone(HISTORY_ZONE));
+        long thisMonthPaymentAmount = 0;
+        long heldAmount = 0;
+        long totalSettledAmount = 0;
         for (PaymentHistoryData payment : payments) {
             Job job = jobsById.get(payment.getJobId());
             JobApplication application = applicationsById.get(payment.getJobApplicationId());
@@ -124,13 +133,24 @@ public class PaymentFacade {
             }
             Student student = studentsById.get(application.getStudentProfileId());
             PaymentHistoryStatus status = historyStatus(payment.getStatus(), job.getStatus());
-            itemsByMonth.computeIfAbsent(YearMonth.from(payment.getApprovedAt().atZone(HISTORY_ZONE)),
-                    month -> new ArrayList<>())
+            YearMonth approvedMonth = YearMonth.from(payment.getApprovedAt().atZone(HISTORY_ZONE));
+            itemsByMonth.computeIfAbsent(approvedMonth, month -> new ArrayList<>())
                     .add(PaymentHistoryItemResult.of(payment, job.getTitle(), refundAmount(payment),
                             studentUsersById.get(student.getUserId()).getName(), status));
+
+            if (approvedMonth.equals(thisMonth)) {
+                thisMonthPaymentAmount += payment.getAmount();
+            }
+            if (status == PaymentHistoryStatus.HELD) {
+                heldAmount += payment.getAmount();
+            } else if (status == PaymentHistoryStatus.SETTLED) {
+                totalSettledAmount += payment.getAmount();
+            }
         }
 
-        return PaymentHistoryResult.of(itemsByMonth.entrySet().stream()
+        return PaymentHistoryResult.of(
+                PaymentHistorySummaryResult.of(thisMonthPaymentAmount, heldAmount, totalSettledAmount),
+                itemsByMonth.entrySet().stream()
                 .map(entry -> PaymentHistoryMonthResult.of(entry.getKey().toString(), entry.getValue()))
                 .toList());
     }
@@ -138,6 +158,7 @@ public class PaymentFacade {
     /**
      * 학생 본인의 정산 내역. 결제 승인 시각의 한국 시간 월별로 묶어 최신순으로 반환한다.
      * 본인 지원서에 연결된 결제만 조회하고, 의뢰와 매장 이름은 중복 없이 모아 한 번씩만 조회한다.
+     * 요약 금액은 같은 내역의 학생 수령액을 합산한다. 이번 달 작업비는 이번 달 승인 건, 정산 예정·완료 금액은 전 기간 합계다.
      */
     @Transactional(readOnly = true)
     public SettlementHistoryResult getSettlementHistory(String username) {
@@ -151,7 +172,7 @@ public class PaymentFacade {
         Map<Long, JobApplication> applicationsById = jobService.getJobApplicationsByStudentProfileId(student.getId());
         List<SettlementHistoryData> payments = paymentService.getSettlementHistory(applicationsById.keySet());
         if (payments.isEmpty()) {
-            return SettlementHistoryResult.of(List.of());
+            return SettlementHistoryResult.of(SettlementHistorySummaryResult.of(0L, 0L, 0L), List.of());
         }
 
         Map<Long, Job> jobsById = jobService.getJobsByIds(payments.stream()
@@ -165,6 +186,10 @@ public class PaymentFacade {
 
         // 결제는 이미 승인 시각 최신순이라 처음 만나는 순서가 곧 월 내림차순이다
         Map<YearMonth, List<SettlementHistoryItemResult>> itemsByMonth = new LinkedHashMap<>();
+        YearMonth thisMonth = YearMonth.now(clock.withZone(HISTORY_ZONE));
+        long thisMonthWorkAmount = 0;
+        long scheduledAmount = 0;
+        long totalSettledAmount = 0;
         for (SettlementHistoryData payment : payments) {
             Job job = jobsById.get(payment.getJobId());
             JobApplication application = applicationsById.get(payment.getJobApplicationId());
@@ -177,14 +202,27 @@ public class PaymentFacade {
                 throw new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR);
             }
             SettlementHistoryStatus status = settlementStatus(payment.getStatus(), job.getStatus());
-            itemsByMonth.computeIfAbsent(YearMonth.from(payment.getApprovedAt().atZone(HISTORY_ZONE)),
-                    month -> new ArrayList<>())
+            Long amount = settlementAmount(payment, status);
+            YearMonth approvedMonth = YearMonth.from(payment.getApprovedAt().atZone(HISTORY_ZONE));
+            itemsByMonth.computeIfAbsent(approvedMonth, month -> new ArrayList<>())
                     .add(SettlementHistoryItemResult.of(job.getId(), job.getTitle(),
-                            settlementAmount(payment, status), settledDate(payment, job, status),
+                            amount, settledDate(payment, job, status),
                             storeNamesByOwnerProfileId.get(job.getOwnerProfileId()), status));
+
+            if (approvedMonth.equals(thisMonth)) {
+                thisMonthWorkAmount += amount;
+            }
+            // 착수 보상은 이미 지급이 확정된 금액이라 정산 완료 합계에 포함한다
+            if (status == SettlementHistoryStatus.SCHEDULED) {
+                scheduledAmount += amount;
+            } else {
+                totalSettledAmount += amount;
+            }
         }
 
-        return SettlementHistoryResult.of(itemsByMonth.entrySet().stream()
+        return SettlementHistoryResult.of(
+                SettlementHistorySummaryResult.of(thisMonthWorkAmount, scheduledAmount, totalSettledAmount),
+                itemsByMonth.entrySet().stream()
                 .map(entry -> SettlementHistoryMonthResult.of(entry.getKey().toString(), entry.getValue()))
                 .toList());
     }
