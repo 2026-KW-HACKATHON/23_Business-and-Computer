@@ -18,12 +18,15 @@ import com.gakkum.backend.domain.owner.service.OwnerService;
 import com.gakkum.backend.domain.owner.entity.Owner;
 import com.gakkum.backend.domain.proposal.dto.ProposalCommandDto.CreateProposalCommand;
 import com.gakkum.backend.domain.proposal.dto.ProposalCommandDto.GetMyProposalsCommand;
+import com.gakkum.backend.domain.proposal.dto.ProposalCommandDto.GetReceivedProposalsCommand;
 import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.ExploreProposalData;
 import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.MyProposalListResult;
 import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.MyProposalResult;
 import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.ProposalCreateResult;
 import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.ProposalDetailData;
 import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.ProposalDetailResult;
+import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.ReceivedProposalListResult;
+import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.ReceivedProposalResult;
 import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.SpecialtyCategoryResult;
 import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.SpecialtyResult;
 import com.gakkum.backend.domain.proposal.entity.Proposal;
@@ -119,6 +122,46 @@ public class ProposalFacade {
                         data.getProposal(),
                         ownersById.get(data.getProposal().getOwnerProfileId()),
                         groupSpecialties(data.getSpecialtyIds(), specialtiesById)))
+                .toList());
+    }
+
+    /**
+     * 받은 제안 목록. 활성 사장님만 본인 프로필로 조회할 수 있다.
+     * 제안이 있으면 학생 프로필·사용자·소분류를 중복 없이 모아 한 번씩만 조회한다. 참조 누락은 각 일괄 조회가 500으로 거부한다.
+     */
+    @Transactional(readOnly = true)
+    public ReceivedProposalListResult getReceivedProposals(String username) {
+        User user = userService.getActiveUser(username);
+        if (user.getRole() != UserRole.OWNER) {
+            throw new BusinessException(ErrorCode.PROPOSAL_LIST_OWNER_REQUIRED);
+        }
+        Owner owner = ownerService.getOwnerProfile(user.getId());
+        List<ExploreProposalData> proposals =
+                proposalService.getReceivedProposals(GetReceivedProposalsCommand.of(owner.getId()));
+        if (proposals.isEmpty()) {
+            return ReceivedProposalListResult.of(List.of());
+        }
+
+        Map<Long, Student> studentsById = studentService.getStudentProfilesByIds(proposals.stream()
+                .map(data -> data.getProposal().getStudentProfileId())
+                .distinct()
+                .toList());
+        Map<String, User> studentUsersById = userService.getUsersByIds(studentsById.values().stream()
+                .map(Student::getUserId)
+                .distinct()
+                .toList());
+        Set<Long> specialtyIds = proposals.stream()
+                .flatMap(data -> data.getSpecialtyIds().stream())
+                .collect(Collectors.toSet());
+        Map<Long, SpecialtyDetail> specialtiesById = specialtyCategoryService.getSpecialtyDetails(specialtyIds);
+
+        return ReceivedProposalListResult.of(proposals.stream()
+                .map(data -> {
+                    Student student = studentsById.get(data.getProposal().getStudentProfileId());
+                    return ReceivedProposalResult.of(
+                            data.getProposal(), student, studentUsersById.get(student.getUserId()),
+                            groupSpecialties(data.getSpecialtyIds(), specialtiesById));
+                })
                 .toList());
     }
 

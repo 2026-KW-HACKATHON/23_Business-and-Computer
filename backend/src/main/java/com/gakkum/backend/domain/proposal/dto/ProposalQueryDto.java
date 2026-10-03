@@ -100,6 +100,61 @@ public final class ProposalQueryDto {
         }
     }
 
+    /** 사장님이 받은 제안 목록 결과 */
+    @Getter
+    @AllArgsConstructor(access = AccessLevel.PRIVATE)
+    public static class ReceivedProposalListResult {
+
+        private final List<ReceivedProposalResult> proposals;
+
+        public static ReceivedProposalListResult of(List<ReceivedProposalResult> proposals) {
+            return new ReceivedProposalListResult(List.copyOf(proposals));
+        }
+    }
+
+    /** 받은 제안 카드. 학생은 현재 프로필 값이다. */
+    @Getter
+    @Builder(access = AccessLevel.PRIVATE)
+    @AllArgsConstructor(access = AccessLevel.PRIVATE)
+    public static class ReceivedProposalResult {
+
+        private final Long proposalId;
+        private final String title;
+        private final ProposalStatus status;
+        private final Integer likeCount;
+        private final List<SpecialtyCategoryResult> specialtyCategories;
+        private final String proposedSolution;
+        private final ReceivedProposalStudentResult student;
+
+        public static ReceivedProposalResult of(Proposal proposal, Student student, User studentUser,
+                List<SpecialtyCategoryResult> specialtyCategories) {
+            return ReceivedProposalResult.builder()
+                    .proposalId(proposal.getId())
+                    .title(proposal.getTitle())
+                    .status(proposal.getStatus())
+                    .likeCount(proposal.getLikeCount())
+                    .specialtyCategories(specialtyCategories)
+                    .proposedSolution(proposal.getProposedSolution())
+                    .student(ReceivedProposalStudentResult.of(student, studentUser))
+                    .build();
+        }
+    }
+
+    @Getter
+    @AllArgsConstructor(access = AccessLevel.PRIVATE)
+    public static class ReceivedProposalStudentResult {
+
+        private final Long studentProfileId;
+        private final String name;
+        private final String studentNumber;
+        private final String major;
+
+        public static ReceivedProposalStudentResult of(Student student, User studentUser) {
+            return new ReceivedProposalStudentResult(
+                    student.getId(), studentUser.getName(), student.getStudentNumber(), student.getMajor());
+        }
+    }
+
     @Getter
     @AllArgsConstructor(access = AccessLevel.PRIVATE)
     public static class ProposalStoreResult {

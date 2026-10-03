@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
@@ -36,12 +37,14 @@ import com.gakkum.backend.domain.owner.entity.Owner;
 import com.gakkum.backend.domain.owner.service.OwnerService;
 import com.gakkum.backend.domain.proposal.dto.ProposalCommandDto.CreateProposalCommand;
 import com.gakkum.backend.domain.proposal.dto.ProposalCommandDto.GetMyProposalsCommand;
+import com.gakkum.backend.domain.proposal.dto.ProposalCommandDto.GetReceivedProposalsCommand;
 import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.ExploreProposalData;
 import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.MyProposalListResult;
 import com.gakkum.backend.domain.proposal.entity.ProposalStatus;
 import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.ProposalCreateResult;
 import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.ProposalDetailData;
 import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.ProposalDetailResult;
+import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.ReceivedProposalListResult;
 import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.SpecialtyCategoryResult;
 import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.SpecialtyResult;
 import com.gakkum.backend.domain.proposal.entity.Proposal;
@@ -62,6 +65,7 @@ class ProposalFacadeTest {
     private static final String USERNAME = "KAKAO_12345";
     private static final String USER_ID = "01K58M6PJV8VAJMXHBHJ2PNB5C";
     private static final String STUDENT_USER_ID = "01K58M6PJV8VAJMXHBHJ2PNB5D";
+    private static final String OTHER_STUDENT_USER_ID = "01K58M6PJV8VAJMXHBHJ2PNB5E";
     private static final String IMAGE_URL_1 = "https://bucket/images/proposal/" + USER_ID + "/a.png";
     private static final String IMAGE_URL_2 = "https://bucket/images/proposal/" + USER_ID + "/b.png";
     private static final String KEY_1 = "images/proposal/" + USER_ID + "/a.png";
@@ -427,6 +431,135 @@ class ProposalFacadeTest {
 
     private Proposal myProposal(Long id, Long ownerProfileId, ProposalStatus status) {
         return Proposal.builder().id(id).studentProfileId(7L).ownerProfileId(ownerProfileId).title("제안 " + id)
+                .customerProblem("메뉴를 알아보기 어렵습니다.").proposedSolution("사진 메뉴판으로 바꿉니다.")
+                .likeCount(5).status(status).build();
+    }
+
+    @Test
+    @DisplayName("받은 제안을 본인 사장님 프로필 ID로 조회하고 학생·사용자·분류를 중복 없이 일괄 조회해 카드로 구성한다")
+    void returnsReceivedProposals() {
+        givenUser(UserRole.OWNER);
+        when(ownerService.getOwnerProfile(USER_ID)).thenReturn(Owner.builder().id(5L).build());
+        when(proposalService.getReceivedProposals(any(GetReceivedProposalsCommand.class))).thenReturn(List.of(
+                ExploreProposalData.of(receivedProposal(33L, 7L, ProposalStatus.REJECTED), List.of(12L, 3L)),
+                ExploreProposalData.of(receivedProposal(32L, 8L, ProposalStatus.PENDING), List.of(3L)),
+                ExploreProposalData.of(receivedProposal(31L, 7L, ProposalStatus.ACCEPTED), List.of())));
+        when(studentService.getStudentProfilesByIds(List.of(7L, 8L))).thenReturn(Map.of(
+                7L, Student.builder().id(7L).userId(STUDENT_USER_ID).major("소프트웨어학부").studentNumber("2024123456").build(),
+                8L, Student.builder().id(8L).userId(OTHER_STUDENT_USER_ID).major("시각디자인학부").studentNumber("2023111111").build()));
+        // 학생 맵의 순회 순서에 의존하지 않도록 중복 없는 사용자 ID 집합으로만 맞춘다
+        when(userService.getUsersByIds(argThat(ids -> ids.size() == 2
+                && Set.copyOf(ids).equals(Set.of(STUDENT_USER_ID, OTHER_STUDENT_USER_ID))))).thenReturn(Map.of(
+                STUDENT_USER_ID, User.builder().id(STUDENT_USER_ID).name("홍길동").build(),
+                OTHER_STUDENT_USER_ID, User.builder().id(OTHER_STUDENT_USER_ID).name("김철수").build()));
+        when(specialtyCategoryService.getSpecialtyDetails(Set.of(3L, 12L))).thenReturn(Map.of(
+                3L, SpecialtyDetail.of(3L, "로고 디자인", 1L, "디자인"),
+                12L, SpecialtyDetail.of(12L, "영상 편집", 2L, "영상")));
+
+        ReceivedProposalListResult result = proposalFacade.getReceivedProposals(USERNAME);
+
+        assertThat(result.getProposals()).extracting(p -> p.getProposalId(), p -> p.getStatus())
+                .containsExactly(tuple(33L, ProposalStatus.REJECTED), tuple(32L, ProposalStatus.PENDING),
+                        tuple(31L, ProposalStatus.ACCEPTED));
+        assertThat(result.getProposals().get(0).getLikeCount()).isEqualTo(5);
+        assertThat(result.getProposals().get(0).getSpecialtyCategories())
+                .extracting(SpecialtyCategoryResult::getId).containsExactly(1L, 2L);
+        assertThat(result.getProposals().get(2).getSpecialtyCategories()).isEmpty();
+        assertThat(result.getProposals()).extracting(p -> p.getStudent().getStudentProfileId(),
+                        p -> p.getStudent().getName(), p -> p.getStudent().getStudentNumber(),
+                        p -> p.getStudent().getMajor())
+                .containsExactly(
+                        tuple(7L, "홍길동", "2024123456", "소프트웨어학부"),
+                        tuple(8L, "김철수", "2023111111", "시각디자인학부"),
+                        tuple(7L, "홍길동", "2024123456", "소프트웨어학부"));
+        ArgumentCaptor<GetReceivedProposalsCommand> captor = ArgumentCaptor.forClass(GetReceivedProposalsCommand.class);
+        verify(proposalService).getReceivedProposals(captor.capture());
+        assertThat(captor.getValue().getOwnerProfileId()).isEqualTo(5L);
+        verify(studentService, times(1)).getStudentProfilesByIds(any());
+        verify(userService, times(1)).getUsersByIds(any());
+        verify(specialtyCategoryService, times(1)).getSpecialtyDetails(any());
+    }
+
+    @Test
+    @DisplayName("받은 제안이 없으면 빈 목록을 반환하고 학생·사용자·분류를 조회하지 않는다")
+    void returnsEmptyReceivedProposals() {
+        givenUser(UserRole.OWNER);
+        when(ownerService.getOwnerProfile(USER_ID)).thenReturn(Owner.builder().id(5L).build());
+        when(proposalService.getReceivedProposals(any())).thenReturn(List.of());
+
+        assertThat(proposalFacade.getReceivedProposals(USERNAME).getProposals()).isEmpty();
+        verifyNoInteractions(studentService, specialtyCategoryService);
+        verify(userService, never()).getUsersByIds(any());
+    }
+
+    @Test
+    @DisplayName("사장님이 아니면 PROPOSAL_LIST_OWNER_REQUIRED로 거부한다")
+    void rejectsNonOwnerForReceivedProposals() {
+        givenUser(UserRole.STUDENT);
+
+        assertError(() -> proposalFacade.getReceivedProposals(USERNAME), ErrorCode.PROPOSAL_LIST_OWNER_REQUIRED);
+        verifyNoInteractions(proposalService, ownerService);
+    }
+
+    @Test
+    @DisplayName("사장님 프로필이 없으면 OWNER_PROFILE_NOT_FOUND를 그대로 전달하고 제안을 조회하지 않는다")
+    void rejectsMissingOwnerProfileForReceivedProposals() {
+        givenUser(UserRole.OWNER);
+        when(ownerService.getOwnerProfile(USER_ID))
+                .thenThrow(new BusinessException(ErrorCode.OWNER_PROFILE_NOT_FOUND));
+
+        assertError(() -> proposalFacade.getReceivedProposals(USERNAME), ErrorCode.OWNER_PROFILE_NOT_FOUND);
+        verifyNoInteractions(proposalService);
+    }
+
+    @Test
+    @DisplayName("학생 프로필 일괄 조회의 참조 누락 오류는 그대로 전달하고 사용자·분류를 조회하지 않는다")
+    void propagatesMissingStudentFromBatchLookup() {
+        givenReceivedProposal();
+        when(studentService.getStudentProfilesByIds(List.of(7L)))
+                .thenThrow(new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR));
+
+        assertError(() -> proposalFacade.getReceivedProposals(USERNAME), ErrorCode.INTERNAL_SERVER_ERROR);
+        verify(userService, never()).getUsersByIds(any());
+        verifyNoInteractions(specialtyCategoryService);
+    }
+
+    @Test
+    @DisplayName("사용자 일괄 조회의 참조·이름 누락 오류는 그대로 전달하고 분류를 조회하지 않는다")
+    void propagatesMissingStudentUserFromBatchLookup() {
+        givenReceivedProposal();
+        when(studentService.getStudentProfilesByIds(List.of(7L))).thenReturn(Map.of(
+                7L, Student.builder().id(7L).userId(STUDENT_USER_ID).major("소프트웨어학부").studentNumber("2024123456").build()));
+        when(userService.getUsersByIds(List.of(STUDENT_USER_ID)))
+                .thenThrow(new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR));
+
+        assertError(() -> proposalFacade.getReceivedProposals(USERNAME), ErrorCode.INTERNAL_SERVER_ERROR);
+        verifyNoInteractions(specialtyCategoryService);
+    }
+
+    @Test
+    @DisplayName("제안의 소분류를 조회할 수 없으면 분류를 누락하지 않고 예외로 중단한다")
+    void failsWhenReceivedProposalSpecialtyIsMissing() {
+        givenReceivedProposal();
+        when(studentService.getStudentProfilesByIds(List.of(7L))).thenReturn(Map.of(
+                7L, Student.builder().id(7L).userId(STUDENT_USER_ID).major("소프트웨어학부").studentNumber("2024123456").build()));
+        when(userService.getUsersByIds(List.of(STUDENT_USER_ID))).thenReturn(Map.of(
+                STUDENT_USER_ID, User.builder().id(STUDENT_USER_ID).name("홍길동").build()));
+        when(specialtyCategoryService.getSpecialtyDetails(Set.of(3L))).thenReturn(Map.of());
+
+        assertThatThrownBy(() -> proposalFacade.getReceivedProposals(USERNAME))
+                .isInstanceOf(IllegalStateException.class);
+    }
+
+    private void givenReceivedProposal() {
+        givenUser(UserRole.OWNER);
+        when(ownerService.getOwnerProfile(USER_ID)).thenReturn(Owner.builder().id(5L).build());
+        when(proposalService.getReceivedProposals(any())).thenReturn(List.of(
+                ExploreProposalData.of(receivedProposal(31L, 7L, ProposalStatus.PENDING), List.of(3L))));
+    }
+
+    private Proposal receivedProposal(Long id, Long studentProfileId, ProposalStatus status) {
+        return Proposal.builder().id(id).studentProfileId(studentProfileId).ownerProfileId(5L).title("제안 " + id)
                 .customerProblem("메뉴를 알아보기 어렵습니다.").proposedSolution("사진 메뉴판으로 바꿉니다.")
                 .likeCount(5).status(status).build();
     }
