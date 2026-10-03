@@ -1,0 +1,171 @@
+.student-todo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  font-family: var(--font-sans);
+}
+
+.student-todo__frame {
+  position: relative;
+  width: 100%;
+}
+
+.student-todo__viewport {
+  overflow: hidden;
+  touch-action: pan-y;
+}
+
+/* 카드 사이 간격은 StudentTodoCarousel.tsx 의 SLIDE_GAP_PX 와 같게 둔다 */
+.student-todo__track {
+  display: flex;
+  gap: 12px;
+}
+
+/* 시간은 StudentTodoCarousel.tsx 의 SLIDE_MS 와 같게 둔다 */
+.student-todo__track--animate {
+  transition: transform 0.3s ease-out;
+}
+
+.student-todo__card {
+  display: flex;
+  flex: 0 0 100%;
+  flex-direction: column;
+  gap: 12px;
+  box-sizing: border-box;
+  padding: 16px;
+  border: 1.5px solid var(--color-student);
+  border-radius: 16px;
+  background: var(--color-white);
+}
+
+.student-todo__heading {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.student-todo__title-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.student-todo__title {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+  line-height: normal;
+  color: var(--color-black);
+  word-break: keep-all;
+  overflow-wrap: break-word;
+}
+
+.student-todo__meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.student-todo__meta-text {
+  overflow: hidden;
+  font-size: 13px;
+  line-height: normal;
+  color: var(--role-secondary);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* 진행 상태 한 줄 + 오른쪽 「상세보기 ›」 */
+.student-todo__status {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 14px 14px 14px 16px;
+  border-radius: 12px;
+  background: var(--role-muted);
+}
+
+.student-todo__status-title {
+  font-size: 15px;
+  font-weight: 700;
+  line-height: normal;
+  color: var(--color-black);
+}
+
+.student-todo__status-detail {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--role-secondary);
+}
+
+/* 문구가 짧은 카드도 버튼은 맨 아래에 맞춘다 */
+.student-todo__action {
+  flex-shrink: 0;
+  margin-top: auto;
+}
+
+/* 카드 바깥 양옆 여백(20px)에 놓는다 */
+.student-todo__arrow {
+  position: absolute;
+  top: 50%;
+  width: 20px;
+  height: 72px;
+  margin-top: -36px;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--role-secondary);
+  cursor: pointer;
+}
+
+.student-todo__arrow--prev {
+  left: -20px;
+}
+
+.student-todo__arrow--next {
+  right: -20px;
+}
+
+.student-todo__arrow svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.student-todo__arrow:focus-visible {
+  outline: 2px solid var(--color-black);
+  outline-offset: -2px;
+  border-radius: 6px;
+}
+
+.student-todo__dots {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.student-todo__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--input-border);
+  transition: width 0.2s ease;
+}
+
+.student-todo__dot--current {
+  width: 16px;
+  background: var(--color-student);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .student-todo__track--animate,
+  .student-todo__dot {
+    transition: none;
+  }
+}

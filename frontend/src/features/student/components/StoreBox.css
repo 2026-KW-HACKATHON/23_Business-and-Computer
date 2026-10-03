@@ -1,0 +1,36 @@
+.store-box {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px;
+  border: 1px solid var(--role-border);
+  border-radius: 16px;
+  font-family: var(--font-sans);
+}
+
+.store-box__info {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.store-box__info > strong {
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 21px;
+  color: var(--color-black);
+}
+
+.store-box__info > span {
+  font-size: 13px;
+  line-height: 17px;
+  color: var(--role-secondary);
+}
+
+.store-box__info > small {
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--text-placeholder);
+}

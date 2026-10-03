@@ -1,0 +1,113 @@
+.student-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  box-sizing: border-box;
+  width: 100%;
+  padding: 16px;
+  border: 1px solid var(--role-border);
+  border-radius: 16px;
+  background: var(--color-white);
+  font-family: var(--font-sans);
+}
+
+.student-card__head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.student-card__title {
+  flex: 1;
+  min-width: 0;
+  padding: 0;
+  border: none;
+  background: none;
+  font-family: inherit;
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 22px;
+  color: var(--color-black);
+  text-align: left;
+  word-break: keep-all;
+  overflow-wrap: break-word;
+  cursor: pointer;
+}
+
+.student-card__title:focus-visible {
+  outline: 2px solid var(--color-black);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+.student-card__meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.student-card__sub {
+  overflow: hidden;
+  font-size: 13px;
+  line-height: 16px;
+  color: var(--role-secondary);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.student-card__status {
+  font-size: 13px;
+  font-weight: 700;
+  line-height: normal;
+  color: var(--color-black);
+}
+
+/* 손님 눈으로 본 문제 2줄 미리보기 */
+.student-card__excerpt {
+  display: -webkit-box;
+  overflow: hidden;
+  font-size: 15px;
+  line-height: 22px;
+  color: var(--text-title);
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.student-card__divider {
+  height: 1px;
+  background: var(--role-muted);
+}
+
+.student-card__budget {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.student-card__budget > span {
+  font-size: 13px;
+  color: var(--role-secondary);
+}
+
+.student-card__budget > strong {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--color-black);
+}
+
+.student-card__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.student-card__hint {
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--role-secondary);
+}
+
+.student-card__open {
+  align-self: flex-start;
+}
