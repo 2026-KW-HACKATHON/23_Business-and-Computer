@@ -99,4 +99,24 @@ class ReviewServiceTest {
                 .isInstanceOfSatisfying(BusinessException.class, exception ->
                         assertThat(exception.getErrorCode()).isEqualTo(errorCode));
     }
+
+    @Test
+    @DisplayName("평균 별점은 소수 첫째 자리까지 HALF_UP으로 반올림한다")
+    void roundsAverageRatingHalfUp() {
+        when(reviewRepository.findAverageRatingByStudentProfileId(7L)).thenReturn(4.25);
+        when(reviewRepository.findAverageRatingByStudentProfileId(8L)).thenReturn(4.35);
+        when(reviewRepository.findAverageRatingByStudentProfileId(9L)).thenReturn(5.0);
+
+        assertThat(reviewService.getAverageRating(7L)).isEqualByComparingTo("4.3");
+        assertThat(reviewService.getAverageRating(8L)).isEqualByComparingTo("4.4");
+        assertThat(reviewService.getAverageRating(9L)).hasToString("5.0");
+    }
+
+    @Test
+    @DisplayName("받은 리뷰가 없으면 평균 별점은 0.0이다")
+    void returnsZeroAverageWithoutReviews() {
+        when(reviewRepository.findAverageRatingByStudentProfileId(7L)).thenReturn(null);
+
+        assertThat(reviewService.getAverageRating(7L)).hasToString("0.0");
+    }
 }
