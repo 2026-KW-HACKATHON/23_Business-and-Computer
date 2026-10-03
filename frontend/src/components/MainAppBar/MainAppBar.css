@@ -22,6 +22,8 @@
 }
 
 .main-app-bar__title {
+  /* 제목 태그(h1 · h2)의 전역 글꼴을 쓰지 않고 앱 글꼴로 */
+  font-family: var(--font-sans);
   margin: 0;
   font-size: 22px;
   font-weight: 700;
