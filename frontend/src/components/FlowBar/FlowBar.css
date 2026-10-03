@@ -29,7 +29,8 @@
   background: var(--role-border);
 }
 
-.flow-bar__step--linked::before {
+/* 지나온 구간은 검정. 위 회색 선 규칙보다 우선하도록 같은 선택자에 붙인다 */
+.flow-bar__step + .flow-bar__step--linked::before {
   background: var(--color-black);
 }
 

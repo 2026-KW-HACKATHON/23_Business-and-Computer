@@ -26,7 +26,7 @@ function describe(todo: OwnerTodo) {
       return {
         meta: studentLabel(todo.student),
         status: "새 제안이 도착했어요",
-        detail: `광운대생 손님 ${todo.empathyCount}명이 공감했어요`,
+        detail: `학생 손님 ${todo.empathyCount}명이 공감했어요`,
         action: "제안 보기",
       };
     case "applicants":

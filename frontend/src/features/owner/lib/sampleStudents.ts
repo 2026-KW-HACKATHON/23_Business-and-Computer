@@ -1,4 +1,5 @@
 import type { StudentProfile } from "../types";
+import { day } from "./sampleTime";
 
 /*
  * 학생 프로필 임시 예시 데이터 (피그마 「지원자 학생 프로필 보기」).
@@ -191,7 +192,7 @@ export const SAMPLE_STUDENT_PROFILES: StudentProfile[] = [
         workTitle: "네이버 지도 사진 정리",
         rating: 5.0,
         text: "낮과 저녁 사진을 섞어 올려 줘서 가게 분위기가 잘 보여요.",
-        date: "2026-08-26",
+        date: day(-27),
       },
       {
         storeName: "광운카페",
@@ -238,7 +239,7 @@ export const SAMPLE_STUDENT_PROFILES: StudentProfile[] = [
     department: "경영학부",
     year: "24학번",
     rating: 5.0,
-    completedCount: 2,
+    completedCount: 3,
     intro: "메뉴판과 전단지를 만들어요",
     proposalCount: 5,
     noShowCount: 0,
@@ -277,6 +278,13 @@ export const SAMPLE_STUDENT_PROFILES: StudentProfile[] = [
     certificates: [{ name: "GTQ 1급", acquiredOn: "2024-08" }],
     portfolioUrl: "behance.net/eunseo-lee",
     reviews: [
+      {
+        storeName: "치킨플러스",
+        workTitle: "가게 로고 만들기",
+        rating: 5.0,
+        text: "닭 캐릭터를 단순하게 다듬어 줘서 간판에도 잘 어울려요.",
+        date: day(-39),
+      },
       {
         storeName: "월계분식",
         workTitle: "메뉴판 시안",

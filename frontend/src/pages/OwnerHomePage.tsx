@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { CategoryBadge, SectionHeader, TaskRow } from "../components";
 import {
+  FirstVisitGuide,
   OWNER_PATHS,
   OwnerTabScreen,
   TodoCarousel,
@@ -20,6 +21,7 @@ import "./OwnerHomePage.css";
  * 피그마 「사장님 홈 (개선안)」.
  * 확인할 일 → 학생이 작업 중 → 기다리는 중 → 이런 의뢰는 어때요? → 끝난 일.
  * 비어 있는 목록은 섹션째 숨기고, 「이런 의뢰는 어때요?」는 늘 보인다.
+ * 첫 활동 계정(피그마 「사장님 홈 - 처음」)은 할 일 목록 대신 사용법 안내를 보여 준다.
  */
 function OwnerHomePage() {
   const navigate = useNavigate();
@@ -44,14 +46,16 @@ function OwnerHomePage() {
 
   return (
     <OwnerTabScreen tab="home" hasUnread={home.hasUnreadNotifications} showFab>
-      {home.todos.length > 0 && (
+      {home.firstVisit && <FirstVisitGuide onStart={() => navigate(OWNER_PATHS.newRequest)} />}
+
+      {!home.firstVisit && home.todos.length > 0 && (
         <section className="owner-home__section">
           <SectionHeader title="확인할 일" count={home.todos.length} />
           <TodoCarousel todos={home.todos} onAction={openTodo} />
         </section>
       )}
 
-      {home.working.length > 0 && (
+      {!home.firstVisit && home.working.length > 0 && (
         <section className="owner-home__section">
           <SectionHeader title="학생이 작업 중" count={home.working.length} />
           <div className="owner-home__list">
@@ -68,7 +72,7 @@ function OwnerHomePage() {
         </section>
       )}
 
-      {home.waiting.length > 0 && (
+      {!home.firstVisit && home.waiting.length > 0 && (
         <section className="owner-home__section">
           <SectionHeader title="기다리는 중" count={home.waiting.length} />
           <div className="owner-home__list">
@@ -111,7 +115,7 @@ function OwnerHomePage() {
         </ul>
       </section>
 
-      {home.done.length > 0 && (
+      {!home.firstVisit && home.done.length > 0 && (
         <section className="owner-home__section">
           <SectionHeader
             title="끝난 일"

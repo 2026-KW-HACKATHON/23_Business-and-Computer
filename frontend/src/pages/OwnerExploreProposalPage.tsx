@@ -10,6 +10,7 @@ import {
   WorkKindIcon,
 } from "../components";
 import {
+  EXPLORE_PROGRESS_LABEL,
   OWNER_PATHS,
   OwnerMissing,
   similarRequestState,
@@ -64,7 +65,8 @@ function OwnerExploreProposalPage() {
           </div>
           <div className="owner-detail__meta">
             <CategoryBadge field={detail.field} />
-            {detail.storeName} · {formatMonthDay(detail.receivedOn)} · {detail.statusLabel}
+            {detail.storeName} · {formatMonthDay(detail.receivedOn)} ·{" "}
+            {EXPLORE_PROGRESS_LABEL[detail.progress]}
           </div>
         </div>
 
@@ -72,7 +74,7 @@ function OwnerExploreProposalPage() {
           <AppImage name="iconHeart" width={24} alt="" />
           <div>
             <strong className="owner-proposal__empathy-title">
-              광운대생 손님 {detail.empathyCount}명이 공감했어요
+              학생 손님 {detail.empathyCount}명이 공감했어요
             </strong>
             <p className="owner-proposal__empathy-sub">
               가게를 이용하는 학생들도 필요하다고 느낀 제안이에요
