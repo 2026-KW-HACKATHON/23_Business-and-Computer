@@ -83,14 +83,19 @@ function OwnerActivityPage() {
   const back = useBack(OWNER_PATHS.me);
   const [params, setParams] = useSearchParams();
   const tab = TABS.find((t) => t.tab === params.get("tab"))?.tab ?? "sent";
-  const requests = useOwnerRequests();
+  // 보낸 의뢰 · 진행 중은 초안 마감이 빠른 것부터
+  const byDraftDue = <T extends { draftDue: string }>(list: T[]) =>
+    [...list].sort((a, b) => a.draftDue.localeCompare(b.draftDue));
+  const requests = byDraftDue(useOwnerRequests());
   const proposals = useOwnerProposals();
   const works = useOwnerWorks();
   const { summary } = useOwnerPayments();
   const [planWork, setPlanWork] = useState<OwnerWork>();
   const [reportWork, setReportWork] = useState<OwnerWork>();
 
-  const inProgress = works.filter((w) => w.status === "inProgress" || w.status === "submitted");
+  const inProgress = byDraftDue(
+    works.filter((w) => w.status === "inProgress" || w.status === "submitted"),
+  );
   const done = works.filter((w) => w.status === "completed");
   const canceled = works.filter((w) => w.status === "canceled");
   const counts: Record<ActivityTab, number> = {
