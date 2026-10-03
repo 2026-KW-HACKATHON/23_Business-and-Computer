@@ -336,7 +336,6 @@ export type StudentWaitingItem =
 export interface StudentHome {
   /** 이력(작업 · 지원 · 제안)이 하나도 없으면 할 일 대신 사용법 안내 */
   firstVisit: boolean;
-  hasUnreadNotifications: boolean;
   todos: StudentTodo[];
   /** 공감을 기다리는 다른 학생 제안 (공감 많은 순) */
   peerProposals: PeerProposal[];

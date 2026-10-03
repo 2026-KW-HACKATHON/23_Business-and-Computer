@@ -3,7 +3,6 @@ import {
   usePeerProposals,
   useProposalExamples,
   useStudentApplications,
-  useStudentNotifications,
   useStudentWorks,
 } from "./useStudentData";
 import { SAMPLE_REQUESTS } from "../lib/sampleRequests";
@@ -20,7 +19,6 @@ export function useStudentHome(): StudentHome {
   const applications = useStudentApplications();
   const peers = usePeerProposals();
   const examples = useProposalExamples();
-  const notifications = useStudentNotifications();
 
   const todos: StudentTodo[] = works
     .flatMap((work): StudentTodo[] => {
@@ -45,7 +43,6 @@ export function useStudentHome(): StudentHome {
 
   return {
     firstVisit: works.length === 0 && proposals.length === 0 && applications.length === 0,
-    hasUnreadNotifications: notifications.some((n) => !n.read),
     todos,
     peerProposals: peers
       .filter((p) => p.progress === "waitingAcceptance" && !p.mine)

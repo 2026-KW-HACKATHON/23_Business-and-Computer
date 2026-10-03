@@ -116,7 +116,6 @@ export interface OwnerDoneItem {
 export interface OwnerHome {
   /** 백엔드가 알려 주는 첫 활동 여부. 처음이면 할 일 대신 사용법 안내를 보여 준다 */
   firstVisit: boolean;
-  hasUnreadNotifications: boolean;
   todos: OwnerTodo[];
   working: OwnerWorkingItem[];
   waiting: OwnerWaitingItem[];

@@ -29,6 +29,7 @@ export {
   useRequestExample,
   useStudentProfile,
 } from "./hooks/useOwnerData";
+export { markOwnerNotificationsRead } from "./hooks/notificationReads";
 export { useSafePayment } from "./hooks/useSafePayment";
 export { useOwnerHome } from "./hooks/useOwnerHome";
 export { flowSteps } from "./lib/flow";

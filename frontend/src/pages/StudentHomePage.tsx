@@ -115,7 +115,7 @@ function StudentHomePage() {
 
   if (home.firstVisit) {
     return (
-      <StudentTabScreen tab="home" hasUnread={home.hasUnreadNotifications} showFab>
+      <StudentTabScreen tab="home" showFab>
         <StudentFirstVisitGuide onStart={() => navigate(STUDENT_PATHS.newProposal)} />
         {examplesSection}
         {peerSection}
@@ -124,7 +124,7 @@ function StudentHomePage() {
   }
 
   return (
-    <StudentTabScreen tab="home" hasUnread={home.hasUnreadNotifications} showFab>
+    <StudentTabScreen tab="home" showFab>
       {home.todos.length > 0 && (
         <section className="student-home__section">
           <SectionHeader title="확인할 일" count={home.todos.length} />

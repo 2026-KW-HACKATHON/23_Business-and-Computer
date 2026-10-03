@@ -47,7 +47,7 @@ function OwnerHomePage() {
   };
 
   return (
-    <OwnerTabScreen tab="home" hasUnread={home.hasUnreadNotifications} showFab>
+    <OwnerTabScreen tab="home" showFab>
       {home.firstVisit && <FirstVisitGuide onStart={() => navigate(OWNER_PATHS.newRequest)} />}
 
       {!home.firstVisit && home.todos.length > 0 && (
