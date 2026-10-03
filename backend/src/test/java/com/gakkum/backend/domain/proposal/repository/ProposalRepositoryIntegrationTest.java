@@ -206,4 +206,41 @@ class ProposalRepositoryIntegrationTest {
                 .extracting(Proposal::getId)
                 .startsWith(second.getId()).contains(first.getId()).doesNotContain(other.getId());
     }
+
+    @Test
+    @DisplayName("받은 제안은 다른 사장님의 제안을 제외하고 모든 상태를 최신순·같은 시각은 ID 내림차순으로 조회한다")
+    void findsOnlyReceivedProposalsNewestFirst() {
+        // ID만으로 정렬하는 구현이 통과하지 못하도록 ID가 가장 작은 제안에 가장 최신 시각을, 가장 큰 제안에 가장 오래된 시각을 준다
+        Proposal newest = proposalService.createProposal(command(List.of(1L), List.of()), 7L);
+        Proposal sameTimeLowId = proposalService.createProposal(command(List.of(1L), List.of()), 8L);
+        Proposal sameTimeHighId = proposalService.createProposal(command(List.of(1L), List.of()), 9L);
+        Proposal older = proposalService.createProposal(command(List.of(1L), List.of()), 7L);
+        Proposal otherOwner = proposalRepository.save(Proposal.create(
+                7L, 6L, "제목", "문제", "해결", "계획", 1L, 0, 0, List.of()));
+        proposalRepository.flush();
+        entityManager.createNativeQuery("update proposals set created_at = :at where id in (:ids)")
+                .setParameter("at", java.time.LocalDateTime.of(2030, 1, 1, 0, 0))
+                .setParameter("ids", List.of(sameTimeLowId.getId(), sameTimeHighId.getId())).executeUpdate();
+        entityManager.createNativeQuery("update proposals set created_at = :at where id = :id")
+                .setParameter("at", java.time.LocalDateTime.of(2029, 1, 1, 0, 0))
+                .setParameter("id", older.getId()).executeUpdate();
+        entityManager.createNativeQuery("update proposals set created_at = :at where id = :id")
+                .setParameter("at", java.time.LocalDateTime.of(2031, 1, 1, 0, 0))
+                .setParameter("id", newest.getId()).executeUpdate();
+        entityManager.createNativeQuery("update proposals set status = 'ACCEPTED' where id = :id")
+                .setParameter("id", sameTimeLowId.getId()).executeUpdate();
+        entityManager.createNativeQuery("update proposals set status = 'REJECTED' where id = :id")
+                .setParameter("id", older.getId()).executeUpdate();
+        entityManager.clear();
+
+        List<Proposal> received = proposalRepository.findByOwnerProfileIdOrderByCreatedAtDescIdDesc(5L);
+
+        assertThat(received).extracting(Proposal::getId)
+                .contains(newest.getId(), sameTimeHighId.getId(), sameTimeLowId.getId(), older.getId())
+                .doesNotContain(otherOwner.getId());
+        assertThat(received).extracting(Proposal::getId).containsSubsequence(
+                newest.getId(), sameTimeHighId.getId(), sameTimeLowId.getId(), older.getId());
+        assertThat(received).extracting(Proposal::getStatus)
+                .contains(ProposalStatus.PENDING, ProposalStatus.ACCEPTED, ProposalStatus.REJECTED);
+    }
 }

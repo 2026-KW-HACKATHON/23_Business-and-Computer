@@ -14,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.gakkum.backend.domain.proposal.dto.ProposalCommandDto.CreateProposalCommand;
 import com.gakkum.backend.domain.proposal.dto.ProposalCommandDto.GetExploreProposalsCommand;
 import com.gakkum.backend.domain.proposal.dto.ProposalCommandDto.GetMyProposalsCommand;
+import com.gakkum.backend.domain.proposal.dto.ProposalCommandDto.GetReceivedProposalsCommand;
 import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.ExploreProposalData;
 import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.ProposalDetailData;
 import com.gakkum.backend.domain.proposal.entity.Proposal;
@@ -77,6 +78,13 @@ public class ProposalService {
     public List<ExploreProposalData> getMyProposals(GetMyProposalsCommand command) {
         return withSpecialtyIds(proposalRepository
                 .findByStudentProfileIdOrderByCreatedAtDescIdDesc(command.getStudentProfileId()));
+    }
+
+    /** 사장님이 받은 모든 제안을 최신순으로 읽고 제안별 소분류 ID를 한 번에 붙인다. */
+    @Transactional(readOnly = true)
+    public List<ExploreProposalData> getReceivedProposals(GetReceivedProposalsCommand command) {
+        return withSpecialtyIds(proposalRepository
+                .findByOwnerProfileIdOrderByCreatedAtDescIdDesc(command.getOwnerProfileId()));
     }
 
     private List<ExploreProposalData> withSpecialtyIds(List<Proposal> proposals) {

@@ -71,6 +71,19 @@ public final class ProposalCommandDto {
         }
     }
 
+    /** 사장님이 받은 제안 목록 조회 조건 */
+    @Getter
+    @Builder(access = AccessLevel.PRIVATE)
+    @AllArgsConstructor(access = AccessLevel.PRIVATE)
+    public static class GetReceivedProposalsCommand {
+
+        private final Long ownerProfileId;
+
+        public static GetReceivedProposalsCommand of(Long ownerProfileId) {
+            return GetReceivedProposalsCommand.builder().ownerProfileId(ownerProfileId).build();
+        }
+    }
+
     /**
      * 탐색 목록의 제안 조회 조건. 경계 값은 이전 페이지 마지막 카드 위치이고 그 뒤의 제안만 limit개까지 읽는다.
      * likeCountBound는 좋아요순에서만 사용한다.

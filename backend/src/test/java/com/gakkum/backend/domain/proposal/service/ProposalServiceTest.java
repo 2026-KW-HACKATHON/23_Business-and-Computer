@@ -22,6 +22,7 @@ import org.springframework.data.domain.Limit;
 import com.gakkum.backend.domain.proposal.dto.ProposalCommandDto.CreateProposalCommand;
 import com.gakkum.backend.domain.proposal.dto.ProposalCommandDto.GetExploreProposalsCommand;
 import com.gakkum.backend.domain.proposal.dto.ProposalCommandDto.GetMyProposalsCommand;
+import com.gakkum.backend.domain.proposal.dto.ProposalCommandDto.GetReceivedProposalsCommand;
 import com.gakkum.backend.domain.proposal.dto.ProposalExploreOrder;
 import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.ExploreProposalData;
 import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.ProposalDetailData;
@@ -215,6 +216,32 @@ class ProposalServiceTest {
         when(proposalRepository.findByStudentProfileIdOrderByCreatedAtDescIdDesc(7L)).thenReturn(List.of());
 
         assertThat(proposalService.getMyProposals(GetMyProposalsCommand.of(7L))).isEmpty();
+        verify(proposalSpecialtyRepository, never()).findByProposalIdIn(any());
+    }
+
+    @Test
+    @DisplayName("받은 제안은 사장님 프로필 ID로 조회하고 소분류 연결을 한 번에 붙인다")
+    void readsReceivedProposalsWithBatchedSpecialties() {
+        when(proposalRepository.findByOwnerProfileIdOrderByCreatedAtDescIdDesc(5L)).thenReturn(List.of(
+                Proposal.builder().id(32L).build(), Proposal.builder().id(31L).build()));
+        when(proposalSpecialtyRepository.findByProposalIdIn(List.of(32L, 31L))).thenReturn(List.of(
+                ProposalSpecialty.builder().proposalId(32L).specialtyId(3L).build(),
+                ProposalSpecialty.builder().proposalId(32L).specialtyId(4L).build()));
+
+        List<ExploreProposalData> result = proposalService.getReceivedProposals(GetReceivedProposalsCommand.of(5L));
+
+        assertThat(result).extracting(data -> data.getProposal().getId()).containsExactly(32L, 31L);
+        assertThat(result.get(0).getSpecialtyIds()).containsExactly(3L, 4L);
+        assertThat(result.get(1).getSpecialtyIds()).isEmpty();
+        verify(proposalSpecialtyRepository, org.mockito.Mockito.times(1)).findByProposalIdIn(any());
+    }
+
+    @Test
+    @DisplayName("받은 제안이 없으면 소분류를 조회하지 않는다")
+    void skipsSpecialtiesForEmptyReceivedProposals() {
+        when(proposalRepository.findByOwnerProfileIdOrderByCreatedAtDescIdDesc(5L)).thenReturn(List.of());
+
+        assertThat(proposalService.getReceivedProposals(GetReceivedProposalsCommand.of(5L))).isEmpty();
         verify(proposalSpecialtyRepository, never()).findByProposalIdIn(any());
     }
 }
