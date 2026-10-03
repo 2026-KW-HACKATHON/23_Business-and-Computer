@@ -1,5 +1,5 @@
 import type { OwnerChatThread, OwnerProposal, OwnerRequest, OwnerWork } from "../types";
-import { day, dayAt, minutesAgo, yesterdayAt } from "./sampleTime";
+import { day, dayAt, minutesAgo, yesterdayAt } from "../../../lib/sampleTime";
 
 /*
  * 임시 예시 데이터 (피그마 「작업 확인 · 받은 제안 상세 · 지원자 목록 · 보낸 의뢰 상세 ·

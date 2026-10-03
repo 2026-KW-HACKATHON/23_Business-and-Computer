@@ -1,5 +1,5 @@
 import type { RequestExample } from "../types";
-import { day } from "./sampleTime";
+import { day } from "../../../lib/sampleTime";
 
 /**
  * 홈 「이런 의뢰는 어때요?」 예시 (피그마 「사장님 홈」 · B-2).

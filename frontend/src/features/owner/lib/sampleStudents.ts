@@ -1,5 +1,5 @@
 import type { StudentProfile } from "../types";
-import { day } from "./sampleTime";
+import { day } from "../../../lib/sampleTime";
 
 /*
  * 학생 프로필 임시 예시 데이터 (피그마 「지원자 학생 프로필 보기」).
@@ -238,28 +238,39 @@ export const SAMPLE_STUDENT_PROFILES: StudentProfile[] = [
     name: "김광운",
     department: "경영학부",
     year: "24학번",
-    rating: 5.0,
-    completedCount: 3,
-    intro: "메뉴판과 전단지를 만들어요",
-    proposalCount: 5,
+    rating: 4.7,
+    completedCount: 6,
+    intro: "메뉴판·로고 디자인을 주로 해요",
+    proposalCount: 6,
     noShowCount: 0,
     onTimeRate: 100,
-    badges: ["메뉴판·가격표 디자인", "전단지·포스터 디자인", "로고 디자인"],
-    certificates: [{ name: "컴퓨터그래픽스운용기능사", acquiredOn: "2025-09" }],
+    badges: ["메뉴판·가격표 디자인", "로고 디자인", "SNS 게시물"],
+    certificates: [
+      { name: "GTQ 1급", acquiredOn: "2023-08" },
+      { name: "ACP (Adobe 인증)", acquiredOn: "2024-02" },
+    ],
+    portfolioUrl: "behance.net/kwangwoon",
     reviews: [
       {
-        storeName: "월계국수",
-        workTitle: "메뉴판 디자인",
+        storeName: "공룡카페",
+        workTitle: "가게 로고 디자인",
         rating: 5.0,
-        text: "가격을 고친 최종본까지 빠르게 보내 줬어요. 인쇄소에 그대로 맡겼어요.",
-        date: "2026-08-22",
+        text: "귀여운 공룡 캐릭터가 가게랑 잘 어울려요. 스티커로도 만들어 쓰고 있어요!",
+        date: day(-21),
       },
       {
-        storeName: "석계분식",
-        workTitle: "전단지 디자인",
+        storeName: "월계분식",
+        workTitle: "배달앱 메뉴 설명 글",
+        rating: 4.0,
+        text: "메뉴마다 맛이 잘 느껴지게 써 줬어요. 배달 주문이 늘었어요.",
+        date: day(-36),
+      },
+      {
+        storeName: "월계분식",
+        workTitle: "시험 기간 이벤트 기획",
         rating: 5.0,
-        text: "학생들이 좋아할 느낌으로 잘 뽑아 줬어요.",
-        date: "2026-07-20",
+        text: "학생 손님이 확실히 늘었어요. 포스터도 예뻐요.",
+        date: day(-44),
       },
     ],
   },

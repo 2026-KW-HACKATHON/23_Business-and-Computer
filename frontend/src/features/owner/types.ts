@@ -76,11 +76,7 @@ export interface PickedTask {
   task: string;
 }
 
-/** 초안 마감 · 최종 마감 ("2026-09-27", 아직 안 골랐으면 "") */
-export interface DueDates {
-  draftDue: string;
-  finalDue: string;
-}
+export type { DueDates } from "../../components";
 
 /** 의뢰 등록 2/3 에서 적는 내용 */
 export interface RequestContent {

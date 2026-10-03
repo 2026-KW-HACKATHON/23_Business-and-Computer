@@ -1,5 +1,5 @@
 import type { OwnerNotification } from "../types";
-import { dayAt, minutesAgo, yesterdayAt } from "./sampleTime";
+import { dayAt, minutesAgo, yesterdayAt } from "../../../lib/sampleTime";
 
 /*
  * 알림 임시 예시 데이터 (피그마 「알림 (사장님)」 내용). 시각은 지금 기준이고,
