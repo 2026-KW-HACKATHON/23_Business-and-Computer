@@ -2,6 +2,7 @@ package com.gakkum.backend.application.payment.controller;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -11,6 +12,7 @@ import com.gakkum.backend.application.payment.dto.PaymentPrepareRequest;
 import com.gakkum.backend.application.payment.dto.PaymentPrepareResponse;
 import com.gakkum.backend.application.payment.dto.PaymentApproveRequest;
 import com.gakkum.backend.application.payment.dto.PaymentApproveResponse;
+import com.gakkum.backend.application.payment.dto.PaymentHistoryResponse;
 import com.gakkum.backend.application.payment.facade.PaymentFacade;
 import com.gakkum.backend.global.response.ApiResponse;
 
@@ -41,6 +43,13 @@ public class PaymentController {
             @Valid @RequestBody PaymentApproveRequest request) {
         PaymentApproveResponse response = PaymentApproveResponse.from(
                 paymentFacade.approvePayment(authentication.getName(), orderId, request.getPgToken()));
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    @GetMapping("/payments")
+    public ResponseEntity<ApiResponse<PaymentHistoryResponse>> getPaymentHistory(Authentication authentication) {
+        PaymentHistoryResponse response = PaymentHistoryResponse.from(
+                paymentFacade.getPaymentHistory(authentication.getName()));
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 }

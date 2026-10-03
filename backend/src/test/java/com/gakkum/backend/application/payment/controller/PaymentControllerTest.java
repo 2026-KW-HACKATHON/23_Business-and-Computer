@@ -7,11 +7,13 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.time.Instant;
+import java.util.List;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -24,8 +26,16 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import com.gakkum.backend.application.payment.dto.PaymentPrepareRequest;
 import com.gakkum.backend.application.payment.facade.PaymentFacade;
+import com.gakkum.backend.domain.payment.dto.PaymentHistoryStatus;
+import com.gakkum.backend.domain.payment.dto.PaymentQueryDto.PaymentHistoryData;
+import com.gakkum.backend.domain.payment.dto.PaymentQueryDto.PaymentHistoryItemResult;
+import com.gakkum.backend.domain.payment.dto.PaymentQueryDto.PaymentHistoryMonthResult;
+import com.gakkum.backend.domain.payment.dto.PaymentQueryDto.PaymentHistoryResult;
 import com.gakkum.backend.domain.payment.dto.PaymentQueryDto.PreparePaymentResult;
 import com.gakkum.backend.domain.payment.dto.PaymentQueryDto.ApprovedPaymentData;
+import com.gakkum.backend.domain.payment.entity.Payment;
+import com.gakkum.backend.global.exception.BusinessException;
+import com.gakkum.backend.global.exception.ErrorCode;
 import com.gakkum.backend.global.exception.GlobalExceptionHandler;
 
 class PaymentControllerTest {
@@ -145,5 +155,60 @@ class PaymentControllerTest {
                     .andExpect(jsonPath("$.error.code").value("COMMON_400"));
         }
         verifyNoInteractions(paymentFacade);
+    }
+
+    @Test
+    @DisplayName("결제 내역 조회는 인증 사용자를 Facade에 전달하고 월별 결제 내역을 반환한다")
+    void returnsPaymentHistory() throws Exception {
+        Payment payment = Payment.pending(42L, 21L, "owner-123", "order-123", 100_000L, Instant.EPOCH);
+        payment.recordKakaoTid("T1234567890123456789");
+        payment.approve(Instant.parse("2026-10-02T03:00:00Z"));
+        when(paymentFacade.getPaymentHistory(USERNAME)).thenReturn(PaymentHistoryResult.of(List.of(
+                PaymentHistoryMonthResult.of("2026-10", List.of(PaymentHistoryItemResult.of(
+                        PaymentHistoryData.from(payment), "매장 홍보 포스터 제작", 0L, "김학생",
+                        PaymentHistoryStatus.HELD))))));
+
+        mockMvc.perform(get("/payments").principal(authentication))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.months.length()").value(1))
+                .andExpect(jsonPath("$.data.months[0].yearMonth").value("2026-10"))
+                .andExpect(jsonPath("$.data.months[0].payments.length()").value(1))
+                .andExpect(jsonPath("$.data.months[0].payments[0].length()").value(7))
+                .andExpect(jsonPath("$.data.months[0].payments[0].jobId").value(42))
+                .andExpect(jsonPath("$.data.months[0].payments[0].title").value("매장 홍보 포스터 제작"))
+                .andExpect(jsonPath("$.data.months[0].payments[0].amount").value(100000))
+                .andExpect(jsonPath("$.data.months[0].payments[0].refundAmount").value(0))
+                .andExpect(jsonPath("$.data.months[0].payments[0].approvedAt").value("2026-10-02T03:00:00Z"))
+                .andExpect(jsonPath("$.data.months[0].payments[0].studentName").value("김학생"))
+                .andExpect(jsonPath("$.data.months[0].payments[0].status").value("HELD"));
+        verify(paymentFacade).getPaymentHistory(USERNAME);
+    }
+
+    @Test
+    @DisplayName("결제 내역이 없으면 200과 빈 월 목록을 반환한다")
+    void returnsEmptyPaymentHistory() throws Exception {
+        when(paymentFacade.getPaymentHistory(USERNAME)).thenReturn(PaymentHistoryResult.of(List.of()));
+
+        mockMvc.perform(get("/payments").principal(authentication))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.months").isArray())
+                .andExpect(jsonPath("$.data.months").isEmpty());
+    }
+
+    @Test
+    @DisplayName("사장님이 아닌 사용자의 결제 내역 조회는 403을, 잠긴 사용자는 401을 반환한다")
+    void rejectsPaymentHistoryForNonOwnerAndLockedUser() throws Exception {
+        when(paymentFacade.getPaymentHistory(USERNAME))
+                .thenThrow(new BusinessException(ErrorCode.PAYMENT_LIST_OWNER_REQUIRED))
+                .thenThrow(new BusinessException(ErrorCode.UNAUTHORIZED));
+
+        mockMvc.perform(get("/payments").principal(authentication))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.error.code").value("PAYMENT_403_LIST_OWNER"));
+        mockMvc.perform(get("/payments").principal(authentication))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.error.code").value("COMMON_401"));
     }
 }

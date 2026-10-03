@@ -43,6 +43,7 @@ public enum ErrorCode {
     PAYMENT_NOT_AVAILABLE(HttpStatus.CONFLICT, "PAYMENT_409_UNAVAILABLE", "결제를 준비할 수 없는 의뢰 또는 지원서입니다."),
     PAYMENT_ALREADY_PAID(HttpStatus.CONFLICT, "PAYMENT_409_PAID", "이미 결제된 의뢰입니다."),
     PAYMENT_OWNER_REQUIRED(HttpStatus.FORBIDDEN, "PAYMENT_403_OWNER", "사장님만 결제를 준비할 수 있습니다."),
+    PAYMENT_LIST_OWNER_REQUIRED(HttpStatus.FORBIDDEN, "PAYMENT_403_LIST_OWNER", "사장님만 결제 내역을 조회할 수 있습니다."),
     PAYMENT_READY_FAILED(HttpStatus.BAD_GATEWAY, "PAYMENT_502_READY", "결제창을 준비하지 못했습니다. 잠시 후 다시 시도해 주세요."),
     PAYMENT_ORDER_NOT_FOUND(HttpStatus.NOT_FOUND, "PAYMENT_404_ORDER", "존재하지 않는 결제 주문입니다."),
     PAYMENT_FORBIDDEN(HttpStatus.FORBIDDEN, "PAYMENT_403_FORBIDDEN", "본인의 결제 주문만 승인할 수 있습니다."),
