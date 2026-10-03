@@ -1,4 +1,4 @@
-# 0012. Owner business verification calls the backend API
+# 0016. Owner business verification calls the backend API
 
 ## Status
 
@@ -41,8 +41,12 @@ failures needed a decision.
   - 503, 500, or a network error → `error` state: no red borders,
     「잠시 후 다시 시도해 주세요」 in the same spot, 「인증하기」 enabled again.
   - 401 → /login (history replaced).
-  - 409 → alert 「이미 가입을 마친 계정이에요」, then /home (replaced).
+  - 409 → alert 「이미 가입을 마친 계정이에요」, then the owner home /owner
+    (replaced). /home is the student placeholder home.
   - While requesting, the button is disabled and reads 「인증 중...」.
+- The shared signup draft stores only the result in `business.check`
+  (idle / verified / mismatch / error). "Requesting" is local `useState` in
+  `src/pages/OwnerSignupVerifyPage.tsx`, so it never outlives the screen.
 - Editing a field or leaving the screen while a request is in flight discards
   its late response.
 - `apiFetch` in `src/api/client.ts` now merges headers as
@@ -64,6 +68,10 @@ failures needed a decision.
   unverified business continue.
 - Changing the shared `TextField` to show an error text without `invalid`:
   rejected for this change, the page renders its own message instead.
+- Keeping a `checking` value in the draft's `business.check`: rejected. The
+  draft is shared by steps 1–3, and because a late response is discarded after
+  the screen is left, `checking` stayed behind and the button was still
+  disabled after going back and returning (PR #101 review).
 
 ## Agent Guidance
 
