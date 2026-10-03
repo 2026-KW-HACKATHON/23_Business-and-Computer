@@ -2,13 +2,14 @@ import { Navigate, useNavigate } from "react-router-dom";
 import { clearTokens, isLoggedIn, landingPath } from "../features/auth";
 
 /**
- * 임시 홈. 없는 주소도 여기로 온다. 가입 전이거나 사장님이면 맞는 화면으로 보내고,
+ * 임시 홈. 가입 전이거나 사장님이면 맞는 화면으로 보내고,
  * 학생 홈을 만들기 전까지 학생은 여기 머문다.
  */
 function HomePage() {
   const navigate = useNavigate();
-  const loggedIn = isLoggedIn();
+  // landingPath 가 읽을 수 없는 토큰을 지우므로 로그인 여부는 그 뒤에 본다
   const next = landingPath();
+  const loggedIn = isLoggedIn();
 
   const handleLogout = () => {
     clearTokens();

@@ -1,7 +1,19 @@
 import type { StoreCategory } from "../../types/storeCategory";
 
-/** 사업자 인증 결과. idle = 아직 인증 전 */
-export type BusinessCheck = "idle" | "verified" | "mismatch";
+/**
+ * 사업자 인증 결과. idle = 아직 인증 전,
+ * error = 서버·네트워크 오류 (입력은 그대로 두고 다시 시도).
+ * 요청 중 여부는 단계 사이에 남으면 안 되므로 여기 두지 않고 2/3 화면 state 로 둔다.
+ */
+export type BusinessCheck = "idle" | "verified" | "mismatch" | "error";
+
+/** 사업자 인증 요청 결과. unauthorized·alreadyRegistered 는 화면을 떠난다 */
+export type BusinessCheckResult =
+  | "verified"
+  | "mismatch"
+  | "error"
+  | "unauthorized"
+  | "alreadyRegistered";
 
 export interface BusinessInfo {
   /** 입력 그대로 (예: 123-45-67890) */

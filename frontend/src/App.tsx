@@ -4,6 +4,7 @@ import IntroPage from './pages/IntroPage'
 import LoginPage from './pages/LoginPage'
 import RoleSelectPage from './pages/RoleSelectPage'
 import CookiePage from './pages/CookiePage'
+import LandingRedirect from './pages/LandingRedirect'
 import OwnerSignupLayout from './pages/OwnerSignupLayout'
 import OwnerSignupInfoPage from './pages/OwnerSignupInfoPage'
 import OwnerSignupVerifyPage from './pages/OwnerSignupVerifyPage'
@@ -101,7 +102,8 @@ function App() {
       <Route path="/owner/*" element={<Navigate to="/owner" replace />} />
       {/* Backend redirects here after a successful social login. */}
       <Route path="/cookie" element={<CookiePage />} />
-      <Route path="*" element={<Navigate to="/home" replace />} />
+      {/* Unknown paths land by login state and role (ADR 0015), not via /home. */}
+      <Route path="*" element={<LandingRedirect />} />
     </Routes>
   )
 }
