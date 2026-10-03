@@ -1,0 +1,42 @@
+.student-notifications__group {
+  padding-top: 8px;
+}
+
+.student-notifications__date {
+  margin: 0;
+  padding: 14px 16px 6px;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 17px;
+  letter-spacing: normal;
+  color: var(--role-secondary);
+}
+
+.student-notifications__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* 줄 사이 1px 구분선 (좌우 16px 안쪽) */
+.student-notifications__list > li + li {
+  position: relative;
+}
+
+.student-notifications__list > li + li::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 16px;
+  left: 16px;
+  height: 1px;
+  background: var(--role-muted);
+}
+
+.student-notifications__empty {
+  padding: 40px 0;
+  font-size: 14px;
+  color: var(--text-placeholder);
+  text-align: center;
+}

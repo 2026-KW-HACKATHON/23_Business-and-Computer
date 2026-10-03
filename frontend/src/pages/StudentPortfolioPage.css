@@ -1,0 +1,154 @@
+.student-portfolio {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 16px 16px 32px;
+  font-family: var(--font-sans);
+}
+
+.student-portfolio__stats {
+  display: flex;
+  align-items: center;
+  margin: 0;
+  padding: 16px 0;
+  border-radius: 16px;
+  background: #f9fafb;
+}
+
+.student-portfolio__stats > div {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.student-portfolio__stats > div + div {
+  border-left: 1px solid var(--role-border);
+}
+
+.student-portfolio__stats dt {
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--role-secondary);
+}
+
+.student-portfolio__stats dd {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 21px;
+  color: var(--color-black);
+}
+
+.student-portfolio__note {
+  margin-top: -8px;
+  font-size: 12px;
+  line-height: 17px;
+  color: var(--text-placeholder);
+}
+
+.student-portfolio__empty {
+  padding: 40px 0;
+  font-size: 14px;
+  color: var(--text-placeholder);
+  text-align: center;
+}
+
+.student-portfolio__month {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.student-portfolio__month-title {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 18px;
+  letter-spacing: normal;
+  color: var(--role-secondary);
+}
+
+.student-portfolio__list {
+  margin: 0;
+  padding: 0 16px;
+  border: 1px solid var(--role-border);
+  border-radius: 16px;
+  list-style: none;
+}
+
+.student-portfolio__list > li + li {
+  border-top: 1px solid var(--role-muted);
+}
+
+.student-portfolio__row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  box-sizing: border-box;
+  width: 100%;
+  padding: 14px 0;
+  border: none;
+  background: none;
+  font-family: var(--font-sans);
+  text-align: left;
+  cursor: pointer;
+}
+
+.student-portfolio__row:focus-visible {
+  outline: 2px solid var(--color-black);
+  outline-offset: 2px;
+  border-radius: 8px;
+}
+
+.student-portfolio__file {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 10px;
+  background: var(--role-muted);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-placeholder);
+}
+
+.student-portfolio__info {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.student-portfolio__info strong {
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 20px;
+  color: var(--color-black);
+}
+
+.student-portfolio__info span {
+  font-size: 13px;
+  line-height: 17px;
+  color: var(--text-body);
+}
+
+.student-portfolio__info small {
+  overflow: hidden;
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--text-placeholder);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.student-portfolio__chevron {
+  flex-shrink: 0;
+  font-size: 18px;
+  color: var(--text-placeholder);
+}

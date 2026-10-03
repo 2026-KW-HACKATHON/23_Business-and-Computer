@@ -1,0 +1,316 @@
+.student-profile {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 20px 16px 32px;
+  font-family: var(--font-sans);
+}
+
+.student-profile__head {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  text-align: center;
+}
+
+.student-profile__head .role-avatar {
+  margin-bottom: 4px;
+}
+
+.student-profile__name {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 26px;
+  letter-spacing: normal;
+  color: var(--color-black);
+}
+
+.student-profile__school {
+  font-size: 13px;
+  line-height: 17px;
+  color: var(--role-secondary);
+}
+
+.student-profile__intro {
+  font-size: 14px;
+  line-height: 20px;
+  color: #333d4b;
+  word-break: keep-all;
+}
+
+.student-profile__stats {
+  display: flex;
+  align-items: center;
+  margin: 0;
+  padding: 14px 0;
+  border-radius: 16px;
+  background: #f9fafb;
+}
+
+/* 숫자를 위, 이름을 아래에 보여 준다 */
+.student-profile__stat {
+  display: flex;
+  flex: 1;
+  flex-direction: column-reverse;
+  align-items: center;
+  gap: 2px;
+}
+
+.student-profile__stat + .student-profile__stat {
+  border-left: 1px solid #e5e8eb;
+}
+
+.student-profile__stat dt {
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--role-secondary);
+}
+
+.student-profile__stat dd {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 26px;
+  color: var(--color-black);
+}
+
+.student-profile__section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.student-profile__section-title {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 21px;
+  letter-spacing: normal;
+  color: var(--color-black);
+}
+
+.student-profile__section-title span {
+  margin-left: 2px;
+  color: var(--role-secondary);
+}
+
+.student-profile__badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.student-profile__box {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px;
+  border: 1px solid #e5e8eb;
+  border-radius: 16px;
+}
+
+.student-profile__cert {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.student-profile__cert strong {
+  flex: 1;
+  min-width: 0;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 18px;
+  color: var(--color-black);
+}
+
+.student-profile__cert span {
+  font-size: 13px;
+  line-height: 17px;
+  color: var(--role-secondary);
+}
+
+.student-profile__divider {
+  height: 1px;
+  background: #f2f4f6;
+}
+
+.student-profile__portfolio {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  line-height: 17px;
+  color: var(--role-secondary);
+}
+
+.student-profile__portfolio-url {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.student-profile__open {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 0 4px 4px;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 16px;
+  color: var(--role-secondary);
+  text-decoration: none;
+}
+
+.student-profile__reviews {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.student-profile__review {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 16px;
+  border: 1px solid #e5e8eb;
+  border-radius: 16px;
+}
+
+.student-profile__review-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.student-profile__review-head strong {
+  flex-shrink: 0;
+  font-size: 14px;
+  line-height: 18px;
+  color: var(--color-black);
+}
+
+.student-profile__review-work {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  font-size: 13px;
+  line-height: 17px;
+  color: var(--role-secondary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.student-profile__review-rating {
+  flex-shrink: 0;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 17px;
+  color: #e0a800;
+}
+
+.student-profile__review-text {
+  font-size: 14px;
+  line-height: 21px;
+  color: #333d4b;
+  word-break: keep-all;
+  overflow-wrap: break-word;
+}
+
+.student-profile__review-date {
+  font-size: 12px;
+  line-height: 16px;
+  color: #8b95a1;
+}
+
+.student-profile__empty {
+  font-size: 13px;
+  line-height: 18px;
+  color: #8b95a1;
+}
+
+.student-profile__edit {
+  height: 36px;
+  margin-top: 6px;
+  padding: 0 16px;
+  border: 1px solid var(--role-border);
+  border-radius: 999px;
+  background: var(--color-white);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-title);
+  cursor: pointer;
+}
+
+.student-profile__edit:focus-visible {
+  outline: 2px solid var(--color-black);
+  outline-offset: 2px;
+}
+
+.student-profile__section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.student-profile__section-title small {
+  margin-left: 4px;
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--text-placeholder);
+}
+
+.student-profile__settlements {
+  margin: 0;
+  list-style: none;
+}
+
+.student-profile__settlement {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.student-profile__settlement + .student-profile__settlement {
+  padding-top: 10px;
+  border-top: 1px solid #f2f4f6;
+}
+
+.student-profile__settlement > span {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.student-profile__settlement strong {
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 18px;
+  color: var(--color-black);
+}
+
+.student-profile__settlement small {
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--text-placeholder);
+}
+
+.student-profile__settlement > b {
+  flex-shrink: 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--color-black);
+}
