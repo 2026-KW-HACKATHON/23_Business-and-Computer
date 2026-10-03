@@ -43,6 +43,35 @@ import OwnerExploreRequestPage from './pages/OwnerExploreRequestPage'
 import OwnerStoreEditPage from './pages/OwnerStoreEditPage'
 import OwnerPaymentsPage from './pages/OwnerPaymentsPage'
 import OwnerActivityPage from './pages/OwnerActivityPage'
+import StudentHomePage from './pages/StudentHomePage'
+import StudentExplorePage from './pages/StudentExplorePage'
+import StudentStoresPage from './pages/StudentStoresPage'
+import StudentChatsPage from './pages/StudentChatsPage'
+import StudentNotificationsPage from './pages/StudentNotificationsPage'
+import StudentMePage from './pages/StudentMePage'
+import StudentProfilePage from './pages/StudentProfilePage'
+import StudentSettlementsPage from './pages/StudentSettlementsPage'
+import StudentPortfolioPage from './pages/StudentPortfolioPage'
+import StudentActivityPage from './pages/StudentActivityPage'
+import StudentProposalStorePage from './pages/StudentProposalStorePage'
+import StudentProposalTasksPage from './pages/StudentProposalTasksPage'
+import StudentProposalContentPage from './pages/StudentProposalContentPage'
+import StudentProposalConfirmPage from './pages/StudentProposalConfirmPage'
+import StudentProposalDonePage from './pages/StudentProposalDonePage'
+import StudentRequestPage from './pages/StudentRequestPage'
+import StudentRequestFullPage from './pages/StudentRequestFullPage'
+import StudentApplyPage from './pages/StudentApplyPage'
+import StudentProposalPage from './pages/StudentProposalPage'
+import StudentPeerProposalPage from './pages/StudentPeerProposalPage'
+import StudentWorkStartPage from './pages/StudentWorkStartPage'
+import StudentWorkSubmitPage from './pages/StudentWorkSubmitPage'
+import StudentRevisionPage from './pages/StudentRevisionPage'
+import StudentRevisionSubmitPage from './pages/StudentRevisionSubmitPage'
+import StudentSubmittedPage from './pages/StudentSubmittedPage'
+import StudentWorkResultPage from './pages/StudentWorkResultPage'
+import StudentReviewPage from './pages/StudentReviewPage'
+import StudentWorkCanceledPage from './pages/StudentWorkCanceledPage'
+import StudentChatRoomPage from './pages/StudentChatRoomPage'
 
 function App() {
   return (
@@ -97,6 +126,37 @@ function App() {
       <Route path="/explore/proposals/:proposalId" element={<OwnerExploreProposalPage />} />
       <Route path="/explore/requests/:requestId" element={<OwnerExploreRequestPage />} />
       <Route path="/owner/proposals/:proposalId/accept" element={<OwnerProposalAcceptPage />} />
+      <Route path="/student" element={<StudentHomePage />} />
+      <Route path="/student/explore" element={<StudentExplorePage />} />
+      <Route path="/student/explore/stores" element={<StudentStoresPage />} />
+      <Route path="/student/chats" element={<StudentChatsPage />} />
+      <Route path="/student/chats/:workId" element={<StudentChatRoomPage />} />
+      <Route path="/student/notifications" element={<StudentNotificationsPage />} />
+      <Route path="/student/me" element={<StudentMePage />} />
+      <Route path="/student/me/profile" element={<StudentProfilePage />} />
+      <Route path="/student/me/settlements" element={<StudentSettlementsPage />} />
+      <Route path="/student/me/portfolio" element={<StudentPortfolioPage />} />
+      <Route path="/student/activity" element={<StudentActivityPage />} />
+      <Route path="/student/proposals/new" element={<StudentProposalStorePage />} />
+      <Route path="/student/proposals/new/2" element={<StudentProposalTasksPage />} />
+      <Route path="/student/proposals/new/3" element={<StudentProposalContentPage />} />
+      <Route path="/student/proposals/new/4" element={<StudentProposalConfirmPage />} />
+      <Route path="/student/proposals/new/done" element={<StudentProposalDonePage />} />
+      <Route path="/student/proposals/:proposalId" element={<StudentProposalPage />} />
+      <Route path="/student/explore/proposals/:proposalId" element={<StudentPeerProposalPage />} />
+      <Route path="/student/requests/:requestId" element={<StudentRequestPage />} />
+      <Route path="/student/requests/:requestId/full" element={<StudentRequestFullPage />} />
+      <Route path="/student/requests/:requestId/apply" element={<StudentApplyPage />} />
+      <Route path="/student/works/:workId/start" element={<StudentWorkStartPage />} />
+      <Route path="/student/works/:workId/submit" element={<StudentWorkSubmitPage />} />
+      <Route path="/student/works/:workId/revision" element={<StudentRevisionPage />} />
+      <Route path="/student/works/:workId/revision/submit" element={<StudentRevisionSubmitPage />} />
+      <Route path="/student/works/:workId/submitted" element={<StudentSubmittedPage />} />
+      <Route path="/student/works/:workId/result" element={<StudentWorkResultPage />} />
+      <Route path="/student/works/:workId/review" element={<StudentReviewPage />} />
+      <Route path="/student/works/:workId/canceled" element={<StudentWorkCanceledPage />} />
+      {/* Student screens not built yet fall back to the student home. */}
+      <Route path="/student/*" element={<Navigate to="/student" replace />} />
       {/* Owner screens not built yet fall back to the owner home. */}
       <Route path="/owner/*" element={<Navigate to="/owner" replace />} />
       {/* Backend redirects here after a successful social login. */}
