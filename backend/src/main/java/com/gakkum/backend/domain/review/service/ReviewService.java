@@ -1,5 +1,8 @@
 package com.gakkum.backend.domain.review.service;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -52,5 +55,19 @@ public class ReviewService {
     public Review getStudentReview(Long jobId, Long studentProfileId) {
         return reviewRepository.findByJobIdAndStudentProfileId(jobId, studentProfileId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.REVIEW_NOT_FOUND));
+    }
+
+    /**
+     * 학생이 받은 전체 리뷰의 평균 별점을 소수 첫째 자리까지 HALF_UP으로 반올림해 반환한다.
+     * 리뷰가 없으면 0.0이다.
+     * @param studentProfileId 학생 프로필 ID
+     */
+    @Transactional(readOnly = true)
+    public BigDecimal getAverageRating(Long studentProfileId) {
+        Double average = reviewRepository.findAverageRatingByStudentProfileId(studentProfileId);
+        if (average == null) {
+            return BigDecimal.ZERO.setScale(1);
+        }
+        return BigDecimal.valueOf(average).setScale(1, RoundingMode.HALF_UP);
     }
 }

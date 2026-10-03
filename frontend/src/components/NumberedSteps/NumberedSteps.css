@@ -1,0 +1,102 @@
+.numbered-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-family: var(--font-sans);
+}
+
+.numbered-steps__item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.numbered-steps__mark {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  background: var(--color-main);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 16px;
+  color: var(--color-black);
+}
+
+.numbered-steps__mark--muted {
+  background: var(--role-muted);
+}
+
+.numbered-steps__text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.numbered-steps__title {
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 20px;
+  color: var(--color-black);
+  word-break: keep-all;
+}
+
+.numbered-steps__title b {
+  font-weight: 700;
+}
+
+.numbered-steps__description {
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--role-secondary);
+  white-space: pre-line;
+  word-break: keep-all;
+}
+
+.numbered-steps__trailing {
+  flex-shrink: 0;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 19px;
+  color: var(--color-black);
+  white-space: nowrap;
+}
+
+.numbered-steps__trailing--danger {
+  color: #f04452;
+}
+
+/* 흰 상자 안 줄 목록 */
+.numbered-steps--card {
+  gap: 0;
+  padding: 0 16px;
+  border: 1px solid #e5e8eb;
+  border-radius: 16px;
+  background: var(--color-white);
+}
+
+.numbered-steps--card .numbered-steps__item {
+  align-items: center;
+  padding: 14px 0;
+}
+
+.numbered-steps--card .numbered-steps__item + .numbered-steps__item {
+  border-top: 1px solid #f2f4f6;
+}
+
+.numbered-steps--card .numbered-steps__title {
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.numbered-steps--card .numbered-steps__description {
+  line-height: 17px;
+}

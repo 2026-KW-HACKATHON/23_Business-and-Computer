@@ -19,6 +19,7 @@ import com.gakkum.backend.domain.proposal.dto.ProposalCommandDto.CreateProposalC
 import com.gakkum.backend.domain.proposal.entity.Proposal;
 import com.gakkum.backend.domain.proposal.entity.ProposalLike;
 import com.gakkum.backend.domain.proposal.entity.ProposalSpecialty;
+import com.gakkum.backend.domain.proposal.entity.ProposalStatus;
 import com.gakkum.backend.domain.proposal.service.ProposalService;
 
 /** 각 테스트는 트랜잭션 안에서 실행되고 끝나면 롤백된다. */
@@ -138,5 +139,108 @@ class ProposalRepositoryIntegrationTest {
     private CreateProposalCommand command(List<Long> specialtyIds, List<String> imageUrls) {
         return CreateProposalCommand.of("KAKAO_12345", 5L, specialtyIds, "메뉴판 개선 제안", "가".repeat(500),
                 "사진 메뉴판으로 바꿉니다.", "촬영 후 편집합니다.", 50000L, 0, 7, imageUrls);
+    }
+
+    @Test
+    @DisplayName("PostgreSQL은 신규 제안을 PENDING으로 저장하고 세 상태를 enum 문자열로 저장·조회한다")
+    void storesProposalStatus() {
+        Proposal saved = proposalService.createProposal(command(List.of(1L), List.of()), 7L);
+        proposalRepository.flush();
+        entityManager.clear();
+        assertThat(proposalRepository.findById(saved.getId()).orElseThrow().getStatus())
+                .isEqualTo(ProposalStatus.PENDING);
+
+        for (ProposalStatus status : ProposalStatus.values()) {
+            entityManager.createNativeQuery("update proposals set status = :status where id = :id")
+                    .setParameter("status", status.name()).setParameter("id", saved.getId()).executeUpdate();
+            entityManager.clear();
+            assertThat(proposalRepository.findById(saved.getId()).orElseThrow().getStatus()).isEqualTo(status);
+        }
+    }
+
+    @Test
+    @DisplayName("PostgreSQL은 허용하지 않는 상태 값과 NULL 상태를 거부한다")
+    void enforcesProposalStatusConstraint() {
+        Proposal saved = proposalService.createProposal(command(List.of(1L), List.of()), 7L);
+        proposalRepository.flush();
+
+        assertThatThrownBy(() -> {
+            entityManager.createNativeQuery("update proposals set status = 'DONE' where id = :id")
+                    .setParameter("id", saved.getId()).executeUpdate();
+        }).isInstanceOf(Exception.class);
+    }
+
+    @Test
+    @DisplayName("PostgreSQL은 NULL 상태를 거부한다")
+    void rejectsNullStatus() {
+        Proposal saved = proposalService.createProposal(command(List.of(1L), List.of()), 7L);
+        proposalRepository.flush();
+
+        assertThatThrownBy(() -> entityManager.createNativeQuery("update proposals set status = null where id = :id")
+                .setParameter("id", saved.getId()).executeUpdate()).isInstanceOf(Exception.class);
+    }
+
+    @Test
+    @DisplayName("PostgreSQL은 상태 컬럼 없이 삽입한 기존 형태의 행을 PENDING으로 채운다")
+    void defaultsLegacyRowsToPending() {
+        entityManager.createNativeQuery("""
+                insert into proposals (student_profile_id, owner_profile_id, title, customer_problem,
+                    proposed_solution, work_plan, proposed_fee, draft_days, final_days, reference_image_urls)
+                values (7, 5, 't', 'p', 's', 'w', 1000, 0, 1, '[]'::jsonb)
+                """).executeUpdate();
+        Object status = entityManager.createNativeQuery(
+                "select status from proposals where title = 't' and student_profile_id = 7 order by id desc limit 1")
+                .getSingleResult();
+        assertThat(status).isEqualTo("PENDING");
+    }
+
+    @Test
+    @DisplayName("본인의 모든 상태 제안만 최신순·ID 내림차순으로 조회한다")
+    void findsOnlyOwnProposalsNewestFirst() {
+        Proposal first = proposalService.createProposal(command(List.of(1L), List.of()), 7L);
+        Proposal second = proposalService.createProposal(command(List.of(1L), List.of()), 7L);
+        Proposal other = proposalService.createProposal(command(List.of(1L), List.of()), 8L);
+        proposalRepository.flush();
+
+        assertThat(proposalRepository.findByStudentProfileIdOrderByCreatedAtDescIdDesc(7L))
+                .extracting(Proposal::getId)
+                .startsWith(second.getId()).contains(first.getId()).doesNotContain(other.getId());
+    }
+
+    @Test
+    @DisplayName("받은 제안은 다른 사장님의 제안을 제외하고 모든 상태를 최신순·같은 시각은 ID 내림차순으로 조회한다")
+    void findsOnlyReceivedProposalsNewestFirst() {
+        // ID만으로 정렬하는 구현이 통과하지 못하도록 ID가 가장 작은 제안에 가장 최신 시각을, 가장 큰 제안에 가장 오래된 시각을 준다
+        Proposal newest = proposalService.createProposal(command(List.of(1L), List.of()), 7L);
+        Proposal sameTimeLowId = proposalService.createProposal(command(List.of(1L), List.of()), 8L);
+        Proposal sameTimeHighId = proposalService.createProposal(command(List.of(1L), List.of()), 9L);
+        Proposal older = proposalService.createProposal(command(List.of(1L), List.of()), 7L);
+        Proposal otherOwner = proposalRepository.save(Proposal.create(
+                7L, 6L, "제목", "문제", "해결", "계획", 1L, 0, 0, List.of()));
+        proposalRepository.flush();
+        entityManager.createNativeQuery("update proposals set created_at = :at where id in (:ids)")
+                .setParameter("at", java.time.LocalDateTime.of(2030, 1, 1, 0, 0))
+                .setParameter("ids", List.of(sameTimeLowId.getId(), sameTimeHighId.getId())).executeUpdate();
+        entityManager.createNativeQuery("update proposals set created_at = :at where id = :id")
+                .setParameter("at", java.time.LocalDateTime.of(2029, 1, 1, 0, 0))
+                .setParameter("id", older.getId()).executeUpdate();
+        entityManager.createNativeQuery("update proposals set created_at = :at where id = :id")
+                .setParameter("at", java.time.LocalDateTime.of(2031, 1, 1, 0, 0))
+                .setParameter("id", newest.getId()).executeUpdate();
+        entityManager.createNativeQuery("update proposals set status = 'ACCEPTED' where id = :id")
+                .setParameter("id", sameTimeLowId.getId()).executeUpdate();
+        entityManager.createNativeQuery("update proposals set status = 'REJECTED' where id = :id")
+                .setParameter("id", older.getId()).executeUpdate();
+        entityManager.clear();
+
+        List<Proposal> received = proposalRepository.findByOwnerProfileIdOrderByCreatedAtDescIdDesc(5L);
+
+        assertThat(received).extracting(Proposal::getId)
+                .contains(newest.getId(), sameTimeHighId.getId(), sameTimeLowId.getId(), older.getId())
+                .doesNotContain(otherOwner.getId());
+        assertThat(received).extracting(Proposal::getId).containsSubsequence(
+                newest.getId(), sameTimeHighId.getId(), sameTimeLowId.getId(), older.getId());
+        assertThat(received).extracting(Proposal::getStatus)
+                .contains(ProposalStatus.PENDING, ProposalStatus.ACCEPTED, ProposalStatus.REJECTED);
     }
 }

@@ -20,7 +20,6 @@ function OwnerSignupDonePage() {
       </main>
 
       <footer className="signup__footer">
-        {/* 사장님 홈(/owner)은 아직 없어 만들어지면 연결된다 */}
         <Button fullWidth onClick={() => navigate("/owner", { replace: true })}>
           시작하기
         </Button>

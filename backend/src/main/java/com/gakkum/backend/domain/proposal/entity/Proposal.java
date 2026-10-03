@@ -9,6 +9,8 @@ import org.hibernate.type.SqlTypes;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -68,6 +70,10 @@ public class Proposal {
     @Column(name = "like_count", nullable = false)
     private Integer likeCount;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private ProposalStatus status;
+
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
@@ -95,6 +101,7 @@ public class Proposal {
                 .finalDays(finalDays)
                 .referenceImageUrls(List.copyOf(referenceImageUrls))
                 .likeCount(0)
+                .status(ProposalStatus.PENDING)
                 .build();
     }
 }

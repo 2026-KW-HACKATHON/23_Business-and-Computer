@@ -51,3 +51,39 @@
   opacity: 0;
   pointer-events: none;
 }
+
+/* 내 정보 머리의 작은 사진 */
+.profile-photo--small {
+  width: 72px;
+  height: 72px;
+}
+
+.profile-photo--small .profile-photo__add {
+  left: 52px;
+  top: 52px;
+  width: 18px;
+  height: 18px;
+}
+
+.profile-photo--small .profile-photo__add img {
+  width: 9px;
+  height: 9px;
+}
+
+/* 가게 정보 수정의 가게 사진 */
+.profile-photo--medium {
+  width: 88px;
+  height: 88px;
+}
+
+.profile-photo--medium .profile-photo__add {
+  left: 64px;
+  top: 64px;
+  width: 22px;
+  height: 22px;
+}
+
+.profile-photo--medium .profile-photo__add img {
+  width: 11px;
+  height: 11px;
+}

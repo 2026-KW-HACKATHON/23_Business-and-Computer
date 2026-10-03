@@ -1,0 +1,70 @@
+.pay-progress {
+  position: fixed;
+  inset: 0;
+  z-index: 120;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: var(--color-white);
+  font-family: var(--font-sans);
+  text-align: center;
+  cursor: pointer;
+}
+
+/* 피그마: 로딩 표시는 화면 위에서 264px */
+.pay-progress__body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  margin-top: min(264px, 31svh);
+  padding: 0 32px;
+}
+
+.pay-progress__spinner {
+  box-sizing: border-box;
+  width: 56px;
+  height: 56px;
+  margin-bottom: 8px;
+  border: 6px solid var(--role-muted);
+  border-top-color: var(--color-owner);
+  border-right-color: var(--color-owner);
+  border-radius: 999px;
+  animation: pay-progress-spin 0.9s linear infinite;
+}
+
+@keyframes pay-progress-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pay-progress__spinner {
+    animation-duration: 2.4s;
+  }
+}
+
+.pay-progress__title {
+  font-size: 22px;
+  font-weight: 700;
+  line-height: normal;
+  color: var(--color-black);
+  word-break: keep-all;
+}
+
+.pay-progress__description {
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--role-secondary);
+  white-space: pre-line;
+  word-break: keep-all;
+}
+
+.pay-progress__note {
+  margin-top: auto;
+  padding: 0 16px calc(55px + env(safe-area-inset-bottom));
+  font-size: 13px;
+  line-height: normal;
+  color: #8b95a1;
+}

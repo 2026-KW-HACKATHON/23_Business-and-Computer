@@ -1,0 +1,46 @@
+import type { MainTab } from "../../../components";
+
+/** 내 활동 탭 */
+export type ActivityTab = "sent" | "proposals" | "inProgress" | "done";
+
+/**
+ * 사장님 화면 주소 (노션 「화면 상태 전환표」 기준).
+ * 아직 없는 화면은 App.tsx 에서 사장님 홈으로 돌려보낸다.
+ */
+export const OWNER_PATHS = {
+  home: "/owner",
+  explore: "/owner/explore",
+  chats: "/owner/chats",
+  chat: (workId: string) => `/owner/chats/${workId}`,
+  notifications: "/owner/notifications",
+  me: "/owner/me",
+  store: "/owner/me/store",
+  payments: "/owner/me/payments",
+  activity: (tab: ActivityTab) => `/owner/requests?tab=${tab}`,
+  newRequest: "/owner/requests/new",
+  newRequestStep: (step: number) => `/owner/requests/new/${step}`,
+  newRequestDone: "/owner/requests/new/done",
+  request: (id: string) => `/owner/requests/${id}`,
+  requestApplicants: (id: string) => `/owner/requests/${id}/applicants`,
+  proposal: (id: string) => `/owner/proposals/${id}`,
+  assign: (requestId: string, studentId: string) =>
+    `/owner/requests/${requestId}/assign/${studentId}`,
+  student: (studentId: string) => `/owner/students/${studentId}`,
+  proposalAccept: (id: string) => `/owner/proposals/${id}/accept`,
+  workPay: (workId: string) => `/owner/works/${workId}/pay`,
+  workCheck: (workId: string) => `/owner/works/${workId}/check`,
+  workRevision: (workId: string) => `/owner/works/${workId}/revision`,
+  workCancel: (workId: string) => `/owner/works/${workId}/cancel`,
+  workCanceled: (workId: string) => `/owner/works/${workId}/canceled`,
+  workReview: (workId: string) => `/owner/works/${workId}/review`,
+  workReviewDone: (workId: string) => `/owner/works/${workId}/review/done`,
+  workResult: (workId: string) => `/owner/works/${workId}/result`,
+  exploreProposal: (id: string) => `/explore/proposals/${id}`,
+  exploreRequest: (id: string) => `/explore/requests/${id}`,
+};
+
+export const OWNER_TAB_PATHS: Record<MainTab, string> = {
+  home: OWNER_PATHS.home,
+  explore: OWNER_PATHS.explore,
+  chat: OWNER_PATHS.chats,
+};

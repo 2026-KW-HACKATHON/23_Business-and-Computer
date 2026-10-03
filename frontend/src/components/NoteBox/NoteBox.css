@@ -1,0 +1,25 @@
+.note-box {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  box-sizing: border-box;
+  width: 100%;
+  padding: 14px;
+  border-radius: 12px;
+  background: var(--role-muted);
+  font-family: var(--font-sans);
+}
+
+.note-box__title {
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 17px;
+  color: var(--role-secondary);
+}
+
+.note-box__body {
+  font-size: 14px;
+  line-height: 21px;
+  color: var(--color-black);
+  white-space: pre-line;
+}

@@ -53,3 +53,7 @@ This needs (1) client-side routing for the login, cookie, and home routes, and
 - `localStorage` token storage is a known tradeoff (XSS-exposed). If the token
   strategy changes (e.g. in-memory + silent refresh), supersede this record.
 - Keep the /cookie route path in sync with the backend success-redirect URL.
+- Set `VITE_BACKEND_API_BASE_URL` in `.env.local` to
+  `https://gakkum-api.hubspacekw.com`, as shown
+  in `.env.example`. This applies to API requests and social-login redirects.
+  Restart the Vite dev server after changing the value; rebuild for deployment.

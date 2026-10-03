@@ -1,6 +1,14 @@
+logging:
+  pattern:
+    # 시각은 컨테이너 TZ와 무관하게 한국시간(UTC+9)으로 출력한다
+    console: '%clr(%d{yyyy-MM-dd HH:mm:ss.SSS,Asia/Seoul}){faint} %clr(%5p) %clr([%X{tid:-}]){magenta} %clr(%-40.40logger{39}){cyan} %clr(:){faint} %m%n%wEx'
+
 spring:
   application:
     name: backend
+  output:
+    ansi:
+      enabled: always # docker logs처럼 TTY가 아닌 환경에서도 색상을 출력한다
   datasource:
     url: ${DATABASE_URL}
     driver-class-name: org.postgresql.Driver
@@ -24,7 +32,7 @@ spring:
             client-secret: ${KAKAO_CLIENT_SECRET}
             client-authentication-method: client_secret_post
             authorization-grant-type: authorization_code
-            redirect-uri: "http://localhost:8080/login/oauth2/code/kakao"
+            redirect-uri: ${KAKAO_REDIRECT_URI}
         provider:
           kakao:
             authorization-uri: https://kauth.kakao.com/oauth/authorize
@@ -54,7 +62,7 @@ kakao-pay:
   frontend-base-url: ${KAKAO_PAY_FRONTEND_BASE_URL}
 s3: # 자격 증명은 AWS SDK 기본 체인(환경 변수, 프로필, IAM 역할)에서 읽는다
   bucket: ${S3_BUCKET}
-  region: ${S3_REGION:ap-northeast-2}
+  region: ${S3_REGION:ap-northeast-1}
   image-bucket: ${S3_IMAGE_BUCKET} # 프로필·매장 사진용 공개 읽기 버킷. s3.region과 같은 리전이어야 한다
 chat-attachment:
   upload-url-ttl: 10m

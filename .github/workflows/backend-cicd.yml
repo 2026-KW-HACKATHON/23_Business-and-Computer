@@ -1,0 +1,344 @@
+name: Backend CI/CD
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - backend/**
+      - .github/workflows/backend-cicd.yml
+  pull_request:
+    branches: [main]
+    paths:
+      - backend/**
+      - .github/workflows/backend-cicd.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+
+    defaults:
+      run:
+        working-directory: backend
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: gakkum_ci
+          POSTGRES_USER: gakkum_ci
+          POSTGRES_PASSWORD: gakkum_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U gakkum_ci -d gakkum_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://127.0.0.1:5432/gakkum_ci
+      SPRING_DATASOURCE_USERNAME: gakkum_ci
+      SPRING_DATASOURCE_PASSWORD: gakkum_ci
+      DATABASE_URL: "jdbc:postgresql://127.0.0.1:5432/gakkum_ci?user=gakkum_ci&password=gakkum_ci"
+      DATABASE_MAX_POOL_SIZE: "5"
+      DATABASE_MIN_POOL_SIZE: "1"
+      DATABASE_CONNECTION_TIMEOUT: "30000"
+      DATABASE_IDLE_TIMEOUT: "600000"
+      DATABASE_MAX_LIFETIME: "1800000"
+      KAKAO_CLIENT_ID: ci-client-id
+      KAKAO_CLIENT_SECRET: ci-client-secret
+      KAKAO_REDIRECT_URI: http://localhost:8080/login/oauth2/code/kakao
+      MAIL_HOST: localhost
+      MAIL_PORT: "587"
+      MAIL_USERNAME: ci@example.com
+      MAIL_PASSWORD: ci-mail-password
+      JWT_SECRET: ci-test-secret-at-least-32-bytes-long
+      NTS_BUSINESSMAN_SERVICE_KEY: ci-nts-key
+      KAKAO_PAY_CID: TC0ONETIME
+      KAKAO_PAY_SECRET_KEY: ci-payment-secret
+      KAKAO_PAY_FRONTEND_BASE_URL: http://localhost:5173
+      S3_BUCKET: gakkum-ci-private
+      S3_IMAGE_BUCKET: gakkum-ci-public
+      S3_REGION: ap-northeast-1
+      AWS_ACCESS_KEY_ID: ci-test-access-key
+      AWS_SECRET_ACCESS_KEY: ci-test-secret-key
+      AWS_EC2_METADATA_DISABLED: "true"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up Java 21
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: gradle
+          cache-dependency-path: |
+            backend/**/*.gradle
+            backend/gradle/wrapper/gradle-wrapper.properties
+
+      - name: Run tests
+        run: ./gradlew --no-daemon test
+
+      - name: Upload test reports
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: backend-test-reports
+          path: |
+            backend/build/reports/tests/test/
+            backend/build/test-results/test/
+          retention-days: 7
+          if-no-files-found: warn
+
+  build-and-push:
+    needs: test
+    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+
+    permissions:
+      contents: read
+      id-token: write
+
+    outputs:
+      image: ${{ steps.image.outputs.image }}
+      digest: ${{ steps.build.outputs.digest }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v6.3.0
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: ecr-login
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Set image tag
+        id: image
+        env:
+          ECR_REGISTRY: ${{ steps.ecr-login.outputs.registry }}
+          ECR_REPOSITORY: ${{ vars.ECR_REPOSITORY }}
+          IMAGE_TAG: sha-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+        run: |
+          IMAGE="$ECR_REGISTRY/$ECR_REPOSITORY"
+          echo "image=$IMAGE" >> "$GITHUB_OUTPUT"
+          echo "tag=$IMAGE:$IMAGE_TAG" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Build and push image
+        id: build
+        uses: docker/build-push-action@v7
+        with:
+          context: ./backend
+          file: ./backend/Dockerfile
+          platforms: ${{ vars.IMAGE_PLATFORM }}
+          push: true
+          tags: ${{ steps.image.outputs.tag }}
+
+      - name: Record image
+        env:
+          IMAGE_TAG: ${{ steps.image.outputs.tag }}
+          IMAGE_REF: ${{ steps.image.outputs.image }}@${{ steps.build.outputs.digest }}
+        run: |
+          echo "Tag: $IMAGE_TAG" >> "$GITHUB_STEP_SUMMARY"
+          echo "Image: $IMAGE_REF" >> "$GITHUB_STEP_SUMMARY"
+
+  deploy:
+    needs: build-and-push
+    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+
+    permissions:
+      contents: read
+      id-token: write
+
+    env:
+      IMAGE: ${{ needs.build-and-push.outputs.image }}@${{ needs.build-and-push.outputs.digest }}
+      ECR_REGISTRY: 975049927748.dkr.ecr.ap-northeast-1.amazonaws.com
+      EC2_INSTANCE_ID: ${{ vars.EC2_INSTANCE_ID }}
+      CONTAINER_NAME: ${{ vars.CONTAINER_NAME }}
+      ENV_FILE: ${{ vars.EC2_ENV_FILE }}
+      HOST_PORT: ${{ vars.HOST_PORT }}
+
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v6.3.0
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Send deployment command
+        id: ssm
+        shell: bash
+        run: |
+          cat > "$RUNNER_TEMP/deploy.sh" <<'BASH'
+          set -Eeuo pipefail
+
+          IMAGE=$1
+          REGISTRY=$2
+          REGION=$3
+          NAME=$4
+          ENV_FILE=$5
+          PORT=$6
+          BACKUP="${NAME}-previous"
+          HAD_OLD=0
+          OLD_MOVED=0
+          NEW_ATTEMPTED=0
+
+          test -r "$ENV_FILE"
+          docker info > /dev/null
+          exec 9>/var/lock/gakkum-deploy.lock
+          flock -n 9
+
+          aws ecr get-login-password --region "$REGION" |
+            docker login --username AWS --password-stdin "$REGISTRY"
+          docker pull "$IMAGE"
+
+          rollback() {
+            result=$?
+            trap - EXIT
+            set +e
+            if [ "$result" -ne 0 ]; then
+              echo "Deployment failed; restoring previous container."
+              if [ "$NEW_ATTEMPTED" -eq 1 ]; then
+                docker logs --tail 100 "$NAME" 2>&1
+                docker rm -f "$NAME"
+              fi
+              if [ "$OLD_MOVED" -eq 1 ]; then
+                docker rename "$BACKUP" "$NAME" && docker start "$NAME"
+              elif [ "$HAD_OLD" -eq 1 ]; then
+                docker start "$NAME"
+              fi
+            fi
+            exit "$result"
+          }
+          trap rollback EXIT
+
+          if docker container inspect "$BACKUP" > /dev/null 2>&1; then
+            docker rm "$BACKUP"
+          fi
+
+          if docker container inspect "$NAME" > /dev/null 2>&1; then
+            HAD_OLD=1
+            docker stop --time 30 "$NAME"
+            docker rename "$NAME" "$BACKUP"
+            OLD_MOVED=1
+          fi
+
+          NEW_ATTEMPTED=1
+          docker run -d \
+            --name "$NAME" \
+            --restart unless-stopped \
+            --env-file "$ENV_FILE" \
+            --env SPRING_PROFILES_ACTIVE=prod \
+            --env SERVER_SHUTDOWN=graceful \
+            --env SPRING_LIFECYCLE_TIMEOUT_PER_SHUTDOWN_PHASE=25s \
+            -p "$PORT:8080" \
+            "$IMAGE"
+
+          check_started() {
+            [ "$(docker inspect -f '{{.State.Status}} {{.RestartCount}}' "$NAME")" = "running 0" ] &&
+              docker logs --tail 1000 "$NAME" 2>&1 |
+                grep 'Started BackendApplication' > /dev/null &&
+              [ "$(curl --silent --show-error \
+                --connect-timeout 2 --max-time 5 \
+                --output /dev/null --write-out '%{http_code}' \
+                "http://127.0.0.1:$PORT/" || true)" = "401" ]
+          }
+
+          deadline=$((SECONDS + 180))
+          while [ "$SECONDS" -lt "$deadline" ]; do
+            if [ "$(docker inspect -f '{{.State.Status}}' "$NAME")" != running ]; then
+              echo "Container stopped or is restarting."
+              exit 1
+            fi
+            if check_started; then
+              sleep 10
+              if check_started; then
+                trap - EXIT
+                echo "Deployment succeeded: $IMAGE"
+                exit 0
+              fi
+            fi
+            sleep 5
+          done
+
+          echo "Application startup check timed out."
+          exit 1
+          BASH
+
+          jq -n \
+            --rawfile script "$RUNNER_TEMP/deploy.sh" \
+            --arg image "$IMAGE" \
+            --arg registry "$ECR_REGISTRY" \
+            --arg region "$AWS_REGION" \
+            --arg name "$CONTAINER_NAME" \
+            --arg env_file "$ENV_FILE" \
+            --arg port "$HOST_PORT" \
+            '{executionTimeout: ["900"], commands: [
+              "bash -c " + ($script | @sh) + " -- " +
+              ([$image, $registry, $region, $name, $env_file, $port] | map(@sh) | join(" "))
+            ]}' > "$RUNNER_TEMP/ssm-parameters.json"
+
+          command_id=$(aws ssm send-command \
+            --instance-ids "$EC2_INSTANCE_ID" \
+            --document-name AWS-RunShellScript \
+            --timeout-seconds 60 \
+            --comment "Deploy backend $GITHUB_SHA" \
+            --parameters "file://$RUNNER_TEMP/ssm-parameters.json" \
+            --query Command.CommandId \
+            --output text)
+
+          echo "command_id=$command_id" >> "$GITHUB_OUTPUT"
+          echo "SSM command: $command_id"
+
+      - name: Wait for deployment result
+        shell: bash
+        env:
+          COMMAND_ID: ${{ steps.ssm.outputs.command_id }}
+        run: |
+          for ((attempt = 0; attempt < 110; attempt++)); do
+            if result=$(aws ssm get-command-invocation \
+              --command-id "$COMMAND_ID" \
+              --instance-id "$EC2_INSTANCE_ID" \
+              --output json 2> "$RUNNER_TEMP/ssm-error.txt"); then
+              status=$(jq -r '.Status' <<< "$result")
+              case "$status" in
+                Pending|InProgress|Delayed)
+                  sleep 10
+                  ;;
+                *)
+                  jq -r '.StandardOutputContent, .StandardErrorContent' <<< "$result"
+                  echo "SSM command status: $status"
+                  [ "$status" = Success ]
+                  exit
+                  ;;
+              esac
+            elif grep -q InvocationDoesNotExist "$RUNNER_TEMP/ssm-error.txt"; then
+              sleep 5
+            else
+              cat "$RUNNER_TEMP/ssm-error.txt" >&2
+              exit 1
+            fi
+          done
+
+          echo "Timed out waiting for SSM command $COMMAND_ID" >&2
+          exit 1

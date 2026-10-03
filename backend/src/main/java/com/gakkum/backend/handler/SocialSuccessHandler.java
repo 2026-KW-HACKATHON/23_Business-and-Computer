@@ -31,7 +31,7 @@ public class SocialSuccessHandler implements AuthenticationSuccessHandler {
         String role = authentication.getAuthorities().iterator().next().getAuthority();
 
         // JWT(Refresh) 발급
-        String refreshToken = jwtUtil.createJWT(username, "ROLE_" + role, false);
+        String refreshToken = jwtUtil.createJWT(username, role, false);
 
         // 발급한 Refresh DB 테이블 저장 (Refresh whitelist)
         jwtService.addRefresh(username, refreshToken);
@@ -39,9 +39,9 @@ public class SocialSuccessHandler implements AuthenticationSuccessHandler {
         // 응답
         ResponseCookie cookie = ResponseCookie.from("refreshToken", refreshToken)
                 .path("/")
-                .sameSite("Lax")
+                .sameSite("None")
                 .httpOnly(true)
-                .secure(false)  // local
+                .secure(true)
                 .maxAge(60)
                 .build();
         response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());

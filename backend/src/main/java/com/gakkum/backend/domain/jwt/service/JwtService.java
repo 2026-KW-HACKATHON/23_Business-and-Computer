@@ -5,6 +5,8 @@ import com.gakkum.backend.domain.jwt.dto.RefreshRequestDTO;
 import com.gakkum.backend.domain.jwt.entity.RefreshToken;
 import com.gakkum.backend.domain.jwt.repository.RefreshRepository;
 import com.gakkum.backend.domain.user.entity.UserRole;
+import com.gakkum.backend.global.exception.BusinessException;
+import com.gakkum.backend.global.exception.ErrorCode;
 import com.gakkum.backend.util.JWTUtil;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
@@ -33,7 +35,7 @@ public class JwtService {
         // 쿠키 리스트
         Cookie[] cookies = request.getCookies();
         if (cookies == null) {
-            throw new RuntimeException("쿠키가 존재하지 않습니다.");
+            throw new BusinessException(ErrorCode.UNAUTHORIZED);
         }
 
         // Refresh 토큰 획득
@@ -46,13 +48,13 @@ public class JwtService {
         }
 
         if (refreshToken == null) {
-            throw new RuntimeException("refreshToken 쿠키가 없습니다.");
+            throw new BusinessException(ErrorCode.UNAUTHORIZED);
         }
 
         // Refresh 토큰 검증
         Boolean isValid = jwtUtil.isValid(refreshToken, false);
         if (!isValid) {
-            throw new RuntimeException("유효하지 않은 refreshToken입니다.");
+            throw new BusinessException(ErrorCode.UNAUTHORIZED);
         }
 
         // 정보 추출
@@ -73,20 +75,12 @@ public class JwtService {
         refreshRepository.flush(); // 같은 트랜잭션 내부라 : 삭제 -> 생성 문제 해결
         refreshRepository.save(newRefreshEntity);
 
-        // 기존 쿠키 제거
-        Cookie refreshCookie = new Cookie("refreshToken", null);
-        refreshCookie.setHttpOnly(true);
-        refreshCookie.setSecure(false);
-        refreshCookie.setPath("/");
-        refreshCookie.setMaxAge(10);
-        response.addCookie(refreshCookie);
-
-        // ResponseCookie 방식
+        // 새 쿠키로 덮어쓰기
         ResponseCookie newCookie = ResponseCookie.from("refreshToken", newRefreshToken)
                 .path("/")
-                .sameSite("Lax")
+                .sameSite("None")
                 .httpOnly(true)
-                .secure(false)  // https 때 true
+                .secure(true)
                 .maxAge(7 * 24 * 60 * 60)
                 .build();
 
@@ -104,7 +98,7 @@ public class JwtService {
         // 쿠키 리스트
         Cookie[] cookies = request.getCookies();
         if (cookies == null) {
-            throw new RuntimeException("쿠키가 존재하지 않습니다.");
+            throw new BusinessException(ErrorCode.UNAUTHORIZED);
         }
 
         // Refresh 토큰 획득
@@ -117,17 +111,17 @@ public class JwtService {
         }
 
         if (refreshToken == null) {
-            throw new RuntimeException("refreshToken 쿠키가 없습니다.");
+            throw new BusinessException(ErrorCode.UNAUTHORIZED);
         }
 
         // Refresh 토큰 검증
         Boolean isValid = jwtUtil.isValid(refreshToken, false);
         if (!isValid) {
-            throw new RuntimeException("유효하지 않은 refreshToken입니다.");
+            throw new BusinessException(ErrorCode.UNAUTHORIZED);
         }
 
         if (!existsRefresh(refreshToken)) {
-            throw new RuntimeException("존재하지 않는 refreshToken입니다.");
+            throw new BusinessException(ErrorCode.UNAUTHORIZED);
         }
 
         // 정보 추출
@@ -146,21 +140,17 @@ public class JwtService {
 
         // 기존 Refresh 토큰 제거
         removeRefresh(refreshToken);
-        Cookie expired = new Cookie("refreshToken", null);
-        expired.setHttpOnly(true);
-        expired.setSecure(false);
-        expired.setPath("/");
-        expired.setMaxAge(0);
-        response.addCookie(expired);
 
-        // 쿠키 세팅
-        Cookie newCookie = new Cookie("refreshToken", newRefreshToken);
-        newCookie.setHttpOnly(true);
-        newCookie.setSecure(false);
-        newCookie.setPath("/");
-        newCookie.setMaxAge(7 * 24 * 60 * 60);
+        // 새 쿠키로 덮어쓰기
+        ResponseCookie newCookie = ResponseCookie.from("refreshToken", newRefreshToken)
+                .path("/")
+                .sameSite("None")
+                .httpOnly(true)
+                .secure(true)
+                .maxAge(7 * 24 * 60 * 60)
+                .build();
 
-        response.addCookie(newCookie);
+        response.addHeader(HttpHeaders.SET_COOKIE, newCookie.toString());
 
         refreshRepository.flush(); // 같은 트랜잭션 내부라 : 삭제 -> 생성 문제 해결
         refreshRepository.save(newRefreshEntity);

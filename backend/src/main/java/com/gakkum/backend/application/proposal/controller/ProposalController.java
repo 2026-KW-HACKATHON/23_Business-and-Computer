@@ -9,9 +9,11 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.gakkum.backend.application.proposal.dto.MyProposalListResponse;
 import com.gakkum.backend.application.proposal.dto.ProposalCreateRequest;
 import com.gakkum.backend.application.proposal.dto.ProposalCreateResponse;
 import com.gakkum.backend.application.proposal.dto.ProposalDetailResponse;
+import com.gakkum.backend.application.proposal.dto.ReceivedProposalListResponse;
 import com.gakkum.backend.application.proposal.facade.ProposalFacade;
 import com.gakkum.backend.global.response.ApiResponse;
 
@@ -39,6 +41,23 @@ public class ProposalController {
             Authentication authentication, @PathVariable Long proposalId) {
         ProposalDetailResponse response = ProposalDetailResponse.from(
                 proposalFacade.getProposalDetail(authentication.getName(), proposalId));
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    /** 로그인한 학생이 보낸 모든 제안을 최신순으로 조회하는 API */
+    @GetMapping("/me/proposals")
+    public ResponseEntity<ApiResponse<MyProposalListResponse>> getMyProposals(Authentication authentication) {
+        MyProposalListResponse response = MyProposalListResponse.from(
+                proposalFacade.getMyProposals(authentication.getName()));
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    /** 로그인한 사장님이 받은 모든 제안을 최신순으로 조회하는 API */
+    @GetMapping("/me/received-proposals")
+    public ResponseEntity<ApiResponse<ReceivedProposalListResponse>> getReceivedProposals(
+            Authentication authentication) {
+        ReceivedProposalListResponse response = ReceivedProposalListResponse.from(
+                proposalFacade.getReceivedProposals(authentication.getName()));
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 }

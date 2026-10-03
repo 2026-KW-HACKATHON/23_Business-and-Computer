@@ -1,0 +1,240 @@
+.owner-student {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 20px 16px 32px;
+  font-family: var(--font-sans);
+}
+
+.owner-student__head {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  text-align: center;
+}
+
+.owner-student__head .role-avatar {
+  margin-bottom: 4px;
+}
+
+.owner-student__name {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 26px;
+  letter-spacing: normal;
+  color: var(--color-black);
+}
+
+.owner-student__school {
+  font-size: 13px;
+  line-height: 17px;
+  color: var(--role-secondary);
+}
+
+.owner-student__intro {
+  font-size: 14px;
+  line-height: 20px;
+  color: #333d4b;
+  word-break: keep-all;
+}
+
+.owner-student__stats {
+  display: flex;
+  align-items: center;
+  margin: 0;
+  padding: 14px 0;
+  border-radius: 16px;
+  background: #f9fafb;
+}
+
+/* 숫자를 위, 이름을 아래에 보여 준다 */
+.owner-student__stat {
+  display: flex;
+  flex: 1;
+  flex-direction: column-reverse;
+  align-items: center;
+  gap: 2px;
+}
+
+.owner-student__stat + .owner-student__stat {
+  border-left: 1px solid #e5e8eb;
+}
+
+.owner-student__stat dt {
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--role-secondary);
+}
+
+.owner-student__stat dd {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 26px;
+  color: var(--color-black);
+}
+
+.owner-student__section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.owner-student__section-title {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 21px;
+  letter-spacing: normal;
+  color: var(--color-black);
+}
+
+.owner-student__section-title span {
+  margin-left: 2px;
+  color: var(--role-secondary);
+}
+
+.owner-student__badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.owner-student__box {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px;
+  border: 1px solid #e5e8eb;
+  border-radius: 16px;
+}
+
+.owner-student__cert {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.owner-student__cert strong {
+  flex: 1;
+  min-width: 0;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 18px;
+  color: var(--color-black);
+}
+
+.owner-student__cert span {
+  font-size: 13px;
+  line-height: 17px;
+  color: var(--role-secondary);
+}
+
+.owner-student__divider {
+  height: 1px;
+  background: #f2f4f6;
+}
+
+.owner-student__portfolio {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  line-height: 17px;
+  color: var(--role-secondary);
+}
+
+.owner-student__portfolio-url {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.owner-student__open {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 0 4px 4px;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 16px;
+  color: var(--role-secondary);
+  text-decoration: none;
+}
+
+.owner-student__reviews {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.owner-student__review {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 16px;
+  border: 1px solid #e5e8eb;
+  border-radius: 16px;
+}
+
+.owner-student__review-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.owner-student__review-head strong {
+  flex-shrink: 0;
+  font-size: 14px;
+  line-height: 18px;
+  color: var(--color-black);
+}
+
+.owner-student__review-work {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  font-size: 13px;
+  line-height: 17px;
+  color: var(--role-secondary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.owner-student__review-rating {
+  flex-shrink: 0;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 17px;
+  color: #e0a800;
+}
+
+.owner-student__review-text {
+  font-size: 14px;
+  line-height: 21px;
+  color: #333d4b;
+  word-break: keep-all;
+  overflow-wrap: break-word;
+}
+
+.owner-student__review-date {
+  font-size: 12px;
+  line-height: 16px;
+  color: #8b95a1;
+}
+
+.owner-student__empty {
+  font-size: 13px;
+  line-height: 18px;
+  color: #8b95a1;
+}

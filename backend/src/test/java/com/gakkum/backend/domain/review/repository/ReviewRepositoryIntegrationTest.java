@@ -22,6 +22,7 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import com.gakkum.backend.domain.job.entity.Job;
+import com.gakkum.backend.domain.job.entity.JobStatus;
 import com.gakkum.backend.domain.job.repository.JobRepository;
 import com.gakkum.backend.domain.job.service.JobService;
 import com.gakkum.backend.domain.review.dto.ReviewCommandDto.CreateReviewCommand;
@@ -95,6 +96,37 @@ class ReviewRepositoryIntegrationTest {
     }
 
     @Test
+    @DisplayName("PostgreSQL에서 학생별 평균 별점을 집계하고 리뷰가 없으면 null을 반환한다")
+    void averagesRatingPerStudent() {
+        long student = 987_001L;
+        long other = 987_002L;
+        long none = 987_003L;
+        reviewRepository.saveAndFlush(Review.create(saveClosedJob().getId(), 5L, student, List.of(), "a", 4));
+        reviewRepository.saveAndFlush(Review.create(saveClosedJob().getId(), 5L, student, List.of(), "b", 5));
+        reviewRepository.saveAndFlush(Review.create(saveClosedJob().getId(), 5L, other, List.of(), "c", 1));
+
+        assertThat(reviewRepository.findAverageRatingByStudentProfileId(student)).isEqualTo(4.5);
+        assertThat(reviewRepository.findAverageRatingByStudentProfileId(other)).isEqualTo(1.0);
+        assertThat(reviewRepository.findAverageRatingByStudentProfileId(none)).isNull();
+    }
+
+    @Test
+    @DisplayName("PostgreSQL에서 학생의 CLOSED 의뢰만 리뷰 유무와 무관하게 센다")
+    void countsClosedJobsPerStudent() {
+        long student = 987_010L;
+        long other = 987_011L;
+        Job reviewed = saveJob(student, true, false);
+        saveJob(student, true, false);
+        saveJob(student, false, false);
+        saveJob(student, false, true);
+        saveJob(other, true, false);
+        reviewRepository.saveAndFlush(Review.create(reviewed.getId(), 5L, student, List.of(), "리뷰", 5));
+
+        assertThat(jobRepository.countBySelectedStudentProfileIdAndStatus(student, JobStatus.CLOSED)).isEqualTo(2L);
+        assertThat(jobRepository.countBySelectedStudentProfileIdAndStatus(987_012L, JobStatus.CLOSED)).isZero();
+    }
+
+    @Test
     @DisplayName("PostgreSQL은 같은 의뢰의 두 번째 리뷰를 유니크 제약으로 거부한다")
     void rejectsSecondReviewForSameJob() {
         Job job = saveClosedJob();
@@ -161,6 +193,21 @@ class ReviewRepositoryIntegrationTest {
         } finally {
             executor.shutdownNow();
         }
+    }
+
+    private Job saveJob(long studentProfileId, boolean closed, boolean cancelled) {
+        Job job = Job.create(5L, "집계 테스트 의뢰", "설명", 50000L,
+                LocalDateTime.now().toLocalDate(), LocalDateTime.now().toLocalDate().plusDays(3), 2);
+        job.match(studentProfileId);
+        if (closed) {
+            job.complete(LocalDateTime.now());
+        }
+        if (cancelled) {
+            job.cancel(LocalDateTime.now());
+        }
+        Job saved = jobRepository.saveAndFlush(job);
+        jobIds.add(saved.getId());
+        return saved;
     }
 
     private Job saveClosedJob() {

@@ -64,6 +64,12 @@ public class JobService {
     private final JobSubmissionRepository jobSubmissionRepository;
     private final Clock clock;
 
+    /** 학생이 담당한 완료(CLOSED) 의뢰 수. 리뷰 유무와 무관하다. */
+    @Transactional(readOnly = true)
+    public long countClosedJobs(Long studentProfileId) {
+        return jobRepository.countBySelectedStudentProfileIdAndStatus(studentProfileId, JobStatus.CLOSED);
+    }
+
     @Transactional
     public Job createJob(CreateJobCommand command) {
         Job job = Job.create(
