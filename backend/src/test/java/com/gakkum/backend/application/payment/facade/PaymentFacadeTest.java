@@ -9,6 +9,8 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.time.Clock;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.InOrder;
@@ -16,11 +18,15 @@ import org.mockito.InOrder;
 import com.gakkum.backend.application.payment.dto.PaymentPrepareRequest;
 import com.gakkum.backend.application.payment.service.PaymentPreparationService;
 import com.gakkum.backend.application.payment.service.PaymentApprovalService;
+import com.gakkum.backend.domain.job.service.JobService;
+import com.gakkum.backend.domain.owner.service.OwnerService;
 import com.gakkum.backend.domain.payment.client.KakaoPayClient;
 import com.gakkum.backend.domain.payment.client.KakaoPayClient.ReadyResult;
 import com.gakkum.backend.domain.payment.dto.PaymentQueryDto.PendingPaymentData;
 import com.gakkum.backend.domain.payment.dto.PaymentQueryDto.PreparePaymentResult;
 import com.gakkum.backend.domain.payment.service.PaymentService;
+import com.gakkum.backend.domain.student.service.StudentService;
+import com.gakkum.backend.domain.user.service.UserService;
 import com.gakkum.backend.global.exception.BusinessException;
 import com.gakkum.backend.global.exception.ErrorCode;
 
@@ -30,7 +36,9 @@ class PaymentFacadeTest {
     private final KakaoPayClient kakaoPayClient = mock(KakaoPayClient.class);
     private final PaymentService paymentService = mock(PaymentService.class);
     private final PaymentApprovalService approvalService = mock(PaymentApprovalService.class);
-    private final PaymentFacade facade = new PaymentFacade(preparationService, kakaoPayClient, paymentService, approvalService);
+    private final PaymentFacade facade = new PaymentFacade(preparationService, kakaoPayClient, paymentService,
+            approvalService, mock(UserService.class), mock(JobService.class), mock(StudentService.class),
+            mock(OwnerService.class), Clock.systemUTC());
     private final PaymentPrepareRequest request = PaymentPrepareRequest.of(21L, true);
     private final PendingPaymentData pending = new PendingPaymentData("order-123", 100_000L, "포스터 제작", "owner-123");
 
