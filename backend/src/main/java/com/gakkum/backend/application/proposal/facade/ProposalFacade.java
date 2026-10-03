@@ -1,25 +1,37 @@
 package com.gakkum.backend.application.proposal.facade;
 
+import java.math.BigDecimal;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.gakkum.backend.domain.job.service.JobService;
 import com.gakkum.backend.domain.media.dto.ImagePurpose;
 import com.gakkum.backend.domain.media.service.MediaService;
 import com.gakkum.backend.domain.owner.service.OwnerService;
+import com.gakkum.backend.domain.owner.entity.Owner;
 import com.gakkum.backend.domain.proposal.dto.ProposalCommandDto.CreateProposalCommand;
+import com.gakkum.backend.domain.proposal.dto.ProposalCommandDto.GetMyProposalsCommand;
+import com.gakkum.backend.domain.proposal.dto.ProposalCommandDto.GetReceivedProposalsCommand;
+import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.ExploreProposalData;
+import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.MyProposalListResult;
+import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.MyProposalResult;
 import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.ProposalCreateResult;
 import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.ProposalDetailData;
 import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.ProposalDetailResult;
+import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.ReceivedProposalListResult;
+import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.ReceivedProposalResult;
 import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.SpecialtyCategoryResult;
 import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.SpecialtyResult;
 import com.gakkum.backend.domain.proposal.entity.Proposal;
 import com.gakkum.backend.domain.proposal.service.ProposalService;
+import com.gakkum.backend.domain.review.service.ReviewService;
 import com.gakkum.backend.domain.specialty.dto.SpecialtyQueryDto.SpecialtyDetail;
 import com.gakkum.backend.domain.specialty.service.SpecialtyCategoryService;
 import com.gakkum.backend.domain.specialty.service.SpecialtyService;
@@ -44,6 +56,8 @@ public class ProposalFacade {
     private final SpecialtyCategoryService specialtyCategoryService;
     private final MediaService mediaService;
     private final ProposalService proposalService;
+    private final ReviewService reviewService;
+    private final JobService jobService;
 
     /**
      * 학생의 제안 전송. 역할·대상 사장님·소분류·사진을 검증한 뒤 저장한다.
@@ -62,7 +76,7 @@ public class ProposalFacade {
 
     /**
      * 제안 상세. 활성 사용자라면 역할과 무관하게 모든 제안을 볼 수 있고 없는 제안은 404다.
-     * 제안을 찾은 뒤에만 매장(현재 이름)·학생 정보·특기를 조회한다.
+     * 제안을 찾은 뒤에만 매장(현재 이름)·학생 정보·학생 통계(평균 별점·완료 의뢰 수)·특기를 조회한다.
      */
     @Transactional(readOnly = true)
     public ProposalDetailResult getProposalDetail(String username, Long proposalId) {
@@ -73,8 +87,90 @@ public class ProposalFacade {
         Student student = studentService.getStudentProfile(data.getProposal().getStudentProfileId());
         User studentUser = userService.getUser(student.getUserId());
         Map<Long, SpecialtyDetail> specialtiesById = specialtyCategoryService.getSpecialtyDetails(data.getSpecialtyIds());
+        BigDecimal averageRating = reviewService.getAverageRating(student.getId());
+        long completedJobCount = jobService.countClosedJobs(student.getId());
         return ProposalDetailResult.of(data.getProposal(), storeName, student, studentUser,
+                averageRating, completedJobCount,
                 groupSpecialties(data.getSpecialtyIds(), specialtiesById));
+    }
+
+    /**
+     * 내가 보낸 제안 목록. 활성 학생만 조회할 수 있다.
+     * 제안이 있으면 사장님 프로필과 소분류를 중복 없이 모아 한 번씩만 조회한다.
+     */
+    @Transactional(readOnly = true)
+    public MyProposalListResult getMyProposals(String username) {
+        User user = userService.getActiveUser(username);
+        Student student = getListingStudent(user);
+        List<ExploreProposalData> proposals =
+                proposalService.getMyProposals(GetMyProposalsCommand.of(student.getId()));
+        if (proposals.isEmpty()) {
+            return MyProposalListResult.of(List.of());
+        }
+
+        Set<Long> ownerProfileIds = proposals.stream()
+                .map(data -> data.getProposal().getOwnerProfileId())
+                .collect(Collectors.toSet());
+        Set<Long> specialtyIds = proposals.stream()
+                .flatMap(data -> data.getSpecialtyIds().stream())
+                .collect(Collectors.toSet());
+        Map<Long, Owner> ownersById = ownerService.getOwnerProfilesByIds(ownerProfileIds);
+        Map<Long, SpecialtyDetail> specialtiesById = specialtyCategoryService.getSpecialtyDetails(specialtyIds);
+
+        return MyProposalListResult.of(proposals.stream()
+                .map(data -> MyProposalResult.of(
+                        data.getProposal(),
+                        ownersById.get(data.getProposal().getOwnerProfileId()),
+                        groupSpecialties(data.getSpecialtyIds(), specialtiesById)))
+                .toList());
+    }
+
+    /**
+     * 받은 제안 목록. 활성 사장님만 본인 프로필로 조회할 수 있다.
+     * 제안이 있으면 학생 프로필·사용자·소분류를 중복 없이 모아 한 번씩만 조회한다. 참조 누락은 각 일괄 조회가 500으로 거부한다.
+     */
+    @Transactional(readOnly = true)
+    public ReceivedProposalListResult getReceivedProposals(String username) {
+        User user = userService.getActiveUser(username);
+        if (user.getRole() != UserRole.OWNER) {
+            throw new BusinessException(ErrorCode.PROPOSAL_LIST_OWNER_REQUIRED);
+        }
+        Owner owner = ownerService.getOwnerProfile(user.getId());
+        List<ExploreProposalData> proposals =
+                proposalService.getReceivedProposals(GetReceivedProposalsCommand.of(owner.getId()));
+        if (proposals.isEmpty()) {
+            return ReceivedProposalListResult.of(List.of());
+        }
+
+        Map<Long, Student> studentsById = studentService.getStudentProfilesByIds(proposals.stream()
+                .map(data -> data.getProposal().getStudentProfileId())
+                .distinct()
+                .toList());
+        Map<String, User> studentUsersById = userService.getUsersByIds(studentsById.values().stream()
+                .map(Student::getUserId)
+                .distinct()
+                .toList());
+        Set<Long> specialtyIds = proposals.stream()
+                .flatMap(data -> data.getSpecialtyIds().stream())
+                .collect(Collectors.toSet());
+        Map<Long, SpecialtyDetail> specialtiesById = specialtyCategoryService.getSpecialtyDetails(specialtyIds);
+
+        return ReceivedProposalListResult.of(proposals.stream()
+                .map(data -> {
+                    Student student = studentsById.get(data.getProposal().getStudentProfileId());
+                    return ReceivedProposalResult.of(
+                            data.getProposal(), student, studentUsersById.get(student.getUserId()),
+                            groupSpecialties(data.getSpecialtyIds(), specialtiesById));
+                })
+                .toList());
+    }
+
+    private Student getListingStudent(User user) {
+        if (user.getRole() != UserRole.STUDENT) {
+            throw new BusinessException(ErrorCode.PROPOSAL_LIST_STUDENT_REQUIRED);
+        }
+        return studentService.findStudentProfileByUserId(user.getId())
+                .orElseThrow(() -> new BusinessException(ErrorCode.PROPOSAL_LIST_STUDENT_REQUIRED));
     }
 
     /** 학생 프로필이 없는 사용자(사장님 포함)는 제안을 보낼 수 없다. */

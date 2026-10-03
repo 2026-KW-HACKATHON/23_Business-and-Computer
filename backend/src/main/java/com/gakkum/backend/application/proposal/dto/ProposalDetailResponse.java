@@ -1,5 +1,6 @@
 package com.gakkum.backend.application.proposal.dto;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -60,10 +61,12 @@ public class ProposalDetailResponse {
         private final String name;
         private final String major;
         private final String studentNumber;
+        private final BigDecimal averageRating;
+        private final long completedJobCount;
 
         public static ProposalStudent from(ProposalStudentResult result) {
-            return new ProposalStudent(
-                    result.getStudentProfileId(), result.getName(), result.getMajor(), result.getStudentNumber());
+            return new ProposalStudent(result.getStudentProfileId(), result.getName(), result.getMajor(),
+                    result.getStudentNumber(), result.getAverageRating(), result.getCompletedJobCount());
         }
     }
 
