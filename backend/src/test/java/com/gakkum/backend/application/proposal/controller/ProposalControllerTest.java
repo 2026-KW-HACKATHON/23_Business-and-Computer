@@ -35,6 +35,8 @@ import com.gakkum.backend.domain.proposal.dto.ProposalCommandDto.CreateProposalC
 import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.MyProposalListResult;
 import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.MyProposalResult;
 import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.ProposalCreateResult;
+import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.ReceivedProposalListResult;
+import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.ReceivedProposalResult;
 import com.gakkum.backend.domain.owner.entity.Owner;
 import com.gakkum.backend.domain.proposal.entity.ProposalStatus;
 import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.ProposalDetailResult;
@@ -306,5 +308,61 @@ class ProposalControllerTest {
 
         mockMvc.perform(get("/me/proposals").principal(authentication))
                 .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @DisplayName("받은 제안 목록은 200과 카드·학생 4개 필드를 반환한다")
+    void returnsReceivedProposals() throws Exception {
+        Proposal proposal = Proposal.builder().id(101L).title("메뉴판 개선 제안").likeCount(12)
+                .proposedSolution("사진 중심 메뉴판으로 바꿔드릴게요.").status(ProposalStatus.PENDING).build();
+        Student student = Student.builder().id(7L).userId("student-user").major("소프트웨어학부")
+                .studentNumber("2024123456").build();
+        User studentUser = User.builder().id("student-user").name("홍길동").build();
+        when(proposalFacade.getReceivedProposals(USERNAME)).thenReturn(ReceivedProposalListResult.of(List.of(
+                ReceivedProposalResult.of(proposal, student, studentUser, List.of(SpecialtyCategoryResult.of(
+                        1L, "디자인", List.of(SpecialtyResult.of(3L, "편집 디자인"))))))));
+
+        mockMvc.perform(get("/me/received-proposals").principal(authentication))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.proposals[0].proposalId").value(101))
+                .andExpect(jsonPath("$.data.proposals[0].title").value("메뉴판 개선 제안"))
+                .andExpect(jsonPath("$.data.proposals[0].status").value("PENDING"))
+                .andExpect(jsonPath("$.data.proposals[0].likeCount").value(12))
+                .andExpect(jsonPath("$.data.proposals[0].specialtyCategories[0].id").value(1))
+                .andExpect(jsonPath("$.data.proposals[0].specialtyCategories[0].name").value("디자인"))
+                .andExpect(jsonPath("$.data.proposals[0].specialtyCategories[0].specialties[0].id").value(3))
+                .andExpect(jsonPath("$.data.proposals[0].specialtyCategories[0].specialties[0].name").value("편집 디자인"))
+                .andExpect(jsonPath("$.data.proposals[0].proposedSolution").value("사진 중심 메뉴판으로 바꿔드릴게요."))
+                .andExpect(jsonPath("$.data.proposals[0].student.studentProfileId").value(7))
+                .andExpect(jsonPath("$.data.proposals[0].student.name").value("홍길동"))
+                .andExpect(jsonPath("$.data.proposals[0].student.studentNumber").value("2024123456"))
+                .andExpect(jsonPath("$.data.proposals[0].student.major").value("소프트웨어학부"))
+                .andExpect(jsonPath("$.data.proposals[0].student.userId").doesNotExist())
+                .andExpect(jsonPath("$.data.proposals[0].student.averageRating").doesNotExist());
+    }
+
+    @Test
+    @DisplayName("받은 제안이 없으면 빈 배열을 반환한다")
+    void returnsEmptyReceivedProposals() throws Exception {
+        when(proposalFacade.getReceivedProposals(USERNAME)).thenReturn(ReceivedProposalListResult.of(List.of()));
+
+        mockMvc.perform(get("/me/received-proposals").principal(authentication))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.proposals").isArray())
+                .andExpect(jsonPath("$.data.proposals").isEmpty());
+    }
+
+    @Test
+    @DisplayName("사장님이 아니면 403 PROPOSAL_403_LIST_OWNER 오류 형식을 반환한다")
+    void rejectsNonOwnerReceivedProposals() throws Exception {
+        when(proposalFacade.getReceivedProposals(USERNAME))
+                .thenThrow(new BusinessException(ErrorCode.PROPOSAL_LIST_OWNER_REQUIRED));
+
+        mockMvc.perform(get("/me/received-proposals").principal(authentication))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.error.code").value("PROPOSAL_403_LIST_OWNER"));
     }
 }
