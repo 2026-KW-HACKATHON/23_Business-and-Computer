@@ -16,6 +16,7 @@ import {
 import type { PeerProposal, StudentRequest } from "../features/student";
 import { FIELDS } from "../types/field";
 import type { Field } from "../types/field";
+import { useDragScroll } from "../hooks/useDragScroll";
 import "./StudentExplorePage.css";
 
 type Item =
@@ -34,6 +35,7 @@ function StudentExplorePage() {
   const [kind, setKind] = useState<CardKind>("all");
   const [field, setField] = useState<Field | null>(null);
   const [query, setQuery] = useState("");
+  const fieldScroll = useDragScroll<HTMLDivElement>();
 
   const keyword = query.trim();
   const items: Item[] = [
@@ -66,7 +68,7 @@ function StudentExplorePage() {
       <div className="student-explore">
         <div className="student-explore__filters">
           <KindTabs value={kind} onChange={setKind} />
-          <div className="student-explore__fields">
+          <div className="student-explore__fields" {...fieldScroll}>
             <FieldFilter selected={field === null} onClick={() => setField(null)} />
             {FIELDS.map((f) => (
               <FieldFilter key={f} field={f} selected={field === f} onClick={() => setField(f)} />

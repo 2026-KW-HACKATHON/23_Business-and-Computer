@@ -13,6 +13,7 @@ import {
 } from "../features/student";
 import type { StudentTodo, StudentWaitingItem } from "../features/student";
 import { formatMonthDay } from "../lib/date";
+import { useDragScroll } from "../hooks/useDragScroll";
 import "./StudentHomePage.css";
 
 /**
@@ -28,6 +29,7 @@ function StudentHomePage() {
   const [doneExpanded, setDoneExpanded] = useState(false);
   const doneRows = doneExpanded ? home.done : home.done.slice(0, 1);
   const peers = home.peerProposals.slice(0, 2);
+  const exampleScroll = useDragScroll<HTMLUListElement>();
 
   // 상세보기: 지금 화면을 본다 / 아래 버튼: 바로 할 일로 간다
   const openDetail = ({ type, work }: StudentTodo) => {
@@ -91,7 +93,7 @@ function StudentHomePage() {
           onAction={() => navigate(STUDENT_PATHS.explore)}
         />
       </div>
-      <ul className="student-home__examples">
+      <ul className="student-home__examples" {...exampleScroll}>
         {home.examples.map((example) => (
           <li key={example.id}>
             <button

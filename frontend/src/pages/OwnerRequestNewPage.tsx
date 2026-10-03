@@ -4,6 +4,7 @@ import { AppImage, Button, Chip, FIELD_ICONS, StepIndicator, SubScreen } from ".
 import { OWNER_PATHS, readNewRequestState, useRequestExample } from "../features/owner";
 import type { NewRequestState, PickedTask } from "../features/owner";
 import { useBack } from "../hooks/useBack";
+import { useDragScroll } from "../hooks/useDragScroll";
 import { FIELDS } from "../types/field";
 import type { Field } from "../types/field";
 import { SPECIALTY_BADGES } from "../types/specialty";
@@ -41,6 +42,8 @@ function OwnerRequestNewPage() {
   const [picked, setPicked] = useState<PickedTask[]>(
     saved?.picked ?? (example ? [{ field: example.field, task: example.task }] : []),
   );
+
+  const pickedScroll = useDragScroll<HTMLDivElement>();
 
   const countOf = (field: Field) => picked.filter((p) => p.field === field).length;
   const isPicked = (field: Field, task: string) =>
@@ -80,7 +83,7 @@ function OwnerRequestNewPage() {
       footer={
         <div className="owner-new__footer">
           {picked.length > 0 && (
-            <div className="owner-new__picked">
+            <div className="owner-new__picked" {...pickedScroll}>
               <strong>고른 일 {picked.length}</strong>
               {picked.map(({ field, task }) => (
                 <span key={`${field}-${task}`} className="owner-new__picked-item">

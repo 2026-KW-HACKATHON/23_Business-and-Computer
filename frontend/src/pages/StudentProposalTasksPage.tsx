@@ -4,6 +4,7 @@ import { AppImage, Button, Chip, FIELD_ICONS, StepIndicator, SubScreen } from ".
 import { STUDENT_PATHS, readNewProposalState, useProposalExample } from "../features/student";
 import type { NewProposalState, PickedTask } from "../features/student";
 import { useBack } from "../hooks/useBack";
+import { useDragScroll } from "../hooks/useDragScroll";
 import { FIELDS } from "../types/field";
 import type { Field } from "../types/field";
 import { SPECIALTY_BADGES } from "../types/specialty";
@@ -39,6 +40,8 @@ function StudentProposalTasksPage() {
   const [picked, setPicked] = useState<PickedTask[]>(
     hasPicked ? (saved?.picked ?? []) : example ? [{ field: example.field, task: example.task }] : [],
   );
+
+  const pickedScroll = useDragScroll<HTMLDivElement>();
 
   if (!saved?.storeId) return <Navigate to={STUDENT_PATHS.newProposal} replace />;
 
@@ -80,7 +83,7 @@ function StudentProposalTasksPage() {
       footer={
         <div className="student-new__footer">
           {picked.length > 0 && (
-            <div className="student-new__picked">
+            <div className="student-new__picked" {...pickedScroll}>
               <strong>고른 일 {picked.length}</strong>
               {picked.map(({ field, task }) => (
                 <span key={`${field}-${task}`} className="student-new__picked-item">

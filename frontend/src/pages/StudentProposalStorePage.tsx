@@ -4,6 +4,7 @@ import { Button, RoleAvatar, SearchBar, StepIndicator, SubScreen } from "../comp
 import { STUDENT_PATHS, readNewProposalState, useStores } from "../features/student";
 import type { NewProposalState } from "../features/student";
 import { useBack } from "../hooks/useBack";
+import { useDragScroll } from "../hooks/useDragScroll";
 import { STORE_CATEGORIES } from "../types/storeCategory";
 import type { StoreCategory } from "../types/storeCategory";
 import "./StudentStoresPage.css";
@@ -24,6 +25,7 @@ function StudentProposalStorePage() {
   const [storeId, setStoreId] = useState(saved?.storeId);
   const [category, setCategory] = useState<StoreCategory | null>(null);
   const [query, setQuery] = useState("");
+  const chipScroll = useDragScroll<HTMLDivElement>();
 
   const keyword = query.trim();
   const visible = stores
@@ -87,7 +89,7 @@ function StudentProposalStorePage() {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
         />
-        <div className="student-stores__chips">
+        <div className="student-stores__chips" {...chipScroll}>
           {chip("전체", null)}
           {STORE_CATEGORIES.map((c) => chip(c, c))}
         </div>

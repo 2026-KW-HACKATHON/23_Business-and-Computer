@@ -4,6 +4,7 @@ import { RoleAvatar, SearchBar, TextButton } from "../components";
 import { ExploreTabs, STUDENT_PATHS, StudentTabScreen, useStores } from "../features/student";
 import { STORE_CATEGORIES } from "../types/storeCategory";
 import type { StoreCategory } from "../types/storeCategory";
+import { useDragScroll } from "../hooks/useDragScroll";
 import "./StudentExplorePage.css";
 import "./StudentStoresPage.css";
 
@@ -16,6 +17,7 @@ function StudentStoresPage() {
   const stores = useStores();
   const [category, setCategory] = useState<StoreCategory | null>(null);
   const [query, setQuery] = useState("");
+  const chipScroll = useDragScroll<HTMLDivElement>();
 
   const keyword = query.trim();
   const visible = stores
@@ -54,7 +56,7 @@ function StudentStoresPage() {
         onChange={(e) => setQuery(e.target.value)}
       />
       <div className="student-explore">
-        <div className="student-stores__chips">
+        <div className="student-stores__chips" {...chipScroll}>
           {chip("전체", null)}
           {STORE_CATEGORIES.map((c) => chip(c, c))}
         </div>
