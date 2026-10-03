@@ -1,6 +1,7 @@
 package com.gakkum.backend.domain.payment.dto;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.List;
 
 import com.gakkum.backend.domain.payment.entity.Payment;
@@ -96,6 +97,65 @@ public final class PaymentQueryDto {
                 String studentName, PaymentHistoryStatus status) {
             return new PaymentHistoryItemResult(data.getJobId(), title, data.getAmount(), refundAmount,
                     data.getApprovedAt(), studentName, status);
+        }
+    }
+
+    @Getter
+    @AllArgsConstructor(access = AccessLevel.PRIVATE)
+    public static class SettlementHistoryData {
+
+        private final Long jobId;
+        private final Long jobApplicationId;
+        private final Long amount;
+        private final Long studentCompensationAmount;
+        private final PaymentStatus status;
+        private final Instant approvedAt;
+        private final Instant refundedAt;
+
+        public static SettlementHistoryData from(Payment payment) {
+            return new SettlementHistoryData(payment.getJobId(), payment.getJobApplicationId(), payment.getAmount(),
+                    payment.getStudentCompensationAmount(), payment.getStatus(), payment.getApprovedAt(),
+                    payment.getRefundedAt());
+        }
+    }
+
+    @Getter
+    @AllArgsConstructor(access = AccessLevel.PRIVATE)
+    public static class SettlementHistoryResult {
+
+        private final List<SettlementHistoryMonthResult> months;
+
+        public static SettlementHistoryResult of(List<SettlementHistoryMonthResult> months) {
+            return new SettlementHistoryResult(months);
+        }
+    }
+
+    @Getter
+    @AllArgsConstructor(access = AccessLevel.PRIVATE)
+    public static class SettlementHistoryMonthResult {
+
+        private final String yearMonth;
+        private final List<SettlementHistoryItemResult> settlements;
+
+        public static SettlementHistoryMonthResult of(String yearMonth, List<SettlementHistoryItemResult> settlements) {
+            return new SettlementHistoryMonthResult(yearMonth, settlements);
+        }
+    }
+
+    @Getter
+    @AllArgsConstructor(access = AccessLevel.PRIVATE)
+    public static class SettlementHistoryItemResult {
+
+        private final Long jobId;
+        private final String title;
+        private final Long amount;
+        private final LocalDate settledDate;
+        private final String storeName;
+        private final SettlementHistoryStatus status;
+
+        public static SettlementHistoryItemResult of(Long jobId, String title, Long amount, LocalDate settledDate,
+                String storeName, SettlementHistoryStatus status) {
+            return new SettlementHistoryItemResult(jobId, title, amount, settledDate, storeName, status);
         }
     }
 }

@@ -2,6 +2,7 @@ package com.gakkum.backend.domain.payment.service;
 
 import java.time.Clock;
 import java.time.Instant;
+import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 
@@ -12,6 +13,7 @@ import com.gakkum.backend.domain.payment.dto.PaymentCommandDto.PreparePaymentCom
 import com.gakkum.backend.domain.payment.dto.PaymentQueryDto.ApprovedPaymentData;
 import com.gakkum.backend.domain.payment.dto.PaymentQueryDto.PaymentHistoryData;
 import com.gakkum.backend.domain.payment.dto.PaymentQueryDto.RefundedPaymentData;
+import com.gakkum.backend.domain.payment.dto.PaymentQueryDto.SettlementHistoryData;
 import com.gakkum.backend.domain.payment.entity.Payment;
 import com.gakkum.backend.domain.payment.entity.PaymentStatus;
 import com.gakkum.backend.domain.payment.repository.PaymentRepository;
@@ -119,5 +121,23 @@ public class PaymentService {
             throw new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR);
         }
         return payments.stream().map(PaymentHistoryData::from).toList();
+    }
+
+    /**
+     * 학생 지원서에 연결된 정산 내역 조회. 승인된 결제(PAID·REFUNDED)만 승인 시각 최신순으로 반환한다.
+     * @param jobApplicationIds 학생 본인의 지원서 ID 목록
+     * @return 정산 내역, 없으면 빈 목록. 승인 시각이 없는 결제는 데이터 오류(500)
+     */
+    @Transactional(readOnly = true)
+    public List<SettlementHistoryData> getSettlementHistory(Collection<Long> jobApplicationIds) {
+        if (jobApplicationIds.isEmpty()) {
+            return List.of();
+        }
+        List<Payment> payments = paymentRepository.findByJobApplicationIdInAndStatusInOrderByApprovedAtDescIdDesc(
+                jobApplicationIds, List.of(PaymentStatus.PAID, PaymentStatus.REFUNDED));
+        if (payments.stream().anyMatch(payment -> payment.getApprovedAt() == null)) {
+            throw new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR);
+        }
+        return payments.stream().map(SettlementHistoryData::from).toList();
     }
 }

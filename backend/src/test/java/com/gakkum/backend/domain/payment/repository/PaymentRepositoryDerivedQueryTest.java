@@ -78,8 +78,54 @@ class PaymentRepositoryDerivedQueryTest {
         assertThat(history.get(2)).isEqualTo(oldPaid);
     }
 
+    @Test
+    @DisplayName("지원서 ID 목록에 연결된 PAID·REFUNDED 결제만 승인 시각 최신순, 같은 시각은 ID 내림차순으로 조회한다")
+    void findsApprovedPaymentsOfApplicationsInLatestOrder() {
+        String owner = "01K58M6PJV8VAJMXHBHJ2PNH03";
+        Instant earlier = Instant.parse("2026-09-30T14:59:59Z");
+        Instant later = Instant.parse("2026-09-30T15:00:00Z");
+
+        Payment refunded = approved(900_012L, 910_002L, owner, "settle-refunded", "TSETTLE0000000000002", later);
+        refunded.refundOnCancel(Instant.parse("2026-10-05T00:00:00Z"));
+        Payment sameTimePaid = approved(900_013L, 910_003L, owner, "settle-same-time", "TSETTLE0000000000003",
+                later);
+        // 같은 사장님이 결제했지만 다른 학생의 지원서
+        approved(900_014L, 910_099L, owner, "settle-other-student", "TSETTLE0000000000004", later);
+        paymentRepository.save(Payment.pending(900_015L, 910_001L, owner, "settle-pending", 100_000L,
+                Instant.EPOCH));
+        Payment readyFailed = Payment.pending(900_016L, 910_002L, owner, "settle-ready-failed", 100_000L,
+                Instant.EPOCH);
+        readyFailed.failReady();
+        paymentRepository.save(readyFailed);
+        Payment superseded = Payment.pending(900_017L, 910_003L, owner, "settle-superseded", 100_000L,
+                Instant.EPOCH);
+        superseded.supersede();
+        paymentRepository.save(superseded);
+        // 가장 오래된 승인 건을 마지막에 저장해 ID 순서와 승인 순서를 어긋나게 한다
+        Payment oldPaid = approved(900_011L, 910_001L, owner, "settle-old-paid", "TSETTLE0000000000001", earlier);
+        paymentRepository.flush();
+
+        List<Payment> history = paymentRepository.findByJobApplicationIdInAndStatusInOrderByApprovedAtDescIdDesc(
+                List.of(910_001L, 910_002L, 910_003L, 910_004L),
+                List.of(PaymentStatus.PAID, PaymentStatus.REFUNDED));
+
+        assertThat(history).extracting(Payment::getOrderId)
+                .containsExactly("settle-same-time", "settle-refunded", "settle-old-paid");
+        assertThat(history).extracting(Payment::getStatus)
+                .containsExactly(PaymentStatus.PAID, PaymentStatus.REFUNDED, PaymentStatus.PAID);
+        assertThat(sameTimePaid.getId()).isGreaterThan(refunded.getId());
+        assertThat(oldPaid.getId()).isGreaterThan(sameTimePaid.getId());
+        assertThat(history.get(1).getStudentCompensationAmount()).isEqualTo(20_000L);
+        assertThat(history.get(2)).isEqualTo(oldPaid);
+    }
+
     private Payment approved(Long jobId, String ownerUserId, String orderId, String tid, Instant approvedAt) {
-        Payment payment = Payment.pending(jobId, 201L, ownerUserId, orderId, 100_000L, Instant.EPOCH);
+        return approved(jobId, 201L, ownerUserId, orderId, tid, approvedAt);
+    }
+
+    private Payment approved(Long jobId, Long jobApplicationId, String ownerUserId, String orderId, String tid,
+            Instant approvedAt) {
+        Payment payment = Payment.pending(jobId, jobApplicationId, ownerUserId, orderId, 100_000L, Instant.EPOCH);
         payment.recordKakaoTid(tid);
         payment.approve(approvedAt);
         return paymentRepository.save(payment);

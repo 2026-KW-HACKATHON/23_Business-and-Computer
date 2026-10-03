@@ -25,6 +25,9 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
     List<Payment> findByOwnerUserIdAndStatusInOrderByApprovedAtDescIdDesc(
             String ownerUserId, Collection<PaymentStatus> statuses);
 
+    List<Payment> findByJobApplicationIdInAndStatusInOrderByApprovedAtDescIdDesc(
+            Collection<Long> jobApplicationIds, Collection<PaymentStatus> statuses);
+
     interface JobIdProjection {
         Long getJobId();
     }
