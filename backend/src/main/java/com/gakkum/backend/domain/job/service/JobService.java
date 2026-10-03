@@ -4,6 +4,7 @@ import java.time.Clock;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -122,6 +123,36 @@ public class JobService {
             throw new BusinessException(ErrorCode.PAYMENT_NOT_AVAILABLE);
         }
         return application;
+    }
+
+    /**
+     * 의뢰 ID 목록으로 의뢰 일괄 조회
+     * @param jobIds
+     * @return 의뢰 ID별 의뢰, 하나라도 없으면 참조 무결성 오류(500)
+     */
+    @Transactional(readOnly = true)
+    public Map<Long, Job> getJobsByIds(Collection<Long> jobIds) {
+        Map<Long, Job> jobsById = jobRepository.findAllById(jobIds).stream()
+                .collect(Collectors.toMap(Job::getId, Function.identity()));
+        if (!jobsById.keySet().containsAll(jobIds)) {
+            throw new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR);
+        }
+        return jobsById;
+    }
+
+    /**
+     * 지원서 ID 목록으로 지원서 일괄 조회
+     * @param applicationIds
+     * @return 지원서 ID별 지원서, 하나라도 없으면 참조 무결성 오류(500)
+     */
+    @Transactional(readOnly = true)
+    public Map<Long, JobApplication> getJobApplicationsByIds(Collection<Long> applicationIds) {
+        Map<Long, JobApplication> applicationsById = jobApplicationRepository.findAllById(applicationIds).stream()
+                .collect(Collectors.toMap(JobApplication::getId, Function.identity()));
+        if (!applicationsById.keySet().containsAll(applicationIds)) {
+            throw new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR);
+        }
+        return applicationsById;
     }
 
     @Transactional(readOnly = true)
