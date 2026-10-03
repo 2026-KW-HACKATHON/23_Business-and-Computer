@@ -55,6 +55,7 @@ export {
   currentDeadline,
   deadlineText,
   peerRecord,
+  workChatSummary,
   workStatusText,
 } from "./lib/format";
 export {

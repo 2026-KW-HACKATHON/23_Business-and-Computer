@@ -35,17 +35,34 @@ export function workStatusText(work: StudentWork): string {
   }
 }
 
-/** 채팅 목록 · 채팅방 작업 카드의 진행 상태 */
+/** 채팅 목록의 굵은 진행 상태 (사장님 채팅 목록과 같은 모양) */
 export function chatStatusText(work: StudentWork): string {
+  const stage = work.revisionCount > 0 ? "수정안" : "초안";
   switch (work.status) {
     case "drafting":
-      return `초안 만드는 중, ${formatMonthDay(work.draftDue)}까지`;
+      return `초안 만드는 중 (~${formatMonthDay(work.draftDue)})`;
     case "revising":
-      return `수정안 ${formatMonthDay(work.finalDue)}까지`;
+      return `수정안 만드는 중 (~${formatMonthDay(work.finalDue)})`;
     case "submitted":
-      return "사장님 확인 중";
+      return `사장님이 ${stage} 확인 중`;
     case "completed":
       return "완료";
+    default:
+      return "";
+  }
+}
+
+/** 채팅방 위 작업 카드의 굵은 진행 상태 (사장님 채팅방과 같은 모양) */
+export function workChatSummary(work: StudentWork): string {
+  switch (work.status) {
+    case "drafting":
+      return `초안 만드는 중, ${formatMonthDay(work.draftDue)}까지 제출`;
+    case "revising":
+      return `수정안 만드는 중, ${formatMonthDay(work.finalDue)}까지 제출`;
+    case "submitted":
+      return `${work.revisionCount > 0 ? "수정안" : "초안"}을 보냈어요, 사장님 확인 중`;
+    case "completed":
+      return "완료된 작업이에요";
     default:
       return "";
   }

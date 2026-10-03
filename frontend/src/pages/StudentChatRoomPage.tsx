@@ -6,7 +6,7 @@ import {
   MyPlanSheet,
   STUDENT_PATHS,
   StudentMissing,
-  chatStatusText,
+  workChatSummary,
   useStudentChatThread,
   useStudentWork,
 } from "../features/student";
@@ -114,7 +114,7 @@ function StudentChatRoomPage() {
             <strong className="student-chat__work-title">{work.title}</strong>
             <TextButton onClick={() => setPlanOpen(true)}>작업계획서 보기</TextButton>
           </div>
-          <p className="student-chat__work-progress">{chatStatusText(work)}</p>
+          <p className="student-chat__work-progress">{workChatSummary(work)}</p>
           <p className="student-chat__work-terms">
             {`${formatWon(work.budget)}, 수정 ${work.revisionLimit}회, 최종 마감 ${formatMonthDay(work.finalDue)}`}
           </p>
