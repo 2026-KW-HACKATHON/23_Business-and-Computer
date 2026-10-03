@@ -1,5 +1,7 @@
 package com.gakkum.backend.domain.payment.repository;
 
+import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -19,6 +21,9 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     Optional<Payment> findByOrderId(String orderId);
+
+    List<Payment> findByOwnerUserIdAndStatusInOrderByApprovedAtDescIdDesc(
+            String ownerUserId, Collection<PaymentStatus> statuses);
 
     interface JobIdProjection {
         Long getJobId();

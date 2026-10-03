@@ -12,6 +12,7 @@ import static org.mockito.Mockito.when;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
+import java.util.List;
 import java.util.Optional;
 
 import org.junit.jupiter.api.DisplayName;
@@ -19,6 +20,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.InOrder;
 
 import com.gakkum.backend.domain.payment.dto.PaymentCommandDto.PreparePaymentCommand;
+import com.gakkum.backend.domain.payment.dto.PaymentQueryDto.PaymentHistoryData;
 import com.gakkum.backend.domain.payment.dto.PaymentQueryDto.RefundedPaymentData;
 import com.gakkum.backend.domain.payment.entity.Payment;
 import com.gakkum.backend.domain.payment.entity.PaymentStatus;
@@ -157,5 +159,47 @@ class PaymentServiceTest {
         assertThatThrownBy(() -> service.refundOnCancel(11L))
                 .isInstanceOfSatisfying(BusinessException.class, exception ->
                         assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.INTERNAL_SERVER_ERROR));
+    }
+
+    @Test
+    @DisplayName("결제 내역은 본인의 PAID·REFUNDED 결제만 저장소 정렬 순서대로 반환한다")
+    void returnsPaymentHistoryInRepositoryOrder() {
+        Payment refunded = historyPayment(12L, "order-refunded", "T0000000000000000002");
+        refunded.approve(NOW);
+        refunded.refundOnCancel(NOW.plusSeconds(60));
+        Payment paid = historyPayment(11L, "order-paid", "T0000000000000000001");
+        paid.approve(NOW.minusSeconds(60));
+        when(repository.findByOwnerUserIdAndStatusInOrderByApprovedAtDescIdDesc(
+                USER_ID, List.of(PaymentStatus.PAID, PaymentStatus.REFUNDED))).thenReturn(List.of(refunded, paid));
+
+        List<PaymentHistoryData> history = service.getPaymentHistory(USER_ID);
+
+        assertThat(history).extracting(PaymentHistoryData::getJobId).containsExactly(12L, 11L);
+        assertThat(history.get(0).getStatus()).isEqualTo(PaymentStatus.REFUNDED);
+        assertThat(history.get(0).getAmount()).isEqualTo(100_000L);
+        assertThat(history.get(0).getRefundAmount()).isEqualTo(80_000L);
+        assertThat(history.get(0).getApprovedAt()).isEqualTo(NOW);
+        assertThat(history.get(1).getStatus()).isEqualTo(PaymentStatus.PAID);
+        assertThat(history.get(1).getJobApplicationId()).isEqualTo(21L);
+        assertThat(history.get(1).getRefundAmount()).isNull();
+    }
+
+    @Test
+    @DisplayName("결제 내역에 승인 시각이 없는 결제가 있으면 누락하지 않고 서버 오류로 처리한다")
+    void rejectsPaymentHistoryWithoutApprovedAt() {
+        Payment broken = mock(Payment.class);
+        when(broken.getApprovedAt()).thenReturn(null);
+        when(repository.findByOwnerUserIdAndStatusInOrderByApprovedAtDescIdDesc(
+                USER_ID, List.of(PaymentStatus.PAID, PaymentStatus.REFUNDED))).thenReturn(List.of(broken));
+
+        assertThatThrownBy(() -> service.getPaymentHistory(USER_ID))
+                .isInstanceOfSatisfying(BusinessException.class, exception ->
+                        assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.INTERNAL_SERVER_ERROR));
+    }
+
+    private Payment historyPayment(Long jobId, String orderId, String tid) {
+        Payment payment = Payment.pending(jobId, 21L, USER_ID, orderId, 100_000L, NOW);
+        payment.recordKakaoTid(tid);
+        return payment;
     }
 }

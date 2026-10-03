@@ -2,6 +2,7 @@ package com.gakkum.backend.domain.payment.service;
 
 import java.time.Clock;
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 
 import org.springframework.stereotype.Service;
@@ -9,6 +10,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.gakkum.backend.domain.payment.dto.PaymentCommandDto.PreparePaymentCommand;
 import com.gakkum.backend.domain.payment.dto.PaymentQueryDto.ApprovedPaymentData;
+import com.gakkum.backend.domain.payment.dto.PaymentQueryDto.PaymentHistoryData;
 import com.gakkum.backend.domain.payment.dto.PaymentQueryDto.RefundedPaymentData;
 import com.gakkum.backend.domain.payment.entity.Payment;
 import com.gakkum.backend.domain.payment.entity.PaymentStatus;
@@ -102,5 +104,20 @@ public class PaymentService {
             throw new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR);
         }
         return new ApprovedPaymentData(payment.getOrderId(), payment.getAmount(), payment.getApprovedAt());
+    }
+
+    /**
+     * 사장님 본인의 결제 내역 조회. 승인된 결제(PAID·REFUNDED)만 승인 시각 최신순으로 반환한다.
+     * @param ownerUserId
+     * @return 결제 내역, 없으면 빈 목록. 승인 시각이 없는 결제는 데이터 오류(500)
+     */
+    @Transactional(readOnly = true)
+    public List<PaymentHistoryData> getPaymentHistory(String ownerUserId) {
+        List<Payment> payments = paymentRepository.findByOwnerUserIdAndStatusInOrderByApprovedAtDescIdDesc(
+                ownerUserId, List.of(PaymentStatus.PAID, PaymentStatus.REFUNDED));
+        if (payments.stream().anyMatch(payment -> payment.getApprovedAt() == null)) {
+            throw new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR);
+        }
+        return payments.stream().map(PaymentHistoryData::from).toList();
     }
 }
