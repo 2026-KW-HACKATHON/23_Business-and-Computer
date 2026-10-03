@@ -73,4 +73,17 @@ class JobBatchLookupServiceTest {
                 .isInstanceOfSatisfying(BusinessException.class, exception ->
                         assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.INTERNAL_SERVER_ERROR));
     }
+
+    @Test
+    @DisplayName("학생 프로필 ID로 본인 지원서를 조회해 ID별 지원서를 반환하고 없으면 빈 맵을 반환한다")
+    void returnsJobApplicationsOfStudent() {
+        JobApplication first = JobApplication.builder().id(21L).studentProfileId(7L).build();
+        JobApplication second = JobApplication.builder().id(22L).studentProfileId(7L).build();
+        when(jobApplicationRepository.findByStudentProfileId(7L)).thenReturn(List.of(first, second));
+        when(jobApplicationRepository.findByStudentProfileId(8L)).thenReturn(List.of());
+
+        assertThat(jobService.getJobApplicationsByStudentProfileId(7L))
+                .containsOnly(Map.entry(21L, first), Map.entry(22L, second));
+        assertThat(jobService.getJobApplicationsByStudentProfileId(8L)).isEmpty();
+    }
 }

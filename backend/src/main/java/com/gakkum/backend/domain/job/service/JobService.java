@@ -155,6 +155,17 @@ public class JobService {
         return applicationsById;
     }
 
+    /**
+     * 학생 본인이 낸 지원서 전체 조회
+     * @param studentProfileId
+     * @return 지원서 ID별 지원서, 없으면 빈 맵
+     */
+    @Transactional(readOnly = true)
+    public Map<Long, JobApplication> getJobApplicationsByStudentProfileId(Long studentProfileId) {
+        return jobApplicationRepository.findByStudentProfileId(studentProfileId).stream()
+                .collect(Collectors.toMap(JobApplication::getId, Function.identity()));
+    }
+
     @Transactional(readOnly = true)
     public JobDetailData getJobDetail(Long jobId) {
         Job job = jobRepository.findById(jobId)
