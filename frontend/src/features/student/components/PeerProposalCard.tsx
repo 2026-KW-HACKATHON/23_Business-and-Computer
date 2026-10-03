@@ -44,7 +44,7 @@ function PeerProposalCard({ proposal, onOpen, onToggleEmpathy }: PeerProposalCar
         </span>
       </div>
       <p className="student-card__status">{PEER_PROGRESS_LABEL[proposal.progress]}</p>
-      <p className="student-card__excerpt">{proposal.problem}</p>
+      <p className="student-card__excerpt">{proposal.solution}</p>
       <div className="student-card__divider" />
       <div className="student-card__footer">
         <TextButton onClick={onOpen}>제안서 상세 보기</TextButton>

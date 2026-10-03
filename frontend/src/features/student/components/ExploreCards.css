@@ -63,7 +63,7 @@
   color: var(--color-black);
 }
 
-/* 손님 눈으로 본 문제 2줄 미리보기 */
+/* 이렇게 바꿔 드릴게요 2줄 미리보기 */
 .student-card__excerpt {
   display: -webkit-box;
   overflow: hidden;

@@ -160,7 +160,7 @@ function StudentActivityPage() {
           <CategoryBadge field={proposal.field} />
         </div>
         <div className="student-activity__box student-activity__box--column">
-          <p className="student-activity__excerpt">{proposal.problem}</p>
+          <p className="student-activity__excerpt">{proposal.solution}</p>
           <TextButton onClick={() => navigate(STUDENT_PATHS.proposal(proposal.id))}>상세보기</TextButton>
         </div>
         <div className="student-activity__divider" />
