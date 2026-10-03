@@ -32,6 +32,7 @@
   word-break: keep-all;
   overflow-wrap: break-word;
   cursor: pointer;
+  text-wrap: balance;
 }
 
 .student-card__title:focus-visible {

@@ -28,6 +28,7 @@
   color: var(--color-black);
   word-break: keep-all;
   overflow-wrap: break-word;
+  text-wrap: balance;
 }
 
 .explore-card__meta {

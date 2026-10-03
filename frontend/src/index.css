@@ -57,7 +57,6 @@
   max-width: 100%;
   margin: 0 auto;
   text-align: center;
-  border-inline: 1px solid var(--border);
   min-height: 100svh;
   display: flex;
   flex-direction: column;
@@ -66,6 +65,16 @@
 
 body {
   margin: 0;
+}
+
+/*
+ * 웹 글꼴(Google Fonts Noto Sans KR)의 띄어쓰기가 피그마의 Noto Sans KR보다 0.05em 넓어
+ * 긴 문장이 피그마보다 일찍 줄바꿈된다. 요소마다 자기 글자 크기 기준으로 줄인다.
+ */
+*,
+::before,
+::after {
+  word-spacing: -0.05em;
 }
 
 /* 버튼 · 입력칸은 브라우저 기본 글꼴 대신 앱 글꼴을 물려받는다 */

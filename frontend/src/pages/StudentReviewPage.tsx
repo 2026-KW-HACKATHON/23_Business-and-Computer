@@ -34,7 +34,9 @@ function StudentReviewPage() {
           <AppImage name="doneStudent" width={120} alt="" />
           <h2 className="student-work__done-title">작업이 끝났어요</h2>
           <p className="student-work__done-text">
-            작업비가 정산됐어요. 받은 후기와 결과물은 내 프로필에 쌓여요.
+            작업비가 정산됐어요.
+            <br />
+            받은 후기와 결과물은 내 프로필에 쌓여요.
           </p>
           <TextButton onClick={() => navigate(STUDENT_PATHS.workResult(work.id))}>내 결과물 보기</TextButton>
         </div>
