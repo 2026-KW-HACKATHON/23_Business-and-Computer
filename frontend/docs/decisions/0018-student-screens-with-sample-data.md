@@ -43,6 +43,10 @@ owner's applicant list).
   dates with optional labels and limits, revision stepper),
   `src/components/ReportSheet/ReportSheet.tsx` with `tone` (who reports whom,
   mail text in `src/lib/support.ts`), and `src/lib/sampleTime.ts`.
+- My own waiting proposals are public, so they also appear in explore marked
+  「내 제안이에요」 with the empathy count only; they open my sent proposal and
+  never appear under 「다른 학생들의 제안 공감하기」. A student cannot empathize
+  with their own proposal.
 - Explore cards show the store name only, as on the owner side. Request
   details, the store list, and my own proposals keep the store address, since
   a student visits the store.

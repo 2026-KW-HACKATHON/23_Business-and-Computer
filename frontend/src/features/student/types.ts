@@ -216,6 +216,8 @@ export interface PeerProposal {
   empathyCount: number;
   /** 내가 공감했는지 */
   empathized: boolean;
+  /** 내가 보낸 제안 (탐색에도 공개된다). 내 제안에는 공감할 수 없다 */
+  mine?: boolean;
   problem: string;
   solution: string;
   attachments: string[];

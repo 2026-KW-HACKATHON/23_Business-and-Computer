@@ -10,12 +10,19 @@ interface PeerProposalCardProps {
 }
 
 /**
- * 학생 탐색의 다른 학생 제안 카드. 수락을 기다리는 제안은 하트로 공감하고,
- * 수락된 뒤에는 공감 수만 보인다.
+ * 학생 탐색의 제안 카드. 수락을 기다리는 다른 학생 제안은 하트로 공감하고,
+ * 수락된 제안과 내 제안은 공감 수만 보인다.
  */
 function PeerProposalCard({ proposal, onOpen, onToggleEmpathy }: PeerProposalCardProps) {
-  const open = proposal.progress === "waitingAcceptance";
-  const hint = proposal.empathized ? "공감했어요" : open ? "하트를 눌러 공감" : "";
+  // 내 제안에는 공감할 수 없다 (공감 수만 보인다)
+  const open = proposal.progress === "waitingAcceptance" && !proposal.mine;
+  const hint = proposal.mine
+    ? "내 제안이에요"
+    : proposal.empathized
+      ? "공감했어요"
+      : open
+        ? "하트를 눌러 공감"
+        : "";
 
   return (
     <article className="student-card">

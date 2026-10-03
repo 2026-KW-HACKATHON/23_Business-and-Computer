@@ -104,7 +104,13 @@ function StudentExplorePage() {
                 <li key={item.proposal.id}>
                   <PeerProposalCard
                     proposal={item.proposal}
-                    onOpen={() => navigate(STUDENT_PATHS.peerProposal(item.proposal.id))}
+                    onOpen={() =>
+                      navigate(
+                        item.proposal.mine
+                          ? STUDENT_PATHS.proposal(item.proposal.id)
+                          : STUDENT_PATHS.peerProposal(item.proposal.id),
+                      )
+                    }
                     onToggleEmpathy={() => toggleEmpathy(item.proposal.id)}
                   />
                 </li>

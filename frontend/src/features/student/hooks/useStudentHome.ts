@@ -48,7 +48,7 @@ export function useStudentHome(): StudentHome {
     hasUnreadNotifications: notifications.some((n) => !n.read),
     todos,
     peerProposals: peers
-      .filter((p) => p.progress === "waitingAcceptance")
+      .filter((p) => p.progress === "waitingAcceptance" && !p.mine)
       .sort((a, b) => b.empathyCount - a.empathyCount),
     checking: works.filter((w) => w.status === "submitted"),
     waiting,

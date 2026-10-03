@@ -1,4 +1,4 @@
-import { useParams } from "react-router-dom";
+import { Navigate, useParams } from "react-router-dom";
 import {
   AppImage,
   AttachmentTiles,
@@ -32,6 +32,8 @@ function StudentPeerProposalPage() {
   const proposal = usePeerProposal(proposalId);
 
   if (!proposal) return <StudentMissing title="제안서" onBack={back} />;
+  // 내 제안에는 공감할 수 없으니 보낸 제안서로 보낸다
+  if (proposal.mine) return <Navigate to={STUDENT_PATHS.proposal(proposal.id)} replace />;
   const { student } = proposal;
   const open = proposal.progress === "waitingAcceptance";
 

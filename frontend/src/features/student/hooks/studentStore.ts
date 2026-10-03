@@ -73,7 +73,10 @@ export function submitWork(workId: string, files: WorkFile[], message: string): 
   changed();
 }
 
-/** 다른 학생 제안에 공감 켜기 · 끄기 */
+/**
+ * 다른 학생 제안에 공감 켜기 · 끄기.
+ * 내 제안은 화면에서 하트를 막고, 눌린 기록이 있어도 내 제안 목록에는 반영하지 않는다
+ */
 export function toggleEmpathy(proposalId: string): void {
   if (demo.toggledEmpathyIds.has(proposalId)) demo.toggledEmpathyIds.delete(proposalId);
   else demo.toggledEmpathyIds.add(proposalId);

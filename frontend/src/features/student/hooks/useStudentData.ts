@@ -89,8 +89,43 @@ function currentProposals(): MyProposal[] {
   );
 }
 
+/** 공개된 내 제안을 탐색 카드 모양으로 (공감은 할 수 없다) */
+function myPublicProposals(): PeerProposal[] {
+  const completed = works().filter((w) => w.status === "completed");
+  const ratings = completed.flatMap((w) => (w.review ? [w.review.rating] : []));
+  const student = {
+    id: SAMPLE_MY_PROFILE.id,
+    name: SAMPLE_MY_PROFILE.name,
+    department: SAMPLE_MY_PROFILE.department,
+    year: SAMPLE_MY_PROFILE.year,
+    rating:
+      ratings.length > 0
+        ? Math.round((ratings.reduce((a, b) => a + b, 0) / ratings.length) * 10) / 10
+        : undefined,
+    completedCount: completed.length,
+  };
+  return currentProposals()
+    .filter((p) => p.status === "waiting")
+    .map((p) => ({
+      id: p.id,
+      title: p.title,
+      field: p.field,
+      storeName: p.store.name,
+      student,
+      receivedOn: p.sentOn,
+      progress: "waitingAcceptance" as const,
+      createdAt: `${p.sentOn}T12:00:00`,
+      empathyCount: p.empathyCount,
+      empathized: false,
+      mine: true,
+      problem: p.problem,
+      solution: p.solution,
+      attachments: p.attachments,
+    }));
+}
+
 function currentPeers(): PeerProposal[] {
-  return SAMPLE_PEER_PROPOSALS.map((p) => {
+  const others = SAMPLE_PEER_PROPOSALS.filter((p) => p.student.id !== SAMPLE_MY_PROFILE.id).map((p) => {
     if (!demo.toggledEmpathyIds.has(p.id)) return p;
     return {
       ...p,
@@ -98,6 +133,7 @@ function currentPeers(): PeerProposal[] {
       empathyCount: p.empathyCount + (p.empathized ? -1 : 1),
     };
   });
+  return [...others, ...myPublicProposals()];
 }
 
 // ---- 작업 ----
