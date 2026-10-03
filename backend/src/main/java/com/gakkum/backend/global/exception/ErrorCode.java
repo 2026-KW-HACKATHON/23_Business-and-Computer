@@ -49,6 +49,7 @@ public enum ErrorCode {
     PAYMENT_APPROVAL_UNAVAILABLE(HttpStatus.BAD_GATEWAY, "PAYMENT_502_APPROVAL", "결제 승인 상태를 확인하지 못했습니다. 잠시 후 다시 시도해 주세요."),
     PAYMENT_RESULT_MISMATCH(HttpStatus.BAD_GATEWAY, "PAYMENT_502_MISMATCH", "결제 승인 정보를 확인하지 못했습니다."),
     PROPOSAL_STUDENT_REQUIRED(HttpStatus.FORBIDDEN, "PROPOSAL_403_STUDENT", "학생만 제안을 보낼 수 있습니다."),
+    PROPOSAL_LIST_STUDENT_REQUIRED(HttpStatus.FORBIDDEN, "PROPOSAL_403_LIST_STUDENT", "학생만 보낸 제안 목록을 조회할 수 있습니다."),
     PROPOSAL_IMAGE_URL_INVALID(HttpStatus.BAD_REQUEST, "PROPOSAL_400_IMAGE_URL", "제안용으로 발급된 사진 URL이 아닙니다."),
     PROPOSAL_IMAGE_NOT_UPLOADED(HttpStatus.CONFLICT, "PROPOSAL_409_IMAGE_NOT_UPLOADED", "업로드가 끝나지 않은 사진이 있습니다."),
     PROPOSAL_NOT_FOUND(HttpStatus.NOT_FOUND, "PROPOSAL_404", "존재하지 않는 제안입니다."),

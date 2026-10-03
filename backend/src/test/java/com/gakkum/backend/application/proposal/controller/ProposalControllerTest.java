@@ -32,7 +32,11 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import com.gakkum.backend.application.proposal.facade.ProposalFacade;
 import com.gakkum.backend.domain.proposal.dto.ProposalCommandDto.CreateProposalCommand;
+import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.MyProposalListResult;
+import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.MyProposalResult;
 import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.ProposalCreateResult;
+import com.gakkum.backend.domain.owner.entity.Owner;
+import com.gakkum.backend.domain.proposal.entity.ProposalStatus;
 import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.ProposalDetailResult;
 import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.SpecialtyCategoryResult;
 import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.SpecialtyResult;
@@ -179,7 +183,8 @@ class ProposalControllerTest {
                 SpecialtyCategoryResult.of(2L, "영상", List.of(
                         SpecialtyResult.of(11L, "숏폼 촬영"), SpecialtyResult.of(12L, "영상 편집"))));
         when(proposalFacade.getProposalDetail(USERNAME, 31L))
-                .thenReturn(ProposalDetailResult.of(proposal, "가게 이름", student, studentUser, categories));
+                .thenReturn(ProposalDetailResult.of(proposal, "가게 이름", student, studentUser,
+                        new java.math.BigDecimal("4.3"), 5L, categories));
 
         mockMvc.perform(get("/proposals/31").principal(authentication))
                 .andExpect(status().isOk())
@@ -199,6 +204,8 @@ class ProposalControllerTest {
                 .andExpect(jsonPath("$.data.student.name").value("김학생"))
                 .andExpect(jsonPath("$.data.student.major").value("시각디자인학부"))
                 .andExpect(jsonPath("$.data.student.studentNumber").value("20260001"))
+                .andExpect(jsonPath("$.data.student.averageRating").value(4.3))
+                .andExpect(jsonPath("$.data.student.completedJobCount").value(5))
                 .andExpect(jsonPath("$.data.customerProblem").value("메뉴를 알아보기 어렵습니다."))
                 .andExpect(jsonPath("$.data.proposedSolution").value("사진 메뉴판으로 바꿉니다."))
                 .andExpect(jsonPath("$.data.workPlan").value("촬영 후 편집합니다."))
@@ -256,5 +263,48 @@ class ProposalControllerTest {
         if (value != null) {
             json.append(",\"").append(field).append("\":").append(value);
         }
+    }
+
+    @Test
+    @DisplayName("내가 보낸 제안 목록은 200과 카드 필드를 반환한다")
+    void returnsMyProposals() throws Exception {
+        Proposal proposal = Proposal.builder().id(31L).title("메뉴판 개선 제안").likeCount(5)
+                .proposedSolution(TEXT_500).status(ProposalStatus.PENDING).build();
+        Owner owner = Owner.builder().id(50L).storeName("가꿈 카페").build();
+        when(proposalFacade.getMyProposals(USERNAME)).thenReturn(MyProposalListResult.of(List.of(
+                MyProposalResult.of(proposal, owner, List.of(SpecialtyCategoryResult.of(
+                        1L, "디자인", List.of(SpecialtyResult.of(11L, "메뉴판 디자인"))))))));
+
+        mockMvc.perform(get("/me/proposals").principal(authentication))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.proposals[0].proposalId").value(31))
+                .andExpect(jsonPath("$.data.proposals[0].status").value("PENDING"))
+                .andExpect(jsonPath("$.data.proposals[0].likeCount").value(5))
+                .andExpect(jsonPath("$.data.proposals[0].specialtyCategories[0].specialties[0].name").value("메뉴판 디자인"))
+                .andExpect(jsonPath("$.data.proposals[0].proposedSolution").value(TEXT_500))
+                .andExpect(jsonPath("$.data.proposals[0].store.ownerProfileId").value(50))
+                .andExpect(jsonPath("$.data.proposals[0].store.storeAddress").doesNotExist())
+                .andExpect(jsonPath("$.data.proposals[0].store.profileImageUrl").doesNotExist());
+    }
+
+    @Test
+    @DisplayName("보낸 제안이 없으면 빈 배열을 반환한다")
+    void returnsEmptyMyProposals() throws Exception {
+        when(proposalFacade.getMyProposals(USERNAME)).thenReturn(MyProposalListResult.of(List.of()));
+
+        mockMvc.perform(get("/me/proposals").principal(authentication))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.proposals").isEmpty());
+    }
+
+    @Test
+    @DisplayName("학생이 아니면 403 PROPOSAL_403_LIST_STUDENT를 반환한다")
+    void rejectsNonStudentMyProposals() throws Exception {
+        when(proposalFacade.getMyProposals(USERNAME))
+                .thenThrow(new BusinessException(ErrorCode.PROPOSAL_LIST_STUDENT_REQUIRED));
+
+        mockMvc.perform(get("/me/proposals").principal(authentication))
+                .andExpect(status().isForbidden());
     }
 }

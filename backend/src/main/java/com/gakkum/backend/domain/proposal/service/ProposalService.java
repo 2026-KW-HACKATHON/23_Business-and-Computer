@@ -13,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.gakkum.backend.domain.proposal.dto.ProposalCommandDto.CreateProposalCommand;
 import com.gakkum.backend.domain.proposal.dto.ProposalCommandDto.GetExploreProposalsCommand;
+import com.gakkum.backend.domain.proposal.dto.ProposalCommandDto.GetMyProposalsCommand;
 import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.ExploreProposalData;
 import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.ProposalDetailData;
 import com.gakkum.backend.domain.proposal.entity.Proposal;
@@ -68,11 +69,20 @@ public class ProposalService {
     /** 탐색 목록용으로 커서 경계 뒤의 제안을 정렬 순서대로 limit개까지 읽고 제안별 소분류 ID를 한 번에 붙인다. */
     @Transactional(readOnly = true)
     public List<ExploreProposalData> getExploreProposals(GetExploreProposalsCommand command) {
-        List<Proposal> proposals = findExploreProposals(command);
+        return withSpecialtyIds(findExploreProposals(command));
+    }
+
+    /** 학생이 보낸 모든 제안을 최신순으로 읽고 제안별 소분류 ID를 한 번에 붙인다. */
+    @Transactional(readOnly = true)
+    public List<ExploreProposalData> getMyProposals(GetMyProposalsCommand command) {
+        return withSpecialtyIds(proposalRepository
+                .findByStudentProfileIdOrderByCreatedAtDescIdDesc(command.getStudentProfileId()));
+    }
+
+    private List<ExploreProposalData> withSpecialtyIds(List<Proposal> proposals) {
         if (proposals.isEmpty()) {
             return List.of();
         }
-
         Map<Long, List<Long>> specialtyIdsByProposalId = proposalSpecialtyRepository
                 .findByProposalIdIn(proposals.stream().map(Proposal::getId).toList()).stream()
                 .collect(Collectors.groupingBy(

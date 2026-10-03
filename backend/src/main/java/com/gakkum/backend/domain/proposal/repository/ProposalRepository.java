@@ -18,6 +18,9 @@ import com.gakkum.backend.domain.proposal.entity.Proposal;
  */
 public interface ProposalRepository extends JpaRepository<Proposal, Long> {
 
+    /** 학생이 보낸 모든 상태의 제안을 최신순으로 읽는다. */
+    List<Proposal> findByStudentProfileIdOrderByCreatedAtDescIdDesc(Long studentProfileId);
+
     // 최신순: 경계 시각과 같은 행 중 경계 ID 앞 → 경계 시각 이전
     List<Proposal> findByCreatedAtAndIdLessThanOrderByIdDesc(LocalDateTime createdAt, Long idBound, Limit limit);
 
