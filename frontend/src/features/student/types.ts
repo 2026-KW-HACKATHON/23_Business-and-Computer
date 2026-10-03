@@ -246,8 +246,6 @@ export interface MyProfile {
   department: string;
   /** 「24학번」 */
   year: string;
-  /** 내 정보의 「디자인 / 홍보」 */
-  fields: Field[];
   intro: string;
   noShowCount: number;
   badges: string[];

@@ -11,7 +11,6 @@ export const SAMPLE_MY_PROFILE: MyProfile = {
   name: "김광운",
   department: "경영학부",
   year: "24학번",
-  fields: ["디자인", "홍보"],
   intro: "메뉴판·로고 디자인을 주로 해요",
   noShowCount: 0,
   badges: ["메뉴판·가격표 디자인", "로고 디자인", "SNS 게시물"],

@@ -50,6 +50,7 @@ import StudentChatsPage from './pages/StudentChatsPage'
 import StudentNotificationsPage from './pages/StudentNotificationsPage'
 import StudentMePage from './pages/StudentMePage'
 import StudentProfilePage from './pages/StudentProfilePage'
+import StudentProfileEditPage from './pages/StudentProfileEditPage'
 import StudentSettlementsPage from './pages/StudentSettlementsPage'
 import StudentPortfolioPage from './pages/StudentPortfolioPage'
 import StudentActivityPage from './pages/StudentActivityPage'
@@ -134,6 +135,7 @@ function App() {
       <Route path="/student/notifications" element={<StudentNotificationsPage />} />
       <Route path="/student/me" element={<StudentMePage />} />
       <Route path="/student/me/profile" element={<StudentProfilePage />} />
+      <Route path="/student/me/profile/edit" element={<StudentProfileEditPage />} />
       <Route path="/student/me/settlements" element={<StudentSettlementsPage />} />
       <Route path="/student/me/portfolio" element={<StudentPortfolioPage />} />
       <Route path="/student/activity" element={<StudentActivityPage />} />

@@ -3,6 +3,9 @@ import type { MainTab } from "../../../components";
 /** 내 활동 탭 */
 export type StudentActivityTab = "applied" | "proposals" | "inProgress" | "done";
 
+/** 프로필 편집을 열 때 먼저 보여 줄 칸 (「기본 정보 수정」은 맨 위) */
+export type ProfileEditSection = "badges" | "certificates";
+
 /**
  * 학생 화면 주소 (노션 「페이지 주소 정리」 · 「화면 상태 전환표」 기준).
  * 아직 없는 화면은 App.tsx 에서 학생 홈으로 돌려보낸다.
@@ -17,6 +20,7 @@ export const STUDENT_PATHS = {
   notifications: "/student/notifications",
   me: "/student/me",
   profile: "/student/me/profile",
+  profileEdit: "/student/me/profile/edit",
   settlements: "/student/me/settlements",
   portfolio: "/student/me/portfolio",
   activity: (tab: StudentActivityTab) => `/student/activity?tab=${tab}`,

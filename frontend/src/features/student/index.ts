@@ -19,9 +19,12 @@ export {
   cancelMyProposal,
   declineWork,
   markNotificationsRead,
+  saveMyProfile,
   sendProposal,
+  setMyProfilePhoto,
   submitWork,
   toggleEmpathy,
+  useMyProfilePhoto,
 } from "./hooks/studentStore";
 export {
   useExploreRequests,
@@ -66,7 +69,7 @@ export {
 export type { NewProposalState, PickedTask, ProposalContent } from "./lib/newProposal";
 export { NOTIFICATION_ICON, notificationPath, notificationState } from "./lib/notifications";
 export { STUDENT_PATHS } from "./lib/paths";
-export type { StudentActivityTab } from "./lib/paths";
+export type { ProfileEditSection, StudentActivityTab } from "./lib/paths";
 export type {
   ApplicationPlan,
   ChatMessage,

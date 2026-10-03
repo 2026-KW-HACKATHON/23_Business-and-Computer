@@ -33,9 +33,14 @@ owner's applicant list).
   Figma student sample conflicted with the owner sample, the student sample
   changed (store or title) and Figma was updated to match.
 - Demo state (agree to a request, submit a draft or revision, empathy, cancel
-  a proposal, send a proposal, apply, decline a request) lives in
+  a proposal, send a proposal, apply, decline a request, edit the profile and
+  photo) lives in
   `src/features/student/hooks/studentStore.ts` and re-renders readers through
   `useSyncExternalStore`. A reload resets it.
+- 프로필 편집 (`src/pages/StudentProfileEditPage.tsx`) opens from every 「수정」 on the
+  profile screen; the section 「수정」 buttons start at their section. Name,
+  school, and department are verified and stay read-only. The 내 정보 fields
+  line (「디자인 / 홍보」) is derived from the chosen badges, not stored.
 - The student home shows 「학생 홈 - 처음」 when the account has no works,
   applications, or proposals, derived from the lists (no backend flag).
 - Shared pieces moved out of the owner feature so both roles use them:

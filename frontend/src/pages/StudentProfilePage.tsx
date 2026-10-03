@@ -8,7 +8,14 @@ import {
   TextButton,
   TrustChips,
 } from "../components";
-import { STUDENT_PATHS, useMyProfile, useStudentSettlements } from "../features/student";
+import {
+  STUDENT_PATHS,
+  setMyProfilePhoto,
+  useMyProfile,
+  useMyProfilePhoto,
+  useStudentSettlements,
+} from "../features/student";
+import type { ProfileEditSection } from "../features/student";
 import { useBack } from "../hooks/useBack";
 import { useObjectUrls } from "../hooks/useObjectUrls";
 import { formatDotDate } from "../lib/date";
@@ -22,17 +29,20 @@ const SETTLEMENT_PREVIEW_COUNT = 3;
 
 /**
  * 피그마 「프로필 수정(학생)」. 사장님이 보는 내 프로필 그대로 보여 주고,
- * 아래에 나만 보는 정산 내역을 붙인다. 각 「수정」 화면은 아직 피그마에 없다.
+ * 아래에 나만 보는 정산 내역을 붙인다. 각 「수정」은 「프로필 편집(학생)」을 연다.
  */
 function StudentProfilePage() {
   const navigate = useNavigate();
   const back = useBack(STUDENT_PATHS.me);
   const profile = useMyProfile();
   const { settlements } = useStudentSettlements();
-  const [photo, setPhoto] = useState<File | null>(null);
+  const photo = useMyProfilePhoto();
   const photoFiles = useMemo(() => (photo ? [photo] : []), [photo]);
   const [photoUrl] = useObjectUrls(photoFiles);
   const [reviewsExpanded, setReviewsExpanded] = useState(false);
+
+  const openEdit = (section?: ProfileEditSection) =>
+    navigate(STUDENT_PATHS.profileEdit, { state: section ? { section } : undefined });
 
   const reviews = reviewsExpanded ? profile.reviews : profile.reviews.slice(0, PREVIEW_COUNT);
   const settled = settlements
@@ -43,14 +53,14 @@ function StudentProfilePage() {
     <SubScreen title="프로필 수정" onBack={back}>
       <div className="student-profile">
         <header className="student-profile__head">
-          <ProfilePhoto size="medium" src={photoUrl} onSelect={setPhoto} />
+          <ProfilePhoto size="medium" src={photoUrl} onSelect={setMyProfilePhoto} />
           <h2 className="student-profile__name">{profile.name} 학생</h2>
           <p className="student-profile__school">
             광운대 {profile.department} {profile.year}
           </p>
           <p className="student-profile__intro">{profile.intro}</p>
           <TrustChips proposalCount={profile.proposalCount} noShowCount={profile.noShowCount} />
-          <button type="button" className="student-profile__edit">
+          <button type="button" className="student-profile__edit" onClick={() => openEdit()}>
             기본 정보 수정
           </button>
         </header>
@@ -78,7 +88,7 @@ function StudentProfilePage() {
                 {profile.badges.length}/{MAX_SPECIALTY_BADGES}
               </span>
             </h3>
-            <TextButton>수정</TextButton>
+            <TextButton onClick={() => openEdit("badges")}>수정</TextButton>
           </div>
           <div className="student-profile__badges">
             {profile.badges.map((badge) => (
@@ -90,7 +100,7 @@ function StudentProfilePage() {
         <section className="student-profile__section">
           <div className="student-profile__section-head">
             <h3 className="student-profile__section-title">자격증·포트폴리오</h3>
-            <TextButton>수정</TextButton>
+            <TextButton onClick={() => openEdit("certificates")}>수정</TextButton>
           </div>
           <div className="student-profile__box">
             {profile.certificates.map((certificate) => (

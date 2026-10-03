@@ -4,7 +4,9 @@ import { MenuList, ProfilePhoto, SubScreen, SummaryCard } from "../components";
 import { clearTokens } from "../features/auth";
 import {
   STUDENT_PATHS,
+  setMyProfilePhoto,
   useMyProfile,
+  useMyProfilePhoto,
   useMyProposals,
   useStudentApplications,
   useStudentWorks,
@@ -25,8 +27,8 @@ function StudentMePage() {
   const applications = useStudentApplications();
   const proposals = useMyProposals();
   const works = useStudentWorks();
-  // 사진 업로드는 백엔드 연동 전까지 이 화면에서 미리보기만 한다
-  const [photo, setPhoto] = useState<File | null>(null);
+  // 사진 업로드는 백엔드 연동 전까지 미리보기만 한다 (프로필 수정 · 편집과 같은 사진)
+  const photo = useMyProfilePhoto();
   const photoFiles = useMemo(() => (photo ? [photo] : []), [photo]);
   const [photoUrl] = useObjectUrls(photoFiles);
   const [termsOpen, setTermsOpen] = useState(false);
@@ -44,7 +46,7 @@ function StudentMePage() {
     <SubScreen title="내 정보" onBack={back}>
       <section className="student-me__profile">
         <div className="student-me__head">
-          <ProfilePhoto size="small" src={photoUrl} onSelect={setPhoto} />
+          <ProfilePhoto size="small" src={photoUrl} onSelect={setMyProfilePhoto} />
           <div className="student-me__info">
             <h2 className="student-me__name">{profile.name} 학생</h2>
             <p className="student-me__school">

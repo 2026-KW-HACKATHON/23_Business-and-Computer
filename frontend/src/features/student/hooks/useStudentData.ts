@@ -1,4 +1,6 @@
 import { addDays, todayIsoDate } from "../../../lib/date";
+import type { Field } from "../../../types/field";
+import { SPECIALTY_BADGES } from "../../../types/specialty";
 import { SAMPLE_MY_PROFILE } from "../lib/sampleMe";
 import { SAMPLE_NOTIFICATIONS } from "../lib/sampleNotifications";
 import {
@@ -223,6 +225,8 @@ export interface ReceivedReview extends OwnerReview {
 }
 
 export interface MyProfileView extends MyProfile {
+  /** 고른 뱃지의 대분류 (내 정보의 「디자인 / 홍보」) */
+  fields: Field[];
   completedCount: number;
   /** 함께한 가게 수 */
   storeCount: number;
@@ -253,8 +257,12 @@ export function useMyProfile(): MyProfileView {
   const fromWorks = all.filter(
     (w) => w.proposalId && !proposals.some((p) => p.id === w.proposalId),
   ).length;
+  const profile = { ...SAMPLE_MY_PROFILE, ...demo.profile };
   return {
-    ...SAMPLE_MY_PROFILE,
+    ...profile,
+    fields: SPECIALTY_BADGES.filter((group) =>
+      group.badges.some((badge) => profile.badges.includes(badge)),
+    ).map((group) => group.field),
     completedCount: completed.length,
     storeCount: new Set(completed.map((w) => w.store.id)).size,
     rating,
