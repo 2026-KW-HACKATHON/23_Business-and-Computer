@@ -4,6 +4,7 @@ import { AppImage, Button, Chip, FIELD_ICONS, StepIndicator, SubScreen } from ".
 import { OWNER_PATHS, readNewRequestState, useRequestExample } from "../features/owner";
 import type { NewRequestState, PickedTask } from "../features/owner";
 import { useBack } from "../hooks/useBack";
+import { useDragScroll } from "../hooks/useDragScroll";
 import { FIELDS } from "../types/field";
 import type { Field } from "../types/field";
 import { SPECIALTY_BADGES } from "../types/specialty";
@@ -42,6 +43,8 @@ function OwnerRequestNewPage() {
     saved?.picked ?? (example ? [{ field: example.field, task: example.task }] : []),
   );
 
+  const pickedScroll = useDragScroll<HTMLDivElement>();
+
   const countOf = (field: Field) => picked.filter((p) => p.field === field).length;
   const isPicked = (field: Field, task: string) =>
     picked.some((p) => p.field === field && p.task === task);
@@ -68,7 +71,9 @@ function OwnerRequestNewPage() {
   const canNext = picked.length > 0 || fields.includes("기타");
 
   const goNext = () => {
-    const next: NewRequestState = { ...saved, exampleId, fields, picked };
+    // 할 일을 하나도 고르지 않은 분야는 빼고 넘긴다 (기타는 고를 일이 없어 그대로)
+    const usedFields = fields.filter((f) => f === "기타" || countOf(f) > 0);
+    const next: NewRequestState = { ...saved, exampleId, fields: usedFields, picked };
     navigate(location.pathname, { replace: true, state: next });
     navigate(OWNER_PATHS.newRequestStep(2), { state: next });
   };
@@ -80,7 +85,7 @@ function OwnerRequestNewPage() {
       footer={
         <div className="owner-new__footer">
           {picked.length > 0 && (
-            <div className="owner-new__picked">
+            <div className="owner-new__picked" {...pickedScroll}>
               <strong>고른 일 {picked.length}</strong>
               {picked.map(({ field, task }) => (
                 <span key={`${field}-${task}`} className="owner-new__picked-item">

@@ -1,0 +1,157 @@
+.student-profile-edit {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  padding: 20px 16px 32px;
+}
+
+.student-profile-edit__head {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  text-align: center;
+}
+
+.student-profile-edit__name {
+  margin: 4px 0 0;
+  font-family: var(--font-sans);
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 26px;
+  letter-spacing: normal;
+  color: var(--color-black);
+}
+
+.student-profile-edit__school {
+  font-size: 13px;
+  line-height: 17px;
+  color: var(--role-secondary);
+}
+
+.student-profile-edit__field,
+.student-profile-edit__section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.student-profile-edit__label {
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 17px;
+  color: var(--color-black);
+}
+
+.student-profile-edit__title {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 21px;
+  letter-spacing: normal;
+  color: var(--color-black);
+}
+
+.student-profile-edit__title span {
+  margin-left: 2px;
+  color: var(--role-secondary);
+}
+
+.student-profile-edit__guide {
+  margin: 4px 0 0;
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--role-secondary);
+}
+
+.student-profile-edit__section > .student-profile-edit__guide {
+  margin-top: -6px;
+}
+
+.student-profile-edit__guide--alert {
+  color: var(--color-danger);
+}
+
+.student-profile-edit__groups {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.student-profile-edit__group-title {
+  margin: 0 0 8px;
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 16px;
+  letter-spacing: normal;
+  color: var(--role-secondary);
+}
+
+.student-profile-edit__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.student-profile-edit__cert {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.student-profile-edit__cert-row {
+  display: flex;
+  gap: 8px;
+}
+
+.student-profile-edit__cert-input {
+  flex: 1;
+  min-width: 0;
+  box-sizing: border-box;
+  height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--role-border);
+  border-radius: 10px;
+  background: var(--color-white);
+  font-size: 14px;
+  line-height: 17px;
+  color: var(--text-title);
+  outline: none;
+}
+
+.student-profile-edit__cert-input::placeholder {
+  color: var(--text-placeholder);
+}
+
+.student-profile-edit__cert-input:focus {
+  border-color: var(--color-black);
+}
+
+.student-profile-edit__cert-input--date {
+  flex: 0 0 104px;
+}
+
+.student-profile-edit__cert-input--invalid,
+.student-profile-edit__cert-input--invalid:focus {
+  border-color: var(--color-danger);
+}
+
+.student-profile-edit__cert-error {
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--color-danger);
+}
+
+.student-profile-edit__cert-add {
+  height: 40px;
+  border: 1px dashed var(--input-border);
+  border-radius: 10px;
+  background: var(--color-white);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 16px;
+  color: var(--text-body);
+  cursor: pointer;
+}

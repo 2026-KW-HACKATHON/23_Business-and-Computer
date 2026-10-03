@@ -1,0 +1,31 @@
+.student-apply__request {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: #f9fafb;
+}
+
+.student-apply__intro {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: -6px;
+}
+
+.student-apply__title {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 26px;
+  letter-spacing: normal;
+  color: var(--color-black);
+}
+
+.student-apply__description {
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--role-secondary);
+}

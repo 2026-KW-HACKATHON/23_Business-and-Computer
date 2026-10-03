@@ -1,7 +1,6 @@
 import { SAMPLE_FIRST_VISIT, SAMPLE_REQUEST_EXAMPLES } from "../lib/sampleHome";
 import type { OwnerHome, OwnerTodo } from "../types";
 import {
-  useOwnerNotifications,
   useOwnerProposals,
   useOwnerRequests,
   useOwnerWorks,
@@ -15,7 +14,6 @@ export function useOwnerHome(): OwnerHome {
   const works = useOwnerWorks();
   const requests = [...useOwnerRequests()].sort((a, b) => a.draftDue.localeCompare(b.draftDue));
   const proposals = useOwnerProposals();
-  const notifications = useOwnerNotifications();
 
   // 확인할 일: 도착한 결과물 → 새 제안 → 지원자가 생긴 의뢰
   const todos: OwnerTodo[] = [
@@ -55,7 +53,6 @@ export function useOwnerHome(): OwnerHome {
 
   return {
     firstVisit: SAMPLE_FIRST_VISIT,
-    hasUnreadNotifications: notifications.some((n) => !n.read),
     todos,
     working: works
       .filter((w) => w.status === "inProgress")

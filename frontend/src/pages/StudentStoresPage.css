@@ -1,0 +1,120 @@
+/* 업종 칩은 화면 끝까지 가로로 넘긴다. 고른 칩은 자주 바탕 + 체크 */
+.student-stores__chips {
+  display: flex;
+  gap: 8px;
+  margin: 0 -16px;
+  padding: 4px 16px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.student-stores__chips::-webkit-scrollbar {
+  display: none;
+}
+
+.student-stores__chip {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 4px;
+  height: 36px;
+  padding: 0 14px;
+  border: none;
+  border-radius: 999px;
+  background: var(--role-muted);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-body);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.student-stores__chip--selected {
+  padding-left: 8px;
+  background: var(--color-student);
+  font-weight: 700;
+  color: var(--color-white);
+}
+
+.student-stores__chip-check {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--color-white);
+  color: var(--color-student);
+}
+
+.student-stores__chip-check svg {
+  width: 10px;
+  height: 10px;
+}
+
+.student-stores__chip:focus-visible {
+  outline: 2px solid var(--color-black);
+  outline-offset: 2px;
+}
+
+.student-stores__list {
+  margin: 0;
+  padding: 0 0 24px;
+  list-style: none;
+}
+
+.student-stores__row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 0;
+}
+
+.student-stores__row + .student-stores__row {
+  border-top: 1px solid var(--role-border);
+}
+
+.student-stores__info {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.student-stores__name {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.student-stores__name > strong {
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 21px;
+  color: var(--color-black);
+}
+
+.student-stores__address {
+  overflow: hidden;
+  font-size: 13px;
+  line-height: 16px;
+  color: var(--role-secondary);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* 업종: 회색 작은 뱃지 (분야 뱃지와 같은 모양) */
+.student-stores__category {
+  display: inline-flex;
+  align-items: center;
+  height: 22px;
+  padding: 0 8px;
+  border-radius: 6px;
+  background: var(--role-muted);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-body);
+  white-space: nowrap;
+}

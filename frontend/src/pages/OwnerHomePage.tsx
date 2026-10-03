@@ -15,6 +15,7 @@ import {
 } from "../features/owner";
 import type { OwnerTodo } from "../features/owner";
 import { formatMonthDay } from "../lib/date";
+import { useDragScroll } from "../hooks/useDragScroll";
 import "./OwnerHomePage.css";
 
 /**
@@ -28,6 +29,7 @@ function OwnerHomePage() {
   const home = useOwnerHome();
   // 끝난 일은 접힌 채 최근 1건만 보인다
   const [doneExpanded, setDoneExpanded] = useState(false);
+  const exampleScroll = useDragScroll<HTMLUListElement>();
   const doneRows = doneExpanded ? home.done : home.done.slice(0, 1);
   // 「학생이 작업 중」 줄을 누르면 작업계획서 바텀시트
   const [planWorkId, setPlanWorkId] = useState<string>();
@@ -45,7 +47,7 @@ function OwnerHomePage() {
   };
 
   return (
-    <OwnerTabScreen tab="home" hasUnread={home.hasUnreadNotifications} showFab>
+    <OwnerTabScreen tab="home" showFab>
       {home.firstVisit && <FirstVisitGuide onStart={() => navigate(OWNER_PATHS.newRequest)} />}
 
       {!home.firstVisit && home.todos.length > 0 && (
@@ -98,7 +100,7 @@ function OwnerHomePage() {
             onAction={() => navigate(OWNER_PATHS.explore)}
           />
         </div>
-        <ul className="owner-home__examples">
+        <ul className="owner-home__examples" {...exampleScroll}>
           {home.examples.map((example) => (
             <li key={example.id}>
               <button

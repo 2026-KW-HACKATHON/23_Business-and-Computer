@@ -1,5 +1,9 @@
-/* 예시 데이터의 시각을 「10분 전」 · 「어제」처럼 보이도록 지금 시각에서 거꾸로 센다 */
+/*
+ * 임시 예시 데이터의 날짜 · 시각. 오늘을 기준으로 세서 언제 열어도 앞뒤가 맞는다.
+ * 사장님 · 학생 예시 데이터가 같이 쓴다.
+ */
 
+/** 지금에서 minutes 분 전 (ISO 시각) */
 export const minutesAgo = (minutes: number) =>
   new Date(Date.now() - minutes * 60_000).toISOString();
 

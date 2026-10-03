@@ -32,6 +32,7 @@ import type {
   StudentProfileRef,
   StudentRef,
 } from "../types";
+import { useReadNotificationIds } from "./notificationReads";
 
 /*
  * 사장님 화면 데이터. 지금은 임시 예시 데이터를 돌려준다.
@@ -170,9 +171,10 @@ export function useOwnerChats(): OwnerChatRoom[] {
   }).sort((a, b) => b.lastMessageAt.localeCompare(a.lastMessageAt));
 }
 
-/** 알림. 최근 것부터 */
+/** 알림. 최근 것부터. 읽은 알림은 read 로 바꿔 준다 */
 export function useOwnerNotifications(): OwnerNotification[] {
-  return SAMPLE_NOTIFICATIONS;
+  const readIds = useReadNotificationIds();
+  return SAMPLE_NOTIFICATIONS.map((n) => (readIds.has(n.id) ? { ...n, read: true } : n));
 }
 
 /** 내 정보 머리. 숫자는 내 활동 목록과 같다 */

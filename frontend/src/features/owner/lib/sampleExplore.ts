@@ -1,9 +1,10 @@
 import type { ExploreDetail } from "../types";
-import { day, dayAt } from "./sampleTime";
+import { day, dayAt } from "../../../lib/sampleTime";
 
 /*
  * 탐색 상세 임시 예시 데이터 (피그마 「제안서 보기 · 의뢰서 보기 (다른 가게 · 읽기 전용)」).
  * 탐색 목록 카드도 이 데이터로 만든다. 최신순 = createdAt.
+ * 학생 탐색(features/student/lib/sampleRequests.ts · sampleProposals.ts)과 같은 제안 · 의뢰다.
  */
 
 export const SAMPLE_EXPLORE_DETAILS: ExploreDetail[] = [
@@ -37,7 +38,7 @@ export const SAMPLE_EXPLORE_DETAILS: ExploreDetail[] = [
     title: "영어·중국어 메뉴판 번역",
     field: "글쓰기·번역",
     storeName: "광운카페",
-    deadline: { stage: "draft", due: day(5) },
+    deadline: { stage: "draft", due: day(6) },
     createdAt: dayAt(-2, 15, 0),
     tasks: ["영어 번역", "중국어 번역"],
     description:
@@ -82,6 +83,19 @@ export const SAMPLE_EXPLORE_DETAILS: ExploreDetail[] = [
     attachments: ["지금_대표사진.jpg"],
   },
   {
+    id: "req-507",
+    kind: "request",
+    title: "빵 가격표 새로 만들기",
+    field: "디자인",
+    storeName: "동네빵집",
+    deadline: { stage: "draft", due: day(5) },
+    createdAt: dayAt(-4, 10, 0),
+    tasks: ["메뉴판·가격표 디자인"],
+    description:
+      "진열대 빵마다 붙일 작은 가격표를 새로 만들고 싶어요. 빵 이름과 가격이 멀리서도 잘 보이면 좋겠어요.",
+    attachments: ["지금_가격표.jpg"],
+  },
+  {
     id: "prop-505",
     kind: "proposal",
     title: "손님 리뷰로 본 아쉬운 점 정리",
@@ -110,7 +124,7 @@ export const SAMPLE_EXPLORE_DETAILS: ExploreDetail[] = [
     title: "전화 대신 받는 온라인 예약서",
     field: "개발·IT",
     storeName: "광운헤어",
-    deadline: { stage: "final", due: day(9) },
+    deadline: { stage: "draft", due: day(4) },
     createdAt: dayAt(-9, 11, 0),
     tasks: ["온라인 예약·주문서"],
     description:

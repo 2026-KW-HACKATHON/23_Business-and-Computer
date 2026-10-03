@@ -30,7 +30,7 @@ work never became completed.
   year, rating (the average of the profile's reviews), and completed count
   always come from the profile.
 - Sample dates count from today with `day(offset)` and `dayAt(offset, h, m)`
-  in `src/features/owner/lib/sampleTime.ts`. Plans say 「초안 마감일까지」
+  in `src/lib/sampleTime.ts`. Plans say 「초안 마감일까지」
   instead of a date so they always agree with the request.
 - Each work has `paidOn`; 결제 내역 and 「이번 달 결제」 use it. Chat threads
   carry `unreadCount`. Explore proposals and requests carry `progress`

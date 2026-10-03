@@ -76,11 +76,7 @@ export interface PickedTask {
   task: string;
 }
 
-/** 초안 마감 · 최종 마감 ("2026-09-27", 아직 안 골랐으면 "") */
-export interface DueDates {
-  draftDue: string;
-  finalDue: string;
-}
+export type { DueDates } from "../../components";
 
 /** 의뢰 등록 2/3 에서 적는 내용 */
 export interface RequestContent {
@@ -120,7 +116,6 @@ export interface OwnerDoneItem {
 export interface OwnerHome {
   /** 백엔드가 알려 주는 첫 활동 여부. 처음이면 할 일 대신 사용법 안내를 보여 준다 */
   firstVisit: boolean;
-  hasUnreadNotifications: boolean;
   todos: OwnerTodo[];
   working: OwnerWorkingItem[];
   waiting: OwnerWaitingItem[];

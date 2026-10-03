@@ -1,4 +1,6 @@
+/* 숨긴 input 이 체크 칸 자리에 머물게 기준을 잡는다 (스크롤 화면에서 누를 때 화면이 튀지 않게) */
 .checkbox {
+  position: relative;
   display: flex;
   align-items: flex-start;
   gap: 10px;
@@ -9,6 +11,9 @@
 
 .checkbox__input {
   position: absolute;
+  top: 0;
+  left: 0;
+  margin: 0;
   width: 1px;
   height: 1px;
   opacity: 0;

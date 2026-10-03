@@ -65,3 +65,9 @@ export function todayIsoDate(now = new Date()): string {
 export function formatDotDate(isoDate: string): string {
   return isoDate.split("-").join(".");
 }
+
+/** "2026-10-02" 에서 days 일 뒤 "2026-10-09" */
+export function addDays(isoDate: string, days: number): string {
+  const [year, month, dayOfMonth] = isoDate.split("-").map(Number);
+  return todayIsoDate(new Date(year, month - 1, dayOfMonth + days));
+}

@@ -1,0 +1,324 @@
+/* 학생 작업 화면 (작업 시작 · 초안 · 수정 · 결과물 · 후기 · 취소) */
+.student-work__label {
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 17px;
+  color: var(--role-secondary);
+}
+
+.student-work__request {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid var(--role-border);
+  border-radius: 16px;
+}
+
+.student-work__request-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.student-work__request-head > strong {
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 21px;
+  color: var(--color-black);
+}
+
+.student-work__proposal {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px;
+  border-radius: 16px;
+  background: #f9fafb;
+}
+
+.student-work__proposal .student-work__label:not(:first-child) {
+  margin-top: 6px;
+}
+
+.student-work__info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: var(--role-muted);
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--role-secondary);
+  word-break: keep-all;
+}
+
+.student-work__info strong {
+  font-size: 14px;
+  color: var(--color-black);
+}
+
+.student-work__quote {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 16px;
+  border-radius: 16px;
+  background: #fbeef2;
+}
+
+.student-work__quote > strong {
+  font-size: 14px;
+  line-height: 18px;
+  color: var(--color-black);
+}
+
+.student-work__quote > small {
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--role-secondary);
+}
+
+.student-work__quote > p {
+  font-size: 15px;
+  line-height: 23px;
+  color: var(--text-title);
+  word-break: keep-all;
+}
+
+.student-work__files {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.student-work__file {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 1px solid var(--role-border);
+  border-radius: 12px;
+}
+
+.student-work__file-info {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.student-work__file-info > strong {
+  overflow: hidden;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 18px;
+  color: var(--color-black);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.student-work__file-info > small {
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--role-secondary);
+}
+
+.student-work__report {
+  padding: 8px 4px;
+  border: none;
+  background: none;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--role-secondary);
+  cursor: pointer;
+}
+
+.student-work__chip {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  height: 24px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: var(--color-student);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--color-white);
+}
+
+.student-work__hint {
+  font-size: 12px;
+  line-height: 17px;
+  color: var(--text-placeholder);
+}
+
+.student-work__review {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px;
+  border: 1px solid var(--role-border);
+  border-radius: 16px;
+}
+
+.student-work__review > p {
+  font-size: 14px;
+  line-height: 21px;
+  color: var(--text-title);
+}
+
+.student-work__review > button {
+  align-self: flex-start;
+}
+
+.student-work__review-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.student-work__review-head > strong {
+  font-size: 15px;
+  color: var(--color-black);
+}
+
+.student-work__review-head > span {
+  font-size: 14px;
+  font-weight: 700;
+  color: #e0a800;
+}
+
+.student-work__history {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.student-work__history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.student-work__history-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--text-body);
+}
+
+.student-work__history-dot {
+  flex-shrink: 0;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--color-student);
+}
+
+.student-work__history-date {
+  flex-shrink: 0;
+  width: 52px;
+  color: var(--role-secondary);
+}
+
+.student-work__done {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 0 4px;
+  text-align: center;
+}
+
+.student-work__done-title {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 26px;
+  letter-spacing: normal;
+  color: var(--color-black);
+}
+
+.student-work__done-text {
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--text-body);
+  word-break: keep-all;
+}
+
+.student-work__review-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px;
+  border: 1px solid var(--role-border);
+  border-radius: 16px;
+}
+
+.student-work__review-meta {
+  margin-top: -6px;
+  font-size: 13px;
+  color: var(--role-secondary);
+}
+
+.student-work__stars {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--color-black);
+}
+
+.student-work__points {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.student-work__breakdown {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px;
+  border: 1px solid var(--role-border);
+  border-radius: 16px;
+  font-size: 14px;
+  color: var(--text-body);
+}
+
+.student-work__breakdown > p {
+  display: flex;
+  justify-content: space-between;
+}
+
+.student-work__breakdown > hr {
+  width: 100%;
+  height: 1px;
+  margin: 0;
+  border: 0;
+  background: var(--role-border);
+}
+
+.student-work__breakdown-total > span {
+  font-weight: 700;
+  color: var(--color-black);
+}
+
+.student-work__breakdown-total > strong {
+  font-size: 17px;
+  color: var(--color-student);
+}

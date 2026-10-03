@@ -1,0 +1,43 @@
+.explore-tabs {
+  display: flex;
+  gap: 20px;
+  padding: 0 16px;
+  background: var(--role-muted);
+  font-family: var(--font-sans);
+}
+
+.explore-tabs__tab {
+  position: relative;
+  height: 40px;
+  padding: 0;
+  border: none;
+  background: none;
+  font-family: inherit;
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 21px;
+  color: var(--text-placeholder);
+  cursor: pointer;
+}
+
+.explore-tabs__tab--current {
+  font-weight: 700;
+  color: var(--color-black);
+}
+
+.explore-tabs__tab--current::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 2px;
+  border-radius: 1px;
+  background: var(--color-student);
+}
+
+.explore-tabs__tab:focus-visible {
+  outline: 2px solid var(--color-black);
+  outline-offset: -2px;
+  border-radius: 4px;
+}

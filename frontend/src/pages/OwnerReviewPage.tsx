@@ -1,10 +1,17 @@
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { AppImage, Button, Chip, StarRating, SubScreen, TextButton } from "../components";
+import {
+  AppImage,
+  Button,
+  Chip,
+  StarRating,
+  SubScreen,
+  TextAreaField,
+  TextButton,
+} from "../components";
 import {
   OWNER_PATHS,
   OwnerMissing,
-  TextAreaField,
   markOwnerWorkReviewed,
   useOwnerWork,
 } from "../features/owner";
