@@ -5,7 +5,6 @@ import {
   BudgetField,
   Button,
   FormField,
-  RevisionStepper,
   StepIndicator,
   SubScreen,
   TextAreaField,
@@ -27,7 +26,6 @@ const EMPTY_CONTENT: ProposalContent = {
   wishBudget: 0,
   draftDays: 0,
   finalDays: 0,
-  revisions: 1,
   photos: [],
 };
 
@@ -64,7 +62,7 @@ function DaysField({
 
 /**
  * 피그마 「제안 보내기 3/4 - 내용 입력」. 제목 · 손님 눈으로 본 문제 · 이렇게 바꿔 드릴게요 ·
- * 작업계획서 · 희망 작업비 · 예상 기간 · 수정 횟수 · 참고 사진.
+ * 작업계획서 · 희망 작업비 · 예상 기간 · 참고 사진. 수정 횟수는 사장님이 의뢰서에서 정한다.
  */
 function StudentProposalContentPage() {
   const navigate = useNavigate();
@@ -175,10 +173,6 @@ function StudentProposalContentPage() {
             <DaysField label="초안까지" value={content.draftDays} onChange={(draftDays) => update({ draftDays })} />
             <DaysField label="최종까지" value={content.finalDays} onChange={(finalDays) => update({ finalDays })} />
           </div>
-        </FormField>
-
-        <FormField label="수정 횟수" hint="최소 1회 · 등록한 뒤에는 바꿀 수 없어요">
-          <RevisionStepper value={content.revisions} onChange={(revisions) => update({ revisions })} />
         </FormField>
 
         <FormField label="참고 사진" hint={`사진 · 최대 ${MAX_PHOTOS}장`}>

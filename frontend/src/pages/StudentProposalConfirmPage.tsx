@@ -55,7 +55,6 @@ function StudentProposalConfirmPage() {
       wishBudget: content.wishBudget,
       draftDays: content.draftDays,
       finalDays: content.finalDays,
-      revisionLimit: content.revisions,
       attachments: content.photos.map((p) => p.name),
     });
     navigate(STUDENT_PATHS.newProposalDone, { replace: true });
@@ -97,7 +96,6 @@ function StudentProposalConfirmPage() {
               { label: "받는 가게", value: store.name },
               { label: "희망 작업비", value: formatWon(content.wishBudget) },
               { label: "예상 기간", value: expectedDaysText(content.draftDays, content.finalDays) },
-              { label: "수정", value: `${content.revisions}회` },
             ]}
           />
           <hr className="student-confirm__divider" />

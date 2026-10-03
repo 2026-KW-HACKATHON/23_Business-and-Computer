@@ -21,8 +21,6 @@ export interface ProposalContent {
   /** 수락된 날부터 초안 · 최종까지 걸리는 날 (0 이면 아직 안 적음) */
   draftDays: number;
   finalDays: number;
-  /** 최소 1회 */
-  revisions: number;
   /** 참고 사진 (이름 · 크기만, 올리기는 백엔드 연동 때) */
   photos: WorkFile[];
 }

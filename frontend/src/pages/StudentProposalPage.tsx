@@ -141,7 +141,6 @@ function StudentProposalPage() {
                 rows={[
                   { label: "희망 작업비", value: formatWon(proposal.wishBudget) },
                   { label: "예상 기간", value: expectedDaysText(proposal.draftDays, proposal.finalDays) },
-                  { label: "수정", value: `${proposal.revisionLimit}회` },
                 ]}
               />
             </div>

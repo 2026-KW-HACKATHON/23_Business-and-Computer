@@ -184,7 +184,6 @@ export interface MyProposal {
   /** 예상 기간 (수락된 날부터) */
   draftDays: number;
   finalDays: number;
-  revisionLimit: number;
   attachments: string[];
   workId?: string;
 }

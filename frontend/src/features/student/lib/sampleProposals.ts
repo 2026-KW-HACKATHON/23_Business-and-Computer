@@ -24,7 +24,6 @@ export const SAMPLE_MY_PROPOSALS: MyProposal[] = [
     wishBudget: 20000,
     draftDays: 2,
     finalDays: 4,
-    revisionLimit: 1,
     attachments: ["테이블_사진.jpg"],
   },
   {
@@ -45,7 +44,6 @@ export const SAMPLE_MY_PROPOSALS: MyProposal[] = [
     wishBudget: 30000,
     draftDays: 2,
     finalDays: 4,
-    revisionLimit: 1,
     attachments: ["IMG_4821.jpg", "시험기간_포스터_예시.png"],
   },
   {
@@ -64,7 +62,6 @@ export const SAMPLE_MY_PROPOSALS: MyProposal[] = [
     wishBudget: 50000,
     draftDays: 2,
     finalDays: 4,
-    revisionLimit: 1,
     attachments: ["IMG_4821.jpg", "영문메뉴_시안.png"],
     workId: "work-213",
   },
@@ -84,7 +81,6 @@ export const SAMPLE_MY_PROPOSALS: MyProposal[] = [
     wishBudget: 30000,
     draftDays: 2,
     finalDays: 3,
-    revisionLimit: 1,
     attachments: ["지금_배달앱_캡처.png"],
   },
 ];
