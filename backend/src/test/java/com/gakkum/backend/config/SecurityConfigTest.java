@@ -300,6 +300,14 @@ class SecurityConfigTest {
     }
 
     @Test
+    @DisplayName("인증 없이 정산 내역을 조회하면 401을 반환한다")
+    void settlementHistoryRequiresAuthentication() throws Exception {
+        mockMvc.perform(get("/settlements"))
+            .andExpect(status().isUnauthorized())
+            .andExpect(jsonPath("$.error.code").value("COMMON_401"));
+    }
+
+    @Test
     @DisplayName("localhost 프론트 Origin의 preflight는 credentials와 함께 허용된다")
     void allowsLocalhostOriginWithCredentials() throws Exception {
         mockMvc.perform(options("/refresh")

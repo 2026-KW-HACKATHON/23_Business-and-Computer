@@ -26,6 +26,7 @@ import com.gakkum.backend.domain.job.entity.Job;
 import com.gakkum.backend.domain.job.entity.JobApplication;
 import com.gakkum.backend.domain.job.entity.JobStatus;
 import com.gakkum.backend.domain.job.service.JobService;
+import com.gakkum.backend.domain.owner.service.OwnerService;
 import com.gakkum.backend.domain.payment.client.KakaoPayClient;
 import com.gakkum.backend.domain.payment.dto.PaymentHistoryStatus;
 import com.gakkum.backend.domain.payment.dto.PaymentQueryDto.PaymentHistoryData;
@@ -56,7 +57,7 @@ class PaymentHistoryFacadeTest {
     private final StudentService studentService = mock(StudentService.class);
     private final PaymentFacade facade = new PaymentFacade(mock(PaymentPreparationService.class),
             mock(KakaoPayClient.class), paymentService, mock(PaymentApprovalService.class),
-            userService, jobService, studentService);
+            userService, jobService, studentService, mock(OwnerService.class));
 
     private final List<PaymentHistoryData> payments = new ArrayList<>();
     private final Map<Long, Job> jobsById = new HashMap<>();

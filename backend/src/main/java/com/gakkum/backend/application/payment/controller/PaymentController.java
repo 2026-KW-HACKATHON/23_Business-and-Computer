@@ -13,6 +13,7 @@ import com.gakkum.backend.application.payment.dto.PaymentPrepareResponse;
 import com.gakkum.backend.application.payment.dto.PaymentApproveRequest;
 import com.gakkum.backend.application.payment.dto.PaymentApproveResponse;
 import com.gakkum.backend.application.payment.dto.PaymentHistoryResponse;
+import com.gakkum.backend.application.payment.dto.SettlementHistoryResponse;
 import com.gakkum.backend.application.payment.facade.PaymentFacade;
 import com.gakkum.backend.global.response.ApiResponse;
 
@@ -50,6 +51,14 @@ public class PaymentController {
     public ResponseEntity<ApiResponse<PaymentHistoryResponse>> getPaymentHistory(Authentication authentication) {
         PaymentHistoryResponse response = PaymentHistoryResponse.from(
                 paymentFacade.getPaymentHistory(authentication.getName()));
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    @GetMapping("/settlements")
+    public ResponseEntity<ApiResponse<SettlementHistoryResponse>> getSettlementHistory(
+            Authentication authentication) {
+        SettlementHistoryResponse response = SettlementHistoryResponse.from(
+                paymentFacade.getSettlementHistory(authentication.getName()));
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 }
