@@ -1,4 +1,5 @@
 /** 사장님 화면 기능의 공개 입구 — 다른 폴더는 여기서만 import 한다. */
+export { default as FirstVisitGuide } from "./components/FirstVisitGuide";
 export { default as OwnerMissing } from "./components/OwnerMissing";
 export { default as PaymentProgress } from "./components/PaymentProgress";
 export { default as PaymentSection } from "./components/PaymentSection";
@@ -17,6 +18,8 @@ export { default as OwnerTabScreen } from "./components/OwnerTabScreen";
 export { default as TodoCarousel } from "./components/TodoCarousel";
 export { default as WorkPlanSheet } from "./components/WorkPlanSheet";
 export {
+  completeOwnerWork,
+  markOwnerWorkReviewed,
   useExploreDetail,
   useOwnerChatThread,
   useOwnerChats,
