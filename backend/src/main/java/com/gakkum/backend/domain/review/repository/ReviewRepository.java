@@ -15,6 +15,8 @@ public interface ReviewRepository extends JpaRepository<Review, Long> {
 
     Optional<Review> findByJobIdAndStudentProfileId(Long jobId, Long studentProfileId);
 
+    List<Review> findByStudentProfileId(Long studentProfileId);
+
     /** 학생이 받은 전체 리뷰의 평균 별점. 리뷰가 없으면 null이다. */
     @Query("select avg(r.rating) from Review r where r.studentProfileId = :studentProfileId")
     Double findAverageRatingByStudentProfileId(@Param("studentProfileId") Long studentProfileId);

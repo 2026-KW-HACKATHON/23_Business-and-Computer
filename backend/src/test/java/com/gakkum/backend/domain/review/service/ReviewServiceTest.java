@@ -10,6 +10,7 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -92,6 +93,30 @@ class ReviewServiceTest {
         when(reviewRepository.findByJobIdAndStudentProfileId(42L, 8L)).thenReturn(Optional.empty());
 
         assertError(() -> reviewService.getStudentReview(42L, 8L), ErrorCode.REVIEW_NOT_FOUND);
+    }
+
+    @Test
+    @DisplayName("학생이 받은 리뷰를 작성 시각 내림차순, 같은 시각은 ID 내림차순으로 정렬하고 작성 시각이 없으면 마지막에 둔다")
+    void sortsStudentReviewsByLatest() {
+        LocalDateTime createdAt = LocalDateTime.of(2026, 9, 30, 12, 0);
+        when(reviewRepository.findByStudentProfileId(7L)).thenReturn(List.of(
+                review(1L, null), review(2L, createdAt), review(3L, createdAt.plusSeconds(1)), review(4L, createdAt)));
+
+        assertThat(reviewService.getStudentReviews(7L))
+                .extracting(Review::getId)
+                .containsExactly(3L, 4L, 2L, 1L);
+    }
+
+    @Test
+    @DisplayName("학생이 받은 리뷰가 없으면 빈 목록을 반환한다")
+    void returnsEmptyStudentReviews() {
+        when(reviewRepository.findByStudentProfileId(7L)).thenReturn(List.of());
+
+        assertThat(reviewService.getStudentReviews(7L)).isEmpty();
+    }
+
+    private static Review review(Long id, LocalDateTime createdAt) {
+        return Review.builder().id(id).studentProfileId(7L).createdAt(createdAt).build();
     }
 
     private static CreateReviewCommand command(List<ReviewPositivePoint> positivePoints) {

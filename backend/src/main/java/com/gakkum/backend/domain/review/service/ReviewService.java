@@ -3,6 +3,8 @@ package com.gakkum.backend.domain.review.service;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.Collection;
+import java.util.Comparator;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -60,6 +62,20 @@ public class ReviewService {
     public Review getStudentReview(Long jobId, Long studentProfileId) {
         return reviewRepository.findByJobIdAndStudentProfileId(jobId, studentProfileId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.REVIEW_NOT_FOUND));
+    }
+
+    /**
+     * 학생이 모든 사장님에게 받은 리뷰 전체를 작성 시각 내림차순, 같은 시각은 리뷰 ID 내림차순으로 조회한다.
+     * 작성 시각이 없는 기존 데이터는 마지막에 둔다.
+     * @param studentProfileId 학생 프로필 ID
+     */
+    @Transactional(readOnly = true)
+    public List<Review> getStudentReviews(Long studentProfileId) {
+        return reviewRepository.findByStudentProfileId(studentProfileId).stream()
+                .sorted(Comparator
+                        .comparing(Review::getCreatedAt, Comparator.nullsLast(Comparator.reverseOrder()))
+                        .thenComparing(Review::getId, Comparator.reverseOrder()))
+                .toList();
     }
 
     /**
