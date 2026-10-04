@@ -65,30 +65,6 @@
   white-space: pre-line;
 }
 
-.owner-assign__plan {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  padding: 12px 14px 14px;
-  border-radius: 12px;
-  background: var(--role-muted);
-}
-
-.owner-assign__plan-label {
-  font-size: 13px;
-  font-weight: 700;
-  line-height: 17px;
-  color: var(--role-secondary);
-}
-
-.owner-assign__plan-line {
-  font-size: 14px;
-  line-height: 22px;
-  color: var(--color-black);
-  word-break: keep-all;
-  overflow-wrap: break-word;
-}
-
 .owner-assign__request-head {
   display: flex;
   align-items: center;

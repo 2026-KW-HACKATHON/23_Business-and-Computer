@@ -99,7 +99,7 @@ function OwnerApplicantsPage() {
                     <LabelChip key={badge} label={badge} />
                   ))}
                 </div>
-                <WorkPlan text={plan} collapsible />
+                <WorkPlan plan={plan} collapsible />
                 <div className="owner-applicants__actions">
                   <Button
                     variant="secondary"

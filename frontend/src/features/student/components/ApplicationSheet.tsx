@@ -39,13 +39,13 @@ function ApplicationSheet({ application, request, onClose }: ApplicationSheetPro
     >
       {plan && request && (
         <div className="application-sheet">
-          <WorkPlan text={`${plan.summary}\n· 방법: ${plan.method}\n· 결과물: ${plan.deliverable}`} />
+          <WorkPlan plan={plan} />
           <div className="application-sheet__terms">
             <InfoRows
               rows={[
                 { label: "작업비", value: formatWon(request.budget) },
-                { label: "초안", value: formatMonthDayWeekday(plan.draftOn) },
-                { label: "최종본", value: formatMonthDayWeekday(plan.finalOn) },
+                { label: "초안 마감", value: formatMonthDayWeekday(request.draftDue) },
+                { label: "최종 마감", value: formatMonthDayWeekday(request.finalDue) },
                 { label: "수정", value: `${request.revisionLimit}회` },
               ]}
             />

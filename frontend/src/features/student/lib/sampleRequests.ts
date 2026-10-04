@@ -146,8 +146,6 @@ export const SAMPLE_APPLICATIONS: StudentApplication[] = [
       summary: "메뉴 32개를 영어·중국어로 번역하고, 유학생 친구에게 자연스러운지 검수까지 받을게요.",
       method:
         "메뉴 이름은 소리 나는 대로 적고(예: Tteokbokki), 아래에 재료와 맛을 한 줄로 설명해요. 알레르기 재료는 아이콘으로 표시할게요.",
-      draftOn: day(5),
-      finalOn: day(8),
       deliverable: "인쇄용 PDF와 바로 고칠 수 있는 한글(HWP) 파일로 드려요.",
     },
   },
@@ -158,8 +156,6 @@ export const SAMPLE_APPLICATIONS: StudentApplication[] = [
     plan: {
       summary: "빵 이름과 가격이 멀리서도 보이는 가격표 30장을 만들어 드릴게요.",
       method: "진열대 높이에 맞춰 글자 크기를 정하고, 인기 빵에는 「추천」 표시를 넣어요.",
-      draftOn: day(4),
-      finalOn: day(7),
       deliverable: "바로 인쇄할 수 있는 PDF와 고칠 수 있는 원본 파일로 드려요.",
     },
   },
@@ -170,8 +166,6 @@ export const SAMPLE_APPLICATIONS: StudentApplication[] = [
     plan: {
       summary: "공룡 캐릭터를 살린 쿠폰과 스티커를 한 벌로 맞춰 드릴게요.",
       method: "로고의 색을 그대로 쓰고, 스티커는 원형 · 사각 두 가지로 만들어요.",
-      draftOn: day(2),
-      finalOn: day(5),
       deliverable: "인쇄용 PDF와 원본 파일",
     },
   },

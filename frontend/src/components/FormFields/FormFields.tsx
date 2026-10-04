@@ -109,12 +109,11 @@ interface DueBoxProps {
   label: string;
   value: string;
   min: string;
-  max?: string;
   onChange: (value: string) => void;
 }
 
 /** 마감일 칸. 칸 전체가 날짜 입력이고 고른 날은 「9월 27일 (일)」로 보인다 */
-function DueBox({ label, value, min, max, onChange }: DueBoxProps) {
+function DueBox({ label, value, min, onChange }: DueBoxProps) {
   return (
     <label className="request-field__due">
       <span className="request-field__due-label">{label}</span>
@@ -129,7 +128,6 @@ function DueBox({ label, value, min, max, onChange }: DueBoxProps) {
         aria-label={label}
         value={value}
         min={min}
-        max={max}
         onChange={(e) => onChange(e.target.value)}
         onClick={(e) => {
           try {
@@ -146,27 +144,20 @@ function DueBox({ label, value, min, max, onChange }: DueBoxProps) {
 interface DueDateFieldsProps {
   value: DueDates;
   onChange: (value: DueDates) => void;
-  /** 두 칸 이름. 기본 「초안 마감 · 최종 마감」 (지원하기는 「초안 보내는 날 · 최종본 드리는 날」) */
-  labels?: [string, string];
-  /** 이 날보다 늦게 고를 수 없다 (지원하기: 사장님이 정한 마감) */
-  max?: DueDates;
 }
 
 /** 초안 마감 · 최종 마감 두 칸. 지난 날은 고를 수 없다 */
 export function DueDateFields({
   value,
   onChange,
-  labels = ["초안 마감", "최종 마감"],
-  max,
 }: DueDateFieldsProps) {
   const today = todayIsoDate();
   return (
     <div className="request-field__dues">
       <DueBox
-        label={labels[0]}
+        label="초안 마감"
         value={value.draftDue}
         min={today}
-        max={max?.draftDue}
         // 초안 마감을 최종 마감보다 뒤로 옮기면 최종 마감은 다시 고른다
         onChange={(draftDue) =>
           onChange({
@@ -176,10 +167,9 @@ export function DueDateFields({
         }
       />
       <DueBox
-        label={labels[1]}
+        label="최종 마감"
         value={value.finalDue}
         min={value.draftDue || today}
-        max={max?.finalDue}
         onChange={(finalDue) => onChange({ draftDue: value.draftDue, finalDue })}
       />
     </div>
