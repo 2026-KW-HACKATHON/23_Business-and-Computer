@@ -64,11 +64,11 @@ class JobApplicationListQueryIntegrationTest {
     void findsOnlyPendingApplicationsOfJob() {
         Job job = saveOpenJob();
         Job otherJob = saveOpenJob();
-        JobApplication pending = saveApplication(job.getId(), 986_101L, JobApplicationStatus.PENDING, "계획서");
-        JobApplication withoutContent = saveApplication(job.getId(), 986_102L, JobApplicationStatus.PENDING, null);
-        saveApplication(job.getId(), 986_103L, JobApplicationStatus.ACCEPTED, "수락");
-        saveApplication(job.getId(), 986_104L, JobApplicationStatus.REJECTED, "거절");
-        saveApplication(otherJob.getId(), 986_101L, JobApplicationStatus.PENDING, "다른 의뢰");
+        JobApplication pending = saveApplication(job.getId(), 986_101L, JobApplicationStatus.PENDING);
+        JobApplication otherPending = saveApplication(job.getId(), 986_102L, JobApplicationStatus.PENDING);
+        saveApplication(job.getId(), 986_103L, JobApplicationStatus.ACCEPTED);
+        saveApplication(job.getId(), 986_104L, JobApplicationStatus.REJECTED);
+        saveApplication(otherJob.getId(), 986_101L, JobApplicationStatus.PENDING);
 
         JobApplicationListData data = jobService.getJobApplications(
                 GetJobApplicationsCommand.of(job.getId(), OWNER_PROFILE_ID));
@@ -77,14 +77,13 @@ class JobApplicationListQueryIntegrationTest {
         assertThat(data.getSpecialtyIds()).isEmpty();
         assertThat(data.getApplications())
                 .extracting(JobApplication::getId)
-                .containsExactlyInAnyOrder(pending.getId(), withoutContent.getId());
+                .containsExactlyInAnyOrder(pending.getId(), otherPending.getId());
         assertThat(data.getApplications()).allSatisfy(application ->
                 assertThat(application.getCreatedAt()).isNotNull());
         assertThat(data.getApplications())
-                .filteredOn(application -> application.getId().equals(withoutContent.getId()))
-                .singleElement()
-                .extracting(JobApplication::getContent)
-                .isNull();
+                .extracting(JobApplication::getSummary, JobApplication::getWorkPlan,
+                        JobApplication::getDeliveryMethod)
+                .containsOnly(tuple("한 줄 요약", "작업계획서", "결과물 전달 방법"));
     }
 
     @Test
@@ -110,13 +109,14 @@ class JobApplicationListQueryIntegrationTest {
         return saved;
     }
 
-    private JobApplication saveApplication(
-            Long jobId, Long studentProfileId, JobApplicationStatus status, String content) {
+    private JobApplication saveApplication(Long jobId, Long studentProfileId, JobApplicationStatus status) {
         JobApplication saved = jobApplicationRepository.saveAndFlush(JobApplication.builder()
                 .jobId(jobId)
                 .studentProfileId(studentProfileId)
                 .status(status)
-                .content(content)
+                .summary("한 줄 요약")
+                .workPlan("작업계획서")
+                .deliveryMethod("결과물 전달 방법")
                 .build());
         applicationIds.add(saved.getId());
         return saved;

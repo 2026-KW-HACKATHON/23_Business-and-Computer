@@ -73,7 +73,9 @@ public class JobApplicationListResponse {
         private final BigDecimal averageRating;
         private final Long completedJobCount;
         private final List<SpecialtyCategory> specialtyCategories;
-        private final String content;
+        private final String summary;
+        private final String workPlan;
+        private final String deliveryMethod;
 
         public static Applicant from(JobApplicantResult result) {
             return Applicant.builder()
@@ -88,7 +90,9 @@ public class JobApplicationListResponse {
                     .specialtyCategories(result.getSpecialtyCategories().stream()
                             .map(SpecialtyCategory::from)
                             .toList())
-                    .content(result.getContent())
+                    .summary(result.getSummary())
+                    .workPlan(result.getWorkPlan())
+                    .deliveryMethod(result.getDeliveryMethod())
                     .build();
         }
     }

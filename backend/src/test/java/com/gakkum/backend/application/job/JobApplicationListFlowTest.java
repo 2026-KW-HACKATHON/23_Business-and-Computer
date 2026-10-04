@@ -154,7 +154,14 @@ class JobApplicationListFlowTest {
                 .andExpect(jsonPath("$.data.applicants[2].major").value("소프트웨어학부"))
                 .andExpect(jsonPath("$.data.applicants[2].averageRating").value(4.3))
                 .andExpect(jsonPath("$.data.applicants[2].completedJobCount").value(3))
-                .andExpect(jsonPath("$.data.applicants[2].content").value("포스터를 제작하겠습니다."))
+                // 지원자마다 다른 내용이 정렬 후에도 자기 지원서와 짝을 이룬다
+                .andExpect(jsonPath("$.data.applicants[*].summary")
+                        .value(contains("한 줄 요약 106", "한 줄 요약 107", "한 줄 요약 105", "한 줄 요약 104")))
+                .andExpect(jsonPath("$.data.applicants[*].workPlan")
+                        .value(contains("작업계획서 106", "작업계획서 107", "작업계획서 105", "작업계획서 104")))
+                .andExpect(jsonPath("$.data.applicants[*].deliveryMethod").value(contains(
+                        "결과물 전달 방법 106", "결과물 전달 방법 107", "결과물 전달 방법 105", "결과물 전달 방법 104")))
+                .andExpect(jsonPath("$.data.applicants[2].content").doesNotExist())
                 .andExpect(jsonPath("$.data.applicants[2].appliedAt").doesNotExist())
                 // 의뢰에 없는 특기(12)까지 학생이 등록한 전체 특기를 대분류·소분류 ID 오름차순으로 내린다
                 .andExpect(jsonPath("$.data.applicants[2].specialtyCategories[*].id").value(contains(1, 2)))
@@ -168,7 +175,7 @@ class JobApplicationListFlowTest {
     }
 
     @Test
-    @DisplayName("리뷰·완료 의뢰·특기·사진·계획서가 없는 지원자는 0.0, 0, 빈 배열, null로 응답한다")
+    @DisplayName("리뷰·완료 의뢰·특기·사진이 없는 지원자는 0.0, 0, 빈 배열, null로 응답한다")
     void returnsDefaultsForApplicantWithoutData() throws Exception {
         givenOwner();
         givenOpenJob();
@@ -182,8 +189,7 @@ class JobApplicationListFlowTest {
                 .andExpect(jsonPath("$.data.applicants[0].completedJobCount").value(0))
                 .andExpect(jsonPath("$.data.applicants[0].specialtyCategories").isArray())
                 .andExpect(jsonPath("$.data.applicants[0].specialtyCategories").isEmpty())
-                .andExpect(jsonPath("$.data.applicants[0].profileImageUrl").value(nullValue()))
-                .andExpect(jsonPath("$.data.applicants[0].content").value(nullValue()));
+                .andExpect(jsonPath("$.data.applicants[0].profileImageUrl").value(nullValue()));
     }
 
     @Test
@@ -245,7 +251,7 @@ class JobApplicationListFlowTest {
         givenOpenJob();
         List<Long> studentIds = LongStream.rangeClosed(1, applicantCount).boxed().toList();
         when(jobApplicationRepository.findByJobIdInAndStatus(List.of(JOB_ID), JobApplicationStatus.PENDING))
-                .thenReturn(studentIds.stream().map(id -> application(1000 + id, id, APPLIED_AT, "계획")).toList());
+                .thenReturn(studentIds.stream().map(id -> application(1000 + id, id, APPLIED_AT)).toList());
         when(studentRepository.findAllById(any())).thenReturn(
                 studentIds.stream().map(id -> student(id, null)).toList());
         when(userRepository.findAllById(any())).thenReturn(
@@ -462,10 +468,10 @@ class JobApplicationListFlowTest {
     private void givenApplicants() {
         when(jobApplicationRepository.findByJobIdInAndStatus(List.of(JOB_ID), JobApplicationStatus.PENDING))
                 .thenReturn(List.of(
-                        application(105L, 7L, APPLIED_AT, "포스터를 제작하겠습니다."),
-                        application(106L, 8L, APPLIED_AT.plusDays(1), null),
-                        application(104L, 9L, null, "계획"),
-                        application(107L, 10L, APPLIED_AT, "계획")));
+                        application(105L, 7L, APPLIED_AT),
+                        application(106L, 8L, APPLIED_AT.plusDays(1)),
+                        application(104L, 9L, null),
+                        application(107L, 10L, APPLIED_AT)));
         when(studentRepository.findAllById(any())).thenReturn(List.of(
                 student(7L, "https://example.com/7.jpg"), student(8L, null), student(9L, null), student(10L, null)));
         when(userRepository.findAllById(any())).thenReturn(List.of(
@@ -515,12 +521,14 @@ class JobApplicationListFlowTest {
                 .build();
     }
 
-    private static JobApplication application(Long id, Long studentProfileId, LocalDateTime createdAt, String content) {
+    private static JobApplication application(Long id, Long studentProfileId, LocalDateTime createdAt) {
         return JobApplication.builder()
                 .id(id)
                 .jobId(JOB_ID)
                 .studentProfileId(studentProfileId)
-                .content(content)
+                .summary("한 줄 요약 " + id)
+                .workPlan("작업계획서 " + id)
+                .deliveryMethod("결과물 전달 방법 " + id)
                 .status(JobApplicationStatus.PENDING)
                 .createdAt(createdAt)
                 .build();

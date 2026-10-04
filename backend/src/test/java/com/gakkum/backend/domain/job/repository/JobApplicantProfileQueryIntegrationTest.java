@@ -83,6 +83,9 @@ class JobApplicantProfileQueryIntegrationTest {
         jobApplicationRepository.saveAndFlush(JobApplication.builder()
                 .jobId(saveJob(null, false, false).getId())
                 .studentProfileId(STUDENT)
+                .summary("한 줄 요약")
+                .workPlan("작업계획서")
+                .deliveryMethod("결과물 전달 방법")
                 .status(JobApplicationStatus.PENDING)
                 .build());
 
