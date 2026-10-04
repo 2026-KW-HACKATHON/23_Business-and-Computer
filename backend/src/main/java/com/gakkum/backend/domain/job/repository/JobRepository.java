@@ -31,6 +31,26 @@ public interface JobRepository extends JpaRepository<Job, Long> {
 
     long countBySelectedStudentProfileIdAndStatus(Long studentProfileId, JobStatus status);
 
+    /*
+     * 학생별 의뢰 수는 GROUP BY 집계가 필요해 메서드 이름으로 표현할 수 없다.
+     * 해당 상태의 의뢰가 없는 학생은 행이 없다.
+     */
+    @Query("""
+            select j.selectedStudentProfileId as studentProfileId, count(j) as jobCount
+            from Job j
+            where j.selectedStudentProfileId in :studentProfileIds
+              and j.status = :status
+            group by j.selectedStudentProfileId
+            """)
+    List<StudentJobCount> countByStudentProfileIdsAndStatus(
+            @Param("studentProfileIds") Collection<Long> studentProfileIds, @Param("status") JobStatus status);
+
+    interface StudentJobCount {
+        Long getStudentProfileId();
+
+        Long getJobCount();
+    }
+
     List<Job> findByOwnerProfileId(Long ownerProfileId);
     List<Job> findBySelectedStudentProfileId(Long studentProfileId);
 

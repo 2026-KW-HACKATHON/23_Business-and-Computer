@@ -46,6 +46,7 @@ class StudentServiceTest {
         assertThat(savedStudent.getPortfolioUrl()).isEqualTo("https://portfolio.example.com");
         assertThat(savedStudent.getIntroduction()).isEqualTo("나의 한 줄 소개");
         assertThat(savedStudent.getProfileImageUrl()).isEqualTo("https://image.example.com/profile.png");
+        assertThat(savedStudent.getPenaltyCount()).isZero();
     }
 
     @Test

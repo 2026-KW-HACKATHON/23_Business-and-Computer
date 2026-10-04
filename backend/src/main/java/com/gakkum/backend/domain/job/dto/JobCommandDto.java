@@ -73,6 +73,40 @@ public final class JobCommandDto {
     @Getter
     @Builder(access = AccessLevel.PRIVATE)
     @AllArgsConstructor(access = AccessLevel.PRIVATE)
+    public static class GetJobApplicationsCommand {
+
+        private final Long jobId;
+        private final Long ownerProfileId;
+
+        public static GetJobApplicationsCommand of(Long jobId, Long ownerProfileId) {
+            return GetJobApplicationsCommand.builder()
+                    .jobId(jobId)
+                    .ownerProfileId(ownerProfileId)
+                    .build();
+        }
+    }
+
+    @Getter
+    @Builder(access = AccessLevel.PRIVATE)
+    @AllArgsConstructor(access = AccessLevel.PRIVATE)
+    public static class GetJobApplicantProfileCommand {
+
+        private final Long jobId;
+        private final Long jobApplicationId;
+        private final Long ownerProfileId;
+
+        public static GetJobApplicantProfileCommand of(Long jobId, Long jobApplicationId, Long ownerProfileId) {
+            return GetJobApplicantProfileCommand.builder()
+                    .jobId(jobId)
+                    .jobApplicationId(jobApplicationId)
+                    .ownerProfileId(ownerProfileId)
+                    .build();
+        }
+    }
+
+    @Getter
+    @Builder(access = AccessLevel.PRIVATE)
+    @AllArgsConstructor(access = AccessLevel.PRIVATE)
     public static class GetJobSubmissionCommand {
 
         private final Long jobId;
@@ -153,13 +187,18 @@ public final class JobCommandDto {
     @AllArgsConstructor(access = AccessLevel.PRIVATE)
     public static class CancelJobCommand {
 
+        private final String username;
         private final Long jobId;
-        private final Long ownerProfileId;
+        private final String cancelReason;
+        private final String messageToStudent;
 
-        public static CancelJobCommand of(Long jobId, Long ownerProfileId) {
+        public static CancelJobCommand of(
+                String username, Long jobId, String cancelReason, String messageToStudent) {
             return CancelJobCommand.builder()
+                    .username(username)
                     .jobId(jobId)
-                    .ownerProfileId(ownerProfileId)
+                    .cancelReason(cancelReason)
+                    .messageToStudent(messageToStudent)
                     .build();
         }
     }

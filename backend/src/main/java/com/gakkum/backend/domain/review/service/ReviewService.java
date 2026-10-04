@@ -2,6 +2,12 @@ package com.gakkum.backend.domain.review.service;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.Collection;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
@@ -10,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.gakkum.backend.domain.review.dto.ReviewCommandDto.CreateReviewCommand;
 import com.gakkum.backend.domain.review.entity.Review;
 import com.gakkum.backend.domain.review.repository.ReviewRepository;
+import com.gakkum.backend.domain.review.repository.ReviewRepository.StudentAverageRating;
 import com.gakkum.backend.global.exception.BusinessException;
 import com.gakkum.backend.global.exception.ErrorCode;
 
@@ -58,13 +65,47 @@ public class ReviewService {
     }
 
     /**
+     * 학생이 모든 사장님에게 받은 리뷰 전체를 작성 시각 내림차순, 같은 시각은 리뷰 ID 내림차순으로 조회한다.
+     * 작성 시각이 없는 기존 데이터는 마지막에 둔다.
+     * @param studentProfileId 학생 프로필 ID
+     */
+    @Transactional(readOnly = true)
+    public List<Review> getStudentReviews(Long studentProfileId) {
+        return reviewRepository.findByStudentProfileId(studentProfileId).stream()
+                .sorted(Comparator
+                        .comparing(Review::getCreatedAt, Comparator.nullsLast(Comparator.reverseOrder()))
+                        .thenComparing(Review::getId, Comparator.reverseOrder()))
+                .toList();
+    }
+
+    /**
      * 학생이 받은 전체 리뷰의 평균 별점을 소수 첫째 자리까지 HALF_UP으로 반올림해 반환한다.
      * 리뷰가 없으면 0.0이다.
      * @param studentProfileId 학생 프로필 ID
      */
     @Transactional(readOnly = true)
     public BigDecimal getAverageRating(Long studentProfileId) {
-        Double average = reviewRepository.findAverageRatingByStudentProfileId(studentProfileId);
+        return roundAverageRating(reviewRepository.findAverageRatingByStudentProfileId(studentProfileId));
+    }
+
+    /**
+     * 학생별 평균 별점을 한 번에 조회한다. 반올림 기준은 단건 조회와 같다.
+     * @param studentProfileIds 학생 프로필 ID 목록
+     * @return 요청한 모든 학생 프로필 ID별 평균 별점, 리뷰가 없는 학생은 0.0
+     */
+    @Transactional(readOnly = true)
+    public Map<Long, BigDecimal> getAverageRatings(Collection<Long> studentProfileIds) {
+        if (studentProfileIds.isEmpty()) {
+            return Map.of();
+        }
+        Map<Long, Double> averages = reviewRepository.findAverageRatingsByStudentProfileIds(studentProfileIds).stream()
+                .collect(Collectors.toMap(StudentAverageRating::getStudentProfileId, StudentAverageRating::getAverageRating));
+        return studentProfileIds.stream()
+                .distinct()
+                .collect(Collectors.toMap(Function.identity(), id -> roundAverageRating(averages.get(id))));
+    }
+
+    private BigDecimal roundAverageRating(Double average) {
         if (average == null) {
             return BigDecimal.ZERO.setScale(1);
         }

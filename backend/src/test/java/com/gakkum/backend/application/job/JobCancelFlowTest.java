@@ -13,16 +13,23 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.Optional;
+import java.util.stream.Stream;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
+import org.springframework.http.MediaType;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import com.gakkum.backend.application.job.controller.JobController;
 import com.gakkum.backend.application.job.facade.JobFacade;
+import com.gakkum.backend.domain.certificate.service.CertificateService;
 import com.gakkum.backend.domain.chat.service.ChatAttachmentPolicy;
 import com.gakkum.backend.domain.job.client.JobSubmissionFileStorageClient;
 import com.gakkum.backend.domain.job.entity.Job;
@@ -40,6 +47,8 @@ import com.gakkum.backend.domain.payment.entity.Payment;
 import com.gakkum.backend.domain.payment.entity.PaymentStatus;
 import com.gakkum.backend.domain.payment.repository.PaymentRepository;
 import com.gakkum.backend.domain.payment.service.PaymentService;
+import com.gakkum.backend.domain.proposal.service.ProposalService;
+import com.gakkum.backend.domain.review.service.ReviewService;
 import com.gakkum.backend.domain.specialty.service.SpecialtyCategoryService;
 import com.gakkum.backend.domain.specialty.service.SpecialtyService;
 import com.gakkum.backend.domain.student.repository.StudentRepository;
@@ -57,6 +66,9 @@ class JobCancelFlowTest {
     private static final String OWNER_USER_ID = "01K58M6PJV8VAJMXHBHJ2PNB5C";
     private static final Instant NOW = Instant.parse("2026-09-29T03:15:30Z");
     private static final String URL = "/jobs/42/cancel";
+    private static final String CANCEL_REASON = "매장 일정이 변경되어 작업이 필요 없어졌습니다.";
+    private static final String MESSAGE_TO_STUDENT = "진행해 주셔서 감사합니다.";
+    private static final String VALID_BODY = body(CANCEL_REASON, MESSAGE_TO_STUDENT);
 
     private final UserRepository userRepository = mock(UserRepository.class);
     private final OwnerRepository ownerRepository = mock(OwnerRepository.class);
@@ -76,7 +88,8 @@ class JobCancelFlowTest {
         JobFacade facade = new JobFacade(userService, new OwnerService(ownerRepository), jobService,
                 mock(SpecialtyCategoryService.class), mock(SpecialtyService.class), new StudentService(mock(StudentRepository.class)),
                 mock(JobSubmissionFileStorageClient.class), mock(ChatAttachmentPolicy.class),
-                new PaymentService(paymentRepository, clock));
+                new PaymentService(paymentRepository, clock),
+                mock(ReviewService.class), mock(CertificateService.class), mock(ProposalService.class));
         mockMvc = MockMvcBuilders.standaloneSetup(new JobController(facade))
                 .setControllerAdvice(new GlobalExceptionHandler())
                 .build();
@@ -89,7 +102,7 @@ class JobCancelFlowTest {
         Job job = givenOwnedJob(JobStatus.MATCHED);
         Payment payment = givenPaidPayment(100_000L);
 
-        mockMvc.perform(post(URL).principal(authentication))
+        mockMvc.perform(cancelRequest(VALID_BODY))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.jobId").value(42))
@@ -97,8 +110,12 @@ class JobCancelFlowTest {
                 .andExpect(jsonPath("$.data.paidAmount").value(100_000))
                 .andExpect(jsonPath("$.data.studentCompensationAmount").value(20_000))
                 .andExpect(jsonPath("$.data.refundAmount").value(80_000))
-                .andExpect(jsonPath("$.data.cancelledAt").exists());
+                .andExpect(jsonPath("$.data.cancelledAt").exists())
+                .andExpect(jsonPath("$.data.cancelReason").value(CANCEL_REASON))
+                .andExpect(jsonPath("$.data.messageToStudent").value(MESSAGE_TO_STUDENT));
         assertThat(job.getStatus()).isEqualTo(JobStatus.CANCELLED);
+        assertThat(job.getCancelReason()).isEqualTo(CANCEL_REASON);
+        assertThat(job.getMessageToStudent()).isEqualTo(MESSAGE_TO_STUDENT);
         assertThat(job.getCompletedAt()).isEqualTo(LocalDateTime.ofInstant(NOW, ZoneId.systemDefault()));
         assertThat(payment.getStatus()).isEqualTo(PaymentStatus.REFUNDED);
         assertThat(payment.getRefundedAt()).isEqualTo(NOW);
@@ -110,13 +127,95 @@ class JobCancelFlowTest {
         givenActiveOwner();
         Job job = givenOwnedJob(JobStatus.OPEN);
 
-        mockMvc.perform(post(URL).principal(authentication))
+        mockMvc.perform(cancelRequest(VALID_BODY))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.status").value("CANCELLED"))
                 .andExpect(jsonPath("$.data.paidAmount").value(0))
                 .andExpect(jsonPath("$.data.studentCompensationAmount").value(0))
-                .andExpect(jsonPath("$.data.refundAmount").value(0));
+                .andExpect(jsonPath("$.data.refundAmount").value(0))
+                .andExpect(jsonPath("$.data.cancelReason").value(CANCEL_REASON))
+                .andExpect(jsonPath("$.data.messageToStudent").value(MESSAGE_TO_STUDENT));
         assertThat(job.getStatus()).isEqualTo(JobStatus.CANCELLED);
+        assertThat(job.getCancelReason()).isEqualTo(CANCEL_REASON);
+        assertThat(job.getMessageToStudent()).isEqualTo(MESSAGE_TO_STUDENT);
+        verifyNoInteractions(paymentRepository);
+    }
+
+    @Test
+    @DisplayName("입력의 앞뒤 공백은 제거하고 내부 공백과 줄바꿈은 유지해 저장·반환한다")
+    void trimsInputsAndKeepsInnerLineBreaks() throws Exception {
+        givenActiveOwner();
+        Job job = givenOwnedJob(JobStatus.OPEN);
+
+        mockMvc.perform(cancelRequest(body("  일정 변경\n\n작업  불필요 \n", "\t감사합니다.\n다음에 또 봬요.  ")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.cancelReason").value("일정 변경\n\n작업  불필요"))
+                .andExpect(jsonPath("$.data.messageToStudent").value("감사합니다.\n다음에 또 봬요."));
+        assertThat(job.getCancelReason()).isEqualTo("일정 변경\n\n작업  불필요");
+        assertThat(job.getMessageToStudent()).isEqualTo("감사합니다.\n다음에 또 봬요.");
+    }
+
+    @Test
+    @DisplayName("두 입력이 각각 5,000자이면 취소를 허용한다")
+    void acceptsMaxLengthInputs() throws Exception {
+        givenActiveOwner();
+        Job job = givenOwnedJob(JobStatus.OPEN);
+
+        mockMvc.perform(cancelRequest(body("가".repeat(5000), "나".repeat(5000))))
+                .andExpect(status().isOk());
+        assertThat(job.getCancelReason()).hasSize(5000);
+        assertThat(job.getMessageToStudent()).hasSize(5000);
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("invalidBodies")
+    @DisplayName("본문이 없거나 두 입력 중 하나라도 누락·null·공백·5,001자이면 400 COMMON_400을 반환하고 취소 처리를 하지 않는다")
+    void rejectsInvalidBody(String description, String body) throws Exception {
+        MockHttpServletRequestBuilder request = post(URL).principal(authentication)
+                .contentType(MediaType.APPLICATION_JSON);
+        if (body != null) {
+            request.content(body);
+        }
+
+        mockMvc.perform(request)
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error.code").value("COMMON_400"));
+        verifyNoInteractions(userRepository, ownerRepository, jobRepository, paymentRepository);
+    }
+
+    private static Stream<Arguments> invalidBodies() {
+        String tooLong = "가".repeat(5001);
+        return Stream.of(
+                Arguments.of("본문 없음", null),
+                Arguments.of("잘못된 JSON", "{\"cancelReason\":"),
+                Arguments.of("빈 객체", "{}"),
+                Arguments.of("취소 이유 누락", "{\"messageToStudent\":\"감사합니다.\"}"),
+                Arguments.of("취소 이유 null", "{\"cancelReason\":null,\"messageToStudent\":\"감사합니다.\"}"),
+                Arguments.of("취소 이유 빈 문자열", body("", MESSAGE_TO_STUDENT)),
+                Arguments.of("취소 이유 공백", body(" \n\t ", MESSAGE_TO_STUDENT)),
+                Arguments.of("취소 이유 5,001자", body(tooLong, MESSAGE_TO_STUDENT)),
+                Arguments.of("남길 말 누락", "{\"cancelReason\":\"일정 변경\"}"),
+                Arguments.of("남길 말 null", "{\"cancelReason\":\"일정 변경\",\"messageToStudent\":null}"),
+                Arguments.of("남길 말 빈 문자열", body(CANCEL_REASON, "")),
+                Arguments.of("남길 말 공백", body(CANCEL_REASON, " \n\t ")),
+                Arguments.of("남길 말 5,001자", body(CANCEL_REASON, tooLong)));
+    }
+
+    @Test
+    @DisplayName("이미 취소된 의뢰를 다시 취소하면 409 JOB_409_CANCEL을 반환하고 기존 취소 입력과 시각을 덮어쓰지 않는다")
+    void rejectsAlreadyCancelledJobWithoutOverwriting() throws Exception {
+        givenActiveOwner();
+        LocalDateTime cancelledAt = LocalDateTime.of(2026, 9, 1, 10, 0);
+        Job job = Job.builder().id(42L).ownerProfileId(5L).status(JobStatus.CANCELLED)
+                .completedAt(cancelledAt).cancelReason("기존 이유").messageToStudent("기존 남길 말").build();
+        when(jobRepository.findByIdAndOwnerProfileId(42L, 5L)).thenReturn(Optional.of(job));
+
+        mockMvc.perform(cancelRequest(VALID_BODY))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.error.code").value("JOB_409_CANCEL"));
+        assertThat(job.getCompletedAt()).isEqualTo(cancelledAt);
+        assertThat(job.getCancelReason()).isEqualTo("기존 이유");
+        assertThat(job.getMessageToStudent()).isEqualTo("기존 남길 말");
         verifyNoInteractions(paymentRepository);
     }
 
@@ -126,10 +225,12 @@ class JobCancelFlowTest {
         givenActiveOwner();
         Job job = givenOwnedJob(JobStatus.CLOSED);
 
-        mockMvc.perform(post(URL).principal(authentication))
+        mockMvc.perform(cancelRequest(VALID_BODY))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.error.code").value("JOB_409_CANCEL"));
         assertThat(job.getStatus()).isEqualTo(JobStatus.CLOSED);
+        assertThat(job.getCancelReason()).isNull();
+        assertThat(job.getMessageToStudent()).isNull();
         verifyNoInteractions(paymentRepository);
     }
 
@@ -139,7 +240,7 @@ class JobCancelFlowTest {
         givenActiveOwner();
         when(jobRepository.findByIdAndOwnerProfileId(42L, 5L)).thenReturn(Optional.empty());
 
-        mockMvc.perform(post(URL).principal(authentication))
+        mockMvc.perform(cancelRequest(VALID_BODY))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.error.code").value("JOB_404"));
         verifyNoInteractions(paymentRepository);
@@ -152,7 +253,7 @@ class JobCancelFlowTest {
                 User.builder().id(OWNER_USER_ID).role(UserRole.STUDENT).build()));
         when(ownerRepository.findByUserId(OWNER_USER_ID)).thenReturn(Optional.empty());
 
-        mockMvc.perform(post(URL).principal(authentication))
+        mockMvc.perform(cancelRequest(VALID_BODY))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.error.code").value("OWNER_403"));
         verifyNoInteractions(jobRepository, paymentRepository);
@@ -161,10 +262,24 @@ class JobCancelFlowTest {
     @Test
     @DisplayName("의뢰 ID가 0 이하이면 400을 반환하고 조회하지 않는다")
     void rejectsNonPositiveJobId() throws Exception {
-        mockMvc.perform(post("/jobs/0/cancel").principal(authentication))
+        mockMvc.perform(post("/jobs/0/cancel").principal(authentication)
+                        .contentType(MediaType.APPLICATION_JSON).content(VALID_BODY))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.error.code").value("COMMON_400"));
         verifyNoInteractions(userRepository, jobRepository, paymentRepository);
+    }
+
+    private MockHttpServletRequestBuilder cancelRequest(String body) {
+        return post(URL).principal(authentication).contentType(MediaType.APPLICATION_JSON).content(body);
+    }
+
+    private static String body(String cancelReason, String messageToStudent) {
+        return "{\"cancelReason\":\"" + escape(cancelReason) + "\",\"messageToStudent\":\""
+                + escape(messageToStudent) + "\"}";
+    }
+
+    private static String escape(String value) {
+        return value.replace("\n", "\\n").replace("\t", "\\t");
     }
 
     private void givenActiveOwner() {

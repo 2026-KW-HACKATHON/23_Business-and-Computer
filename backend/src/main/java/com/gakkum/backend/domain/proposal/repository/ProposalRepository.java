@@ -21,6 +21,9 @@ public interface ProposalRepository extends JpaRepository<Proposal, Long> {
     /** 학생이 보낸 모든 상태의 제안을 최신순으로 읽는다. */
     List<Proposal> findByStudentProfileIdOrderByCreatedAtDescIdDesc(Long studentProfileId);
 
+    /** 학생이 보낸 모든 상태의 제안 수. */
+    long countByStudentProfileId(Long studentProfileId);
+
     /** 사장님이 받은 모든 상태의 제안을 최신순으로 읽는다. */
     List<Proposal> findByOwnerProfileIdOrderByCreatedAtDescIdDesc(Long ownerProfileId);
 

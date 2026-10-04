@@ -80,6 +80,12 @@ public class ProposalService {
                 .findByStudentProfileIdOrderByCreatedAtDescIdDesc(command.getStudentProfileId()));
     }
 
+    /** 학생이 모든 사장님에게 보낸 제안 수. 수락·거절 여부와 무관하게 센다. */
+    @Transactional(readOnly = true)
+    public long countProposals(Long studentProfileId) {
+        return proposalRepository.countByStudentProfileId(studentProfileId);
+    }
+
     /** 사장님이 받은 모든 제안을 최신순으로 읽고 제안별 소분류 ID를 한 번에 붙인다. */
     @Transactional(readOnly = true)
     public List<ExploreProposalData> getReceivedProposals(GetReceivedProposalsCommand command) {

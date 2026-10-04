@@ -20,6 +20,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InOrder;
 
 import com.gakkum.backend.application.job.dto.JobCreateRequest;
+import com.gakkum.backend.domain.certificate.service.CertificateService;
 import com.gakkum.backend.domain.chat.service.ChatAttachmentPolicy;
 import com.gakkum.backend.domain.job.client.JobSubmissionFileStorageClient;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.CreateJobCommand;
@@ -28,6 +29,8 @@ import com.gakkum.backend.domain.owner.entity.Owner;
 import com.gakkum.backend.domain.owner.repository.OwnerRepository;
 import com.gakkum.backend.domain.owner.service.OwnerService;
 import com.gakkum.backend.domain.payment.service.PaymentService;
+import com.gakkum.backend.domain.proposal.service.ProposalService;
+import com.gakkum.backend.domain.review.service.ReviewService;
 import com.gakkum.backend.domain.specialty.service.SpecialtyCategoryService;
 import com.gakkum.backend.domain.specialty.service.SpecialtyService;
 import com.gakkum.backend.domain.student.service.StudentService;
@@ -49,7 +52,8 @@ class JobFacadeCreateTest {
     private final JobFacade jobFacade = new JobFacade(
             userService, new OwnerService(ownerRepository), jobService, mock(SpecialtyCategoryService.class),
             specialtyService, mock(StudentService.class),
-            mock(JobSubmissionFileStorageClient.class), mock(ChatAttachmentPolicy.class), mock(PaymentService.class));
+            mock(JobSubmissionFileStorageClient.class), mock(ChatAttachmentPolicy.class), mock(PaymentService.class),
+                mock(ReviewService.class), mock(CertificateService.class), mock(ProposalService.class));
 
     @Test
     @DisplayName("의뢰 생성 시 퍼사드가 특기 ID를 먼저 검증한 뒤 사업주 프로필 ID로 의뢰 생성을 맡긴다")
