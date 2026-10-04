@@ -1,6 +1,7 @@
 package com.gakkum.backend.application.job.dto;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 import com.gakkum.backend.application.job.dto.JobListResponse.SpecialtyCategory;
@@ -33,6 +34,15 @@ public final class JobDetailResponse {
         private final LocalDate finalDeadline;
         private final Integer revisionCount;
         private final JobProgressStage progressStage;
+        private final String status;
+        // 아래 취소 정보는 취소된 의뢰의 사장님·선정 학생에게만 내리고, 그 외에는 모두 null
+        private final String storeName;
+        private final String cancelledBy;
+        private final String cancelReason;
+        private final String messageToStudent;
+        private final Long refundAmount;
+        private final Long studentCompensationAmount;
+        private final LocalDateTime cancelledAt;
 
         public static Detail from(JobDetailResult result) {
             return Detail.builder()
@@ -47,6 +57,14 @@ public final class JobDetailResponse {
                     .finalDeadline(result.getFinalDeadline())
                     .revisionCount(result.getRevisionCount())
                     .progressStage(result.getProgressStage())
+                    .status(result.getStatus())
+                    .storeName(result.getStoreName())
+                    .cancelledBy(result.getCancelledBy())
+                    .cancelReason(result.getCancelReason())
+                    .messageToStudent(result.getMessageToStudent())
+                    .refundAmount(result.getRefundAmount())
+                    .studentCompensationAmount(result.getStudentCompensationAmount())
+                    .cancelledAt(result.getCancelledAt())
                     .build();
         }
     }
