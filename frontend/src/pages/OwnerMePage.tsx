@@ -1,8 +1,13 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { MenuList, ProfilePhoto, StoreInfo, SubScreen, SummaryCard } from "../components";
 import { clearTokens } from "../features/auth";
-import { OWNER_PATHS, useOwnerProfile } from "../features/owner";
+import {
+  OWNER_PATHS,
+  setOwnerStorePhoto,
+  useOwnerProfile,
+  useOwnerStorePhoto,
+} from "../features/owner";
 import type { ActivityTab } from "../features/owner";
 import { TermsSheet } from "../features/signup";
 import { useBack } from "../hooks/useBack";
@@ -16,9 +21,10 @@ function OwnerMePage() {
   const navigate = useNavigate();
   const back = useBack(OWNER_PATHS.home);
   const profile = useOwnerProfile();
-  // 사진 업로드는 백엔드 연동 전까지 이 화면에서 미리보기만 한다
-  const [photo, setPhoto] = useState<File | null>(null);
-  const [photoUrl] = useObjectUrls(photo ? [photo] : []);
+  // 사진 업로드는 백엔드 연동 전까지 미리보기만 한다 (가게 정보 수정과 같은 사진)
+  const photo = useOwnerStorePhoto();
+  const photoFiles = useMemo(() => (photo ? [photo] : []), [photo]);
+  const [photoUrl] = useObjectUrls(photoFiles);
   const [termsOpen, setTermsOpen] = useState(false);
   const { counts } = profile;
 
@@ -33,7 +39,7 @@ function OwnerMePage() {
     <SubScreen title="내 정보" onBack={back}>
       <section className="owner-me__profile">
         <div className="owner-me__head">
-          <ProfilePhoto size="small" src={photoUrl} onSelect={setPhoto} />
+          <ProfilePhoto size="small" src={photoUrl} onSelect={setOwnerStorePhoto} />
           <StoreInfo
             storeName={profile.storeName}
             ownerName={profile.ownerName}
