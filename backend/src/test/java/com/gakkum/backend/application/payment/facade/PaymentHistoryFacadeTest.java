@@ -406,4 +406,58 @@ class PaymentHistoryFacadeTest {
     private User user(String id, String name, UserRole role) {
         return User.builder().id(id).name(name).role(role).isLock(false).build();
     }
+
+    // 지원서 없이 제안 결제로 만들어진 의뢰. 담당 학생은 의뢰에서 읽는다
+    private void proposalPaid(Long jobId, Long proposalId, String approvedAt, JobStatus jobStatus, Long amount) {
+        Payment payment = Payment.pendingForProposal(proposalId, OWNER_ID, "order-" + jobId, amount, 2, null,
+                Instant.EPOCH);
+        payment.recordKakaoTid("T" + jobId);
+        payment.approve(Instant.parse(approvedAt));
+        payment.linkJob(jobId);
+        payments.add(PaymentHistoryData.from(payment));
+        jobsById.put(jobId, Job.builder().id(jobId).title("의뢰 " + jobId).status(jobStatus)
+                .proposalId(proposalId).selectedStudentProfileId(STUDENT_PROFILE_ID).build());
+    }
+
+    @Test
+    @DisplayName("학생의 작업 시작을 기다리는 제안 결제는 지원서 없이 의뢰의 담당 학생 이름과 함께 보관 중(HELD)으로 반환하고 보관 금액에 합산한다")
+    void returnsAwaitingStartProposalPaymentAsHeld() {
+        proposalPaid(51L, 5L, "2026-10-03T03:00:00Z", JobStatus.AWAITING_START, 50_000L);
+        paid(42L, "2026-10-02T03:00:00Z", JobStatus.MATCHED);
+
+        PaymentHistoryResult result = facade.getPaymentHistory(USERNAME);
+
+        List<PaymentHistoryItemResult> items = result.getMonths().get(0).getPayments();
+        assertThat(items).extracting(PaymentHistoryItemResult::getJobId, PaymentHistoryItemResult::getStatus,
+                        PaymentHistoryItemResult::getStudentName)
+                .containsExactly(
+                        org.assertj.core.api.Assertions.tuple(51L, PaymentHistoryStatus.HELD, "김학생"),
+                        org.assertj.core.api.Assertions.tuple(42L, PaymentHistoryStatus.HELD, "김학생"));
+        assertThat(result.getSummary().getHeldAmount()).isEqualTo(150_000L);
+        assertThat(result.getSummary().getTotalSettledAmount()).isZero();
+    }
+
+    @Test
+    @DisplayName("작업을 시작했거나 완료된 제안 결제도 일반 결제와 같은 기준으로 보관 중·정산 완료를 반환한다")
+    void returnsStartedAndClosedProposalPayments() {
+        proposalPaid(52L, 6L, "2026-10-03T03:00:00Z", JobStatus.MATCHED, 50_000L);
+        proposalPaid(51L, 5L, "2026-10-02T03:00:00Z", JobStatus.CLOSED, 70_000L);
+
+        PaymentHistoryResult result = facade.getPaymentHistory(USERNAME);
+
+        assertThat(result.getMonths().get(0).getPayments()).extracting(PaymentHistoryItemResult::getStatus)
+                .containsExactly(PaymentHistoryStatus.HELD, PaymentHistoryStatus.SETTLED);
+        assertThat(result.getSummary().getHeldAmount()).isEqualTo(50_000L);
+        assertThat(result.getSummary().getTotalSettledAmount()).isEqualTo(70_000L);
+    }
+
+    @Test
+    @DisplayName("제안 결제가 가리키는 제안이 의뢰를 만든 제안이 아니면 서버 오류로 처리한다")
+    void rejectsProposalPaymentLinkedToOtherProposal() {
+        proposalPaid(51L, 5L, "2026-10-03T03:00:00Z", JobStatus.AWAITING_START, 50_000L);
+        jobsById.put(51L, Job.builder().id(51L).title("의뢰 51").status(JobStatus.AWAITING_START)
+                .proposalId(9L).selectedStudentProfileId(STUDENT_PROFILE_ID).build());
+
+        assertError(ErrorCode.INTERNAL_SERVER_ERROR);
+    }
 }

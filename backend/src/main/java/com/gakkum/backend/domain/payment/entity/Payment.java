@@ -34,11 +34,25 @@ public class Payment {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "job_id", nullable = false)
+    // 제안 결제는 승인 시 만든 의뢰를 연결하기 전까지 null
+    @Column(name = "job_id")
     private Long jobId;
 
-    @Column(name = "job_application_id", nullable = false)
+    // 제안 결제는 지원서를 쓰지 않아 null
+    @Column(name = "job_application_id")
     private Long jobApplicationId;
+
+    // 제안 결제가 가리키는 제안. 일반 결제는 null
+    @Column(name = "proposal_id")
+    private Long proposalId;
+
+    // 제안 결제 준비 시 사장님이 입력한 수정 횟수. 승인 시 의뢰로 옮긴다
+    @Column(name = "revision_count")
+    private Integer revisionCount;
+
+    // 제안 결제 준비 시 사장님이 학생에게 남긴 한마디. 입력하지 않으면 null
+    @Column(name = "message_to_student", columnDefinition = "TEXT")
+    private String messageToStudent;
 
     @Column(name = "owner_user_id", nullable = false, length = 26)
     private String ownerUserId;
@@ -90,6 +104,35 @@ public class Payment {
                 .refundPolicyAgreedAt(refundPolicyAgreedAt)
                 .status(PaymentStatus.PENDING)
                 .build();
+    }
+
+    /** 제안 결제의 대기 주문. 의뢰는 승인 시 만들어 연결하고 지원서는 쓰지 않는다. */
+    public static Payment pendingForProposal(
+            Long proposalId,
+            String ownerUserId,
+            String orderId,
+            Long amount,
+            Integer revisionCount,
+            String messageToStudent,
+            Instant refundPolicyAgreedAt) {
+        return Payment.builder()
+                .proposalId(proposalId)
+                .ownerUserId(ownerUserId)
+                .orderId(orderId)
+                .amount(amount)
+                .revisionCount(revisionCount)
+                .messageToStudent(messageToStudent)
+                .refundPolicyAgreedAt(refundPolicyAgreedAt)
+                .status(PaymentStatus.PENDING)
+                .build();
+    }
+
+    /** 승인된 제안 결제에 승인과 함께 만든 의뢰를 연결한다. 한 번만 연결할 수 있다. */
+    public void linkJob(Long jobId) {
+        if (proposalId == null || status != PaymentStatus.PAID || this.jobId != null || jobId == null) {
+            throw new BusinessException(ErrorCode.PAYMENT_NOT_AVAILABLE);
+        }
+        this.jobId = jobId;
     }
 
     public void supersede() {

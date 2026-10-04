@@ -79,8 +79,8 @@ class PaymentRepositoryDerivedQueryTest {
     }
 
     @Test
-    @DisplayName("지원서 ID 목록에 연결된 PAID·REFUNDED 결제만 승인 시각 최신순, 같은 시각은 ID 내림차순으로 조회한다")
-    void findsApprovedPaymentsOfApplicationsInLatestOrder() {
+    @DisplayName("의뢰 ID 목록에 연결된 PAID·REFUNDED 결제만 승인 시각 최신순, 같은 시각은 ID 내림차순으로 조회한다")
+    void findsApprovedPaymentsOfJobsInLatestOrder() {
         String owner = "01K58M6PJV8VAJMXHBHJ2PNH03";
         Instant earlier = Instant.parse("2026-09-30T14:59:59Z");
         Instant later = Instant.parse("2026-09-30T15:00:00Z");
@@ -89,7 +89,7 @@ class PaymentRepositoryDerivedQueryTest {
         refunded.refundOnCancel(Instant.parse("2026-10-05T00:00:00Z"));
         Payment sameTimePaid = approved(900_013L, 910_003L, owner, "settle-same-time", "TSETTLE0000000000003",
                 later);
-        // 같은 사장님이 결제했지만 다른 학생의 지원서
+        // 같은 사장님이 결제했지만 다른 학생이 담당하는 의뢰
         approved(900_014L, 910_099L, owner, "settle-other-student", "TSETTLE0000000000004", later);
         paymentRepository.save(Payment.pending(900_015L, 910_001L, owner, "settle-pending", 100_000L,
                 Instant.EPOCH));
@@ -105,8 +105,8 @@ class PaymentRepositoryDerivedQueryTest {
         Payment oldPaid = approved(900_011L, 910_001L, owner, "settle-old-paid", "TSETTLE0000000000001", earlier);
         paymentRepository.flush();
 
-        List<Payment> history = paymentRepository.findByJobApplicationIdInAndStatusInOrderByApprovedAtDescIdDesc(
-                List.of(910_001L, 910_002L, 910_003L, 910_004L),
+        List<Payment> history = paymentRepository.findByJobIdInAndStatusInOrderByApprovedAtDescIdDesc(
+                List.of(900_011L, 900_012L, 900_013L, 900_015L, 900_016L, 900_017L, 900_018L),
                 List.of(PaymentStatus.PAID, PaymentStatus.REFUNDED));
 
         assertThat(history).extracting(Payment::getOrderId)

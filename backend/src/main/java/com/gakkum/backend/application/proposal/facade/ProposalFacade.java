@@ -1,6 +1,9 @@
 package com.gakkum.backend.application.proposal.facade;
 
 import java.math.BigDecimal;
+import java.time.Clock;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -11,6 +14,9 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.gakkum.backend.domain.chat.entity.ChatRoom;
+import com.gakkum.backend.domain.chat.service.ChatRoomService;
+import com.gakkum.backend.domain.job.entity.Job;
 import com.gakkum.backend.domain.job.service.JobService;
 import com.gakkum.backend.domain.media.dto.ImagePurpose;
 import com.gakkum.backend.domain.media.service.MediaService;
@@ -19,6 +25,10 @@ import com.gakkum.backend.domain.owner.entity.Owner;
 import com.gakkum.backend.domain.proposal.dto.ProposalCommandDto.CreateProposalCommand;
 import com.gakkum.backend.domain.proposal.dto.ProposalCommandDto.GetMyProposalsCommand;
 import com.gakkum.backend.domain.proposal.dto.ProposalCommandDto.GetReceivedProposalsCommand;
+import com.gakkum.backend.domain.proposal.dto.ProposalCommandDto.StartProposalJobCommand;
+import com.gakkum.backend.domain.payment.service.PaymentService;
+import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.ProposalAgreementResult;
+import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.ProposalJobStartResult;
 import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.ExploreProposalData;
 import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.MyProposalListResult;
 import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.MyProposalResult;
@@ -49,6 +59,9 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class ProposalFacade {
 
+    // 결제 전 예상 마감일을 계산하는 기준 시간대. 결제 승인 시 마감일을 확정하는 시간대와 같다
+    private static final ZoneId DEADLINE_ZONE = ZoneId.of("Asia/Seoul");
+
     private final UserService userService;
     private final StudentService studentService;
     private final OwnerService ownerService;
@@ -58,6 +71,9 @@ public class ProposalFacade {
     private final ProposalService proposalService;
     private final ReviewService reviewService;
     private final JobService jobService;
+    private final PaymentService paymentService;
+    private final ChatRoomService chatRoomService;
+    private final Clock clock;
 
     /**
      * 학생의 제안 전송. 역할·대상 사장님·소분류·사진을 검증한 뒤 저장한다.
@@ -76,22 +92,54 @@ public class ProposalFacade {
 
     /**
      * 제안 상세. 활성 사용자라면 역할과 무관하게 모든 제안을 볼 수 있고 없는 제안은 404다.
+     * 결제 전에는 한국 날짜 기준 오늘에 제안 기간을 더한 예상 마감일을 함께 내린다.
      * 제안을 찾은 뒤에만 매장(현재 이름)·학생 정보·학생 통계(평균 별점·완료 의뢰 수)·특기를 조회한다.
      */
     @Transactional(readOnly = true)
     public ProposalDetailResult getProposalDetail(String username, Long proposalId) {
-        userService.getActiveUser(username);
+        User viewer = userService.getActiveUser(username);
         ProposalDetailData data = proposalService.getProposalDetail(proposalId);
 
-        String storeName = ownerService.getOwnerProfileById(data.getProposal().getOwnerProfileId()).getStoreName();
+        Owner owner = ownerService.getOwnerProfileById(data.getProposal().getOwnerProfileId());
         Student student = studentService.getStudentProfile(data.getProposal().getStudentProfileId());
         User studentUser = userService.getUser(student.getUserId());
         Map<Long, SpecialtyDetail> specialtiesById = specialtyCategoryService.getSpecialtyDetails(data.getSpecialtyIds());
         BigDecimal averageRating = reviewService.getAverageRating(student.getId());
         long completedJobCount = jobService.countClosedJobs(student.getId());
-        return ProposalDetailResult.of(data.getProposal(), storeName, student, studentUser,
+
+        // 결제로 확정된 작업 조건(사장님의 한마디 포함)은 제안을 받은 사장님과 제안한 학생에게만 내린다
+        Job job = jobService.findJobByProposalId(proposalId).orElse(null);
+        boolean party = viewer.getId().equals(owner.getUserId()) || viewer.getId().equals(student.getUserId());
+        ProposalAgreementResult agreement = job != null && party
+                ? ProposalAgreementResult.of(job, paymentService.getProposalPaidAt(proposalId))
+                : null;
+        return ProposalDetailResult.of(data.getProposal(), owner.getStoreName(), student, studentUser,
                 averageRating, completedJobCount,
-                groupSpecialties(data.getSpecialtyIds(), specialtiesById));
+                groupSpecialties(data.getSpecialtyIds(), specialtiesById),
+                LocalDate.now(clock.withZone(DEADLINE_ZONE)), job == null ? null : job.getId(), agreement);
+    }
+
+    /**
+     * 제안한 학생이 결제된 제안 의뢰의 작업을 시작한다. 제출과 함께 확정 작업 조건(마감일·패널티)에 동의한 것으로 본다.
+     * 제안의 수락 전환, 의뢰의 진행 중 전환, 시작 시각 기록, 채팅방 생성을 한 트랜잭션으로 처리한다.
+     * 잠금 순서는 결제 승인과 같이 제안 → 의뢰다. 의뢰의 제안 ID를 먼저 읽고, 잠근 뒤 연결 관계를 다시 확인한다.
+     * 이미 시작한 의뢰의 재요청은 기존 시작 시각과 채팅방을 그대로 반환한다.
+     */
+    @Transactional
+    public ProposalJobStartResult startProposalJob(StartProposalJobCommand command) {
+        User user = userService.getActiveUser(command.getUsername());
+        if (user.getRole() != UserRole.STUDENT) {
+            throw new BusinessException(ErrorCode.JOB_START_FORBIDDEN);
+        }
+        Student student = studentService.findStudentProfileByUserId(user.getId())
+                .orElseThrow(() -> new BusinessException(ErrorCode.JOB_START_FORBIDDEN));
+
+        Long proposalId = jobService.getStartableProposalId(command.getJobId(), student.getId());
+        Proposal proposal = proposalService.getStartableProposalForUpdate(proposalId, student.getId());
+        Job job = jobService.startJob(command.getJobId(), proposalId, student.getId());
+        proposal.accept();
+        ChatRoom chatRoom = chatRoomService.getOrCreate(job.getId());
+        return ProposalJobStartResult.of(job, proposal, chatRoom.getId());
     }
 
     /**
@@ -116,12 +164,14 @@ public class ProposalFacade {
                 .collect(Collectors.toSet());
         Map<Long, Owner> ownersById = ownerService.getOwnerProfilesByIds(ownerProfileIds);
         Map<Long, SpecialtyDetail> specialtiesById = specialtyCategoryService.getSpecialtyDetails(specialtyIds);
+        Map<Long, Long> jobIdsByProposalId = getJobIdsByProposalId(proposals);
 
         return MyProposalListResult.of(proposals.stream()
                 .map(data -> MyProposalResult.of(
                         data.getProposal(),
                         ownersById.get(data.getProposal().getOwnerProfileId()),
-                        groupSpecialties(data.getSpecialtyIds(), specialtiesById)))
+                        groupSpecialties(data.getSpecialtyIds(), specialtiesById),
+                        jobIdsByProposalId.get(data.getProposal().getId())))
                 .toList());
     }
 
@@ -154,14 +204,23 @@ public class ProposalFacade {
                 .flatMap(data -> data.getSpecialtyIds().stream())
                 .collect(Collectors.toSet());
         Map<Long, SpecialtyDetail> specialtiesById = specialtyCategoryService.getSpecialtyDetails(specialtyIds);
+        Map<Long, Long> jobIdsByProposalId = getJobIdsByProposalId(proposals);
 
         return ReceivedProposalListResult.of(proposals.stream()
                 .map(data -> {
                     Student student = studentsById.get(data.getProposal().getStudentProfileId());
                     return ReceivedProposalResult.of(
                             data.getProposal(), student, studentUsersById.get(student.getUserId()),
-                            groupSpecialties(data.getSpecialtyIds(), specialtiesById));
+                            groupSpecialties(data.getSpecialtyIds(), specialtiesById),
+                            jobIdsByProposalId.get(data.getProposal().getId()));
                 })
+                .toList());
+    }
+
+    // 결제로 만들어진 의뢰를 제안 수와 무관하게 한 번에 조회한다. 결제 전 제안은 키가 없다
+    private Map<Long, Long> getJobIdsByProposalId(List<ExploreProposalData> proposals) {
+        return jobService.getJobIdsByProposalIds(proposals.stream()
+                .map(data -> data.getProposal().getId())
                 .toList());
     }
 

@@ -19,6 +19,7 @@ import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.ExploreProposalDa
 import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.ProposalDetailData;
 import com.gakkum.backend.domain.proposal.entity.Proposal;
 import com.gakkum.backend.domain.proposal.entity.ProposalSpecialty;
+import com.gakkum.backend.domain.proposal.entity.ProposalStatus;
 import com.gakkum.backend.domain.proposal.repository.ProposalRepository;
 import com.gakkum.backend.domain.proposal.repository.ProposalSpecialtyRepository;
 import com.gakkum.backend.global.exception.BusinessException;
@@ -65,6 +66,60 @@ public class ProposalService {
                 .map(ProposalSpecialty::getSpecialtyId)
                 .toList();
         return ProposalDetailData.of(proposal, specialtyIds);
+    }
+
+    /**
+     * 사장님이 결제할 수 있는 본인 제안을 잠가 반환한다. 같은 제안의 결제 준비·승인을 순서대로 처리한다.
+     * 없는 제안은 404, 다른 사장님이 받은 제안은 403, 결제 전(PENDING)이 아닌 제안은 409로 거부한다.
+     * @param proposalId
+     * @param ownerProfileId
+     * @return 결제 전(PENDING) 제안
+     */
+    @Transactional
+    public Proposal getPayableProposalForUpdate(Long proposalId, Long ownerProfileId) {
+        Proposal proposal = getProposalForUpdate(proposalId);
+        if (!proposal.getOwnerProfileId().equals(ownerProfileId)) {
+            throw new BusinessException(ErrorCode.PROPOSAL_PAYMENT_FORBIDDEN);
+        }
+        if (proposal.getStatus() != ProposalStatus.PENDING) {
+            throw new BusinessException(ErrorCode.PROPOSAL_PAYMENT_NOT_AVAILABLE);
+        }
+        return proposal;
+    }
+
+    /**
+     * 학생이 작업을 시작할 수 있는 본인 제안을 잠가 반환한다. 같은 제안의 결제 승인·작업 시작을 순서대로 처리한다.
+     * 없는 제안은 404, 다른 학생의 제안은 403, 결제되지 않았거나 거절된 제안은 409로 거부한다.
+     * @param proposalId
+     * @param studentProfileId
+     * @return 수락 대기(AWAITING_START) 또는 이미 수락된(ACCEPTED) 제안
+     */
+    @Transactional
+    public Proposal getStartableProposalForUpdate(Long proposalId, Long studentProfileId) {
+        Proposal proposal = getProposalForUpdate(proposalId);
+        if (!proposal.getStudentProfileId().equals(studentProfileId)) {
+            throw new BusinessException(ErrorCode.JOB_START_FORBIDDEN);
+        }
+        if (proposal.getStatus() != ProposalStatus.AWAITING_START
+                && proposal.getStatus() != ProposalStatus.ACCEPTED) {
+            throw new BusinessException(ErrorCode.JOB_START_NOT_AVAILABLE);
+        }
+        return proposal;
+    }
+
+    /** 제안 행을 잠가 반환한다. 없는 제안은 404로 거부한다. */
+    @Transactional
+    public Proposal getProposalForUpdate(Long proposalId) {
+        return proposalRepository.findLockedById(proposalId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.PROPOSAL_NOT_FOUND));
+    }
+
+    /** 제안에 선택된 소분류 ID. 제안으로 의뢰를 만들 때 그대로 복사한다. */
+    @Transactional(readOnly = true)
+    public List<Long> getSpecialtyIds(Long proposalId) {
+        return proposalSpecialtyRepository.findByProposalId(proposalId).stream()
+                .map(ProposalSpecialty::getSpecialtyId)
+                .toList();
     }
 
     /** 탐색 목록용으로 커서 경계 뒤의 제안을 정렬 순서대로 limit개까지 읽고 제안별 소분류 ID를 한 번에 붙인다. */

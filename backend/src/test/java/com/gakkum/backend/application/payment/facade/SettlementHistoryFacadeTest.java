@@ -75,24 +75,22 @@ class SettlementHistoryFacadeTest {
         when(userService.getActiveUser(USERNAME)).thenReturn(user(UserRole.STUDENT));
         when(studentService.findStudentProfileByUserId(STUDENT_USER_ID)).thenReturn(
                 Optional.of(Student.builder().id(STUDENT_PROFILE_ID).userId(STUDENT_USER_ID).build()));
-        when(jobService.getJobApplicationsByStudentProfileId(STUDENT_PROFILE_ID)).thenReturn(applicationsById);
+        when(jobService.getJobsBySelectedStudentProfileId(STUDENT_PROFILE_ID)).thenReturn(jobsById);
         when(paymentService.getSettlementHistory(anyCollection())).thenReturn(payments);
-        when(jobService.getJobsByIds(anyCollection())).thenReturn(jobsById);
+        when(jobService.getJobApplicationsByIds(anyCollection())).thenReturn(applicationsById);
         when(ownerService.getStoreNames(anyCollection())).thenReturn(storeNames);
         storeNames.put(OWNER_PROFILE_ID, "가꿈 카페");
     }
 
     @Test
-    @DisplayName("인증된 학생 본인의 지원서 ID로만 정산 내역을 조회한다")
-    void queriesOnlyOwnApplications() {
+    @DisplayName("인증된 학생 본인이 담당하는 의뢰 ID로만 정산 내역을 조회한다")
+    void queriesOnlyOwnJobs() {
         paid(42L, "2026-10-02T03:00:00Z", JobStatus.MATCHED, null);
-        // 결제로 이어지지 않은 본인 지원서
-        applicationsById.put(1099L, application(1099L, 99L));
 
         facade.getSettlementHistory(USERNAME);
 
-        verify(jobService).getJobApplicationsByStudentProfileId(STUDENT_PROFILE_ID);
-        verify(paymentService).getSettlementHistory(Set.of(1042L, 1099L));
+        verify(jobService).getJobsBySelectedStudentProfileId(STUDENT_PROFILE_ID);
+        verify(paymentService).getSettlementHistory(Set.of(42L));
         verifyNoMoreInteractions(paymentService);
     }
 
@@ -129,7 +127,7 @@ class SettlementHistoryFacadeTest {
         SettlementHistoryResult result = facade.getSettlementHistory(USERNAME);
 
         assertThat(result.getMonths()).isEmpty();
-        verify(jobService).getJobApplicationsByStudentProfileId(STUDENT_PROFILE_ID);
+        verify(jobService).getJobsBySelectedStudentProfileId(STUDENT_PROFILE_ID);
         verifyNoMoreInteractions(jobService);
         verifyNoInteractions(ownerService);
     }
@@ -229,8 +227,8 @@ class SettlementHistoryFacadeTest {
 
         assertThat(items).extracting(SettlementHistoryItemResult::getStoreName)
                 .containsExactly("가꿈 카페", "가꿈 카페", "다른 매장");
-        verify(jobService).getJobApplicationsByStudentProfileId(STUDENT_PROFILE_ID);
-        verify(jobService).getJobsByIds(List.of(43L, 42L, 41L));
+        verify(jobService).getJobsBySelectedStudentProfileId(STUDENT_PROFILE_ID);
+        verify(jobService).getJobApplicationsByIds(List.of(1043L, 1042L, 1041L));
         verify(ownerService).getStoreNames(
                 org.mockito.ArgumentMatchers.<List<Long>>argThat(ids -> ids.size() == 2
                         && ids.containsAll(List.of(OWNER_PROFILE_ID, 4L))));
@@ -468,6 +466,7 @@ class SettlementHistoryFacadeTest {
         Payment broken = mock(Payment.class);
         when(broken.getJobId()).thenReturn(41L);
         when(broken.getJobApplicationId()).thenReturn(1041L);
+        when(broken.getProposalId()).thenReturn(null);
         when(broken.getAmount()).thenReturn(100_000L);
         when(broken.getStudentCompensationAmount()).thenReturn(studentCompensationAmount);
         when(broken.getStatus()).thenReturn(PaymentStatus.REFUNDED);
@@ -502,5 +501,73 @@ class SettlementHistoryFacadeTest {
 
     private User user(UserRole role) {
         return User.builder().id(STUDENT_USER_ID).name("김학생").role(role).isLock(false).build();
+    }
+
+    // 지원서 없이 제안 결제로 만들어진 의뢰. 본인이 담당 학생이다
+    private void proposalPaid(Long jobId, Long proposalId, String approvedAt, JobStatus jobStatus,
+            String completedAt, Long amount) {
+        Payment payment = Payment.pendingForProposal(proposalId, OWNER_USER_ID, "order-" + jobId, amount, 2, null,
+                Instant.EPOCH);
+        payment.recordKakaoTid("T" + jobId);
+        payment.approve(Instant.parse(approvedAt));
+        payment.linkJob(jobId);
+        payments.add(SettlementHistoryData.from(payment));
+        jobsById.put(jobId, Job.builder().id(jobId).title("의뢰 " + jobId).status(jobStatus)
+                .ownerProfileId(OWNER_PROFILE_ID).selectedStudentProfileId(STUDENT_PROFILE_ID)
+                .proposalId(proposalId)
+                .completedAt(completedAt == null ? null : LocalDateTime.parse(completedAt)).build());
+    }
+
+    @Test
+    @DisplayName("작업 시작을 기다리는 제안 결제는 지원서 없이 정산 예정(SCHEDULED)으로 반환하고 정산 예정 금액에 합산한다")
+    void returnsAwaitingStartProposalPaymentAsScheduled() {
+        proposalPaid(51L, 5L, "2026-10-03T03:00:00Z", JobStatus.AWAITING_START, null, 50_000L);
+        paid(42L, "2026-10-02T03:00:00Z", JobStatus.MATCHED, null);
+
+        SettlementHistoryResult result = facade.getSettlementHistory(USERNAME);
+
+        List<SettlementHistoryItemResult> items = result.getMonths().get(0).getSettlements();
+        assertThat(items).extracting(SettlementHistoryItemResult::getJobId).containsExactly(51L, 42L);
+        assertThat(items).extracting(SettlementHistoryItemResult::getStatus)
+                .containsOnly(SettlementHistoryStatus.SCHEDULED);
+        assertThat(items.get(0).getAmount()).isEqualTo(50_000L);
+        assertThat(items.get(0).getSettledDate()).isNull();
+        assertThat(items.get(0).getStoreName()).isEqualTo("가꿈 카페");
+        assertThat(result.getSummary().getScheduledAmount()).isEqualTo(150_000L);
+        // 지원서는 일반 결제 것만 조회한다
+        verify(jobService).getJobApplicationsByIds(List.of(1042L));
+    }
+
+    @Test
+    @DisplayName("완료된 제안 의뢰의 결제는 의뢰 완료일로 정산 완료(SETTLED)를 반환한다")
+    void returnsClosedProposalPaymentAsSettled() {
+        proposalPaid(51L, 5L, "2026-10-02T03:00:00Z", JobStatus.CLOSED, "2026-10-10T09:30:00", 50_000L);
+
+        SettlementHistoryItemResult item =
+                facade.getSettlementHistory(USERNAME).getMonths().get(0).getSettlements().get(0);
+
+        assertThat(item.getStatus()).isEqualTo(SettlementHistoryStatus.SETTLED);
+        assertThat(item.getSettledDate()).isEqualTo(LocalDate.of(2026, 10, 10));
+    }
+
+    @Test
+    @DisplayName("제안 결제가 가리키는 제안이 의뢰를 만든 제안이 아니면 서버 오류로 처리한다")
+    void rejectsProposalPaymentLinkedToOtherProposal() {
+        proposalPaid(51L, 5L, "2026-10-03T03:00:00Z", JobStatus.AWAITING_START, null, 50_000L);
+        jobsById.put(51L, Job.builder().id(51L).title("의뢰 51").status(JobStatus.AWAITING_START)
+                .ownerProfileId(OWNER_PROFILE_ID).selectedStudentProfileId(STUDENT_PROFILE_ID)
+                .proposalId(9L).build());
+
+        assertError(ErrorCode.INTERNAL_SERVER_ERROR);
+    }
+
+    @Test
+    @DisplayName("일반 결제의 지원서가 본인 지원서가 아니면 서버 오류로 처리한다")
+    void rejectsGeneralPaymentWithOtherStudentsApplication() {
+        paid(42L, "2026-10-02T03:00:00Z", JobStatus.MATCHED, null);
+        applicationsById.put(1042L,
+                JobApplication.builder().id(1042L).jobId(42L).studentProfileId(STUDENT_PROFILE_ID + 1).build());
+
+        assertError(ErrorCode.INTERNAL_SERVER_ERROR);
     }
 }

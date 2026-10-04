@@ -4,6 +4,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 
+import com.gakkum.backend.domain.job.entity.JobStatus;
 import com.gakkum.backend.domain.payment.entity.Payment;
 import com.gakkum.backend.domain.payment.entity.PaymentStatus;
 
@@ -20,6 +21,10 @@ public final class PaymentQueryDto {
     }
 
     public record ApprovedPaymentData(String orderId, Long amount, Instant approvedAt) {
+    }
+
+    /** 결제 승인 결과. 일반 결제의 의뢰는 진행 중(MATCHED), 제안 결제의 의뢰는 수락 대기(AWAITING_START) 이후 상태다. */
+    public record ApprovedOrderData(String orderId, Long amount, Instant approvedAt, Long jobId, JobStatus jobStatus) {
     }
 
     public record RefundedPaymentData(Long amount, Long studentCompensationAmount, Long refundAmount, Instant refundedAt) {
@@ -46,15 +51,18 @@ public final class PaymentQueryDto {
     public static class PaymentHistoryData {
 
         private final Long jobId;
+        // 제안 결제는 null
         private final Long jobApplicationId;
+        // 일반 결제는 null
+        private final Long proposalId;
         private final Long amount;
         private final Long refundAmount;
         private final PaymentStatus status;
         private final Instant approvedAt;
 
         public static PaymentHistoryData from(Payment payment) {
-            return new PaymentHistoryData(payment.getJobId(), payment.getJobApplicationId(), payment.getAmount(),
-                    payment.getRefundAmount(), payment.getStatus(), payment.getApprovedAt());
+            return new PaymentHistoryData(payment.getJobId(), payment.getJobApplicationId(), payment.getProposalId(),
+                    payment.getAmount(), payment.getRefundAmount(), payment.getStatus(), payment.getApprovedAt());
         }
     }
 
@@ -121,7 +129,10 @@ public final class PaymentQueryDto {
     public static class SettlementHistoryData {
 
         private final Long jobId;
+        // 제안 결제는 null
         private final Long jobApplicationId;
+        // 일반 결제는 null
+        private final Long proposalId;
         private final Long amount;
         private final Long studentCompensationAmount;
         private final PaymentStatus status;
@@ -129,9 +140,9 @@ public final class PaymentQueryDto {
         private final Instant refundedAt;
 
         public static SettlementHistoryData from(Payment payment) {
-            return new SettlementHistoryData(payment.getJobId(), payment.getJobApplicationId(), payment.getAmount(),
-                    payment.getStudentCompensationAmount(), payment.getStatus(), payment.getApprovedAt(),
-                    payment.getRefundedAt());
+            return new SettlementHistoryData(payment.getJobId(), payment.getJobApplicationId(),
+                    payment.getProposalId(), payment.getAmount(), payment.getStudentCompensationAmount(),
+                    payment.getStatus(), payment.getApprovedAt(), payment.getRefundedAt());
         }
     }
 

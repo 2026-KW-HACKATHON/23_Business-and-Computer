@@ -36,7 +36,9 @@ import com.gakkum.backend.domain.payment.dto.PaymentQueryDto.PaymentHistoryMonth
 import com.gakkum.backend.domain.payment.dto.PaymentQueryDto.PaymentHistoryResult;
 import com.gakkum.backend.domain.payment.dto.PaymentQueryDto.PaymentHistorySummaryResult;
 import com.gakkum.backend.domain.payment.dto.PaymentQueryDto.PreparePaymentResult;
-import com.gakkum.backend.domain.payment.dto.PaymentQueryDto.ApprovedPaymentData;
+import com.gakkum.backend.domain.job.entity.JobStatus;
+import com.gakkum.backend.domain.payment.dto.PaymentCommandDto.PrepareProposalPaymentCommand;
+import com.gakkum.backend.domain.payment.dto.PaymentQueryDto.ApprovedOrderData;
 import com.gakkum.backend.domain.payment.dto.PaymentQueryDto.SettlementHistoryItemResult;
 import com.gakkum.backend.domain.payment.dto.PaymentQueryDto.SettlementHistoryMonthResult;
 import com.gakkum.backend.domain.payment.dto.PaymentQueryDto.SettlementHistoryResult;
@@ -135,10 +137,106 @@ class PaymentControllerTest {
     }
 
     @Test
+    @DisplayName("제안 결제 준비 요청은 인증 사용자·제안 ID·수정 횟수·한마디를 전달하고 기존 결제 준비 형식으로 주문 정보를 반환한다")
+    void preparesProposalPayment() throws Exception {
+        when(paymentFacade.prepareProposalPayment(any(PrepareProposalPaymentCommand.class)))
+                .thenReturn(PreparePaymentResult.of("order-123", 50_000L, "메뉴판 개선 제안",
+                        "https://pay.example/pc", "https://pay.example/mobile"));
+
+        mockMvc.perform(post("/proposals/31/payments")
+                        .principal(authentication)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"revisionCount\":2,\"messageToStudent\":\"  매장 분위기에 맞춰 주세요.  \","
+                                + "\"refundPolicyAgreed\":true}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.orderId").value("order-123"))
+                .andExpect(jsonPath("$.data.amount").value(50000))
+                .andExpect(jsonPath("$.data.orderName").value("메뉴판 개선 제안"))
+                .andExpect(jsonPath("$.data.nextRedirectPcUrl").value("https://pay.example/pc"))
+                .andExpect(jsonPath("$.data.nextRedirectMobileUrl").value("https://pay.example/mobile"));
+
+        ArgumentCaptor<PrepareProposalPaymentCommand> command =
+                ArgumentCaptor.forClass(PrepareProposalPaymentCommand.class);
+        verify(paymentFacade).prepareProposalPayment(command.capture());
+        assertThat(command.getValue().getUsername()).isEqualTo(USERNAME);
+        assertThat(command.getValue().getProposalId()).isEqualTo(31L);
+        assertThat(command.getValue().getRevisionCount()).isEqualTo(2);
+        assertThat(command.getValue().getMessageToStudent()).isEqualTo("매장 분위기에 맞춰 주세요.");
+    }
+
+    @Test
+    @DisplayName("제안 결제의 한마디가 없거나 비어 있으면 입력하지 않은 것으로 전달하고 수정 횟수 0도 허용한다")
+    void treatsBlankProposalMessageAsMissing() throws Exception {
+        when(paymentFacade.prepareProposalPayment(any(PrepareProposalPaymentCommand.class)))
+                .thenReturn(PreparePaymentResult.of("order-123", 50_000L, "메뉴판 개선 제안", "pc", "mobile"));
+
+        for (String body : new String[] {
+                "{\"revisionCount\":0,\"refundPolicyAgreed\":true}",
+                "{\"revisionCount\":0,\"messageToStudent\":\"\",\"refundPolicyAgreed\":true}",
+                "{\"revisionCount\":0,\"messageToStudent\":\"   \",\"refundPolicyAgreed\":true}" }) {
+            mockMvc.perform(post("/proposals/31/payments")
+                            .principal(authentication)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(body))
+                    .andExpect(status().isOk());
+        }
+
+        ArgumentCaptor<PrepareProposalPaymentCommand> command =
+                ArgumentCaptor.forClass(PrepareProposalPaymentCommand.class);
+        verify(paymentFacade, org.mockito.Mockito.times(3)).prepareProposalPayment(command.capture());
+        assertThat(command.getAllValues()).allSatisfy(value -> {
+            assertThat(value.getRevisionCount()).isZero();
+            assertThat(value.getMessageToStudent()).isNull();
+        });
+    }
+
+    @Test
+    @DisplayName("제안 결제의 수정 횟수가 없거나 음수이거나, 환불 정책에 동의하지 않았거나, 제안 ID가 양수가 아니면 400을 반환한다")
+    void rejectsInvalidProposalPaymentRequest() throws Exception {
+        for (String body : new String[] {
+                "{\"refundPolicyAgreed\":true}",
+                "{\"revisionCount\":-1,\"refundPolicyAgreed\":true}",
+                "{\"revisionCount\":2}",
+                "{\"revisionCount\":2,\"refundPolicyAgreed\":false}" }) {
+            mockMvc.perform(post("/proposals/31/payments")
+                            .principal(authentication)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(body))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.error.code").value("COMMON_400"));
+        }
+        mockMvc.perform(post("/proposals/0/payments")
+                        .principal(authentication)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"revisionCount\":2,\"refundPolicyAgreed\":true}"))
+                .andExpect(status().isBadRequest());
+        verifyNoInteractions(paymentFacade);
+    }
+
+    @Test
+    @DisplayName("제안 결제 승인은 기존 응답에 수락 대기 의뢰 ID와 상태를 더해 반환한다")
+    void approvesProposalPayment() throws Exception {
+        when(paymentFacade.approvePayment(USERNAME, "order-123", "pg-123"))
+                .thenReturn(new ApprovedOrderData("order-123", 50_000L, Instant.parse("2026-10-05T03:00:00Z"),
+                        42L, JobStatus.AWAITING_START));
+
+        mockMvc.perform(post("/payments/order-123/approve")
+                        .principal(authentication)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"pgToken\":\"pg-123\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.status").value("PAID"))
+                .andExpect(jsonPath("$.data.jobId").value(42))
+                .andExpect(jsonPath("$.data.jobStatus").value("AWAITING_START"));
+    }
+
+    @Test
     @DisplayName("승인 요청은 인증 사용자와 주문번호 및 토큰을 전달하고 PAID를 반환한다")
     void approvesPayment() throws Exception {
         when(paymentFacade.approvePayment(USERNAME, "order-123", "pg-123"))
-                .thenReturn(new ApprovedPaymentData("order-123", 100_000L, Instant.parse("2026-09-26T00:00:00Z")));
+                .thenReturn(new ApprovedOrderData("order-123", 100_000L, Instant.parse("2026-09-26T00:00:00Z"),
+                        42L, JobStatus.MATCHED));
 
         mockMvc.perform(post("/payments/order-123/approve")
                         .principal(authentication)
@@ -148,7 +246,9 @@ class PaymentControllerTest {
                 .andExpect(jsonPath("$.data.orderId").value("order-123"))
                 .andExpect(jsonPath("$.data.status").value("PAID"))
                 .andExpect(jsonPath("$.data.amount").value(100000))
-                .andExpect(jsonPath("$.data.approvedAt").value("2026-09-26T00:00:00Z"));
+                .andExpect(jsonPath("$.data.approvedAt").value("2026-09-26T00:00:00Z"))
+                .andExpect(jsonPath("$.data.jobId").value(42))
+                .andExpect(jsonPath("$.data.jobStatus").value("MATCHED"));
         verify(paymentFacade).approvePayment(USERNAME, "order-123", "pg-123");
     }
 

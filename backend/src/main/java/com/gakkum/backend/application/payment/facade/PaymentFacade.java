@@ -5,9 +5,13 @@ import java.time.LocalDate;
 import java.time.YearMonth;
 import java.time.ZoneId;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.function.Supplier;
 
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -29,7 +33,8 @@ import com.gakkum.backend.domain.payment.dto.PaymentQueryDto.PaymentHistoryMonth
 import com.gakkum.backend.domain.payment.dto.PaymentQueryDto.PaymentHistoryResult;
 import com.gakkum.backend.domain.payment.dto.PaymentQueryDto.PaymentHistorySummaryResult;
 import com.gakkum.backend.domain.payment.dto.PaymentQueryDto.PendingPaymentData;
-import com.gakkum.backend.domain.payment.dto.PaymentQueryDto.ApprovedPaymentData;
+import com.gakkum.backend.domain.payment.dto.PaymentCommandDto.PrepareProposalPaymentCommand;
+import com.gakkum.backend.domain.payment.dto.PaymentQueryDto.ApprovedOrderData;
 import com.gakkum.backend.domain.payment.dto.PaymentQueryDto.PreparePaymentResult;
 import com.gakkum.backend.domain.payment.dto.PaymentQueryDto.SettlementHistoryData;
 import com.gakkum.backend.domain.payment.dto.PaymentQueryDto.SettlementHistoryItemResult;
@@ -37,6 +42,7 @@ import com.gakkum.backend.domain.payment.dto.PaymentQueryDto.SettlementHistoryMo
 import com.gakkum.backend.domain.payment.dto.PaymentQueryDto.SettlementHistoryResult;
 import com.gakkum.backend.domain.payment.dto.PaymentQueryDto.SettlementHistorySummaryResult;
 import com.gakkum.backend.domain.payment.dto.SettlementHistoryStatus;
+import com.gakkum.backend.domain.payment.entity.Payment;
 import com.gakkum.backend.domain.payment.entity.PaymentStatus;
 import com.gakkum.backend.domain.payment.service.PaymentService;
 import com.gakkum.backend.domain.student.entity.Student;
@@ -48,7 +54,9 @@ import com.gakkum.backend.global.exception.BusinessException;
 import com.gakkum.backend.global.exception.ErrorCode;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class PaymentFacade {
@@ -66,12 +74,53 @@ public class PaymentFacade {
     private final OwnerService ownerService;
     private final Clock clock;
 
-    public ApprovedPaymentData approvePayment(String username, String orderId, String pgToken) {
+    public ApprovedOrderData approvePayment(String username, String orderId, String pgToken) {
         return approvalService.approve(username, orderId, pgToken);
     }
 
     public PreparePaymentResult preparePayment(String username, Long jobId, PaymentPrepareRequest request) {
-        PendingPaymentData pending = preparationService.createPending(username, jobId, request);
+        PendingPaymentData pending;
+        try {
+            pending = preparationService.createPending(username, jobId, request);
+        } catch (BusinessException exception) {
+            recoverIfAlreadyPaid(exception, username, () -> paymentService.findPendingPayment(jobId));
+            throw exception;
+        }
+        return openPaymentWindow(pending);
+    }
+
+    /** 사장님이 받은 제안의 결제를 준비한다. 결제창 준비는 일반 결제와 같은 경로를 쓴다. */
+    public PreparePaymentResult prepareProposalPayment(PrepareProposalPaymentCommand command) {
+        PendingPaymentData pending;
+        try {
+            pending = preparationService.createPendingForProposal(command);
+        } catch (BusinessException exception) {
+            recoverIfAlreadyPaid(exception, command.getUsername(),
+                    () -> paymentService.findPendingProposalPayment(command.getProposalId()));
+            throw exception;
+        }
+        return openPaymentWindow(pending);
+    }
+
+    /**
+     * 결제 준비가 '이미 결제됨'으로 거부됐을 때, 외부 승인 후 저장하지 못해 PENDING으로 남은 주문이 있으면 조회 결과로 복구한다.
+     * 준비 트랜잭션이 롤백된 뒤 별도 트랜잭션으로 기록해야 복구가 남는다. 복구에 실패해도 주문은 PENDING으로 남아
+     * 승인 재요청이나 다음 준비 요청에서 다시 복구할 수 있으므로 원래 거부 응답을 그대로 돌려준다.
+     */
+    private void recoverIfAlreadyPaid(
+            BusinessException exception, String username, Supplier<Optional<Payment>> pendingPayment) {
+        if (exception.getErrorCode() != ErrorCode.PAYMENT_ALREADY_PAID) {
+            return;
+        }
+        try {
+            pendingPayment.get().ifPresent(payment -> approvalService.recoverPaidOrder(username, payment.getOrderId()));
+        } catch (RuntimeException recoveryFailure) {
+            log.warn("Paid order recovery failed: {}", recoveryFailure.getMessage());
+        }
+    }
+
+    // 외부 결제창 준비가 DB 트랜잭션과 커넥션을 붙잡지 않도록 대기 주문 저장과 분리한다
+    private PreparePaymentResult openPaymentWindow(PendingPaymentData pending) {
         ReadyResult ready;
         try {
             ready = kakaoPayClient.ready(pending);
@@ -86,7 +135,7 @@ public class PaymentFacade {
 
     /**
      * 사장님 본인의 결제 내역. 승인 시각의 한국 시간 월별로 묶어 최신순으로 반환한다.
-     * 결제가 있으면 의뢰·지원서·학생 프로필·사용자를 중복 없이 모아 한 번씩만 조회한다. 참조 누락은 각 일괄 조회가 500으로 거부한다.
+     * 결제가 있으면 의뢰·지원서·학생 프로필·사용자를 중복 없이 모아 한 번씩만 조회한다. 제안 결제의 학생은 의뢰의 담당 학생이다. 참조 누락은 각 일괄 조회가 500으로 거부한다.
      * 요약 금액은 같은 내역에서 합산한다. 이번 달 결제액은 환불액을 빼지 않은 최초 결제액이고, 보관·정산 완료 금액은 전 기간 합계다.
      */
     @Transactional(readOnly = true)
@@ -105,12 +154,19 @@ public class PaymentFacade {
                 .map(PaymentHistoryData::getJobId)
                 .distinct()
                 .toList());
+        // 제안 결제는 지원서가 없다
         Map<Long, JobApplication> applicationsById = jobService.getJobApplicationsByIds(payments.stream()
                 .map(PaymentHistoryData::getJobApplicationId)
+                .filter(Objects::nonNull)
                 .distinct()
                 .toList());
-        Map<Long, Student> studentsById = studentService.getStudentProfilesByIds(applicationsById.values().stream()
-                .map(JobApplication::getStudentProfileId)
+        Map<Long, Long> studentProfileIdsByJobId = new HashMap<>();
+        for (PaymentHistoryData payment : payments) {
+            studentProfileIdsByJobId.put(payment.getJobId(),
+                    paidStudentProfileId(payment, jobsById.get(payment.getJobId()), applicationsById));
+        }
+        Map<Long, Student> studentsById = studentService.getStudentProfilesByIds(
+                studentProfileIdsByJobId.values().stream()
                 .distinct()
                 .toList());
         Map<String, User> studentUsersById = userService.getUsersByIds(studentsById.values().stream()
@@ -126,12 +182,7 @@ public class PaymentFacade {
         long totalSettledAmount = 0;
         for (PaymentHistoryData payment : payments) {
             Job job = jobsById.get(payment.getJobId());
-            JobApplication application = applicationsById.get(payment.getJobApplicationId());
-            // 예외: 결제가 가리키는 지원서가 다른 의뢰의 지원서인 경우
-            if (!application.getJobId().equals(payment.getJobId())) {
-                throw new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR);
-            }
-            Student student = studentsById.get(application.getStudentProfileId());
+            Student student = studentsById.get(studentProfileIdsByJobId.get(payment.getJobId()));
             PaymentHistoryStatus status = historyStatus(payment.getStatus(), job.getStatus());
             YearMonth approvedMonth = YearMonth.from(payment.getApprovedAt().atZone(HISTORY_ZONE));
             itemsByMonth.computeIfAbsent(approvedMonth, month -> new ArrayList<>())
@@ -157,7 +208,7 @@ public class PaymentFacade {
 
     /**
      * 학생 본인의 정산 내역. 결제 승인 시각의 한국 시간 월별로 묶어 최신순으로 반환한다.
-     * 본인 지원서에 연결된 결제만 조회하고, 의뢰와 매장 이름은 중복 없이 모아 한 번씩만 조회한다.
+     * 본인이 담당하는 의뢰에 연결된 결제만 조회해 제안 결제도 포함하고, 지원서와 매장 이름은 중복 없이 모아 한 번씩만 조회한다.
      * 요약 금액은 같은 내역의 학생 수령액을 합산한다. 이번 달 작업비는 이번 달 승인 건, 정산 예정·완료 금액은 전 기간 합계다.
      */
     @Transactional(readOnly = true)
@@ -169,18 +220,20 @@ public class PaymentFacade {
         }
         Student student = studentService.findStudentProfileByUserId(user.getId())
                 .orElseThrow(() -> new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR));
-        Map<Long, JobApplication> applicationsById = jobService.getJobApplicationsByStudentProfileId(student.getId());
-        List<SettlementHistoryData> payments = paymentService.getSettlementHistory(applicationsById.keySet());
+        Map<Long, Job> jobsById = jobService.getJobsBySelectedStudentProfileId(student.getId());
+        List<SettlementHistoryData> payments = paymentService.getSettlementHistory(jobsById.keySet());
         if (payments.isEmpty()) {
             return SettlementHistoryResult.of(SettlementHistorySummaryResult.of(0L, 0L, 0L), List.of());
         }
 
-        Map<Long, Job> jobsById = jobService.getJobsByIds(payments.stream()
-                .map(SettlementHistoryData::getJobId)
+        // 제안 결제는 지원서가 없다
+        Map<Long, JobApplication> applicationsById = jobService.getJobApplicationsByIds(payments.stream()
+                .map(SettlementHistoryData::getJobApplicationId)
+                .filter(Objects::nonNull)
                 .distinct()
                 .toList());
-        Map<Long, String> storeNamesByOwnerProfileId = ownerService.getStoreNames(jobsById.values().stream()
-                .map(Job::getOwnerProfileId)
+        Map<Long, String> storeNamesByOwnerProfileId = ownerService.getStoreNames(payments.stream()
+                .map(payment -> jobsById.get(payment.getJobId()).getOwnerProfileId())
                 .distinct()
                 .toList());
 
@@ -192,14 +245,22 @@ public class PaymentFacade {
         long totalSettledAmount = 0;
         for (SettlementHistoryData payment : payments) {
             Job job = jobsById.get(payment.getJobId());
-            JobApplication application = applicationsById.get(payment.getJobApplicationId());
-            // 예외: 본인 지원서가 아니거나, 결제가 가리키는 지원서가 다른 의뢰의 지원서인 경우
-            if (application == null || !application.getJobId().equals(payment.getJobId())) {
-                throw new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR);
-            }
             // 예외: 결제된 의뢰에 선택된 학생이 본인이 아닌 경우
             if (!student.getId().equals(job.getSelectedStudentProfileId())) {
                 throw new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR);
+            }
+            if (payment.getProposalId() != null) {
+                // 예외: 제안 결제가 가리키는 제안이 의뢰를 만든 제안이 아닌 경우
+                if (!payment.getProposalId().equals(job.getProposalId())) {
+                    throw new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR);
+                }
+            } else {
+                JobApplication application = applicationsById.get(payment.getJobApplicationId());
+                // 예외: 본인 지원서가 아니거나, 결제가 가리키는 지원서가 다른 의뢰의 지원서인 경우
+                if (application == null || !application.getStudentProfileId().equals(student.getId())
+                        || !application.getJobId().equals(payment.getJobId())) {
+                    throw new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR);
+                }
             }
             SettlementHistoryStatus status = settlementStatus(payment.getStatus(), job.getStatus());
             Long amount = settlementAmount(payment, status);
@@ -229,7 +290,9 @@ public class PaymentFacade {
 
     // 결제 상태와 의뢰 상태가 맞지 않는 내역은 임의 상태로 보여주지 않고 데이터 오류(500)로 거부한다
     private SettlementHistoryStatus settlementStatus(PaymentStatus paymentStatus, JobStatus jobStatus) {
-        if (paymentStatus == PaymentStatus.PAID && jobStatus == JobStatus.MATCHED) {
+        // 제안 결제 후 학생의 작업 시작을 기다리는 의뢰도 정산 예정이다
+        if (paymentStatus == PaymentStatus.PAID
+                && (jobStatus == JobStatus.MATCHED || jobStatus == JobStatus.AWAITING_START)) {
             return SettlementHistoryStatus.SCHEDULED;
         }
         if (paymentStatus == PaymentStatus.PAID && jobStatus == JobStatus.CLOSED) {
@@ -271,7 +334,9 @@ public class PaymentFacade {
 
     // 결제 상태와 의뢰 상태가 맞지 않는 내역은 임의 상태로 보여주지 않고 데이터 오류(500)로 거부한다
     private PaymentHistoryStatus historyStatus(PaymentStatus paymentStatus, JobStatus jobStatus) {
-        if (paymentStatus == PaymentStatus.PAID && jobStatus == JobStatus.MATCHED) {
+        // 제안 결제 후 학생의 작업 시작을 기다리는 의뢰도 보관 중이다
+        if (paymentStatus == PaymentStatus.PAID
+                && (jobStatus == JobStatus.MATCHED || jobStatus == JobStatus.AWAITING_START)) {
             return PaymentHistoryStatus.HELD;
         }
         if (paymentStatus == PaymentStatus.PAID && jobStatus == JobStatus.CLOSED) {
@@ -281,6 +346,24 @@ public class PaymentFacade {
             return PaymentHistoryStatus.PARTIALLY_REFUNDED;
         }
         throw new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR);
+    }
+
+    // 결제된 의뢰를 담당하는 학생. 일반 결제는 결제한 지원서의 학생, 제안 결제는 제안한 학생(의뢰의 담당 학생)이다
+    private Long paidStudentProfileId(
+            PaymentHistoryData payment, Job job, Map<Long, JobApplication> applicationsById) {
+        if (payment.getProposalId() != null) {
+            // 예외: 제안 결제가 가리키는 제안이 의뢰를 만든 제안이 아니거나 담당 학생이 없는 경우
+            if (!payment.getProposalId().equals(job.getProposalId()) || job.getSelectedStudentProfileId() == null) {
+                throw new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR);
+            }
+            return job.getSelectedStudentProfileId();
+        }
+        JobApplication application = applicationsById.get(payment.getJobApplicationId());
+        // 예외: 결제가 가리키는 지원서가 다른 의뢰의 지원서인 경우
+        if (!application.getJobId().equals(payment.getJobId())) {
+            throw new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR);
+        }
+        return application.getStudentProfileId();
     }
 
     private Long refundAmount(PaymentHistoryData payment) {

@@ -1,0 +1,94 @@
+package com.gakkum.backend.domain.proposal.entity;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
+import java.time.LocalDate;
+
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
+
+import com.gakkum.backend.global.exception.BusinessException;
+import com.gakkum.backend.global.exception.ErrorCode;
+
+class ProposalTest {
+
+    @Test
+    @DisplayName("결제 전 제안은 결제 승인으로 수락 대기가 되고 학생의 작업 시작으로 수락된다")
+    void movesFromPendingToAwaitingStartToAccepted() {
+        Proposal proposal = proposal(ProposalStatus.PENDING);
+
+        proposal.awaitStart();
+        assertThat(proposal.getStatus()).isEqualTo(ProposalStatus.AWAITING_START);
+
+        proposal.accept();
+        assertThat(proposal.getStatus()).isEqualTo(ProposalStatus.ACCEPTED);
+    }
+
+    @ParameterizedTest
+    @EnumSource(value = ProposalStatus.class, names = "PENDING", mode = EnumSource.Mode.EXCLUDE)
+    @DisplayName("결제 전이 아닌 제안은 다시 수락 대기로 넘기지 않고 409로 거부한다")
+    void rejectsAwaitStartUnlessPending(ProposalStatus status) {
+        Proposal proposal = proposal(status);
+
+        assertThatThrownBy(proposal::awaitStart)
+                .isInstanceOfSatisfying(BusinessException.class, exception ->
+                        assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.PROPOSAL_PAYMENT_NOT_AVAILABLE));
+        assertThat(proposal.getStatus()).isEqualTo(status);
+    }
+
+    @Test
+    @DisplayName("이미 수락된 제안의 작업 시작 재요청은 상태를 그대로 둔다")
+    void acceptIsIdempotent() {
+        Proposal proposal = proposal(ProposalStatus.ACCEPTED);
+
+        proposal.accept();
+
+        assertThat(proposal.getStatus()).isEqualTo(ProposalStatus.ACCEPTED);
+    }
+
+    @ParameterizedTest
+    @EnumSource(value = ProposalStatus.class, names = { "PENDING", "REJECTED" })
+    @DisplayName("결제되지 않았거나 거절된 제안은 수락하지 않고 409로 거부한다")
+    void rejectsAcceptWithoutPayment(ProposalStatus status) {
+        Proposal proposal = proposal(status);
+
+        assertThatThrownBy(proposal::accept)
+                .isInstanceOfSatisfying(BusinessException.class, exception ->
+                        assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.JOB_START_NOT_AVAILABLE));
+        assertThat(proposal.getStatus()).isEqualTo(status);
+    }
+
+    @Test
+    @DisplayName("마감일은 기준일에 초안·최종 기간을 더하고 기간이 0이면 기준일 당일이다")
+    void calculatesDeadlinesFromBaseDate() {
+        LocalDate base = LocalDate.of(2026, 10, 30);
+
+        Proposal proposal = Proposal.builder().draftDays(3).finalDays(7).build();
+        assertThat(proposal.draftDeadlineFrom(base)).isEqualTo(LocalDate.of(2026, 11, 2));
+        assertThat(proposal.finalDeadlineFrom(base)).isEqualTo(LocalDate.of(2026, 11, 6));
+
+        Proposal sameDay = Proposal.builder().draftDays(0).finalDays(0).build();
+        assertThat(sameDay.draftDeadlineFrom(base)).isEqualTo(base);
+        assertThat(sameDay.finalDeadlineFrom(base)).isEqualTo(base);
+    }
+
+    @Test
+    @DisplayName("의뢰 설명은 고객 문제·해결 방안·작업 계획을 제목으로 구분해 합친다")
+    void buildsJobDescription() {
+        Proposal proposal = Proposal.builder()
+                .customerProblem("메뉴를 알아보기 어렵습니다.")
+                .proposedSolution("사진 메뉴판으로 바꿉니다.")
+                .workPlan("촬영 후 편집합니다.")
+                .build();
+
+        assertThat(proposal.toJobDescription()).isEqualTo(
+                "[고객 문제]\n메뉴를 알아보기 어렵습니다.\n\n[해결 방안]\n사진 메뉴판으로 바꿉니다.\n\n[작업 계획]\n촬영 후 편집합니다.");
+    }
+
+    private Proposal proposal(ProposalStatus status) {
+        return Proposal.builder().id(5L).status(status).build();
+    }
+}

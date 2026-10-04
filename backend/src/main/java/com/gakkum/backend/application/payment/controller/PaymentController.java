@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.gakkum.backend.application.payment.dto.PaymentPrepareRequest;
 import com.gakkum.backend.application.payment.dto.PaymentPrepareResponse;
+import com.gakkum.backend.application.payment.dto.ProposalPaymentPrepareRequest;
 import com.gakkum.backend.application.payment.dto.PaymentApproveRequest;
 import com.gakkum.backend.application.payment.dto.PaymentApproveResponse;
 import com.gakkum.backend.application.payment.dto.PaymentHistoryResponse;
@@ -34,6 +35,17 @@ public class PaymentController {
             @Valid @RequestBody PaymentPrepareRequest request) {
         PaymentPrepareResponse response = PaymentPrepareResponse.from(
                 paymentFacade.preparePayment(authentication.getName(), jobId, request));
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    /** 사장님이 받은 제안을 결제하기 위해 결제창을 준비하는 API. 금액과 학생은 서버가 제안에서 정한다 */
+    @PostMapping("/proposals/{proposalId}/payments")
+    public ResponseEntity<ApiResponse<PaymentPrepareResponse>> prepareProposalPayment(
+            Authentication authentication,
+            @PathVariable @Positive Long proposalId,
+            @Valid @RequestBody ProposalPaymentPrepareRequest request) {
+        PaymentPrepareResponse response = PaymentPrepareResponse.from(
+                paymentFacade.prepareProposalPayment(request.toCommand(authentication.getName(), proposalId)));
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
