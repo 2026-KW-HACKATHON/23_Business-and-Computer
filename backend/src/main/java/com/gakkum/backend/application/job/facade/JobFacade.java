@@ -25,6 +25,7 @@ import com.gakkum.backend.domain.job.client.JobSubmissionFileStorageClient;
 import com.gakkum.backend.domain.job.client.JobSubmissionFileStorageClient.PresignedFileUpload;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.CancelJobCommand;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.CompleteJobSubmissionCommand;
+import com.gakkum.backend.domain.job.dto.JobCommandDto.CreateJobApplicationCommand;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.CreateJobCommand;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.CreateJobSubmissionCommand;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.GetClosedJobsCommand;
@@ -45,6 +46,7 @@ import com.gakkum.backend.domain.job.dto.JobApplicationSort;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.ApplicantReviewResult;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.JobApplicantProfileResult;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.JobApplicantResult;
+import com.gakkum.backend.domain.job.dto.JobQueryDto.JobApplicationCreateResult;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.JobApplicationJobResult;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.JobApplicationListData;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.JobApplicationListResult;
@@ -256,6 +258,20 @@ public class JobFacade {
         return OpenJobListResult.of(jobs.stream()
                 .map(job -> OpenJobResult.of(job, groupSpecialties(job.getSpecialtyIds(), specialtiesById)))
                 .toList());
+    }
+
+    /**
+     * 학생 본인이 모집 중 의뢰에 지원한다. 학생이 아니거나 학생 프로필이 없으면 의뢰를 조회하기 전에 거부한다.
+     * 사용자 확인이 의뢰 행 잠금을 붙잡지 않도록 이 메서드에는 트랜잭션을 두지 않는다.
+     */
+    public JobApplicationCreateResult createJobApplication(CreateJobApplicationCommand command) {
+        User user = userService.getActiveUser(command.getUsername());
+        if (user.getRole() != UserRole.STUDENT) {
+            throw new BusinessException(ErrorCode.JOB_APPLICATION_STUDENT_REQUIRED);
+        }
+        Student student = studentService.findStudentProfileByUserId(user.getId())
+                .orElseThrow(() -> new BusinessException(ErrorCode.JOB_APPLICATION_STUDENT_REQUIRED));
+        return JobApplicationCreateResult.from(jobService.createJobApplication(command, student.getId()));
     }
 
     /**

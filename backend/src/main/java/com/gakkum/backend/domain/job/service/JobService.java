@@ -17,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.gakkum.backend.domain.job.dto.JobCommandDto.CancelJobCommand;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.CompleteJobSubmissionCommand;
+import com.gakkum.backend.domain.job.dto.JobCommandDto.CreateJobApplicationCommand;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.CreateJobCommand;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.CreateJobSubmissionCommand;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.GetClosedJobsCommand;
@@ -199,6 +200,39 @@ public class JobService {
                 ? jobSubmissionRepository.findFirstByJobIdOrderByRevisionNumberDesc(jobId).orElse(null)
                 : null;
         return JobDetailData.of(job, specialtyIds, calculateProgressStage(job, latest));
+    }
+
+    /**
+     * 학생이 모집 중(OPEN) 의뢰에 지원한다. 작업 마감일이 지나도 모집 중이면 지원할 수 있다.
+     * 의뢰 행을 잠가 같은 의뢰의 결제 선정·취소·다른 지원과 순서대로 처리하고, 의뢰 상태와 선정 학생은 바꾸지 않는다.
+     * 같은 학생의 재지원은 기존 지원서 상태와 무관하게 거부하며, 유니크 제약 충돌도 중복 지원으로 본다.
+     * @param command
+     * @param studentProfileId
+     * @return 저장된 대기 중(PENDING) 지원서
+     */
+    @Transactional
+    public JobApplication createJobApplication(CreateJobApplicationCommand command, Long studentProfileId) {
+        Job job = jobRepository.findLockedById(command.getJobId())
+                .orElseThrow(() -> new BusinessException(ErrorCode.JOB_NOT_FOUND));
+        if (job.getStatus() != JobStatus.OPEN) {
+            throw new BusinessException(ErrorCode.JOB_APPLICATION_NOT_AVAILABLE);
+        }
+        if (jobApplicationRepository.existsByJobIdAndStudentProfileId(job.getId(), studentProfileId)) {
+            throw new BusinessException(ErrorCode.JOB_APPLICATION_ALREADY_EXISTS);
+        }
+
+        try {
+            return jobApplicationRepository.saveAndFlush(JobApplication.create(
+                    studentProfileId, job.getId(), command.getSummary(), command.getWorkPlan(),
+                    command.getDeliveryMethod()));
+        } catch (DataIntegrityViolationException exception) {
+            // 다른 무결성 오류(길이·NOT NULL 등)는 중복 지원이 아니므로 그대로 올린다
+            String message = exception.getMessage();
+            if (message != null && message.contains(JobApplication.JOB_STUDENT_UNIQUE_CONSTRAINT)) {
+                throw new BusinessException(ErrorCode.JOB_APPLICATION_ALREADY_EXISTS);
+            }
+            throw exception;
+        }
     }
 
     /**

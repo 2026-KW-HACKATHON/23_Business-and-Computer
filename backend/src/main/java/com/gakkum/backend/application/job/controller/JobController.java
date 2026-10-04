@@ -11,6 +11,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.gakkum.backend.application.job.dto.JobApplicantProfileResponse;
+import com.gakkum.backend.application.job.dto.JobApplicationCreateRequest;
+import com.gakkum.backend.application.job.dto.JobApplicationCreateResponse;
 import com.gakkum.backend.application.job.dto.JobApplicationListResponse;
 import com.gakkum.backend.application.job.dto.JobCancelRequest;
 import com.gakkum.backend.application.job.dto.JobCancelResponse;
@@ -49,6 +51,19 @@ public class JobController {
         }
         JobDetailResponse.Detail response = JobDetailResponse.Detail.from(jobFacade.getJobDetail(authentication.getName(), jobId));
         return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    /** 학생이 모집 중 의뢰에 지원서를 작성하는 API(마감 준수·페널티 확인 동의 필수) */
+    @PostMapping("/jobs/{jobId}/applications")
+    public ResponseEntity<ApiResponse<JobApplicationCreateResponse>> createJobApplication(
+            Authentication authentication, @PathVariable Long jobId,
+            @Valid @RequestBody JobApplicationCreateRequest request) {
+        if (jobId <= 0) {
+            throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE);
+        }
+        JobApplicationCreateResponse response = JobApplicationCreateResponse.from(
+                jobFacade.createJobApplication(request.toCommand(authentication.getName(), jobId)));
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(response));
     }
 
     /** 사장님이 본인의 모집 중 의뢰에 지원한 대기 중 지원자 전체를 조회하는 API(sort 생략 시 최신 지원순) */

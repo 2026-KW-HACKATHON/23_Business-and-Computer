@@ -225,6 +225,20 @@ public final class JobQueryDto {
     @Getter
     @Builder(access = AccessLevel.PRIVATE)
     @AllArgsConstructor(access = AccessLevel.PRIVATE)
+    public static class JobApplicationCreateResult {
+
+        private final Long jobApplicationId;
+
+        public static JobApplicationCreateResult from(JobApplication application) {
+            return JobApplicationCreateResult.builder()
+                    .jobApplicationId(application.getId())
+                    .build();
+        }
+    }
+
+    @Getter
+    @Builder(access = AccessLevel.PRIVATE)
+    @AllArgsConstructor(access = AccessLevel.PRIVATE)
     public static class JobSubmissionCreateResult {
 
         private final Long submissionId;
