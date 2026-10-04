@@ -67,7 +67,7 @@ function OwnerApplicantsPage() {
             </TextButton>
           </div>
           <p className="owner-applicants__description">
-            전공·작업계획서·후기를 보고 맡길 학생을 골라 주세요
+            전공·지원서·후기를 보고 맡길 학생을 골라 주세요
           </p>
         </div>
 
