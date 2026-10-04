@@ -153,13 +153,18 @@ public final class JobCommandDto {
     @AllArgsConstructor(access = AccessLevel.PRIVATE)
     public static class CancelJobCommand {
 
+        private final String username;
         private final Long jobId;
-        private final Long ownerProfileId;
+        private final String cancelReason;
+        private final String messageToStudent;
 
-        public static CancelJobCommand of(Long jobId, Long ownerProfileId) {
+        public static CancelJobCommand of(
+                String username, Long jobId, String cancelReason, String messageToStudent) {
             return CancelJobCommand.builder()
+                    .username(username)
                     .jobId(jobId)
-                    .ownerProfileId(ownerProfileId)
+                    .cancelReason(cancelReason)
+                    .messageToStudent(messageToStudent)
                     .build();
         }
     }

@@ -67,6 +67,14 @@ public class Job {
     @Column(name = "completed_at")
     private LocalDateTime completedAt;
 
+    // 사장님이 취소 시 입력한 취소 이유. 취소되지 않았거나 입력 도입 전 취소 건은 null
+    @Column(name = "cancel_reason", columnDefinition = "TEXT")
+    private String cancelReason;
+
+    // 사장님이 취소 시 학생에게 남긴 말. 취소되지 않았거나 입력 도입 전 취소 건은 null
+    @Column(name = "message_to_student", columnDefinition = "TEXT")
+    private String messageToStudent;
+
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
@@ -116,12 +124,14 @@ public class Job {
         this.completedAt = completedAt;
     }
 
-    /** 모집 중(OPEN) 또는 진행 중(MATCHED) 의뢰만 취소(CANCELLED)하고 종료 시각을 기록한다. */
-    public void cancel(LocalDateTime cancelledAt) {
+    /** 모집 중(OPEN) 또는 진행 중(MATCHED) 의뢰만 취소(CANCELLED)하고 종료 시각과 취소 이유·남길 말을 기록한다. */
+    public void cancel(LocalDateTime cancelledAt, String cancelReason, String messageToStudent) {
         if (status != JobStatus.OPEN && status != JobStatus.MATCHED) {
             throw new BusinessException(ErrorCode.JOB_CANCEL_NOT_AVAILABLE);
         }
         status = JobStatus.CANCELLED;
         this.completedAt = cancelledAt;
+        this.cancelReason = cancelReason;
+        this.messageToStudent = messageToStudent;
     }
 }

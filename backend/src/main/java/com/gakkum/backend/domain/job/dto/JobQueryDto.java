@@ -373,6 +373,8 @@ public final class JobQueryDto {
         private final Long studentCompensationAmount;
         private final Long refundAmount;
         private final LocalDateTime cancelledAt;
+        private final String cancelReason;
+        private final String messageToStudent;
 
         public static JobCancelResult of(Job job, RefundedPaymentData refund) {
             return JobCancelResult.builder()
@@ -382,6 +384,8 @@ public final class JobQueryDto {
                     .studentCompensationAmount(refund == null ? 0L : refund.studentCompensationAmount())
                     .refundAmount(refund == null ? 0L : refund.refundAmount())
                     .cancelledAt(job.getCompletedAt())
+                    .cancelReason(job.getCancelReason())
+                    .messageToStudent(job.getMessageToStudent())
                     .build();
         }
     }

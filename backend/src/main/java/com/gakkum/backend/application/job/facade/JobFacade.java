@@ -208,11 +208,11 @@ public class JobFacade {
 
     /** 사장님 본인 의뢰를 취소한다. 결제 후 진행 중이던 의뢰는 학생 보상금을 뺀 금액을 환불 처리한다. */
     @Transactional
-    public JobCancelResult cancelJob(String username, Long jobId) {
-        User user = userService.getActiveUser(username);
+    public JobCancelResult cancelJob(CancelJobCommand command) {
+        User user = userService.getActiveUser(command.getUsername());
         Owner owner = ownerService.getOwnerProfile(user.getId());
-        CancelledJobData cancelled = jobService.cancelJob(CancelJobCommand.of(jobId, owner.getId()));
-        RefundedPaymentData refund = cancelled.isPaid() ? paymentService.refundOnCancel(jobId) : null;
+        CancelledJobData cancelled = jobService.cancelJob(command, owner.getId());
+        RefundedPaymentData refund = cancelled.isPaid() ? paymentService.refundOnCancel(command.getJobId()) : null;
         return JobCancelResult.of(cancelled.getJob(), refund);
     }
 

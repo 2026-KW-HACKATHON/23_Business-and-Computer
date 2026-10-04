@@ -332,14 +332,15 @@ public class JobService {
      * 사장님 본인의 모집 중(OPEN) 또는 진행 중(MATCHED) 의뢰를 취소한다.
      * 의뢰 행을 잠가 같은 의뢰의 결제 승인·제출물 검토와 순서대로 처리한다.
      * @param command
+     * @param ownerProfileId
      * @return 취소된 의뢰와 취소 전 결제 완료(MATCHED) 여부
      */
     @Transactional
-    public CancelledJobData cancelJob(CancelJobCommand command) {
-        Job job = jobRepository.findByIdAndOwnerProfileId(command.getJobId(), command.getOwnerProfileId())
+    public CancelledJobData cancelJob(CancelJobCommand command, Long ownerProfileId) {
+        Job job = jobRepository.findByIdAndOwnerProfileId(command.getJobId(), ownerProfileId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.JOB_NOT_FOUND));
         boolean paid = job.getStatus() == JobStatus.MATCHED;
-        job.cancel(now());
+        job.cancel(now(), command.getCancelReason(), command.getMessageToStudent());
         return CancelledJobData.of(job, paid);
     }
 

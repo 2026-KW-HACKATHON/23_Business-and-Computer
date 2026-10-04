@@ -203,7 +203,7 @@ class ReviewRepositoryIntegrationTest {
             job.complete(LocalDateTime.now());
         }
         if (cancelled) {
-            job.cancel(LocalDateTime.now());
+            job.cancel(LocalDateTime.now(), "취소 이유", "남길 말");
         }
         Job saved = jobRepository.saveAndFlush(job);
         jobIds.add(saved.getId());

@@ -20,6 +20,8 @@ public class JobCancelResponse {
     private final Long studentCompensationAmount;
     private final Long refundAmount;
     private final LocalDateTime cancelledAt;
+    private final String cancelReason;
+    private final String messageToStudent;
 
     public static JobCancelResponse from(JobCancelResult result) {
         return JobCancelResponse.builder()
@@ -29,6 +31,8 @@ public class JobCancelResponse {
                 .studentCompensationAmount(result.getStudentCompensationAmount())
                 .refundAmount(result.getRefundAmount())
                 .cancelledAt(result.getCancelledAt())
+                .cancelReason(result.getCancelReason())
+                .messageToStudent(result.getMessageToStudent())
                 .build();
     }
 }

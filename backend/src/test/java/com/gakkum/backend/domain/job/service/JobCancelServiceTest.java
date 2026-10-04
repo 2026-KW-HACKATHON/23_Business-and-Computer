@@ -31,6 +31,8 @@ class JobCancelServiceTest {
 
     private static final Instant NOW = Instant.parse("2026-09-29T03:15:30Z");
     private static final LocalDateTime EXPECTED_CANCELLED_AT = LocalDateTime.ofInstant(NOW, ZoneId.systemDefault());
+    private static final CancelJobCommand COMMAND =
+            CancelJobCommand.of("KAKAO_12345", 42L, "매장 일정이 변경되었습니다.", "진행해 주셔서 감사합니다.");
 
     private final JobRepository jobRepository = mock(JobRepository.class);
     private final JobService jobService = new JobService(
@@ -42,12 +44,14 @@ class JobCancelServiceTest {
     void cancelsOpenJobWithoutPayment() {
         Job job = givenOwnedJob(JobStatus.OPEN);
 
-        CancelledJobData result = jobService.cancelJob(CancelJobCommand.of(42L, 5L));
+        CancelledJobData result = jobService.cancelJob(COMMAND, 5L);
 
         assertThat(result.getJob()).isSameAs(job);
         assertThat(result.isPaid()).isFalse();
         assertThat(job.getStatus()).isEqualTo(JobStatus.CANCELLED);
         assertThat(job.getCompletedAt()).isEqualTo(EXPECTED_CANCELLED_AT);
+        assertThat(job.getCancelReason()).isEqualTo("매장 일정이 변경되었습니다.");
+        assertThat(job.getMessageToStudent()).isEqualTo("진행해 주셔서 감사합니다.");
     }
 
     @Test
@@ -55,22 +59,26 @@ class JobCancelServiceTest {
     void cancelsMatchedJobAsPaid() {
         Job job = givenOwnedJob(JobStatus.MATCHED);
 
-        CancelledJobData result = jobService.cancelJob(CancelJobCommand.of(42L, 5L));
+        CancelledJobData result = jobService.cancelJob(COMMAND, 5L);
 
         assertThat(result.isPaid()).isTrue();
         assertThat(job.getStatus()).isEqualTo(JobStatus.CANCELLED);
         assertThat(job.getCompletedAt()).isEqualTo(EXPECTED_CANCELLED_AT);
+        assertThat(job.getCancelReason()).isEqualTo("매장 일정이 변경되었습니다.");
+        assertThat(job.getMessageToStudent()).isEqualTo("진행해 주셔서 감사합니다.");
     }
 
     @ParameterizedTest
     @EnumSource(value = JobStatus.class, names = { "CLOSED", "CANCELLED" })
-    @DisplayName("이미 종료되었거나 취소된 의뢰는 JOB_409_CANCEL로 거부하고 상태를 바꾸지 않는다")
+    @DisplayName("이미 종료되었거나 취소된 의뢰는 JOB_409_CANCEL로 거부하고 상태와 취소 입력을 바꾸지 않는다")
     void rejectsFinishedJob(JobStatus status) {
         Job job = givenOwnedJob(status);
 
-        assertError(() -> jobService.cancelJob(CancelJobCommand.of(42L, 5L)), ErrorCode.JOB_CANCEL_NOT_AVAILABLE);
+        assertError(() -> jobService.cancelJob(COMMAND, 5L), ErrorCode.JOB_CANCEL_NOT_AVAILABLE);
         assertThat(job.getStatus()).isEqualTo(status);
         assertThat(job.getCompletedAt()).isNull();
+        assertThat(job.getCancelReason()).isNull();
+        assertThat(job.getMessageToStudent()).isNull();
     }
 
     @Test
@@ -78,7 +86,7 @@ class JobCancelServiceTest {
     void rejectsOtherOwnersJob() {
         when(jobRepository.findByIdAndOwnerProfileId(42L, 5L)).thenReturn(Optional.empty());
 
-        assertError(() -> jobService.cancelJob(CancelJobCommand.of(42L, 5L)), ErrorCode.JOB_NOT_FOUND);
+        assertError(() -> jobService.cancelJob(COMMAND, 5L), ErrorCode.JOB_NOT_FOUND);
     }
 
     private Job givenOwnedJob(JobStatus status) {
