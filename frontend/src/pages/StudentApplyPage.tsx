@@ -24,7 +24,7 @@ import "./StudentDetailPage.css";
 import "./StudentApplyPage.css";
 
 /**
- * 피그마 「지원하기」. 작업계획서(한 줄 요약 · 작업 방법 · 결과물)를 쓰고
+ * 피그마 「지원하기」. 지원서(한 줄 요약 · 작업계획서 · 결과물)를 쓰고
  * 마감 약속에 동의하면 보낸다. 마감은 사장님이 의뢰에서 정했다. 보내면 「지원 완료 팝업창」.
  */
 function StudentApplyPage() {
@@ -84,9 +84,9 @@ function StudentApplyPage() {
         </div>
 
         <div className="student-apply__intro">
-          <h2 className="student-apply__title">작업계획서를 써 주세요</h2>
+          <h2 className="student-apply__title">지원서를 써 주세요</h2>
           <p className="student-apply__description">
-            사장님은 전공·작업계획서·후기를 보고 학생을 골라요
+            사장님은 전공·지원서·후기를 보고 학생을 골라요
           </p>
         </div>
 
@@ -98,7 +98,7 @@ function StudentApplyPage() {
           />
         </FormField>
 
-        <FormField label="작업 방법" hint="어떻게 만들고 검수할지 적어 주세요" wrapsInput>
+        <FormField label="작업계획서" hint="어떻게 만들고 검수할지 적어 주세요" wrapsInput>
           <TextAreaField
             value={method}
             maxLength={500}
