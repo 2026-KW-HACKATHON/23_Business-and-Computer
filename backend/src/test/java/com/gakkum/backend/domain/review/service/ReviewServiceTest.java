@@ -6,9 +6,12 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import org.junit.jupiter.api.DisplayName;
@@ -20,6 +23,7 @@ import com.gakkum.backend.domain.review.dto.ReviewCommandDto.CreateReviewCommand
 import com.gakkum.backend.domain.review.entity.Review;
 import com.gakkum.backend.domain.review.entity.ReviewPositivePoint;
 import com.gakkum.backend.domain.review.repository.ReviewRepository;
+import com.gakkum.backend.domain.review.repository.ReviewRepository.StudentAverageRating;
 import com.gakkum.backend.global.exception.BusinessException;
 import com.gakkum.backend.global.exception.ErrorCode;
 
@@ -118,5 +122,33 @@ class ReviewServiceTest {
         when(reviewRepository.findAverageRatingByStudentProfileId(7L)).thenReturn(null);
 
         assertThat(reviewService.getAverageRating(7L)).hasToString("0.0");
+    }
+
+    @Test
+    @DisplayName("학생별 평균 별점을 한 번에 조회해 HALF_UP으로 반올림하고 리뷰가 없는 학생은 0.0으로 채운다")
+    void returnsAverageRatingsForAllRequestedStudents() {
+        List<StudentAverageRating> rows = List.of(averageRating(7L, 4.25), averageRating(8L, 4.35));
+        when(reviewRepository.findAverageRatingsByStudentProfileIds(List.of(7L, 8L, 9L))).thenReturn(rows);
+
+        Map<Long, BigDecimal> ratings = reviewService.getAverageRatings(List.of(7L, 8L, 9L));
+
+        assertThat(ratings).containsOnlyKeys(7L, 8L, 9L);
+        assertThat(ratings.get(7L)).hasToString("4.3");
+        assertThat(ratings.get(8L)).hasToString("4.4");
+        assertThat(ratings.get(9L)).hasToString("0.0");
+    }
+
+    @Test
+    @DisplayName("대상 학생이 없으면 평균 별점을 조회하지 않는다")
+    void skipsAverageRatingQueryWithoutStudents() {
+        assertThat(reviewService.getAverageRatings(List.of())).isEmpty();
+        verifyNoInteractions(reviewRepository);
+    }
+
+    private static StudentAverageRating averageRating(Long studentProfileId, Double average) {
+        StudentAverageRating row = mock(StudentAverageRating.class);
+        when(row.getStudentProfileId()).thenReturn(studentProfileId);
+        when(row.getAverageRating()).thenReturn(average);
+        return row;
     }
 }
