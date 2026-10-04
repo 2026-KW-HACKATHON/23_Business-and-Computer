@@ -18,6 +18,7 @@ import com.gakkum.backend.domain.payment.dto.PaymentQueryDto.RefundedPaymentData
 import com.gakkum.backend.domain.review.entity.Review;
 import com.gakkum.backend.domain.student.entity.Student;
 import com.gakkum.backend.domain.user.entity.User;
+import com.gakkum.backend.domain.user.entity.UserRole;
 
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -56,8 +57,40 @@ public final class JobQueryDto {
         private final LocalDate finalDeadline;
         private final Integer revisionCount;
         private final JobProgressStage progressStage;
+        private final String status;
+        // 아래 취소 정보는 취소된 의뢰를 의뢰한 사장님 또는 선정 학생이 조회할 때만 채우고, 그 외에는 모두 null
+        private final String storeName;
+        private final String cancelledBy;
+        private final String cancelReason;
+        private final String messageToStudent;
+        private final Long refundAmount;
+        private final Long studentCompensationAmount;
+        private final LocalDateTime cancelledAt;
 
         public static JobDetailResult of(JobDetailData data, List<SpecialtyCategoryResult> specialtyCategories) {
+            return base(data, specialtyCategories).build();
+        }
+
+        /**
+         * 취소된 의뢰의 당사자에게 내리는 상세. 현재 취소는 사장님만 할 수 있어 취소한 사람은 항상 OWNER다.
+         * @param refund 결제 전(모집 중) 취소면 null이고 금액은 0으로 내린다
+         */
+        public static JobDetailResult ofCancelled(JobDetailData data, List<SpecialtyCategoryResult> specialtyCategories,
+                String storeName, RefundedPaymentData refund) {
+            Job job = data.getJob();
+            return base(data, specialtyCategories)
+                    .storeName(storeName)
+                    .cancelledBy(UserRole.OWNER.name())
+                    .cancelReason(job.getCancelReason())
+                    .messageToStudent(job.getMessageToStudent())
+                    .refundAmount(refund == null ? 0L : refund.refundAmount())
+                    .studentCompensationAmount(refund == null ? 0L : refund.studentCompensationAmount())
+                    .cancelledAt(job.getCompletedAt())
+                    .build();
+        }
+
+        private static JobDetailResultBuilder base(
+                JobDetailData data, List<SpecialtyCategoryResult> specialtyCategories) {
             Job job = data.getJob();
             return JobDetailResult.builder()
                     .id(job.getId())
@@ -69,7 +102,7 @@ public final class JobQueryDto {
                     .finalDeadline(job.getFinalDeadline())
                     .revisionCount(job.getRevisionCount())
                     .progressStage(data.getProgressStage())
-                    .build();
+                    .status(job.getStatus().name());
         }
     }
 

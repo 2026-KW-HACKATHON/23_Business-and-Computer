@@ -3,6 +3,7 @@ package com.gakkum.backend.domain.owner.service;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import org.springframework.data.domain.Limit;
@@ -74,6 +75,16 @@ public class OwnerService {
     public Owner getOwnerProfile(String userId) {
         return ownerRepository.findByUserId(userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.OWNER_PROFILE_NOT_FOUND));
+    }
+
+    /**
+     * 사용자 ID로 사장님 프로필 조회
+     * @param userId
+     * @return 사장님 프로필, 사장님 프로필이 없으면 빈 값
+     */
+    @Transactional(readOnly = true)
+    public Optional<Owner> findOwnerProfileByUserId(String userId) {
+        return ownerRepository.findByUserId(userId);
     }
 
     /**

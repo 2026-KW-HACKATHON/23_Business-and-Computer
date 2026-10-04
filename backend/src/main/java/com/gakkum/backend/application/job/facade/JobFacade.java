@@ -73,6 +73,7 @@ import com.gakkum.backend.domain.job.dto.JobQueryDto.StudentMatchedJobResult;
 import com.gakkum.backend.domain.job.dto.JobSubmissionFileType;
 import com.gakkum.backend.domain.job.entity.Job;
 import com.gakkum.backend.domain.job.entity.JobApplication;
+import com.gakkum.backend.domain.job.entity.JobStatus;
 import com.gakkum.backend.domain.job.entity.JobSubmission;
 import com.gakkum.backend.domain.job.service.JobService;
 import com.gakkum.backend.domain.owner.entity.Owner;
@@ -123,12 +124,41 @@ public class JobFacade {
         jobService.createJob(command);
     }
 
+    /**
+     * 의뢰 상세는 모든 활성 사용자가 조회한다. 취소된 의뢰의 취소 정보는 의뢰한 사장님과 선정 학생에게만 더한다.
+     * 결제 후(진행 중) 취소된 의뢰에는 선정 학생이 있고 환불 주문이 반드시 있어야 한다. 모집 중 취소는 결제가 없다.
+     */
     @Transactional(readOnly = true)
     public JobDetailResult getJobDetail(String username, Long jobId) {
-        userService.getActiveUser(username);
+        User user = userService.getActiveUser(username);
         JobDetailData data = jobService.getJobDetail(jobId);
         Map<Long, SpecialtyDetail> specialtiesById = specialtyCategoryService.getSpecialtyDetails(data.getSpecialtyIds());
-        return JobDetailResult.of(data, groupSpecialties(data.getSpecialtyIds(), specialtiesById));
+        List<SpecialtyCategoryResult> specialtyCategories = groupSpecialties(data.getSpecialtyIds(), specialtiesById);
+
+        Job job = data.getJob();
+        if (job.getStatus() != JobStatus.CANCELLED || !isCancellationParty(user, job)) {
+            return JobDetailResult.of(data, specialtyCategories);
+        }
+        Owner owner = ownerService.getOwnerProfileById(job.getOwnerProfileId());
+        RefundedPaymentData refund = job.getSelectedStudentProfileId() == null
+                ? null
+                : paymentService.getRefundedPayment(jobId);
+        return JobDetailResult.ofCancelled(data, specialtyCategories, owner.getStoreName(), refund);
+    }
+
+    /** 의뢰한 사장님 또는 선정 학생인지 확인한다. 해당 역할의 프로필이 없는 사용자는 당사자가 아니다. */
+    private boolean isCancellationParty(User user, Job job) {
+        if (user.getRole() == UserRole.OWNER) {
+            return ownerService.findOwnerProfileByUserId(user.getId())
+                    .filter(owner -> owner.getId().equals(job.getOwnerProfileId()))
+                    .isPresent();
+        }
+        if (user.getRole() == UserRole.STUDENT && job.getSelectedStudentProfileId() != null) {
+            return studentService.findStudentProfileByUserId(user.getId())
+                    .filter(student -> student.getId().equals(job.getSelectedStudentProfileId()))
+                    .isPresent();
+        }
+        return false;
     }
 
     @Transactional(readOnly = true)
