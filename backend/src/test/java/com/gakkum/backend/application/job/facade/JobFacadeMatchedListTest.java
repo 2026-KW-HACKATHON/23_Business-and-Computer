@@ -19,6 +19,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
 import com.gakkum.backend.application.job.dto.JobListResponse;
+import com.gakkum.backend.domain.certificate.service.CertificateService;
 import com.gakkum.backend.domain.chat.service.ChatAttachmentPolicy;
 import com.gakkum.backend.domain.job.client.JobSubmissionFileStorageClient;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.GetMatchedJobsCommand;
@@ -33,6 +34,7 @@ import com.gakkum.backend.domain.owner.entity.Owner;
 import com.gakkum.backend.domain.owner.repository.OwnerRepository;
 import com.gakkum.backend.domain.owner.service.OwnerService;
 import com.gakkum.backend.domain.payment.service.PaymentService;
+import com.gakkum.backend.domain.proposal.service.ProposalService;
 import com.gakkum.backend.domain.review.service.ReviewService;
 import com.gakkum.backend.domain.specialty.dto.SpecialtyQueryDto.SpecialtyDetail;
 import com.gakkum.backend.domain.specialty.service.SpecialtyCategoryService;
@@ -62,7 +64,7 @@ class JobFacadeMatchedListTest {
             userService, ownerService, jobService, specialtyCategoryService,
             mock(SpecialtyService.class), studentService,
             mock(JobSubmissionFileStorageClient.class), mock(ChatAttachmentPolicy.class), mock(PaymentService.class),
-                mock(ReviewService.class));
+                mock(ReviewService.class), mock(CertificateService.class), mock(ProposalService.class));
 
     @Test
     @DisplayName("사업주의 MATCHED 의뢰를 학생 정보와 특기, 제출물 정보로 조립한다")

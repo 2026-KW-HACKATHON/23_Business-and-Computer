@@ -21,6 +21,7 @@ import com.gakkum.backend.domain.job.dto.JobCommandDto.CreateJobCommand;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.CreateJobSubmissionCommand;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.GetClosedJobsCommand;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.GetExploreJobsCommand;
+import com.gakkum.backend.domain.job.dto.JobCommandDto.GetJobApplicantProfileCommand;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.GetJobApplicationsCommand;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.GetJobResultCommand;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.GetJobSubmissionCommand;
@@ -224,6 +225,36 @@ public class JobService {
         List<JobApplication> applications =
                 jobApplicationRepository.findByJobIdInAndStatus(jobIds, JobApplicationStatus.PENDING);
         return JobApplicationListData.of(job, specialtyIds, applications);
+    }
+
+    /**
+     * 사장님이 학생 프로필을 볼 수 있는 본인 의뢰의 지원서를 조회한다. 조회만 하므로 의뢰 행을 잠그지 않는다.
+     * 모집 중(OPEN)에는 대기 중(PENDING) 지원서, 매칭·완료(MATCHED·CLOSED) 후에는 선정된 학생의 지원서만 허용한다.
+     * 존재하지 않거나 다른 사장님의 의뢰는 같은 404, 취소된 본인 의뢰는 지원서를 확인하기 전에 409로 거부한다.
+     * 지원서가 없거나, 다른 의뢰의 지원서이거나, 조회 대상이 아닌 학생의 지원서면 모두 같은 404로 거부한다.
+     * @param command
+     * @return 프로필을 조회할 수 있는 학생의 지원서
+     */
+    @Transactional(readOnly = true)
+    public JobApplication getProfileViewableApplication(GetJobApplicantProfileCommand command) {
+        Job job = jobRepository.findById(command.getJobId())
+                .filter(found -> found.getOwnerProfileId().equals(command.getOwnerProfileId()))
+                .orElseThrow(() -> new BusinessException(ErrorCode.JOB_NOT_FOUND));
+        if (job.getStatus() == JobStatus.CANCELLED) {
+            throw new BusinessException(ErrorCode.JOB_APPLICATION_PROFILE_NOT_AVAILABLE);
+        }
+
+        return jobApplicationRepository.findById(command.getJobApplicationId())
+                .filter(application -> application.getJobId().equals(job.getId()))
+                .filter(application -> isProfileViewable(job, application))
+                .orElseThrow(() -> new BusinessException(ErrorCode.JOB_APPLICATION_NOT_FOUND));
+    }
+
+    private boolean isProfileViewable(Job job, JobApplication application) {
+        if (job.getStatus() == JobStatus.OPEN) {
+            return application.getStatus() == JobApplicationStatus.PENDING;
+        }
+        return application.getStudentProfileId().equals(job.getSelectedStudentProfileId());
     }
 
     /**

@@ -13,7 +13,9 @@ import com.gakkum.backend.domain.job.entity.JobProgressStage;
 import com.gakkum.backend.domain.job.entity.JobSubmission;
 import com.gakkum.backend.domain.job.entity.JobSubmissionReviewStatus;
 import com.gakkum.backend.domain.job.entity.JobSubmissionType;
+import com.gakkum.backend.domain.certificate.entity.StudentCertificate;
 import com.gakkum.backend.domain.payment.dto.PaymentQueryDto.RefundedPaymentData;
+import com.gakkum.backend.domain.review.entity.Review;
 import com.gakkum.backend.domain.student.entity.Student;
 import com.gakkum.backend.domain.user.entity.User;
 
@@ -628,6 +630,101 @@ public final class JobQueryDto {
                     .specialtyCategories(specialtyCategories)
                     .content(application.getContent())
                     .appliedAt(application.getCreatedAt())
+                    .build();
+        }
+    }
+
+    @Getter
+    @Builder(access = AccessLevel.PRIVATE)
+    @AllArgsConstructor(access = AccessLevel.PRIVATE)
+    public static class JobApplicantProfileResult {
+
+        private final ApplicantStudentResult student;
+        private final Long proposalCount;
+        private final Long completedJobCount;
+        private final List<SpecialtyCategoryResult> specialtyCategories;
+        private final List<ApplicantCertificateResult> certificates;
+        private final String portfolioUrl;
+        private final Integer reviewCount;
+        private final List<ApplicantReviewResult> reviews;
+
+        /** 리뷰 수는 반환하는 리뷰 목록의 길이다. */
+        public static JobApplicantProfileResult of(
+                Student student,
+                User studentUser,
+                long proposalCount,
+                long completedJobCount,
+                List<SpecialtyCategoryResult> specialtyCategories,
+                List<StudentCertificate> certificates,
+                List<ApplicantReviewResult> reviews) {
+            return JobApplicantProfileResult.builder()
+                    .student(ApplicantStudentResult.of(student, studentUser))
+                    .proposalCount(proposalCount)
+                    .completedJobCount(completedJobCount)
+                    .specialtyCategories(specialtyCategories)
+                    .certificates(certificates.stream()
+                            .map(ApplicantCertificateResult::from)
+                            .toList())
+                    .portfolioUrl(student.getPortfolioUrl())
+                    .reviewCount(reviews.size())
+                    .reviews(List.copyOf(reviews))
+                    .build();
+        }
+    }
+
+    @Getter
+    @Builder(access = AccessLevel.PRIVATE)
+    @AllArgsConstructor(access = AccessLevel.PRIVATE)
+    public static class ApplicantStudentResult {
+
+        private final Long studentProfileId;
+        private final String name;
+        private final String university;
+        private final String major;
+        private final String studentNumber;
+
+        public static ApplicantStudentResult of(Student student, User studentUser) {
+            return ApplicantStudentResult.builder()
+                    .studentProfileId(student.getId())
+                    .name(studentUser.getName())
+                    .university(student.getUniversity())
+                    .major(student.getMajor())
+                    .studentNumber(student.getStudentNumber())
+                    .build();
+        }
+    }
+
+    @Getter
+    @AllArgsConstructor(access = AccessLevel.PRIVATE)
+    public static class ApplicantCertificateResult {
+
+        private final String certificateName;
+        private final Integer acquiredYear;
+
+        public static ApplicantCertificateResult from(StudentCertificate certificate) {
+            return new ApplicantCertificateResult(certificate.getCertificateName(), certificate.getAcquiredYear());
+        }
+    }
+
+    @Getter
+    @Builder(access = AccessLevel.PRIVATE)
+    @AllArgsConstructor(access = AccessLevel.PRIVATE)
+    public static class ApplicantReviewResult {
+
+        private final String storeName;
+        private final String jobTitle;
+        private final String content;
+        private final Integer rating;
+        private final LocalDate createdAt;
+
+        /** 작성일은 서버 로컬 시각 기준 날짜만 내린다. 매장 이름과 의뢰 제목은 현재 값이다. */
+        public static ApplicantReviewResult of(Review review, String jobTitle, String storeName) {
+            return ApplicantReviewResult.builder()
+                    .storeName(storeName)
+                    .jobTitle(jobTitle)
+                    .content(review.getContent())
+                    .rating(review.getRating())
+                    .createdAt(review.getCreatedAt() == null ? null : review.getCreatedAt().toLocalDate())
                     .build();
         }
     }

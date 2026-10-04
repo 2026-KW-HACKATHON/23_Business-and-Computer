@@ -29,6 +29,8 @@ public enum ErrorCode {
     JOB_APPLICATION_NOT_FOUND(HttpStatus.NOT_FOUND, "JOB_APPLICATION_404", "존재하지 않는 지원서입니다."),
     JOB_APPLICATION_LIST_OWNER_REQUIRED(HttpStatus.FORBIDDEN, "JOB_APPLICATION_403_LIST_OWNER", "사장님만 지원자 목록을 조회할 수 있습니다."),
     JOB_APPLICATION_LIST_NOT_AVAILABLE(HttpStatus.CONFLICT, "JOB_APPLICATION_409_LIST_STATUS", "모집 중인 의뢰만 지원자 목록을 조회할 수 있습니다."),
+    JOB_APPLICATION_PROFILE_OWNER_REQUIRED(HttpStatus.FORBIDDEN, "JOB_APPLICATION_403_PROFILE_OWNER", "사장님만 지원자 프로필을 조회할 수 있습니다."),
+    JOB_APPLICATION_PROFILE_NOT_AVAILABLE(HttpStatus.CONFLICT, "JOB_APPLICATION_409_PROFILE_STATUS", "취소된 의뢰는 지원자 프로필을 조회할 수 없습니다."),
     CHAT_ROOM_NOT_FOUND(HttpStatus.NOT_FOUND, "CHAT_ROOM_404", "존재하지 않는 채팅방입니다."),
     CHAT_MESSAGE_NOT_FOUND(HttpStatus.NOT_FOUND, "CHAT_MESSAGE_404", "채팅방에서 메시지를 찾을 수 없습니다."),
     CHAT_FORBIDDEN(HttpStatus.FORBIDDEN, "CHAT_403", "채팅방에 접근할 수 없습니다."),

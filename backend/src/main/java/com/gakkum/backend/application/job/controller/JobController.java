@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.gakkum.backend.application.job.dto.JobApplicantProfileResponse;
 import com.gakkum.backend.application.job.dto.JobApplicationListResponse;
 import com.gakkum.backend.application.job.dto.JobCancelRequest;
 import com.gakkum.backend.application.job.dto.JobCancelResponse;
@@ -64,6 +65,18 @@ public class JobController {
                 : JobApplicationSort.find(sort).orElseThrow(() -> new BusinessException(ErrorCode.INVALID_INPUT_VALUE));
         JobApplicationListResponse response = JobApplicationListResponse.from(
                 jobFacade.getJobApplications(authentication.getName(), jobId, applicationSort));
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    /** 사장님이 본인 의뢰의 지원자(모집 중) 또는 선정 학생(매칭·완료 후)의 학생 정보와 활동 이력을 조회하는 API */
+    @GetMapping("/jobs/{jobId}/applications/{jobApplicationId}/profile")
+    public ResponseEntity<ApiResponse<JobApplicantProfileResponse>> getJobApplicantProfile(
+            Authentication authentication, @PathVariable Long jobId, @PathVariable Long jobApplicationId) {
+        if (jobId <= 0 || jobApplicationId <= 0) {
+            throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE);
+        }
+        JobApplicantProfileResponse response = JobApplicantProfileResponse.from(
+                jobFacade.getJobApplicantProfile(authentication.getName(), jobId, jobApplicationId));
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
