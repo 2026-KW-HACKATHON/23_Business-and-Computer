@@ -156,7 +156,7 @@ public final class JobQueryDto {
         /**
          * 결과물과 작업 이력을 만든다. 날짜는 서버 로컬 시각 기준이다.
          * 이력은 시작 → 제출물별(제출, 수정 요청) → 완료 순이며, 요청 시각이 기록되지 않은 과거 수정 요청은 날짜가 null이다.
-         * @param startedAt 결제 승인일
+         * @param startedAt 작업 시작일. 일반 의뢰는 결제 승인일, 제안 의뢰는 학생이 작업을 시작한 날
          */
         public static JobResultResult of(JobResultData data, User student, LocalDate startedAt) {
             Job job = data.getJob();
