@@ -43,8 +43,14 @@ public class JobApplication {
     @Column(name = "job_id", nullable = false)
     private Long jobId;
 
-    @Column(columnDefinition = "TEXT")
-    private String content;
+    @Column(nullable = false)
+    private String summary;
+
+    @Column(name = "work_plan", nullable = false, length = 500)
+    private String workPlan;
+
+    @Column(name = "delivery_method", nullable = false, length = 500)
+    private String deliveryMethod;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 30)

@@ -126,12 +126,11 @@ public class ChatFacade {
         List<Job> roomJobs = rooms.stream().map(room -> jobsById.get(room.getJobId())).toList();
         List<Long> jobIds = roomJobs.stream().map(Job::getId).toList();
         Map<Long, Counterpart> counterparts = findCounterparts(viewer.getRole(), roomJobs);
-        Map<Long, String> applicationContentByJob = jobApplicationRepository
+        Map<Long, JobApplication> selectedApplicationByJob = jobApplicationRepository
                 .findByJobIdInAndStatus(jobIds, JobApplicationStatus.ACCEPTED).stream()
                 .filter(application -> application.getStudentProfileId()
                         .equals(jobsById.get(application.getJobId()).getSelectedStudentProfileId()))
-                .filter(application -> application.getContent() != null)
-                .collect(Collectors.toMap(JobApplication::getJobId, JobApplication::getContent));
+                .collect(Collectors.toMap(JobApplication::getJobId, Function.identity()));
         List<JobSubmission> submissions = jobSubmissionRepository.findByJobIdIn(jobIds);
         Map<Long, JobSubmission> latestSubmissionByJob = submissions.stream()
                 .collect(Collectors.toMap(JobSubmission::getJobId, Function.identity(),
@@ -163,7 +162,7 @@ public class ChatFacade {
                     deadlineType == null ? null : deadlineType == DeadlineType.DRAFT
                             ? job.getDraftDeadline() : job.getFinalDeadline(),
                     latestSubmission == null ? null : latestSubmission.getReviewStatus(),
-                    applicationContentByJob.get(job.getId()));
+                    selectedApplicationByJob.get(job.getId()));
         }).toList();
     }
 

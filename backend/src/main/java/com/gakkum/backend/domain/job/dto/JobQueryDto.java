@@ -607,7 +607,9 @@ public final class JobQueryDto {
         private final BigDecimal averageRating;
         private final Long completedJobCount;
         private final List<SpecialtyCategoryResult> specialtyCategories;
-        private final String content;
+        private final String summary;
+        private final String workPlan;
+        private final String deliveryMethod;
         private final LocalDateTime appliedAt;
 
         /** appliedAt은 정렬에만 쓰고 응답에는 내리지 않는다. 지원 시각이 없는 기존 데이터는 null이다. */
@@ -628,7 +630,9 @@ public final class JobQueryDto {
                     .averageRating(averageRating)
                     .completedJobCount(completedJobCount)
                     .specialtyCategories(specialtyCategories)
-                    .content(application.getContent())
+                    .summary(application.getSummary())
+                    .workPlan(application.getWorkPlan())
+                    .deliveryMethod(application.getDeliveryMethod())
                     .appliedAt(application.getCreatedAt())
                     .build();
         }
