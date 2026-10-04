@@ -21,6 +21,7 @@ import com.gakkum.backend.domain.job.dto.JobCommandDto.CreateJobCommand;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.CreateJobSubmissionCommand;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.GetClosedJobsCommand;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.GetExploreJobsCommand;
+import com.gakkum.backend.domain.job.dto.JobCommandDto.GetJobApplicationsCommand;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.GetJobResultCommand;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.GetJobSubmissionCommand;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.GetMatchedJobsCommand;
@@ -30,6 +31,7 @@ import com.gakkum.backend.domain.job.dto.JobCommandDto.RequestJobSubmissionRevis
 import com.gakkum.backend.domain.job.dto.JobQueryDto.CancelledJobData;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.ClosedJobData;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.ExploreJobData;
+import com.gakkum.backend.domain.job.dto.JobQueryDto.JobApplicationListData;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.JobDetailData;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.JobResultData;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.JobSubmissionDetailData;
@@ -48,6 +50,7 @@ import com.gakkum.backend.domain.job.entity.JobSubmissionType;
 import com.gakkum.backend.domain.job.entity.JobStatus;
 import com.gakkum.backend.domain.job.repository.JobApplicationRepository;
 import com.gakkum.backend.domain.job.repository.JobRepository;
+import com.gakkum.backend.domain.job.repository.JobRepository.StudentJobCount;
 import com.gakkum.backend.domain.job.repository.JobSpecialtyRepository;
 import com.gakkum.backend.domain.job.repository.JobSubmissionRepository;
 import com.gakkum.backend.global.exception.BusinessException;
@@ -69,6 +72,24 @@ public class JobService {
     @Transactional(readOnly = true)
     public long countClosedJobs(Long studentProfileId) {
         return jobRepository.countBySelectedStudentProfileIdAndStatus(studentProfileId, JobStatus.CLOSED);
+    }
+
+    /**
+     * 학생별 담당 완료(CLOSED) 의뢰 수를 한 번에 조회한다. 리뷰 유무와 무관하고 취소 건은 세지 않는다.
+     * @param studentProfileIds 학생 프로필 ID 목록
+     * @return 요청한 모든 학생 프로필 ID별 완료 의뢰 수, 완료 의뢰가 없는 학생은 0
+     */
+    @Transactional(readOnly = true)
+    public Map<Long, Long> countClosedJobsByStudentProfileIds(Collection<Long> studentProfileIds) {
+        if (studentProfileIds.isEmpty()) {
+            return Map.of();
+        }
+        Map<Long, Long> counts = jobRepository
+                .countByStudentProfileIdsAndStatus(studentProfileIds, JobStatus.CLOSED).stream()
+                .collect(Collectors.toMap(StudentJobCount::getStudentProfileId, StudentJobCount::getJobCount));
+        return studentProfileIds.stream()
+                .distinct()
+                .collect(Collectors.toMap(Function.identity(), id -> counts.getOrDefault(id, 0L)));
     }
 
     @Transactional
@@ -177,6 +198,32 @@ public class JobService {
                 ? jobSubmissionRepository.findFirstByJobIdOrderByRevisionNumberDesc(jobId).orElse(null)
                 : null;
         return JobDetailData.of(job, specialtyIds, calculateProgressStage(job, latest));
+    }
+
+    /**
+     * 사장님 본인의 모집 중(OPEN) 의뢰와 대기 중(PENDING) 지원서 전체를 조회한다.
+     * 조회만 하므로 의뢰 행을 잠그지 않는다.
+     * 존재하지 않거나 다른 사장님의 의뢰는 같은 404, 모집 중이 아닌 본인 의뢰는 409로 거부한다.
+     * @param command
+     * @return 의뢰, 의뢰의 특기 ID, 정렬되지 않은 대기 중 지원서
+     */
+    @Transactional(readOnly = true)
+    public JobApplicationListData getJobApplications(GetJobApplicationsCommand command) {
+        Job job = jobRepository.findById(command.getJobId())
+                .filter(found -> found.getOwnerProfileId().equals(command.getOwnerProfileId()))
+                .orElseThrow(() -> new BusinessException(ErrorCode.JOB_NOT_FOUND));
+        if (job.getStatus() != JobStatus.OPEN) {
+            throw new BusinessException(ErrorCode.JOB_APPLICATION_LIST_NOT_AVAILABLE);
+        }
+
+        List<Long> jobIds = List.of(job.getId());
+        List<Long> specialtyIds = jobSpecialtyRepository.findByJobIdIn(jobIds).stream()
+                .map(JobSpecialty::getSpecialtyId)
+                .toList();
+        // 모집 중 의뢰 목록의 지원자 수와 같은 기준으로 센다
+        List<JobApplication> applications =
+                jobApplicationRepository.findByJobIdInAndStatus(jobIds, JobApplicationStatus.PENDING);
+        return JobApplicationListData.of(job, specialtyIds, applications);
     }
 
     /**

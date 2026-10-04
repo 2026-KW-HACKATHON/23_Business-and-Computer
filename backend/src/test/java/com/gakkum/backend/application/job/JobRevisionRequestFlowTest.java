@@ -37,6 +37,7 @@ import com.gakkum.backend.domain.owner.entity.Owner;
 import com.gakkum.backend.domain.owner.repository.OwnerRepository;
 import com.gakkum.backend.domain.owner.service.OwnerService;
 import com.gakkum.backend.domain.payment.service.PaymentService;
+import com.gakkum.backend.domain.review.service.ReviewService;
 import com.gakkum.backend.domain.specialty.service.SpecialtyCategoryService;
 import com.gakkum.backend.domain.specialty.service.SpecialtyService;
 import com.gakkum.backend.domain.student.repository.StudentRepository;
@@ -71,7 +72,8 @@ class JobRevisionRequestFlowTest {
                 Clock.systemUTC());
         JobFacade facade = new JobFacade(userService, new OwnerService(ownerRepository), jobService,
                 mock(SpecialtyCategoryService.class), mock(SpecialtyService.class), new StudentService(mock(StudentRepository.class)),
-                mock(JobSubmissionFileStorageClient.class), mock(ChatAttachmentPolicy.class), mock(PaymentService.class));
+                mock(JobSubmissionFileStorageClient.class), mock(ChatAttachmentPolicy.class), mock(PaymentService.class),
+                mock(ReviewService.class));
         mockMvc = MockMvcBuilders.standaloneSetup(new JobController(facade))
                 .setControllerAdvice(new GlobalExceptionHandler())
                 .build();

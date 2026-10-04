@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.gakkum.backend.application.job.dto.JobApplicationListResponse;
 import com.gakkum.backend.application.job.dto.JobCancelRequest;
 import com.gakkum.backend.application.job.dto.JobCancelResponse;
 import com.gakkum.backend.application.job.dto.JobCreateRequest;
@@ -19,6 +20,7 @@ import com.gakkum.backend.application.job.dto.JobSubmissionCreateRequest;
 import com.gakkum.backend.application.job.dto.JobSubmissionResponse;
 import com.gakkum.backend.application.job.dto.PrepareSubmissionFileUploadRequest;
 import com.gakkum.backend.application.job.facade.JobFacade;
+import com.gakkum.backend.domain.job.dto.JobApplicationSort;
 import com.gakkum.backend.global.exception.BusinessException;
 import com.gakkum.backend.global.exception.ErrorCode;
 import com.gakkum.backend.global.response.ApiResponse;
@@ -45,6 +47,23 @@ public class JobController {
             throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE);
         }
         JobDetailResponse.Detail response = JobDetailResponse.Detail.from(jobFacade.getJobDetail(authentication.getName(), jobId));
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    /** 사장님이 본인의 모집 중 의뢰에 지원한 대기 중 지원자 전체를 조회하는 API(sort 생략 시 최신 지원순) */
+    @GetMapping("/jobs/{jobId}/applications")
+    public ResponseEntity<ApiResponse<JobApplicationListResponse>> getJobApplications(
+            Authentication authentication, @PathVariable Long jobId,
+            @RequestParam(required = false) String sort) {
+        if (jobId <= 0) {
+            throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE);
+        }
+        // 빈 값·소문자·공백이 섞인 값을 허용하지 않도록 enum 변환에 맡기지 않고 직접 확인한다
+        JobApplicationSort applicationSort = sort == null
+                ? JobApplicationSort.LATEST
+                : JobApplicationSort.find(sort).orElseThrow(() -> new BusinessException(ErrorCode.INVALID_INPUT_VALUE));
+        JobApplicationListResponse response = JobApplicationListResponse.from(
+                jobFacade.getJobApplications(authentication.getName(), jobId, applicationSort));
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 

@@ -1,5 +1,6 @@
 package com.gakkum.backend.domain.job.dto;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -7,6 +8,7 @@ import java.util.List;
 import java.util.Map;
 
 import com.gakkum.backend.domain.job.entity.Job;
+import com.gakkum.backend.domain.job.entity.JobApplication;
 import com.gakkum.backend.domain.job.entity.JobProgressStage;
 import com.gakkum.backend.domain.job.entity.JobSubmission;
 import com.gakkum.backend.domain.job.entity.JobSubmissionReviewStatus;
@@ -532,6 +534,100 @@ public final class JobQueryDto {
                     .revisionCount(job.getRevisionCount())
                     .applicantCount(data.getApplicantCount())
                     .progressStage(data.getProgressStage())
+                    .build();
+        }
+    }
+
+    @Getter
+    @AllArgsConstructor(access = AccessLevel.PRIVATE)
+    public static class JobApplicationListData {
+
+        private final Job job;
+        private final List<Long> specialtyIds;
+        private final List<JobApplication> applications;
+
+        /** applications는 대기 중(PENDING) 지원서 전체이고 정렬되지 않은 상태다. */
+        public static JobApplicationListData of(
+                Job job, List<Long> specialtyIds, List<JobApplication> applications) {
+            return new JobApplicationListData(job, specialtyIds, List.copyOf(applications));
+        }
+    }
+
+    @Getter
+    @AllArgsConstructor(access = AccessLevel.PRIVATE)
+    public static class JobApplicationListResult {
+
+        private final JobApplicationJobResult job;
+        private final Integer applicantCount;
+        private final List<JobApplicantResult> applicants;
+
+        /** 지원자 수는 반환하는 지원자 목록의 길이다. */
+        public static JobApplicationListResult of(JobApplicationJobResult job, List<JobApplicantResult> applicants) {
+            return new JobApplicationListResult(job, applicants.size(), applicants);
+        }
+    }
+
+    @Getter
+    @Builder(access = AccessLevel.PRIVATE)
+    @AllArgsConstructor(access = AccessLevel.PRIVATE)
+    public static class JobApplicationJobResult {
+
+        private final Long jobId;
+        private final String title;
+        private final List<SpecialtyCategoryResult> specialtyCategories;
+        private final Long budget;
+        private final LocalDate draftDeadline;
+        private final LocalDate finalDeadline;
+
+        public static JobApplicationJobResult of(Job job, List<SpecialtyCategoryResult> specialtyCategories) {
+            return JobApplicationJobResult.builder()
+                    .jobId(job.getId())
+                    .title(job.getTitle())
+                    .specialtyCategories(specialtyCategories)
+                    .budget(job.getBudget())
+                    .draftDeadline(job.getDraftDeadline())
+                    .finalDeadline(job.getFinalDeadline())
+                    .build();
+        }
+    }
+
+    @Getter
+    @Builder(access = AccessLevel.PRIVATE)
+    @AllArgsConstructor(access = AccessLevel.PRIVATE)
+    public static class JobApplicantResult {
+
+        private final Long jobApplicationId;
+        private final Long studentProfileId;
+        private final String profileImageUrl;
+        private final String name;
+        private final String studentNumber;
+        private final String major;
+        private final BigDecimal averageRating;
+        private final Long completedJobCount;
+        private final List<SpecialtyCategoryResult> specialtyCategories;
+        private final String content;
+        private final LocalDateTime appliedAt;
+
+        /** appliedAt은 정렬에만 쓰고 응답에는 내리지 않는다. 지원 시각이 없는 기존 데이터는 null이다. */
+        public static JobApplicantResult of(
+                JobApplication application,
+                Student student,
+                User studentUser,
+                BigDecimal averageRating,
+                Long completedJobCount,
+                List<SpecialtyCategoryResult> specialtyCategories) {
+            return JobApplicantResult.builder()
+                    .jobApplicationId(application.getId())
+                    .studentProfileId(student.getId())
+                    .profileImageUrl(student.getProfileImageUrl())
+                    .name(studentUser.getName())
+                    .studentNumber(student.getStudentNumber())
+                    .major(student.getMajor())
+                    .averageRating(averageRating)
+                    .completedJobCount(completedJobCount)
+                    .specialtyCategories(specialtyCategories)
+                    .content(application.getContent())
+                    .appliedAt(application.getCreatedAt())
                     .build();
         }
     }

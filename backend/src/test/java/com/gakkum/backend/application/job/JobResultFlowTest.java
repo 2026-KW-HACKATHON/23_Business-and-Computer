@@ -47,6 +47,7 @@ import com.gakkum.backend.domain.payment.entity.Payment;
 import com.gakkum.backend.domain.payment.entity.PaymentStatus;
 import com.gakkum.backend.domain.payment.repository.PaymentRepository;
 import com.gakkum.backend.domain.payment.service.PaymentService;
+import com.gakkum.backend.domain.review.service.ReviewService;
 import com.gakkum.backend.domain.specialty.service.SpecialtyCategoryService;
 import com.gakkum.backend.domain.specialty.service.SpecialtyService;
 import com.gakkum.backend.domain.student.entity.Student;
@@ -87,7 +88,8 @@ class JobResultFlowTest {
         JobFacade facade = new JobFacade(userService, new OwnerService(ownerRepository), jobService,
                 mock(SpecialtyCategoryService.class), mock(SpecialtyService.class), new StudentService(studentRepository),
                 mock(JobSubmissionFileStorageClient.class), mock(ChatAttachmentPolicy.class),
-                new PaymentService(paymentRepository, Clock.systemUTC()));
+                new PaymentService(paymentRepository, Clock.systemUTC()),
+                mock(ReviewService.class));
         mockMvc = MockMvcBuilders.standaloneSetup(new JobController(facade))
                 .setControllerAdvice(new GlobalExceptionHandler())
                 .build();

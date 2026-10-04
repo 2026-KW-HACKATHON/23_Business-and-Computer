@@ -30,6 +30,7 @@ import com.gakkum.backend.domain.job.service.JobService;
 import com.gakkum.backend.domain.owner.entity.Owner;
 import com.gakkum.backend.domain.owner.service.OwnerService;
 import com.gakkum.backend.domain.payment.service.PaymentService;
+import com.gakkum.backend.domain.review.service.ReviewService;
 import com.gakkum.backend.domain.specialty.dto.SpecialtyQueryDto.SpecialtyDetail;
 import com.gakkum.backend.domain.specialty.service.SpecialtyCategoryService;
 import com.gakkum.backend.domain.specialty.service.SpecialtyService;
@@ -58,7 +59,8 @@ class JobFacadeClosedListTest {
     private final JobFacade jobFacade = new JobFacade(
             userService, ownerService, jobService, specialtyCategoryService,
             mock(SpecialtyService.class), studentService,
-            mock(JobSubmissionFileStorageClient.class), mock(ChatAttachmentPolicy.class), mock(PaymentService.class));
+            mock(JobSubmissionFileStorageClient.class), mock(ChatAttachmentPolicy.class), mock(PaymentService.class),
+                mock(ReviewService.class));
 
     @Test
     @DisplayName("CLOSED 의뢰를 작업자 이름과 카테고리, 완료 날짜가 있는 배열 응답으로 조립한다")
