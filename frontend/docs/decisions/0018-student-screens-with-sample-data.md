@@ -48,7 +48,7 @@ owner's applicant list).
   dates, revision stepper),
   `src/components/ReportSheet/ReportSheet.tsx` with `tone` (who reports whom,
   mail text in `src/lib/support.ts`), and `src/lib/sampleTime.ts`.
-- An application holds 한 줄 요약 · 작업 방법 · 결과물 (`src/types/workPlan.ts`).
+- An application holds 한 줄 요약 · 작업계획서 · 결과물 (`src/types/workPlan.ts`).
   The owner already set the deadlines in the request, so the student does not
   write a schedule. Owner screens (applicants, assign, the chat 작업계획서
   sheet) show the same three parts. A work started from a proposal keeps the

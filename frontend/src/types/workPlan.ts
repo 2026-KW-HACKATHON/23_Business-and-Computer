@@ -5,7 +5,7 @@
 export interface ApplicationPlan {
   /** 한 줄 요약 (지원자 카드에 가장 먼저 보인다) */
   summary: string;
-  /** 작업 방법 */
+  /** 작업계획서 (어떻게 만들고 검수할지) */
   method: string;
   /** 결과물 */
   deliverable: string;

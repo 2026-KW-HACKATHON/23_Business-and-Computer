@@ -4,15 +4,15 @@ import TextButton from "../TextButton/TextButton";
 import "./WorkPlan.css";
 
 interface WorkPlanProps {
-  /** 의뢰 지원서(한 줄 요약 · 작업 방법 · 결과물) 또는 제안서 작업계획서 글 (「· 방법: …」 줄마다 한 문단) */
+  /** 의뢰 지원서(한 줄 요약 · 작업계획서 · 결과물) 또는 제안서 작업계획서 글 (「· 방법: …」 줄마다 한 문단) */
   plan: WorkPlanContent;
-  /** 지원자 카드 안: 접으면 한 줄 요약과 작업 방법 2줄만, 「전체 보기 / 접기」 */
+  /** 지원자 카드 안: 접으면 한 줄 요약과 작업계획서 2줄만, 「전체 보기 / 접기」 */
   collapsible?: boolean;
 }
 
 const SECTIONS: { key: keyof ApplicationPlan; label: string }[] = [
   { key: "summary", label: "한 줄 요약" },
-  { key: "method", label: "작업 방법" },
+  { key: "method", label: "작업계획서" },
   { key: "deliverable", label: "결과물" },
 ];
 
