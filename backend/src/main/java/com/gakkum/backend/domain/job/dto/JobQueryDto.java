@@ -645,6 +645,7 @@ public final class JobQueryDto {
         private final List<SpecialtyCategoryResult> specialtyCategories;
         private final List<ApplicantCertificateResult> certificates;
         private final String portfolioUrl;
+        private final Integer penaltyCount;
         private final Integer reviewCount;
         private final List<ApplicantReviewResult> reviews;
 
@@ -666,6 +667,7 @@ public final class JobQueryDto {
                             .map(ApplicantCertificateResult::from)
                             .toList())
                     .portfolioUrl(student.getPortfolioUrl())
+                    .penaltyCount(student.getPenaltyCount())
                     .reviewCount(reviews.size())
                     .reviews(List.copyOf(reviews))
                     .build();

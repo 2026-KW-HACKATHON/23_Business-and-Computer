@@ -25,6 +25,7 @@ public class JobApplicantProfileResponse {
     private final List<SpecialtyCategory> specialtyCategories;
     private final List<Certificate> certificates;
     private final String portfolioUrl;
+    private final Integer penaltyCount;
     private final Integer reviewCount;
     private final List<Review> reviews;
 
@@ -40,6 +41,7 @@ public class JobApplicantProfileResponse {
                         .map(Certificate::from)
                         .toList())
                 .portfolioUrl(result.getPortfolioUrl())
+                .penaltyCount(result.getPenaltyCount())
                 .reviewCount(result.getReviewCount())
                 .reviews(result.getReviews().stream()
                         .map(Review::from)

@@ -138,12 +138,12 @@ class JobApplicantProfileFlowTest {
     }
 
     @Test
-    @DisplayName("모집 중 의뢰의 대기 지원자에 대해 학생 정보·통계·전체 특기·자격증·포트폴리오·리뷰를 응답한다")
+    @DisplayName("모집 중 의뢰의 대기 지원자에 대해 학생 정보·통계·전체 특기·자격증·포트폴리오·패널티 횟수·리뷰를 응답한다")
     void returnsApplicantProfile() throws Exception {
         givenOwner();
         givenJob(JobStatus.OPEN, null);
         givenApplication(JobApplicationStatus.PENDING);
-        givenStudent("https://example.com/portfolio");
+        givenStudent("https://example.com/portfolio", 3);
         givenActivity();
 
         getProfile()
@@ -170,6 +170,7 @@ class JobApplicantProfileFlowTest {
                 .andExpect(jsonPath("$.data.certificates[1].certificateName").value("SQLD"))
                 .andExpect(jsonPath("$.data.certificates[0].issuingOrganization").doesNotExist())
                 .andExpect(jsonPath("$.data.portfolioUrl").value("https://example.com/portfolio"))
+                .andExpect(jsonPath("$.data.penaltyCount").value(3))
                 .andExpect(jsonPath("$.data.reviewCount").value(4))
                 .andExpect(jsonPath("$.data.reviews.length()").value(4))
                 // 작성 시각 내림차순 → 같은 시각은 리뷰 ID 내림차순 → 작성 시각이 없으면 마지막
@@ -197,7 +198,7 @@ class JobApplicantProfileFlowTest {
     }
 
     @Test
-    @DisplayName("특기·자격증·제안·완료 의뢰·리뷰·포트폴리오가 없으면 빈 배열, 0, null로 응답한다")
+    @DisplayName("특기·자격증·제안·완료 의뢰·리뷰·포트폴리오·패널티가 없으면 빈 배열, 0, null로 응답한다")
     void returnsDefaultsForStudentWithoutData() throws Exception {
         givenOwner();
         givenJob(JobStatus.OPEN, null);
@@ -214,6 +215,7 @@ class JobApplicantProfileFlowTest {
                 .andExpect(jsonPath("$.data.certificates").isArray())
                 .andExpect(jsonPath("$.data.certificates").isEmpty())
                 .andExpect(jsonPath("$.data.portfolioUrl").value(nullValue()))
+                .andExpect(jsonPath("$.data.penaltyCount").value(0))
                 .andExpect(jsonPath("$.data.reviewCount").value(0))
                 .andExpect(jsonPath("$.data.reviews").isArray())
                 .andExpect(jsonPath("$.data.reviews").isEmpty());
@@ -549,15 +551,32 @@ class JobApplicantProfileFlowTest {
         when(jobApplicationRepository.findById(APPLICATION_ID)).thenReturn(Optional.of(application(JOB_ID, status)));
     }
 
+    // 패널티 횟수를 지정하지 않으면 학생 생성 시 기본값을 그대로 쓴다
     private void givenStudent(String portfolioUrl) {
-        when(studentRepository.findById(STUDENT_PROFILE_ID)).thenReturn(Optional.of(Student.builder()
+        givenStudentFound(Student.builder()
                 .id(STUDENT_PROFILE_ID)
                 .userId(STUDENT_USER_ID)
                 .university("광운대학교")
                 .studentNumber("2023000007")
                 .major("소프트웨어학부")
                 .portfolioUrl(portfolioUrl)
-                .build()));
+                .build());
+    }
+
+    private void givenStudent(String portfolioUrl, int penaltyCount) {
+        givenStudentFound(Student.builder()
+                .id(STUDENT_PROFILE_ID)
+                .userId(STUDENT_USER_ID)
+                .university("광운대학교")
+                .studentNumber("2023000007")
+                .major("소프트웨어학부")
+                .portfolioUrl(portfolioUrl)
+                .penaltyCount(penaltyCount)
+                .build());
+    }
+
+    private void givenStudentFound(Student student) {
+        when(studentRepository.findById(STUDENT_PROFILE_ID)).thenReturn(Optional.of(student));
         when(userRepository.findById(STUDENT_USER_ID)).thenReturn(Optional.of(User.builder()
                 .id(STUDENT_USER_ID)
                 .name("김가꿈")
