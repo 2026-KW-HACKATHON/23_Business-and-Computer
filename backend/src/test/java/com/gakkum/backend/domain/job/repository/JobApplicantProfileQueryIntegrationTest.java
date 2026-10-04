@@ -89,7 +89,7 @@ class JobApplicantProfileQueryIntegrationTest {
                 .status(JobApplicationStatus.PENDING)
                 .build());
 
-        assertThat(proposalService.countProposals(STUDENT)).isEqualTo(3L);
+        assertThat(proposalService.countProposals(STUDENT)).isEqualTo((long) ProposalStatus.values().length);
         assertThat(proposalService.countProposals(OTHER_STUDENT)).isEqualTo(1L);
         assertThat(proposalService.countProposals(NO_DATA_STUDENT)).isZero();
     }

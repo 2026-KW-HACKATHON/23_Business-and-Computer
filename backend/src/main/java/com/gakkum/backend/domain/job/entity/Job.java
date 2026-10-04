@@ -75,6 +75,18 @@ public class Job {
     @Column(name = "message_to_student", columnDefinition = "TEXT")
     private String messageToStudent;
 
+    // 이 의뢰를 만든 제안. 사장님이 직접 올린 일반 의뢰는 null
+    @Column(name = "proposal_id")
+    private Long proposalId;
+
+    // 학생이 제안 의뢰의 작업을 시작한 시각. 일반 의뢰와 시작 전 제안 의뢰는 null
+    @Column(name = "started_at")
+    private LocalDateTime startedAt;
+
+    // 사장님이 제안 결제 시 학생에게 남긴 한마디. 취소 시 남기는 messageToStudent와 별개다
+    @Column(name = "acceptance_message", columnDefinition = "TEXT")
+    private String acceptanceMessage;
+
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
@@ -101,6 +113,48 @@ public class Job {
                 .revisionCount(revisionCount)
                 .status(JobStatus.OPEN)
                 .build();
+    }
+
+    /** 결제가 승인된 제안으로 만드는 수락 대기(AWAITING_START) 의뢰. 담당 학생과 마감일은 이때 확정한다. */
+    public static Job createAwaitingStart(
+            Long ownerProfileId,
+            Long studentProfileId,
+            Long proposalId,
+            String title,
+            String description,
+            Long budget,
+            LocalDate draftDeadline,
+            LocalDate finalDeadline,
+            Integer revisionCount,
+            String acceptanceMessage) {
+        return Job.builder()
+                .ownerProfileId(ownerProfileId)
+                .selectedStudentProfileId(studentProfileId)
+                .proposalId(proposalId)
+                .title(title)
+                .description(description)
+                .budget(budget)
+                .draftDeadline(draftDeadline)
+                .finalDeadline(finalDeadline)
+                .revisionCount(revisionCount)
+                .acceptanceMessage(acceptanceMessage)
+                .status(JobStatus.AWAITING_START)
+                .build();
+    }
+
+    /**
+     * 수락 대기(AWAITING_START) 제안 의뢰를 진행 중(MATCHED)으로 넘기고 시작 시각을 기록한다. 마감일은 바꾸지 않는다.
+     * 이미 시작한 제안 의뢰의 재요청은 기존 시작 시각을 그대로 둔다.
+     */
+    public void start(LocalDateTime startedAt) {
+        if (status == JobStatus.MATCHED && proposalId != null && this.startedAt != null) {
+            return;
+        }
+        if (status != JobStatus.AWAITING_START) {
+            throw new BusinessException(ErrorCode.JOB_START_NOT_AVAILABLE);
+        }
+        status = JobStatus.MATCHED;
+        this.startedAt = startedAt;
     }
 
     public void match(Long studentProfileId) {

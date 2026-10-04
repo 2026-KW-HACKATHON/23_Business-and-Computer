@@ -32,6 +32,8 @@ public class MyProposalListResponse {
         private final List<ProposalDetailResponse.SpecialtyCategory> specialtyCategories;
         private final String proposedSolution;
         private final Store store;
+        // 결제로 만들어진 의뢰. 결제 전이면 null
+        private final Long jobId;
 
         public static MyProposal from(MyProposalResult result) {
             return new MyProposal(
@@ -43,7 +45,8 @@ public class MyProposalListResponse {
                             .map(ProposalDetailResponse.SpecialtyCategory::from)
                             .toList(),
                     result.getProposedSolution(),
-                    Store.from(result.getStore()));
+                    Store.from(result.getStore()),
+                    result.getJobId());
         }
     }
 

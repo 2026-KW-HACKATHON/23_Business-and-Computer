@@ -4,6 +4,8 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import com.gakkum.backend.domain.proposal.entity.Proposal;
+
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -182,6 +184,47 @@ public final class JobCommandDto {
         }
     }
 
+    /** 결제가 승인된 제안으로 수락 대기 의뢰를 만드는 요청. 값은 모두 제안과 승인된 결제에서 서버가 정한다. */
+    @Getter
+    @Builder(access = AccessLevel.PRIVATE)
+    @AllArgsConstructor(access = AccessLevel.PRIVATE)
+    public static class CreateProposalJobCommand {
+
+        private final Long ownerProfileId;
+        private final Long studentProfileId;
+        private final Long proposalId;
+        private final String title;
+        private final String description;
+        private final Long budget;
+        private final LocalDate draftDeadline;
+        private final LocalDate finalDeadline;
+        private final Integer revisionCount;
+        private final String acceptanceMessage;
+        private final List<Long> specialtyIds;
+
+        /**
+         * @param approvedDate 결제 승인 시각의 한국 날짜. 여기에 제안 기간을 더해 마감일을 확정한다
+         * @param revisionCount 사장님이 결제 시 입력한 수정 횟수
+         * @param acceptanceMessage 사장님이 결제 시 남긴 한마디, 없으면 null
+         */
+        public static CreateProposalJobCommand of(Proposal proposal, List<Long> specialtyIds,
+                LocalDate approvedDate, Integer revisionCount, String acceptanceMessage) {
+            return CreateProposalJobCommand.builder()
+                    .ownerProfileId(proposal.getOwnerProfileId())
+                    .studentProfileId(proposal.getStudentProfileId())
+                    .proposalId(proposal.getId())
+                    .title(proposal.getTitle())
+                    .description(proposal.toJobDescription())
+                    .budget(proposal.getProposedFee())
+                    .draftDeadline(proposal.draftDeadlineFrom(approvedDate))
+                    .finalDeadline(proposal.finalDeadlineFrom(approvedDate))
+                    .revisionCount(revisionCount)
+                    .acceptanceMessage(acceptanceMessage)
+                    .specialtyIds(List.copyOf(specialtyIds))
+                    .build();
+        }
+    }
+
     @Getter
     @Builder(access = AccessLevel.PRIVATE)
     @AllArgsConstructor(access = AccessLevel.PRIVATE)
@@ -199,6 +242,29 @@ public final class JobCommandDto {
                     .jobId(jobId)
                     .cancelReason(cancelReason)
                     .messageToStudent(messageToStudent)
+                    .build();
+        }
+    }
+
+    @Getter
+    @Builder(access = AccessLevel.PRIVATE)
+    @AllArgsConstructor(access = AccessLevel.PRIVATE)
+    public static class CreateJobApplicationCommand {
+
+        private final String username;
+        private final Long jobId;
+        private final String summary;
+        private final String workPlan;
+        private final String deliveryMethod;
+
+        public static CreateJobApplicationCommand of(
+                String username, Long jobId, String summary, String workPlan, String deliveryMethod) {
+            return CreateJobApplicationCommand.builder()
+                    .username(username)
+                    .jobId(jobId)
+                    .summary(summary)
+                    .workPlan(workPlan)
+                    .deliveryMethod(deliveryMethod)
                     .build();
         }
     }

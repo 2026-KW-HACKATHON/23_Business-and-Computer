@@ -25,6 +25,7 @@ import com.gakkum.backend.domain.job.client.JobSubmissionFileStorageClient;
 import com.gakkum.backend.domain.job.client.JobSubmissionFileStorageClient.PresignedFileUpload;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.CancelJobCommand;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.CompleteJobSubmissionCommand;
+import com.gakkum.backend.domain.job.dto.JobCommandDto.CreateJobApplicationCommand;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.CreateJobCommand;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.CreateJobSubmissionCommand;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.GetClosedJobsCommand;
@@ -45,6 +46,7 @@ import com.gakkum.backend.domain.job.dto.JobApplicationSort;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.ApplicantReviewResult;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.JobApplicantProfileResult;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.JobApplicantResult;
+import com.gakkum.backend.domain.job.dto.JobQueryDto.JobApplicationCreateResult;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.JobApplicationJobResult;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.JobApplicationListData;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.JobApplicationListResult;
@@ -141,7 +143,10 @@ public class JobFacade {
         return JobSubmissionDetailResult.of(data, studentUser);
     }
 
-    /** 완료된 의뢰의 결과물을 의뢰한 사장님 또는 담당 학생에게 보여준다. 작업 시작일은 결제 승인일이다. */
+    /**
+     * 완료된 의뢰의 결과물을 의뢰한 사장님 또는 담당 학생에게 보여준다.
+     * 작업 시작일은 일반 의뢰는 결제 승인일, 제안 의뢰는 학생이 실제로 작업을 시작한 날이다.
+     */
     @Transactional(readOnly = true)
     public JobResultResult getJobResult(String username, Long jobId) {
         User user = userService.getActiveUser(username);
@@ -150,7 +155,10 @@ public class JobFacade {
         Student student = studentService.getStudentProfile(data.getJob().getSelectedStudentProfileId());
         User studentUser = userService.getUser(student.getUserId());
         ApprovedPaymentData payment = paymentService.getPaidPayment(jobId);
-        return JobResultResult.of(data, studentUser, LocalDate.ofInstant(payment.approvedAt(), ZoneId.systemDefault()));
+        LocalDateTime startedAt = data.getJob().getStartedAt();
+        return JobResultResult.of(data, studentUser, startedAt != null
+                ? startedAt.toLocalDate()
+                : LocalDate.ofInstant(payment.approvedAt(), ZoneId.systemDefault()));
     }
 
     /** 사장님·학생 외 사용자와 학생 프로필이 없는 학생은 조회 권한이 없으므로 결과물이 없는 것과 같이 거부한다. */
@@ -256,6 +264,20 @@ public class JobFacade {
         return OpenJobListResult.of(jobs.stream()
                 .map(job -> OpenJobResult.of(job, groupSpecialties(job.getSpecialtyIds(), specialtiesById)))
                 .toList());
+    }
+
+    /**
+     * 학생 본인이 모집 중 의뢰에 지원한다. 학생이 아니거나 학생 프로필이 없으면 의뢰를 조회하기 전에 거부한다.
+     * 사용자 확인이 의뢰 행 잠금을 붙잡지 않도록 이 메서드에는 트랜잭션을 두지 않는다.
+     */
+    public JobApplicationCreateResult createJobApplication(CreateJobApplicationCommand command) {
+        User user = userService.getActiveUser(command.getUsername());
+        if (user.getRole() != UserRole.STUDENT) {
+            throw new BusinessException(ErrorCode.JOB_APPLICATION_STUDENT_REQUIRED);
+        }
+        Student student = studentService.findStudentProfileByUserId(user.getId())
+                .orElseThrow(() -> new BusinessException(ErrorCode.JOB_APPLICATION_STUDENT_REQUIRED));
+        return JobApplicationCreateResult.from(jobService.createJobApplication(command, student.getId()));
     }
 
     /**

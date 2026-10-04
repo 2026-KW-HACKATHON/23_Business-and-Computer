@@ -2,13 +2,17 @@ package com.gakkum.backend.domain.proposal.repository;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.data.domain.Limit;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import com.gakkum.backend.domain.proposal.entity.Proposal;
+
+import jakarta.persistence.LockModeType;
 
 /**
  * 탐색 조회의 커서 경계는 정렬 키 튜플 (createdAt, id) 또는 (likeCount, createdAt, id)의 대소 비교다.
@@ -17,6 +21,10 @@ import com.gakkum.backend.domain.proposal.entity.Proposal;
  * idBound에 Long 최솟값·최댓값을 넣어 경계 시각과 같은 행 전체를 빼거나 포함한다.
  */
 public interface ProposalRepository extends JpaRepository<Proposal, Long> {
+
+    /** 결제 승인·작업 시작이 같은 제안을 순서대로 처리하도록 제안 행을 잠근다. */
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    Optional<Proposal> findLockedById(Long proposalId);
 
     /** 학생이 보낸 모든 상태의 제안을 최신순으로 읽는다. */
     List<Proposal> findByStudentProfileIdOrderByCreatedAtDescIdDesc(Long studentProfileId);

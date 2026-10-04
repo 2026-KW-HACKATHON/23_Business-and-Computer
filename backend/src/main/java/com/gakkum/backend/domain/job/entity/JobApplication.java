@@ -29,9 +29,11 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 @Table(name = "job_applications", uniqueConstraints = @UniqueConstraint(
-        name = "job_applications_job_id_student_profile_id_key",
+        name = JobApplication.JOB_STUDENT_UNIQUE_CONSTRAINT,
         columnNames = { "job_id", "student_profile_id" }))
 public class JobApplication {
+
+    public static final String JOB_STUDENT_UNIQUE_CONSTRAINT = "job_applications_job_id_student_profile_id_key";
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -63,6 +65,19 @@ public class JobApplication {
     @UpdateTimestamp
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
+
+    /** 새 지원서는 항상 대기 중(PENDING)으로 시작한다. */
+    public static JobApplication create(
+            Long studentProfileId, Long jobId, String summary, String workPlan, String deliveryMethod) {
+        return JobApplication.builder()
+                .studentProfileId(studentProfileId)
+                .jobId(jobId)
+                .summary(summary)
+                .workPlan(workPlan)
+                .deliveryMethod(deliveryMethod)
+                .status(JobApplicationStatus.PENDING)
+                .build();
+    }
 
     public void accept() {
         if (status == JobApplicationStatus.ACCEPTED) {

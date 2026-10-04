@@ -16,7 +16,11 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import java.time.Clock;
+import java.time.Instant;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -30,7 +34,14 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InOrder;
 
 import com.gakkum.backend.domain.media.dto.ImagePurpose;
+import com.gakkum.backend.domain.chat.entity.ChatRoom;
+import com.gakkum.backend.domain.chat.service.ChatRoomService;
+import com.gakkum.backend.domain.job.entity.Job;
+import com.gakkum.backend.domain.job.entity.JobStatus;
 import com.gakkum.backend.domain.job.service.JobService;
+import com.gakkum.backend.domain.payment.service.PaymentService;
+import com.gakkum.backend.domain.proposal.dto.ProposalCommandDto.StartProposalJobCommand;
+import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.ProposalJobStartResult;
 import com.gakkum.backend.domain.media.service.MediaService;
 import com.gakkum.backend.domain.review.service.ReviewService;
 import com.gakkum.backend.domain.owner.entity.Owner;
@@ -66,6 +77,7 @@ class ProposalFacadeTest {
     private static final String USER_ID = "01K58M6PJV8VAJMXHBHJ2PNB5C";
     private static final String STUDENT_USER_ID = "01K58M6PJV8VAJMXHBHJ2PNB5D";
     private static final String OTHER_STUDENT_USER_ID = "01K58M6PJV8VAJMXHBHJ2PNB5E";
+    private static final String OWNER_USER_ID = "01K58M6PJV8VAJMXHBHJ2PNB5F";
     private static final String IMAGE_URL_1 = "https://bucket/images/proposal/" + USER_ID + "/a.png";
     private static final String IMAGE_URL_2 = "https://bucket/images/proposal/" + USER_ID + "/b.png";
     private static final String KEY_1 = "images/proposal/" + USER_ID + "/a.png";
@@ -80,9 +92,13 @@ class ProposalFacadeTest {
     private final ProposalService proposalService = mock(ProposalService.class);
     private final ReviewService reviewService = mock(ReviewService.class);
     private final JobService jobService = mock(JobService.class);
+    private final PaymentService paymentService = mock(PaymentService.class);
+    private final ChatRoomService chatRoomService = mock(ChatRoomService.class);
+    // 한국 시간 2026-10-05 08:00. UTC 날짜(10-04)와 달라 예상 마감일이 한국 날짜 기준인지 드러난다
+    private final Clock clock = Clock.fixed(Instant.parse("2026-10-04T23:00:00Z"), ZoneOffset.UTC);
     private final ProposalFacade proposalFacade = new ProposalFacade(
             userService, studentService, ownerService, specialtyService, specialtyCategoryService, mediaService,
-            proposalService, reviewService, jobService);
+            proposalService, reviewService, jobService, paymentService, chatRoomService, clock);
 
     @Test
     @DisplayName("학생이 존재하는 사장님과 소분류, 업로드된 본인 사진으로 제안을 보내면 저장하고 제안 ID를 반환한다")
@@ -382,10 +398,15 @@ class ProposalFacadeTest {
                 3L, SpecialtyDetail.of(3L, "로고 디자인", 1L, "디자인"),
                 12L, SpecialtyDetail.of(12L, "영상 편집", 2L, "영상")));
 
+        when(jobService.getJobIdsByProposalIds(List.of(32L, 31L))).thenReturn(Map.of(32L, 420L));
+
         MyProposalListResult result = proposalFacade.getMyProposals(USERNAME);
 
         assertThat(result.getProposals()).extracting(p -> p.getProposalId(), p -> p.getStatus())
                 .containsExactly(tuple(32L, ProposalStatus.ACCEPTED), tuple(31L, ProposalStatus.PENDING));
+        // 연결 의뢰는 제안 수와 무관하게 한 번에 조회하고 결제 전 제안은 null이다
+        assertThat(result.getProposals()).extracting(p -> p.getJobId()).containsExactly(420L, null);
+        verify(jobService, times(1)).getJobIdsByProposalIds(any());
         assertThat(result.getProposals().get(0).getProposedSolution()).isEqualTo("사진 메뉴판으로 바꿉니다.");
         assertThat(result.getProposals().get(0).getSpecialtyCategories())
                 .extracting(SpecialtyCategoryResult::getId).containsExactly(1L, 2L);
@@ -456,11 +477,16 @@ class ProposalFacadeTest {
                 3L, SpecialtyDetail.of(3L, "로고 디자인", 1L, "디자인"),
                 12L, SpecialtyDetail.of(12L, "영상 편집", 2L, "영상")));
 
+        when(jobService.getJobIdsByProposalIds(List.of(33L, 32L, 31L))).thenReturn(Map.of(31L, 410L));
+
         ReceivedProposalListResult result = proposalFacade.getReceivedProposals(USERNAME);
 
         assertThat(result.getProposals()).extracting(p -> p.getProposalId(), p -> p.getStatus())
                 .containsExactly(tuple(33L, ProposalStatus.REJECTED), tuple(32L, ProposalStatus.PENDING),
                         tuple(31L, ProposalStatus.ACCEPTED));
+        // 연결 의뢰는 제안 수와 무관하게 한 번에 조회하고 결제 전 제안은 null이다
+        assertThat(result.getProposals()).extracting(p -> p.getJobId()).containsExactly(null, null, 410L);
+        verify(jobService, times(1)).getJobIdsByProposalIds(any());
         assertThat(result.getProposals().get(0).getLikeCount()).isEqualTo(5);
         assertThat(result.getProposals().get(0).getSpecialtyCategories())
                 .extracting(SpecialtyCategoryResult::getId).containsExactly(1L, 2L);
@@ -562,5 +588,204 @@ class ProposalFacadeTest {
         return Proposal.builder().id(id).studentProfileId(studentProfileId).ownerProfileId(5L).title("제안 " + id)
                 .customerProblem("메뉴를 알아보기 어렵습니다.").proposedSolution("사진 메뉴판으로 바꿉니다.")
                 .likeCount(5).status(status).build();
+    }
+
+    private Proposal detailProposal(ProposalStatus status) {
+        return Proposal.builder().id(31L).studentProfileId(7L).ownerProfileId(5L).title("메뉴판 개선 제안")
+                .customerProblem("문제").proposedSolution("해결").workPlan("계획").proposedFee(50000L)
+                .draftDays(3).finalDays(7).referenceImageUrls(List.of()).likeCount(0).status(status).build();
+    }
+
+    // 제안 31번의 상세를 조회할 준비. 매장 사장님은 OWNER_USER_ID, 제안한 학생은 STUDENT_USER_ID다
+    private void givenProposalDetail(ProposalStatus status, String viewerId, UserRole viewerRole) {
+        when(userService.getActiveUser(USERNAME)).thenReturn(
+                User.builder().id(viewerId).username(USERNAME).role(viewerRole).build());
+        when(proposalService.getProposalDetail(31L))
+                .thenReturn(ProposalDetailData.of(detailProposal(status), List.of()));
+        when(ownerService.getOwnerProfileById(5L))
+                .thenReturn(Owner.builder().id(5L).userId(OWNER_USER_ID).storeName("가게 이름").build());
+        givenProposingStudent();
+        when(specialtyCategoryService.getSpecialtyDetails(List.of())).thenReturn(Map.of());
+    }
+
+    private Job givenPaidJob(JobStatus status, LocalDateTime startedAt) {
+        Job job = Job.builder().id(42L).proposalId(31L).status(status).budget(50000L)
+                .draftDeadline(LocalDate.of(2026, 10, 8)).finalDeadline(LocalDate.of(2026, 10, 12))
+                .revisionCount(2).acceptanceMessage("매장 분위기에 맞춰 주세요.").startedAt(startedAt).build();
+        when(jobService.findJobByProposalId(31L)).thenReturn(Optional.of(job));
+        when(paymentService.getProposalPaidAt(31L)).thenReturn(Instant.parse("2026-10-05T03:00:00Z"));
+        return job;
+    }
+
+    @Test
+    @DisplayName("결제 전 제안 상세는 초안 기간과 상태, 한국 날짜 기준 오늘에 기간을 더한 예상 마감일을 반환하고 의뢰와 확정 조건은 없다")
+    void returnsEstimatedDeadlinesBeforePayment() {
+        givenProposalDetail(ProposalStatus.PENDING, OWNER_USER_ID, UserRole.OWNER);
+
+        ProposalDetailResult result = proposalFacade.getProposalDetail(USERNAME, 31L);
+
+        assertThat(result.getDraftDays()).isEqualTo(3);
+        assertThat(result.getFinalDays()).isEqualTo(7);
+        assertThat(result.getStatus()).isEqualTo(ProposalStatus.PENDING);
+        assertThat(result.getProposedFee()).isEqualTo(50000L);
+        // 시계는 UTC 10월 4일 23시 = 한국 10월 5일 8시
+        assertThat(result.getEstimatedDraftDeadline()).isEqualTo(LocalDate.of(2026, 10, 8));
+        assertThat(result.getEstimatedFinalDeadline()).isEqualTo(LocalDate.of(2026, 10, 12));
+        assertThat(result.getJobId()).isNull();
+        assertThat(result.getAgreement()).isNull();
+        verifyNoInteractions(paymentService);
+    }
+
+    @Test
+    @DisplayName("결제된 제안 상세는 제안을 받은 사장님에게 연결 의뢰와 확정 작업 조건을 반환하고 예상 마감일은 내리지 않는다")
+    void returnsAgreementToReceivingOwner() {
+        givenProposalDetail(ProposalStatus.AWAITING_START, OWNER_USER_ID, UserRole.OWNER);
+        givenPaidJob(JobStatus.AWAITING_START, null);
+
+        ProposalDetailResult result = proposalFacade.getProposalDetail(USERNAME, 31L);
+
+        assertThat(result.getStatus()).isEqualTo(ProposalStatus.AWAITING_START);
+        assertThat(result.getJobId()).isEqualTo(42L);
+        assertThat(result.getEstimatedDraftDeadline()).isNull();
+        assertThat(result.getEstimatedFinalDeadline()).isNull();
+        assertThat(result.getAgreement().getJobStatus()).isEqualTo(JobStatus.AWAITING_START);
+        assertThat(result.getAgreement().getBudget()).isEqualTo(50000L);
+        assertThat(result.getAgreement().getDraftDeadline()).isEqualTo(LocalDate.of(2026, 10, 8));
+        assertThat(result.getAgreement().getFinalDeadline()).isEqualTo(LocalDate.of(2026, 10, 12));
+        assertThat(result.getAgreement().getRevisionCount()).isEqualTo(2);
+        assertThat(result.getAgreement().getMessageToStudent()).isEqualTo("매장 분위기에 맞춰 주세요.");
+        assertThat(result.getAgreement().getPaidAt()).isEqualTo(Instant.parse("2026-10-05T03:00:00Z"));
+        assertThat(result.getAgreement().getStartedAt()).isNull();
+    }
+
+    @Test
+    @DisplayName("결제된 제안 상세는 제안한 학생에게도 확정 작업 조건과 작업 시작 시각을 반환한다")
+    void returnsAgreementToProposingStudent() {
+        givenProposalDetail(ProposalStatus.ACCEPTED, STUDENT_USER_ID, UserRole.STUDENT);
+        LocalDateTime startedAt = LocalDateTime.of(2026, 10, 6, 9, 30);
+        givenPaidJob(JobStatus.MATCHED, startedAt);
+
+        ProposalDetailResult result = proposalFacade.getProposalDetail(USERNAME, 31L);
+
+        assertThat(result.getJobId()).isEqualTo(42L);
+        assertThat(result.getAgreement().getJobStatus()).isEqualTo(JobStatus.MATCHED);
+        assertThat(result.getAgreement().getMessageToStudent()).isEqualTo("매장 분위기에 맞춰 주세요.");
+        assertThat(result.getAgreement().getStartedAt()).isEqualTo(startedAt);
+    }
+
+    @ParameterizedTest
+    @EnumSource(value = UserRole.class, names = { "OWNER", "STUDENT" })
+    @DisplayName("제안의 당사자가 아닌 인증 사용자는 결제된 제안의 내용과 의뢰 ID는 볼 수 있지만 한마디와 확정 조건은 받지 못한다")
+    void hidesAgreementFromOtherUsers(UserRole role) {
+        givenProposalDetail(ProposalStatus.AWAITING_START, USER_ID, role);
+        givenPaidJob(JobStatus.AWAITING_START, null);
+
+        ProposalDetailResult result = proposalFacade.getProposalDetail(USERNAME, 31L);
+
+        assertThat(result.getTitle()).isEqualTo("메뉴판 개선 제안");
+        assertThat(result.getStatus()).isEqualTo(ProposalStatus.AWAITING_START);
+        assertThat(result.getJobId()).isEqualTo(42L);
+        assertThat(result.getAgreement()).isNull();
+        verifyNoInteractions(paymentService);
+    }
+
+    private void givenStartingStudent() {
+        givenUser(UserRole.STUDENT);
+        givenStudentProfile();
+    }
+
+    @Test
+    @DisplayName("제안한 학생이 작업을 시작하면 제안을 수락으로, 의뢰를 진행 중으로 넘기고 채팅방을 만들어 확정 마감일과 함께 반환한다")
+    void startsProposalJob() {
+        givenStartingStudent();
+        Proposal proposal = detailProposal(ProposalStatus.AWAITING_START);
+        LocalDateTime startedAt = LocalDateTime.of(2026, 10, 6, 9, 30);
+        Job started = Job.builder().id(42L).proposalId(31L).status(JobStatus.MATCHED).startedAt(startedAt)
+                .draftDeadline(LocalDate.of(2026, 10, 8)).finalDeadline(LocalDate.of(2026, 10, 12)).build();
+        when(jobService.getStartableProposalId(42L, 7L)).thenReturn(31L);
+        when(proposalService.getStartableProposalForUpdate(31L, 7L)).thenReturn(proposal);
+        when(jobService.startJob(42L, 31L, 7L)).thenReturn(started);
+        when(chatRoomService.getOrCreate(42L)).thenReturn(ChatRoom.create(42L));
+
+        ProposalJobStartResult result = proposalFacade.startProposalJob(StartProposalJobCommand.of(USERNAME, 42L));
+
+        assertThat(result.getJobId()).isEqualTo(42L);
+        assertThat(result.getJobStatus()).isEqualTo(JobStatus.MATCHED);
+        assertThat(result.getProposalStatus()).isEqualTo(ProposalStatus.ACCEPTED);
+        assertThat(proposal.getStatus()).isEqualTo(ProposalStatus.ACCEPTED);
+        assertThat(result.getStartedAt()).isEqualTo(startedAt);
+        assertThat(result.getChatRoomId()).hasSize(26);
+        assertThat(result.getDraftDeadline()).isEqualTo(LocalDate.of(2026, 10, 8));
+        assertThat(result.getFinalDeadline()).isEqualTo(LocalDate.of(2026, 10, 12));
+        // 잠금 순서: 제안 ID를 잠금 없이 읽은 뒤 제안 → 의뢰, 채팅방은 마지막
+        InOrder order = inOrder(jobService, proposalService, chatRoomService);
+        order.verify(jobService).getStartableProposalId(42L, 7L);
+        order.verify(proposalService).getStartableProposalForUpdate(31L, 7L);
+        order.verify(jobService).startJob(42L, 31L, 7L);
+        order.verify(chatRoomService).getOrCreate(42L);
+    }
+
+    @Test
+    @DisplayName("이미 시작한 의뢰의 재요청은 제안 상태를 그대로 두고 기존 시작 시각과 채팅방을 반환한다")
+    void restartReturnsExistingStartAndChatRoom() {
+        givenStartingStudent();
+        Proposal proposal = detailProposal(ProposalStatus.ACCEPTED);
+        LocalDateTime startedAt = LocalDateTime.of(2026, 10, 6, 9, 30);
+        ChatRoom existingRoom = ChatRoom.create(42L);
+        when(jobService.getStartableProposalId(42L, 7L)).thenReturn(31L);
+        when(proposalService.getStartableProposalForUpdate(31L, 7L)).thenReturn(proposal);
+        when(jobService.startJob(42L, 31L, 7L)).thenReturn(
+                Job.builder().id(42L).proposalId(31L).status(JobStatus.MATCHED).startedAt(startedAt).build());
+        when(chatRoomService.getOrCreate(42L)).thenReturn(existingRoom);
+
+        ProposalJobStartResult first = proposalFacade.startProposalJob(StartProposalJobCommand.of(USERNAME, 42L));
+        ProposalJobStartResult second = proposalFacade.startProposalJob(StartProposalJobCommand.of(USERNAME, 42L));
+
+        assertThat(second.getStartedAt()).isEqualTo(first.getStartedAt()).isEqualTo(startedAt);
+        assertThat(second.getChatRoomId()).isEqualTo(first.getChatRoomId()).isEqualTo(existingRoom.getId());
+        assertThat(second.getProposalStatus()).isEqualTo(ProposalStatus.ACCEPTED);
+    }
+
+    @Test
+    @DisplayName("학생이 아니거나 학생 프로필이 없으면 JOB_START_403으로 거부하고 의뢰와 제안을 조회하지 않는다")
+    void rejectsNonStudentForStart() {
+        givenUser(UserRole.OWNER);
+        assertError(() -> proposalFacade.startProposalJob(StartProposalJobCommand.of(USERNAME, 42L)),
+                ErrorCode.JOB_START_FORBIDDEN);
+
+        givenUser(UserRole.STUDENT);
+        when(studentService.findStudentProfileByUserId(USER_ID)).thenReturn(Optional.empty());
+        assertError(() -> proposalFacade.startProposalJob(StartProposalJobCommand.of(USERNAME, 42L)),
+                ErrorCode.JOB_START_FORBIDDEN);
+
+        verifyNoInteractions(jobService, proposalService, chatRoomService);
+    }
+
+    @Test
+    @DisplayName("담당 학생이 아니거나 시작할 수 없는 의뢰이면 제안을 잠그지 않고 채팅방도 만들지 않는다")
+    void doesNotLockOrCreateRoomWhenJobIsNotStartable() {
+        givenStartingStudent();
+        when(jobService.getStartableProposalId(42L, 7L))
+                .thenThrow(new BusinessException(ErrorCode.JOB_START_FORBIDDEN));
+
+        assertError(() -> proposalFacade.startProposalJob(StartProposalJobCommand.of(USERNAME, 42L)),
+                ErrorCode.JOB_START_FORBIDDEN);
+        verifyNoInteractions(proposalService, chatRoomService);
+        verify(jobService, never()).startJob(anyLong(), anyLong(), anyLong());
+    }
+
+    @Test
+    @DisplayName("잠근 뒤 의뢰를 시작할 수 없으면 제안을 수락으로 바꾸지 않고 채팅방을 만들지 않는다")
+    void keepsProposalWhenStartFailsUnderLock() {
+        givenStartingStudent();
+        Proposal proposal = detailProposal(ProposalStatus.AWAITING_START);
+        when(jobService.getStartableProposalId(42L, 7L)).thenReturn(31L);
+        when(proposalService.getStartableProposalForUpdate(31L, 7L)).thenReturn(proposal);
+        when(jobService.startJob(42L, 31L, 7L)).thenThrow(new BusinessException(ErrorCode.JOB_START_NOT_AVAILABLE));
+
+        assertError(() -> proposalFacade.startProposalJob(StartProposalJobCommand.of(USERNAME, 42L)),
+                ErrorCode.JOB_START_NOT_AVAILABLE);
+        assertThat(proposal.getStatus()).isEqualTo(ProposalStatus.AWAITING_START);
+        verifyNoInteractions(chatRoomService);
     }
 }

@@ -13,6 +13,19 @@ public final class ProposalCommandDto {
     private ProposalCommandDto() {
     }
 
+    /** 제안한 학생이 결제된 제안 의뢰의 작업을 시작하려는 요청. */
+    @Getter
+    @AllArgsConstructor(access = AccessLevel.PRIVATE)
+    public static class StartProposalJobCommand {
+
+        private final String username;
+        private final Long jobId;
+
+        public static StartProposalJobCommand of(String username, Long jobId) {
+            return new StartProposalJobCommand(username, jobId);
+        }
+    }
+
     @Getter
     @Builder(access = AccessLevel.PRIVATE)
     @AllArgsConstructor(access = AccessLevel.PRIVATE)

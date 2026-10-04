@@ -14,6 +14,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import java.time.Instant;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Stream;
@@ -31,7 +33,12 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import com.gakkum.backend.application.proposal.facade.ProposalFacade;
+import com.gakkum.backend.domain.job.entity.Job;
+import com.gakkum.backend.domain.job.entity.JobStatus;
 import com.gakkum.backend.domain.proposal.dto.ProposalCommandDto.CreateProposalCommand;
+import com.gakkum.backend.domain.proposal.dto.ProposalCommandDto.StartProposalJobCommand;
+import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.ProposalAgreementResult;
+import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.ProposalJobStartResult;
 import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.MyProposalListResult;
 import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.MyProposalResult;
 import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.ProposalCreateResult;
@@ -176,6 +183,7 @@ class ProposalControllerTest {
                 .finalDays(7)
                 .referenceImageUrls(List.of(IMAGE_URL))
                 .likeCount(4)
+                .status(ProposalStatus.PENDING)
                 .createdAt(LocalDateTime.of(2026, 9, 30, 10, 0))
                 .build();
         Student student = Student.builder().id(7L).major("시각디자인학부").studentNumber("20260001").build();
@@ -186,7 +194,7 @@ class ProposalControllerTest {
                         SpecialtyResult.of(11L, "숏폼 촬영"), SpecialtyResult.of(12L, "영상 편집"))));
         when(proposalFacade.getProposalDetail(USERNAME, 31L))
                 .thenReturn(ProposalDetailResult.of(proposal, "가게 이름", student, studentUser,
-                        new java.math.BigDecimal("4.3"), 5L, categories));
+                        new java.math.BigDecimal("4.3"), 5L, categories, LocalDate.of(2026, 10, 5), null, null));
 
         mockMvc.perform(get("/proposals/31").principal(authentication))
                 .andExpect(status().isOk())
@@ -213,9 +221,108 @@ class ProposalControllerTest {
                 .andExpect(jsonPath("$.data.workPlan").value("촬영 후 편집합니다."))
                 .andExpect(jsonPath("$.data.proposedFee").value(50000))
                 .andExpect(jsonPath("$.data.finalDays").value(7))
-                .andExpect(jsonPath("$.data.draftDays").doesNotExist())
+                .andExpect(jsonPath("$.data.draftDays").value(3))
+                .andExpect(jsonPath("$.data.status").value("PENDING"))
+                .andExpect(jsonPath("$.data.estimatedDraftDeadline").value("2026-10-08"))
+                .andExpect(jsonPath("$.data.estimatedFinalDeadline").value("2026-10-12"))
+                .andExpect(jsonPath("$.data.jobId").doesNotExist())
+                .andExpect(jsonPath("$.data.agreement").doesNotExist())
                 .andExpect(jsonPath("$.data.referenceImageUrls[0]").value(IMAGE_URL))
                 .andExpect(jsonPath("$.data.createdAt").exists());
+    }
+
+    @Test
+    @DisplayName("결제된 제안 상세는 연결된 의뢰 ID와 확정 작업 조건을 반환하고 예상 마감일은 내리지 않는다")
+    void returnsPaidProposalDetailWithAgreement() throws Exception {
+        Proposal proposal = Proposal.builder().id(31L).title("메뉴판 개선 제안").proposedFee(50000L)
+                .draftDays(3).finalDays(7).referenceImageUrls(List.of()).likeCount(0)
+                .status(ProposalStatus.AWAITING_START).build();
+        Job job = Job.builder().id(42L).status(JobStatus.AWAITING_START).budget(50000L)
+                .draftDeadline(LocalDate.of(2026, 10, 8)).finalDeadline(LocalDate.of(2026, 10, 12))
+                .revisionCount(2).acceptanceMessage("매장 분위기에 맞춰 작업 부탁드립니다.").build();
+        when(proposalFacade.getProposalDetail(USERNAME, 31L))
+                .thenReturn(ProposalDetailResult.of(proposal, "가게 이름",
+                        Student.builder().id(7L).build(), User.builder().name("김학생").build(),
+                        new java.math.BigDecimal("4.3"), 5L, List.of(), LocalDate.of(2026, 10, 9), 42L,
+                        ProposalAgreementResult.of(job, Instant.parse("2026-10-05T03:00:00Z"))));
+
+        mockMvc.perform(get("/proposals/31").principal(authentication))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.status").value("AWAITING_START"))
+                .andExpect(jsonPath("$.data.jobId").value(42))
+                .andExpect(jsonPath("$.data.estimatedDraftDeadline").doesNotExist())
+                .andExpect(jsonPath("$.data.estimatedFinalDeadline").doesNotExist())
+                .andExpect(jsonPath("$.data.agreement.jobStatus").value("AWAITING_START"))
+                .andExpect(jsonPath("$.data.agreement.budget").value(50000))
+                .andExpect(jsonPath("$.data.agreement.draftDeadline").value("2026-10-08"))
+                .andExpect(jsonPath("$.data.agreement.finalDeadline").value("2026-10-12"))
+                .andExpect(jsonPath("$.data.agreement.revisionCount").value(2))
+                .andExpect(jsonPath("$.data.agreement.messageToStudent").value("매장 분위기에 맞춰 작업 부탁드립니다."))
+                .andExpect(jsonPath("$.data.agreement.paidAt").value("2026-10-05T03:00:00Z"))
+                .andExpect(jsonPath("$.data.agreement.startedAt").doesNotExist());
+    }
+
+    @Test
+    @DisplayName("작업 시작 요청은 인증 사용자와 의뢰 ID를 전달하고 200과 시작 결과를 반환한다")
+    void startsProposalJob() throws Exception {
+        Proposal proposal = Proposal.builder().id(31L).status(ProposalStatus.ACCEPTED).build();
+        Job job = Job.builder().id(42L).status(JobStatus.MATCHED)
+                .startedAt(LocalDateTime.of(2026, 10, 6, 9, 30))
+                .draftDeadline(LocalDate.of(2026, 10, 8)).finalDeadline(LocalDate.of(2026, 10, 12)).build();
+        when(proposalFacade.startProposalJob(any()))
+                .thenReturn(ProposalJobStartResult.of(job, proposal, "01K58M6PJV8VAJMXHBHJ2ROOM1"));
+
+        mockMvc.perform(post("/jobs/42/start").principal(authentication)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"deadlineAndPenaltyAgreed\":true}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.jobId").value(42))
+                .andExpect(jsonPath("$.data.jobStatus").value("MATCHED"))
+                .andExpect(jsonPath("$.data.proposalStatus").value("ACCEPTED"))
+                .andExpect(jsonPath("$.data.startedAt").exists())
+                .andExpect(jsonPath("$.data.chatRoomId").value("01K58M6PJV8VAJMXHBHJ2ROOM1"))
+                .andExpect(jsonPath("$.data.draftDeadline").value("2026-10-08"))
+                .andExpect(jsonPath("$.data.finalDeadline").value("2026-10-12"));
+
+        ArgumentCaptor<StartProposalJobCommand> captor = ArgumentCaptor.forClass(StartProposalJobCommand.class);
+        verify(proposalFacade).startProposalJob(captor.capture());
+        assertThat(captor.getValue().getUsername()).isEqualTo(USERNAME);
+        assertThat(captor.getValue().getJobId()).isEqualTo(42L);
+    }
+
+    @Test
+    @DisplayName("마감일·패널티 동의가 없거나 거짓이면 400을 반환하고 작업을 시작하지 않는다")
+    void rejectsStartWithoutAgreement() throws Exception {
+        for (String body : new String[] { "{}", "{\"deadlineAndPenaltyAgreed\":false}",
+                "{\"deadlineAndPenaltyAgreed\":null}" }) {
+            mockMvc.perform(post("/jobs/42/start").principal(authentication)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(body))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.error.code").value("COMMON_400"));
+        }
+        verify(proposalFacade, never()).startProposalJob(any());
+    }
+
+    @ParameterizedTest
+    @MethodSource("startErrors")
+    @DisplayName("작업 시작의 권한·대상·상태 오류는 각 오류 코드의 상태로 반환한다")
+    void returnsStartErrors(ErrorCode errorCode, int status, String code) throws Exception {
+        when(proposalFacade.startProposalJob(any())).thenThrow(new BusinessException(errorCode));
+
+        mockMvc.perform(post("/jobs/42/start").principal(authentication)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"deadlineAndPenaltyAgreed\":true}"))
+                .andExpect(status().is(status))
+                .andExpect(jsonPath("$.error.code").value(code));
+    }
+
+    static Stream<Arguments> startErrors() {
+        return Stream.of(
+                Arguments.of(ErrorCode.JOB_START_FORBIDDEN, 403, "JOB_START_403"),
+                Arguments.of(ErrorCode.JOB_NOT_FOUND, 404, "JOB_404"),
+                Arguments.of(ErrorCode.JOB_START_NOT_AVAILABLE, 409, "JOB_START_409"));
     }
 
     static Stream<Arguments> proposalDetailErrors() {
@@ -275,11 +382,12 @@ class ProposalControllerTest {
         Owner owner = Owner.builder().id(50L).storeName("가꿈 카페").build();
         when(proposalFacade.getMyProposals(USERNAME)).thenReturn(MyProposalListResult.of(List.of(
                 MyProposalResult.of(proposal, owner, List.of(SpecialtyCategoryResult.of(
-                        1L, "디자인", List.of(SpecialtyResult.of(11L, "메뉴판 디자인"))))))));
+                        1L, "디자인", List.of(SpecialtyResult.of(11L, "메뉴판 디자인")))), null))));
 
         mockMvc.perform(get("/me/proposals").principal(authentication))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.proposals[0].jobId").doesNotExist())
                 .andExpect(jsonPath("$.data.proposals[0].proposalId").value(31))
                 .andExpect(jsonPath("$.data.proposals[0].status").value("PENDING"))
                 .andExpect(jsonPath("$.data.proposals[0].likeCount").value(5))
@@ -320,11 +428,12 @@ class ProposalControllerTest {
         User studentUser = User.builder().id("student-user").name("홍길동").build();
         when(proposalFacade.getReceivedProposals(USERNAME)).thenReturn(ReceivedProposalListResult.of(List.of(
                 ReceivedProposalResult.of(proposal, student, studentUser, List.of(SpecialtyCategoryResult.of(
-                        1L, "디자인", List.of(SpecialtyResult.of(3L, "편집 디자인"))))))));
+                        1L, "디자인", List.of(SpecialtyResult.of(3L, "편집 디자인")))), 42L))));
 
         mockMvc.perform(get("/me/received-proposals").principal(authentication))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.proposals[0].jobId").value(42))
                 .andExpect(jsonPath("$.data.proposals[0].proposalId").value(101))
                 .andExpect(jsonPath("$.data.proposals[0].title").value("메뉴판 개선 제안"))
                 .andExpect(jsonPath("$.data.proposals[0].status").value("PENDING"))

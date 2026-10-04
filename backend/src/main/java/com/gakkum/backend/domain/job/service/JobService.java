@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -17,8 +18,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.gakkum.backend.domain.job.dto.JobCommandDto.CancelJobCommand;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.CompleteJobSubmissionCommand;
+import com.gakkum.backend.domain.job.dto.JobCommandDto.CreateJobApplicationCommand;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.CreateJobCommand;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.CreateJobSubmissionCommand;
+import com.gakkum.backend.domain.job.dto.JobCommandDto.CreateProposalJobCommand;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.GetClosedJobsCommand;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.GetExploreJobsCommand;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.GetJobApplicantProfileCommand;
@@ -51,6 +54,7 @@ import com.gakkum.backend.domain.job.entity.JobSubmissionType;
 import com.gakkum.backend.domain.job.entity.JobStatus;
 import com.gakkum.backend.domain.job.repository.JobApplicationRepository;
 import com.gakkum.backend.domain.job.repository.JobRepository;
+import com.gakkum.backend.domain.job.repository.JobRepository.StartTargetProjection;
 import com.gakkum.backend.domain.job.repository.JobRepository.StudentJobCount;
 import com.gakkum.backend.domain.job.repository.JobSpecialtyRepository;
 import com.gakkum.backend.domain.job.repository.JobSubmissionRepository;
@@ -112,6 +116,113 @@ public class JobService {
         jobSpecialtyRepository.saveAll(jobSpecialties);
 
         return savedJob;
+    }
+
+    /**
+     * 결제가 승인된 제안으로 수락 대기(AWAITING_START) 의뢰를 만들고 제안의 소분류를 복사한다.
+     * 지원서와 채팅방은 만들지 않는다. 같은 제안의 승인은 호출하는 쪽이 제안 행을 잠가 순서대로 처리한다.
+     * @param command 제안과 승인된 결제에서 정한 의뢰 값
+     * @return 저장된 수락 대기 의뢰
+     */
+    @Transactional
+    public Job createAwaitingStartJob(CreateProposalJobCommand command) {
+        Job job = jobRepository.saveAndFlush(Job.createAwaitingStart(
+                command.getOwnerProfileId(),
+                command.getStudentProfileId(),
+                command.getProposalId(),
+                command.getTitle(),
+                command.getDescription(),
+                command.getBudget(),
+                command.getDraftDeadline(),
+                command.getFinalDeadline(),
+                command.getRevisionCount(),
+                command.getAcceptanceMessage()));
+
+        jobSpecialtyRepository.saveAll(command.getSpecialtyIds().stream()
+                .map(specialtyId -> JobSpecialty.create(job.getId(), specialtyId))
+                .toList());
+        return job;
+    }
+
+    /** 제안으로 만든 의뢰를 잠가 반환한다. 결제 전이라 의뢰가 없으면 비어 있다. */
+    @Transactional
+    public Optional<Job> findJobByProposalIdForUpdate(Long proposalId) {
+        return jobRepository.findLockedByProposalId(proposalId);
+    }
+
+    /** 제안으로 만든 의뢰. 결제 전이라 의뢰가 없으면 비어 있다. */
+    @Transactional(readOnly = true)
+    public Optional<Job> findJobByProposalId(Long proposalId) {
+        return jobRepository.findByProposalId(proposalId);
+    }
+
+    /**
+     * 제안 ID 목록으로 연결된 의뢰 ID를 한 번에 조회한다.
+     * @param proposalIds
+     * @return 제안 ID별 의뢰 ID. 결제 전이라 의뢰가 없는 제안은 키가 없다
+     */
+    @Transactional(readOnly = true)
+    public Map<Long, Long> getJobIdsByProposalIds(Collection<Long> proposalIds) {
+        if (proposalIds.isEmpty()) {
+            return Map.of();
+        }
+        return jobRepository.findByProposalIdIn(proposalIds).stream()
+                .collect(Collectors.toMap(Job::getProposalId, Job::getId));
+    }
+
+    /**
+     * 학생이 작업을 시작하려는 의뢰의 제안 ID. 제안 행을 먼저 잠그기 위해 잠금 없이 읽는다.
+     * 잠금 후 조회가 최신 상태를 읽도록 의뢰를 엔티티로 올리지 않는다.
+     * 없는 의뢰는 404, 제안으로 만들지 않은 일반 의뢰는 409, 담당 학생이 아니면 403으로 거부한다.
+     * @param jobId
+     * @param studentProfileId
+     * @return 의뢰를 만든 제안 ID
+     */
+    @Transactional(readOnly = true)
+    public Long getStartableProposalId(Long jobId, Long studentProfileId) {
+        StartTargetProjection job = jobRepository.findProjectedById(jobId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.JOB_NOT_FOUND));
+        if (job.getProposalId() == null) {
+            throw new BusinessException(ErrorCode.JOB_START_NOT_AVAILABLE);
+        }
+        if (!studentProfileId.equals(job.getSelectedStudentProfileId())) {
+            throw new BusinessException(ErrorCode.JOB_START_FORBIDDEN);
+        }
+        return job.getProposalId();
+    }
+
+    /**
+     * 담당 학생이 수락 대기(AWAITING_START) 제안 의뢰의 작업을 시작한다. 마감일이 지나도 시작할 수 있고 마감일은 바꾸지 않는다.
+     * 제안 행을 잠근 뒤 호출하며, 의뢰 행을 잠근 상태에서 제안 연결과 담당 학생을 다시 확인한다.
+     * 이미 시작한 의뢰의 재요청은 기존 시작 시각을 그대로 반환한다.
+     * @param jobId
+     * @param proposalId 잠금 전에 읽은 제안 ID
+     * @param studentProfileId
+     * @return 진행 중(MATCHED) 의뢰
+     */
+    @Transactional
+    public Job startJob(Long jobId, Long proposalId, Long studentProfileId) {
+        Job job = jobRepository.findLockedById(jobId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.JOB_NOT_FOUND));
+        if (!proposalId.equals(job.getProposalId())) {
+            throw new BusinessException(ErrorCode.JOB_START_NOT_AVAILABLE);
+        }
+        if (!studentProfileId.equals(job.getSelectedStudentProfileId())) {
+            throw new BusinessException(ErrorCode.JOB_START_FORBIDDEN);
+        }
+        job.start(now());
+        return job;
+    }
+
+    /**
+     * 학생이 담당하는 모든 상태의 의뢰 조회
+     * @param studentProfileId
+     * @return 의뢰 ID별 의뢰, 없으면 빈 맵
+     */
+    @Transactional(readOnly = true)
+    public Map<Long, Job> getJobsBySelectedStudentProfileId(Long studentProfileId) {
+        return jobRepository.findBySelectedStudentProfileId(studentProfileId).stream()
+                .collect(Collectors.toMap(Job::getId, Function.identity()));
     }
 
     /**
@@ -199,6 +310,39 @@ public class JobService {
                 ? jobSubmissionRepository.findFirstByJobIdOrderByRevisionNumberDesc(jobId).orElse(null)
                 : null;
         return JobDetailData.of(job, specialtyIds, calculateProgressStage(job, latest));
+    }
+
+    /**
+     * 학생이 모집 중(OPEN) 의뢰에 지원한다. 작업 마감일이 지나도 모집 중이면 지원할 수 있다.
+     * 의뢰 행을 잠가 같은 의뢰의 결제 선정·취소·다른 지원과 순서대로 처리하고, 의뢰 상태와 선정 학생은 바꾸지 않는다.
+     * 같은 학생의 재지원은 기존 지원서 상태와 무관하게 거부하며, 유니크 제약 충돌도 중복 지원으로 본다.
+     * @param command
+     * @param studentProfileId
+     * @return 저장된 대기 중(PENDING) 지원서
+     */
+    @Transactional
+    public JobApplication createJobApplication(CreateJobApplicationCommand command, Long studentProfileId) {
+        Job job = jobRepository.findLockedById(command.getJobId())
+                .orElseThrow(() -> new BusinessException(ErrorCode.JOB_NOT_FOUND));
+        if (job.getStatus() != JobStatus.OPEN) {
+            throw new BusinessException(ErrorCode.JOB_APPLICATION_NOT_AVAILABLE);
+        }
+        if (jobApplicationRepository.existsByJobIdAndStudentProfileId(job.getId(), studentProfileId)) {
+            throw new BusinessException(ErrorCode.JOB_APPLICATION_ALREADY_EXISTS);
+        }
+
+        try {
+            return jobApplicationRepository.saveAndFlush(JobApplication.create(
+                    studentProfileId, job.getId(), command.getSummary(), command.getWorkPlan(),
+                    command.getDeliveryMethod()));
+        } catch (DataIntegrityViolationException exception) {
+            // 다른 무결성 오류(길이·NOT NULL 등)는 중복 지원이 아니므로 그대로 올린다
+            String message = exception.getMessage();
+            if (message != null && message.contains(JobApplication.JOB_STUDENT_UNIQUE_CONSTRAINT)) {
+                throw new BusinessException(ErrorCode.JOB_APPLICATION_ALREADY_EXISTS);
+            }
+            throw exception;
+        }
     }
 
     /**
@@ -730,6 +874,7 @@ public class JobService {
     private JobProgressStage calculateProgressStage(Job job, JobSubmission latestSubmission) {
         return switch (job.getStatus()) {
             case OPEN -> JobProgressStage.REQUESTED;
+            case AWAITING_START -> JobProgressStage.AWAITING_START;
             case CLOSED -> JobProgressStage.COMPLETED;
             case CANCELLED -> JobProgressStage.CANCELLED;
             case MATCHED -> {

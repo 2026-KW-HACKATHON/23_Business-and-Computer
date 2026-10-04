@@ -28,6 +28,7 @@ import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.ExploreProposalDa
 import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.ProposalDetailData;
 import com.gakkum.backend.domain.proposal.entity.Proposal;
 import com.gakkum.backend.domain.proposal.entity.ProposalSpecialty;
+import com.gakkum.backend.domain.proposal.entity.ProposalStatus;
 import com.gakkum.backend.domain.proposal.repository.ProposalRepository;
 import com.gakkum.backend.domain.proposal.repository.ProposalSpecialtyRepository;
 import com.gakkum.backend.global.exception.BusinessException;
@@ -243,5 +244,61 @@ class ProposalServiceTest {
 
         assertThat(proposalService.getReceivedProposals(GetReceivedProposalsCommand.of(5L))).isEmpty();
         verify(proposalSpecialtyRepository, never()).findByProposalIdIn(any());
+    }
+
+    @Test
+    @DisplayName("결제할 제안은 행을 잠가 읽고, 없는 제안은 404, 다른 사장님이 받은 제안은 403, 결제 전이 아닌 제안은 409로 거부한다")
+    void returnsPayableProposalForUpdate() {
+        Proposal pending = Proposal.builder().id(5L).ownerProfileId(7L).status(ProposalStatus.PENDING).build();
+        when(proposalRepository.findLockedById(5L)).thenReturn(Optional.of(pending));
+        when(proposalRepository.findLockedById(6L)).thenReturn(Optional.of(
+                Proposal.builder().id(6L).ownerProfileId(7L).status(ProposalStatus.AWAITING_START).build()));
+        when(proposalRepository.findLockedById(99L)).thenReturn(Optional.empty());
+
+        assertThat(proposalService.getPayableProposalForUpdate(5L, 7L)).isSameAs(pending);
+        assertProposalError(() -> proposalService.getPayableProposalForUpdate(99L, 7L), ErrorCode.PROPOSAL_NOT_FOUND);
+        assertProposalError(() -> proposalService.getPayableProposalForUpdate(5L, 8L),
+                ErrorCode.PROPOSAL_PAYMENT_FORBIDDEN);
+        assertProposalError(() -> proposalService.getPayableProposalForUpdate(6L, 7L),
+                ErrorCode.PROPOSAL_PAYMENT_NOT_AVAILABLE);
+        verify(proposalRepository, never()).findById(anyLong());
+    }
+
+    @Test
+    @DisplayName("작업을 시작할 제안은 행을 잠가 읽고, 다른 학생의 제안은 403, 결제되지 않았거나 거절된 제안은 409로 거부한다")
+    void returnsStartableProposalForUpdate() {
+        Proposal awaiting = Proposal.builder().id(5L).studentProfileId(31L)
+                .status(ProposalStatus.AWAITING_START).build();
+        Proposal accepted = Proposal.builder().id(6L).studentProfileId(31L).status(ProposalStatus.ACCEPTED).build();
+        when(proposalRepository.findLockedById(5L)).thenReturn(Optional.of(awaiting));
+        when(proposalRepository.findLockedById(6L)).thenReturn(Optional.of(accepted));
+        when(proposalRepository.findLockedById(7L)).thenReturn(Optional.of(
+                Proposal.builder().id(7L).studentProfileId(31L).status(ProposalStatus.PENDING).build()));
+        when(proposalRepository.findLockedById(8L)).thenReturn(Optional.of(
+                Proposal.builder().id(8L).studentProfileId(31L).status(ProposalStatus.REJECTED).build()));
+
+        assertThat(proposalService.getStartableProposalForUpdate(5L, 31L)).isSameAs(awaiting);
+        assertThat(proposalService.getStartableProposalForUpdate(6L, 31L)).isSameAs(accepted);
+        assertProposalError(() -> proposalService.getStartableProposalForUpdate(5L, 32L),
+                ErrorCode.JOB_START_FORBIDDEN);
+        assertProposalError(() -> proposalService.getStartableProposalForUpdate(7L, 31L),
+                ErrorCode.JOB_START_NOT_AVAILABLE);
+        assertProposalError(() -> proposalService.getStartableProposalForUpdate(8L, 31L),
+                ErrorCode.JOB_START_NOT_AVAILABLE);
+    }
+
+    @Test
+    @DisplayName("제안의 소분류 ID를 의뢰에 복사할 수 있도록 그대로 반환한다")
+    void returnsSpecialtyIdsOfProposal() {
+        when(proposalSpecialtyRepository.findByProposalId(5L)).thenReturn(List.of(
+                ProposalSpecialty.create(5L, 3L), ProposalSpecialty.create(5L, 11L)));
+
+        assertThat(proposalService.getSpecialtyIds(5L)).containsExactly(3L, 11L);
+    }
+
+    private void assertProposalError(Runnable action, ErrorCode errorCode) {
+        assertThatThrownBy(action::run)
+                .isInstanceOfSatisfying(BusinessException.class, exception ->
+                        assertThat(exception.getErrorCode()).isEqualTo(errorCode));
     }
 }

@@ -124,6 +124,34 @@ class JobResultFlowTest {
     }
 
     @Test
+    @DisplayName("제안으로 만든 의뢰의 시작 이력은 결제 승인일이 아니라 학생이 실제로 작업을 시작한 날이다")
+    void proposalJobUsesActualStartDate() throws Exception {
+        givenActiveOwner(5L);
+        givenClosedJob();
+        when(jobRepository.findById(42L)).thenReturn(Optional.of(Job.builder()
+                .id(42L)
+                .ownerProfileId(5L)
+                .title("가게 메뉴판 디자인")
+                .budget(150000L)
+                .status(JobStatus.CLOSED)
+                .selectedStudentProfileId(7L)
+                .proposalId(31L)
+                .startedAt(LocalDateTime.of(2026, 9, 5, 10, 0))
+                .completedAt(LocalDateTime.of(2026, 9, 20, 15, 0))
+                .build()));
+        givenSubmissions(submission(81L, 0, JobSubmissionReviewStatus.APPROVED,
+                LocalDateTime.of(2026, 9, 10, 9, 30), null));
+        givenPaidPayment();
+
+        mockMvc.perform(get(URL).principal(authentication))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.workHistory[*].type",
+                        contains("STARTED", "DRAFT_SUBMITTED", "COMPLETED")))
+                .andExpect(jsonPath("$.data.workHistory[*].date",
+                        contains("2026-09-05", "2026-09-10", "2026-09-20")));
+    }
+
+    @Test
     @DisplayName("담당 학생이 수정 후 승인된 의뢰를 조회하면 최종 수정안의 파일·메시지와 수정 요청을 포함한 이력을 반환한다")
     void studentGetsRevisedResult() throws Exception {
         givenActiveStudent(7L);

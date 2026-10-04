@@ -200,18 +200,18 @@ class PaymentServiceTest {
     }
 
     @Test
-    @DisplayName("정산 내역은 지원서 ID에 연결된 PAID·REFUNDED 결제만 저장소 정렬 순서대로 반환한다")
+    @DisplayName("정산 내역은 담당 의뢰 ID에 연결된 PAID·REFUNDED 결제만 저장소 정렬 순서대로 반환한다")
     void returnsSettlementHistoryInRepositoryOrder() {
         Payment refunded = historyPayment(12L, "order-refunded", "T0000000000000000002");
         refunded.approve(NOW);
         refunded.refundOnCancel(NOW.plusSeconds(60));
         Payment paid = historyPayment(11L, "order-paid", "T0000000000000000001");
         paid.approve(NOW.minusSeconds(60));
-        when(repository.findByJobApplicationIdInAndStatusInOrderByApprovedAtDescIdDesc(
-                List.of(21L, 22L), List.of(PaymentStatus.PAID, PaymentStatus.REFUNDED)))
+        when(repository.findByJobIdInAndStatusInOrderByApprovedAtDescIdDesc(
+                List.of(11L, 12L), List.of(PaymentStatus.PAID, PaymentStatus.REFUNDED)))
                 .thenReturn(List.of(refunded, paid));
 
-        List<SettlementHistoryData> history = service.getSettlementHistory(List.of(21L, 22L));
+        List<SettlementHistoryData> history = service.getSettlementHistory(List.of(11L, 12L));
 
         assertThat(history).extracting(SettlementHistoryData::getJobId).containsExactly(12L, 11L);
         assertThat(history.get(0).getStatus()).isEqualTo(PaymentStatus.REFUNDED);
@@ -226,8 +226,8 @@ class PaymentServiceTest {
     }
 
     @Test
-    @DisplayName("지원서가 없으면 저장소를 조회하지 않고 빈 정산 내역을 반환한다")
-    void returnsEmptySettlementHistoryWithoutApplications() {
+    @DisplayName("담당 의뢰가 없으면 저장소를 조회하지 않고 빈 정산 내역을 반환한다")
+    void returnsEmptySettlementHistoryWithoutJobs() {
         assertThat(service.getSettlementHistory(List.of())).isEmpty();
         verifyNoInteractions(repository);
     }
@@ -237,7 +237,7 @@ class PaymentServiceTest {
     void rejectsSettlementHistoryWithoutApprovedAt() {
         Payment broken = mock(Payment.class);
         when(broken.getApprovedAt()).thenReturn(null);
-        when(repository.findByJobApplicationIdInAndStatusInOrderByApprovedAtDescIdDesc(
+        when(repository.findByJobIdInAndStatusInOrderByApprovedAtDescIdDesc(
                 List.of(21L), List.of(PaymentStatus.PAID, PaymentStatus.REFUNDED))).thenReturn(List.of(broken));
 
         assertThatThrownBy(() -> service.getSettlementHistory(List.of(21L)))
@@ -249,5 +249,75 @@ class PaymentServiceTest {
         Payment payment = Payment.pending(jobId, 21L, USER_ID, orderId, 100_000L, NOW);
         payment.recordKakaoTid(tid);
         return payment;
+    }
+
+    @Test
+    @DisplayName("제안 결제는 서버 금액·수정 횟수·한마디·동의 시각으로 의뢰와 지원서가 없는 PENDING 주문을 저장한다")
+    void createsPendingProposalPayment() {
+        when(repository.save(any(Payment.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        Payment payment = service.prepareProposalPayment(5L, USER_ID, 50_000L, 2, "잘 부탁드립니다.");
+
+        assertThat(payment.getProposalId()).isEqualTo(5L);
+        assertThat(payment.getJobId()).isNull();
+        assertThat(payment.getJobApplicationId()).isNull();
+        assertThat(payment.getOwnerUserId()).isEqualTo(USER_ID);
+        assertThat(payment.getAmount()).isEqualTo(50_000L);
+        assertThat(payment.getRevisionCount()).isEqualTo(2);
+        assertThat(payment.getMessageToStudent()).isEqualTo("잘 부탁드립니다.");
+        assertThat(payment.getRefundPolicyAgreedAt()).isEqualTo(NOW);
+        assertThat(payment.getStatus()).isEqualTo(PaymentStatus.PENDING);
+        assertThat(payment.getOrderId()).matches("[0-9a-f-]{36}");
+    }
+
+    @Test
+    @DisplayName("같은 제안의 이전 PENDING 주문은 새 주문을 저장하기 전에 SUPERSEDED로 대체한다")
+    void supersedesPreviousPendingProposalPayment() {
+        Payment previous = Payment.pendingForProposal(5L, USER_ID, "old-order", 50_000L, 1, null, NOW);
+        when(repository.findByProposalIdAndStatus(5L, PaymentStatus.PENDING)).thenReturn(Optional.of(previous));
+        when(repository.save(any(Payment.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        Payment payment = service.prepareProposalPayment(5L, USER_ID, 50_000L, 3, null);
+
+        assertThat(previous.getStatus()).isEqualTo(PaymentStatus.SUPERSEDED);
+        assertThat(payment.getStatus()).isEqualTo(PaymentStatus.PENDING);
+        assertThat(payment.getRevisionCount()).isEqualTo(3);
+        assertThat(payment.getMessageToStudent()).isNull();
+        org.mockito.InOrder order = org.mockito.Mockito.inOrder(repository);
+        order.verify(repository).flush();
+        order.verify(repository).save(payment);
+    }
+
+    @Test
+    @DisplayName("이미 결제된 제안이거나 결제 금액이 없거나 0 이하이면 제안 결제 주문을 만들지 않는다")
+    void rejectsPaidProposalOrInvalidAmount() {
+        when(repository.existsByProposalIdAndStatus(5L, PaymentStatus.PAID)).thenReturn(true);
+
+        assertThatThrownBy(() -> service.prepareProposalPayment(5L, USER_ID, 50_000L, 2, null))
+                .isInstanceOfSatisfying(BusinessException.class, exception ->
+                        assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.PAYMENT_ALREADY_PAID));
+        for (Long amount : new Long[] { null, 0L, -1L }) {
+            assertThatThrownBy(() -> service.prepareProposalPayment(6L, USER_ID, amount, 2, null))
+                    .isInstanceOfSatisfying(BusinessException.class, exception ->
+                            assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.PAYMENT_NOT_AVAILABLE));
+        }
+        verify(repository, never()).save(any(Payment.class));
+    }
+
+    @Test
+    @DisplayName("제안의 결제 승인 시각은 PAID·REFUNDED 결제에서 읽고 승인된 결제가 없으면 서버 오류로 처리한다")
+    void returnsProposalPaidAt() {
+        Payment paid = Payment.pendingForProposal(5L, USER_ID, "order-123", 50_000L, 2, null, NOW);
+        paid.recordKakaoTid("T0000000000000000005");
+        paid.approve(NOW.plusSeconds(30));
+        when(repository.findByProposalIdAndStatusIn(5L, List.of(PaymentStatus.PAID, PaymentStatus.REFUNDED)))
+                .thenReturn(Optional.of(paid));
+        when(repository.findByProposalIdAndStatusIn(6L, List.of(PaymentStatus.PAID, PaymentStatus.REFUNDED)))
+                .thenReturn(Optional.empty());
+
+        assertThat(service.getProposalPaidAt(5L)).isEqualTo(NOW.plusSeconds(30));
+        assertThatThrownBy(() -> service.getProposalPaidAt(6L))
+                .isInstanceOfSatisfying(BusinessException.class, exception ->
+                        assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.INTERNAL_SERVER_ERROR));
     }
 }

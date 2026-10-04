@@ -13,11 +13,14 @@ import com.gakkum.backend.application.proposal.dto.MyProposalListResponse;
 import com.gakkum.backend.application.proposal.dto.ProposalCreateRequest;
 import com.gakkum.backend.application.proposal.dto.ProposalCreateResponse;
 import com.gakkum.backend.application.proposal.dto.ProposalDetailResponse;
+import com.gakkum.backend.application.proposal.dto.ProposalJobStartRequest;
+import com.gakkum.backend.application.proposal.dto.ProposalJobStartResponse;
 import com.gakkum.backend.application.proposal.dto.ReceivedProposalListResponse;
 import com.gakkum.backend.application.proposal.facade.ProposalFacade;
 import com.gakkum.backend.global.response.ApiResponse;
 
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
 
 @RestController
@@ -41,6 +44,17 @@ public class ProposalController {
             Authentication authentication, @PathVariable Long proposalId) {
         ProposalDetailResponse response = ProposalDetailResponse.from(
                 proposalFacade.getProposalDetail(authentication.getName(), proposalId));
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    /** 제안한 학생이 확정 작업 조건에 동의하고 결제된 제안 의뢰의 작업을 시작하는 API */
+    @PostMapping("/jobs/{jobId}/start")
+    public ResponseEntity<ApiResponse<ProposalJobStartResponse>> startProposalJob(
+            Authentication authentication,
+            @PathVariable @Positive Long jobId,
+            @Valid @RequestBody ProposalJobStartRequest request) {
+        ProposalJobStartResponse response = ProposalJobStartResponse.from(
+                proposalFacade.startProposalJob(request.toCommand(authentication.getName(), jobId)));
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 

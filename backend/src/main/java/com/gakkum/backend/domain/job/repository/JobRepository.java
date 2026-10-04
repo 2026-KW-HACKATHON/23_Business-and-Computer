@@ -23,6 +23,26 @@ public interface JobRepository extends JpaRepository<Job, Long> {
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     Optional<Job> findByIdAndOwnerProfileId(Long jobId, Long ownerProfileId);
 
+    /** 제안으로 만든 의뢰. 같은 제안의 결제 승인을 순서대로 처리하도록 의뢰 행을 잠근다. */
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    Optional<Job> findLockedByProposalId(Long proposalId);
+
+    Optional<Job> findByProposalId(Long proposalId);
+
+    /**
+     * 작업 시작 전에 잠금 없이 읽는 의뢰의 제안·담당 학생.
+     * 엔티티로 읽으면 영속성 컨텍스트에 남아 잠금 후 조회가 갱신되지 않은 상태를 돌려주므로 프로젝션으로 읽는다.
+     */
+    Optional<StartTargetProjection> findProjectedById(Long jobId);
+
+    interface StartTargetProjection {
+        Long getProposalId();
+
+        Long getSelectedStudentProfileId();
+    }
+
+    List<Job> findByProposalIdIn(Collection<Long> proposalIds);
+
     List<Job> findByOwnerProfileIdAndStatusOrderByCreatedAtDescIdDesc(Long ownerProfileId, JobStatus status);
     List<Job> findByOwnerProfileIdAndStatusInOrderByCompletedAtDescIdDesc(
             Long ownerProfileId, Collection<JobStatus> statuses);

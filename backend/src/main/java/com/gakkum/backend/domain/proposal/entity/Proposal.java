@@ -1,11 +1,15 @@
 package com.gakkum.backend.domain.proposal.entity;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
+
+import com.gakkum.backend.global.exception.BusinessException;
+import com.gakkum.backend.global.exception.ErrorCode;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -103,5 +107,41 @@ public class Proposal {
                 .likeCount(0)
                 .status(ProposalStatus.PENDING)
                 .build();
+    }
+
+    /** 기준일에 초안 기간을 더한 초안 마감일. 기준일은 결제 승인 시각의 한국 날짜다. */
+    public LocalDate draftDeadlineFrom(LocalDate baseDate) {
+        return baseDate.plusDays(draftDays);
+    }
+
+    /** 기준일에 최종 기간을 더한 최종 마감일. */
+    public LocalDate finalDeadlineFrom(LocalDate baseDate) {
+        return baseDate.plusDays(finalDays);
+    }
+
+    /** 제안으로 만드는 의뢰의 설명. 고객 문제·해결 방안·작업 계획을 구분해 합친다. */
+    public String toJobDescription() {
+        return "[고객 문제]\n" + customerProblem
+                + "\n\n[해결 방안]\n" + proposedSolution
+                + "\n\n[작업 계획]\n" + workPlan;
+    }
+
+    /** 사장님 결제가 승인되어 학생의 작업 시작을 기다린다. 결제 전(PENDING) 제안만 넘어갈 수 있다. */
+    public void awaitStart() {
+        if (status != ProposalStatus.PENDING) {
+            throw new BusinessException(ErrorCode.PROPOSAL_PAYMENT_NOT_AVAILABLE);
+        }
+        status = ProposalStatus.AWAITING_START;
+    }
+
+    /** 학생이 작업을 시작해 제안이 수락된다. 이미 수락된 제안의 재요청은 그대로 둔다. */
+    public void accept() {
+        if (status == ProposalStatus.ACCEPTED) {
+            return;
+        }
+        if (status != ProposalStatus.AWAITING_START) {
+            throw new BusinessException(ErrorCode.JOB_START_NOT_AVAILABLE);
+        }
+        status = ProposalStatus.ACCEPTED;
     }
 }

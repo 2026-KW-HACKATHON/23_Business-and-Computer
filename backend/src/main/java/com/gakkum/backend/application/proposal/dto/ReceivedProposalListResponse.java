@@ -33,6 +33,8 @@ public class ReceivedProposalListResponse {
         private final List<ProposalDetailResponse.SpecialtyCategory> specialtyCategories;
         private final String proposedSolution;
         private final ReceivedProposalStudent student;
+        // 결제로 만들어진 의뢰. 결제 전이면 null
+        private final Long jobId;
 
         public static ReceivedProposal from(ReceivedProposalResult result) {
             return new ReceivedProposal(
@@ -44,7 +46,8 @@ public class ReceivedProposalListResponse {
                             .map(ProposalDetailResponse.SpecialtyCategory::from)
                             .toList(),
                     result.getProposedSolution(),
-                    ReceivedProposalStudent.from(result.getStudent()));
+                    ReceivedProposalStudent.from(result.getStudent()),
+                    result.getJobId());
         }
     }
 
