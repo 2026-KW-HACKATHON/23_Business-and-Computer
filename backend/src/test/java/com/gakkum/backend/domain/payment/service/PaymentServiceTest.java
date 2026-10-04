@@ -164,6 +164,40 @@ class PaymentServiceTest {
     }
 
     @Test
+    @DisplayName("취소된 의뢰의 환불 주문은 저장된 결제 금액·학생 보상금·환불 금액을 그대로 반환한다")
+    void returnsStoredRefundedPayment() {
+        Payment refunded = mock(Payment.class);
+        when(refunded.getAmount()).thenReturn(100_000L);
+        when(refunded.getStudentCompensationAmount()).thenReturn(30_000L);
+        when(refunded.getRefundAmount()).thenReturn(70_000L);
+        when(refunded.getRefundedAt()).thenReturn(NOW);
+        when(repository.findByJobIdAndStatus(11L, PaymentStatus.REFUNDED)).thenReturn(Optional.of(refunded));
+
+        assertThat(service.getRefundedPayment(11L))
+                .isEqualTo(new RefundedPaymentData(100_000L, 30_000L, 70_000L, NOW));
+    }
+
+    @Test
+    @DisplayName("환불 주문이 없거나 저장된 환불 금액·학생 보상금이 없으면 데이터 무결성 오류로 처리한다")
+    void rejectsMissingRefundedPaymentOrAmounts() {
+        Payment withoutRefundAmount = mock(Payment.class);
+        when(withoutRefundAmount.getRefundAmount()).thenReturn(null);
+        when(withoutRefundAmount.getStudentCompensationAmount()).thenReturn(30_000L);
+        Payment withoutCompensation = mock(Payment.class);
+        when(withoutCompensation.getRefundAmount()).thenReturn(70_000L);
+        when(withoutCompensation.getStudentCompensationAmount()).thenReturn(null);
+        when(repository.findByJobIdAndStatus(11L, PaymentStatus.REFUNDED)).thenReturn(Optional.empty());
+        when(repository.findByJobIdAndStatus(12L, PaymentStatus.REFUNDED)).thenReturn(Optional.of(withoutRefundAmount));
+        when(repository.findByJobIdAndStatus(13L, PaymentStatus.REFUNDED)).thenReturn(Optional.of(withoutCompensation));
+
+        for (Long jobId : List.of(11L, 12L, 13L)) {
+            assertThatThrownBy(() -> service.getRefundedPayment(jobId))
+                    .isInstanceOfSatisfying(BusinessException.class, exception ->
+                            assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.INTERNAL_SERVER_ERROR));
+        }
+    }
+
+    @Test
     @DisplayName("결제 내역은 본인의 PAID·REFUNDED 결제만 저장소 정렬 순서대로 반환한다")
     void returnsPaymentHistoryInRepositoryOrder() {
         Payment refunded = historyPayment(12L, "order-refunded", "T0000000000000000002");

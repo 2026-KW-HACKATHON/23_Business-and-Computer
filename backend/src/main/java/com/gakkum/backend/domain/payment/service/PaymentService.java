@@ -159,6 +159,22 @@ public class PaymentService {
     }
 
     /**
+     * 결제 후 취소된 의뢰의 환불(REFUNDED) 주문 조회. 금액은 취소 시 저장한 값을 그대로 읽고 다시 계산하지 않는다.
+     * @param jobId
+     * @return 결제 금액, 학생 보상금, 환불 금액, 환불 처리 시각. 환불 주문이나 저장된 금액이 없으면 데이터 오류(500)
+     */
+    @Transactional(readOnly = true)
+    public RefundedPaymentData getRefundedPayment(Long jobId) {
+        Payment payment = paymentRepository.findByJobIdAndStatus(jobId, PaymentStatus.REFUNDED)
+                .orElseThrow(() -> new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR));
+        if (payment.getRefundAmount() == null || payment.getStudentCompensationAmount() == null) {
+            throw new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR);
+        }
+        return new RefundedPaymentData(payment.getAmount(), payment.getStudentCompensationAmount(),
+                payment.getRefundAmount(), payment.getRefundedAt());
+    }
+
+    /**
      * 의뢰의 결제 완료(PAID) 주문 조회. 매칭 이후 의뢰에는 결제 완료 주문이 반드시 있어야 한다.
      * @param jobId
      * @return 주문 ID, 결제 금액, 결제 승인 시각
