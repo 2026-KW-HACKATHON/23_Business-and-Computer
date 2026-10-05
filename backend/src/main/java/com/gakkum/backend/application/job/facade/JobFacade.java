@@ -78,6 +78,8 @@ import com.gakkum.backend.domain.job.entity.JobSubmission;
 import com.gakkum.backend.domain.job.service.JobService;
 import com.gakkum.backend.domain.owner.entity.Owner;
 import com.gakkum.backend.domain.owner.service.OwnerService;
+import com.gakkum.backend.domain.media.dto.ImagePurpose;
+import com.gakkum.backend.domain.media.service.MediaService;
 import com.gakkum.backend.domain.payment.dto.PaymentQueryDto.ApprovedPaymentData;
 import com.gakkum.backend.domain.payment.dto.PaymentQueryDto.RefundedPaymentData;
 import com.gakkum.backend.domain.payment.service.PaymentService;
@@ -113,15 +115,29 @@ public class JobFacade {
     private final ReviewService reviewService;
     private final CertificateService certificateService;
     private final ProposalService proposalService;
+    private final MediaService mediaService;
 
-    @Transactional
+    // 사진 저장소 확인이 DB 트랜잭션과 커넥션을 붙잡지 않도록 저장 트랜잭션은 JobService에 둔다
     public void createJob(String username, JobCreateRequest request) {
         User user = userService.getActiveUser(username);
         Owner owner = ownerService.getOwnerProfile(user.getId());
         CreateJobCommand command = request.toCommand(owner.getId());
         specialtyService.validateSpecialtyIds(command.getSpecialtyIds());
+        validateUploadedImages(command.getReferenceImageUrls(), user.getId());
 
         jobService.createJob(command, owner.getDemoSessionId());
+    }
+
+    private void validateUploadedImages(List<String> imageUrls, String userId) {
+        List<String> keys = imageUrls.stream()
+                .map(imageUrl -> mediaService.findImageKey(userId, ImagePurpose.JOB, imageUrl)
+                        .orElseThrow(() -> new BusinessException(ErrorCode.JOB_IMAGE_URL_INVALID)))
+                .toList();
+        for (String key : keys) {
+            if (!mediaService.isImageUploaded(key)) {
+                throw new BusinessException(ErrorCode.JOB_IMAGE_NOT_UPLOADED);
+            }
+        }
     }
 
     /**

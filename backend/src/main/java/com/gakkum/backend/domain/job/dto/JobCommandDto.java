@@ -331,6 +331,7 @@ public final class JobCommandDto {
         private final LocalDate draftDeadline;
         private final LocalDate finalDeadline;
         private final Integer revisionCount;
+        private final List<String> referenceImageUrls;
 
         public static CreateJobCommand of(
                 Long ownerProfileId,
@@ -341,6 +342,20 @@ public final class JobCommandDto {
                 LocalDate draftDeadline,
                 LocalDate finalDeadline,
                 Integer revisionCount) {
+            return of(ownerProfileId, specialtyIds, title, description, budget, draftDeadline, finalDeadline,
+                    revisionCount, List.of());
+        }
+
+        public static CreateJobCommand of(
+                Long ownerProfileId,
+                List<Long> specialtyIds,
+                String title,
+                String description,
+                Long budget,
+                LocalDate draftDeadline,
+                LocalDate finalDeadline,
+                Integer revisionCount,
+                List<String> referenceImageUrls) {
             return CreateJobCommand.builder()
                     .ownerProfileId(ownerProfileId)
                     .specialtyIds(specialtyIds)
@@ -350,6 +365,7 @@ public final class JobCommandDto {
                     .draftDeadline(draftDeadline)
                     .finalDeadline(finalDeadline)
                     .revisionCount(revisionCount)
+                    .referenceImageUrls(List.copyOf(referenceImageUrls))
                     .build();
         }
     }
