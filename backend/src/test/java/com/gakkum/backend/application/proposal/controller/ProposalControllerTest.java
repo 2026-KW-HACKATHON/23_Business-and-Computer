@@ -193,7 +193,7 @@ class ProposalControllerTest {
                 SpecialtyCategoryResult.of(2L, "영상", List.of(
                         SpecialtyResult.of(11L, "숏폼 촬영"), SpecialtyResult.of(12L, "영상 편집"))));
         when(proposalFacade.getProposalDetail(USERNAME, 31L))
-                .thenReturn(ProposalDetailResult.of(proposal, "가게 이름", student, studentUser,
+                .thenReturn(ProposalDetailResult.of(proposal, "가게 이름", "서울시 마포구 1", student, studentUser,
                         new java.math.BigDecimal("4.3"), 5L, categories, LocalDate.of(2026, 10, 5), null, null));
 
         mockMvc.perform(get("/proposals/31").principal(authentication))
@@ -202,6 +202,7 @@ class ProposalControllerTest {
                 .andExpect(jsonPath("$.data.proposalId").value(31))
                 .andExpect(jsonPath("$.data.title").value("메뉴판 개선 제안"))
                 .andExpect(jsonPath("$.data.storeName").value("가게 이름"))
+                .andExpect(jsonPath("$.data.storeAddress").value("서울시 마포구 1"))
                 .andExpect(jsonPath("$.data.likeCount").value(4))
                 .andExpect(jsonPath("$.data.specialtyCategories.length()").value(2))
                 .andExpect(jsonPath("$.data.specialtyCategories[0].id").value(1))
@@ -228,7 +229,8 @@ class ProposalControllerTest {
                 .andExpect(jsonPath("$.data.jobId").doesNotExist())
                 .andExpect(jsonPath("$.data.agreement").doesNotExist())
                 .andExpect(jsonPath("$.data.referenceImageUrls[0]").value(IMAGE_URL))
-                .andExpect(jsonPath("$.data.createdAt").exists());
+                // UTC 10:00 → 한국 19:00. 오프셋은 붙이지 않는다
+                .andExpect(jsonPath("$.data.createdAt").value("2026-09-30T19:00:00"));
     }
 
     @Test
@@ -241,7 +243,7 @@ class ProposalControllerTest {
                 .draftDeadline(LocalDate.of(2026, 10, 8)).finalDeadline(LocalDate.of(2026, 10, 12))
                 .revisionCount(2).acceptanceMessage("매장 분위기에 맞춰 작업 부탁드립니다.").build();
         when(proposalFacade.getProposalDetail(USERNAME, 31L))
-                .thenReturn(ProposalDetailResult.of(proposal, "가게 이름",
+                .thenReturn(ProposalDetailResult.of(proposal, "가게 이름", null,
                         Student.builder().id(7L).build(), User.builder().name("김학생").build(),
                         new java.math.BigDecimal("4.3"), 5L, List.of(), LocalDate.of(2026, 10, 9), 42L,
                         ProposalAgreementResult.of(job, Instant.parse("2026-10-05T03:00:00Z"))));
@@ -250,6 +252,9 @@ class ProposalControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.status").value("AWAITING_START"))
                 .andExpect(jsonPath("$.data.jobId").value(42))
+                // 주소 미등록과 생성 시각 없음은 null로 내린다
+                .andExpect(jsonPath("$.data.storeAddress").doesNotExist())
+                .andExpect(jsonPath("$.data.createdAt").doesNotExist())
                 .andExpect(jsonPath("$.data.estimatedDraftDeadline").doesNotExist())
                 .andExpect(jsonPath("$.data.estimatedFinalDeadline").doesNotExist())
                 .andExpect(jsonPath("$.data.agreement.jobStatus").value("AWAITING_START"))
@@ -395,7 +400,31 @@ class ProposalControllerTest {
                 .andExpect(jsonPath("$.data.proposals[0].proposedSolution").value(TEXT_500))
                 .andExpect(jsonPath("$.data.proposals[0].store.ownerProfileId").value(50))
                 .andExpect(jsonPath("$.data.proposals[0].store.storeAddress").doesNotExist())
-                .andExpect(jsonPath("$.data.proposals[0].store.profileImageUrl").doesNotExist());
+                .andExpect(jsonPath("$.data.proposals[0].store.profileImageUrl").doesNotExist())
+                .andExpect(jsonPath("$.data.proposals[0].createdAt").doesNotExist());
+    }
+
+    @Test
+    @DisplayName("같은 제안의 생성 시각은 목록과 상세에서 같은 한국 시각으로 반환하고 UTC 오후 3시 이후는 다음 날이 된다")
+    void returnsSameKoreaCreatedAtInListAndDetail() throws Exception {
+        // UTC 10월 5일 15:30 = 한국 10월 6일 00:30
+        Proposal proposal = Proposal.builder().id(31L).title("메뉴판 개선 제안").likeCount(0)
+                .draftDays(3).finalDays(7).referenceImageUrls(List.of()).status(ProposalStatus.PENDING)
+                .createdAt(LocalDateTime.of(2026, 10, 5, 15, 30)).build();
+        when(proposalFacade.getMyProposals(USERNAME)).thenReturn(MyProposalListResult.of(List.of(
+                MyProposalResult.of(proposal, Owner.builder().id(50L).storeName("가꿈 카페").build(),
+                        List.of(), null))));
+        when(proposalFacade.getProposalDetail(USERNAME, 31L))
+                .thenReturn(ProposalDetailResult.of(proposal, "가꿈 카페", null,
+                        Student.builder().id(7L).build(), User.builder().name("김학생").build(),
+                        new java.math.BigDecimal("4.3"), 5L, List.of(), LocalDate.of(2026, 10, 6), null, null));
+
+        mockMvc.perform(get("/me/proposals").principal(authentication))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.proposals[0].createdAt").value("2026-10-06T00:30:00"));
+        mockMvc.perform(get("/proposals/31").principal(authentication))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.createdAt").value("2026-10-06T00:30:00"));
     }
 
     @Test

@@ -91,6 +91,8 @@ public final class ProposalQueryDto {
         private final ProposalStoreResult store;
         // 결제로 만들어진 의뢰. 결제 전이면 null
         private final Long jobId;
+        // 저장된 원본 생성 시각(UTC)
+        private final LocalDateTime createdAt;
 
         public static MyProposalResult of(Proposal proposal, Owner owner,
                 List<SpecialtyCategoryResult> specialtyCategories, Long jobId) {
@@ -103,6 +105,7 @@ public final class ProposalQueryDto {
                     .specialtyCategories(specialtyCategories)
                     .proposedSolution(proposal.getProposedSolution())
                     .store(ProposalStoreResult.of(owner))
+                    .createdAt(proposal.getCreatedAt())
                     .build();
         }
     }
@@ -188,6 +191,8 @@ public final class ProposalQueryDto {
         private final Long proposalId;
         private final String title;
         private final String storeName;
+        // 매장의 현재 프로필 주소. 등록하지 않았으면 null
+        private final String storeAddress;
         private final Integer likeCount;
         private final List<SpecialtyCategoryResult> specialtyCategories;
         private final ProposalStudentResult student;
@@ -198,6 +203,7 @@ public final class ProposalQueryDto {
         private final Integer draftDays;
         private final Integer finalDays;
         private final List<String> referenceImageUrls;
+        // 저장된 원본 생성 시각(UTC)
         private final LocalDateTime createdAt;
         private final ProposalStatus status;
         // 결제 전(PENDING)에만 채우는 예상 마감일. 실제 마감일은 결제 승인 시 확정한다
@@ -213,8 +219,8 @@ public final class ProposalQueryDto {
          * @param jobId 결제로 만들어진 의뢰 ID, 결제 전이면 null
          * @param agreement 제안의 당사자에게만 내리는 확정 작업 조건, 없으면 null
          */
-        public static ProposalDetailResult of(Proposal proposal, String storeName, Student student, User studentUser,
-                BigDecimal averageRating, long completedJobCount,
+        public static ProposalDetailResult of(Proposal proposal, String storeName, String storeAddress,
+                Student student, User studentUser, BigDecimal averageRating, long completedJobCount,
                 List<SpecialtyCategoryResult> specialtyCategories,
                 LocalDate today, Long jobId, ProposalAgreementResult agreement) {
             boolean pending = proposal.getStatus() == ProposalStatus.PENDING;
@@ -228,6 +234,7 @@ public final class ProposalQueryDto {
                     .proposalId(proposal.getId())
                     .title(proposal.getTitle())
                     .storeName(storeName)
+                    .storeAddress(storeAddress)
                     .likeCount(proposal.getLikeCount())
                     .specialtyCategories(specialtyCategories)
                     .student(ProposalStudentResult.of(student, studentUser, averageRating, completedJobCount))
