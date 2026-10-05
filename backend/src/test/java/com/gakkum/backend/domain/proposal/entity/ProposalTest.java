@@ -88,6 +88,36 @@ class ProposalTest {
                 "[고객 문제]\n메뉴를 알아보기 어렵습니다.\n\n[해결 방안]\n사진 메뉴판으로 바꿉니다.\n\n[작업 계획]\n촬영 후 편집합니다.");
     }
 
+    @Test
+    @DisplayName("공감 수는 1씩 오르고 내리며 0에서는 더 내려가지 않는다")
+    void changesLikeCountByOneAndNeverBelowZero() {
+        Proposal proposal = Proposal.builder().id(5L).likeCount(0).build();
+
+        proposal.increaseLikeCount();
+        proposal.increaseLikeCount();
+        assertThat(proposal.getLikeCount()).isEqualTo(2);
+
+        proposal.decreaseLikeCount();
+        assertThat(proposal.getLikeCount()).isEqualTo(1);
+
+        proposal.decreaseLikeCount();
+        proposal.decreaseLikeCount();
+        assertThat(proposal.getLikeCount()).isZero();
+    }
+
+    @ParameterizedTest
+    @EnumSource(ProposalStatus.class)
+    @DisplayName("공감 수 변경은 제안 상태와 무관하고 상태를 바꾸지 않는다")
+    void changesLikeCountInEveryStatus(ProposalStatus status) {
+        Proposal proposal = Proposal.builder().id(5L).status(status).likeCount(3).build();
+
+        proposal.increaseLikeCount();
+        assertThat(proposal.getLikeCount()).isEqualTo(4);
+        proposal.decreaseLikeCount();
+        assertThat(proposal.getLikeCount()).isEqualTo(3);
+        assertThat(proposal.getStatus()).isEqualTo(status);
+    }
+
     private Proposal proposal(ProposalStatus status) {
         return Proposal.builder().id(5L).status(status).build();
     }

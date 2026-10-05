@@ -42,6 +42,7 @@ import com.gakkum.backend.domain.job.service.JobService;
 import com.gakkum.backend.domain.payment.service.PaymentService;
 import com.gakkum.backend.domain.proposal.dto.ProposalCommandDto.StartProposalJobCommand;
 import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.ProposalJobStartResult;
+import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.ProposalLikeResult;
 import com.gakkum.backend.domain.media.service.MediaService;
 import com.gakkum.backend.domain.review.service.ReviewService;
 import com.gakkum.backend.domain.owner.entity.Owner;
@@ -709,6 +710,129 @@ class ProposalFacadeTest {
     }
 
     @Test
+    @DisplayName("학생이 공감하면 학생 프로필 ID와 격리 범위로 공감을 켜고 반영된 공감 수와 likedByMe true를 반환한다")
+    void likesProposal() {
+        givenStartingStudent();
+        when(proposalService.likeProposal(31L, 7L, null))
+                .thenReturn(Proposal.builder().id(31L).likeCount(5).build());
+
+        ProposalLikeResult result = proposalFacade.likeProposal(USERNAME, 31L);
+
+        assertThat(result.getProposalId()).isEqualTo(31L);
+        assertThat(result.getLikeCount()).isEqualTo(5);
+        assertThat(result.isLikedByMe()).isTrue();
+        verify(proposalService, never()).unlikeProposal(anyLong(), anyLong(), any());
+    }
+
+    @Test
+    @DisplayName("학생이 공감을 취소하면 학생 프로필 ID와 격리 범위로 공감을 끄고 반영된 공감 수와 likedByMe false를 반환한다")
+    void unlikesProposal() {
+        givenStartingStudent();
+        when(proposalService.unlikeProposal(31L, 7L, null))
+                .thenReturn(Proposal.builder().id(31L).likeCount(4).build());
+
+        ProposalLikeResult result = proposalFacade.unlikeProposal(USERNAME, 31L);
+
+        assertThat(result.getProposalId()).isEqualTo(31L);
+        assertThat(result.getLikeCount()).isEqualTo(4);
+        assertThat(result.isLikedByMe()).isFalse();
+        verify(proposalService, never()).likeProposal(anyLong(), anyLong(), any());
+    }
+
+    @Test
+    @DisplayName("데모 학생의 공감 추가·취소는 자기 데모 세션 ID를 격리 범위로 전달한다")
+    void passesDemoSessionForLike() {
+        when(userService.getActiveUser(USERNAME)).thenReturn(User.builder()
+                .id(USER_ID).username(USERNAME).role(UserRole.STUDENT).demoSessionId(DEMO_SESSION_A).build());
+        givenStudentProfile();
+        Proposal proposal = Proposal.builder().id(31L).likeCount(1).demoSessionId(DEMO_SESSION_A).build();
+        when(proposalService.likeProposal(31L, 7L, DEMO_SESSION_A)).thenReturn(proposal);
+        when(proposalService.unlikeProposal(31L, 7L, DEMO_SESSION_A)).thenReturn(proposal);
+
+        assertThat(proposalFacade.likeProposal(USERNAME, 31L).isLikedByMe()).isTrue();
+        assertThat(proposalFacade.unlikeProposal(USERNAME, 31L).isLikedByMe()).isFalse();
+        verify(proposalService).likeProposal(31L, 7L, DEMO_SESSION_A);
+        verify(proposalService).unlikeProposal(31L, 7L, DEMO_SESSION_A);
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @EnumSource(value = UserRole.class, names = { "OWNER", "PENDING" })
+    @DisplayName("사장님과 가입 대기 사용자의 공감 추가·취소는 PROPOSAL_403_LIKE_STUDENT로 거부하고 학생 프로필과 제안을 조회하지 않는다")
+    void rejectsNonStudentForLike(UserRole role) {
+        givenUser(role);
+
+        assertError(() -> proposalFacade.likeProposal(USERNAME, 31L), ErrorCode.PROPOSAL_LIKE_STUDENT_REQUIRED);
+        assertError(() -> proposalFacade.unlikeProposal(USERNAME, 31L), ErrorCode.PROPOSAL_LIKE_STUDENT_REQUIRED);
+        verifyNoInteractions(studentService, proposalService);
+    }
+
+    @Test
+    @DisplayName("학생 프로필이 없는 학생 역할 사용자의 공감 추가·취소는 PROPOSAL_403_LIKE_STUDENT로 거부하고 제안을 잠그지 않는다")
+    void rejectsStudentWithoutProfileForLike() {
+        givenUser(UserRole.STUDENT);
+        when(studentService.findStudentProfileByUserId(USER_ID)).thenReturn(Optional.empty());
+
+        assertError(() -> proposalFacade.likeProposal(USERNAME, 31L), ErrorCode.PROPOSAL_LIKE_STUDENT_REQUIRED);
+        assertError(() -> proposalFacade.unlikeProposal(USERNAME, 31L), ErrorCode.PROPOSAL_LIKE_STUDENT_REQUIRED);
+        verifyNoInteractions(proposalService);
+    }
+
+    @Test
+    @DisplayName("잠긴 사용자의 공감 추가·취소는 UNAUTHORIZED로 거부하고 학생 프로필과 제안을 조회하지 않는다")
+    void rejectsInactiveUserForLike() {
+        when(userService.getActiveUser(USERNAME)).thenThrow(new BusinessException(ErrorCode.UNAUTHORIZED));
+
+        assertError(() -> proposalFacade.likeProposal(USERNAME, 31L), ErrorCode.UNAUTHORIZED);
+        assertError(() -> proposalFacade.unlikeProposal(USERNAME, 31L), ErrorCode.UNAUTHORIZED);
+        verifyNoInteractions(studentService, proposalService);
+    }
+
+    @Test
+    @DisplayName("없거나 격리 범위가 다른 제안의 PROPOSAL_404는 공감 추가·취소에서 그대로 전달한다")
+    void propagatesProposalNotFoundForLike() {
+        givenStartingStudent();
+        when(proposalService.likeProposal(31L, 7L, null))
+                .thenThrow(new BusinessException(ErrorCode.PROPOSAL_NOT_FOUND));
+        when(proposalService.unlikeProposal(31L, 7L, null))
+                .thenThrow(new BusinessException(ErrorCode.PROPOSAL_NOT_FOUND));
+
+        assertError(() -> proposalFacade.likeProposal(USERNAME, 31L), ErrorCode.PROPOSAL_NOT_FOUND);
+        assertError(() -> proposalFacade.unlikeProposal(USERNAME, 31L), ErrorCode.PROPOSAL_NOT_FOUND);
+    }
+
+    @ParameterizedTest(name = "공감 기록 {0}")
+    @org.junit.jupiter.params.provider.ValueSource(booleans = { true, false })
+    @DisplayName("학생의 제안 상세는 본인 학생 프로필의 공감 기록으로 likedByMe를 채운다")
+    void returnsLikedByMeToStudent(boolean liked) {
+        givenProposalDetail(ProposalStatus.PENDING, USER_ID, UserRole.STUDENT);
+        givenStudentProfile();
+        when(proposalService.getLikedProposalIds(7L, List.of(31L))).thenReturn(liked ? Set.of(31L) : Set.of());
+
+        assertThat(proposalFacade.getProposalDetail(USERNAME, 31L).isLikedByMe()).isEqualTo(liked);
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @EnumSource(value = UserRole.class, names = { "OWNER", "PENDING" })
+    @DisplayName("학생이 아닌 조회자의 제안 상세는 학생 프로필과 공감 기록을 조회하지 않고 likedByMe를 false로 반환한다")
+    void returnsNotLikedToNonStudent(UserRole role) {
+        givenProposalDetail(ProposalStatus.PENDING, USER_ID, role);
+
+        assertThat(proposalFacade.getProposalDetail(USERNAME, 31L).isLikedByMe()).isFalse();
+        verify(studentService, never()).findStudentProfileByUserId(anyString());
+        verify(proposalService, never()).getLikedProposalIds(anyLong(), any());
+    }
+
+    @Test
+    @DisplayName("학생 프로필이 없는 학생의 제안 상세는 공감 기록을 조회하지 않고 likedByMe를 false로 반환한다")
+    void returnsNotLikedToStudentWithoutProfile() {
+        givenProposalDetail(ProposalStatus.PENDING, USER_ID, UserRole.STUDENT);
+        when(studentService.findStudentProfileByUserId(USER_ID)).thenReturn(Optional.empty());
+
+        assertThat(proposalFacade.getProposalDetail(USERNAME, 31L).isLikedByMe()).isFalse();
+        verify(proposalService, never()).getLikedProposalIds(anyLong(), any());
+    }
+
+    @Test
     @DisplayName("제안한 학생이 작업을 시작하면 제안을 수락으로, 의뢰를 진행 중으로 넘기고 채팅방을 만들어 확정 마감일과 함께 반환한다")
     void startsProposalJob() {
         givenStartingStudent();
@@ -845,6 +969,8 @@ class ProposalFacadeTest {
 
         assertError(() -> proposalFacade.getProposalDetail(USERNAME, 31L), ErrorCode.PROPOSAL_NOT_FOUND);
         verifyNoInteractions(ownerService, studentService, reviewService, jobService, paymentService);
+        // 격리 범위 확인 전에는 공감 기록도 조회하지 않는다
+        verify(proposalService, never()).getLikedProposalIds(anyLong(), any());
     }
 
     @Test

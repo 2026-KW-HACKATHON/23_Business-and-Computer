@@ -33,6 +33,7 @@ import com.gakkum.backend.domain.owner.entity.Owner;
 import com.gakkum.backend.domain.owner.service.OwnerService;
 import com.gakkum.backend.domain.proposal.service.ProposalService;
 import com.gakkum.backend.domain.specialty.service.SpecialtyCategoryService;
+import com.gakkum.backend.domain.student.service.StudentService;
 import com.gakkum.backend.domain.user.entity.User;
 import com.gakkum.backend.domain.user.entity.UserRole;
 import com.gakkum.backend.domain.user.service.UserService;
@@ -50,7 +51,8 @@ class StoreExploreFacadeTest {
     private final OwnerService ownerService = mock(OwnerService.class);
     private final BusinessCategoryService businessCategoryService = mock(BusinessCategoryService.class);
     private final ExploreFacade exploreFacade = new ExploreFacade(userService, mock(ProposalService.class),
-            mock(JobService.class), ownerService, mock(SpecialtyCategoryService.class), businessCategoryService);
+            mock(JobService.class), ownerService, mock(SpecialtyCategoryService.class), businessCategoryService,
+            mock(StudentService.class));
 
     @Test
     @DisplayName("학생은 size+1개를 읽어 size개만 받고, 남은 한 개로 다음 페이지를 판단해 마지막 매장으로 커서를 만든다")

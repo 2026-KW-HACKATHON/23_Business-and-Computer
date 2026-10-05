@@ -31,6 +31,7 @@ import com.gakkum.backend.domain.owner.entity.Owner;
 import com.gakkum.backend.domain.owner.service.OwnerService;
 import com.gakkum.backend.domain.proposal.service.ProposalService;
 import com.gakkum.backend.domain.specialty.service.SpecialtyCategoryService;
+import com.gakkum.backend.domain.student.service.StudentService;
 import com.gakkum.backend.domain.user.entity.User;
 import com.gakkum.backend.domain.user.entity.UserRole;
 import com.gakkum.backend.domain.user.service.UserService;
@@ -70,7 +71,7 @@ class StoreExplorePostgresTest {
                         .isLock(false).build());
         exploreFacade = new ExploreFacade(userService, mock(ProposalService.class), mock(JobService.class),
                 new OwnerService(ownerRepository), mock(SpecialtyCategoryService.class),
-                new BusinessCategoryService(businessCategoryRepository));
+                new BusinessCategoryService(businessCategoryRepository), mock(StudentService.class));
     }
 
     @Test

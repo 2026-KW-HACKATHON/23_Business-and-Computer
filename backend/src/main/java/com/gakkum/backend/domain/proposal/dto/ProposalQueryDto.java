@@ -38,6 +38,25 @@ public final class ProposalQueryDto {
         }
     }
 
+    /** 공감 켜기·끄기 결과. 공감 수는 이번 변경이 반영된 값이다. */
+    @Getter
+    @Builder(access = AccessLevel.PRIVATE)
+    @AllArgsConstructor(access = AccessLevel.PRIVATE)
+    public static class ProposalLikeResult {
+
+        private final Long proposalId;
+        private final Integer likeCount;
+        private final boolean likedByMe;
+
+        public static ProposalLikeResult of(Proposal proposal, boolean likedByMe) {
+            return ProposalLikeResult.builder()
+                    .proposalId(proposal.getId())
+                    .likeCount(proposal.getLikeCount())
+                    .likedByMe(likedByMe)
+                    .build();
+        }
+    }
+
     /** 제안과 제안에 선택된 소분류 ID */
     @Getter
     @AllArgsConstructor(access = AccessLevel.PRIVATE)
@@ -196,6 +215,8 @@ public final class ProposalQueryDto {
         // 매장의 현재 프로필 주소. 등록하지 않았으면 null
         private final String storeAddress;
         private final Integer likeCount;
+        // 조회한 학생 본인의 공감 여부. 학생이 아니거나 학생 프로필이 없으면 false
+        private final boolean likedByMe;
         private final List<SpecialtyCategoryResult> specialtyCategories;
         private final ProposalStudentResult student;
         private final String customerProblem;
@@ -217,13 +238,14 @@ public final class ProposalQueryDto {
         private final ProposalAgreementResult agreement;
 
         /**
+         * @param likedByMe 조회한 학생 본인의 공감 여부
          * @param today 한국 날짜 기준 오늘. 결제 전 제안의 예상 마감일 계산에 쓴다
          * @param jobId 결제로 만들어진 의뢰 ID, 결제 전이면 null
          * @param agreement 제안의 당사자에게만 내리는 확정 작업 조건, 없으면 null
          */
         public static ProposalDetailResult of(Proposal proposal, String storeName, String storeAddress,
                 Student student, User studentUser, BigDecimal averageRating, long completedJobCount,
-                List<SpecialtyCategoryResult> specialtyCategories,
+                List<SpecialtyCategoryResult> specialtyCategories, boolean likedByMe,
                 LocalDate today, Long jobId, ProposalAgreementResult agreement) {
             boolean pending = proposal.getStatus() == ProposalStatus.PENDING;
             return ProposalDetailResult.builder()
@@ -238,6 +260,7 @@ public final class ProposalQueryDto {
                     .storeName(storeName)
                     .storeAddress(storeAddress)
                     .likeCount(proposal.getLikeCount())
+                    .likedByMe(likedByMe)
                     .specialtyCategories(specialtyCategories)
                     .student(ProposalStudentResult.of(student, studentUser, averageRating, completedJobCount))
                     .customerProblem(proposal.getCustomerProblem())

@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
 
@@ -31,6 +32,7 @@ import com.gakkum.backend.application.explore.dto.StoreExploreSort;
 import com.gakkum.backend.domain.category.service.BusinessCategoryService;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.GetExploreJobsCommand;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.ExploreJobData;
+import com.gakkum.backend.domain.job.entity.JobApplicationStatus;
 import com.gakkum.backend.domain.job.service.JobService;
 import com.gakkum.backend.domain.owner.dto.OwnerCommandDto.GetExploreStoresCommand;
 import com.gakkum.backend.domain.owner.entity.Owner;
@@ -38,9 +40,12 @@ import com.gakkum.backend.domain.owner.service.OwnerService;
 import com.gakkum.backend.domain.proposal.dto.ProposalCommandDto.GetExploreProposalsCommand;
 import com.gakkum.backend.domain.proposal.dto.ProposalExploreOrder;
 import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.ExploreProposalData;
+import com.gakkum.backend.domain.proposal.entity.Proposal;
 import com.gakkum.backend.domain.proposal.service.ProposalService;
 import com.gakkum.backend.domain.specialty.dto.SpecialtyQueryDto.SpecialtyDetail;
 import com.gakkum.backend.domain.specialty.service.SpecialtyCategoryService;
+import com.gakkum.backend.domain.student.entity.Student;
+import com.gakkum.backend.domain.student.service.StudentService;
 import com.gakkum.backend.domain.user.entity.User;
 import com.gakkum.backend.domain.user.entity.UserRole;
 import com.gakkum.backend.domain.user.service.UserService;
@@ -66,11 +71,12 @@ public class ExploreFacade {
     private final OwnerService ownerService;
     private final SpecialtyCategoryService specialtyCategoryService;
     private final BusinessCategoryService businessCategoryService;
+    private final StudentService studentService;
 
     /**
      * 제안과 의뢰를 한 목록으로 탐색한다. 종류마다 커서 뒤의 카드를 size+1개까지 읽어 병합하고,
      * 한 장이 남으면 다음 페이지가 있다고 보고 이번 페이지 마지막 카드로 커서를 만든다.
-     * 매장 이름과 대분류·소분류는 이번 페이지 카드에 대해서만 묶어서 조회한다.
+     * 매장 이름과 대분류·소분류, 제안 작성 학생 이름, 학생의 지원 상태·공감 여부는 이번 페이지 카드에 대해서만 묶어서 조회한다.
      */
     @Transactional(readOnly = true)
     public ExploreResult explore(ExploreCommand command) {
@@ -92,7 +98,7 @@ public class ExploreFacade {
         boolean hasNext = candidates.size() > command.getSize();
         List<Candidate> page = hasNext ? candidates.subList(0, command.getSize()) : candidates;
         String nextCursor = hasNext ? toCursor(command, page.get(page.size() - 1)).encode() : null;
-        return ExploreResult.of(toItems(page), nextCursor);
+        return ExploreResult.of(toItems(page, user), nextCursor);
     }
 
     /**
@@ -208,7 +214,7 @@ public class ExploreFacade {
                 last.getType(), last.getLikeCount(), last.getCreatedAt(), last.getId());
     }
 
-    private List<ExploreItemResult> toItems(List<Candidate> page) {
+    private List<ExploreItemResult> toItems(List<Candidate> page, User user) {
         if (page.isEmpty()) {
             return List.of();
         }
@@ -220,6 +226,19 @@ public class ExploreFacade {
                 .flatMap(candidate -> candidate.getSpecialtyIds().stream())
                 .distinct()
                 .toList());
+        Map<Long, String> studentNames = studentNames(page);
+        List<Long> proposalIds = idsOf(page, ExploreItemType.PROPOSAL);
+        List<Long> jobIds = idsOf(page, ExploreItemType.JOB);
+        // 지원 상태와 공감 여부가 로그인 학생의 프로필 조회 한 번을 함께 쓴다. 학생 프로필이 없는 학생은 이력이 없는 것으로 본다
+        Long viewerProfileId = user.getRole() == UserRole.STUDENT
+                ? studentService.findStudentProfileByUserId(user.getId()).map(Student::getId).orElse(null)
+                : null;
+        Set<Long> likedProposalIds = viewerProfileId == null || proposalIds.isEmpty()
+                ? Set.of()
+                : proposalService.getLikedProposalIds(viewerProfileId, proposalIds);
+        Map<Long, JobApplicationStatus> applicationStatuses = viewerProfileId == null || jobIds.isEmpty()
+                ? Map.of()
+                : jobService.getApplicationStatuses(viewerProfileId, jobIds);
 
         return page.stream()
                 .map(candidate -> {
@@ -227,14 +246,44 @@ public class ExploreFacade {
                     List<SpecialtyCategoryResult> categories =
                             groupSpecialties(candidate.getSpecialtyIds(), specialtiesById);
                     if (candidate.getProposal() != null) {
+                        Proposal proposal = candidate.getProposal().getProposal();
                         return (ExploreItemResult) ProposalCardResult.of(
-                                candidate.getProposal().getProposal(), storeName, categories);
+                                proposal, storeName, studentNames.get(proposal.getStudentProfileId()),
+                                likedProposalIds.contains(candidate.getId()), categories);
                     }
                     ExploreJobData job = candidate.getJob();
+                    // 지원 이력이 없으면 null로 두어 지원 상태를 내리지 않는다
                     return (ExploreItemResult) JobCardResult.of(
-                            job.getJob(), job.getProgressStage(), storeName, categories);
+                            job.getJob(), job.getProgressStage(), storeName, categories,
+                            applicationStatuses.get(candidate.getId()));
                 })
                 .toList();
+    }
+
+    private static List<Long> idsOf(List<Candidate> page, ExploreItemType type) {
+        return page.stream()
+                .filter(candidate -> candidate.getType() == type)
+                .map(Candidate::getId)
+                .toList();
+    }
+
+    // 제안 작성 학생의 이름을 학생 프로필 ID별로 묶는다. 제안 카드가 없으면 조회하지 않는다
+    private Map<Long, String> studentNames(List<Candidate> page) {
+        List<Long> studentProfileIds = page.stream()
+                .filter(candidate -> candidate.getProposal() != null)
+                .map(candidate -> candidate.getProposal().getProposal().getStudentProfileId())
+                .distinct()
+                .toList();
+        if (studentProfileIds.isEmpty()) {
+            return Map.of();
+        }
+        Map<Long, Student> studentsById = studentService.getStudentProfilesByIds(studentProfileIds);
+        Map<String, User> usersById = userService.getUsersByIds(studentsById.values().stream()
+                .map(Student::getUserId)
+                .distinct()
+                .toList());
+        return studentsById.values().stream()
+                .collect(Collectors.toMap(Student::getId, profile -> usersById.get(profile.getUserId()).getName()));
     }
 
     // 다른 목록 API와 같은 형식으로 카드의 모든 소분류를 대분류 ID 순, 대분류 안에서는 소분류 ID 순으로 묶는다

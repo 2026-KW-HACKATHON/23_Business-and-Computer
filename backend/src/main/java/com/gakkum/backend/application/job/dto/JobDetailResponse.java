@@ -4,10 +4,12 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.gakkum.backend.application.job.dto.JobListResponse.SpecialtyCategory;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.JobDetailResult;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.JobResultResult;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.WorkHistoryResult;
+import com.gakkum.backend.domain.job.entity.JobApplicationStatus;
 import com.gakkum.backend.domain.job.entity.JobProgressStage;
 
 import lombok.AccessLevel;
@@ -36,8 +38,13 @@ public final class JobDetailResponse {
         private final Integer revisionCount;
         private final JobProgressStage progressStage;
         private final String status;
-        // 아래 취소 정보는 취소된 의뢰의 사장님·선정 학생에게만 내리고, 그 외에는 모두 null
+        // 학생 본인의 지원서 상태. 지원 이력이 없거나 학생이 아닌 사용자에게는 필드를 내리지 않는다
+        @JsonInclude(JsonInclude.Include.NON_NULL)
+        private final JobApplicationStatus applied;
         private final String storeName;
+        // 주소를 등록하지 않은 매장은 null
+        private final String storeAddress;
+        // 아래 취소 정보는 취소된 의뢰의 사장님·선정 학생에게만 내리고, 그 외에는 모두 null
         private final String cancelledBy;
         private final String cancelReason;
         private final String messageToStudent;
@@ -60,7 +67,9 @@ public final class JobDetailResponse {
                     .revisionCount(result.getRevisionCount())
                     .progressStage(result.getProgressStage())
                     .status(result.getStatus())
+                    .applied(result.getApplied())
                     .storeName(result.getStoreName())
+                    .storeAddress(result.getStoreAddress())
                     .cancelledBy(result.getCancelledBy())
                     .cancelReason(result.getCancelReason())
                     .messageToStudent(result.getMessageToStudent())
