@@ -117,6 +117,16 @@ class MediaServiceTest {
     }
 
     @Test
+    @DisplayName("의뢰 참고 사진은 작성자 ID 아래 job 경로에 업로드 URL을 발급한다")
+    void usesJobPrefix() {
+        service.prepareImageUpload(USER_ID, ImagePurpose.JOB, "참고.png", "image/png", 100);
+
+        ArgumentCaptor<String> keyCaptor = ArgumentCaptor.forClass(String.class);
+        verify(storageClient).presignUpload(keyCaptor.capture(), eq("image/png"), eq(100L));
+        assertThat(keyCaptor.getValue()).matches("images/job/" + USER_ID + "/[0-9a-f-]{36}\\.png");
+    }
+
+    @Test
     @DisplayName("사용자·용도 경로 아래 UUID 파일명과 허용 확장자로 된 사진 URL만 저장소 키로 인정한다")
     void findsOnlyIssuedImageKeys() {
         String prefix = "images/proposal/" + USER_ID + "/";
