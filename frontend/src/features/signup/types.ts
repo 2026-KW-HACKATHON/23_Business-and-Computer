@@ -60,8 +60,8 @@ export interface Certificate {
 
 export const EMPTY_CERTIFICATE: Certificate = { name: "", acquiredYear: "" };
 
-/** 자격증 한 줄의 상태. empty 는 보내지 않고, incomplete·invalidYear 는 가입을 막는다 */
-export type CertificateStatus = "empty" | "complete" | "incomplete" | "invalidYear";
+/** 자격증 한 줄의 상태. empty 는 보내지 않고, incomplete·invalidYear·duplicate 는 가입을 막는다 */
+export type CertificateStatus = "empty" | "complete" | "incomplete" | "invalidYear" | "duplicate";
 
 /** 학생 가입 3단계에서 모으는 값. 가입이 끝나거나 화면을 떠나면 버린다 */
 export interface StudentSignupDraft {
@@ -144,6 +144,14 @@ export type StudentRegisterResult =
   | "specialtyInvalid"
   | "unauthorized"
   | "alreadyRegistered"
+  /** 그 밖의 400 (COMMON_400 등). 같은 값으로 다시 보내도 실패한다 */
+  | "invalidInput"
+  /**
+   * 그 밖의 409 (COMMON_409 = DB 제약 충돌). 입력과 상관없는 서버 데이터 문제일 수 있어
+   * 다시 시도하면 될 수도 있다 (docs/failures/0002). 원인이 분명한 409 는 위 값으로 나뉜다
+   */
+  | "dataConflict"
+  /** 5xx · 네트워크. 잠시 후 다시 보내면 될 수 있다 */
   | "error";
 
 /** POST /auth/student 요청 본문 (StudentRegistrationRequest) */

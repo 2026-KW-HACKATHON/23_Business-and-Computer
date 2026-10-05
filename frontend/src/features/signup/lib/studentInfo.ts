@@ -64,16 +64,38 @@ export function formatRemaining(ms: number): string {
   return `${minutes}:${seconds}`;
 }
 
-/** 자격증 한 줄: 둘 다 비면 empty, 하나만 있거나 연도가 4자리가 아니면 incomplete, 범위 밖이면 invalidYear */
-export function certificateStatus(
-  certificate: Certificate,
+/** 이름과 연도가 모두 비었거나 공백뿐인 줄. 처음 줄이든 「추가」로 만든 줄이든 보내지 않는다 */
+export function isBlankCertificate(certificate: Certificate): boolean {
+  return certificate.name.trim() === "" && certificate.acquiredYear.trim() === "";
+}
+
+/** 중복 비교용 이름: 공백을 모두 빼고 소문자로 */
+function certificateKey(name: string): string {
+  return name.replace(/\s+/g, "").toLowerCase();
+}
+
+/**
+ * 자격증 줄마다의 상태. 둘 다 비면 empty, 하나만 있으면 incomplete,
+ * 연도가 4자리 1900~올해가 아니면 invalidYear, 앞 줄과 이름이 같으면 duplicate.
+ */
+export function certificateStatuses(
+  certificates: Certificate[],
   thisYear: number = new Date().getFullYear(),
-): CertificateStatus {
-  const values = [certificate.name, certificate.acquiredYear].map((v) => v.trim());
-  if (values.every((v) => v === "")) return "empty";
-  if (values.some((v) => v === "") || !/^\d{4}$/.test(certificate.acquiredYear)) return "incomplete";
-  const year = Number(certificate.acquiredYear);
-  return year >= MIN_ACQUIRED_YEAR && year <= thisYear ? "complete" : "invalidYear";
+): CertificateStatus[] {
+  const seen = new Set<string>();
+  return certificates.map((certificate) => {
+    if (isBlankCertificate(certificate)) return "empty";
+    // 이름이 있으면 다른 칸이 덜 채워졌어도 뒤 줄과 비교한다
+    const key = certificateKey(certificate.name);
+    const duplicate = key !== "" && seen.has(key);
+    if (key !== "") seen.add(key);
+    if (certificate.name.trim() === "" || certificate.acquiredYear.trim() === "") return "incomplete";
+    const year = Number(certificate.acquiredYear);
+    if (!/^\d{4}$/.test(certificate.acquiredYear) || year < MIN_ACQUIRED_YEAR || year > thisYear) {
+      return "invalidYear";
+    }
+    return duplicate ? "duplicate" : "complete";
+  });
 }
 
 /** 값이 있는데 http(s):// 로 시작하지 않으면 https:// 를 붙인다 (백엔드는 http(s) 주소만 받는다) */
@@ -99,7 +121,7 @@ export function toStudentRegistration(
     profileImageUrl,
     specialtyIds: draft.specialtyIds,
     certificates: draft.certificates
-      .filter((c) => certificateStatus(c) !== "empty")
+      .filter((c) => !isBlankCertificate(c))
       .map((c) => ({
         certificateName: c.name.trim(),
         acquiredYear: Number(c.acquiredYear),
@@ -179,6 +201,9 @@ export async function registerStudentSignup(
         case "SPECIALTY_400_DUPLICATE":
           return "specialtyInvalid";
       }
+      // 원인이 분명하지 않은 400·409 는 5xx 의 「잠시 후 다시 시도」와 다른 문구로 나눈다
+      if (error.status === 400) return "invalidInput";
+      if (error.status === 409) return "dataConflict";
     }
     return "error";
   }

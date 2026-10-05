@@ -5,7 +5,7 @@ import { landingPath } from "../features/auth";
 import {
   EMPTY_CERTIFICATE,
   PROFILE_PHOTO_ACCEPT,
-  certificateStatus,
+  certificateStatuses,
   checkProfilePhoto,
   fetchSpecialties,
   registerStudentSignup,
@@ -29,7 +29,7 @@ type SpecialtyLoad =
   | { status: "loaded"; categories: SpecialtyCategory[] };
 
 type PhotoError = "type" | "size" | null;
-type SubmitError = "photo" | "retry" | null;
+type SubmitError = "photo" | "invalidInput" | "dataConflict" | "retry" | null;
 
 const PHOTO_ERROR_TEXT: Record<Exclude<PhotoError, null>, string> = {
   type: "JPG, PNG, WEBP 사진만 올릴 수 있어요",
@@ -38,12 +38,15 @@ const PHOTO_ERROR_TEXT: Record<Exclude<PhotoError, null>, string> = {
 
 const SUBMIT_ERROR_TEXT: Record<Exclude<SubmitError, null>, string> = {
   photo: "사진을 올리지 못했어요. 다시 시도해 주세요",
+  invalidInput: "입력한 내용을 다시 확인해 주세요",
+  dataConflict: "일시적인 문제가 생겼어요. 다시 시도해도 안 되면 문의해 주세요",
   retry: "잠시 후 다시 시도해 주세요",
 };
 
 function certificateErrorText(status: CertificateStatus): string | null {
-  if (status === "incomplete") return "자격증 이름과 취득 연도(4자리)를 모두 적어 주세요";
-  if (status === "invalidYear") return `취득 연도는 1900~${new Date().getFullYear()} 사이로 적어 주세요`;
+  if (status === "incomplete") return "자격증 이름과 취득 연도를 모두 입력해 주세요";
+  if (status === "invalidYear") return `1900~${new Date().getFullYear()} 사이 연도를 입력해 주세요`;
+  if (status === "duplicate") return "같은 자격증이 두 번 입력됐어요";
   return null;
 }
 
@@ -146,12 +149,12 @@ function StudentSignupProfilePage() {
     specialtyLoad.categories.every((category) => category.specialties.length === 0);
   // 비었거나 불러오지 못했을 때는 그 안내만 보이고 개수·고르기 안내는 숨긴다
   const specialtyUnavailable = noSpecialties || specialtyLoad.status === "error";
-  const certificateStatuses = draft.certificates.map((c) => certificateStatus(c));
+  const certificateStatusList = certificateStatuses(draft.certificates);
   const canSubmit =
     !submitting &&
     draft.specialtyIds.length > 0 &&
     draft.specialtyIds.length <= MAX_SPECIALTY_BADGES &&
-    certificateStatuses.every((s) => s === "empty" || s === "complete");
+    certificateStatusList.every((s) => s === "empty" || s === "complete");
 
   // 사진이 있으면 먼저 올리고, 받은 주소로 가입을 저장한다
   const handleComplete = async () => {
@@ -214,6 +217,10 @@ function StudentSignupProfilePage() {
       case "alreadyRegistered":
         window.alert("이미 가입을 마친 계정이에요");
         navigate(landingPath(), { replace: true });
+        break;
+      case "invalidInput":
+      case "dataConflict":
+        setSubmitError(result);
         break;
       default:
         setSubmitError("retry");
@@ -340,7 +347,7 @@ function StudentSignupProfilePage() {
               <p className="student-signup-profile__certs-guide">자격증 이름과 취득 연도를 적어 주세요</p>
             </div>
             {draft.certificates.map((certificate, i) => {
-              const errorText = certificateErrorText(certificateStatuses[i]);
+              const errorText = certificateErrorText(certificateStatusList[i]);
               const inputClass = `student-signup-profile__cert-input${errorText ? " student-signup-profile__cert-input--invalid" : ""}`;
               return (
                 <div key={i} className="student-signup-profile__cert">

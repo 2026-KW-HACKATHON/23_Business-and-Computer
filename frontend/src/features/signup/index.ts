@@ -16,7 +16,7 @@ export {
   RESEND_COOLDOWN_MS,
   SCHOOL_EMAIL_DOMAIN,
   VERIFICATION_CODE_TTL_MS,
-  certificateStatus,
+  certificateStatuses,
   formatRemaining,
   isSchoolEmail,
   isStudentInfoComplete,
