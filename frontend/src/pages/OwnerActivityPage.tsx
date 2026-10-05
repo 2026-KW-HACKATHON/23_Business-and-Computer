@@ -149,7 +149,7 @@ function OwnerActivityPage() {
         <CategoryBadge field={proposal.field} />
       </div>
       <div className="owner-activity__box owner-activity__box--column">
-        <p className="owner-activity__excerpt">{proposal.problem}</p>
+        <p className="owner-activity__excerpt">{proposal.solution}</p>
         <TextButton onClick={() => navigate(OWNER_PATHS.proposal(proposal.id))}>상세보기</TextButton>
       </div>
       <div className="owner-activity__divider" />

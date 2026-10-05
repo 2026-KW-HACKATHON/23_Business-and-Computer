@@ -29,7 +29,7 @@ function MyPlanSheet({ work, onClose }: MyPlanSheetProps) {
     >
       {work && (
         <div className="my-plan-sheet">
-          <WorkPlan text={work.plan} />
+          <WorkPlan plan={work.plan} />
           <div className="my-plan-sheet__terms">
             <InfoRows
               rows={[

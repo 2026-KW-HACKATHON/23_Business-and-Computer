@@ -1,6 +1,7 @@
 import type { Field } from "../../types/field";
 import type { StoreCategory } from "../../types/storeCategory";
 import type { WorkKind } from "../../types/workKind";
+import type { ApplicationPlan, WorkPlanContent } from "../../types/workPlan";
 
 /** 마감 단계. draft = 초안, final = 최종 */
 export type DeadlineStage = "draft" | "final";
@@ -223,8 +224,8 @@ export interface OwnerWork {
   finalDue: string;
   revisionLimit: number;
   revisionCount: number;
-  /** 학생 작업계획서. 줄마다 한 문단 */
-  plan: string;
+  /** 학생 작업계획서 (의뢰 지원서, 제안으로 시작했으면 제안서의 작업계획서 글) */
+  plan: WorkPlanContent;
   planSentOn: string;
   status: WorkStatus;
   /** 초안 · 수정안이 도착한 날 (submitted) */
@@ -281,7 +282,7 @@ export interface OwnerProposal {
 export interface Applicant {
   student: StudentProfileRef;
   badges: string[];
-  plan: string;
+  plan: ApplicationPlan;
 }
 
 /** 보낸 의뢰 (모집 중) */

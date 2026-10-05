@@ -129,7 +129,7 @@ function StudentWorkStartPage() {
               <p className="student-work__label">이렇게 바꿔 드릴게요</p>
               <p className="student-detail__text">{shownProposal.solution}</p>
               <p className="student-work__label">작업계획서</p>
-              <WorkPlan text={shownProposal.plan} />
+              <WorkPlan plan={shownProposal.plan} />
               <p className="student-work__label">희망 작업비 · 예상 기간</p>
               <p className="student-detail__text">
                 {formatWon(shownProposal.wishBudget)} · {expectedDaysText(shownProposal.draftDays, shownProposal.finalDays)}

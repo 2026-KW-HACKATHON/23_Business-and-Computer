@@ -20,7 +20,11 @@ export const SAMPLE_WORKS: OwnerWork[] = [
     finalDue: day(7),
     revisionLimit: 1,
     revisionCount: 0,
-    plan: "신메뉴와 시험 기간 이벤트를 알리는 인스타 게시물 5장을 만들어 드릴게요.\n· 방법: 가게 사진을 밝게 보정하고, 게시물마다 한 줄 문구를 크게 넣어요.\n· 일정: 초안 마감일까지 초안 5장, 수정 요청이 오면 최종 마감일까지 최종본을 드려요.\n· 결과물: 게시물 이미지 5장과 올릴 때 쓸 문구",
+    plan: {
+      summary: "신메뉴와 시험 기간 이벤트를 알리는 인스타 게시물 5장을 만들어 드릴게요.",
+      method: "가게 사진을 밝게 보정하고, 게시물마다 한 줄 문구를 크게 넣어요.",
+      deliverable: "게시물 이미지 5장과 올릴 때 쓸 문구",
+    },
     planSentOn: day(-7),
     status: "submitted",
     submittedOn: day(0),
@@ -48,7 +52,12 @@ export const SAMPLE_WORKS: OwnerWork[] = [
     finalDue: day(10),
     revisionLimit: 1,
     revisionCount: 0,
-    plan: "초록색을 살린 메뉴판 시안 2가지를 만들고, 고르신 쪽으로 다듬어 인쇄용으로 드릴게요.\n· 방법: 보내 주신 메뉴 사진을 보정해서 넣고, 인기 메뉴 3개는 크게 보여 드려요.\n· 일정: 초안 마감일까지 초안 2가지, 수정 요청이 오면 최종 마감일까지 최종본을 드려요.",
+    plan: {
+      summary:
+        "초록색을 살린 메뉴판 시안 2가지를 만들고, 고르신 쪽으로 다듬어 인쇄용으로 드릴게요.",
+      method: "보내 주신 메뉴 사진을 보정해서 넣고, 인기 메뉴 3개는 크게 보여 드려요.",
+      deliverable: "인쇄용 PDF와 고칠 수 있는 원본 파일",
+    },
     planSentOn: day(-4),
     status: "inProgress",
     files: [],
@@ -66,7 +75,11 @@ export const SAMPLE_WORKS: OwnerWork[] = [
     finalDue: day(-10),
     revisionLimit: 1,
     revisionCount: 1,
-    plan: "지금 메뉴를 한눈에 보이게 정리한 A3 메뉴판을 만들어 드릴게요.",
+    plan: {
+      summary: "지금 메뉴를 한눈에 보이게 정리한 A3 메뉴판을 만들어 드릴게요.",
+      method: "메뉴를 종류별로 묶고, 가격은 오른쪽 끝에 맞춰 크게 넣어요.",
+      deliverable: "인쇄용 PDF와 고칠 수 있는 원본 파일",
+    },
     planSentOn: day(-21),
     status: "completed",
     completedOn: day(-10),
@@ -96,7 +109,11 @@ export const SAMPLE_WORKS: OwnerWork[] = [
     finalDue: day(-19),
     revisionLimit: 1,
     revisionCount: 0,
-    plan: "가게 인스타 계정을 만들고 첫 게시물 3개를 올려 드릴게요.",
+    plan: {
+      summary: "가게 인스타 계정을 만들고 첫 게시물 3개를 올려 드릴게요.",
+      method: "가게 분위기에 맞게 프로필을 꾸미고, 인기 메뉴 사진으로 첫 게시물을 만들어요.",
+      deliverable: "인스타 계정 정보와 게시물 이미지 3장",
+    },
     planSentOn: day(-28),
     status: "completed",
     completedOn: day(-19),
@@ -122,7 +139,11 @@ export const SAMPLE_WORKS: OwnerWork[] = [
     finalDue: day(-27),
     revisionLimit: 1,
     revisionCount: 0,
-    plan: "네이버 지도에 오래된 사진을 내리고 새 사진 10장을 올려 드릴게요.",
+    plan: {
+      summary: "네이버 지도에 오래된 사진을 내리고 새 사진 10장을 올려 드릴게요.",
+      method: "가게 안팎과 인기 메뉴를 밝은 시간에 찍어, 오래된 사진과 바꿔요.",
+      deliverable: "새 사진 10장 원본과 올린 화면 캡처",
+    },
     planSentOn: day(-35),
     status: "completed",
     completedOn: day(-27),
@@ -148,7 +169,11 @@ export const SAMPLE_WORKS: OwnerWork[] = [
     finalDue: day(-39),
     revisionLimit: 1,
     revisionCount: 1,
-    plan: "닭 캐릭터를 넣은 로고 시안 3가지를 만들고, 고르신 쪽을 간판용으로 다듬어 드릴게요.",
+    plan: {
+      summary: "닭 캐릭터를 넣은 로고 시안 3가지를 만들고, 고르신 쪽을 간판용으로 다듬어 드릴게요.",
+      method: "닭 캐릭터를 단순한 선으로 그리고, 멀리서도 보이게 색을 두 가지로 줄여요.",
+      deliverable: "간판용 로고 원본(AI)과 PNG 파일",
+    },
     planSentOn: day(-52),
     status: "completed",
     completedOn: day(-39),
@@ -179,7 +204,11 @@ export const SAMPLE_WORKS: OwnerWork[] = [
     finalDue: day(-35),
     revisionLimit: 1,
     revisionCount: 0,
-    plan: "가게 간판 시안 2가지를 만들어 드릴게요.",
+    plan: {
+      summary: "가게 간판 시안 2가지를 만들어 드릴게요.",
+      method: "가게 이름이 멀리서도 읽히게 글자를 크게 하고, 지금 간판 색을 살려요.",
+      deliverable: "간판 시안 이미지 2장",
+    },
     planSentOn: day(-59),
     status: "canceled",
     files: [],
@@ -247,7 +276,13 @@ export const SAMPLE_REQUESTS: OwnerRequest[] = [
           completedCount: 4,
         },
         badges: ["영어 번역", "소개·공지 글쓰기"],
-        plan: "메뉴 32개를 영어·중국어로 번역하고, 유학생 친구에게 자연스러운지 검수까지 받을게요.\n· 번역 방법: 메뉴 이름은 소리 나는 대로 적고(예: Tteokbokki), 아래에 재료와 맛을 한 줄로 설명해요. 맵기는 고추 개수로 표시할게요.\n· 검수: 영어는 원어민 교환학생에게, 중국어는 중국인 유학생에게 한 번 더 확인받아요.\n· 일정: 초안 마감보다 이틀 빨리 초안(한글·영어·중국어 대조표)을 보내 드리고, 수정 요청이 오면 최종 마감일까지 최종본을 드려요.\n· 결과물: 인쇄용 PDF와 바로 고칠 수 있는 한글(HWP) 파일로 드려요.",
+        plan: {
+          summary:
+            "메뉴 32개를 영어·중국어로 번역하고, 유학생 친구에게 자연스러운지 검수까지 받을게요.",
+          method:
+            "메뉴 이름은 소리 나는 대로 적고(예: Tteokbokki), 아래에 재료와 맛을 한 줄로 설명해요. 맵기는 고추 개수로 표시하고, 영어는 원어민 교환학생에게, 중국어는 중국인 유학생에게 한 번 더 확인받아요.",
+          deliverable: "인쇄용 PDF와 바로 고칠 수 있는 한글(HWP) 파일로 드려요.",
+        },
       },
       {
         student: {
@@ -259,7 +294,13 @@ export const SAMPLE_REQUESTS: OwnerRequest[] = [
           completedCount: 2,
         },
         badges: ["중국어 번역", "영어 번역"],
-        plan: "중국어가 모국어라 중국 손님이 바로 알아듣는 표현으로 옮기고, 맵기 표시도 함께 정리할게요.\n· 번역 방법: 한국 음식 이름은 중국에서 실제로 쓰는 이름으로 바꾸고(예: 떡볶이 → 炒年糕), 영어에는 짧은 설명을 붙여요.\n· 추가: 땅콩·새우 같은 알레르기 재료를 아이콘으로 표시해 드려요.\n· 일정: 초안 마감보다 사흘 빨리 초안을 드리고, 수정 요청이 오면 최종 마감 하루 전까지 최종본을 드려요.\n· 결과물: 메뉴판 파일에 바로 붙일 수 있는 번역 표(엑셀)와 PDF",
+        plan: {
+          summary:
+            "중국어가 모국어라 중국 손님이 바로 알아듣는 표현으로 옮기고, 맵기 표시도 함께 정리할게요.",
+          method:
+            "한국 음식 이름은 중국에서 실제로 쓰는 이름으로 바꾸고(예: 떡볶이 → 炒年糕), 영어에는 짧은 설명을 붙여요. 땅콩·새우 같은 알레르기 재료는 아이콘으로 표시해 드려요.",
+          deliverable: "메뉴판 파일에 바로 붙일 수 있는 번역 표(엑셀)와 PDF",
+        },
       },
       {
         student: {
@@ -270,7 +311,13 @@ export const SAMPLE_REQUESTS: OwnerRequest[] = [
           completedCount: 0,
         },
         badges: ["영어 번역", "일본어 번역"],
-        plan: "메뉴 이름은 소리 나는 대로 적고, 아래에 재료를 짧게 설명하는 방식으로 번역할게요.\n· 번역 방법: 영어를 먼저 번역하고, 중국어는 중국어 수업 교수님께 조언을 받아 다듬을게요.\n· 일정: 초안 마감일까지 초안, 수정 요청이 오면 최종 마감일까지 최종본을 드려요.\n· 결과물: 메뉴별 번역 표(구글 시트)와 인쇄용 PDF\n· 첫 작업이라 중간중간 진행 상황을 자주 공유해 드릴게요.",
+        plan: {
+          summary:
+            "메뉴 이름은 소리 나는 대로 적고, 아래에 재료를 짧게 설명하는 방식으로 번역할게요.",
+          method:
+            "영어를 먼저 번역하고, 중국어는 중국어 수업 교수님께 조언을 받아 다듬을게요. 첫 작업이라 중간중간 진행 상황을 자주 공유해 드릴게요.",
+          deliverable: "메뉴별 번역 표(구글 시트)와 인쇄용 PDF",
+        },
       },
       {
         student: {
@@ -282,7 +329,13 @@ export const SAMPLE_REQUESTS: OwnerRequest[] = [
           completedCount: 1,
         },
         badges: ["영어 번역", "메뉴판·가격표 디자인"],
-        plan: "번역한 메뉴를 지금 메뉴판 모양 그대로 다시 넣어서, 바로 인쇄할 수 있게 만들어 드릴게요.\n· 번역 방법: 영어는 외국 손님이 읽기 쉬운 짧은 표현으로 옮기고, 중국어는 중국인 유학생 친구에게 확인받아요.\n· 추가: 인기 메뉴 3개에는 「추천」 표시를 달아 드려요.\n· 일정: 초안 마감일까지 초안, 수정 요청이 오면 최종 마감일까지 최종본을 드려요.\n· 결과물: 인쇄용 PDF와 고칠 수 있는 원본 파일",
+        plan: {
+          summary:
+            "번역한 메뉴를 지금 메뉴판 모양 그대로 다시 넣어서, 바로 인쇄할 수 있게 만들어 드릴게요.",
+          method:
+            "영어는 외국 손님이 읽기 쉬운 짧은 표현으로 옮기고, 중국어는 중국인 유학생 친구에게 확인받아요. 인기 메뉴 3개에는 「추천」 표시를 달아 드려요.",
+          deliverable: "인쇄용 PDF와 고칠 수 있는 원본 파일",
+        },
       },
       {
         student: {
@@ -293,7 +346,13 @@ export const SAMPLE_REQUESTS: OwnerRequest[] = [
           completedCount: 0,
         },
         badges: ["중국어 번역", "영어 번역"],
-        plan: "중국 교환학생 때 익힌 표현으로 중국 손님이 바로 알아보는 메뉴 이름을 붙여 드릴게요.\n· 번역 방법: 중국어를 먼저 옮기고, 영어는 메뉴마다 재료를 한 줄로 설명해요.\n· 일정: 초안 마감 하루 전까지 초안, 수정 요청이 오면 최종 마감일까지 최종본을 드려요.\n· 결과물: 메뉴별 번역 표(엑셀)와 인쇄용 PDF\n· 첫 작업이라 초안 전에 번역 몇 개를 먼저 보여 드리고 방향을 맞출게요.",
+        plan: {
+          summary:
+            "중국 교환학생 때 익힌 표현으로 중국 손님이 바로 알아보는 메뉴 이름을 붙여 드릴게요.",
+          method:
+            "중국어를 먼저 옮기고, 영어는 메뉴마다 재료를 한 줄로 설명해요. 첫 작업이라 초안 전에 번역 몇 개를 먼저 보여 드리고 방향을 맞출게요.",
+          deliverable: "메뉴별 번역 표(엑셀)와 인쇄용 PDF",
+        },
       },
     ],
   },
@@ -334,7 +393,12 @@ export const SAMPLE_REQUESTS: OwnerRequest[] = [
           completedCount: 3,
         },
         badges: ["가게 홈페이지", "메뉴판(QR,웹,모바일)"],
-        plan: "모바일에서 보기 좋은 한 장짜리 홈페이지를 만들어 드릴게요.\n· 내용: 메뉴 · 영업시간 · 오시는 길 · 전화 걸기 버튼\n· 일정: 초안 마감일까지 초안, 수정 요청이 오면 최종 마감일까지 최종본을 드려요.\n· 결과물: 홈페이지 주소와 고칠 수 있는 원본 파일",
+        plan: {
+          summary: "모바일에서 보기 좋은 한 장짜리 홈페이지를 만들어 드릴게요.",
+          method:
+            "메뉴 · 영업시간 · 오시는 길 · 전화 걸기 버튼을 한 화면에 넣고, 휴대폰에서 먼저 확인해요.",
+          deliverable: "홈페이지 주소와 고칠 수 있는 원본 파일",
+        },
       },
       {
         student: {
@@ -345,7 +409,12 @@ export const SAMPLE_REQUESTS: OwnerRequest[] = [
           completedCount: 0,
         },
         badges: ["가게 홈페이지"],
-        plan: "노션으로 바로 고칠 수 있는 가게 소개 페이지를 만들어 드릴게요.\n· 일정: 초안 마감 하루 전까지 초안, 수정 요청이 오면 최종 마감 이틀 전까지 최종본을 드려요.\n· 첫 작업이라 초안 전에 구성을 먼저 보여 드릴게요.",
+        plan: {
+          summary: "노션으로 바로 고칠 수 있는 가게 소개 페이지를 만들어 드릴게요.",
+          method:
+            "첫 작업이라 초안 전에 페이지 구성을 먼저 보여 드리고, 사장님이 직접 글을 고칠 수 있게 만들어요.",
+          deliverable: "노션 페이지 주소와 고치는 방법 안내",
+        },
       },
     ],
   },

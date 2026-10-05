@@ -1,6 +1,12 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Button, Chip, ProfilePhoto, SubScreen, TextField } from "../components";
-import { OWNER_PATHS, useOwnerStore } from "../features/owner";
+import {
+  OWNER_PATHS,
+  saveOwnerStore,
+  setOwnerStorePhoto,
+  useOwnerStore,
+  useOwnerStorePhoto,
+} from "../features/owner";
 import { useBack } from "../hooks/useBack";
 import { useObjectUrls } from "../hooks/useObjectUrls";
 import { STORE_CATEGORIES } from "../types/storeCategory";
@@ -14,10 +20,19 @@ function OwnerStoreEditPage() {
   const back = useBack(OWNER_PATHS.me);
   const store = useOwnerStore();
   const [form, setForm] = useState(store);
-  const [photo, setPhoto] = useState<File | null>(null);
-  const [photoUrl] = useObjectUrls(photo ? [photo] : []);
+  const savedPhoto = useOwnerStorePhoto();
+  const [photo, setPhoto] = useState(savedPhoto);
+  const photoFiles = useMemo(() => (photo ? [photo] : []), [photo]);
+  const [photoUrl] = useObjectUrls(photoFiles);
 
   const update = (patch: Partial<typeof form>) => setForm((f) => ({ ...f, ...patch }));
+  // 백엔드 연동 전: 내 정보에만 반영된다 (새로고침하면 처음으로)
+  const save = () => {
+    saveOwnerStore(form);
+    if (photo !== savedPhoto) setOwnerStorePhoto(photo);
+    back();
+  };
+
   const filled =
     form.storeName.trim() !== "" && form.address.trim() !== "" && form.phone.trim() !== "";
 
@@ -26,8 +41,7 @@ function OwnerStoreEditPage() {
       title="가게 정보 수정"
       onBack={back}
       footer={
-        // 저장은 백엔드 연동 때 붙이고, 지금은 내 정보로 돌아간다
-        <Button fullWidth disabled={!filled} onClick={back}>
+        <Button fullWidth disabled={!filled} onClick={save}>
           저장하기
         </Button>
       }

@@ -8,6 +8,7 @@ import {
   RoleAvatar,
   SubScreen,
   TrustChips,
+  WorkPlan,
 } from "../components";
 import {
   OWNER_PATHS,
@@ -74,14 +75,7 @@ function OwnerAssignPage() {
           {profile && (
             <TrustChips proposalCount={profile.proposalCount} noShowCount={profile.noShowCount} />
           )}
-          <div className="owner-assign__plan">
-            <p className="owner-assign__plan-label">작업계획서</p>
-            {plan.split("\n").map((line, i) => (
-              <p key={i} className="owner-assign__plan-line">
-                {line}
-              </p>
-            ))}
-          </div>
+          <WorkPlan plan={plan} />
         </section>
 
         <section className="owner-assign__card">

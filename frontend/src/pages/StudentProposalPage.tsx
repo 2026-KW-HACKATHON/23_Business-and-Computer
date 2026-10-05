@@ -130,7 +130,7 @@ function StudentProposalPage() {
 
           <section className="student-detail__section">
             <h2 className="student-detail__section-title">작업계획서</h2>
-            <WorkPlan text={proposal.plan} />
+            <WorkPlan plan={proposal.plan} />
           </section>
 
           <section className="student-detail__section">
