@@ -79,10 +79,13 @@ public final class ExploreQueryDto {
         private final JobStatus status;
         private final LocalDate draftDeadline;
         private final LocalDate finalDeadline;
+        private final Long budget;
+        // 학생에게만 채운다. 학생이 아닌 사용자는 null이다
+        private final Boolean applied;
         private final List<SpecialtyCategoryResult> specialtyCategories;
 
         public static JobCardResult of(Job job, JobProgressStage progressStage, String storeName,
-                List<SpecialtyCategoryResult> specialtyCategories) {
+                List<SpecialtyCategoryResult> specialtyCategories, Boolean applied) {
             return JobCardResult.builder()
                     .type(ExploreItemType.JOB)
                     .jobId(job.getId())
@@ -92,6 +95,8 @@ public final class ExploreQueryDto {
                     .status(job.getStatus())
                     .draftDeadline(job.getDraftDeadline())
                     .finalDeadline(job.getFinalDeadline())
+                    .budget(job.getBudget())
+                    .applied(applied)
                     .specialtyCategories(specialtyCategories)
                     .build();
         }

@@ -1,6 +1,8 @@
 package com.gakkum.backend.application.explore.controller;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.hasKey;
+import static org.hamcrest.Matchers.not;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -111,11 +113,11 @@ class ExploreControllerTest {
                 SpecialtyCategoryResult.of(1L, "디자인", List.of(SpecialtyResult.of(3L, "로고 디자인"))),
                 SpecialtyCategoryResult.of(2L, "영상", List.of(SpecialtyResult.of(11L, "숏폼 촬영"))));
         Proposal proposal = Proposal.builder().id(31L).title("메뉴판 개선 제안").likeCount(4).build();
-        Job job = Job.builder().id(42L).title("로고 제작").status(JobStatus.MATCHED)
+        Job job = Job.builder().id(42L).title("로고 제작").status(JobStatus.MATCHED).budget(300_000L)
                 .draftDeadline(LocalDate.of(2026, 10, 10)).finalDeadline(LocalDate.of(2026, 10, 20)).build();
         when(exploreFacade.explore(any())).thenReturn(ExploreResult.of(List.of(
                 ProposalCardResult.of(proposal, "가꿈 분식", categories),
-                JobCardResult.of(job, JobProgressStage.DRAFT, "가꿈 카페", categories.subList(0, 1))), "next"));
+                JobCardResult.of(job, JobProgressStage.DRAFT, "가꿈 카페", categories.subList(0, 1), null)), "next"));
 
         mockMvc.perform(get("/explore").principal(authentication))
                 .andExpect(status().isOk())
@@ -135,10 +137,31 @@ class ExploreControllerTest {
                 .andExpect(jsonPath("$.data.items[1].status").value("MATCHED"))
                 .andExpect(jsonPath("$.data.items[1].draftDeadline").exists())
                 .andExpect(jsonPath("$.data.items[1].finalDeadline").exists())
+                .andExpect(jsonPath("$.data.items[1].budget").value(300000))
+                .andExpect(jsonPath("$.data.items[1].applied").doesNotExist())
+                .andExpect(jsonPath("$.data.items[0].budget").doesNotExist())
+                .andExpect(jsonPath("$.data.items[0].applied").doesNotExist())
                 .andExpect(jsonPath("$.data.items[1].specialtyCategories[0].id").value(1))
                 .andExpect(jsonPath("$.data.items[1].likeCount").doesNotExist())
                 .andExpect(jsonPath("$.data.nextCursor").value("next"))
                 .andExpect(jsonPath("$.data.hasNext").value(true));
+    }
+
+    @Test
+    @DisplayName("학생의 의뢰 카드는 지원 여부를 true·false로 담고, 학생이 아닌 사용자의 카드는 applied 키 자체를 내리지 않는다")
+    void returnsAppliedOnlyForStudent() throws Exception {
+        Job job = Job.builder().id(42L).title("로고 제작").status(JobStatus.OPEN).budget(300_000L).build();
+        when(exploreFacade.explore(any())).thenReturn(ExploreResult.of(List.of(
+                JobCardResult.of(job, JobProgressStage.REQUESTED, "가꿈 카페", List.of(), true),
+                JobCardResult.of(job, JobProgressStage.REQUESTED, "가꿈 카페", List.of(), false),
+                JobCardResult.of(job, JobProgressStage.REQUESTED, "가꿈 카페", List.of(), null)), null));
+
+        mockMvc.perform(get("/explore").principal(authentication).param("type", "JOB"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.items[0].applied").value(true))
+                .andExpect(jsonPath("$.data.items[1].applied").value(false))
+                .andExpect(jsonPath("$.data.items[2]", not(hasKey("applied"))))
+                .andExpect(jsonPath("$.data.items[2].budget").value(300000));
     }
 
     static Stream<Arguments> invalidRequests() {

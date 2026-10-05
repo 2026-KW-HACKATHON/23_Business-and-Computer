@@ -1,5 +1,7 @@
 package com.gakkum.backend.application.explore;
 
+import static org.hamcrest.Matchers.hasKey;
+import static org.hamcrest.Matchers.not;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
@@ -34,6 +36,8 @@ import com.gakkum.backend.application.explore.dto.ExploreType;
 import com.gakkum.backend.application.explore.facade.ExploreFacade;
 import com.gakkum.backend.domain.category.service.BusinessCategoryService;
 import com.gakkum.backend.domain.job.entity.Job;
+import com.gakkum.backend.domain.job.entity.JobApplication;
+import com.gakkum.backend.domain.job.entity.JobApplicationStatus;
 import com.gakkum.backend.domain.job.entity.JobSpecialty;
 import com.gakkum.backend.domain.job.entity.JobStatus;
 import com.gakkum.backend.domain.job.entity.JobSubmission;
@@ -58,6 +62,9 @@ import com.gakkum.backend.domain.specialty.entity.SpecialtyCategory;
 import com.gakkum.backend.domain.specialty.repository.SpecialtyCategoryRepository;
 import com.gakkum.backend.domain.specialty.repository.SpecialtyRepository;
 import com.gakkum.backend.domain.specialty.service.SpecialtyCategoryService;
+import com.gakkum.backend.domain.student.entity.Student;
+import com.gakkum.backend.domain.student.repository.StudentRepository;
+import com.gakkum.backend.domain.student.service.StudentService;
 import com.gakkum.backend.domain.user.entity.User;
 import com.gakkum.backend.domain.user.entity.UserRole;
 import com.gakkum.backend.domain.user.repository.UserRepository;
@@ -69,6 +76,7 @@ class ExploreFlowTest {
 
     private static final String USERNAME = "KAKAO_12345";
     private static final String USER_ID = "01K58M6PJV8VAJMXHBHJ2PNB5C";
+    private static final long STUDENT_PROFILE_ID = 77L;
     private static final LocalDateTime T1 = LocalDateTime.of(2026, 9, 28, 10, 0);
     private static final LocalDateTime T2 = LocalDateTime.of(2026, 9, 29, 10, 0);
     private static final LocalDateTime T3 = LocalDateTime.of(2026, 9, 30, 10, 0);
@@ -79,6 +87,8 @@ class ExploreFlowTest {
     private final JobRepository jobRepository = mock(JobRepository.class);
     private final JobSpecialtyRepository jobSpecialtyRepository = mock(JobSpecialtyRepository.class);
     private final JobSubmissionRepository jobSubmissionRepository = mock(JobSubmissionRepository.class);
+    private final JobApplicationRepository jobApplicationRepository = mock(JobApplicationRepository.class);
+    private final StudentRepository studentRepository = mock(StudentRepository.class);
     private final OwnerRepository ownerRepository = mock(OwnerRepository.class);
     private final SpecialtyRepository specialtyRepository = mock(SpecialtyRepository.class);
     private final SpecialtyCategoryRepository specialtyCategoryRepository = mock(SpecialtyCategoryRepository.class);
@@ -93,11 +103,12 @@ class ExploreFlowTest {
         ExploreFacade facade = new ExploreFacade(
                 new UserService(userRepository, mock(JwtService.class)),
                 new ProposalService(proposalRepository, proposalSpecialtyRepository),
-                new JobService(jobRepository, jobSpecialtyRepository, mock(JobApplicationRepository.class),
+                new JobService(jobRepository, jobSpecialtyRepository, jobApplicationRepository,
                         jobSubmissionRepository, Clock.systemUTC()),
                 new OwnerService(ownerRepository),
                 new SpecialtyCategoryService(specialtyCategoryRepository, specialtyRepository),
-                mock(BusinessCategoryService.class));
+                mock(BusinessCategoryService.class),
+                new StudentService(studentRepository));
 
         mockMvc = MockMvcBuilders.standaloneSetup(new ExploreController(facade))
                 .setControllerAdvice(new GlobalExceptionHandler())
@@ -125,6 +136,10 @@ class ExploreFlowTest {
                 Owner.builder().id(50L).storeName("가꿈 분식").build(),
                 Owner.builder().id(60L).storeName("가꿈 카페").build()));
         givenSpecialties();
+        when(studentRepository.findByUserId(USER_ID))
+                .thenReturn(Optional.of(Student.builder().id(STUDENT_PROFILE_ID).userId(USER_ID).build()));
+        when(jobApplicationRepository.findByStudentProfileIdAndJobIdIn(STUDENT_PROFILE_ID, List.of(42L)))
+                .thenReturn(List.of(application(42L, JobApplicationStatus.PENDING)));
 
         explore(get("/explore").param("size", "2"))
                 .andExpect(status().isOk())
@@ -138,6 +153,10 @@ class ExploreFlowTest {
                 .andExpect(jsonPath("$.data.items[0].progressStage").value("REVISION"))
                 .andExpect(jsonPath("$.data.items[0].draftDeadline").value("2026-10-10"))
                 .andExpect(jsonPath("$.data.items[0].finalDeadline").value("2026-10-20"))
+                .andExpect(jsonPath("$.data.items[0].budget").value(300000))
+                .andExpect(jsonPath("$.data.items[0].applied").value(true))
+                .andExpect(jsonPath("$.data.items[1]", not(hasKey("applied"))))
+                .andExpect(jsonPath("$.data.items[1]", not(hasKey("budget"))))
                 .andExpect(jsonPath("$.data.items[0].specialtyCategories[0].name").value("디자인"))
                 .andExpect(jsonPath("$.data.items[1].type").value("PROPOSAL"))
                 .andExpect(jsonPath("$.data.items[1].proposalId").value(31))
@@ -151,6 +170,59 @@ class ExploreFlowTest {
                 .andExpect(jsonPath("$.data.items[1].specialtyCategories[1].id").value(2))
                 .andExpect(jsonPath("$.data.hasNext").value(true))
                 .andExpect(jsonPath("$.data.nextCursor").isString());
+    }
+
+    @Test
+    @DisplayName("학생의 의뢰 탐색은 본인 지원서가 대기·선정·거절 어느 상태든 true, 본인 지원서가 없는 의뢰는 false로 응답한다")
+    void returnsAppliedForStudentRegardlessOfStatus() throws Exception {
+        givenActiveUser();
+        givenJobs(job(44L, T3, JobStatus.OPEN, 60L), job(43L, T3, JobStatus.OPEN, 60L),
+                job(42L, T3, JobStatus.OPEN, 60L), job(41L, T3, JobStatus.OPEN, 60L));
+        when(studentRepository.findByUserId(USER_ID))
+                .thenReturn(Optional.of(Student.builder().id(STUDENT_PROFILE_ID).userId(USER_ID).build()));
+        // 의뢰 41에는 다른 학생의 지원서만 있어 본인 조회 결과에 없다
+        when(jobApplicationRepository.findByStudentProfileIdAndJobIdIn(STUDENT_PROFILE_ID, List.of(44L, 43L, 42L, 41L)))
+                .thenReturn(List.of(application(44L, JobApplicationStatus.PENDING),
+                        application(43L, JobApplicationStatus.ACCEPTED),
+                        application(42L, JobApplicationStatus.REJECTED)));
+
+        explore(get("/explore").param("type", "JOB"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.items.length()").value(4))
+                .andExpect(jsonPath("$.data.items[0].applied").value(true))
+                .andExpect(jsonPath("$.data.items[1].applied").value(true))
+                .andExpect(jsonPath("$.data.items[2].applied").value(true))
+                .andExpect(jsonPath("$.data.items[3].jobId").value(41))
+                .andExpect(jsonPath("$.data.items[3].applied").value(false))
+                .andExpect(jsonPath("$.data.items[3].budget").value(300000));
+    }
+
+    @Test
+    @DisplayName("학생 프로필이 없는 학생도 탐색에 성공하고 지원서를 조회하지 않은 채 false로 응답한다")
+    void returnsNotAppliedForStudentWithoutProfile() throws Exception {
+        givenActiveUser();
+        givenJobs(job(42L, T3, JobStatus.OPEN, 60L));
+        when(studentRepository.findByUserId(USER_ID)).thenReturn(Optional.empty());
+
+        explore(get("/explore").param("type", "JOB"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.items[0].applied").value(false));
+
+        verifyNoInteractions(jobApplicationRepository);
+    }
+
+    @Test
+    @DisplayName("학생이 아닌 사용자의 의뢰 카드는 예산만 담고 applied 키를 내리지 않으며 학생 프로필·지원서를 조회하지 않는다")
+    void omitsAppliedForNonStudent() throws Exception {
+        givenActiveUser(UserRole.OWNER);
+        givenJobs(job(42L, T3, JobStatus.OPEN, 60L));
+
+        explore(get("/explore").param("type", "JOB"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.items[0].budget").value(300000))
+                .andExpect(jsonPath("$.data.items[0]", not(hasKey("applied"))));
+
+        verifyNoInteractions(studentRepository, jobApplicationRepository);
     }
 
     @Test
@@ -217,8 +289,23 @@ class ExploreFlowTest {
     }
 
     private void givenActiveUser() {
+        givenActiveUser(UserRole.STUDENT);
+    }
+
+    private void givenActiveUser(UserRole role) {
         when(userRepository.findByUsernameAndIsLock(USERNAME, false)).thenReturn(Optional.of(
-                User.builder().id(USER_ID).username(USERNAME).role(UserRole.STUDENT).isLock(false).build()));
+                User.builder().id(USER_ID).username(USERNAME).role(role).isLock(false).build()));
+    }
+
+    private void givenJobs(Job... jobs) {
+        when(jobRepository.findByDemoSessionIdAndStatusNotAndCreatedAtLessThanOrderByCreatedAtDescIdDesc(
+                any(), eq(JobStatus.CANCELLED), any(), any())).thenReturn(List.of(jobs));
+        when(ownerRepository.findAllById(any())).thenReturn(List.of(
+                Owner.builder().id(60L).storeName("가꿈 카페").build()));
+    }
+
+    private JobApplication application(Long jobId, JobApplicationStatus status) {
+        return JobApplication.builder().jobId(jobId).studentProfileId(STUDENT_PROFILE_ID).status(status).build();
     }
 
     private void givenSpecialties() {
@@ -247,6 +334,7 @@ class ExploreFlowTest {
                 .ownerProfileId(ownerProfileId)
                 .title("의뢰 " + id)
                 .status(status)
+                .budget(300_000L)
                 .draftDeadline(LocalDate.of(2026, 10, 10))
                 .finalDeadline(LocalDate.of(2026, 10, 20))
                 .createdAt(createdAt)

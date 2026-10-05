@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -14,6 +15,8 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -46,8 +49,11 @@ import com.gakkum.backend.domain.proposal.entity.Proposal;
 import com.gakkum.backend.domain.proposal.service.ProposalService;
 import com.gakkum.backend.domain.specialty.dto.SpecialtyQueryDto.SpecialtyDetail;
 import com.gakkum.backend.domain.specialty.service.SpecialtyCategoryService;
+import com.gakkum.backend.domain.student.entity.Student;
+import com.gakkum.backend.domain.student.service.StudentService;
 import com.gakkum.backend.domain.user.service.UserService;
 import com.gakkum.backend.domain.user.entity.User;
+import com.gakkum.backend.domain.user.entity.UserRole;
 import com.gakkum.backend.global.exception.BusinessException;
 import com.gakkum.backend.global.exception.ErrorCode;
 
@@ -55,6 +61,7 @@ import com.gakkum.backend.global.exception.ErrorCode;
 class ExploreFacadeTest {
 
     private static final String USERNAME = "KAKAO_12345";
+    private static final String USER_ID = "01K58M6PJV8VAJMXHBHJ2PNB5C";
     private static final LocalDateTime T1 = LocalDateTime.of(2026, 9, 28, 10, 0);
     private static final LocalDateTime T2 = LocalDateTime.of(2026, 9, 29, 10, 0);
     private static final LocalDateTime T3 = LocalDateTime.of(2026, 9, 30, 10, 0);
@@ -64,9 +71,10 @@ class ExploreFacadeTest {
     private final JobService jobService = mock(JobService.class);
     private final OwnerService ownerService = mock(OwnerService.class);
     private final SpecialtyCategoryService specialtyCategoryService = mock(SpecialtyCategoryService.class);
+    private final StudentService studentService = mock(StudentService.class);
     private final ExploreFacade exploreFacade = new ExploreFacade(
             userService, proposalService, jobService, ownerService, specialtyCategoryService,
-            mock(BusinessCategoryService.class));
+            mock(BusinessCategoryService.class), studentService);
 
     @BeforeEach
     void givenActiveUser() {
@@ -128,6 +136,7 @@ class ExploreFacadeTest {
         assertThat(card.getProgressStage()).isEqualTo(JobProgressStage.REVISION);
         assertThat(card.getDraftDeadline()).isEqualTo(LocalDate.of(2026, 10, 10));
         assertThat(card.getFinalDeadline()).isEqualTo(LocalDate.of(2026, 10, 20));
+        assertThat(card.getBudget()).isEqualTo(300_000L);
         assertThat(card.getSpecialtyCategories())
                 .extracting(SpecialtyCategoryResult::getId, SpecialtyCategoryResult::getName)
                 .containsExactly(tuple(1L, "디자인"), tuple(2L, "영상"));
@@ -186,7 +195,7 @@ class ExploreFacadeTest {
         ProposalService firstProposalService = mock(ProposalService.class);
         JobService firstJobService = mock(JobService.class);
         new ExploreFacade(userService, firstProposalService, firstJobService, ownerService, specialtyCategoryService,
-                mock(BusinessCategoryService.class))
+                mock(BusinessCategoryService.class), studentService)
                 .explore(command(ExploreType.ALL, ExploreSort.OLDEST, 20, null));
         ArgumentCaptor<GetExploreJobsCommand> firstJob = ArgumentCaptor.forClass(GetExploreJobsCommand.class);
         verify(firstJobService).getExploreJobs(firstJob.capture());
@@ -248,6 +257,85 @@ class ExploreFacadeTest {
         verifyNoInteractions(proposalService, jobService);
     }
 
+    @Test
+    @DisplayName("학생은 이번 페이지의 의뢰 ID만 한 번에 조회해 지원한 의뢰는 true, 아닌 의뢰는 false로 채운다")
+    void fillsAppliedForStudentWithPageJobIdsOnly() {
+        givenUser(UserRole.STUDENT);
+        when(proposalService.getExploreProposals(any())).thenReturn(List.of(proposal(5L, T2, 0, 50L, List.of(3L))));
+        when(jobService.getExploreJobs(any())).thenReturn(List.of(
+                job(8L, T3, 60L, List.of(3L), JobStatus.OPEN, JobProgressStage.REQUESTED),
+                job(9L, T2, 61L, List.of(3L), JobStatus.OPEN, JobProgressStage.REQUESTED),
+                job(7L, T1, 61L, List.of(3L), JobStatus.OPEN, JobProgressStage.REQUESTED)));
+        givenStoreNames(Map.of(50L, "가꿈 분식", 60L, "가꿈 카페", 61L, "가꿈 꽃집"));
+        givenSpecialties();
+        when(studentService.findStudentProfileByUserId(USER_ID))
+                .thenReturn(Optional.of(Student.builder().id(77L).userId(USER_ID).build()));
+        when(jobService.getAppliedJobIds(77L, List.of(8L, 9L))).thenReturn(Set.of(9L));
+
+        ExploreResult result = exploreFacade.explore(command(ExploreType.ALL, ExploreSort.LATEST, 3, null));
+
+        assertThat(result.getItems()).filteredOn(JobCardResult.class::isInstance)
+                .extracting(item -> ((JobCardResult) item).getJobId(), item -> ((JobCardResult) item).getApplied())
+                .containsExactly(tuple(8L, false), tuple(9L, true));
+        // 다음 페이지로 밀린 의뢰 7은 지원 여부를 조회하지 않는다
+        verify(jobService).getAppliedJobIds(77L, List.of(8L, 9L));
+        verify(studentService).findStudentProfileByUserId(USER_ID);
+    }
+
+    @Test
+    @DisplayName("학생이 아닌 사용자는 지원 여부를 비워 두고 학생 프로필과 지원서를 조회하지 않는다")
+    void leavesAppliedEmptyForNonStudent() {
+        givenUser(UserRole.OWNER);
+        when(jobService.getExploreJobs(any())).thenReturn(List.of(
+                job(9L, T2, 61L, List.of(3L), JobStatus.OPEN, JobProgressStage.REQUESTED)));
+        givenStoreNames(Map.of(61L, "가꿈 꽃집"));
+        givenSpecialties();
+
+        ExploreResult result = exploreFacade.explore(command(ExploreType.JOB, ExploreSort.LATEST, 20, null));
+
+        assertThat(((JobCardResult) result.getItems().get(0)).getApplied()).isNull();
+        verifyNoInteractions(studentService);
+        verify(jobService, never()).getAppliedJobIds(any(), any());
+    }
+
+    @Test
+    @DisplayName("학생 프로필이 없는 학생은 지원서를 조회하지 않고 모든 의뢰를 지원하지 않은 것으로 본다")
+    void treatsStudentWithoutProfileAsNotApplied() {
+        givenUser(UserRole.STUDENT);
+        when(jobService.getExploreJobs(any())).thenReturn(List.of(
+                job(9L, T2, 61L, List.of(3L), JobStatus.OPEN, JobProgressStage.REQUESTED)));
+        givenStoreNames(Map.of(61L, "가꿈 꽃집"));
+        givenSpecialties();
+        when(studentService.findStudentProfileByUserId(USER_ID)).thenReturn(Optional.empty());
+
+        ExploreResult result = exploreFacade.explore(command(ExploreType.JOB, ExploreSort.LATEST, 20, null));
+
+        assertThat(((JobCardResult) result.getItems().get(0)).getApplied()).isFalse();
+        verify(jobService, never()).getAppliedJobIds(any(), any());
+    }
+
+    @Test
+    @DisplayName("이번 페이지에 의뢰 카드가 없으면 학생이어도 학생 프로필과 지원서를 조회하지 않는다")
+    void skipsAppliedLookupWithoutJobCards() {
+        givenUser(UserRole.STUDENT);
+        when(proposalService.getExploreProposals(any())).thenReturn(List.of(proposal(5L, T2, 0, 50L, List.of(3L))));
+        when(jobService.getExploreJobs(any())).thenReturn(List.of(
+                job(7L, T1, 61L, List.of(3L), JobStatus.OPEN, JobProgressStage.REQUESTED)));
+        givenStoreNames(Map.of(50L, "가꿈 분식"));
+        givenSpecialties();
+
+        ExploreResult result = exploreFacade.explore(command(ExploreType.ALL, ExploreSort.LATEST, 1, null));
+
+        assertThat(result.getItems()).extracting(ExploreItemResult::getType).containsExactly(ExploreItemType.PROPOSAL);
+        verifyNoInteractions(studentService);
+        verify(jobService, never()).getAppliedJobIds(any(), any());
+    }
+
+    private void givenUser(UserRole role) {
+        when(userService.getActiveUser(USERNAME)).thenReturn(
+                User.builder().id(USER_ID).username(USERNAME).role(role).isLock(false).build());
+    }
+
     private Long itemId(ExploreItemResult item) {
         return item instanceof ProposalCardResult proposal ? proposal.getProposalId()
                 : ((JobCardResult) item).getJobId();
@@ -303,6 +391,7 @@ class ExploreFacadeTest {
                 .ownerProfileId(ownerProfileId)
                 .title("의뢰 " + id)
                 .status(status)
+                .budget(300_000L)
                 .draftDeadline(LocalDate.of(2026, 10, 10))
                 .finalDeadline(LocalDate.of(2026, 10, 20))
                 .createdAt(createdAt)

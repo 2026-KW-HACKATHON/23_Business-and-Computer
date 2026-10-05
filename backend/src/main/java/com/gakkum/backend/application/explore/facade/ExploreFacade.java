@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
 
@@ -41,6 +42,7 @@ import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.ExploreProposalDa
 import com.gakkum.backend.domain.proposal.service.ProposalService;
 import com.gakkum.backend.domain.specialty.dto.SpecialtyQueryDto.SpecialtyDetail;
 import com.gakkum.backend.domain.specialty.service.SpecialtyCategoryService;
+import com.gakkum.backend.domain.student.service.StudentService;
 import com.gakkum.backend.domain.user.entity.User;
 import com.gakkum.backend.domain.user.entity.UserRole;
 import com.gakkum.backend.domain.user.service.UserService;
@@ -66,11 +68,12 @@ public class ExploreFacade {
     private final OwnerService ownerService;
     private final SpecialtyCategoryService specialtyCategoryService;
     private final BusinessCategoryService businessCategoryService;
+    private final StudentService studentService;
 
     /**
      * 제안과 의뢰를 한 목록으로 탐색한다. 종류마다 커서 뒤의 카드를 size+1개까지 읽어 병합하고,
      * 한 장이 남으면 다음 페이지가 있다고 보고 이번 페이지 마지막 카드로 커서를 만든다.
-     * 매장 이름과 대분류·소분류는 이번 페이지 카드에 대해서만 묶어서 조회한다.
+     * 매장 이름과 대분류·소분류, 학생의 지원 여부는 이번 페이지 카드에 대해서만 묶어서 조회한다.
      */
     @Transactional(readOnly = true)
     public ExploreResult explore(ExploreCommand command) {
@@ -92,7 +95,7 @@ public class ExploreFacade {
         boolean hasNext = candidates.size() > command.getSize();
         List<Candidate> page = hasNext ? candidates.subList(0, command.getSize()) : candidates;
         String nextCursor = hasNext ? toCursor(command, page.get(page.size() - 1)).encode() : null;
-        return ExploreResult.of(toItems(page), nextCursor);
+        return ExploreResult.of(toItems(page, user), nextCursor);
     }
 
     /**
@@ -208,7 +211,7 @@ public class ExploreFacade {
                 last.getType(), last.getLikeCount(), last.getCreatedAt(), last.getId());
     }
 
-    private List<ExploreItemResult> toItems(List<Candidate> page) {
+    private List<ExploreItemResult> toItems(List<Candidate> page, User user) {
         if (page.isEmpty()) {
             return List.of();
         }
@@ -220,6 +223,7 @@ public class ExploreFacade {
                 .flatMap(candidate -> candidate.getSpecialtyIds().stream())
                 .distinct()
                 .toList());
+        Set<Long> appliedJobIds = appliedJobIds(page, user);
 
         return page.stream()
                 .map(candidate -> {
@@ -232,9 +236,27 @@ public class ExploreFacade {
                     }
                     ExploreJobData job = candidate.getJob();
                     return (ExploreItemResult) JobCardResult.of(
-                            job.getJob(), job.getProgressStage(), storeName, categories);
+                            job.getJob(), job.getProgressStage(), storeName, categories,
+                            appliedJobIds == null ? null : appliedJobIds.contains(candidate.getId()));
                 })
                 .toList();
+    }
+
+    // 학생이 아니면 null을 반환해 지원 여부를 내리지 않는다. 학생 프로필이 없는 학생은 지원 이력이 없는 것으로 본다
+    private Set<Long> appliedJobIds(List<Candidate> page, User user) {
+        if (user.getRole() != UserRole.STUDENT) {
+            return null;
+        }
+        List<Long> jobIds = page.stream()
+                .filter(candidate -> candidate.getType() == ExploreItemType.JOB)
+                .map(Candidate::getId)
+                .toList();
+        if (jobIds.isEmpty()) {
+            return Set.of();
+        }
+        return studentService.findStudentProfileByUserId(user.getId())
+                .map(student -> jobService.getAppliedJobIds(student.getId(), jobIds))
+                .orElse(Set.of());
     }
 
     // 다른 목록 API와 같은 형식으로 카드의 모든 소분류를 대분류 ID 순, 대분류 안에서는 소분류 ID 순으로 묶는다

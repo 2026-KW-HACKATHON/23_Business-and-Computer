@@ -3,6 +3,7 @@ package com.gakkum.backend.application.explore.dto;
 import java.time.LocalDate;
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.gakkum.backend.application.explore.dto.ExploreQueryDto.ExploreItemResult;
 import com.gakkum.backend.application.explore.dto.ExploreQueryDto.ExploreResult;
 import com.gakkum.backend.application.explore.dto.ExploreQueryDto.JobCardResult;
@@ -85,6 +86,10 @@ public class ExploreResponse {
         private final JobStatus status;
         private final LocalDate draftDeadline;
         private final LocalDate finalDeadline;
+        private final Long budget;
+        // 학생이 아닌 사용자에게는 필드를 내리지 않는다
+        @JsonInclude(JsonInclude.Include.NON_NULL)
+        private final Boolean applied;
         private final List<SpecialtyCategory> specialtyCategories;
 
         public static JobCard from(JobCardResult result) {
@@ -97,6 +102,8 @@ public class ExploreResponse {
                     .status(result.getStatus())
                     .draftDeadline(result.getDraftDeadline())
                     .finalDeadline(result.getFinalDeadline())
+                    .budget(result.getBudget())
+                    .applied(result.getApplied())
                     .specialtyCategories(SpecialtyCategory.from(result.getSpecialtyCategories()))
                     .build();
         }
