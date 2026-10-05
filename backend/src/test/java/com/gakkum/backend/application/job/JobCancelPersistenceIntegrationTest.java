@@ -146,7 +146,7 @@ class JobCancelPersistenceIntegrationTest {
 
     private Job saveJob(boolean matched) {
         Job job = Job.create(ownerProfileId, "취소 테스트 의뢰", "설명", 100_000L,
-                LocalDate.now(), LocalDate.now().plusDays(3), 2);
+                LocalDate.now(), LocalDate.now().plusDays(3), 2, null);
         if (matched) {
             job.match(7L);
         }

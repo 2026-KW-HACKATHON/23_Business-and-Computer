@@ -220,4 +220,19 @@ class StoreExploreFacadeTest {
                 .createdAt(createdAt)
                 .build();
     }
+
+    @Test
+    @DisplayName("매장 탐색은 조회한 학생의 격리 범위를 넘겨 실제 학생은 null, 데모 학생은 자기 데모 세션 ID로 조회한다")
+    void passesViewerDemoSessionToStoreQuery() {
+        givenUser(UserRole.STUDENT);
+        exploreFacade.exploreStores(command(StoreExploreSort.LATEST, null, 20, null));
+        assertThat(captureQuery().getDemoSessionId()).isNull();
+
+        org.mockito.Mockito.clearInvocations(ownerService);
+        when(userService.getActiveUser(USERNAME)).thenReturn(User.builder()
+                .id("01K58M6PJV8VAJMXHBHJ2PNB5C").username(USERNAME).role(UserRole.STUDENT).isLock(false)
+                .demoSessionId("01K6DEMO00000000000000000A").build());
+        exploreFacade.exploreStores(command(StoreExploreSort.OLDEST, null, 20, null));
+        assertThat(captureQuery().getDemoSessionId()).isEqualTo("01K6DEMO00000000000000000A");
+    }
 }

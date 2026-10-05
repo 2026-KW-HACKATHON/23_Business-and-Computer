@@ -106,6 +106,7 @@ public final class ProposalCommandDto {
     @AllArgsConstructor(access = AccessLevel.PRIVATE)
     public static class GetExploreProposalsCommand {
 
+        private final String demoSessionId;
         private final Long specialtyCategoryId;
         private final ProposalExploreOrder order;
         private final Integer likeCountBound;
@@ -113,9 +114,11 @@ public final class ProposalCommandDto {
         private final Long idBound;
         private final int limit;
 
-        public static GetExploreProposalsCommand of(Long specialtyCategoryId, ProposalExploreOrder order,
-                Integer likeCountBound, LocalDateTime createdAtBound, Long idBound, int limit) {
+        public static GetExploreProposalsCommand of(String demoSessionId, Long specialtyCategoryId,
+                ProposalExploreOrder order, Integer likeCountBound, LocalDateTime createdAtBound, Long idBound,
+                int limit) {
             return GetExploreProposalsCommand.builder()
+                    .demoSessionId(demoSessionId)
                     .specialtyCategoryId(specialtyCategoryId)
                     .order(order)
                     .likeCountBound(likeCountBound)

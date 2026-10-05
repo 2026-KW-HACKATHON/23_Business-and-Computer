@@ -65,7 +65,7 @@ class JobFacadeCreateTest {
         InOrder order = inOrder(specialtyService, jobService);
         order.verify(specialtyService).validateSpecialtyIds(List.of(1L, 2L));
         ArgumentCaptor<CreateJobCommand> captor = ArgumentCaptor.forClass(CreateJobCommand.class);
-        order.verify(jobService).createJob(captor.capture());
+        order.verify(jobService).createJob(captor.capture(), any());
         assertThat(captor.getValue().getOwnerProfileId()).isEqualTo(5L);
         assertThat(captor.getValue().getSpecialtyIds()).containsExactly(1L, 2L);
     }
@@ -80,7 +80,7 @@ class JobFacadeCreateTest {
         assertThatThrownBy(() -> jobFacade.createJob(USERNAME, request(List.of(1L, 99L))))
                 .isInstanceOfSatisfying(BusinessException.class, exception ->
                         assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.SPECIALTY_NOT_FOUND));
-        verify(jobService, never()).createJob(any());
+        verify(jobService, never()).createJob(any(), any());
     }
 
     private void givenOwner() {
@@ -94,5 +94,18 @@ class JobFacadeCreateTest {
                 5L, specialtyIds, "의뢰 제목", "맡기고 싶은 일", 500000L,
                 LocalDate.of(2026, 1, 1), LocalDate.of(2026, 1, 15), 1));
         return request;
+    }
+
+    @Test
+    @DisplayName("의뢰는 의뢰한 사장님 프로필의 격리 범위로 만들어 실제 사장님은 null, 데모 사장님은 자기 데모 세션 ID를 넘긴다")
+    void createsJobInOwnerDemoSession() {
+        givenOwner();
+        jobFacade.createJob(USERNAME, request(List.of(1L, 2L)));
+        verify(jobService).createJob(any(), org.mockito.ArgumentMatchers.isNull());
+
+        when(ownerRepository.findByUserId(USER_ID)).thenReturn(Optional.of(
+                Owner.builder().id(5L).demoSessionId("01K6DEMO00000000000000000A").build()));
+        jobFacade.createJob(USERNAME, request(List.of(1L, 2L)));
+        verify(jobService).createJob(any(), org.mockito.ArgumentMatchers.eq("01K6DEMO00000000000000000A"));
     }
 }

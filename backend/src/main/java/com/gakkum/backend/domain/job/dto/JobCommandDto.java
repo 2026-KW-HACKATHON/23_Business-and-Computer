@@ -201,6 +201,7 @@ public final class JobCommandDto {
         private final Integer revisionCount;
         private final String acceptanceMessage;
         private final List<Long> specialtyIds;
+        private final String demoSessionId;
 
         /**
          * @param approvedDate 결제 승인 시각의 한국 날짜. 여기에 제안 기간을 더해 마감일을 확정한다
@@ -213,6 +214,7 @@ public final class JobCommandDto {
                     .ownerProfileId(proposal.getOwnerProfileId())
                     .studentProfileId(proposal.getStudentProfileId())
                     .proposalId(proposal.getId())
+                    .demoSessionId(proposal.getDemoSessionId())
                     .title(proposal.getTitle())
                     .description(proposal.toJobDescription())
                     .budget(proposal.getProposedFee())
@@ -358,15 +360,17 @@ public final class JobCommandDto {
     @AllArgsConstructor(access = AccessLevel.PRIVATE)
     public static class GetExploreJobsCommand {
 
+        private final String demoSessionId;
         private final Long specialtyCategoryId;
         private final boolean oldestFirst;
         private final LocalDateTime createdAtBound;
         private final Long idBound;
         private final int limit;
 
-        public static GetExploreJobsCommand of(Long specialtyCategoryId, boolean oldestFirst,
+        public static GetExploreJobsCommand of(String demoSessionId, Long specialtyCategoryId, boolean oldestFirst,
                 LocalDateTime createdAtBound, Long idBound, int limit) {
             return GetExploreJobsCommand.builder()
+                    .demoSessionId(demoSessionId)
                     .specialtyCategoryId(specialtyCategoryId)
                     .oldestFirst(oldestFirst)
                     .createdAtBound(createdAtBound)

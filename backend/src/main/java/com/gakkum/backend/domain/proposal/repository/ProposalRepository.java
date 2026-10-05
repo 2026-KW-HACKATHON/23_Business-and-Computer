@@ -35,24 +35,31 @@ public interface ProposalRepository extends JpaRepository<Proposal, Long> {
     /** 사장님이 받은 모든 상태의 제안을 최신순으로 읽는다. */
     List<Proposal> findByOwnerProfileIdOrderByCreatedAtDescIdDesc(Long ownerProfileId);
 
-    // 최신순: 경계 시각과 같은 행 중 경계 ID 앞 → 경계 시각 이전
-    List<Proposal> findByCreatedAtAndIdLessThanOrderByIdDesc(LocalDateTime createdAt, Long idBound, Limit limit);
+    // 탐색 목록은 demoSessionId가 조회자와 같은 제안만 고른다. 실제 사용자는 null이고 메서드 이름 쿼리는 null을 IS NULL로 비교한다
 
-    List<Proposal> findByCreatedAtLessThanOrderByCreatedAtDescIdDesc(LocalDateTime createdAt, Limit limit);
+    // 최신순: 경계 시각과 같은 행 중 경계 ID 앞 → 경계 시각 이전
+    List<Proposal> findByDemoSessionIdAndCreatedAtAndIdLessThanOrderByIdDesc(
+            String demoSessionId, LocalDateTime createdAt, Long idBound, Limit limit);
+
+    List<Proposal> findByDemoSessionIdAndCreatedAtLessThanOrderByCreatedAtDescIdDesc(
+            String demoSessionId, LocalDateTime createdAt, Limit limit);
 
     // 오래된순: 경계 시각과 같은 행 중 경계 ID 뒤 → 경계 시각 이후
-    List<Proposal> findByCreatedAtAndIdGreaterThanOrderByIdAsc(LocalDateTime createdAt, Long idBound, Limit limit);
+    List<Proposal> findByDemoSessionIdAndCreatedAtAndIdGreaterThanOrderByIdAsc(
+            String demoSessionId, LocalDateTime createdAt, Long idBound, Limit limit);
 
-    List<Proposal> findByCreatedAtGreaterThanOrderByCreatedAtAscIdAsc(LocalDateTime createdAt, Limit limit);
+    List<Proposal> findByDemoSessionIdAndCreatedAtGreaterThanOrderByCreatedAtAscIdAsc(
+            String demoSessionId, LocalDateTime createdAt, Limit limit);
 
     // 좋아요순: 같은 좋아요·같은 시각 중 경계 ID 앞 → 같은 좋아요 중 경계 시각 이전 → 좋아요가 더 적은 제안
-    List<Proposal> findByLikeCountAndCreatedAtAndIdLessThanOrderByIdDesc(
-            Integer likeCount, LocalDateTime createdAt, Long idBound, Limit limit);
+    List<Proposal> findByDemoSessionIdAndLikeCountAndCreatedAtAndIdLessThanOrderByIdDesc(
+            String demoSessionId, Integer likeCount, LocalDateTime createdAt, Long idBound, Limit limit);
 
-    List<Proposal> findByLikeCountAndCreatedAtLessThanOrderByCreatedAtDescIdDesc(
-            Integer likeCount, LocalDateTime createdAt, Limit limit);
+    List<Proposal> findByDemoSessionIdAndLikeCountAndCreatedAtLessThanOrderByCreatedAtDescIdDesc(
+            String demoSessionId, Integer likeCount, LocalDateTime createdAt, Limit limit);
 
-    List<Proposal> findByLikeCountLessThanOrderByLikeCountDescCreatedAtDescIdDesc(Integer likeCount, Limit limit);
+    List<Proposal> findByDemoSessionIdAndLikeCountLessThanOrderByLikeCountDescCreatedAtDescIdDesc(
+            String demoSessionId, Integer likeCount, Limit limit);
 
     /*
      * 대분류 조건은 연관관계가 없는 ProposalSpecialty·Specialty를 EXISTS로 확인해야 해서 메서드 이름으로 표현할 수 없다.
@@ -61,38 +68,44 @@ public interface ProposalRepository extends JpaRepository<Proposal, Long> {
 
     @Query("""
             select p from Proposal p
-            where p.createdAt is not null
+            where p.demoSessionId is not distinct from :demoSessionId
+              and p.createdAt is not null
               and (p.createdAt, p.id) < (:createdAt, :idBound)
               and exists (
                     select 1 from ProposalSpecialty ps join Specialty s on s.id = ps.specialtyId
                     where ps.proposalId = p.id and s.specialtyCategoryId = :categoryId)
             order by p.createdAt desc, p.id desc
             """)
-    List<Proposal> findExploreLatestInCategory(@Param("categoryId") Long categoryId,
+    List<Proposal> findExploreLatestInCategory(@Param("demoSessionId") String demoSessionId,
+            @Param("categoryId") Long categoryId,
             @Param("createdAt") LocalDateTime createdAt, @Param("idBound") Long idBound, Limit limit);
 
     @Query("""
             select p from Proposal p
-            where p.createdAt is not null
+            where p.demoSessionId is not distinct from :demoSessionId
+              and p.createdAt is not null
               and (p.createdAt, p.id) > (:createdAt, :idBound)
               and exists (
                     select 1 from ProposalSpecialty ps join Specialty s on s.id = ps.specialtyId
                     where ps.proposalId = p.id and s.specialtyCategoryId = :categoryId)
             order by p.createdAt asc, p.id asc
             """)
-    List<Proposal> findExploreOldestInCategory(@Param("categoryId") Long categoryId,
+    List<Proposal> findExploreOldestInCategory(@Param("demoSessionId") String demoSessionId,
+            @Param("categoryId") Long categoryId,
             @Param("createdAt") LocalDateTime createdAt, @Param("idBound") Long idBound, Limit limit);
 
     @Query("""
             select p from Proposal p
-            where p.createdAt is not null
+            where p.demoSessionId is not distinct from :demoSessionId
+              and p.createdAt is not null
               and (p.likeCount, p.createdAt, p.id) < (:likeCount, :createdAt, :idBound)
               and exists (
                     select 1 from ProposalSpecialty ps join Specialty s on s.id = ps.specialtyId
                     where ps.proposalId = p.id and s.specialtyCategoryId = :categoryId)
             order by p.likeCount desc, p.createdAt desc, p.id desc
             """)
-    List<Proposal> findExploreByLikesInCategory(@Param("categoryId") Long categoryId,
+    List<Proposal> findExploreByLikesInCategory(@Param("demoSessionId") String demoSessionId,
+            @Param("categoryId") Long categoryId,
             @Param("likeCount") Integer likeCount, @Param("createdAt") LocalDateTime createdAt,
             @Param("idBound") Long idBound, Limit limit);
 }

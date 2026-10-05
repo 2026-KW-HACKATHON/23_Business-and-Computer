@@ -3,6 +3,7 @@ package com.gakkum.backend.domain.owner.service;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -25,8 +26,9 @@ public class OwnerService {
 
     private final OwnerRepository ownerRepository;
 
+    /** demoSessionId는 데모 로그인이 만든 매장의 격리 범위다. 실제 가입은 null이다. */
     @Transactional
-    public Owner createOwnerProfile(CreateOwnerProfileCommand command) {
+    public Owner createOwnerProfile(CreateOwnerProfileCommand command, String demoSessionId) {
         Owner owner = Owner.create(
                 command.getUserId(),
                 command.getBusinessNumber(),
@@ -37,7 +39,8 @@ public class OwnerService {
                 command.getStoreAddress(),
                 command.getDescription(),
                 command.getProfileImageUrl(),
-                command.getStoreImageUrls());
+                command.getStoreImageUrls(),
+                demoSessionId);
 
         return ownerRepository.save(owner);
     }
@@ -63,12 +66,12 @@ public class OwnerService {
                 .orElseThrow(() -> new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR));
     }
 
-    /** 요청에서 지정한 사장님 프로필이 존재하는지 확인한다. */
+    /** 요청에서 지정한 사장님 프로필이 요청자와 같은 격리 범위(demoSessionId)에 존재하는지 확인한다. 범위가 다르면 없는 사장님과 같다. */
     @Transactional(readOnly = true)
-    public void validateOwnerProfileExists(Long ownerProfileId) {
-        if (!ownerRepository.existsById(ownerProfileId)) {
-            throw new BusinessException(ErrorCode.OWNER_NOT_FOUND);
-        }
+    public void validateOwnerProfileExists(Long ownerProfileId, String demoSessionId) {
+        ownerRepository.findById(ownerProfileId)
+                .filter(owner -> Objects.equals(owner.getDemoSessionId(), demoSessionId))
+                .orElseThrow(() -> new BusinessException(ErrorCode.OWNER_NOT_FOUND));
     }
 
     @Transactional(readOnly = true)
@@ -125,16 +128,19 @@ public class OwnerService {
     @Transactional(readOnly = true)
     public List<Owner> getExploreStores(GetExploreStoresCommand command) {
         Limit limit = Limit.of(command.getLimit());
+        String demoSessionId = command.getDemoSessionId();
         Long categoryId = command.getBusinessCategoryId();
         if (categoryId == null) {
             return command.isOldestFirst()
-                    ? ownerRepository.findExploreOldest(command.getCreatedAtBound(), command.getIdBound(), limit)
-                    : ownerRepository.findExploreLatest(command.getCreatedAtBound(), command.getIdBound(), limit);
+                    ? ownerRepository.findExploreOldest(
+                            demoSessionId, command.getCreatedAtBound(), command.getIdBound(), limit)
+                    : ownerRepository.findExploreLatest(
+                            demoSessionId, command.getCreatedAtBound(), command.getIdBound(), limit);
         }
         return command.isOldestFirst()
                 ? ownerRepository.findExploreOldestInCategory(
-                        categoryId, command.getCreatedAtBound(), command.getIdBound(), limit)
+                        demoSessionId, categoryId, command.getCreatedAtBound(), command.getIdBound(), limit)
                 : ownerRepository.findExploreLatestInCategory(
-                        categoryId, command.getCreatedAtBound(), command.getIdBound(), limit);
+                        demoSessionId, categoryId, command.getCreatedAtBound(), command.getIdBound(), limit);
     }
 }

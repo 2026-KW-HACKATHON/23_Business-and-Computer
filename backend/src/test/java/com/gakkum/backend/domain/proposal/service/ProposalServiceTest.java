@@ -55,7 +55,7 @@ class ProposalServiceTest {
         CreateProposalCommand command = CreateProposalCommand.of("KAKAO_12345", 5L, List.of(1L, 2L), "제목",
                 "문제", "해결", "계획", 50000L, 0, 7, List.of("https://bucket/a.png"));
 
-        Proposal saved = proposalService.createProposal(command, 7L);
+        Proposal saved = proposalService.createProposal(command, 7L, null);
 
         assertThat(saved.getId()).isEqualTo(31L);
         ArgumentCaptor<Proposal> proposalCaptor = ArgumentCaptor.forClass(Proposal.class);
@@ -114,7 +114,7 @@ class ProposalServiceTest {
         LocalDateTime bound = LocalDateTime.of(2026, 9, 30, 10, 0);
         Proposal first = Proposal.builder().id(32L).build();
         Proposal second = Proposal.builder().id(31L).build();
-        when(proposalRepository.findExploreByLikesInCategory(3L, 5, bound, 40L, Limit.of(21)))
+        when(proposalRepository.findExploreByLikesInCategory(null, 3L, 5, bound, 40L, Limit.of(21)))
                 .thenReturn(List.of(first, second));
         when(proposalSpecialtyRepository.findByProposalIdIn(List.of(32L, 31L))).thenReturn(List.of(
                 ProposalSpecialty.create(31L, 2L),
@@ -122,7 +122,7 @@ class ProposalServiceTest {
                 ProposalSpecialty.create(32L, 1L)));
 
         List<ExploreProposalData> data = proposalService.getExploreProposals(GetExploreProposalsCommand.of(
-                3L, ProposalExploreOrder.LIKES, 5, bound, 40L, 21));
+                null, 3L, ProposalExploreOrder.LIKES, 5, bound, 40L, 21));
 
         assertThat(data).extracting(ExploreProposalData::getProposal).containsExactly(first, second);
         assertThat(data.get(0).getSpecialtyIds()).containsExactly(7L, 1L);
@@ -136,12 +136,12 @@ class ProposalServiceTest {
 
         for (ProposalExploreOrder order : ProposalExploreOrder.values()) {
             assertThat(proposalService.getExploreProposals(
-                    GetExploreProposalsCommand.of(4L, order, 5, bound, 9L, 3))).isEmpty();
+                    GetExploreProposalsCommand.of(null, 4L, order, 5, bound, 9L, 3))).isEmpty();
         }
 
-        verify(proposalRepository).findExploreLatestInCategory(4L, bound, 9L, Limit.of(3));
-        verify(proposalRepository).findExploreOldestInCategory(4L, bound, 9L, Limit.of(3));
-        verify(proposalRepository).findExploreByLikesInCategory(4L, 5, bound, 9L, Limit.of(3));
+        verify(proposalRepository).findExploreLatestInCategory(null, 4L, bound, 9L, Limit.of(3));
+        verify(proposalRepository).findExploreOldestInCategory(null, 4L, bound, 9L, Limit.of(3));
+        verify(proposalRepository).findExploreByLikesInCategory(null, 4L, 5, bound, 9L, Limit.of(3));
         verify(proposalSpecialtyRepository, never()).findByProposalIdIn(any());
     }
 
@@ -151,13 +151,13 @@ class ProposalServiceTest {
         LocalDateTime bound = LocalDateTime.of(2026, 9, 30, 10, 0);
         Proposal sameTime = Proposal.builder().id(8L).build();
         Proposal earlier = Proposal.builder().id(20L).build();
-        when(proposalRepository.findByCreatedAtAndIdLessThanOrderByIdDesc(bound, 9L, Limit.of(3)))
+        when(proposalRepository.findByDemoSessionIdAndCreatedAtAndIdLessThanOrderByIdDesc(null, bound, 9L, Limit.of(3)))
                 .thenReturn(List.of(sameTime));
-        when(proposalRepository.findByCreatedAtLessThanOrderByCreatedAtDescIdDesc(bound, Limit.of(2)))
+        when(proposalRepository.findByDemoSessionIdAndCreatedAtLessThanOrderByCreatedAtDescIdDesc(null, bound, Limit.of(2)))
                 .thenReturn(List.of(earlier));
 
         List<ExploreProposalData> data = proposalService.getExploreProposals(
-                GetExploreProposalsCommand.of(null, ProposalExploreOrder.LATEST, null, bound, 9L, 3));
+                GetExploreProposalsCommand.of(null, null, ProposalExploreOrder.LATEST, null, bound, 9L, 3));
 
         assertThat(data).extracting(ExploreProposalData::getProposal).containsExactly(sameTime, earlier);
     }
@@ -166,12 +166,12 @@ class ProposalServiceTest {
     @DisplayName("대분류 없는 오래된순은 경계 시각과 같은 행으로 개수가 차면 경계 이후 구간을 조회하지 않는다")
     void skipsLaterSegmentWhenFilled() {
         LocalDateTime bound = LocalDateTime.of(2026, 9, 30, 10, 0);
-        when(proposalRepository.findByCreatedAtAndIdGreaterThanOrderByIdAsc(bound, 9L, Limit.of(2)))
+        when(proposalRepository.findByDemoSessionIdAndCreatedAtAndIdGreaterThanOrderByIdAsc(null, bound, 9L, Limit.of(2)))
                 .thenReturn(List.of(Proposal.builder().id(10L).build(), Proposal.builder().id(11L).build()));
 
         assertThat(proposalService.getExploreProposals(
-                GetExploreProposalsCommand.of(null, ProposalExploreOrder.OLDEST, null, bound, 9L, 2))).hasSize(2);
-        verify(proposalRepository, never()).findByCreatedAtGreaterThanOrderByCreatedAtAscIdAsc(any(), any());
+                GetExploreProposalsCommand.of(null, null, ProposalExploreOrder.OLDEST, null, bound, 9L, 2))).hasSize(2);
+        verify(proposalRepository, never()).findByDemoSessionIdAndCreatedAtGreaterThanOrderByCreatedAtAscIdAsc(any(), any(), any());
     }
 
     @Test
@@ -181,15 +181,15 @@ class ProposalServiceTest {
         Proposal first = Proposal.builder().id(1L).build();
         Proposal second = Proposal.builder().id(2L).build();
         Proposal third = Proposal.builder().id(3L).build();
-        when(proposalRepository.findByLikeCountAndCreatedAtAndIdLessThanOrderByIdDesc(5, bound, 9L, Limit.of(4)))
+        when(proposalRepository.findByDemoSessionIdAndLikeCountAndCreatedAtAndIdLessThanOrderByIdDesc(null, 5, bound, 9L, Limit.of(4)))
                 .thenReturn(List.of(first));
-        when(proposalRepository.findByLikeCountAndCreatedAtLessThanOrderByCreatedAtDescIdDesc(5, bound, Limit.of(3)))
+        when(proposalRepository.findByDemoSessionIdAndLikeCountAndCreatedAtLessThanOrderByCreatedAtDescIdDesc(null, 5, bound, Limit.of(3)))
                 .thenReturn(List.of(second));
-        when(proposalRepository.findByLikeCountLessThanOrderByLikeCountDescCreatedAtDescIdDesc(5, Limit.of(2)))
+        when(proposalRepository.findByDemoSessionIdAndLikeCountLessThanOrderByLikeCountDescCreatedAtDescIdDesc(null, 5, Limit.of(2)))
                 .thenReturn(List.of(third));
 
         List<ExploreProposalData> data = proposalService.getExploreProposals(
-                GetExploreProposalsCommand.of(null, ProposalExploreOrder.LIKES, 5, bound, 9L, 4));
+                GetExploreProposalsCommand.of(null, null, ProposalExploreOrder.LIKES, 5, bound, 9L, 4));
 
         assertThat(data).extracting(ExploreProposalData::getProposal).containsExactly(first, second, third);
     }

@@ -101,7 +101,7 @@ class JobApplicationCreatePersistenceIntegrationTest {
     void persistsPendingApplication() {
         Job job = saveOpenJob();
 
-        JobApplication created = jobService.createJobApplication(command(job.getId()), STUDENT_PROFILE_ID);
+        JobApplication created = jobService.createJobApplication(command(job.getId()), STUDENT_PROFILE_ID, null);
 
         JobApplication found = jobApplicationRepository.findById(created.getId()).orElseThrow();
         assertThat(found.getStudentProfileId()).isEqualTo(STUDENT_PROFILE_ID);
@@ -121,7 +121,7 @@ class JobApplicationCreatePersistenceIntegrationTest {
     void allowsOpenJobPastDeadline() {
         Job job = saveJob(LocalDate.now().minusDays(5), LocalDate.now().minusDays(1));
 
-        JobApplication created = jobService.createJobApplication(command(job.getId()), STUDENT_PROFILE_ID);
+        JobApplication created = jobService.createJobApplication(command(job.getId()), STUDENT_PROFILE_ID, null);
 
         assertThat(jobApplicationRepository.findById(created.getId())).isPresent();
     }
@@ -136,7 +136,7 @@ class JobApplicationCreatePersistenceIntegrationTest {
                 .summary("기존 요약").workPlan("기존 계획").deliveryMethod("기존 전달")
                 .status(existingStatus).build()).getId();
 
-        assertThatThrownBy(() -> jobService.createJobApplication(command(job.getId()), STUDENT_PROFILE_ID))
+        assertThatThrownBy(() -> jobService.createJobApplication(command(job.getId()), STUDENT_PROFILE_ID, null))
                 .isInstanceOfSatisfying(BusinessException.class, exception ->
                         assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.JOB_APPLICATION_ALREADY_EXISTS));
 
@@ -150,9 +150,9 @@ class JobApplicationCreatePersistenceIntegrationTest {
     @DisplayName("PostgreSQL에서 다른 학생은 이미 지원자가 있는 같은 의뢰에 지원할 수 있다")
     void allowsOtherStudentOnSameJob() {
         Job job = saveOpenJob();
-        jobService.createJobApplication(command(job.getId()), STUDENT_PROFILE_ID);
+        jobService.createJobApplication(command(job.getId()), STUDENT_PROFILE_ID, null);
 
-        jobService.createJobApplication(command(job.getId()), OTHER_STUDENT_PROFILE_ID);
+        jobService.createJobApplication(command(job.getId()), OTHER_STUDENT_PROFILE_ID, null);
 
         assertThat(applicationsOf(job.getId())).extracting(JobApplication::getStudentProfileId)
                 .containsExactlyInAnyOrder(STUDENT_PROFILE_ID, OTHER_STUDENT_PROFILE_ID);
@@ -170,7 +170,7 @@ class JobApplicationCreatePersistenceIntegrationTest {
             for (int i = 0; i < requests; i++) {
                 futures.add(executor.submit(() -> {
                     start.await();
-                    return jobService.createJobApplication(command(job.getId()), STUDENT_PROFILE_ID);
+                    return jobService.createJobApplication(command(job.getId()), STUDENT_PROFILE_ID, null);
                 }));
             }
             start.countDown();
@@ -234,7 +234,7 @@ class JobApplicationCreatePersistenceIntegrationTest {
             assertThat(locked.await(30, TimeUnit.SECONDS)).isTrue();
 
             Callable<JobApplication> apply =
-                    () -> jobService.createJobApplication(command(jobId), STUDENT_PROFILE_ID);
+                    () -> jobService.createJobApplication(command(jobId), STUDENT_PROFILE_ID, null);
             Future<JobApplication> applicant = executor.submit(apply);
             awaitSessionBlockedBy(changerPid.get(), applicant);
             assertThat(applicant.isDone()).isFalse();
@@ -293,7 +293,7 @@ class JobApplicationCreatePersistenceIntegrationTest {
 
     private Job saveJob(LocalDate draftDeadline, LocalDate finalDeadline) {
         Job saved = jobRepository.saveAndFlush(Job.create(
-                OWNER_PROFILE_ID, "지원 테스트 의뢰", "설명", 100_000L, draftDeadline, finalDeadline, 2));
+                OWNER_PROFILE_ID, "지원 테스트 의뢰", "설명", 100_000L, draftDeadline, finalDeadline, 2, null));
         jobIds.add(saved.getId());
         return saved;
     }

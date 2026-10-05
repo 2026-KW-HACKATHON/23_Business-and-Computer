@@ -81,7 +81,7 @@ class OwnerFacadeTest {
 
         ArgumentCaptor<CreateOwnerProfileCommand> ownerCaptor =
                 ArgumentCaptor.forClass(CreateOwnerProfileCommand.class);
-        order.verify(ownerService).createOwnerProfile(ownerCaptor.capture());
+        order.verify(ownerService).createOwnerProfile(ownerCaptor.capture(), any());
         CreateOwnerProfileCommand ownerCommand = ownerCaptor.getValue();
         assertThat(ownerCommand.getUserId()).isEqualTo("01K58M6PJV8VAJMXHBHJ2PNB5C");
         assertThat(ownerCommand.getBusinessNumber()).isEqualTo("12341453312");
@@ -123,7 +123,7 @@ class OwnerFacadeTest {
                         assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.DUPLICATE_BUSINESS_NUMBER));
 
         verify(userService, never()).completeOwnerRegistration(any(), any());
-        verify(ownerService, never()).createOwnerProfile(any());
+        verify(ownerService, never()).createOwnerProfile(any(), any());
         verifyNoInteractions(businessCategoryService, jwtService);
     }
 
@@ -138,7 +138,7 @@ class OwnerFacadeTest {
                         assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.BUSINESS_CATEGORY_NOT_FOUND));
 
         verify(userService, never()).completeOwnerRegistration(any(), any());
-        verify(ownerService, never()).createOwnerProfile(any());
+        verify(ownerService, never()).createOwnerProfile(any(), any());
         verifyNoInteractions(jwtService);
     }
 }
