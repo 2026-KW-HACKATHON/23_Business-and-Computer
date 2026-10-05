@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import { MainTabScreen } from "../../../components";
+import { useDemoRoleSwitch } from "../../auth";
 import { useOwnerNotifications } from "../hooks/useOwnerData";
 import type { MainTab } from "../../../components";
 import { OWNER_PATHS, OWNER_TAB_PATHS } from "../lib/paths";
@@ -17,6 +18,8 @@ interface OwnerTabScreenProps {
 /** 사장님 메인 탭 틀. 탭 · 알림 · MY · 새 의뢰 버튼을 사장님 화면 주소로 잇는다 */
 function OwnerTabScreen({ tab, title, showFab = false, children }: OwnerTabScreenProps) {
   const navigate = useNavigate();
+  // 둘러보기 중이면 홈 앱바에 「둘러보기 중 · 학생으로 보기 ⇄」
+  const switchDemoRole = useDemoRoleSwitch("owner");
   // 홈 · 탐색 · 채팅 어느 탭에서든 안 읽은 알림이 있으면 종에 점
   const hasUnread = useOwnerNotifications().some((n) => !n.read);
 
@@ -28,6 +31,7 @@ function OwnerTabScreen({ tab, title, showFab = false, children }: OwnerTabScree
       hasUnread={hasUnread}
       onNotifications={() => navigate(OWNER_PATHS.notifications)}
       onMy={() => navigate(OWNER_PATHS.me)}
+      onSwitchDemoRole={tab === "home" ? switchDemoRole : undefined}
       onSelectTab={(next) => {
         if (next !== tab) navigate(OWNER_TAB_PATHS[next], { replace: true });
       }}

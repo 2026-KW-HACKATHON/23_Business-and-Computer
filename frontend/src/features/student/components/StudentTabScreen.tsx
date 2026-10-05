@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import { MainTabScreen } from "../../../components";
+import { useDemoRoleSwitch } from "../../auth";
 import { useStudentNotifications } from "../hooks/useStudentData";
 import type { MainTab } from "../../../components";
 import { STUDENT_PATHS, STUDENT_TAB_PATHS } from "../lib/paths";
@@ -17,6 +18,8 @@ interface StudentTabScreenProps {
 /** 학생 메인 탭 틀. 탭 · 알림 · MY · 새 제안 버튼을 학생 화면 주소로 잇는다 */
 function StudentTabScreen({ tab, title, showFab = false, children }: StudentTabScreenProps) {
   const navigate = useNavigate();
+  // 둘러보기 중이면 홈 앱바에 「둘러보기 중 · 사장님으로 보기 ⇄」
+  const switchDemoRole = useDemoRoleSwitch("student");
   // 홈 · 탐색 · 채팅 어느 탭에서든 안 읽은 알림이 있으면 종에 점
   const hasUnread = useStudentNotifications().some((n) => !n.read);
 
@@ -28,6 +31,7 @@ function StudentTabScreen({ tab, title, showFab = false, children }: StudentTabS
       hasUnread={hasUnread}
       onNotifications={() => navigate(STUDENT_PATHS.notifications)}
       onMy={() => navigate(STUDENT_PATHS.me)}
+      onSwitchDemoRole={tab === "home" ? switchDemoRole : undefined}
       onSelectTab={(next) => {
         if (next !== tab) navigate(STUDENT_TAB_PATHS[next], { replace: true });
       }}

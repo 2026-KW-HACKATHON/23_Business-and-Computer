@@ -18,6 +18,8 @@ interface MainTabScreenProps {
   onSelectTab: (tab: MainTab) => void;
   /** 넣으면 「+ 새 의뢰」 · 「+ 새 제안」 플로팅 버튼을 띄운다 */
   onFab?: () => void;
+  /** 둘러보기 중인 홈에서만 넣는다. 앱바 로고 옆에 역할 전환 배지가 생긴다 */
+  onSwitchDemoRole?: () => void;
   children: ReactNode;
 }
 
@@ -34,6 +36,7 @@ function MainTabScreen({
   onMy,
   onSelectTab,
   onFab,
+  onSwitchDemoRole,
   children,
 }: MainTabScreenProps) {
   const [scrolled, setScrolled] = useState(false);
@@ -50,6 +53,7 @@ function MainTabScreen({
         hasUnread={hasUnread}
         onNotifications={onNotifications}
         onMy={onMy}
+        onSwitchDemoRole={onSwitchDemoRole}
       />
       <main className="main-tab-screen__scroll" onScroll={handleScroll}>
         {children}
