@@ -20,7 +20,7 @@ work never became completed.
 
 ## Decision
 
-- Single sources: works, requests, and proposals in
+- Single sources: works and requests (and, until ADR 0025, proposals) in
   `src/features/owner/lib/sampleDetails.ts`, student profiles in
   `sampleStudents.ts`, and explore details in `sampleExplore.ts`. The home,
   내 활동, 결제 내역 and its summary, the chat list, the explore list, and the
@@ -69,3 +69,7 @@ work never became completed.
 - When the API arrives, replace the bodies of the hooks in
   `useOwnerData.ts` and `useOwnerHome.ts`, and take `firstVisit` from the
   backend instead of `SAMPLE_FIRST_VISIT`.
+- Received proposals come from the API (ADR 0025): the list, detail, accept
+  screen summary, home 「새 제안」 cards, and the 내 정보 count. The sample
+  proposals (`SAMPLE_PROPOSALS`, `useOwnerProposal`) were deleted; do not add
+  owner proposal samples back.

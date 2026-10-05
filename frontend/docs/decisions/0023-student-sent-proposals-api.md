@@ -39,18 +39,22 @@ student screen, which still read `sampleProposals.ts`. The backend (dev) has:
 
 ## Decision
 
-- **Calls and mapping**: `fetchMyProposals` and `fetchProposalDetail` in
-  `src/features/student/api/proposalApi.ts` use `apiData`.
+- **Calls and mapping**: `fetchMyProposals` in
+  `src/features/student/api/proposalApi.ts` uses `apiData`.
   `src/features/student/lib/sentProposals.ts` maps errors to result values
-  (`loadSentProposals`, `loadSentProposalDetail`) and holds the display
-  helpers. The screens use the response shapes directly
-  (`SentProposal`, `SentProposalDetail`).
+  (`loadSentProposals`) and holds the student display helpers. The detail
+  call, its types, `loadProposalDetail`, `parseProposalId`,
+  `proposalBadgeNames`, and `estimatedDeadlineText` moved to the shared
+  `src/features/proposal` when the owner side was wired (ADR 0025). The
+  screens use the response shapes directly (`SentProposal`,
+  `ProposalDetail`).
 - **Hooks** (`src/features/student/hooks/useSentProposals.ts`):
   - `useSentProposals` → loading / error / loaded with `reload`. It drops late
     responses. 401 goes to /login. `PROPOSAL_403_LIST_STUDENT` shows the
     alert 「학생만 보낸 제안을 볼 수 있어요」, then goes to `landingPath()`.
     The status stays loading until the redirect happens.
-  - `useSentProposalDetail(id)` → loading / error / notFound / loaded. A
+  - `useProposalDetail(id)` (shared, ADR 0025; first written here as
+    `useSentProposalDetail`) → loading / error / notFound / loaded. A
     non-numeric id is notFound without a request. Each result is keyed by id
     and retry count, so an old result never shows for a new id. 401 goes to
     /login.
