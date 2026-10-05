@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted. Home moved from / to /home in ADR 0009; the cookie flow here still applies.
+Accepted. / became the intro in ADR 0009 and the first screen is chosen by role in ADR 0015; the cookie flow here still applies.
 
 ## Context
 

@@ -179,7 +179,7 @@ states.
 
 ## Agent Guidance
 
-- `landingPath` still sends STUDENT to /home and the student home at /student
-  is sample data (ADR 0018); switching it is separate work.
+- `landingPath` sends STUDENT to /student; the student home still shows
+  sample data (ADR 0018) until its API is wired.
 - Owner step 3 (`POST /auth/owner`) is wired in ADR 0020 with the same
   rules; image upload and the auth header now live in `src/api`.
