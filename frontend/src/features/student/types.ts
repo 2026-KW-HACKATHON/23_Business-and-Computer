@@ -147,8 +147,6 @@ export interface StudentRequest {
   description: string;
   attachments: string[];
   progress: RequestProgress;
-  /** 탐색 최신순 기준 (ISO 시각) */
-  createdAt: string;
 }
 
 /** 지원하기에서 쓰는 작업계획서 */

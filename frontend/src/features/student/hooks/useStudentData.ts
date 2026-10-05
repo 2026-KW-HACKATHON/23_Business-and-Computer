@@ -155,11 +155,6 @@ export function useStudentRequests(): StudentRequest[] {
   return SAMPLE_REQUESTS;
 }
 
-/** 탐색에 보이는 의뢰 (모집 중 · 완료). 다른 학생이 뽑힌 의뢰는 빠진다 */
-export function useExploreRequests(): StudentRequest[] {
-  return SAMPLE_REQUESTS.filter((r) => r.progress !== "closed");
-}
-
 export function useStudentRequest(requestId: string | undefined): StudentRequest | undefined {
   return SAMPLE_REQUESTS.find((r) => r.id === requestId);
 }

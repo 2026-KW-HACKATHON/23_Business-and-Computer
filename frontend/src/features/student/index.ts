@@ -26,7 +26,6 @@ export {
   useMyProfilePhoto,
 } from "./hooks/studentStore";
 export {
-  useExploreRequests,
   useMyProfile,
   useMyProposal,
   usePeerProposal,

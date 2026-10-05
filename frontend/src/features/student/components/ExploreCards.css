@@ -108,7 +108,3 @@
   line-height: 16px;
   color: var(--role-secondary);
 }
-
-.student-card__open {
-  align-self: flex-start;
-}

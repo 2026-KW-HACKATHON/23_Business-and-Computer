@@ -1,8 +1,8 @@
-import { day, dayAt } from "../../../lib/sampleTime";
+import { day } from "../../../lib/sampleTime";
 import type { StudentApplication, StudentRequest } from "../types";
 
 /*
- * 가게 의뢰 임시 예시 데이터 (피그마 「학생 탐색 · 의뢰서 전체 보기 · 지원하기」).
+ * 가게 의뢰 임시 예시 데이터 (피그마 「의뢰서 전체 보기 · 지원하기」 · 내 활동 「지원한 의뢰」).
  * 치킨플러스 의뢰(req-102 · 104 · 105)는 사장님 예시의 보낸 의뢰, 다른 가게 의뢰(req-502 · 504 ·
  * 506 · 507)는 사장님 탐색과 같은 의뢰라 제목 · 마감 · 상태가 같다.
  */
@@ -22,7 +22,6 @@ export const SAMPLE_REQUESTS: StudentRequest[] = [
       "봄 신메뉴 3가지(허니갈릭, 치즈볼, 양념 반반)를 알리는 A4 전단지를 만들고 싶어요. 광운대 앞에서 나눠 줄 거라 학생들이 좋아할 느낌이면 좋겠어요.",
     attachments: ["신메뉴_사진.jpg", "지난_전단지.jpg"],
     progress: "recruiting",
-    createdAt: dayAt(-1, 18, 0),
   },
   {
     id: "req-502",
@@ -38,7 +37,6 @@ export const SAMPLE_REQUESTS: StudentRequest[] = [
       "외국인 손님이 늘어서 메뉴판을 영어랑 중국어로 바꾸고 싶어요. 메뉴는 음료 20개, 디저트 12개로 모두 32개예요. 견과류처럼 알레르기가 있을 수 있는 재료도 함께 표시해 주면 좋겠어요.",
     attachments: ["메뉴판_음료.jpg", "메뉴판_디저트.jpg"],
     progress: "recruiting",
-    createdAt: dayAt(-2, 15, 0),
   },
   {
     id: "req-105",
@@ -54,7 +52,6 @@ export const SAMPLE_REQUESTS: StudentRequest[] = [
       "메뉴와 영업시간, 오시는 길을 한 화면에서 볼 수 있는 간단한 가게 소개 홈페이지를 만들고 싶어요.",
     attachments: ["가게_외관.jpg"],
     progress: "recruiting",
-    createdAt: dayAt(-3, 9, 30),
   },
   {
     id: "req-507",
@@ -70,7 +67,6 @@ export const SAMPLE_REQUESTS: StudentRequest[] = [
       "진열대 빵마다 붙일 작은 가격표를 새로 만들고 싶어요. 빵 이름과 가격이 멀리서도 잘 보이면 좋겠어요.",
     attachments: ["지금_가격표.jpg"],
     progress: "recruiting",
-    createdAt: dayAt(-4, 10, 0),
   },
   {
     id: "req-102",
@@ -86,7 +82,6 @@ export const SAMPLE_REQUESTS: StudentRequest[] = [
       "메뉴 32개를 영어와 중국어로 번역해 주세요. 외국인 손님이 늘어서 메뉴판만 보고 바로 고를 수 있으면 좋겠어요.",
     attachments: ["지금_메뉴판.jpg"],
     progress: "recruiting",
-    createdAt: dayAt(-5, 9, 0),
   },
   {
     id: "req-504",
@@ -102,7 +97,6 @@ export const SAMPLE_REQUESTS: StudentRequest[] = [
       "네이버 플레이스에 올릴 매장과 메뉴 사진을 새로 찍어 주세요. 낮과 저녁 분위기가 모두 보이면 좋겠어요.",
     attachments: ["지금_대표사진.jpg"],
     progress: "completed",
-    createdAt: dayAt(-6, 9, 0),
   },
   {
     id: "req-506",
@@ -118,7 +112,6 @@ export const SAMPLE_REQUESTS: StudentRequest[] = [
       "주말에 예약 전화가 몰려서 놓치는 손님이 많아요. 손님이 휴대폰으로 날짜·시간·시술을 고르는 예약서를 만들어 주세요.",
     attachments: ["예약_장부.jpg"],
     progress: "recruiting",
-    createdAt: dayAt(-9, 11, 0),
   },
   {
     id: "req-510",
@@ -133,7 +126,6 @@ export const SAMPLE_REQUESTS: StudentRequest[] = [
     description: "공룡 캐릭터를 넣은 할인 쿠폰과 포장용 스티커를 만들어 주세요.",
     attachments: ["로고.png"],
     progress: "closed",
-    createdAt: dayAt(-12, 14, 0),
   },
 ];
 

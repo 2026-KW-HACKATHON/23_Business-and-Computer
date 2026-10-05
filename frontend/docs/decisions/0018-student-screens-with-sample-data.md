@@ -88,5 +88,5 @@ owner's applicant list).
   the backend (ADR 0020); its sample stores and the demo `sendProposal` are no
   longer used there. Sent proposals (내 활동 › 보낸 제안, their detail, the
   home 「기다리는 중」, the 내 정보 count) call the backend too (ADR 0023);
-  Other student screens, including 탐색
-  「내 제안」 and the work-start screen, still read the sample data.
+  The 탐색 list calls the backend too (ADR 0025). Other student screens,
+  including the work-start screen, still read the sample data.
