@@ -602,8 +602,8 @@ class JobApplicantProfileFlowTest {
         givenSpecialties();
         when(studentCertificateRepository.findByStudentProfileIdOrderByAcquiredYearDescIdDesc(STUDENT_PROFILE_ID))
                 .thenReturn(List.of(
-                        StudentCertificate.create(STUDENT_PROFILE_ID, "정보처리기사", 2025, "한국산업인력공단"),
-                        StudentCertificate.create(STUDENT_PROFILE_ID, "SQLD", 2024, "한국데이터산업진흥원")));
+                        StudentCertificate.create(STUDENT_PROFILE_ID, "정보처리기사", 2025),
+                        StudentCertificate.create(STUDENT_PROFILE_ID, "SQLD", 2024)));
         when(reviewRepository.findByStudentProfileId(STUDENT_PROFILE_ID)).thenReturn(List.of(
                 review(304L, 204L, null, "작성 시각 없는 리뷰", 3),
                 review(302L, 202L, REVIEWED_AT.minusDays(1), "같은 시각 앞 리뷰", 4),

@@ -29,8 +29,7 @@ public class CertificateService {
         StudentCertificate studentCertificate = StudentCertificate.create(
                 command.getStudentProfileId(),
                 command.getCertificateName(),
-                command.getAcquiredYear(),
-                command.getIssuingOrganization());
+                command.getAcquiredYear());
 
         return studentCertificateRepository.save(studentCertificate);
     }
