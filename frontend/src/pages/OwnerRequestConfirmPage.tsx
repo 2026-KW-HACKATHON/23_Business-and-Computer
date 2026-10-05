@@ -17,10 +17,14 @@ import {
   taskSummary,
 } from "../features/owner";
 import { useBack } from "../hooks/useBack";
+import { useObjectUrls } from "../hooks/useObjectUrls";
 import { formatMonthDayWeekday } from "../lib/date";
 import { formatWon } from "../lib/money";
 import "./OwnerRequestNewPage.css";
 import "./OwnerRequestConfirmPage.css";
+
+/** 사진이 없을 때 미리보기 훅에 넘기는 빈 목록 (매번 새 배열이면 주소를 다시 만든다) */
+const NO_PHOTOS: File[] = [];
 
 /** 피그마 「의뢰 등록 3/3 - 확인」. 2/3 에서 적은 내용을 의뢰서 모양으로 보여 준다 */
 function OwnerRequestConfirmPage() {
@@ -31,6 +35,7 @@ function OwnerRequestConfirmPage() {
   const [registering, setRegistering] = useState(false);
   // 다시 그려지기 전에 두 번 눌러도 한 번만 올린다
   const registeredRef = useRef(false);
+  const photoUrls = useObjectUrls(state?.content?.photos ?? NO_PHOTOS);
 
   if (!state?.content) return <Navigate to={OWNER_PATHS.newRequest} replace />;
   const { content } = state;
@@ -103,7 +108,11 @@ function OwnerRequestConfirmPage() {
           {content.photos.length > 0 && (
             <div className="owner-confirm__text">
               <p className="owner-confirm__text-title">참고 사진</p>
-              <AttachmentTiles names={content.photos.map((photo) => photo.name)} height={90} />
+              <AttachmentTiles
+                names={content.photos.map((photo) => photo.name)}
+                srcs={photoUrls}
+                height={90}
+              />
             </div>
           )}
           <hr className="owner-confirm__divider" />

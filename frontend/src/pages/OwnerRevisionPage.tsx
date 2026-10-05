@@ -14,6 +14,7 @@ import {
   useOwnerWork,
 } from "../features/owner";
 import { useBack } from "../hooks/useBack";
+import { useObjectUrls } from "../hooks/useObjectUrls";
 import { formatMonthDay } from "../lib/date";
 import "./OwnerRevisionPage.css";
 
@@ -24,7 +25,8 @@ function OwnerRevisionPage() {
   const back = useBack(OWNER_PATHS.home);
   const work = useOwnerWork(workId);
   const [detail, setDetail] = useState("");
-  const [photos, setPhotos] = useState<string[]>([]);
+  const [photos, setPhotos] = useState<File[]>([]);
+  const photoUrls = useObjectUrls(photos);
   const [sent, setSent] = useState(false);
 
   if (!work) return <OwnerMissing title="수정 요청" onBack={back} />;
@@ -88,8 +90,10 @@ function OwnerRevisionPage() {
               multiple
               className="owner-revision__photo-input"
               onChange={(e) => {
-                const names = Array.from(e.target.files ?? [], (file) => file.name);
-                setPhotos([...photos, ...names.filter((name) => !photos.includes(name))]);
+                const picked = Array.from(e.target.files ?? []).filter(
+                  (file) => !photos.some((photo) => photo.name === file.name),
+                );
+                setPhotos([...photos, ...picked]);
                 e.target.value = "";
               }}
             />
@@ -97,13 +101,14 @@ function OwnerRevisionPage() {
           </label>
           {photos.length > 0 && (
             <ul className="owner-revision__photo-list">
-              {photos.map((name) => (
-                <li key={name}>
-                  <span>{name}</span>
+              {photos.map((photo, i) => (
+                <li key={photo.name}>
+                  <img className="owner-revision__thumb" src={photoUrls[i]} alt="" />
+                  <span>{photo.name}</span>
                   <button
                     type="button"
-                    aria-label={`${name} 빼기`}
-                    onClick={() => setPhotos(photos.filter((photo) => photo !== name))}
+                    aria-label={`${photo.name} 빼기`}
+                    onClick={() => setPhotos(photos.filter((other) => other !== photo))}
                   >
                     ✕
                   </button>

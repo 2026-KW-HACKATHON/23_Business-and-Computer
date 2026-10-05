@@ -29,6 +29,11 @@ The owner request screens are about to call the backend job API
   state, so 「내용 고치기」 keeps them. 3/3 shows them as 「참고 사진」 tiles in
   the request card, and the registered request keeps their names as
   `attachments`. Uploading waits for the backend field.
+- Picked photos show a preview right away: a 40 px thumbnail on each 2/3
+  row and the photo inside each 3/3 tile (`AttachmentTiles` `srcs`), from
+  object URLs made by `src/hooks/useObjectUrls.ts`. 수정 요청
+  (`src/pages/OwnerRevisionPage.tsx`) keeps its picked photos as files too
+  and shows a small thumbnail in each chip.
 - Cancelling an open request is its own screen,
   `src/pages/OwnerRequestCancelPage.tsx` at /owner/requests/:id/cancel: the
   request, 「의뢰를 취소할까요?」, 취소 이유, 학생에게 남길 말, and the

@@ -487,3 +487,13 @@
   color: var(--color-danger);
   text-align: center;
 }
+
+/* 고른 사진 미리보기 */
+.student-new__thumb {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  background: var(--color-white);
+  object-fit: cover;
+}
