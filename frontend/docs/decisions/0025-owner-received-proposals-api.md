@@ -140,9 +140,6 @@ The owner side read `SAMPLE_PROPOSALS`, so a proposal a student sent
     with 409 `PROPOSAL_409_PAYMENT`.
 - **Notification**: 「새 제안이 왔어요」 (`PROPOSAL_RECEIVED`) opens 내 활동 ›
   받은 제안 (`OWNER_PATHS.activity("proposals")`).
-- **Sample data removed**: `SAMPLE_PROPOSALS`, `useOwnerProposal`,
-  `useOwnerProposals`, the `OwnerProposal` type, and `counts.proposals` in
-  `useOwnerProfile`.
 - **Shared types widened**: the owner `TodoBase.field` is a string, so server
   category names fit.
 
