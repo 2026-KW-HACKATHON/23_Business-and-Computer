@@ -15,11 +15,16 @@ interface RequestCardProps {
   /** 이미 지원했으면 「지원하기」 대신 「지원했어요」 */
   applied: boolean;
   onOpen: () => void;
+  /** 모집 중일 때 「의뢰서 전체 보기」: 지원하기 전에 할 일 · 맡기고 싶은 일을 본다 */
+  onOpenFull: () => void;
   onApply: () => void;
 }
 
-/** 학생 탐색의 의뢰 카드. 모집 중이면 예산과 「지원하기」, 끝났으면 「의뢰서 상세 보기」 */
-function RequestCard({ request, applied, onOpen, onApply }: RequestCardProps) {
+/**
+ * 학생 탐색의 의뢰 카드. 모집 중이면 예산 · 「의뢰서 전체 보기」 · 「지원하기」,
+ * 끝났으면 「의뢰서 상세 보기」
+ */
+function RequestCard({ request, applied, onOpen, onOpenFull, onApply }: RequestCardProps) {
   const recruiting = request.progress === "recruiting";
 
   return (
@@ -41,10 +46,13 @@ function RequestCard({ request, applied, onOpen, onApply }: RequestCardProps) {
       <div className="student-card__divider" />
       {recruiting ? (
         <>
-          <p className="student-card__budget">
-            <span>예산</span>
-            <strong>{formatWon(request.budget)}</strong>
-          </p>
+          <div className="student-card__footer">
+            <p className="student-card__budget">
+              <span>예산</span>
+              <strong>{formatWon(request.budget)}</strong>
+            </p>
+            <TextButton onClick={onOpenFull}>의뢰서 전체 보기</TextButton>
+          </div>
           <Button
             tone="student"
             size="medium"
