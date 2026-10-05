@@ -1,11 +1,11 @@
 import { useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { exchangeCookieForTokens, landingPath, saveTokens } from "../features/auth";
+import { exchangeCookieForAccessToken, landingPath, saveAccessToken } from "../features/auth";
 
 /**
  * Landing route after a successful social login. The backend has set an
- * HTTP-only JWT cookie and redirected here; we exchange that cookie for a JWT
- * pair in the response body, store it, then go to the screen for the user's role
+ * HTTP-only refresh-token cookie and redirected here; we exchange that cookie
+ * for an access token, store it, then go to the screen for the user's role
  * (signup not finished → role select, owner → owner home).
  */
 function CookiePage() {
@@ -22,8 +22,7 @@ function CookiePage() {
 
     const run = async () => {
       try {
-        const tokens = await exchangeCookieForTokens();
-        saveTokens(tokens);
+        saveAccessToken(await exchangeCookieForAccessToken());
         navigate(landingPath(), { replace: true });
       } catch {
         navigate("/login", { replace: true });
