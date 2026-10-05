@@ -19,7 +19,6 @@ import {
   SettlementSummaryBox,
   currentDeadline,
   deadlineText,
-  proposalBadgeNames,
   sentOnText,
   sentProposalStatusLabel,
   storeAddressText,
@@ -32,6 +31,7 @@ import {
   useStudentWorks,
   workStatusText,
 } from "../features/student";
+import { proposalBadgeNames } from "../features/proposal";
 import type {
   SentProposal,
   StudentActivityTab,

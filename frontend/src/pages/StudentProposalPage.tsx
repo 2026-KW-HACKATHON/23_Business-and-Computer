@@ -15,15 +15,13 @@ import {
   STUDENT_PATHS,
   StoreBox,
   StudentMissing,
-  estimatedDeadlineText,
   expectedDaysText,
-  proposalBadgeNames,
   sentOnText,
   sentProposalFlowSteps,
   sentProposalStatusLabel,
   storeAddressText,
-  useSentProposalDetail,
 } from "../features/student";
+import { estimatedDeadlineText, proposalBadgeNames, useProposalDetail } from "../features/proposal";
 import { useBack } from "../hooks/useBack";
 import { formatMonthDay } from "../lib/date";
 import { formatWon } from "../lib/money";
@@ -38,7 +36,7 @@ import "./StudentDetailPage.css";
 function StudentProposalPage() {
   const { proposalId } = useParams();
   const back = useBack(STUDENT_PATHS.activity("proposals"));
-  const { load, reload } = useSentProposalDetail(proposalId);
+  const { load, reload } = useProposalDetail(proposalId);
 
   if (load.status === "notFound") {
     return <StudentMissing title="보낸 제안" onBack={back} />;
