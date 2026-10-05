@@ -14,6 +14,7 @@ import {
   useOwnerWork,
 } from "../features/owner";
 import type { OwnerTodo } from "../features/owner";
+import { LoadNotice } from "../features/student";
 import { formatMonthDay } from "../lib/date";
 import { useDragScroll } from "../hooks/useDragScroll";
 import "./OwnerHomePage.css";
@@ -23,6 +24,8 @@ import "./OwnerHomePage.css";
  * 확인할 일 → 학생이 작업 중 → 기다리는 중 → 이런 의뢰는 어때요? → 끝난 일.
  * 비어 있는 목록은 섹션째 숨기고, 「이런 의뢰는 어때요?」는 늘 보인다.
  * 첫 활동 계정(피그마 「사장님 홈 - 처음」)은 할 일 목록 대신 사용법 안내를 보여 준다.
+ * 확인할 일의 「새 제안」은 GET /me/received-proposals 의 결정 대기 제안 (ADR 0025). 불러오는 중 ·
+ * 실패면 확인할 일 아래에 안내 줄을 보이고, 개수는 불러온 뒤에만 보인다.
  */
 function OwnerHomePage() {
   const navigate = useNavigate();
@@ -50,10 +53,21 @@ function OwnerHomePage() {
     <OwnerTabScreen tab="home" showFab>
       {home.firstVisit && <FirstVisitGuide onStart={() => navigate(OWNER_PATHS.newRequest)} />}
 
-      {!home.firstVisit && home.todos.length > 0 && (
+      {!home.firstVisit && (home.todos.length > 0 || home.receivedProposals !== "loaded") && (
         <section className="owner-home__section">
-          <SectionHeader title="확인할 일" count={home.todos.length} />
-          <TodoCarousel todos={home.todos} onAction={openTodo} />
+          <SectionHeader
+            title="확인할 일"
+            count={home.receivedProposals === "loaded" ? home.todos.length : undefined}
+          />
+          {home.todos.length > 0 && <TodoCarousel todos={home.todos} onAction={openTodo} />}
+          {home.receivedProposals !== "loaded" && (
+            <LoadNotice
+              status={home.receivedProposals}
+              loadingText="받은 제안을 불러오는 중이에요"
+              errorText="받은 제안을 불러오지 못했어요"
+              onRetry={home.reloadReceivedProposals}
+            />
+          )}
         </section>
       )}
 

@@ -21,7 +21,8 @@ interface TodoBase {
   id: string;
   kind: WorkKind;
   title: string;
-  field: Field;
+  /** 피그마 분야(Field) 또는 서버 대분류 이름 (받은 제안) */
+  field: string;
 }
 
 /** 학생이 초안을 냈다 (id = 작업). 이날까지 확인하지 않으면 자동으로 완료된다 */
@@ -119,7 +120,11 @@ export interface OwnerDoneItem {
 export interface OwnerHome {
   /** 백엔드가 알려 주는 첫 활동 여부. 처음이면 할 일 대신 사용법 안내를 보여 준다 */
   firstVisit: boolean;
+  /** 도착한 결과물 → 결정 대기 제안 → 지원자가 생긴 의뢰. 받은 제안은 불러온 뒤에만 들어간다 */
   todos: OwnerTodo[];
+  /** 받은 제안(GET /me/received-proposals)을 불러온 상태와 다시 시도 */
+  receivedProposals: "loading" | "error" | "loaded";
+  reloadReceivedProposals: () => void;
   working: OwnerWorkingItem[];
   waiting: OwnerWaitingItem[];
   examples: RequestExample[];
@@ -195,7 +200,8 @@ export interface OwnerProfile {
   /** 줄바꿈(\n)은 그대로 보인다 */
   address: string;
   businessVerified: boolean;
-  counts: { sent: number; proposals: number; inProgress: number; done: number };
+  /** 받은 제안 개수는 useReceivedProposals 로 센다 (ADR 0025) */
+  counts: { sent: number; inProgress: number; done: number };
 }
 
 export type WorkStatus = "inProgress" | "submitted" | "completed" | "canceled";
@@ -260,24 +266,6 @@ export interface StudentProfileRef extends StudentRef {
   /** 후기가 없으면 비운다 */
   rating?: number;
   completedCount: number;
-}
-
-/** 받은 제안 상세 */
-export interface OwnerProposal {
-  id: string;
-  title: string;
-  field: Field;
-  receivedOn: string;
-  empathyCount: number;
-  student: StudentProfileRef;
-  /** 손님 눈으로 본 문제 */
-  problem: string;
-  /** 이렇게 바꿔 드릴게요 */
-  solution: string;
-  plan: string;
-  wishBudget: number;
-  expectedDays: number;
-  attachments: string[];
 }
 
 /** 의뢰에 지원한 학생 */

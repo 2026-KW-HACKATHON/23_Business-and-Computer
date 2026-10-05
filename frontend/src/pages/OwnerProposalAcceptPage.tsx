@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { Navigate, useNavigate, useParams } from "react-router-dom";
 import {
   AppImage,
   BudgetField,
@@ -19,10 +19,12 @@ import {
   PaymentSection,
   dueDatesReady,
   flowSteps,
-  useOwnerProposal,
   useSafePayment,
 } from "../features/owner";
 import type { DueDates, PaymentMethod } from "../features/owner";
+import { proposalBadgeNames, useProposalDetail } from "../features/proposal";
+import type { ProposalDetail } from "../features/proposal";
+import { LoadNotice, expectedDaysText } from "../features/student";
 import { useBack } from "../hooks/useBack";
 import { formatWon } from "../lib/money";
 import "./OwnerPayPage.css";
@@ -30,13 +32,37 @@ import "./OwnerPayPage.css";
 /**
  * 피그마 「제안 수락 - 의뢰서작성·결제」. 학생 제안을 의뢰서로 바꾸면서
  * 작업비 · 마감일 · 수정 횟수를 정하고 바로 안전결제한다.
+ * 제안은 GET /proposals/{id} 로 읽는다 (ADR 0025). 결정 대기(PENDING)가 아니면 상세로 돌려보낸다.
+ * 결제는 아직 useSafePayment 흉내다 (POST /proposals/{id}/payments 는 다음 이슈).
  */
 function OwnerProposalAcceptPage() {
   const { proposalId = "" } = useParams();
-  const navigate = useNavigate();
   const back = useBack(OWNER_PATHS.proposal(proposalId));
-  const proposal = useOwnerProposal(proposalId);
-  const [budget, setBudget] = useState(proposal?.wishBudget ?? 0);
+  const { load, reload } = useProposalDetail(proposalId);
+
+  if (load.status === "notFound") return <OwnerMissing title="제안 수락" onBack={back} />;
+  if (load.status !== "loaded") {
+    return (
+      <SubScreen title="제안 수락" onBack={back}>
+        <LoadNotice
+          status={load.status}
+          loadingText="제안을 불러오는 중이에요"
+          errorText="제안을 불러오지 못했어요"
+          onRetry={reload}
+        />
+      </SubScreen>
+    );
+  }
+  if (load.proposal.status !== "PENDING") {
+    return <Navigate to={OWNER_PATHS.proposal(proposalId)} replace />;
+  }
+  // 작업비 기본값을 불러온 제안의 희망 금액으로 두려고, 불러온 뒤에 폼을 그린다
+  return <AcceptForm key={load.proposal.proposalId} proposal={load.proposal} onBack={back} />;
+}
+
+function AcceptForm({ proposal, onBack }: { proposal: ProposalDetail; onBack: () => void }) {
+  const navigate = useNavigate();
+  const [budget, setBudget] = useState(proposal.proposedFee);
   const [dues, setDues] = useState<DueDates>({ draftDue: "", finalDue: "" });
   const [revisions, setRevisions] = useState(1);
   const [message, setMessage] = useState("");
@@ -44,14 +70,12 @@ function OwnerProposalAcceptPage() {
   const [agreed, setAgreed] = useState(false);
   const payment = useSafePayment();
 
-  if (!proposal) return <OwnerMissing title="제안 수락" onBack={back} />;
-
   const canPay = budget > 0 && dueDatesReady(dues) && agreed;
 
   return (
     <SubScreen
       title="제안 수락"
-      onBack={back}
+      onBack={onBack}
       footer={
         <Button fullWidth disabled={!canPay} onClick={payment.start}>
           안전결제하기
@@ -72,11 +96,13 @@ function OwnerProposalAcceptPage() {
           <div className="owner-pay__summary-head">
             <AppImage name="iconCardProposal" />
             <h3 className="owner-pay__summary-title">{proposal.title}</h3>
-            <CategoryBadge field={proposal.field} />
+            {proposalBadgeNames(proposal.specialtyCategories).map((name) => (
+              <CategoryBadge key={name} field={name} />
+            ))}
           </div>
           <p className="owner-pay__terms">
-            {proposal.student.name} 학생 · 희망 작업비 {formatWon(proposal.wishBudget)} · 예상{" "}
-            {proposal.expectedDays}일
+            {proposal.student.name} 학생 · 희망 작업비 {formatWon(proposal.proposedFee)} · 예상{" "}
+            {expectedDaysText(proposal.draftDays, proposal.finalDays)}
           </p>
         </section>
 

@@ -17,12 +17,17 @@ import {
   PaymentSummaryBox,
   WorkPlanSheet,
   deadlineText,
+  receivedOnText,
+  receivedProposalStatusLabel,
+  studentMetaText,
   useOwnerPayments,
-  useOwnerProposals,
   useOwnerRequests,
   useOwnerWorks,
+  useReceivedProposals,
 } from "../features/owner";
-import type { ActivityTab, OwnerProposal, OwnerRequest, OwnerWork } from "../features/owner";
+import type { ActivityTab, OwnerRequest, OwnerWork, ReceivedProposal } from "../features/owner";
+import { proposalBadgeNames } from "../features/proposal";
+import { LoadNotice } from "../features/student";
 import { useBack } from "../hooks/useBack";
 import { formatMonthDay } from "../lib/date";
 import { formatWon } from "../lib/money";
@@ -77,6 +82,7 @@ function CardHead({ kind, title, right }: { kind: WorkKind; title: string; right
 /**
  * 피그마 「내 활동 - 보낸 의뢰 · 받은 제안 · 진행 중 · 완료 (사장님)」.
  * 위 요약 카드 4칸이 탭이고, 고른 탭은 주소(?tab=)에 남아 돌아와도 그대로다.
+ * 받은 제안은 GET /me/received-proposals (ADR 0025). 나머지 탭은 아직 샘플 데이터다.
  */
 function OwnerActivityPage() {
   const navigate = useNavigate();
@@ -87,7 +93,8 @@ function OwnerActivityPage() {
   const byDraftDue = <T extends { draftDue: string }>(list: T[]) =>
     [...list].sort((a, b) => a.draftDue.localeCompare(b.draftDue));
   const requests = byDraftDue(useOwnerRequests());
-  const proposals = useOwnerProposals();
+  const { load: proposalsLoad, reload: reloadProposals } = useReceivedProposals();
+  const proposals = proposalsLoad.status === "loaded" ? proposalsLoad.proposals : [];
   const works = useOwnerWorks();
   const { summary } = useOwnerPayments();
   const [planWork, setPlanWork] = useState<OwnerWork>();
@@ -98,9 +105,10 @@ function OwnerActivityPage() {
   );
   const done = works.filter((w) => w.status === "completed");
   const canceled = works.filter((w) => w.status === "canceled");
-  const counts: Record<ActivityTab, number> = {
+  // 받은 제안을 불러오는 중이거나 실패하면 개수 대신 「-」
+  const counts: Record<ActivityTab, number | string> = {
     sent: requests.length,
-    proposals: proposals.length,
+    proposals: proposalsLoad.status === "loaded" ? proposals.length : "-",
     inProgress: inProgress.length,
     done: done.length,
   };
@@ -138,39 +146,50 @@ function OwnerActivityPage() {
     );
   };
 
-  const proposalCard = (proposal: OwnerProposal) => (
-    <li key={proposal.id} className="owner-activity__card">
-      <CardHead
-        kind="proposal"
-        title={proposal.title}
-        right={<EmpathyCount count={proposal.empathyCount} empathized />}
-      />
-      <div className="owner-activity__meta">
-        <CategoryBadge field={proposal.field} />
-      </div>
-      <div className="owner-activity__box owner-activity__box--column">
-        <p className="owner-activity__excerpt">{proposal.solution}</p>
-        <TextButton onClick={() => navigate(OWNER_PATHS.proposal(proposal.id))}>상세보기</TextButton>
-      </div>
-      <div className="owner-activity__divider" />
-      <StudentLine
-        name={proposal.student.name}
-        year={proposal.student.year}
-        department={proposal.student.department}
-        onProfile={() => navigate(OWNER_PATHS.student(proposal.student.id))}
-      />
-      <div className="owner-activity__divider" />
-      <div className="owner-activity__actions">
-        <Button size="medium" onClick={() => navigate(OWNER_PATHS.proposal(proposal.id))}>
-          제안 받기
-        </Button>
-        {/* 거절은 백엔드 연동 때 제안을 REJECTED 로 바꾼다 */}
-        <Button variant="secondary" size="medium">
-          거절하기
-        </Button>
-      </div>
-    </li>
-  );
+  // 모든 상태를 보인다. 「거절하기」 · 「프로필 보기」는 API 가 생기면 붙인다 (ADR 0025)
+  const proposalCard = (proposal: ReceivedProposal) => {
+    const openDetail = () => navigate(OWNER_PATHS.proposal(String(proposal.proposalId)));
+    const receivedOn = receivedOnText(proposal.createdAt);
+    return (
+      <li key={proposal.proposalId} className="owner-activity__card">
+        <CardHead
+          kind="proposal"
+          title={proposal.title}
+          right={
+            <>
+              <span className="owner-activity__chip">
+                {receivedProposalStatusLabel(proposal.status, proposal.jobStatus)}
+              </span>
+              <EmpathyCount count={proposal.likeCount} empathized />
+            </>
+          }
+        />
+        <div className="owner-activity__meta owner-activity__meta--wrap">
+          {proposalBadgeNames(proposal.specialtyCategories).map((name) => (
+            <CategoryBadge key={name} field={name} />
+          ))}
+          {receivedOn && <span>{receivedOn}</span>}
+        </div>
+        <div className="owner-activity__box owner-activity__box--column">
+          <p className="owner-activity__excerpt">{proposal.proposedSolution}</p>
+          <TextButton onClick={openDetail}>상세보기</TextButton>
+        </div>
+        <div className="owner-activity__divider" />
+        <StudentLine
+          name={proposal.student.name}
+          department={studentMetaText(proposal.student.studentNumber, proposal.student.major)}
+        />
+        {proposal.status === "PENDING" && (
+          <>
+            <div className="owner-activity__divider" />
+            <Button size="medium" fullWidth onClick={openDetail}>
+              제안 받기
+            </Button>
+          </>
+        )}
+      </li>
+    );
+  };
 
   const inProgressCard = (work: OwnerWork) => {
     const submitted = work.status === "submitted";
@@ -294,7 +313,7 @@ function OwnerActivityPage() {
     </li>
   );
 
-  const listTitle = (label: string, count: number) => (
+  const listTitle = (label: string, count: number | string) => (
     <h2 className="owner-activity__list-title">
       {label} <span>{count}</span>
     </h2>
@@ -326,6 +345,14 @@ function OwnerActivityPage() {
           {tab === "inProgress" && inProgress.map(inProgressCard)}
           {tab === "done" && done.map(doneCard)}
         </ul>
+        {tab === "proposals" && proposalsLoad.status !== "loaded" && (
+          <LoadNotice
+            status={proposalsLoad.status}
+            loadingText="받은 제안을 불러오는 중이에요"
+            errorText="받은 제안을 불러오지 못했어요"
+            onRetry={reloadProposals}
+          />
+        )}
 
         {tab === "done" && canceled.length > 0 && (
           <>
