@@ -228,3 +228,9 @@
   line-height: 16px;
   color: var(--role-secondary);
 }
+
+/* 받은 제안: 대분류 뱃지가 여러 개면 다음 줄로 */
+.owner-activity__meta--wrap {
+  flex-wrap: wrap;
+  gap: 6px;
+}

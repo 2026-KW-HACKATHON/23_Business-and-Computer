@@ -38,6 +38,7 @@ export { default as KakaoLoginButton } from "./KakaoLoginButton/KakaoLoginButton
 export { default as KindTabs } from "./KindTabs/KindTabs";
 export type { CardKind } from "./KindTabs/KindTabs";
 export { default as LabelChip } from "./LabelChip/LabelChip";
+export { default as LoadNotice } from "./LoadNotice/LoadNotice";
 export { default as MainAppBar } from "./MainAppBar/MainAppBar";
 export { default as MainTabScreen } from "./MainTabScreen/MainTabScreen";
 export { default as MaskIcon } from "./MaskIcon/MaskIcon";

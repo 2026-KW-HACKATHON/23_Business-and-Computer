@@ -2,7 +2,6 @@ import { todayIsoDate } from "../../../lib/date";
 import { parseCheckoutWorkId } from "../lib/checkout";
 import {
   SAMPLE_CHAT_THREADS,
-  SAMPLE_PROPOSALS,
   SAMPLE_REQUESTS,
   SAMPLE_WORKS,
 } from "../lib/sampleDetails";
@@ -22,7 +21,6 @@ import type {
   OwnerNotification,
   OwnerPayment,
   OwnerProfile,
-  OwnerProposal,
   OwnerRequest,
   OwnerStore,
   OwnerWork,
@@ -112,9 +110,6 @@ const requests = () =>
     applicants: request.applicants.map((a) => ({ ...a, student: withStudent(a.student) })),
   }));
 
-const proposals = () =>
-  SAMPLE_PROPOSALS.map((proposal) => ({ ...proposal, student: withStudent(proposal.student) }));
-
 const exploreDetails = (): ExploreDetail[] =>
   SAMPLE_EXPLORE_DETAILS.map((detail) =>
     detail.kind === "proposal" ? { ...detail, student: withStudent(detail.student) } : detail,
@@ -191,7 +186,6 @@ export function useOwnerProfile(): OwnerProfile {
     businessVerified: true,
     counts: {
       sent: requests().length,
-      proposals: SAMPLE_PROPOSALS.length,
       inProgress: all.filter((w) => w.status === "inProgress" || w.status === "submitted").length,
       done: all.filter((w) => w.status === "completed").length,
     },
@@ -201,11 +195,6 @@ export function useOwnerProfile(): OwnerProfile {
 /** 작업 하나. 없으면 undefined */
 export function useOwnerWork(workId: string | undefined): OwnerWork | undefined {
   return works().find((work) => work.id === workId);
-}
-
-/** 받은 제안 하나 */
-export function useOwnerProposal(proposalId: string): OwnerProposal | undefined {
-  return proposals().find((proposal) => proposal.id === proposalId);
 }
 
 /** 보낸 의뢰 하나 (지원자 포함) */
@@ -233,11 +222,6 @@ export function useOwnerWorks(): OwnerWork[] {
 export function useOwnerRequests(): OwnerRequest[] {
   useOwnerDemoVersion();
   return requests();
-}
-
-/** 받은 제안 전체 */
-export function useOwnerProposals(): OwnerProposal[] {
-  return proposals();
 }
 
 /** 가게 정보 수정 */

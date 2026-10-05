@@ -5,6 +5,7 @@ import {
   Button,
   CategoryBadge,
   EmpathyCount,
+  LoadNotice,
   RoleAvatar,
   SubScreen,
   SummaryCard,
@@ -14,12 +15,10 @@ import {
 import {
   APPLICATION_STATUS_LABEL,
   ApplicationSheet,
-  LoadNotice,
   STUDENT_PATHS,
   SettlementSummaryBox,
   currentDeadline,
   deadlineText,
-  proposalBadgeNames,
   sentOnText,
   sentProposalStatusLabel,
   storeAddressText,
@@ -32,6 +31,7 @@ import {
   useStudentWorks,
   workStatusText,
 } from "../features/student";
+import { proposalBadgeNames } from "../features/proposal";
 import type {
   SentProposal,
   StudentActivityTab,

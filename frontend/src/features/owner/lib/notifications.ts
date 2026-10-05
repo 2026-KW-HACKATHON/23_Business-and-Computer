@@ -23,7 +23,7 @@ export function notificationPath({ type, targetId }: OwnerNotification): string 
     case "AUTO_COMPLETE_SOON":
       return OWNER_PATHS.workCheck(targetId);
     case "PROPOSAL_RECEIVED":
-      return OWNER_PATHS.proposal(targetId);
+      return OWNER_PATHS.activity("proposals");
     case "APPLICATION_RECEIVED":
       return OWNER_PATHS.requestApplicants(targetId);
     case "CHAT_MESSAGE":

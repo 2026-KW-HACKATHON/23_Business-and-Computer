@@ -121,3 +121,17 @@
   letter-spacing: normal;
   color: var(--color-black);
 }
+
+/* 제안 수락: 학생이 제안한 작업비 · 기간 (읽기 전용) */
+.owner-pay__fixed {
+  box-sizing: border-box;
+  width: 100%;
+  margin: 0;
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: var(--role-muted);
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 22px;
+  color: var(--text-title);
+}
