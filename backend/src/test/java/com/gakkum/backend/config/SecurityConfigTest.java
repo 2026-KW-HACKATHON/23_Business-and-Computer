@@ -307,6 +307,14 @@ class SecurityConfigTest {
     }
 
     @Test
+    @DisplayName("인증 없이 내가 지원한 의뢰 목록을 조회하면 401을 반환한다")
+    void studentAppliedJobsRequireAuthentication() throws Exception {
+        mockMvc.perform(get("/me/job-applications"))
+            .andExpect(status().isUnauthorized())
+            .andExpect(jsonPath("$.error.code").value("COMMON_401"));
+    }
+
+    @Test
     @DisplayName("인증 없이 의뢰 상세를 조회하면 401을 반환한다")
     void jobDetailRequiresAuthentication() throws Exception {
         mockMvc.perform(get("/jobs/42"))

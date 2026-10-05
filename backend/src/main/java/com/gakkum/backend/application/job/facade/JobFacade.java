@@ -35,6 +35,7 @@ import com.gakkum.backend.domain.job.dto.JobCommandDto.GetJobResultCommand;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.GetJobSubmissionCommand;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.GetMatchedJobsCommand;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.GetOpenJobsCommand;
+import com.gakkum.backend.domain.job.dto.JobCommandDto.GetStudentAppliedJobsCommand;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.GetStudentMatchedJobsCommand;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.PrepareSubmissionFileUploadCommand;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.RequestJobSubmissionRevisionCommand;
@@ -67,6 +68,9 @@ import com.gakkum.backend.domain.job.dto.JobQueryDto.OpenJobResult;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.PrepareSubmissionFileUploadResult;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.SpecialtyCategoryResult;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.SpecialtyResult;
+import com.gakkum.backend.domain.job.dto.JobQueryDto.StudentAppliedJobData;
+import com.gakkum.backend.domain.job.dto.JobQueryDto.StudentAppliedJobListResult;
+import com.gakkum.backend.domain.job.dto.JobQueryDto.StudentAppliedJobResult;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.StudentMatchedJobData;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.StudentMatchedJobListResult;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.StudentMatchedJobResult;
@@ -516,6 +520,35 @@ public class JobFacade {
 
         return StudentMatchedJobListResult.of(jobs.stream()
                 .map(job -> StudentMatchedJobResult.of(job, groupSpecialties(job.getSpecialtyIds(), specialtiesById)))
+                .toList());
+    }
+
+    /**
+     * 학생 본인이 지원한 의뢰 중 모집 중이고 선정 대기인 항목을 최신 지원순으로 조회한다.
+     * 학생이 아니면 지원서를 조회하기 전에 거부하고, 학생 계정에 학생 프로필이 없으면 500으로 거부한다.
+     */
+    @Transactional(readOnly = true)
+    public StudentAppliedJobListResult getStudentAppliedJobs(String username) {
+        User user = userService.getActiveUser(username);
+        if (user.getRole() != UserRole.STUDENT) {
+            throw new BusinessException(ErrorCode.JOB_APPLICATION_LIST_STUDENT_REQUIRED);
+        }
+        Student student = studentService.findStudentProfileByUserId(user.getId())
+                .orElseThrow(() -> new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR));
+        List<StudentAppliedJobData> jobs = jobService.getStudentAppliedJobs(
+                GetStudentAppliedJobsCommand.of(student.getId(), user.getDemoSessionId()));
+
+        if (jobs.isEmpty()) {
+            return StudentAppliedJobListResult.of(List.of());
+        }
+
+        Set<Long> specialtyIds = jobs.stream()
+                .flatMap(job -> job.getSpecialtyIds().stream())
+                .collect(Collectors.toSet());
+        Map<Long, SpecialtyDetail> specialtiesById = specialtyCategoryService.getSpecialtyDetails(specialtyIds);
+
+        return StudentAppliedJobListResult.of(jobs.stream()
+                .map(job -> StudentAppliedJobResult.of(job, groupSpecialties(job.getSpecialtyIds(), specialtiesById)))
                 .toList());
     }
 
