@@ -247,6 +247,10 @@ jobs:
           docker run -d \
             --name "$NAME" \
             --restart unless-stopped \
+            --log-driver=awslogs \
+            --log-opt awslogs-region=ap-northeast-1 \
+            --log-opt awslogs-group=/Golmock/backend \
+            --log-opt awslogs-stream=backend \
             --env-file "$ENV_FILE" \
             --env SPRING_PROFILES_ACTIVE=prod \
             --env SERVER_SHUTDOWN=graceful \
