@@ -86,9 +86,7 @@ function currentProposals(): MyProposal[] {
   // 의뢰서를 거절했거나 동의해 작업이 시작된 제안은 보낸 제안에서 빠진다
   const settled = (workId?: string) =>
     workId !== undefined && (demo.declinedWorkIds.has(workId) || demo.agreedWorkIds.has(workId));
-  return [...demo.sentProposals, ...SAMPLE_MY_PROPOSALS].filter(
-    (p) => !demo.canceledProposalIds.has(p.id) && !settled(p.workId),
-  );
+  return SAMPLE_MY_PROPOSALS.filter((p) => !settled(p.workId));
 }
 
 /** 공개된 내 제안을 탐색 카드 모양으로 (공감은 할 수 없다) */

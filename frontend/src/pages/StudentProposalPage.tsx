@@ -1,10 +1,8 @@
-import { useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import {
   AppImage,
   Button,
   CategoryBadge,
-  Dialog,
   FlowBar,
   InfoRows,
   ReferencePhotos,
@@ -35,22 +33,16 @@ import "./StudentDetailPage.css";
  * 피그마 「보낸 제안서 상세 보기」. GET /proposals/{id} (ADR 0023).
  * 가게 주소(storeAddress) · 보낸 날짜(createdAt)가 없으면 그 줄만 숨긴다.
  * 수락된(AWAITING_START) · 작업 중(ACCEPTED) 제안은 확정된 작업 조건(agreement)을 보인다.
- * 아래 버튼은 「확인」 하나다. 「조건 확인하기」(작업 시작)는 다음 이슈, 「제안 취소」는 취소 API 가
- * 생기면 연결한다 (아래 취소 팝업은 그때 쓰려고 남겨 둔다).
+ * 아래 버튼은 「확인」 하나다.
  */
 function StudentProposalPage() {
   const { proposalId } = useParams();
-  const navigate = useNavigate();
   const back = useBack(STUDENT_PATHS.activity("proposals"));
   const { load, reload } = useSentProposalDetail(proposalId);
-  const [cancelStep, setCancelStep] = useState<"closed" | "confirm" | "done">("closed");
 
   if (load.status === "notFound") {
     return <StudentMissing title="보낸 제안" onBack={back} />;
   }
-
-  // 제안 취소 API 가 생기면 여기서 부르고 성공했을 때 완료 팝업을 연다
-  const confirmCancel = () => setCancelStep("done");
 
   const proposal = load.status === "loaded" ? load.proposal : undefined;
   const agreement = proposal?.agreement ?? undefined;
@@ -176,38 +168,6 @@ function StudentProposalPage() {
           )}
         </div>
       )}
-
-      <Dialog
-        open={cancelStep === "confirm"}
-        image="warningStudent"
-        title="제안을 취소할까요?"
-        description="사장님께 보낸 제안이 사라지고, 모인 공감도 함께 없어져요."
-        onClose={() => setCancelStep("closed")}
-        actions={
-          <>
-            <Button tone="student" fullWidth onClick={confirmCancel}>
-              제안 취소하기
-            </Button>
-            <Button variant="secondary" fullWidth onClick={() => setCancelStep("closed")}>
-              돌아가기
-            </Button>
-          </>
-        }
-      />
-      <Dialog
-        open={cancelStep === "done"}
-        image="doneStudent"
-        title="제안을 취소했어요"
-        actions={
-          <Button
-            tone="student"
-            fullWidth
-            onClick={() => navigate(STUDENT_PATHS.activity("proposals"), { replace: true })}
-          >
-            확인
-          </Button>
-        }
-      />
     </SubScreen>
   );
 }

@@ -150,7 +150,6 @@ function StudentActivityPage() {
     );
   };
 
-  // 「조건 확인하기」(작업 시작)는 다음 이슈에서 연동해서 지금은 숨긴다
   const proposalCard = (proposal: SentProposal) => {
     const openDetail = () => navigate(STUDENT_PATHS.proposal(String(proposal.proposalId)));
     const sentOn = sentOnText(proposal.createdAt);

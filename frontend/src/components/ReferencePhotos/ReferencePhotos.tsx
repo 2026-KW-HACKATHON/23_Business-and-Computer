@@ -17,7 +17,7 @@ function ReferencePhotos({ urls }: ReferencePhotosProps) {
     <ul className="reference-photos">
       {urls.map((url, i) => (
         <li key={`${i}-${url}`} className="reference-photos__tile">
-          {failed.has(url) ? (
+          {failed.has(url) || !url.startsWith("https://") ? (
             <span className="reference-photos__broken" role="img" aria-label={`참고 사진 ${i + 1} (불러오지 못함)`} />
           ) : (
             <a href={url} target="_blank" rel="noreferrer" className="reference-photos__link">

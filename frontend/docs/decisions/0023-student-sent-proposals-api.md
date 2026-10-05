@@ -89,12 +89,8 @@ student screen, which still read `sampleProposals.ts`. The backend (dev) has:
   - Heading: the chip, all category badges, and 「M월 D일 보냄」. The date is
     read from the text of `createdAt` (already Korea time), so the browser
     time zone cannot shift it. No `createdAt` hides the date.
-  - Empathy: only 「학생 손님 N명이 공감했어요」 from `likeCount`. The
-    「공감이 많이 모이면 …」 line is gone, because nothing implements it.
+  - Empathy: only 「학생 손님 N명이 공감했어요」 from `likeCount`.
   - Store box: name and `storeAddress`; with no address the line is hidden.
-    (Before the backend added it, the address came from the list through
-    router state; that workaround is removed.) The 「사장님이 확인했어요 /
-    아직 확인하지 않았어요」 note is removed, since no API exposes it.
   - AWAITING_START or ACCEPTED with an `agreement` shows 「사장님이 정한 작업
     조건」: 작업비, 초안 마감, 최종 마감, 수정 횟수, and 「사장님 메시지」 when
     it is not blank.
@@ -104,9 +100,7 @@ student screen, which still read `sampleProposals.ts`. The backend (dev) has:
     (`src/components/ReferencePhotos`). It draws square thumbnails that open
     the original image in a new tab. A photo that fails to load becomes a grey
     tile. `AttachmentTiles` is unchanged.
-  - Footer: 「확인」 only. 「제안 취소」 is hidden. The cancel confirm and
-    done dialogs stay in the page for when a cancel API exists, and the
-    confirm handler has a note to call it.
+  - Footer: 「확인」 only.
   - Errors: load failure → `LoadNotice` 「다시 시도」, 404 → `StudentMissing`,
     401 → /login.
 - **Categories**: one badge per category, so a 「기타」 proposal shows a
@@ -130,9 +124,9 @@ student screen, which still read `sampleProposals.ts`. The backend (dev) has:
 
 - Loading each detail from the list to find cancelled jobs: rejected, one
   request per card; the backend added `jobStatus` to the list instead.
-- Passing the store address from the list through router state: used until
-  the detail got `storeAddress`, then removed, since a detail opened from the
-  done screen, a notification, or a link had no address.
+- Passing the store address from the list through router state: rejected,
+  a detail opened from the done screen, a notification, or a link has no
+  list behind it.
 - Showing 0 while loading: rejected, it looks like a real count and would make
   the home pick the first-visit guide.
 - Reusing `AttachmentTiles` for real photos: rejected by the request; it stays
@@ -142,10 +136,7 @@ student screen, which still read `sampleProposals.ts`. The backend (dev) has:
 
 - Wire 「조건 확인하기」 (`POST /jobs/{jobId}/start`) in the next issue, from
   the AWAITING_START detail.
-- Connect 「제안 취소」 to the dialogs in `StudentProposalPage` once a cancel
-  API exists.
-- `useMyProposal` (sample) is still used by the work-start screen;
-  `useMyProposals` was removed because nothing else used it.
+- `useMyProposal` (sample) is still used by the work-start screen.
 - `GET /proposals/{id}` does not check that the viewer wrote the proposal
   (only the demo session); the screen trusts that it was reached from the
   student's own list.

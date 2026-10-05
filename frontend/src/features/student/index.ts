@@ -17,11 +17,9 @@ export { default as WorkSummary } from "./components/WorkSummary";
 export {
   agreeToWork,
   applyToRequest,
-  cancelMyProposal,
   declineWork,
   markNotificationsRead,
   saveMyProfile,
-  sendProposal,
   setMyProfilePhoto,
   submitWork,
   toggleEmpathy,
