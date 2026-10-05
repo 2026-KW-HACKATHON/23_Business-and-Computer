@@ -108,9 +108,9 @@ states.
     hidden in signup even though the backend now has a 「기타」 specialty under
     the 「기타」 category; the extra filter is applied in
     `src/pages/StudentSignupProfilePage.tsx` only, because 제안 보내기 2/4
-    shows 「기타」 (ADR 0021). `fetchSpecialties` returns every category
+    shows 「기타」 (ADR 0020). `fetchSpecialties` returns every category
     unchanged so each screen decides. These helpers live in the shared
-    `src/features/specialty` (ADR 0021).
+    `src/features/specialty` (ADR 0020).
   - The 1–5 rule always applies. If no category has a specialty after that
     filter, the panel shows only 「선택할 특기가 아직 없어요」, and
     a failed load shows only 「특기 목록을 불러오지 못했어요」 with 「다시 시도」

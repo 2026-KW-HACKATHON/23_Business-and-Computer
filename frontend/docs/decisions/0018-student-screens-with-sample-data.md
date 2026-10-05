@@ -83,5 +83,5 @@ owner's applicant list).
 - Uploads, portfolio export, and real reporting are frontend-only until the
   backend has student APIs.
 - The new-proposal flow (stores, tasks, photos, send) and 가게 탐색 now call
-  the backend (ADR 0021); its sample stores and the demo `sendProposal` are no
+  the backend (ADR 0020); its sample stores and the demo `sendProposal` are no
   longer used there. Other student screens still read the sample data.

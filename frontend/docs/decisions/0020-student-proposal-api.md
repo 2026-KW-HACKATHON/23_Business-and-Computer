@@ -1,4 +1,4 @@
-# 0021. Student 「제안 보내기」 calls the backend API
+# 0020. Student 「제안 보내기」 calls the backend API
 
 ## Status
 
@@ -33,7 +33,7 @@ proposal to the demo store. The backend (dev) has:
   `[{ id, name: "기타" }]` and a 「기타」 proposal sends that id.
 - `POST /media/images/uploads` with `purpose: "PROPOSAL"`, then an S3 `PUT`.
 
-The shared API layer (ADR 0020) provides `apiData` in `src/api/client.ts`
+The shared API layer (ADR 0021) provides `apiData` in `src/api/client.ts`
 (stored token, `data` only, one `POST /refresh` retry on 401) and
 `uploadImage(file, purpose)` in `src/api/media.ts`.
 
@@ -44,7 +44,7 @@ The shared API layer (ADR 0020) provides `apiData` in `src/api/client.ts`
   `reload`, late responses dropped), `selectableCategories` (drops categories
   with no specialty), and `findSpecialtyByName`. Signup step 3 now uses it;
   its behavior is unchanged (ADR 0019).
-- **Shared API layer** (ADR 0020): the store, proposal, and specialty calls use
+- **Shared API layer** (ADR 0021): the store, proposal, and specialty calls use
   `apiData`, and reference photos use `uploadImage(file, "PROPOSAL")`. A 401
   that survives the `POST /refresh` retry goes to /login. Photo type and size checks
   use `IMAGE_UPLOAD_EXTENSIONS` / `MAX_IMAGE_UPLOAD_BYTES` from
@@ -117,7 +117,7 @@ The shared API layer (ADR 0020) provides `apiData` in `src/api/client.ts`
   loaded pages.
 - Uploading photos as soon as they are picked: rejected, see Rationale.
 - A separate media feature or temporary request helpers in this feature:
-  dropped once the shared API layer (ADR 0020) was merged; the temporary
+  dropped once the shared API layer (ADR 0021) was merged; the temporary
   `requestData` / `uploadImageAsProposal` were replaced by `apiData` /
   `uploadImage`.
 
