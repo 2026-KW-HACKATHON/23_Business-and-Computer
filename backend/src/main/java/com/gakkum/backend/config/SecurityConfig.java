@@ -8,6 +8,7 @@ import com.gakkum.backend.filter.JWTFilter;
 import com.gakkum.backend.handler.RefreshTokenLogoutHandler;
 import com.gakkum.backend.util.JWTUtil;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -34,6 +35,7 @@ public class SecurityConfig {
     private final JWTFilter jwtFilter;
     private final JWTUtil jwtUtil;
     private final UserService userService;
+    private final boolean devLoginEnabled;
 
     /**
      * 401 응답을 우리 형식에 맞춰서 주기위한 메서드
@@ -43,13 +45,15 @@ public class SecurityConfig {
                           JwtService jwtService,
                           JWTFilter jwtFilter,
                           UserService userService,
-                          JWTUtil jwtUtil) {
+                          JWTUtil jwtUtil,
+                          @Value("${dev-login.enabled:false}") boolean devLoginEnabled) {
         this.authenticationEntryPoint = authenticationEntryPoint;
         this.socialSuccessHandler = socialSuccessHandler;
         this.jwtService = jwtService;
         this.jwtFilter = jwtFilter;
         this.userService = userService;
         this.jwtUtil = jwtUtil;
+        this.devLoginEnabled = devLoginEnabled;
     }
 
     @Bean
@@ -75,12 +79,17 @@ public class SecurityConfig {
                 .addFilterBefore(jwtFilter, LogoutFilter.class);
 
         http
-            .authorizeHttpRequests(authorize -> authorize
-                .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                .requestMatchers(HttpMethod.GET, "/oauth2/authorization/kakao", "/login/oauth2/code/kakao").permitAll()
-                .requestMatchers(HttpMethod.POST, "/jwt/exchange", "/refresh").permitAll()
-                .anyRequest().authenticated()
-            )
+            .authorizeHttpRequests(authorize -> {
+                authorize
+                    .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                    .requestMatchers(HttpMethod.GET, "/oauth2/authorization/kakao", "/login/oauth2/code/kakao").permitAll()
+                    .requestMatchers(HttpMethod.POST, "/jwt/exchange", "/refresh").permitAll();
+                // 개발용 테스트 로그인은 dev-login.enabled가 켜진 서버에서만 공개한다
+                if (devLoginEnabled) {
+                    authorize.requestMatchers(HttpMethod.POST, "/dev/login").permitAll();
+                }
+                authorize.anyRequest().authenticated();
+            })
             .exceptionHandling(exception -> exception
                 .authenticationEntryPoint(authenticationEntryPoint)
             );

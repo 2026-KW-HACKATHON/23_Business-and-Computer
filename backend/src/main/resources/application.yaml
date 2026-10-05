@@ -54,6 +54,9 @@ jwt:
   secret: ${JWT_SECRET}
   access-token-expiration: 3600000 # 1시간
   refresh-token-expiration: 604800000 # 7일
+dev-login: # 개발용 테스트 로그인(POST /dev/login). enabled가 true인 서버에서만 엔드포인트가 등록된다
+  enabled: ${DEV_LOGIN_ENABLED:false}
+  key: ${DEV_LOGIN_KEY:} # X-Dev-Login-Key 헤더와 비교하는 공유 키. 켤 때는 32자 이상이어야 한다
 nts-businessman:
   service-key: ${NTS_BUSINESSMAN_SERVICE_KEY}
 kakao-pay:

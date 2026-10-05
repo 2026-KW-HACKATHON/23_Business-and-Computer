@@ -335,6 +335,17 @@ class SecurityConfigTest {
     }
 
     @Test
+    @DisplayName("개발용 테스트 로그인이 꺼져 있으면 인증 없는 /dev/login 요청은 401을 반환한다")
+    void devLoginIsNotPublicWhenDisabled() throws Exception {
+        mockMvc.perform(post("/dev/login")
+                .header("X-Dev-Login-Key", "0123456789abcdef0123456789abcdef")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"role\":\"OWNER\"}"))
+            .andExpect(status().isUnauthorized())
+            .andExpect(jsonPath("$.error.code").value("COMMON_401"));
+    }
+
+    @Test
     @DisplayName("localhost 프론트 Origin의 preflight는 credentials와 함께 허용된다")
     void allowsLocalhostOriginWithCredentials() throws Exception {
         mockMvc.perform(options("/refresh")
