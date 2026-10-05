@@ -21,7 +21,7 @@ import {
   toProposalRequest,
   uploadProposalPhoto,
 } from "../features/student";
-import type { NewProposalState } from "../features/student";
+import type { NewProposalState, ProposalDoneState } from "../features/student";
 import { useBack } from "../hooks/useBack";
 import { formatWon } from "../lib/money";
 import { FIELDS } from "../types/field";
@@ -106,7 +106,10 @@ function StudentProposalConfirmPage() {
 
     switch (result.status) {
       case "sent":
-        navigate(STUDENT_PATHS.newProposalDone, { replace: true });
+        navigate(STUDENT_PATHS.newProposalDone, {
+          replace: true,
+          state: { proposalId: result.proposalId } satisfies ProposalDoneState,
+        });
         break;
       case "unauthorized":
         navigate("/login", { replace: true });

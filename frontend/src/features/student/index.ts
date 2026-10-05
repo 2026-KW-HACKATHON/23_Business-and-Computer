@@ -31,7 +31,6 @@ export {
   useExploreRequests,
   useMyProfile,
   useMyProposal,
-  useMyProposals,
   usePeerProposal,
   usePeerProposals,
   useProposalExample,
@@ -52,6 +51,8 @@ export {
 export type { MyProfileView, ReceivedReview } from "./hooks/useStudentData";
 export { useExploreStores } from "./hooks/useExploreStores";
 export type { ExploreStoresLoad } from "./hooks/useExploreStores";
+export { useSentProposalDetail, useSentProposals } from "./hooks/useSentProposals";
+export type { SentProposalDetailLoad, SentProposalsLoad } from "./hooks/useSentProposals";
 export { useStudentHome } from "./hooks/useStudentHome";
 export { flowSteps, workFlowSteps } from "./lib/flow";
 export {
@@ -72,6 +73,7 @@ export {
   proposalCategoryNames,
   proposalTaskSummary,
   readNewProposalState,
+  readProposalDoneState,
   sendProposalRequest,
   toProposalRequest,
   uploadProposalPhoto,
@@ -79,9 +81,19 @@ export {
 export type {
   NewProposalState,
   PickedTask,
+  ProposalDoneState,
   ProposalContent,
   ProposalSendResult,
 } from "./lib/newProposal";
+export {
+  estimatedDeadlineText,
+  proposalBadgeNames,
+  readStoreAddress,
+  sentOnText,
+  sentProposalFlowSteps,
+  sentProposalStatusLabel,
+} from "./lib/sentProposals";
+export type { SentProposal, SentProposalDetail, SentProposalRouteState } from "./lib/sentProposals";
 export { NOTIFICATION_ICON, notificationPath, notificationState } from "./lib/notifications";
 export { STUDENT_PATHS } from "./lib/paths";
 export type { ProfileEditSection, StudentActivityTab } from "./lib/paths";

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { CategoryBadge, SectionHeader, TaskRow } from "../components";
 import {
+  LoadNotice,
   PeerProposalRow,
   STUDENT_PATHS,
   StudentFirstVisitGuide,
@@ -11,7 +12,7 @@ import {
   toggleEmpathy,
   useStudentHome,
 } from "../features/student";
-import type { StudentTodo, StudentWaitingItem } from "../features/student";
+import type { SentProposalRouteState, StudentTodo, StudentWaitingItem } from "../features/student";
 import { formatMonthDay } from "../lib/date";
 import { useDragScroll } from "../hooks/useDragScroll";
 import "./StudentHomePage.css";
@@ -21,6 +22,8 @@ import "./StudentHomePage.css";
  * 확인할 일 → 다른 학생들의 제안 공감하기 → 사장님이 확인 중 → 기다리는 중 → 이런 제안은 어때요? → 끝난 일.
  * 비어 있는 목록은 섹션째 숨긴다. 이력이 하나도 없으면 피그마 「학생 홈 - 처음」처럼
  * 사용법 안내 → 이런 제안은 어때요? → 공감하기만 보인다.
+ * 기다리는 중의 보낸 제안은 GET /me/proposals (ADR 0022). 작업 · 지원이 없는데 보낸 제안을 아직
+ * 못 불러왔으면 처음인지 알 수 없어서, 사용법 안내 대신 불러오는 중 · 「다시 시도」 줄을 보인다.
  */
 function StudentHomePage() {
   const navigate = useNavigate();
@@ -46,12 +49,16 @@ function StudentHomePage() {
   const waitingRow = (item: StudentWaitingItem) =>
     item.type === "proposal" ? (
       <TaskRow
-        key={item.proposal.id}
+        key={item.proposal.proposalId}
         kind="proposal"
         title={item.proposal.title}
-        lines={[`${item.proposal.store.name}에 보낸 제안`, `손님 ${item.proposal.empathyCount}명 공감`]}
+        lines={[`${item.proposal.store.storeName}에 보낸 제안`, `손님 ${item.proposal.likeCount}명 공감`]}
         status="수락 대기"
-        onClick={() => navigate(STUDENT_PATHS.proposal(item.proposal.id))}
+        onClick={() =>
+          navigate(STUDENT_PATHS.proposal(String(item.proposal.proposalId)), {
+            state: { storeAddress: item.proposal.store.storeAddress } satisfies SentProposalRouteState,
+          })
+        }
       />
     ) : (
       <TaskRow
@@ -113,6 +120,23 @@ function StudentHomePage() {
     </section>
   );
 
+  const proposalsNotice = home.sentProposals !== "loaded" && (
+    <LoadNotice
+      status={home.sentProposals}
+      loadingText="보낸 제안을 불러오는 중이에요"
+      errorText="보낸 제안을 불러오지 못했어요"
+      onRetry={home.reloadSentProposals}
+    />
+  );
+
+  if (home.firstVisit === undefined) {
+    return (
+      <StudentTabScreen tab="home" showFab>
+        <section className="student-home__section">{proposalsNotice}</section>
+      </StudentTabScreen>
+    );
+  }
+
   if (home.firstVisit) {
     return (
       <StudentTabScreen tab="home" showFab>
@@ -154,10 +178,14 @@ function StudentHomePage() {
         </section>
       )}
 
-      {home.waiting.length > 0 && (
+      {(home.waiting.length > 0 || proposalsNotice) && (
         <section className="student-home__section">
-          <SectionHeader title="기다리는 중" count={home.waiting.length} />
+          <SectionHeader
+            title="기다리는 중"
+            count={home.sentProposals === "loaded" ? home.waiting.length : undefined}
+          />
           <div className="student-home__list">{home.waiting.map(waitingRow)}</div>
+          {proposalsNotice}
         </section>
       )}
 

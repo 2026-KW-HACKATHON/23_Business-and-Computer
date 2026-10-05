@@ -178,11 +178,6 @@ export function useStudentApplication(requestId: string | undefined): StudentApp
 
 // ---- 제안 ----
 
-export function useMyProposals(): MyProposal[] {
-  useDemoVersion();
-  return currentProposals();
-}
-
 export function useMyProposal(proposalId: string | undefined): MyProposal | undefined {
   useDemoVersion();
   return currentProposals().find((p) => p.id === proposalId);

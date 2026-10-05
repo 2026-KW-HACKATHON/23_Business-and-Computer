@@ -47,6 +47,20 @@ export interface NewProposalState {
   content?: ProposalContent;
 }
 
+/** 4/4 「제안 보내기」 성공 → 완료 화면으로 넘기는 router state. 「확인」이 이 제안 상세로 간다 */
+export interface ProposalDoneState {
+  proposalId: number;
+}
+
+/** 완료 화면 router state 에서 방금 보낸 제안 id 를 읽는다. 주소로 바로 들어왔으면 undefined */
+export function readProposalDoneState(state: unknown): number | undefined {
+  if (!state || typeof state !== "object") return undefined;
+  const { proposalId } = state as Partial<ProposalDoneState>;
+  return typeof proposalId === "number" && Number.isSafeInteger(proposalId) && proposalId > 0
+    ? proposalId
+    : undefined;
+}
+
 /** 참고 사진 장 수 · 형식 · 크기 (형식·크기는 공용 api/media 의 백엔드 기준) */
 export const MAX_PROPOSAL_PHOTOS = 5;
 export const PROPOSAL_PHOTO_ACCEPT = Object.keys(IMAGE_UPLOAD_EXTENSIONS).join(",");

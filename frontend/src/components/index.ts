@@ -48,6 +48,7 @@ export { default as NumberedSteps } from "./NumberedSteps/NumberedSteps";
 export type { NumberedStep } from "./NumberedSteps/NumberedSteps";
 export { default as PageDots } from "./PageDots/PageDots";
 export { default as ProfilePhoto } from "./ProfilePhoto/ProfilePhoto";
+export { default as ReferencePhotos } from "./ReferencePhotos/ReferencePhotos";
 export { default as ReportSheet } from "./ReportSheet/ReportSheet";
 export { default as ResendButton } from "./ResendButton/ResendButton";
 export { default as RoleAvatar } from "./RoleAvatar/RoleAvatar";

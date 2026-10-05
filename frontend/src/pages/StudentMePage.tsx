@@ -7,7 +7,7 @@ import {
   setMyProfilePhoto,
   useMyProfile,
   useMyProfilePhoto,
-  useMyProposals,
+  useSentProposals,
   useStudentApplications,
   useStudentWorks,
 } from "../features/student";
@@ -19,13 +19,16 @@ import "./StudentMePage.css";
 
 const ACTIVITY_TABS: StudentActivityTab[] = ["applied", "proposals", "inProgress", "done"];
 
-/** 피그마 「내 정보 · 설정 (학생)」. 프로필 · 요약 · 내 활동 · 설정 · 로그아웃 */
+/**
+ * 피그마 「내 정보 · 설정 (학생)」. 프로필 · 요약 · 내 활동 · 설정 · 로그아웃.
+ * 보낸 제안 개수는 GET /me/proposals (ADR 0022). 불러오는 중이거나 실패하면 「-」.
+ */
 function StudentMePage() {
   const navigate = useNavigate();
   const back = useBack(STUDENT_PATHS.home);
   const profile = useMyProfile();
   const applications = useStudentApplications();
-  const proposals = useMyProposals();
+  const { load: proposalsLoad } = useSentProposals();
   const works = useStudentWorks();
   // 사진 업로드는 백엔드 연동 전까지 미리보기만 한다 (프로필 수정 · 편집과 같은 사진)
   const photo = useMyProfilePhoto();
@@ -34,7 +37,12 @@ function StudentMePage() {
   const [termsOpen, setTermsOpen] = useState(false);
 
   const inProgress = works.filter((w) => ["drafting", "revising", "submitted"].includes(w.status));
-  const counts = [applications.length, proposals.length, inProgress.length, profile.completedCount];
+  const counts = [
+    applications.length,
+    proposalsLoad.status === "loaded" ? proposalsLoad.proposals.length : "-",
+    inProgress.length,
+    profile.completedCount,
+  ];
   const openActivity = (tab: StudentActivityTab) => navigate(STUDENT_PATHS.activity(tab));
 
   const logout = () => {
