@@ -5,6 +5,7 @@ import {
   Button,
   CategoryBadge,
   EmpathyCount,
+  LoadNotice,
   RoleAvatar,
   SubScreen,
   SummaryCard,
@@ -14,7 +15,6 @@ import {
 import {
   APPLICATION_STATUS_LABEL,
   ApplicationSheet,
-  LoadNotice,
   STUDENT_PATHS,
   SettlementSummaryBox,
   currentDeadline,

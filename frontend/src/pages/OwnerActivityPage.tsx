@@ -5,6 +5,7 @@ import {
   Button,
   CategoryBadge,
   EmpathyCount,
+  LoadNotice,
   ReportSheet,
   RoleAvatar,
   SubScreen,
@@ -27,7 +28,6 @@ import {
 } from "../features/owner";
 import type { ActivityTab, OwnerRequest, OwnerWork, ReceivedProposal } from "../features/owner";
 import { proposalBadgeNames } from "../features/proposal";
-import { LoadNotice } from "../features/student";
 import { useBack } from "../hooks/useBack";
 import { formatMonthDay } from "../lib/date";
 import { formatWon } from "../lib/money";
@@ -146,7 +146,7 @@ function OwnerActivityPage() {
     );
   };
 
-  // 모든 상태를 보인다. 「거절하기」 · 「프로필 보기」는 API 가 생기면 붙인다 (ADR 0025)
+  // 모든 상태를 보인다
   const proposalCard = (proposal: ReceivedProposal) => {
     const openDetail = () => navigate(OWNER_PATHS.proposal(String(proposal.proposalId)));
     const receivedOn = receivedOnText(proposal.createdAt);

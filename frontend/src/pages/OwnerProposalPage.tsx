@@ -5,6 +5,7 @@ import {
   CategoryBadge,
   FlowBar,
   InfoRows,
+  LoadNotice,
   ReferencePhotos,
   RoleAvatar,
   SubScreen,
@@ -20,8 +21,12 @@ import {
   receivedProposalStatusLabel,
   studentMetaText,
 } from "../features/owner";
-import { estimatedDeadlineText, proposalBadgeNames, useProposalDetail } from "../features/proposal";
-import { LoadNotice, expectedDaysText } from "../features/student";
+import {
+  estimatedDeadlineText,
+  expectedDaysText,
+  proposalBadgeNames,
+  useProposalDetail,
+} from "../features/proposal";
 import { useBack } from "../hooks/useBack";
 import { formatMonthDay } from "../lib/date";
 import { formatWon } from "../lib/money";
@@ -31,7 +36,7 @@ import "./OwnerProposalPage.css";
 /**
  * 피그마 「받은 제안 상세」. GET /proposals/{id} (ADR 0025).
  * 결제한 제안(AWAITING_START · ACCEPTED)은 확정된 작업 조건(agreement)을 보인다.
- * 「의뢰하기」는 결정 대기(PENDING)일 때만. 「거절하기」 · 학생 「프로필 보기」는 API 가 생기면 붙인다.
+ * 「의뢰하기」는 결정 대기(PENDING)일 때만 보인다.
  */
 function OwnerProposalPage() {
   const { proposalId } = useParams();
@@ -181,8 +186,8 @@ function OwnerProposalPage() {
 
           {pending && (
             <p className="owner-detail__footnote">
-              「의뢰하기」를 누르면 이 제안과 희망 작업비를 바탕으로 의뢰서를 만들어요. 마감일과 수정
-              횟수는 그때 정해요.
+              「의뢰하기」를 누르면 이 제안으로 의뢰서를 만들어요. 작업비는 학생이 제안한 금액이고,
+              수정 횟수는 의뢰할 때 정해요. 마감일은 결제한 날부터 학생이 제안한 기간으로 정해져요.
             </p>
           )}
         </div>

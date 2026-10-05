@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { CategoryBadge, SectionHeader, TaskRow } from "../components";
+import { CategoryBadge, LoadNotice, SectionHeader, TaskRow } from "../components";
 import {
   FirstVisitGuide,
   OWNER_PATHS,
@@ -14,7 +14,6 @@ import {
   useOwnerWork,
 } from "../features/owner";
 import type { OwnerTodo } from "../features/owner";
-import { LoadNotice } from "../features/student";
 import { formatMonthDay } from "../lib/date";
 import { useDragScroll } from "../hooks/useDragScroll";
 import "./OwnerHomePage.css";

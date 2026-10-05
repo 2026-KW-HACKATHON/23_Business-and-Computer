@@ -21,6 +21,11 @@ export function proposalMonthDay(createdAt: string | null | undefined): string |
   return formatMonthDay(date);
 }
 
+/** 「초안 2일 · 최종 4일」 (수락된 날부터 걸리는 날) */
+export function expectedDaysText(draftDays: number, finalDays: number): string {
+  return `초안 ${draftDays}일 · 최종 ${finalDays}일`;
+}
+
 /** PENDING 상세: 「수락하면 10월 7일까지 초안, 10월 9일까지 최종」. 서버가 날짜를 안 주면 undefined */
 export function estimatedDeadlineText(detail: ProposalDetail): string | undefined {
   const { estimatedDraftDeadline: draft, estimatedFinalDeadline: final } = detail;

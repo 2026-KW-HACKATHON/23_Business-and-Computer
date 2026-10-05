@@ -1,6 +1,14 @@
 import { useState } from "react";
 import { Navigate, useLocation, useNavigate } from "react-router-dom";
-import { AppImage, Button, Chip, FIELD_ICONS, StepIndicator, SubScreen } from "../components";
+import {
+  AppImage,
+  Button,
+  Chip,
+  FIELD_ICONS,
+  LoadNotice,
+  StepIndicator,
+  SubScreen,
+} from "../components";
 import type { ImageName } from "../components";
 import {
   findSpecialtyByName,
@@ -10,7 +18,6 @@ import {
 } from "../features/specialty";
 import type { SpecialtyCategory } from "../features/specialty";
 import {
-  LoadNotice,
   STUDENT_PATHS,
   readNewProposalState,
   useProposalExample,

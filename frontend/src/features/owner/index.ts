@@ -37,7 +37,6 @@ export {
 export { useSafePayment } from "./hooks/useSafePayment";
 export { useOwnerHome } from "./hooks/useOwnerHome";
 export { useReceivedProposals } from "./hooks/useReceivedProposals";
-export type { ReceivedProposalsLoad } from "./hooks/useReceivedProposals";
 export {
   proposalStudentRecord,
   receivedOnText,

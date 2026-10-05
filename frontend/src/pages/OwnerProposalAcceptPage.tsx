@@ -2,12 +2,11 @@ import { useState } from "react";
 import { Navigate, useNavigate, useParams } from "react-router-dom";
 import {
   AppImage,
-  BudgetField,
   Button,
   CategoryBadge,
-  DueDateFields,
   FlowBar,
   FormField,
+  LoadNotice,
   RevisionStepper,
   SubScreen,
   TextAreaField,
@@ -17,23 +16,22 @@ import {
   OwnerMissing,
   PaymentProgress,
   PaymentSection,
-  dueDatesReady,
   flowSteps,
   useSafePayment,
 } from "../features/owner";
-import type { DueDates, PaymentMethod } from "../features/owner";
-import { proposalBadgeNames, useProposalDetail } from "../features/proposal";
+import type { PaymentMethod } from "../features/owner";
+import { expectedDaysText, proposalBadgeNames, useProposalDetail } from "../features/proposal";
 import type { ProposalDetail } from "../features/proposal";
-import { LoadNotice, expectedDaysText } from "../features/student";
 import { useBack } from "../hooks/useBack";
 import { formatWon } from "../lib/money";
 import "./OwnerPayPage.css";
 
 /**
- * 피그마 「제안 수락 - 의뢰서작성·결제」. 학생 제안을 의뢰서로 바꾸면서
- * 작업비 · 마감일 · 수정 횟수를 정하고 바로 안전결제한다.
+ * 피그마 「제안 수락 - 의뢰서작성·결제」. 학생 제안을 의뢰서로 바꾸면서 수정 횟수 · 학생에게
+ * 한마디를 정하고 바로 안전결제한다. 작업비는 학생이 제안한 금액, 마감일은 결제한 날부터 학생이
+ * 제안한 기간이라 보여 주기만 한다 (서버가 제안에서 정한다).
  * 제안은 GET /proposals/{id} 로 읽는다 (ADR 0025). 결정 대기(PENDING)가 아니면 상세로 돌려보낸다.
- * 결제는 아직 useSafePayment 흉내다 (POST /proposals/{id}/payments 는 다음 이슈).
+ * 결제 진행은 useSafePayment 다.
  */
 function OwnerProposalAcceptPage() {
   const { proposalId = "" } = useParams();
@@ -62,15 +60,13 @@ function OwnerProposalAcceptPage() {
 
 function AcceptForm({ proposal, onBack }: { proposal: ProposalDetail; onBack: () => void }) {
   const navigate = useNavigate();
-  const [budget, setBudget] = useState(proposal.proposedFee);
-  const [dues, setDues] = useState<DueDates>({ draftDue: "", finalDue: "" });
   const [revisions, setRevisions] = useState(1);
   const [message, setMessage] = useState("");
   const [method, setMethod] = useState<PaymentMethod>("kakaoPay");
   const [agreed, setAgreed] = useState(false);
   const payment = useSafePayment();
 
-  const canPay = budget > 0 && dueDatesReady(dues) && agreed;
+  const canPay = agreed;
 
   return (
     <SubScreen
@@ -86,7 +82,7 @@ function AcceptForm({ proposal, onBack }: { proposal: ProposalDetail; onBack: ()
         <div className="owner-pay__intro">
           <h2 className="owner-pay__title">학생의 제안을 받아들일까요?</h2>
           <p className="owner-pay__description">
-            {"제안을 바탕으로 의뢰서를 만들어요.\n작업비·마감일·수정 횟수를 정해 주세요."}
+            {"제안을 바탕으로 의뢰서를 만들어요.\n수정 횟수를 정해 주세요."}
           </p>
         </div>
 
@@ -106,12 +102,12 @@ function AcceptForm({ proposal, onBack }: { proposal: ProposalDetail; onBack: ()
           </p>
         </section>
 
-        <FormField label="작업비" hint="학생 희망 금액 · 바꿀 수 있어요" wrapsInput>
-          <BudgetField value={budget} onChange={setBudget} />
+        <FormField label="작업비" hint="학생이 제안한 금액이에요">
+          <p className="owner-pay__fixed">{formatWon(proposal.proposedFee)}</p>
         </FormField>
 
-        <FormField label="마감일">
-          <DueDateFields value={dues} onChange={setDues} />
+        <FormField label="마감일" hint="학생이 제안한 기간 · 결제한 날부터 세요">
+          <p className="owner-pay__fixed">{expectedDaysText(proposal.draftDays, proposal.finalDays)}</p>
         </FormField>
 
         <FormField label="수정 횟수" hint="최소 1회 · 등록한 뒤에는 바꿀 수 없어요">
@@ -128,7 +124,7 @@ function AcceptForm({ proposal, onBack }: { proposal: ProposalDetail; onBack: ()
         </FormField>
 
         <PaymentSection
-          amount={budget}
+          amount={proposal.proposedFee}
           method={method}
           onMethodChange={setMethod}
           agreed={agreed}

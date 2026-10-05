@@ -18,9 +18,9 @@ export interface ReceivedProposalResponse {
   };
   /** 결제로 만들어진 의뢰. 결제 전이면 없음 */
   jobId?: number | null;
-  /** 백엔드에 추가 요청함. 오면 「취소됨」에 쓴다 */
+  /** 서버가 주면 「취소됨」 칩에 쓴다 */
   jobStatus?: ProposalJobStatus | null;
-  /** 백엔드에 추가 요청함. 한국 시각, 오프셋 없음 */
+  /** 서버가 주면 「M월 D일 도착」에 쓴다. 한국 시각, 오프셋 없음 */
   createdAt?: string | null;
 }
 

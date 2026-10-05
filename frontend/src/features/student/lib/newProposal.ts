@@ -110,11 +110,6 @@ export function proposalCategoryNames({ picked }: NewProposalState): string[] {
   return [...new Set(picked.map((p) => p.categoryName))];
 }
 
-/** 「초안 2일 · 최종 4일」 */
-export function expectedDaysText(draftDays: number, finalDays: number): string {
-  return `초안 ${draftDays}일 · 최종 ${finalDays}일`;
-}
-
 /** 4/4 state → POST /proposals 본문 */
 export function toProposalRequest(
   store: ExploreStore,

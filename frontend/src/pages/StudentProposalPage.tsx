@@ -5,23 +5,27 @@ import {
   CategoryBadge,
   FlowBar,
   InfoRows,
+  LoadNotice,
   ReferencePhotos,
   SubScreen,
   WorkKindIcon,
   WorkPlan,
 } from "../components";
 import {
-  LoadNotice,
   STUDENT_PATHS,
   StoreBox,
   StudentMissing,
-  expectedDaysText,
   sentOnText,
   sentProposalFlowSteps,
   sentProposalStatusLabel,
   storeAddressText,
 } from "../features/student";
-import { estimatedDeadlineText, proposalBadgeNames, useProposalDetail } from "../features/proposal";
+import {
+  estimatedDeadlineText,
+  expectedDaysText,
+  proposalBadgeNames,
+  useProposalDetail,
+} from "../features/proposal";
 import { useBack } from "../hooks/useBack";
 import { formatMonthDay } from "../lib/date";
 import { formatWon } from "../lib/money";

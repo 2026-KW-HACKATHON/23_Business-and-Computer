@@ -1,8 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { CategoryBadge, SectionHeader, TaskRow } from "../components";
+import { CategoryBadge, LoadNotice, SectionHeader, TaskRow } from "../components";
 import {
-  LoadNotice,
   PeerProposalRow,
   STUDENT_PATHS,
   StudentFirstVisitGuide,

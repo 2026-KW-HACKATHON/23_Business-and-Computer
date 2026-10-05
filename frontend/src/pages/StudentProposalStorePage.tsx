@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { Button, RoleAvatar, SearchBar, StepIndicator, SubScreen } from "../components";
-import { LoadNotice, STUDENT_PATHS, readNewProposalState, useExploreStores } from "../features/student";
+import { Button, LoadNotice, RoleAvatar, SearchBar, StepIndicator, SubScreen } from "../components";
+import { STUDENT_PATHS, readNewProposalState, useExploreStores } from "../features/student";
 import type { ExploreStore, NewProposalState } from "../features/student";
 import { useBack } from "../hooks/useBack";
 import { useDragScroll } from "../hooks/useDragScroll";

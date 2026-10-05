@@ -2,7 +2,6 @@
 export { default as ApplicationSheet } from "./components/ApplicationSheet";
 export { default as ExploreTabs } from "./components/ExploreTabs";
 export { default as FilePicker } from "./components/FilePicker";
-export { default as LoadNotice } from "./components/LoadNotice";
 export { default as MyPlanSheet } from "./components/MyPlanSheet";
 export { default as PeerProposalCard } from "./components/PeerProposalCard";
 export { default as PeerProposalRow } from "./components/PeerProposalRow";
@@ -67,7 +66,6 @@ export {
   MAX_PROPOSAL_PHOTOS,
   PROPOSAL_PHOTO_ACCEPT,
   checkProposalPhoto,
-  expectedDaysText,
   proposalCategoryNames,
   proposalTaskSummary,
   readNewProposalState,

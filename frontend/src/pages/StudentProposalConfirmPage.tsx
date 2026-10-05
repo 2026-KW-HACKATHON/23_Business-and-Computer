@@ -13,7 +13,6 @@ import {
 import { landingPath } from "../features/auth";
 import {
   STUDENT_PATHS,
-  expectedDaysText,
   proposalCategoryNames,
   proposalTaskSummary,
   readNewProposalState,
@@ -22,6 +21,7 @@ import {
   uploadProposalPhoto,
 } from "../features/student";
 import type { NewProposalState, ProposalDoneState } from "../features/student";
+import { expectedDaysText } from "../features/proposal";
 import { useBack } from "../hooks/useBack";
 import { formatWon } from "../lib/money";
 import { FIELDS } from "../types/field";
