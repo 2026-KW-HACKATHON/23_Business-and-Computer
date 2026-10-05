@@ -28,8 +28,9 @@ proposal to the demo store. The backend (dev) has:
   name }, storeAddress, ownerProfileId, createdAt }], nextCursor, hasNext }`.
   There is no name search, no business-category list API, and no single-store
   API.
-- `GET /specialties` gives categories with ids; 「기타」 comes with
-  `specialties: []`.
+- `GET /specialties` gives categories with ids. The backend adds one
+  specialty 「기타」 under the 「기타」 category as data, so it comes as
+  `[{ id, name: "기타" }]` and a 「기타」 proposal sends that id.
 - `POST /media/images/uploads` with `purpose: "PROPOSAL"`, then an S3 `PUT`.
 
 The shared API layer (ADR 0020) provides `apiData` in `src/api/client.ts`
@@ -56,8 +57,16 @@ The shared API layer (ADR 0020) provides `apiData` in `src/api/client.ts`
   `{ ownerProfileId, name, category, address }` in router state, since no API
   returns one store. 「제안하기」 in 가게 탐색 passes that object to 2/4.
 - **2/4** draws categories and tasks from `useSpecialties`, keeping only
-  categories that have tasks, so 「기타」 is hidden and at least one task is
-  required (the server needs a specialty id). Picks are stored as
+  categories that have tasks (`selectableCategories`); at least one task is
+  required (the server needs a specialty id). Until the backend data has the
+  「기타」 specialty, the 「기타」 category is empty and stays hidden; once it is
+  added, the 「기타」 card appears with no frontend change.
+- A category whose only task has the category's own name (`implicitSpecialty`,
+  i.e. 「기타」 › 「기타」) is chosen by its card alone: picking the card also
+  picks that task, unpicking removes it, and it gets no task chip group. So
+  「기타」 alone enables 「다음」. Its card reads 「그 밖의 일」, and 「내용은 다음
+  단계에서 적어 주세요」 once picked; the picked-task bar shows just 「기타」.
+- Picks are stored as
   `{ specialtyId, name, categoryId, categoryName }`. Field icons and hints
   are looked up by category name; an unknown name gets the 「전체」 icon and no
   hint. A home example preselects its task only if a category and task with
@@ -86,7 +95,9 @@ The shared API layer (ADR 0020) provides `apiData` in `src/api/client.ts`
     문제가 생겼어요. 다시 시도해도 안 되면 문의해 주세요」; 5xx (including
     `MEDIA_UPLOAD_502`) or network → 「잠시 후 다시 시도해 주세요」. These
     follow ADR 0019's rule.
-- The 4/4 category badges show only names that match a `Field`.
+- The 4/4 category badges show only names that match a `Field` (「기타」 is
+  one, so it shows as a badge). In 「할 일」, a task named like its category
+  reads 「기타 (아래 내용 참고)」, since the work is described in 3/4.
 
 ## Rationale
 
@@ -99,8 +110,9 @@ The shared API layer (ADR 0020) provides `apiData` in `src/api/client.ts`
 
 ## Alternatives Considered
 
-- Showing 「기타」 with no tasks: rejected, the server needs at least one
-  specialty id.
+- Hiding 「기타」 for good, or sending a 「기타」 proposal with no specialty id:
+  rejected; the server needs at least one id, so the backend adds a 「기타」
+  specialty instead.
 - Infinite scroll for stores: rejected for now; the name search would only see
   loaded pages.
 - Uploading photos as soon as they are picked: rejected, see Rationale.

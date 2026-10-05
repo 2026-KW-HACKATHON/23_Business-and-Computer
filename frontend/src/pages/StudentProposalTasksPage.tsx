@@ -2,7 +2,12 @@ import { useState } from "react";
 import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import { AppImage, Button, Chip, FIELD_ICONS, StepIndicator, SubScreen } from "../components";
 import type { ImageName } from "../components";
-import { findSpecialtyByName, selectableCategories, useSpecialties } from "../features/specialty";
+import {
+  findSpecialtyByName,
+  implicitSpecialty,
+  selectableCategories,
+  useSpecialties,
+} from "../features/specialty";
 import type { SpecialtyCategory } from "../features/specialty";
 import {
   LoadNotice,
@@ -24,6 +29,7 @@ const FIELD_HINTS: Partial<Record<Field, string>> = {
   "개발·IT": "홈페이지·예약·엑셀",
   분석: "리뷰·설문·매출",
   "글쓰기·번역": "소개 글·외국어",
+  기타: "그 밖의 일",
 };
 
 function asField(name: string): Field | undefined {
@@ -43,8 +49,8 @@ interface Choice {
 
 /**
  * 피그마 「제안 보내기 2/4 - 분야·할 일」. 분야를 고르고 분야마다 해 드릴 일을 고른다.
- * 분야와 일은 GET /specialties 에서 온다. 「기타」처럼 고를 일이 없는 분류는 보이지 않는다
- * (서버가 할 일을 1개 이상 받는다, ADR 0021).
+ * 분야와 일은 GET /specialties 에서 온다. 고를 일이 없는 분류는 보이지 않는다 (서버가 할 일을
+ * 1개 이상 받는다). 「기타」처럼 일이 분류와 같은 이름으로 1개뿐이면 카드만 골라도 그 일이 골라진다 (ADR 0021).
  * 홈 「이런 제안은 어때요?」 예시로 들어오면 같은 이름의 분야와 일이 골라져 있다.
  */
 function StudentProposalTasksPage() {
@@ -87,17 +93,33 @@ function StudentProposalTasksPage() {
   const countOf = (categoryId: number) => picked.filter((p) => p.categoryId === categoryId).length;
   const isPicked = (specialtyId: number) => picked.some((p) => p.specialtyId === specialtyId);
 
-  // 분야를 빼면 그 분야에서 고른 일도 함께 뺀다
+  // 분야를 빼면 그 분야에서 고른 일도 함께 뺀다.
+  // 「기타」처럼 카드로 정해지는 일은 카드를 고를 때 함께 고른다
   const toggleCategory = (category: SpecialtyCategory) => {
     if (categoryIds.includes(category.id)) {
       setChoice({
         categoryIds: categoryIds.filter((id) => id !== category.id),
         picked: picked.filter((p) => p.categoryId !== category.id),
       });
-    } else {
-      setChoice({ categoryIds: [...categoryIds, category.id], picked });
+      return;
     }
+    const only = implicitSpecialty(category);
+    setChoice({
+      categoryIds: [...categoryIds, category.id],
+      picked:
+        only && !isPicked(only.id)
+          ? [
+              ...picked,
+              { specialtyId: only.id, name: only.name, categoryId: category.id, categoryName: category.name },
+            ]
+          : picked,
+    });
   };
+
+  // 할 일 칩을 보여줄 분류 (카드로 정해지는 분류는 뺀다)
+  const taskGroups = categories.filter(
+    (category) => categoryIds.includes(category.id) && !implicitSpecialty(category),
+  );
 
   const toggleTask = (task: PickedTask) => {
     setChoice({
@@ -130,7 +152,7 @@ function StudentProposalTasksPage() {
               <strong>고른 일 {picked.length}</strong>
               {picked.map((task) => (
                 <span key={task.specialtyId} className="student-new__picked-item">
-                  {task.categoryName} › {task.name}
+                  {task.name === task.categoryName ? task.name : `${task.categoryName} › ${task.name}`}
                   <button type="button" aria-label={`${task.name} 빼기`} onClick={() => toggleTask(task)}>
                     ✕
                   </button>
@@ -167,6 +189,13 @@ function StudentProposalTasksPage() {
               const selected = categoryIds.includes(category.id);
               const count = countOf(category.id);
               const field = asField(category.name);
+              const implicit = implicitSpecialty(category) !== undefined;
+              const sub =
+                selected && implicit
+                  ? "내용은 다음 단계에서 적어 주세요"
+                  : selected && count > 0
+                    ? `${count}개 골랐어요`
+                    : ((field && FIELD_HINTS[field]) ?? "");
               return (
                 <button
                   key={category.id}
@@ -190,51 +219,47 @@ function StudentProposalTasksPage() {
                     </span>
                   )}
                   <span className="student-new__field-name">{category.name}</span>
-                  <span className="student-new__field-sub">
-                    {selected && count > 0 ? `${count}개 골랐어요` : (field && FIELD_HINTS[field]) ?? ""}
-                  </span>
+                  <span className="student-new__field-sub">{sub}</span>
                 </button>
               );
             })}
           </div>
         )}
 
-        {categoryIds.length > 0 && (
+        {taskGroups.length > 0 && (
           <section className="student-new__tasks">
             <div className="student-new__tasks-head">
               <h2 className="student-new__tasks-title">해 드릴 일을 골라 주세요</h2>
               <span>여러 개 골라도 돼요</span>
             </div>
-            {categories
-              .filter((category) => categoryIds.includes(category.id))
-              .map((category) => (
-                <div key={category.id} className="student-new__group">
-                  <div className="student-new__group-head">
-                    <AppImage name={categoryIcon(category.name)} width={22} height={22} alt="" />
-                    <strong>{category.name}</strong>
-                    <span>{countOf(category.id)}개</span>
-                  </div>
-                  <div className="student-new__chips">
-                    {category.specialties.map((specialty) => (
-                      <Chip
-                        key={specialty.id}
-                        variant="outlined"
-                        tone="student"
-                        label={specialty.name}
-                        selected={isPicked(specialty.id)}
-                        onClick={() =>
-                          toggleTask({
-                            specialtyId: specialty.id,
-                            name: specialty.name,
-                            categoryId: category.id,
-                            categoryName: category.name,
-                          })
-                        }
-                      />
-                    ))}
-                  </div>
+            {taskGroups.map((category) => (
+              <div key={category.id} className="student-new__group">
+                <div className="student-new__group-head">
+                  <AppImage name={categoryIcon(category.name)} width={22} height={22} alt="" />
+                  <strong>{category.name}</strong>
+                  <span>{countOf(category.id)}개</span>
                 </div>
-              ))}
+                <div className="student-new__chips">
+                  {category.specialties.map((specialty) => (
+                    <Chip
+                      key={specialty.id}
+                      variant="outlined"
+                      tone="student"
+                      label={specialty.name}
+                      selected={isPicked(specialty.id)}
+                      onClick={() =>
+                        toggleTask({
+                          specialtyId: specialty.id,
+                          name: specialty.name,
+                          categoryId: category.id,
+                          categoryName: category.name,
+                        })
+                      }
+                    />
+                  ))}
+                </div>
+              </div>
+            ))}
           </section>
         )}
       </div>

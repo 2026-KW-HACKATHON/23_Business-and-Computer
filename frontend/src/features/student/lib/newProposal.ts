@@ -81,9 +81,14 @@ export function readNewProposalState(state: unknown): NewProposalState | undefin
   return { ...(value as NewProposalState), store };
 }
 
-/** 「메뉴판·가격표 디자인, 영어 번역」 */
+/**
+ * 「메뉴판·가격표 디자인, 영어 번역」. 「기타」처럼 분류와 이름이 같은 일은 무엇을 할지
+ * 3/4 내용에 적으므로 「기타 (아래 내용 참고)」로 보인다.
+ */
 export function proposalTaskSummary({ picked }: NewProposalState): string {
-  return picked.map((p) => p.name).join(", ");
+  return picked
+    .map((p) => (p.name === p.categoryName ? `${p.name} (아래 내용 참고)` : p.name))
+    .join(", ");
 }
 
 /** 고른 일의 대분류 이름 (겹치지 않게, 고른 순서대로) */
