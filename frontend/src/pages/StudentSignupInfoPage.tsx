@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { AppBar, Button, Checkbox, StepIndicator, TextField, UniversityField } from "../components";
-import { TermsSheet, isStudentInfoComplete, useStudentSignup } from "../features/signup";
+import { TermsSheet, isStudentInfoComplete, isStudentNumber, useStudentSignup } from "../features/signup";
 import "./SignupPage.css";
 import "./StudentSignupInfoPage.css";
 
@@ -10,6 +10,25 @@ function StudentSignupInfoPage() {
   const navigate = useNavigate();
   const { draft, update } = useStudentSignup();
   const [termsOpen, setTermsOpen] = useState(false);
+  // 학번 형식 오류는 칸을 벗어난 뒤에만 보여준다. 고쳐서 맞으면 다시 벗어날 때까지 숨긴다
+  const [studentNumberTouched, setStudentNumberTouched] = useState(false);
+  // 가입 저장(3/3)에서 이미 가입된 학번이라고 돌아온 번호면 바로 보여주고 고칠 때까지 막는다
+  const taken = draft.studentNumber !== "" && draft.studentNumber === draft.takenStudentNumber;
+  const studentNumberError = taken
+    ? "이미 가입된 학번이에요"
+    : studentNumberTouched && !isStudentNumber(draft.studentNumber)
+      ? "학번 10자리를 입력해 주세요"
+      : undefined;
+  const complete = isStudentInfoComplete(draft);
+
+  // 「다음」은 비활성이면 눌리지 않지만, 눌렸는데 틀렸다면 오류를 보여준다
+  const handleNext = () => {
+    if (!complete) {
+      setStudentNumberTouched(true);
+      return;
+    }
+    navigate("/signup/student/2");
+  };
 
   return (
     <div className="signup">
@@ -40,8 +59,16 @@ function StudentSignupInfoPage() {
             placeholder="학번"
             aria-label="학번"
             inputMode="numeric"
+            maxLength={10}
             value={draft.studentNumber}
-            onChange={(e) => update({ studentNumber: e.target.value.replace(/\D/g, "") })}
+            invalid={studentNumberError !== undefined}
+            errorText={studentNumberError}
+            onBlur={() => setStudentNumberTouched(true)}
+            onChange={(e) => {
+              const studentNumber = e.target.value.replace(/\D/g, "").slice(0, 10);
+              if (isStudentNumber(studentNumber)) setStudentNumberTouched(false);
+              update({ studentNumber });
+            }}
           />
         </div>
       </main>
@@ -60,8 +87,8 @@ function StudentSignupInfoPage() {
         <Button
           fullWidth
           tone="student"
-          disabled={!isStudentInfoComplete(draft)}
-          onClick={() => navigate("/signup/student/2")}
+          disabled={!complete}
+          onClick={handleNext}
         >
           다음
         </Button>

@@ -44,6 +44,7 @@ their role. The backend has no 「who am I」 API, but the access token carries 
 
 - Students stay on /home until the student home exists; then return its
   path from `landingPath` and drop the student case from `HomePage`.
-- Signup does not call the owner or student signup API (POST /auth/owner,
-  /auth/student) yet, so the token stays PENDING after the signup screens.
-  Wiring signup must save the new tokens it returns.
+- Student signup calls POST /auth/student and stores the STUDENT access
+  token with `saveAccessToken` (ADR 0019). Owner signup does not call
+  POST /auth/owner yet, so its token stays PENDING; wiring it must save the
+  new token the same way.

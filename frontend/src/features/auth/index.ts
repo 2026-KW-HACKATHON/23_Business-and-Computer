@@ -2,6 +2,7 @@
 export { socialLoginUrl, exchangeCookieForTokens } from "./api/authApi";
 export {
   saveTokens,
+  saveAccessToken,
   getAccessToken,
   clearTokens,
   isLoggedIn,

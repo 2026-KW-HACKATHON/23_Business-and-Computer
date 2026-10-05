@@ -12,6 +12,11 @@
   color: var(--color-student);
 }
 
+.text-field__trailing .student-signup-verify__change:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
 .student-signup-verify__timer {
   font-weight: 500;
   color: var(--color-danger);
@@ -32,4 +37,22 @@
   font-weight: 400;
   line-height: normal;
   color: var(--color-danger);
+}
+
+/* 발송 직후 재발송 카운트다운: 오류가 아니라 회색 안내 */
+.student-signup-verify__hint {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: normal;
+  color: var(--role-secondary);
+}
+
+/* 다시 들어왔을 때 30분 안에 인증한 메일 */
+.student-signup-verify__done {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: normal;
+  color: var(--color-success);
 }

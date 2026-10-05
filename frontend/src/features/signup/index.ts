@@ -2,6 +2,7 @@
 export { default as OwnerSignupProvider } from "./components/OwnerSignupProvider";
 export { default as StudentSignupProvider } from "./components/StudentSignupProvider";
 export { default as TermsSheet } from "./components/TermsSheet";
+export { fetchSpecialties } from "./api/signupApi";
 export { useOwnerSignup } from "./lib/ownerSignupContext";
 export { useStudentSignup } from "./lib/studentSignupContext";
 export {
@@ -9,19 +10,32 @@ export {
   formatBusinessNumber,
   isStoreInfoComplete,
 } from "./lib/businessInfo";
+export { PROFILE_PHOTO_ACCEPT, checkProfilePhoto } from "./lib/profilePhoto";
 export {
-  MOCK_VERIFICATION_CODE,
+  MAX_CODE_ATTEMPTS,
+  RESEND_COOLDOWN_MS,
   SCHOOL_EMAIL_DOMAIN,
   VERIFICATION_CODE_TTL_MS,
+  certificateStatuses,
   formatRemaining,
+  isEmailVerificationFresh,
   isSchoolEmail,
   isStudentInfoComplete,
+  isStudentNumber,
+  registerStudentSignup,
+  sendVerificationCode,
+  uploadSignupPhoto,
+  verifyCode,
 } from "./lib/studentInfo";
+export { EMPTY_CERTIFICATE } from "./types";
 export type {
   BusinessCheck,
   BusinessCheckResult,
   BusinessInfo,
   Certificate,
+  CertificateStatus,
   OwnerSignupDraft,
+  SpecialtyCategory,
   StudentSignupDraft,
+  StudentVerifyReturnState,
 } from "./types";

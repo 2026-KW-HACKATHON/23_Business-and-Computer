@@ -1,5 +1,6 @@
 import { Navigate, useNavigate } from "react-router-dom";
 import { AppImage, Button } from "../components";
+import { landingPath } from "../features/auth";
 import { useStudentSignup } from "../features/signup";
 import "./SignupPage.css";
 import "./SignupDonePage.css";
@@ -20,8 +21,8 @@ function StudentSignupDonePage() {
       </main>
 
       <footer className="signup__footer">
-        {/* 학생 홈(/student)은 아직 없어 만들어지면 연결된다 */}
-        <Button fullWidth tone="student" onClick={() => navigate("/student", { replace: true })}>
+        {/* 가입 때 받은 STUDENT 토큰 기준으로 첫 화면을 고른다 (ADR 0015) */}
+        <Button fullWidth tone="student" onClick={() => navigate(landingPath(), { replace: true })}>
           시작하기
         </Button>
       </footer>

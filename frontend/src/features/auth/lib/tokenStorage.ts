@@ -12,6 +12,16 @@ export function saveTokens({ accessToken, refreshToken }: TokenPair): void {
   localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
 }
 
+/**
+ * Stores a new access token from a signup call (role PENDING → STUDENT/OWNER).
+ * Those calls send the refresh token only as an HTTP-only cookie, and
+ * `/refresh` reads only that cookie, so the old stored refresh token is dropped.
+ */
+export function saveAccessToken(accessToken: string): void {
+  localStorage.setItem(ACCESS_TOKEN_KEY, accessToken);
+  localStorage.removeItem(REFRESH_TOKEN_KEY);
+}
+
 export function getAccessToken(): string | null {
   return localStorage.getItem(ACCESS_TOKEN_KEY);
 }
