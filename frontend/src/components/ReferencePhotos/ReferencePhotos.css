@@ -1,0 +1,30 @@
+.reference-photos {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.reference-photos__tile {
+  aspect-ratio: 1;
+  overflow: hidden;
+  border-radius: 12px;
+  background: var(--role-muted);
+}
+
+.reference-photos__link,
+.reference-photos__broken {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.reference-photos__image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}

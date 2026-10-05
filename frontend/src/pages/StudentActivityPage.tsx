@@ -14,11 +14,16 @@ import {
 import {
   APPLICATION_STATUS_LABEL,
   ApplicationSheet,
+  LoadNotice,
   STUDENT_PATHS,
   SettlementSummaryBox,
   currentDeadline,
   deadlineText,
-  useMyProposals,
+  proposalBadgeNames,
+  sentOnText,
+  sentProposalStatusLabel,
+  storeAddressText,
+  useSentProposals,
   useStores,
   useStudentApplications,
   useStudentRequest,
@@ -28,7 +33,7 @@ import {
   workStatusText,
 } from "../features/student";
 import type {
-  MyProposal,
+  SentProposal,
   StudentActivityTab,
   StudentApplication,
   StudentWork,
@@ -73,6 +78,7 @@ function StoreLine({ name, address }: { name: string; address?: string }) {
 /**
  * 피그마 「내 활동 - 지원한 의뢰 · 보낸 제안 · 진행 중 · 완료 (학생)」.
  * 위 요약 카드 4칸이 탭이고, 고른 탭은 주소(?tab=)에 남아 돌아와도 그대로다.
+ * 보낸 제안은 GET /me/proposals (ADR 0023). 나머지 탭은 아직 샘플 데이터다.
  */
 function StudentActivityPage() {
   const navigate = useNavigate();
@@ -80,7 +86,8 @@ function StudentActivityPage() {
   const [params, setParams] = useSearchParams();
   const tab = TABS.find((t) => t.tab === params.get("tab"))?.tab ?? "applied";
   const applications = useStudentApplications();
-  const proposals = useMyProposals();
+  const { load: proposalsLoad, reload: reloadProposals } = useSentProposals();
+  const proposals = proposalsLoad.status === "loaded" ? proposalsLoad.proposals : [];
   const works = useStudentWorks();
   const stores = useStores();
   const requests = useStudentRequests();
@@ -98,9 +105,10 @@ function StudentActivityPage() {
     .filter((w) => w.status === "completed")
     .sort((a, b) => (b.completedOn ?? "").localeCompare(a.completedOn ?? ""));
   const canceled = works.filter((w) => w.status === "canceled");
-  const counts: Record<StudentActivityTab, number> = {
+  // 보낸 제안을 불러오는 중이거나 실패하면 개수 대신 「-」
+  const counts: Record<StudentActivityTab, number | string> = {
     applied: applications.length,
-    proposals: proposals.length,
+    proposals: proposalsLoad.status === "loaded" ? proposals.length : "-",
     inProgress: inProgress.length,
     done: done.length,
   };
@@ -142,42 +150,33 @@ function StudentActivityPage() {
     );
   };
 
-  const proposalCard = (proposal: MyProposal) => {
-    const accepted = proposal.status === "accepted";
+  const proposalCard = (proposal: SentProposal) => {
+    const openDetail = () => navigate(STUDENT_PATHS.proposal(String(proposal.proposalId)));
+    const sentOn = sentOnText(proposal.createdAt);
     return (
-      <li key={proposal.id} className="student-activity__card">
+      <li key={proposal.proposalId} className="student-activity__card">
         <CardHead
           kind="proposal"
           title={proposal.title}
           right={
             <>
-              <span className="student-activity__chip">{accepted ? "수락됨" : "수락 대기 중"}</span>
-              <EmpathyCount count={proposal.empathyCount} empathized />
+              <span className="student-activity__chip">{sentProposalStatusLabel(proposal.status, proposal.jobStatus)}</span>
+              <EmpathyCount count={proposal.likeCount} empathized />
             </>
           }
         />
-        <div className="student-activity__meta">
-          <CategoryBadge field={proposal.field} />
+        <div className="student-activity__meta student-activity__meta--wrap">
+          {proposalBadgeNames(proposal.specialtyCategories).map((name) => (
+            <CategoryBadge key={name} field={name} />
+          ))}
+          {sentOn && <span>{sentOn}</span>}
         </div>
         <div className="student-activity__box student-activity__box--column">
-          <p className="student-activity__excerpt">{proposal.solution}</p>
-          <TextButton onClick={() => navigate(STUDENT_PATHS.proposal(proposal.id))}>상세보기</TextButton>
+          <p className="student-activity__excerpt">{proposal.proposedSolution}</p>
+          <TextButton onClick={openDetail}>상세보기</TextButton>
         </div>
         <div className="student-activity__divider" />
-        <StoreLine name={proposal.store.name} address={addressOf(proposal.store.id)} />
-        {accepted && proposal.workId && (
-          <>
-            <div className="student-activity__divider" />
-            <Button
-              tone="student"
-              size="medium"
-              fullWidth
-              onClick={() => navigate(STUDENT_PATHS.workStart(proposal.workId ?? ""))}
-            >
-              조건 확인하기
-            </Button>
-          </>
-        )}
+        <StoreLine name={proposal.store.storeName} address={storeAddressText(proposal.store.storeAddress)} />
       </li>
     );
   };
@@ -281,7 +280,7 @@ function StudentActivityPage() {
     </li>
   );
 
-  const listTitle = (label: string, count: number) => (
+  const listTitle = (label: string, count: number | string) => (
     <h2 className="student-activity__list-title">
       {label} <span>{count}</span>
     </h2>
@@ -313,6 +312,14 @@ function StudentActivityPage() {
           {tab === "inProgress" && inProgress.map(inProgressCard)}
           {tab === "done" && done.map(doneCard)}
         </ul>
+        {tab === "proposals" && proposalsLoad.status !== "loaded" && (
+          <LoadNotice
+            status={proposalsLoad.status}
+            loadingText="보낸 제안을 불러오는 중이에요"
+            errorText="보낸 제안을 불러오지 못했어요"
+            onRetry={reloadProposals}
+          />
+        )}
         {counts[tab] === 0 && <p className="student-activity__empty">아직 없어요</p>}
 
         {tab === "done" && canceled.length > 0 && (

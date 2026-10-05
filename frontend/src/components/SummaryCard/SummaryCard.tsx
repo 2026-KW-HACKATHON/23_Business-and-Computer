@@ -3,7 +3,8 @@ import "./SummaryCard.css";
 
 export interface SummaryItem {
   label: string;
-  count: number;
+  /** 아직 불러오는 중이면 「-」 같은 글자 */
+  count: number | string;
   /** 기본 「건」 */
   unit?: string;
 }

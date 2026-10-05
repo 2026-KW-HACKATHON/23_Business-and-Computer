@@ -2,6 +2,7 @@ import type { Field } from "../../types/field";
 import type { StoreCategory } from "../../types/storeCategory";
 import type { WorkKind } from "../../types/workKind";
 import type { ApplicationPlan, WorkPlanContent } from "../../types/workPlan";
+import type { SentProposal } from "./lib/sentProposals";
 
 /** 마감 단계. draft = 초안, final = 최종 */
 export type DeadlineStage = "draft" | "final";
@@ -333,18 +334,25 @@ export type StudentTodo =
 
 /** 기다리는 중 한 줄 */
 export type StudentWaitingItem =
-  | { type: "proposal"; proposal: MyProposal }
+  | { type: "proposal"; proposal: SentProposal }
   | { type: "application"; application: StudentApplication; request: StudentRequest };
 
 export interface StudentHome {
-  /** 이력(작업 · 지원 · 제안)이 하나도 없으면 할 일 대신 사용법 안내 */
-  firstVisit: boolean;
+  /**
+   * 이력(작업 · 지원 · 제안)이 하나도 없으면 할 일 대신 사용법 안내.
+   * 작업 · 지원이 없고 보낸 제안을 아직 못 불러왔으면(불러오는 중 · 실패) undefined (모름)
+   */
+  firstVisit: boolean | undefined;
   todos: StudentTodo[];
   /** 공감을 기다리는 다른 학생 제안 (공감 많은 순) */
   peerProposals: PeerProposal[];
   /** 사장님이 확인 중 (낸 결과물) */
   checking: StudentWork[];
+  /** 수락 대기 중인 보낸 제안 + 고르는 중인 지원. 보낸 제안은 불러온 뒤에만 들어간다 */
   waiting: StudentWaitingItem[];
+  /** 보낸 제안(GET /me/proposals)을 불러온 상태와 다시 시도 */
+  sentProposals: "loading" | "error" | "loaded";
+  reloadSentProposals: () => void;
   examples: ProposalExample[];
   /** 최근 끝난 것부터 */
   done: StudentWork[];
