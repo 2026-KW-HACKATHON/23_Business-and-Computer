@@ -1,13 +1,15 @@
-# 0025. Student 탐색 list calls GET /explore
+# 0025. Student 탐색 calls GET /explore and the job APIs
 
 ## Status
 
-Accepted. The student 탐색 list now reads the backend instead of the sample
-data of ADR 0018.
+Accepted. The student 탐색 list, 의뢰서 전체 보기, and 지원하기 now read and
+write the backend instead of the sample data of ADR 0018.
 
 ## Context
 
-The student 탐색 tab (/student/explore) read sample requests and proposals.
+The student 탐색 tab (/student/explore), 의뢰서 전체 보기
+(/student/requests/:requestId/full), and 지원하기
+(/student/requests/:requestId/apply) read sample requests and proposals.
 The backend (dev) has:
 
 - GET /explore?type&specialtyCategoryId&sort&size&cursor for any active
@@ -22,9 +24,20 @@ The backend (dev) has:
     specialtyCategories) or JOB (jobId, storeName, title, progressStage,
     status, draftDeadline, finalDeadline, specialtyCategories).
     specialtyCategories is [{ id, name, specialties: [{ id, name }] }].
+- GET /jobs/{jobId} for any active user in the same demo session; another
+  session's job is 404 JOB_404. Answer: id, title, description, budget,
+  specialtyCategories, draftDeadline, finalDeadline, revisionCount,
+  progressStage, status. storeName and the cancel fields come only for a
+  cancelled job's owner and selected student. There are no images.
+- POST /jobs/{jobId}/applications with { summary (≤255), workPlan (≤500),
+  deliveryMethod (≤500), deadlineAndPenaltyAgreed: true } → 201
+  { jobApplicationId }. Errors: 403 JOB_APPLICATION_403_STUDENT (not a
+  student), 404 JOB_404, 409 JOB_APPLICATION_409_STATUS (not OPEN),
+  409 JOB_APPLICATION_409_DUPLICATE (already applied), 400 for invalid input.
 - There is no title or store search, no 「liked by me」, no student name on
   proposal cards, and no budget or 「already applied」 on job cards. There is
-  no API to like a proposal.
+  no API to like a proposal. The job detail has no store name or address for
+  an open job and no 「already applied」.
 
 ## Decision
 
@@ -73,6 +86,36 @@ The backend (dev) has:
     a filled heart.
 - The description under the title reads 「가게 의뢰에 지원하고, 다른 학생의
   제안을 손님 눈으로 둘러보세요.」
+- **Job detail** (`src/pages/StudentRequestFullPage.tsx`): `useJobDetail`
+  (`src/features/explore/hooks/useJobDetail.ts`) calls `fetchJobDetail`
+  (`src/features/explore/api/jobApi.ts`). A non-numeric id shows
+  `StudentMissing` without a request; 404 shows `StudentMissing`; 401 goes to
+  /login; other failures show `LoadNotice` with 「다시 시도」. The screen
+  shows the title, one `CategoryBadge` per distinct category name, the
+  status text of the cards, the conditions (작업비 · 초안 마감 · 최종 마감 ·
+  수정 n회), 할 일 chips (specialty names), 맡기고 싶은 일 (description),
+  and the 「선택되면 이렇게 진행돼요」 steps. The footer shows only while
+  OPEN: 「지원하기」, or a disabled 「지원했어요」.
+- **Apply** (`src/pages/StudentApplyPage.tsx`): the same hook loads the job
+  for the summary box; a job that is not OPEN shows 「지원할 수 없는
+  의뢰예요」. `sendJobApplication` (`src/features/explore/lib/jobDetail.ts`)
+  trims the three fields and sends 한 줄 요약 → summary, 작업계획서 →
+  workPlan, 결과물 → deliveryMethod, with deadlineAndPenaltyAgreed true.
+  The inputs stop at 255 / 500 / 500 characters. A double tap sends once
+  (in-flight ref), a response after leaving the screen is dropped, and the
+  button reads 「보내는 중...」 while sending. Success opens the 「지원서를
+  보냈어요」 popup. Errors:
+  - 409 JOB_APPLICATION_409_DUPLICATE → 「이미 지원한 의뢰예요」;
+    409 JOB_APPLICATION_409_STATUS → 「모집이 끝난 의뢰예요」. Both keep the
+    button disabled.
+  - 403 JOB_APPLICATION_403_STUDENT → an alert, then `landingPath()`.
+  - 404 → `StudentMissing`; 401 → /login.
+  - 400 → 「입력한 내용을 다시 확인해 주세요」; anything else → 「잠시 후 다시
+    시도해 주세요」.
+- **Job detail slots**: `JobDetail` carries optional `storeName` (the store
+  box), `storeAddress` (its address line), and `applied` (「지원했어요」 on
+  the detail, 「이미 지원한 의뢰예요」 with a disabled button on apply). Each
+  shows only when the server sends it.
 
 ## Rationale
 
@@ -91,8 +134,8 @@ The backend (dev) has:
 
 ## Agent Guidance
 
-- The request detail, apply, peer-proposal detail, the home 「다른 학생들의
-  제안 공감하기」, and the owner 탐색 screens are wired to the API in later
-  steps; extend this ADR then.
+- The peer-proposal detail, the home 「다른 학생들의 제안 공감하기」, and the
+  owner 탐색 screens are wired to the API in later steps; extend this ADR
+  then.
 - When the backend adds a slot field above, only the type comment needs a
   look; the screens already show it.

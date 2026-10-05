@@ -46,14 +46,16 @@ interface TitleFieldProps {
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;
+  /** 최대 글자 수. 기본은 의뢰 · 제안 제목의 40자 */
+  maxLength?: number;
 }
 
-export function TitleField({ value, onChange, placeholder }: TitleFieldProps) {
+export function TitleField({ value, onChange, placeholder, maxLength = 40 }: TitleFieldProps) {
   return (
     <TextField
       className="request-field__input"
       value={value}
-      maxLength={40}
+      maxLength={maxLength}
       placeholder={placeholder}
       onChange={(e) => onChange(e.target.value)}
     />

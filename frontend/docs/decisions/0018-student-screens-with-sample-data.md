@@ -27,13 +27,13 @@ owner's applicant list).
   내 활동 counts, settlements, the portfolio, chat rows, and the profile's
   completed count, rating, and reviews are derived from them.
 - Facts shared with the owner sample keep the same ids and values: work-103
-  and work-090 (치킨플러스), the requests req-102 · 104 · 105 and the other
-  stores' req-502 · 504 · 506 · 507, and the proposals prop-501 · 503 · 505.
+  and work-090 (치킨플러스), the applied requests req-502 · 507, and the
+  proposals prop-501 · 503 · 505.
   김광운's owner-side profile matches the student's own profile. Where the
   Figma student sample conflicted with the owner sample, the student sample
   changed (store or title) and Figma was updated to match.
 - Demo state (agree to a request, submit a draft or revision, empathy, cancel
-  a proposal, send a proposal, apply, decline a request, edit the profile and
+  a proposal, send a proposal, decline a request, edit the profile and
   photo) lives in
   `src/features/student/hooks/studentStore.ts` and re-renders readers through
   `useSyncExternalStore`. A reload resets it.
@@ -59,9 +59,9 @@ owner's applicant list).
   「내 제안이에요」 with the empathy count only; they open my sent proposal and
   never appear under 「다른 학생들의 제안 공감하기」. A student cannot empathize
   with their own proposal.
-- Explore cards show the store name only, as on the owner side. Request
-  details, the store list, and my own proposals keep the store address, since
-  a student visits the store.
+- Explore cards show the store name only, as on the owner side. The store
+  list and my own proposals keep the store address, since a student visits
+  the store; request details show it when the server sends it (ADR 0025).
 - Popups added in code and Figma: 내 지원서 보기 · 지원 결과 보기, 의뢰서 거절
   확인, 사장님 문제 신고 - 메일 문의 안내.
 

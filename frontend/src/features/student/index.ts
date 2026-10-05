@@ -16,7 +16,6 @@ export { default as StudentTodoCarousel } from "./components/StudentTodoCarousel
 export { default as WorkSummary } from "./components/WorkSummary";
 export {
   agreeToWork,
-  applyToRequest,
   declineWork,
   markNotificationsRead,
   saveMyProfile,
@@ -34,7 +33,6 @@ export {
   useProposalExamples,
   useStore,
   useStores,
-  useStudentApplication,
   useStudentApplications,
   useStudentChatThread,
   useStudentChats,

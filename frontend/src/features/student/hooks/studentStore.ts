@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from "react";
 import { todayIsoDate } from "../../../lib/date";
-import type { ApplicationPlan, MyProfile, WorkFile } from "../types";
+import type { MyProfile, WorkFile } from "../types";
 
 /*
  * 시연 중에 바뀐 상태. 백엔드 연동 전까지 새로고침하면 처음으로 돌아간다.
@@ -24,7 +24,6 @@ export const demo = {
   declinedWorkIds: new Set<string>(),
   submissions: new Map<string, Submission>(),
   toggledEmpathyIds: new Set<string>(),
-  applications: new Map<string, { plan: ApplicationPlan; on: string }>(),
   /** 프로필 편집에서 저장한 값 */
   profile: null as ProfileEdit | null,
   /** 내 사진 (내 정보 · 프로필 수정 · 프로필 편집이 같이 본다) */
@@ -85,12 +84,6 @@ export function submitWork(workId: string, files: WorkFile[], message: string): 
 export function toggleEmpathy(proposalId: string): void {
   if (demo.toggledEmpathyIds.has(proposalId)) demo.toggledEmpathyIds.delete(proposalId);
   else demo.toggledEmpathyIds.add(proposalId);
-  changed();
-}
-
-/** 지원서 보내기 */
-export function applyToRequest(requestId: string, plan: ApplicationPlan): void {
-  demo.applications.set(requestId, { plan, on: todayIsoDate() });
   changed();
 }
 

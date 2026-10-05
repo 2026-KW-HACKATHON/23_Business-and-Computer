@@ -128,10 +128,7 @@ export interface StudentWork {
   };
 }
 
-/** 의뢰 진행. closed = 다른 학생이 뽑혀 모집이 끝남 */
-export type RequestProgress = "recruiting" | "closed" | "completed";
-
-/** 가게가 올린 의뢰 (탐색 · 의뢰서 전체 보기 · 지원하기) */
+/** 내가 지원한 가게 의뢰 (내 활동 「지원한 의뢰」 · 홈) */
 export interface StudentRequest {
   id: string;
   title: string;
@@ -141,12 +138,6 @@ export interface StudentRequest {
   draftDue: string;
   finalDue: string;
   revisionLimit: number;
-  /** 할 일 칩 */
-  tasks: string[];
-  /** 맡기고 싶은 일 */
-  description: string;
-  attachments: string[];
-  progress: RequestProgress;
 }
 
 /** 지원하기에서 쓰는 작업계획서 */

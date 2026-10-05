@@ -70,18 +70,6 @@ function currentWork(work: StudentWork): StudentWork {
 const works = () =>
   SAMPLE_WORKS.filter((w) => !demo.declinedWorkIds.has(w.id)).map(currentWork);
 
-function currentApplications(): StudentApplication[] {
-  const added = [...demo.applications.entries()]
-    .filter(([requestId]) => !SAMPLE_APPLICATIONS.some((a) => a.requestId === requestId))
-    .map(([requestId, { plan, on }]) => ({
-      requestId,
-      appliedOn: on,
-      status: "reviewing" as const,
-      plan,
-    }));
-  return [...added, ...SAMPLE_APPLICATIONS];
-}
-
 function currentProposals(): MyProposal[] {
   // 의뢰서를 거절했거나 동의해 작업이 시작된 제안은 보낸 제안에서 빠진다
   const settled = (workId?: string) =>
@@ -150,7 +138,7 @@ export function useStudentWork(workId: string | undefined): StudentWork | undefi
 
 // ---- 의뢰 · 지원 ----
 
-/** 지원한 의뢰까지 모든 의뢰 */
+/** 지원한 의뢰 */
 export function useStudentRequests(): StudentRequest[] {
   return SAMPLE_REQUESTS;
 }
@@ -160,13 +148,7 @@ export function useStudentRequest(requestId: string | undefined): StudentRequest
 }
 
 export function useStudentApplications(): StudentApplication[] {
-  useDemoVersion();
-  return currentApplications();
-}
-
-export function useStudentApplication(requestId: string | undefined): StudentApplication | undefined {
-  useDemoVersion();
-  return currentApplications().find((a) => a.requestId === requestId);
+  return SAMPLE_APPLICATIONS;
 }
 
 // ---- 제안 ----
