@@ -36,7 +36,7 @@ public class RequestLoggingFilter extends OncePerRequestFilter {
                                     FilterChain filterChain) throws ServletException, IOException {
         String tid = (String) request.getAttribute(TID_ATTRIBUTE);
         if (tid == null) {
-            tid = UUID.randomUUID().toString();
+            tid = UUID.randomUUID().toString().substring(0, 8);
             request.setAttribute(TID_ATTRIBUTE, tid);
         }
         MDC.put(RequestLogContext.TID_KEY, tid);
