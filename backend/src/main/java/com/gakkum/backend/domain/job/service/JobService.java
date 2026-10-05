@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -310,6 +311,22 @@ public class JobService {
     public Map<Long, JobApplication> getJobApplicationsByStudentProfileId(Long studentProfileId) {
         return jobApplicationRepository.findByStudentProfileId(studentProfileId).stream()
                 .collect(Collectors.toMap(JobApplication::getId, Function.identity()));
+    }
+
+    /**
+     * 주어진 의뢰 중 학생 본인이 지원한 의뢰 조회. 지원서 상태(대기·선정·거절)는 가리지 않는다
+     * @param studentProfileId
+     * @param jobIds
+     * @return 지원한 의뢰 ID, 없으면 빈 집합
+     */
+    @Transactional(readOnly = true)
+    public Set<Long> getAppliedJobIds(Long studentProfileId, Collection<Long> jobIds) {
+        if (jobIds.isEmpty()) {
+            return Set.of();
+        }
+        return jobApplicationRepository.findByStudentProfileIdAndJobIdIn(studentProfileId, jobIds).stream()
+                .map(JobApplication::getJobId)
+                .collect(Collectors.toSet());
     }
 
     @Transactional(readOnly = true)
