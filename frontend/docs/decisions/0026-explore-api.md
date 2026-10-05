@@ -126,8 +126,9 @@ The backend (dev) has:
   shows only when the server sends it.
 
 - **Peer-proposal detail** (`src/pages/StudentPeerProposalPage.tsx`,
-  /student/explore/proposals/:proposalId): the same `useSentProposalDetail`
-  as the sent-proposal detail, plus `useSentProposals` for 「mine」.
+  /student/explore/proposals/:proposalId): the shared `useProposalDetail`
+  (`src/features/proposal`, ADR 0025) as the sent-proposal detail, plus
+  `useSentProposals` for 「mine」.
   - A proposal in my sent list replaces the route with the sent-proposal
     detail, as the explore card does. While my sent list loads the screen
     shows the loading line; if that list fails the screen shows the proposal

@@ -9,6 +9,8 @@ public enum ErrorCode {
     DUPLICATE_SPECIALTY(HttpStatus.BAD_REQUEST, "SPECIALTY_400_DUPLICATE", "중복된 특기가 포함되어 있습니다."),
     BUSINESS_CATEGORY_NOT_FOUND(HttpStatus.BAD_REQUEST, "CATEGORY_400", "존재하지 않는 업종입니다."),
     JOB_NOT_FOUND(HttpStatus.NOT_FOUND, "JOB_404", "존재하지 않는 의뢰입니다."),
+    JOB_IMAGE_URL_INVALID(HttpStatus.BAD_REQUEST, "JOB_400_IMAGE_URL", "본인의 의뢰용으로 발급된 사진 URL이 아닙니다."),
+    JOB_IMAGE_NOT_UPLOADED(HttpStatus.CONFLICT, "JOB_409_IMAGE_NOT_UPLOADED", "업로드가 끝나지 않은 사진이 있습니다."),
     JOB_RESULT_NOT_FOUND(HttpStatus.NOT_FOUND, "JOB_RESULT_404", "조회할 수 있는 결과물이 없습니다."),
     JOB_SUBMISSION_NOT_FOUND(HttpStatus.NOT_FOUND, "JOB_SUBMISSION_404", "검토 대기 중인 제출물이 없습니다."),
     JOB_SUBMISSION_FORBIDDEN(HttpStatus.FORBIDDEN, "JOB_SUBMISSION_403", "의뢰에 매칭된 학생만 작업물을 제출할 수 있습니다."),

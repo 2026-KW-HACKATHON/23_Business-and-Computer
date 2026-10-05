@@ -5,6 +5,7 @@ import {
   CategoryBadge,
   FlowBar,
   InfoRows,
+  LoadNotice,
   ReferencePhotos,
   RoleAvatar,
   SubScreen,
@@ -12,20 +13,17 @@ import {
   WorkPlan,
 } from "../components";
 import {
-  LoadNotice,
   STUDENT_PATHS,
   StoreBox,
   StudentMissing,
-  expectedDaysText,
   peerRecord,
-  proposalBadgeNames,
   sentOnText,
   sentProposalFlowSteps,
   sentProposalStatusLabel,
   storeAddressText,
-  useSentProposalDetail,
   useSentProposals,
 } from "../features/student";
+import { expectedDaysText, proposalBadgeNames, useProposalDetail } from "../features/proposal";
 import { useBack } from "../hooks/useBack";
 import { formatWon } from "../lib/money";
 import "./StudentDetailPage.css";
@@ -40,7 +38,7 @@ import { studentTitle } from "../lib/korean";
 function StudentPeerProposalPage() {
   const { proposalId } = useParams();
   const back = useBack(STUDENT_PATHS.explore);
-  const { load, reload } = useSentProposalDetail(proposalId);
+  const { load, reload } = useProposalDetail(proposalId);
   const { load: sent } = useSentProposals();
 
   const proposal = load.status === "loaded" ? load.proposal : undefined;

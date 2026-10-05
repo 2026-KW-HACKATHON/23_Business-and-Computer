@@ -13,7 +13,6 @@ import {
 import type { ExploreSort } from "../features/explore";
 import {
   ExploreTabs,
-  LoadNotice,
   PeerProposalCard,
   RequestCard,
   STUDENT_PATHS,
@@ -24,6 +23,7 @@ import { FIELDS } from "../types/field";
 import type { Field } from "../types/field";
 import { useDragScroll } from "../hooks/useDragScroll";
 import "./StudentExplorePage.css";
+import { LoadNotice } from "../components";
 
 /**
  * 피그마 「학생 탐색」. GET /explore 의 의뢰 · 제안을 종류 · 분야 · 정렬로 서버에서 거르고,

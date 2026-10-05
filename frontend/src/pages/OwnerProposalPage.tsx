@@ -1,130 +1,198 @@
 import { useNavigate, useParams } from "react-router-dom";
 import {
   AppImage,
-  AttachmentTiles,
   Button,
   CategoryBadge,
   FlowBar,
   InfoRows,
+  LoadNotice,
+  ReferencePhotos,
   RoleAvatar,
   SubScreen,
-  TextButton,
   WorkKindIcon,
   WorkPlan,
 } from "../components";
 import {
   OWNER_PATHS,
   OwnerMissing,
-  flowSteps,
-  studentRecord,
-  useOwnerProposal,
+  proposalStudentRecord,
+  receivedOnText,
+  receivedProposalFlowSteps,
+  receivedProposalStatusLabel,
+  studentMetaText,
 } from "../features/owner";
+import {
+  estimatedDeadlineText,
+  expectedDaysText,
+  proposalBadgeNames,
+  useProposalDetail,
+} from "../features/proposal";
 import { useBack } from "../hooks/useBack";
 import { formatMonthDay } from "../lib/date";
 import { formatWon } from "../lib/money";
 import "./OwnerDetailPage.css";
 import "./OwnerProposalPage.css";
+import { studentTitle } from "../lib/korean";
 
-/** 피그마 「받은 제안 상세」. 「거절하기」 · 「의뢰하기」 */
+/**
+ * 피그마 「받은 제안 상세」. GET /proposals/{id} (ADR 0025).
+ * 결제한 제안(AWAITING_START · ACCEPTED)은 확정된 작업 조건(agreement)을 보인다.
+ * 「의뢰하기」는 결정 대기(PENDING)일 때만 보인다.
+ */
 function OwnerProposalPage() {
-  const { proposalId = "" } = useParams();
+  const { proposalId } = useParams();
   const navigate = useNavigate();
-  const back = useBack(OWNER_PATHS.home);
-  const proposal = useOwnerProposal(proposalId);
+  const back = useBack(OWNER_PATHS.activity("proposals"));
+  const { load, reload } = useProposalDetail(proposalId);
 
-  if (!proposal) return <OwnerMissing title="받은 제안" onBack={back} />;
+  if (load.status === "notFound") return <OwnerMissing title="받은 제안" onBack={back} />;
 
-  const { student } = proposal;
+  const proposal = load.status === "loaded" ? load.proposal : undefined;
+  const agreement = proposal?.agreement ?? undefined;
+  const jobStatus = agreement?.jobStatus;
+  const steps = proposal && receivedProposalFlowSteps(proposal.status, jobStatus);
+  const pending = proposal?.status === "PENDING";
+  const estimated = proposal && pending ? estimatedDeadlineText(proposal) : undefined;
+  const showAgreement =
+    agreement && (proposal?.status === "AWAITING_START" || proposal?.status === "ACCEPTED");
+  const photos = proposal?.referenceImageUrls ?? [];
+  const receivedOn = proposal && receivedOnText(proposal.createdAt);
+  const student = proposal?.student;
+  const studentMeta = student && studentMetaText(student.studentNumber, student.major);
 
   return (
     <SubScreen
       title="받은 제안"
       onBack={back}
       footer={
-        <div className="owner-detail__actions">
-          {/* 거절은 백엔드 연동 때 제안을 REJECTED 로 바꾸고 돌아간다 */}
-          <Button variant="secondary" onClick={back}>
-            거절하기
+        proposal && pending ? (
+          <Button fullWidth onClick={() => navigate(OWNER_PATHS.proposalAccept(String(proposal.proposalId)))}>
+            의뢰하기
           </Button>
-          <Button onClick={() => navigate(OWNER_PATHS.proposalAccept(proposal.id))}>의뢰하기</Button>
-        </div>
+        ) : (
+          <Button fullWidth onClick={back}>
+            확인
+          </Button>
+        )
       }
     >
-      <div className="owner-detail owner-proposal">
-        <div className="owner-detail__heading">
-          <div className="owner-detail__title-row">
-            <WorkKindIcon kind="proposal" size={28} />
-            <h2 className="owner-detail__title">{proposal.title}</h2>
-          </div>
-          <div className="owner-detail__meta">
-            <CategoryBadge field={proposal.field} />
-            {formatMonthDay(proposal.receivedOn)} 도착
-          </div>
-        </div>
+      {load.status !== "loaded" && (
+        <LoadNotice
+          status={load.status}
+          loadingText="제안을 불러오는 중이에요"
+          errorText="제안을 불러오지 못했어요"
+          onRetry={reload}
+        />
+      )}
 
-        <FlowBar steps={flowSteps("제안", 0, "결정해 주세요")} />
+      {proposal && student && (
+        <div className="owner-detail owner-proposal">
+          <div className="owner-detail__heading">
+            <div className="owner-detail__title-row">
+              <WorkKindIcon kind="proposal" size={28} />
+              <h2 className="owner-detail__title">{proposal.title}</h2>
+            </div>
+            <div className="owner-detail__meta owner-proposal__meta">
+              <span className="owner-proposal__chip">
+                {receivedProposalStatusLabel(proposal.status, jobStatus)}
+              </span>
+              {proposalBadgeNames(proposal.specialtyCategories).map((name) => (
+                <CategoryBadge key={name} field={name} />
+              ))}
+              {receivedOn && <span>{receivedOn}</span>}
+            </div>
+          </div>
 
-        <div className="owner-proposal__empathy">
-          <AppImage name="iconHeart" width={24} alt="" />
-          <div>
-            <strong className="owner-proposal__empathy-title">
-              학생 손님 {proposal.empathyCount}명이 공감했어요
-            </strong>
-            <p className="owner-proposal__empathy-sub">
-              가게를 이용하는 학생들도 필요하다고 느낀 제안이에요
+          {steps && <FlowBar steps={steps} />}
+
+          <div className="owner-proposal__empathy">
+            <AppImage name="iconHeart" width={24} alt="" />
+            <div>
+              <strong className="owner-proposal__empathy-title">
+                학생 손님 {proposal.likeCount}명이 공감했어요
+              </strong>
+              <p className="owner-proposal__empathy-sub">
+                가게를 이용하는 학생들도 필요하다고 느낀 제안이에요
+              </p>
+            </div>
+          </div>
+
+          <div className="owner-proposal__student">
+            <RoleAvatar role="student" />
+            <div className="owner-proposal__student-info">
+              <strong className="owner-proposal__student-name">{studentTitle(student.name)}</strong>
+              <span className="owner-proposal__student-sub">
+                {[studentMeta, proposalStudentRecord(student)].filter(Boolean).join("\n")}
+              </span>
+            </div>
+          </div>
+
+          {showAgreement && agreement && (
+            <section className="owner-detail__section">
+              <h2 className="owner-detail__section-title">정한 작업 조건</h2>
+              <div className="owner-detail__box">
+                <InfoRows
+                  rows={[
+                    { label: "작업비", value: formatWon(agreement.budget) },
+                    { label: "초안 마감", value: formatMonthDay(agreement.draftDeadline) },
+                    { label: "최종 마감", value: formatMonthDay(agreement.finalDeadline) },
+                    { label: "수정 횟수", value: `${agreement.revisionCount}회` },
+                  ]}
+                />
+              </div>
+              {agreement.messageToStudent?.trim() && (
+                <>
+                  <h3 className="owner-proposal__message-title">학생에게 한마디</h3>
+                  <p className="owner-detail__text">{agreement.messageToStudent}</p>
+                </>
+              )}
+            </section>
+          )}
+
+          <section className="owner-detail__section">
+            <h2 className="owner-detail__section-title">손님 눈으로 본 문제</h2>
+            <p className="owner-detail__text">{proposal.customerProblem}</p>
+          </section>
+
+          <section className="owner-detail__section">
+            <h2 className="owner-detail__section-title">이렇게 바꿔 드릴게요</h2>
+            <p className="owner-detail__text">{proposal.proposedSolution}</p>
+          </section>
+
+          <section className="owner-detail__section">
+            <h2 className="owner-detail__section-title">작업계획서</h2>
+            <WorkPlan plan={proposal.workPlan} />
+          </section>
+
+          <section className="owner-detail__section">
+            <h2 className="owner-detail__section-title">희망 작업비 · 예상 기간</h2>
+            <div className="owner-detail__box">
+              <InfoRows
+                size="large"
+                rows={[
+                  { label: "희망 작업비", value: formatWon(proposal.proposedFee) },
+                  { label: "예상 기간", value: expectedDaysText(proposal.draftDays, proposal.finalDays) },
+                ]}
+              />
+            </div>
+            {estimated && <p className="owner-detail__footnote">{estimated}</p>}
+          </section>
+
+          {photos.length > 0 && (
+            <section className="owner-detail__section">
+              <h2 className="owner-detail__section-title">참고 사진</h2>
+              <ReferencePhotos urls={photos} />
+            </section>
+          )}
+
+          {pending && (
+            <p className="owner-detail__footnote">
+              「의뢰하기」를 누르면 이 제안으로 의뢰서를 만들어요. 작업비는 학생이 제안한 금액이고,
+              수정 횟수는 의뢰할 때 정해요. 마감일은 결제한 날부터 학생이 제안한 기간으로 정해져요.
             </p>
-          </div>
+          )}
         </div>
-
-        <div className="owner-proposal__student">
-          <RoleAvatar role="student" />
-          <div className="owner-proposal__student-info">
-            <strong className="owner-proposal__student-name">{student.name} 학생</strong>
-            <span className="owner-proposal__student-sub">
-              {`${student.department} ${student.year}\n${studentRecord(student)}`}
-            </span>
-          </div>
-          <TextButton onClick={() => navigate(OWNER_PATHS.student(student.id))}>프로필 보기</TextButton>
-        </div>
-
-        <section className="owner-detail__section">
-          <h2 className="owner-detail__section-title">손님 눈으로 본 문제</h2>
-          <p className="owner-detail__text">{proposal.problem}</p>
-        </section>
-
-        <section className="owner-detail__section">
-          <h2 className="owner-detail__section-title">이렇게 바꿔 드릴게요</h2>
-          <p className="owner-detail__text">{proposal.solution}</p>
-        </section>
-
-        <section className="owner-detail__section">
-          <h2 className="owner-detail__section-title">작업계획서</h2>
-          <WorkPlan plan={proposal.plan} />
-        </section>
-
-        <section className="owner-detail__section">
-          <h2 className="owner-detail__section-title">희망 작업비 · 예상 기간</h2>
-          <div className="owner-detail__box">
-            <InfoRows
-              size="large"
-              rows={[
-                { label: "희망 작업비", value: formatWon(proposal.wishBudget) },
-                { label: "예상 기간", value: `${proposal.expectedDays}일` },
-              ]}
-            />
-          </div>
-        </section>
-
-        <section className="owner-detail__section">
-          <h2 className="owner-detail__section-title">참고 사진</h2>
-          <AttachmentTiles names={proposal.attachments} />
-        </section>
-
-        <p className="owner-detail__footnote">
-          「의뢰하기」를 누르면 이 제안과 희망 작업비를 바탕으로 의뢰서를 만들어요. 마감일과 수정
-          횟수는 그때 정해요.
-        </p>
-      </div>
+      )}
     </SubScreen>
   );
 }

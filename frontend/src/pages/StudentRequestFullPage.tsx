@@ -9,11 +9,12 @@ import {
   WorkKindIcon,
 } from "../components";
 import { categoryNames, jobStatusLabel, jobTaskNames, useJobDetail } from "../features/explore";
-import { LoadNotice, STUDENT_PATHS, StoreBox, StudentMissing, flowSteps } from "../features/student";
+import { STUDENT_PATHS, StoreBox, StudentMissing, flowSteps } from "../features/student";
 import { useBack } from "../hooks/useBack";
 import { formatMonthDay, formatMonthDayWeekday } from "../lib/date";
 import { formatWon } from "../lib/money";
 import "./StudentDetailPage.css";
+import { LoadNotice } from "../components";
 
 /**
  * 피그마 「의뢰서 전체 보기」(학생). GET /jobs/{id} (ADR 0026).

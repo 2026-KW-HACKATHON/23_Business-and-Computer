@@ -1,19 +1,13 @@
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { landingPath } from "../../auth";
-import { loadSentProposalDetail, loadSentProposals, parseProposalId } from "../lib/sentProposals";
-import type { SentProposal, SentProposalDetail } from "../lib/sentProposals";
+import { loadSentProposals } from "../lib/sentProposals";
+import type { SentProposal } from "../lib/sentProposals";
 
 export type SentProposalsLoad =
   | { status: "loading" }
   | { status: "error" }
   | { status: "loaded"; proposals: SentProposal[] };
-
-export type SentProposalDetailLoad =
-  | { status: "loading" }
-  | { status: "error" }
-  | { status: "notFound" }
-  | { status: "loaded"; proposal: SentProposalDetail };
 
 /**
  * 내가 보낸 제안 목록 (GET /me/proposals, 최신순). 내 활동 · 홈 · 내 정보가 함께 쓴다.
@@ -48,47 +42,5 @@ export function useSentProposals(): { load: SentProposalsLoad; reload: () => voi
     setRequest((n) => n + 1);
   }, []);
 
-  return { load, reload };
-}
-
-/**
- * 보낸 제안 하나 (GET /proposals/{id}). 주소의 id 가 숫자가 아니면 요청하지 않고 notFound.
- * 401 은 /login 으로 보낸다. 다른 id 로 바뀌거나 reload 하면 응답이 올 때까지 loading 이다.
- */
-export function useSentProposalDetail(proposalId: string | undefined): {
-  load: SentProposalDetailLoad;
-  reload: () => void;
-} {
-  const navigate = useNavigate();
-  const id = parseProposalId(proposalId);
-  const [request, setRequest] = useState(0);
-  // 어느 요청(id · 다시 시도 횟수)의 결과인지 함께 둬서 지난 결과를 보이지 않는다
-  const key = `${id}:${request}`;
-  const [result, setResult] = useState<{ key: string; load: SentProposalDetailLoad }>();
-
-  useEffect(() => {
-    if (id === undefined) return;
-    let active = true;
-    void loadSentProposalDetail(id).then((loaded) => {
-      if (!active) return;
-      if (loaded.status === "unauthorized") {
-        navigate("/login", { replace: true });
-        return;
-      }
-      setResult({ key, load: loaded.status === "loaded" ? loaded : { status: loaded.status } });
-    });
-    return () => {
-      active = false;
-    };
-  }, [id, key, navigate]);
-
-  const reload = useCallback(() => setRequest((n) => n + 1), []);
-
-  const load: SentProposalDetailLoad =
-    id === undefined
-      ? { status: "notFound" }
-      : result?.key === key
-        ? result.load
-        : { status: "loading" };
   return { load, reload };
 }

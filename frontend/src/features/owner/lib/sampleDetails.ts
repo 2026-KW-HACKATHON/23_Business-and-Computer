@@ -1,4 +1,4 @@
-import type { OwnerChatThread, OwnerProposal, OwnerRequest, OwnerWork } from "../types";
+import type { OwnerChatThread, OwnerRequest, OwnerWork } from "../types";
 import { day, dayAt, minutesAgo, yesterdayAt } from "../../../lib/sampleTime";
 
 /*
@@ -223,32 +223,6 @@ export const SAMPLE_WORKS: OwnerWork[] = [
       reason: "작업이 필요없어졌어요.",
       message: "가게 사정으로 간판 교체를 미루게 됐어요. 죄송해요.",
     },
-  },
-];
-
-export const SAMPLE_PROPOSALS: OwnerProposal[] = [
-  {
-    id: "prop-201",
-    title: "카카오 맵 수정",
-    field: "홍보",
-    receivedOn: day(0),
-    empathyCount: 27,
-    student: {
-      id: "student-nuri",
-      name: "박누리",
-      department: "미디어커뮤니케이션학부",
-      year: "21학번",
-      rating: 4.8,
-      completedCount: 3,
-    },
-    problem:
-      "가게 메뉴판이나 가격이 카카오 맵에서 뜨는 거랑 달라요. 지도를 보고 온 손님이 가격이 다르다고 당황하는 걸 봤어요.",
-    solution:
-      "카카오 맵의 메뉴·가격·영업시간을 지금 메뉴판과 똑같이 고치고, 대표 사진 3장을 새로 찍어 올려 드릴게요.",
-    plan: "카카오 맵 정보를 지금 메뉴판과 똑같이 맞추고, 대표 사진을 새로 올려 드릴게요.\n· 방법: 메뉴판을 사진으로 찍어 메뉴 이름·가격·영업시간을 하나씩 대조하고, 틀린 곳을 카카오 맵 사장님 페이지에서 고쳐요.\n· 사진: 손님이 많이 찾는 메뉴 3개를 밝게 찍어 대표 사진으로 올려요.\n· 일정: 수락 후 1일 안에 초안(고칠 목록과 사진)을 보내 드리고, 확인해 주시면 2일 안에 반영해요.\n· 결과물: 고친 카카오 맵 화면 캡처와 원본 사진 파일",
-    wishBudget: 30000,
-    expectedDays: 3,
-    attachments: ["카카오맵_캡처.png", "IMG_4821.jpg"],
   },
 ];
 

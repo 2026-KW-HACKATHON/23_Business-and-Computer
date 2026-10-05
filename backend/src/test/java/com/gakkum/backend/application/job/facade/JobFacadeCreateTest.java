@@ -20,6 +20,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InOrder;
 
 import com.gakkum.backend.application.job.dto.JobCreateRequest;
+import com.gakkum.backend.domain.media.service.MediaService;
 import com.gakkum.backend.domain.certificate.service.CertificateService;
 import com.gakkum.backend.domain.chat.service.ChatAttachmentPolicy;
 import com.gakkum.backend.domain.job.client.JobSubmissionFileStorageClient;
@@ -53,7 +54,7 @@ class JobFacadeCreateTest {
             userService, new OwnerService(ownerRepository), jobService, mock(SpecialtyCategoryService.class),
             specialtyService, mock(StudentService.class),
             mock(JobSubmissionFileStorageClient.class), mock(ChatAttachmentPolicy.class), mock(PaymentService.class),
-                mock(ReviewService.class), mock(CertificateService.class), mock(ProposalService.class));
+                mock(ReviewService.class), mock(CertificateService.class), mock(ProposalService.class), mock(MediaService.class));
 
     @Test
     @DisplayName("의뢰 생성 시 퍼사드가 특기 ID를 먼저 검증한 뒤 사업주 프로필 ID로 의뢰 생성을 맡긴다")

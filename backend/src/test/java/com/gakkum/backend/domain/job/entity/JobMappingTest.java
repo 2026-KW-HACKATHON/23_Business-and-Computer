@@ -35,7 +35,7 @@ class JobMappingTest {
             Table jobs = metadata.getEntityBinding(Job.class.getName()).getTable();
             assertThat(jobs.getName()).isEqualTo("jobs");
             assertNotNull(jobs, "owner_profile_id", "title", "description", "budget", "draft_deadline",
-                    "final_deadline", "revision_count", "status");
+                    "final_deadline", "revision_count", "reference_image_urls", "status");
             assertThat(jobs.getColumn(new Column("selected_student_profile_id")).isNullable()).isTrue();
             assertThat(jobs.getColumn(new Column("completed_at")).isNullable()).isTrue();
             assertThat(jobs.getColumn(new Column("completed_at")).getSqlType(metadata)).isEqualTo("timestamp(6)");
@@ -45,6 +45,8 @@ class JobMappingTest {
             assertThat(jobs.getColumn(new Column("final_deadline")).getSqlType(metadata)).isEqualTo("date");
             assertThat(jobs.getColumn(new Column("revision_count")).getSqlType(metadata)).isEqualTo("integer");
             assertThat(jobs.getColumn(new Column("status")).getLength()).isEqualTo(30L);
+
+            assertThat(jobs.getColumn(new Column("reference_image_urls")).getSqlType(metadata)).isEqualTo("jsonb");
 
             Table specialties = metadata.getEntityBinding(JobSpecialty.class.getName()).getTable();
             assertThat(specialties.getName()).isEqualTo("job_specialties");

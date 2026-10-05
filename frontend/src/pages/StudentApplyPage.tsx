@@ -12,12 +12,13 @@ import {
 } from "../components";
 import { landingPath } from "../features/auth";
 import { JOB_APPLICATION_MAX_LENGTH, sendJobApplication, useJobDetail } from "../features/explore";
-import { LoadNotice, STUDENT_PATHS, StudentMissing } from "../features/student";
+import { STUDENT_PATHS, StudentMissing } from "../features/student";
 import { useBack } from "../hooks/useBack";
 import { formatMonthDay } from "../lib/date";
 import { formatWon } from "../lib/money";
 import "./StudentDetailPage.css";
 import "./StudentApplyPage.css";
+import { LoadNotice } from "../components";
 
 type SendError = "duplicate" | "closed" | "invalidInput" | "retry";
 
