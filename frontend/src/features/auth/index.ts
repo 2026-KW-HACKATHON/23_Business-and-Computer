@@ -11,6 +11,7 @@ export { startDemo, switchDemoRole } from "./lib/demo";
 export type { DemoLoginResult } from "./lib/demo";
 export { useDemoRoleSwitch, useIsDemo } from "./hooks/useDemoSession";
 export { default as DemoSessionStrip } from "./components/DemoSessionStrip";
+export { default as RoleRouteGuard } from "./components/RoleRouteGuard";
 export { getUserRole, landingPath } from "./lib/session";
 export type { UserRole } from "./lib/session";
 export type { SocialProvider } from "./types";
