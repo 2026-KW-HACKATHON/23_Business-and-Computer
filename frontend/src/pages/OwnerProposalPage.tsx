@@ -68,7 +68,7 @@ function OwnerProposalPage() {
           <AppImage name="iconHeart" width={24} alt="" />
           <div>
             <strong className="owner-proposal__empathy-title">
-              광운대생 손님 {proposal.empathyCount}명이 공감했어요
+              학생 손님 {proposal.empathyCount}명이 공감했어요
             </strong>
             <p className="owner-proposal__empathy-sub">
               가게를 이용하는 학생들도 필요하다고 느낀 제안이에요

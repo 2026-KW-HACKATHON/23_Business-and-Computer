@@ -1,7 +1,20 @@
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { AppImage, Button, Chip, StarRating, SubScreen, TextButton } from "../components";
-import { OWNER_PATHS, OwnerMissing, TextAreaField, useOwnerWork } from "../features/owner";
+import {
+  AppImage,
+  Button,
+  Chip,
+  StarRating,
+  SubScreen,
+  TextAreaField,
+  TextButton,
+} from "../components";
+import {
+  OWNER_PATHS,
+  OwnerMissing,
+  markOwnerWorkReviewed,
+  useOwnerWork,
+} from "../features/owner";
 import { useBack } from "../hooks/useBack";
 import "./OwnerReviewPage.css";
 
@@ -40,9 +53,10 @@ function OwnerReviewPage() {
           <Button
             className="owner-review__submit"
             disabled={rating === 0}
-            onClick={() =>
-              navigate(OWNER_PATHS.workReviewDone(work.id), { replace: true, state: { rating } })
-            }
+            onClick={() => {
+              markOwnerWorkReviewed(work.id);
+              navigate(OWNER_PATHS.workReviewDone(work.id), { replace: true, state: { rating } });
+            }}
           >
             후기 남기기
           </Button>

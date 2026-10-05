@@ -10,4 +10,8 @@ import com.gakkum.backend.domain.job.entity.JobApplicationStatus;
 
 public interface JobApplicationRepository extends JpaRepository<JobApplication, Long> {
     List<JobApplication> findByJobIdInAndStatus(Collection<Long> jobIds, JobApplicationStatus status);
+
+    List<JobApplication> findByStudentProfileId(Long studentProfileId);
+
+    boolean existsByJobIdAndStudentProfileId(Long jobId, Long studentProfileId);
 }

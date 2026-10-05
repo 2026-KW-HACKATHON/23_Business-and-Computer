@@ -55,9 +55,12 @@ class JobMappingTest {
 
             Table applications = metadata.getEntityBinding(JobApplication.class.getName()).getTable();
             assertThat(applications.getName()).isEqualTo("job_applications");
-            assertNotNull(applications, "student_profile_id", "job_id", "status");
-            assertThat(applications.getColumn(new Column("content")).isNullable()).isTrue();
-            assertThat(applications.getColumn(new Column("content")).getSqlType(metadata)).isEqualTo("TEXT");
+            assertNotNull(applications, "student_profile_id", "job_id", "summary", "work_plan", "delivery_method",
+                    "status");
+            assertThat(applications.getColumn(new Column("content"))).isNull();
+            assertThat(applications.getColumn(new Column("summary")).getLength()).isEqualTo(255L);
+            assertThat(applications.getColumn(new Column("work_plan")).getLength()).isEqualTo(500L);
+            assertThat(applications.getColumn(new Column("delivery_method")).getLength()).isEqualTo(500L);
             assertThat(applications.getColumn(new Column("status")).getLength()).isEqualTo(30L);
             assertThat(applications.getUniqueKeys()).containsKey("job_applications_job_id_student_profile_id_key");
             assertThat(applications.getUniqueKey("job_applications_job_id_student_profile_id_key").getColumns())

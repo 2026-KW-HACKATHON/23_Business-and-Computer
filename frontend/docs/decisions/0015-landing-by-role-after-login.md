@@ -19,10 +19,14 @@ their role. The backend has no 「who am I」 API, but the access token carries 
   claim from the stored access token (no signature check; the backend still
   checks every request).
 - `landingPath` picks the first screen: no token → /login, PENDING →
-  /signup/role, OWNER → /owner, anything else → /home.
+  /signup/role, OWNER → /owner, STUDENT → /home. A token whose role cannot
+  be read (or is unknown) is cleared and the user goes to /login, so an owner
+  never ends up on the student /home by accident. (Updated in PR #101; before,
+  anything else went to /home.)
 - `CookiePage` and `IntroPage` go to `landingPath()`. `HomePage` redirects
-  owners and pending users the same way, so the catch-all route also lands
-  on the right screen.
+  owners and pending users the same way. The catch-all route renders
+  `src/pages/LandingRedirect.tsx`, which goes straight to `landingPath()`
+  instead of passing through /home (PR #101).
 - Social-login tokens arrive as `ROLE_ROLE_PENDING` (the prefix is added
   twice on the backend), while signup tokens use `ROLE_OWNER`. Every leading
   `ROLE_` is stripped so both forms work.

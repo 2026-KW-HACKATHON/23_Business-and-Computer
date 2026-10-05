@@ -5,7 +5,7 @@ interface TrustChipsProps {
   noShowCount: number;
 }
 
-/** 학생 신뢰 표시: 광운대 인증 · 제안 N회 · 노쇼 N회 */
+/** 학생 신뢰 표시: 광운대 인증 · 제안 N회 · 패널티 N회 (노쇼 · 마감 초과로 받은 페널티) */
 function TrustChips({ proposalCount, noShowCount }: TrustChipsProps) {
   return (
     <ul className="trust-chips">
@@ -24,7 +24,7 @@ function TrustChips({ proposalCount, noShowCount }: TrustChipsProps) {
         광운대 인증
       </li>
       <li className="trust-chips__chip">제안 {proposalCount}회</li>
-      <li className="trust-chips__chip">노쇼 {noShowCount}회</li>
+      <li className="trust-chips__chip">패널티 {noShowCount}회</li>
     </ul>
   );
 }

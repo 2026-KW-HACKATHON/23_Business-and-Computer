@@ -78,7 +78,7 @@ class StudentFacadeTest {
                 null,
                 List.of(1L, 2L),
                 List.of(CertificateRequest.of(
-                        "정보처리기사", 2025, "한국산업인력공단")));
+                        "정보처리기사", 2025)));
 
         StudentRegistrationResponse response = facade.register("KAKAO_12345", request);
 

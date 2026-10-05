@@ -1,9 +1,9 @@
-import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { NotificationRow, SubScreen, TextButton, WorkKindIcon } from "../components";
 import {
   NOTIFICATION_ICON,
   OWNER_PATHS,
+  markOwnerNotificationsRead,
   notificationPath,
   useOwnerNotifications,
 } from "../features/owner";
@@ -24,16 +24,15 @@ function OwnerNotificationsPage() {
   const navigate = useNavigate();
   const back = useBack(OWNER_PATHS.home);
   const notifications = useOwnerNotifications();
-  // 읽음 표시는 백엔드 연동 전까지 이 화면 안에서만 기억한다
-  const [readIds, setReadIds] = useState<Set<string>>(new Set());
-  const isUnread = (n: OwnerNotification) => !n.read && !readIds.has(n.id);
+  const isUnread = (n: OwnerNotification) => !n.read;
 
+  // 읽음 표시는 메인 탭 종 점과 같이 본다 (백엔드 연동 전까지 새로고침하면 처음으로)
   const open = (n: OwnerNotification) => {
-    setReadIds((ids) => new Set(ids).add(n.id));
+    markOwnerNotificationsRead([n.id]);
     navigate(notificationPath(n));
   };
 
-  const readAll = () => setReadIds(new Set(notifications.map((n) => n.id)));
+  const readAll = () => markOwnerNotificationsRead(notifications.map((n) => n.id));
 
   return (
     <SubScreen

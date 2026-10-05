@@ -27,7 +27,7 @@ them yet.
   `src/features/owner/lib/sampleTabs.ts` and `sampleDetails.ts` and shares
   ids with the home sample, so a work id opens the same work everywhere.
   Chat and notification times count back from now
-  (`src/features/owner/lib/sampleTime.ts`) so 「10분 전」 and 「어제」 read
+  (`src/lib/sampleTime.ts`) so 「10분 전」 and 「어제」 read
   naturally.
 - A missing id shows `OwnerMissing` instead of an empty screen.
 - The home rows of 학생이 작업 중, 기다리는 중, and 끝난 일 are whole-row

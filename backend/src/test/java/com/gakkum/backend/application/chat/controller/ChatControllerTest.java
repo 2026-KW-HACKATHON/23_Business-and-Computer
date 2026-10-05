@@ -48,6 +48,7 @@ import com.gakkum.backend.domain.chat.dto.ChatQueryDto.SendMessageResult;
 import com.gakkum.backend.domain.chat.entity.ChatMessage;
 import com.gakkum.backend.domain.chat.entity.ChatRoom;
 import com.gakkum.backend.domain.job.entity.Job;
+import com.gakkum.backend.domain.job.entity.JobApplication;
 import com.gakkum.backend.domain.job.entity.JobSubmissionReviewStatus;
 import com.gakkum.backend.global.exception.BusinessException;
 import com.gakkum.backend.global.exception.ErrorCode;
@@ -87,7 +88,10 @@ class ChatControllerTest {
                 .andExpect(jsonPath("$.data.rooms[0].revisionCount").value(2))
                 .andExpect(jsonPath("$.data.rooms[0].draftDeadline").value("2026-10-10"))
                 .andExpect(jsonPath("$.data.rooms[0].finalDeadline").value("2026-10-20"))
-                .andExpect(jsonPath("$.data.rooms[0].applicationContent").value("지원 내용"))
+                .andExpect(jsonPath("$.data.rooms[0].applicationSummary").value("한 줄 요약"))
+                .andExpect(jsonPath("$.data.rooms[0].applicationWorkPlan").value("작업계획서"))
+                .andExpect(jsonPath("$.data.rooms[0].applicationDeliveryMethod").value("결과물 전달 방법"))
+                .andExpect(jsonPath("$.data.rooms[0].applicationContent").doesNotExist())
                 .andExpect(jsonPath("$.data.rooms[0].lastMessage.preview").value("안녕하세요"))
                 .andExpect(jsonPath("$.data.rooms[0].lastMessage.createdAt").value("2026-09-26T12:30:00"))
                 .andExpect(jsonPath("$.data.rooms[0].unreadCount").value(3));
@@ -103,7 +107,10 @@ class ChatControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.jobTitle").value("의뢰 제목"))
                 .andExpect(jsonPath("$.data.deadlineType").value("DRAFT"))
-                .andExpect(jsonPath("$.data.applicationContent").value("지원 내용"));
+                .andExpect(jsonPath("$.data.applicationSummary").value("한 줄 요약"))
+                .andExpect(jsonPath("$.data.applicationWorkPlan").value("작업계획서"))
+                .andExpect(jsonPath("$.data.applicationDeliveryMethod").value("결과물 전달 방법"))
+                .andExpect(jsonPath("$.data.applicationContent").doesNotExist());
     }
 
     @Test
@@ -539,7 +546,8 @@ class ChatControllerTest {
         return Room.of(room, job, "학생 이름", "student.png",
                 LastMessage.of(ChatMessageType.TEXT, "안녕하세요", LocalDateTime.of(2026, 9, 26, 12, 30)),
                 3L, DeadlineType.DRAFT, LocalDate.of(2026, 10, 10),
-                JobSubmissionReviewStatus.PENDING, "지원 내용");
+                JobSubmissionReviewStatus.PENDING, JobApplication.builder().summary("한 줄 요약")
+                        .workPlan("작업계획서").deliveryMethod("결과물 전달 방법").build());
     }
 
     private String uploadPayload(String type, String fileName, String contentType, String size) {

@@ -181,8 +181,10 @@ class ChatFacadeTest {
                 submission(3L, JobSubmissionType.DRAFT, 0, JobSubmissionReviewStatus.APPROVED),
                 submission(3L, JobSubmissionType.REVISION, 1, JobSubmissionReviewStatus.REVISION_REQUESTED)));
         when(applicationRepository.findByJobIdInAndStatus(anyList(), eq(JobApplicationStatus.ACCEPTED)))
-                .thenReturn(List.of(JobApplication.builder().jobId(3L).studentProfileId(20L)
-                        .content("선택된 지원서").status(JobApplicationStatus.ACCEPTED).build()));
+                .thenReturn(List.of(
+                        acceptedApplication(3L, 99L, "다른 학생"),
+                        acceptedApplication(3L, 20L, "선택된 학생"),
+                        acceptedApplication(2L, 99L, "다른 학생")));
 
         Map<Long, ChatRoomListResponse.Room> rooms = service.getMyChatRooms("owner").getRooms().stream()
                 .collect(java.util.stream.Collectors.toMap(ChatRoomListResponse.Room::getJobId,
@@ -191,14 +193,22 @@ class ChatFacadeTest {
         assertThat(rooms.get(1L).getDeadlineType()).isEqualTo(DeadlineType.DRAFT);
         assertThat(rooms.get(1L).getDeadlineDate()).isEqualTo(LocalDate.of(2026, 10, 10));
         assertThat(rooms.get(1L).getSubmissionReviewStatus()).isNull();
-        assertThat(rooms.get(1L).getApplicationContent()).isNull();
+        assertThat(rooms.get(1L).getApplicationSummary()).isNull();
+        assertThat(rooms.get(1L).getApplicationWorkPlan()).isNull();
+        assertThat(rooms.get(1L).getApplicationDeliveryMethod()).isNull();
         assertThat(rooms.get(2L).getDeadlineType()).isEqualTo(DeadlineType.DRAFT);
         assertThat(rooms.get(2L).getSubmissionReviewStatus()).isEqualTo(JobSubmissionReviewStatus.PENDING);
+        // 선택된 학생이 아닌 지원서만 있는 방에는 지원서 내용을 내리지 않는다
+        assertThat(rooms.get(2L).getApplicationSummary()).isNull();
+        assertThat(rooms.get(2L).getApplicationWorkPlan()).isNull();
+        assertThat(rooms.get(2L).getApplicationDeliveryMethod()).isNull();
         assertThat(rooms.get(3L).getDeadlineType()).isEqualTo(DeadlineType.FINAL);
         assertThat(rooms.get(3L).getDeadlineDate()).isEqualTo(LocalDate.of(2026, 10, 20));
         assertThat(rooms.get(3L).getSubmissionReviewStatus())
                 .isEqualTo(JobSubmissionReviewStatus.REVISION_REQUESTED);
-        assertThat(rooms.get(3L).getApplicationContent()).isEqualTo("선택된 지원서");
+        assertThat(rooms.get(3L).getApplicationSummary()).isEqualTo("선택된 학생 한 줄 요약");
+        assertThat(rooms.get(3L).getApplicationWorkPlan()).isEqualTo("선택된 학생 작업계획서");
+        assertThat(rooms.get(3L).getApplicationDeliveryMethod()).isEqualTo("선택된 학생 결과물 전달 방법");
         assertThat(rooms.get(3L).getBudget()).isEqualTo(300000L);
         assertThat(rooms.get(3L).getRevisionCount()).isEqualTo(2);
     }
@@ -232,6 +242,10 @@ class ChatFacadeTest {
         when(studentRepository.findAllById(anyList())).thenReturn(List.of(student()));
         when(userService.getUsersByIds(anyList())).thenReturn(Map.of(STUDENT_ID,
                 User.builder().id(STUDENT_ID).name("학생 이름").build()));
+        when(applicationRepository.findByJobIdInAndStatus(List.of(2L), JobApplicationStatus.ACCEPTED))
+                .thenReturn(List.of(
+                        acceptedApplication(2L, 99L, "다른 학생"),
+                        acceptedApplication(2L, 20L, "선택된 학생")));
 
         ChatRoomListResponse.Room result = service.getChatRoom("owner", room.getId());
 
@@ -239,6 +253,9 @@ class ChatFacadeTest {
         assertThat(result.getJobTitle()).isEqualTo("의뢰");
         assertThat(result.getCounterpartName()).isEqualTo("학생 이름");
         assertThat(result.getDeadlineType()).isEqualTo(DeadlineType.DRAFT);
+        assertThat(result.getApplicationSummary()).isEqualTo("선택된 학생 한 줄 요약");
+        assertThat(result.getApplicationWorkPlan()).isEqualTo("선택된 학생 작업계획서");
+        assertThat(result.getApplicationDeliveryMethod()).isEqualTo("선택된 학생 결과물 전달 방법");
     }
 
     @Test
@@ -842,6 +859,13 @@ class ChatFacadeTest {
                 .budget(300000L).revisionCount(2)
                 .draftDeadline(LocalDate.of(2026, 10, 10))
                 .finalDeadline(LocalDate.of(2026, 10, 20)).build();
+    }
+
+    private JobApplication acceptedApplication(Long jobId, Long studentProfileId, String prefix) {
+        return JobApplication.builder().jobId(jobId).studentProfileId(studentProfileId)
+                .summary(prefix + " 한 줄 요약").workPlan(prefix + " 작업계획서")
+                .deliveryMethod(prefix + " 결과물 전달 방법")
+                .status(JobApplicationStatus.ACCEPTED).build();
     }
 
     private Student student() {

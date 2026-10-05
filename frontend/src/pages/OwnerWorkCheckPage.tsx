@@ -1,14 +1,22 @@
+import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
   Button,
   FlowBar,
   NoteBox,
+  ReportSheet,
   SubScreen,
   TextButton,
   TurnNotice,
   WorkKindIcon,
 } from "../components";
-import { OWNER_PATHS, OwnerMissing, flowSteps, useOwnerWork } from "../features/owner";
+import {
+  OWNER_PATHS,
+  OwnerMissing,
+  completeOwnerWork,
+  flowSteps,
+  useOwnerWork,
+} from "../features/owner";
 import { useBack } from "../hooks/useBack";
 import { formatMonthDay } from "../lib/date";
 import "./OwnerDetailPage.css";
@@ -23,6 +31,7 @@ function OwnerWorkCheckPage() {
   const navigate = useNavigate();
   const back = useBack(OWNER_PATHS.home);
   const work = useOwnerWork(workId);
+  const [reportOpen, setReportOpen] = useState(false);
 
   if (!work || work.status !== "submitted") {
     return <OwnerMissing title="작업 확인" onBack={back} message="확인할 결과물이 아직 없어요" />;
@@ -39,7 +48,7 @@ function OwnerWorkCheckPage() {
       title={`${stage} 확인`}
       onBack={back}
       right={
-        <button type="button" className="owner-check__report">
+        <button type="button" className="owner-check__report" onClick={() => setReportOpen(true)}>
           신고
         </button>
       }
@@ -50,7 +59,14 @@ function OwnerWorkCheckPage() {
               수정 요청
             </Button>
           )}
-          <Button onClick={() => navigate(OWNER_PATHS.workReview(work.id))}>완료 확인</Button>
+          <Button
+            onClick={() => {
+              completeOwnerWork(work.id);
+              navigate(OWNER_PATHS.workReview(work.id), { replace: true });
+            }}
+          >
+            완료 확인
+          </Button>
         </div>
       }
     >
@@ -94,6 +110,7 @@ function OwnerWorkCheckPage() {
           <NoteBox title={`${work.student.name} 학생의 메세지`} body={work.studentMessage} />
         )}
       </div>
+      <ReportSheet open={reportOpen} workTitle={work.title} onClose={() => setReportOpen(false)} />
     </SubScreen>
   );
 }

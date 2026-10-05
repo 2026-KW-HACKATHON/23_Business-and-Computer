@@ -6,10 +6,13 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
+import java.util.Map;
 
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
@@ -76,5 +79,22 @@ class SpecialtyServiceTest {
         assertThatThrownBy(() -> specialtyService.validateSpecialtyIds(List.of(1L, 99L)))
                 .isInstanceOfSatisfying(BusinessException.class, exception ->
                         assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.SPECIALTY_NOT_FOUND));
+    }
+
+    @Test
+    @DisplayName("학생별 등록 특기 ID를 한 번에 조회해 학생 프로필 ID로 묶는다")
+    void groupsSpecialtyIdsByStudent() {
+        when(studentSpecialtyRepository.findByStudentProfileIdIn(List.of(7L, 8L, 9L))).thenReturn(List.of(
+                StudentSpecialty.create(7L, 21L), StudentSpecialty.create(8L, 11L), StudentSpecialty.create(7L, 11L)));
+
+        assertThat(specialtyService.getSpecialtyIdsByStudentProfileIds(List.of(7L, 8L, 9L)))
+                .containsOnly(Map.entry(7L, List.of(21L, 11L)), Map.entry(8L, List.of(11L)));
+    }
+
+    @Test
+    @DisplayName("대상 학생이 없으면 학생 특기를 조회하지 않는다")
+    void skipsStudentSpecialtyQueryWithoutStudents() {
+        assertThat(specialtyService.getSpecialtyIdsByStudentProfileIds(List.of())).isEmpty();
+        verifyNoInteractions(studentSpecialtyRepository);
     }
 }

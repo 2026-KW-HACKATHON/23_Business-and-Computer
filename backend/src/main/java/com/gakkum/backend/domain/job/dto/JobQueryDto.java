@@ -1,5 +1,6 @@
 package com.gakkum.backend.domain.job.dto;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -7,13 +8,17 @@ import java.util.List;
 import java.util.Map;
 
 import com.gakkum.backend.domain.job.entity.Job;
+import com.gakkum.backend.domain.job.entity.JobApplication;
 import com.gakkum.backend.domain.job.entity.JobProgressStage;
 import com.gakkum.backend.domain.job.entity.JobSubmission;
 import com.gakkum.backend.domain.job.entity.JobSubmissionReviewStatus;
 import com.gakkum.backend.domain.job.entity.JobSubmissionType;
+import com.gakkum.backend.domain.certificate.entity.StudentCertificate;
 import com.gakkum.backend.domain.payment.dto.PaymentQueryDto.RefundedPaymentData;
+import com.gakkum.backend.domain.review.entity.Review;
 import com.gakkum.backend.domain.student.entity.Student;
 import com.gakkum.backend.domain.user.entity.User;
+import com.gakkum.backend.domain.user.entity.UserRole;
 
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -52,8 +57,40 @@ public final class JobQueryDto {
         private final LocalDate finalDeadline;
         private final Integer revisionCount;
         private final JobProgressStage progressStage;
+        private final String status;
+        // 아래 취소 정보는 취소된 의뢰를 의뢰한 사장님 또는 선정 학생이 조회할 때만 채우고, 그 외에는 모두 null
+        private final String storeName;
+        private final String cancelledBy;
+        private final String cancelReason;
+        private final String messageToStudent;
+        private final Long refundAmount;
+        private final Long studentCompensationAmount;
+        private final LocalDateTime cancelledAt;
 
         public static JobDetailResult of(JobDetailData data, List<SpecialtyCategoryResult> specialtyCategories) {
+            return base(data, specialtyCategories).build();
+        }
+
+        /**
+         * 취소된 의뢰의 당사자에게 내리는 상세. 현재 취소는 사장님만 할 수 있어 취소한 사람은 항상 OWNER다.
+         * @param refund 결제 전(모집 중) 취소면 null이고 금액은 0으로 내린다
+         */
+        public static JobDetailResult ofCancelled(JobDetailData data, List<SpecialtyCategoryResult> specialtyCategories,
+                String storeName, RefundedPaymentData refund) {
+            Job job = data.getJob();
+            return base(data, specialtyCategories)
+                    .storeName(storeName)
+                    .cancelledBy(UserRole.OWNER.name())
+                    .cancelReason(job.getCancelReason())
+                    .messageToStudent(job.getMessageToStudent())
+                    .refundAmount(refund == null ? 0L : refund.refundAmount())
+                    .studentCompensationAmount(refund == null ? 0L : refund.studentCompensationAmount())
+                    .cancelledAt(job.getCompletedAt())
+                    .build();
+        }
+
+        private static JobDetailResultBuilder base(
+                JobDetailData data, List<SpecialtyCategoryResult> specialtyCategories) {
             Job job = data.getJob();
             return JobDetailResult.builder()
                     .id(job.getId())
@@ -65,7 +102,7 @@ public final class JobQueryDto {
                     .finalDeadline(job.getFinalDeadline())
                     .revisionCount(job.getRevisionCount())
                     .progressStage(data.getProgressStage())
-                    .build();
+                    .status(job.getStatus().name());
         }
     }
 
@@ -152,7 +189,7 @@ public final class JobQueryDto {
         /**
          * 결과물과 작업 이력을 만든다. 날짜는 서버 로컬 시각 기준이다.
          * 이력은 시작 → 제출물별(제출, 수정 요청) → 완료 순이며, 요청 시각이 기록되지 않은 과거 수정 요청은 날짜가 null이다.
-         * @param startedAt 결제 승인일
+         * @param startedAt 작업 시작일. 일반 의뢰는 결제 승인일, 제안 의뢰는 학생이 작업을 시작한 날
          */
         public static JobResultResult of(JobResultData data, User student, LocalDate startedAt) {
             Job job = data.getJob();
@@ -215,6 +252,20 @@ public final class JobQueryDto {
         public static PrepareSubmissionFileUploadResult of(String uploadUrl, Map<String, String> uploadHeaders,
                 LocalDateTime uploadUrlExpiresAt, String fileUrl) {
             return new PrepareSubmissionFileUploadResult(uploadUrl, uploadHeaders, uploadUrlExpiresAt, fileUrl);
+        }
+    }
+
+    @Getter
+    @Builder(access = AccessLevel.PRIVATE)
+    @AllArgsConstructor(access = AccessLevel.PRIVATE)
+    public static class JobApplicationCreateResult {
+
+        private final Long jobApplicationId;
+
+        public static JobApplicationCreateResult from(JobApplication application) {
+            return JobApplicationCreateResult.builder()
+                    .jobApplicationId(application.getId())
+                    .build();
         }
     }
 
@@ -373,6 +424,8 @@ public final class JobQueryDto {
         private final Long studentCompensationAmount;
         private final Long refundAmount;
         private final LocalDateTime cancelledAt;
+        private final String cancelReason;
+        private final String messageToStudent;
 
         public static JobCancelResult of(Job job, RefundedPaymentData refund) {
             return JobCancelResult.builder()
@@ -382,6 +435,8 @@ public final class JobQueryDto {
                     .studentCompensationAmount(refund == null ? 0L : refund.studentCompensationAmount())
                     .refundAmount(refund == null ? 0L : refund.refundAmount())
                     .cancelledAt(job.getCompletedAt())
+                    .cancelReason(job.getCancelReason())
+                    .messageToStudent(job.getMessageToStudent())
                     .build();
         }
     }
@@ -528,6 +583,201 @@ public final class JobQueryDto {
                     .revisionCount(job.getRevisionCount())
                     .applicantCount(data.getApplicantCount())
                     .progressStage(data.getProgressStage())
+                    .build();
+        }
+    }
+
+    @Getter
+    @AllArgsConstructor(access = AccessLevel.PRIVATE)
+    public static class JobApplicationListData {
+
+        private final Job job;
+        private final List<Long> specialtyIds;
+        private final List<JobApplication> applications;
+
+        /** applications는 대기 중(PENDING) 지원서 전체이고 정렬되지 않은 상태다. */
+        public static JobApplicationListData of(
+                Job job, List<Long> specialtyIds, List<JobApplication> applications) {
+            return new JobApplicationListData(job, specialtyIds, List.copyOf(applications));
+        }
+    }
+
+    @Getter
+    @AllArgsConstructor(access = AccessLevel.PRIVATE)
+    public static class JobApplicationListResult {
+
+        private final JobApplicationJobResult job;
+        private final Integer applicantCount;
+        private final List<JobApplicantResult> applicants;
+
+        /** 지원자 수는 반환하는 지원자 목록의 길이다. */
+        public static JobApplicationListResult of(JobApplicationJobResult job, List<JobApplicantResult> applicants) {
+            return new JobApplicationListResult(job, applicants.size(), applicants);
+        }
+    }
+
+    @Getter
+    @Builder(access = AccessLevel.PRIVATE)
+    @AllArgsConstructor(access = AccessLevel.PRIVATE)
+    public static class JobApplicationJobResult {
+
+        private final Long jobId;
+        private final String title;
+        private final List<SpecialtyCategoryResult> specialtyCategories;
+        private final Long budget;
+        private final LocalDate draftDeadline;
+        private final LocalDate finalDeadline;
+
+        public static JobApplicationJobResult of(Job job, List<SpecialtyCategoryResult> specialtyCategories) {
+            return JobApplicationJobResult.builder()
+                    .jobId(job.getId())
+                    .title(job.getTitle())
+                    .specialtyCategories(specialtyCategories)
+                    .budget(job.getBudget())
+                    .draftDeadline(job.getDraftDeadline())
+                    .finalDeadline(job.getFinalDeadline())
+                    .build();
+        }
+    }
+
+    @Getter
+    @Builder(access = AccessLevel.PRIVATE)
+    @AllArgsConstructor(access = AccessLevel.PRIVATE)
+    public static class JobApplicantResult {
+
+        private final Long jobApplicationId;
+        private final Long studentProfileId;
+        private final String profileImageUrl;
+        private final String name;
+        private final String studentNumber;
+        private final String major;
+        private final BigDecimal averageRating;
+        private final Long completedJobCount;
+        private final List<SpecialtyCategoryResult> specialtyCategories;
+        private final String summary;
+        private final String workPlan;
+        private final String deliveryMethod;
+        private final LocalDateTime appliedAt;
+
+        /** appliedAt은 정렬에만 쓰고 응답에는 내리지 않는다. 지원 시각이 없는 기존 데이터는 null이다. */
+        public static JobApplicantResult of(
+                JobApplication application,
+                Student student,
+                User studentUser,
+                BigDecimal averageRating,
+                Long completedJobCount,
+                List<SpecialtyCategoryResult> specialtyCategories) {
+            return JobApplicantResult.builder()
+                    .jobApplicationId(application.getId())
+                    .studentProfileId(student.getId())
+                    .profileImageUrl(student.getProfileImageUrl())
+                    .name(studentUser.getName())
+                    .studentNumber(student.getStudentNumber())
+                    .major(student.getMajor())
+                    .averageRating(averageRating)
+                    .completedJobCount(completedJobCount)
+                    .specialtyCategories(specialtyCategories)
+                    .summary(application.getSummary())
+                    .workPlan(application.getWorkPlan())
+                    .deliveryMethod(application.getDeliveryMethod())
+                    .appliedAt(application.getCreatedAt())
+                    .build();
+        }
+    }
+
+    @Getter
+    @Builder(access = AccessLevel.PRIVATE)
+    @AllArgsConstructor(access = AccessLevel.PRIVATE)
+    public static class JobApplicantProfileResult {
+
+        private final ApplicantStudentResult student;
+        private final Long proposalCount;
+        private final Long completedJobCount;
+        private final List<SpecialtyCategoryResult> specialtyCategories;
+        private final List<ApplicantCertificateResult> certificates;
+        private final String portfolioUrl;
+        private final Integer penaltyCount;
+        private final Integer reviewCount;
+        private final List<ApplicantReviewResult> reviews;
+
+        /** 리뷰 수는 반환하는 리뷰 목록의 길이다. */
+        public static JobApplicantProfileResult of(
+                Student student,
+                User studentUser,
+                long proposalCount,
+                long completedJobCount,
+                List<SpecialtyCategoryResult> specialtyCategories,
+                List<StudentCertificate> certificates,
+                List<ApplicantReviewResult> reviews) {
+            return JobApplicantProfileResult.builder()
+                    .student(ApplicantStudentResult.of(student, studentUser))
+                    .proposalCount(proposalCount)
+                    .completedJobCount(completedJobCount)
+                    .specialtyCategories(specialtyCategories)
+                    .certificates(certificates.stream()
+                            .map(ApplicantCertificateResult::from)
+                            .toList())
+                    .portfolioUrl(student.getPortfolioUrl())
+                    .penaltyCount(student.getPenaltyCount())
+                    .reviewCount(reviews.size())
+                    .reviews(List.copyOf(reviews))
+                    .build();
+        }
+    }
+
+    @Getter
+    @Builder(access = AccessLevel.PRIVATE)
+    @AllArgsConstructor(access = AccessLevel.PRIVATE)
+    public static class ApplicantStudentResult {
+
+        private final Long studentProfileId;
+        private final String name;
+        private final String university;
+        private final String major;
+        private final String studentNumber;
+
+        public static ApplicantStudentResult of(Student student, User studentUser) {
+            return ApplicantStudentResult.builder()
+                    .studentProfileId(student.getId())
+                    .name(studentUser.getName())
+                    .university(student.getUniversity())
+                    .major(student.getMajor())
+                    .studentNumber(student.getStudentNumber())
+                    .build();
+        }
+    }
+
+    @Getter
+    @AllArgsConstructor(access = AccessLevel.PRIVATE)
+    public static class ApplicantCertificateResult {
+
+        private final String certificateName;
+        private final Integer acquiredYear;
+
+        public static ApplicantCertificateResult from(StudentCertificate certificate) {
+            return new ApplicantCertificateResult(certificate.getCertificateName(), certificate.getAcquiredYear());
+        }
+    }
+
+    @Getter
+    @Builder(access = AccessLevel.PRIVATE)
+    @AllArgsConstructor(access = AccessLevel.PRIVATE)
+    public static class ApplicantReviewResult {
+
+        private final String storeName;
+        private final String jobTitle;
+        private final String content;
+        private final Integer rating;
+        private final LocalDate createdAt;
+
+        /** 작성일은 서버 로컬 시각 기준 날짜만 내린다. 매장 이름과 의뢰 제목은 현재 값이다. */
+        public static ApplicantReviewResult of(Review review, String jobTitle, String storeName) {
+            return ApplicantReviewResult.builder()
+                    .storeName(storeName)
+                    .jobTitle(jobTitle)
+                    .content(review.getContent())
+                    .rating(review.getRating())
+                    .createdAt(review.getCreatedAt() == null ? null : review.getCreatedAt().toLocalDate())
                     .build();
         }
     }

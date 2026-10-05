@@ -1,62 +1,11 @@
-import type { OwnerHome } from "../types";
+import type { RequestExample } from "../types";
+import { day } from "../../../lib/sampleTime";
 
 /**
- * 임시 예시 데이터 (피그마 「사장님 홈」 내용 그대로).
- * 백엔드 연동 전까지 useOwnerHome 이 돌려준다.
+ * 홈 「이런 의뢰는 어때요?」 예시 (피그마 「사장님 홈」 · B-2).
+ * 누르면 의뢰 등록 1/3 · 2/3 을 이 내용으로 채워 시작한다. 마감일은 오늘 기준.
  */
-export const SAMPLE_OWNER_HOME: OwnerHome = {
-  hasUnreadNotifications: true,
-  todos: [
-    {
-      type: "draftArrived",
-      id: "work-101",
-      kind: "request",
-      title: "인스타 게시물 5개 제작",
-      field: "홍보",
-      student: { name: "박지은", department: "시각디자인학과" },
-      autoCompleteOn: "2026-09-29",
-    },
-    {
-      type: "proposalArrived",
-      id: "prop-201",
-      kind: "proposal",
-      title: "카카오 맵 수정",
-      field: "홍보",
-      student: { name: "박누리", department: "미디어커뮤니케이션학부" },
-      empathyCount: 27,
-    },
-    {
-      type: "applicants",
-      id: "req-102",
-      kind: "request",
-      title: "영어·중국어 메뉴판 번역",
-      field: "글쓰기·번역",
-      budget: 50000,
-      applicantCount: 5,
-      draftDue: "2026-09-27",
-    },
-  ],
-  working: [
-    {
-      id: "work-103",
-      kind: "request",
-      title: "메뉴판 디자인 변경",
-      student: { name: "김광운" },
-      stage: "draft",
-      due: "2026-09-29",
-    },
-  ],
-  waiting: [
-    {
-      id: "req-104",
-      kind: "request",
-      title: "봄 신메뉴 전단지",
-      stage: "draft",
-      due: "2026-10-03",
-      status: "recruiting",
-    },
-  ],
-  examples: [
+export const SAMPLE_REQUEST_EXAMPLES: RequestExample[] = [
     {
       id: "example-review",
       field: "분석",
@@ -67,8 +16,8 @@ export const SAMPLE_OWNER_HOME: OwnerHome = {
         description:
           "네이버·카카오 리뷰에서 손님들이 아쉬워하는 점을 정리해 주세요. 무엇부터 고치면 좋을지도 알려 주면 좋겠어요.",
         budget: 40_000,
-        draftDue: "2026-09-30",
-        finalDue: "2026-10-06",
+        draftDue: day(8),
+        finalDue: day(14),
         revisions: 1,
       },
     },
@@ -82,8 +31,8 @@ export const SAMPLE_OWNER_HOME: OwnerHome = {
         description:
           "점심·단체 예약을 전화로만 받아서 바쁠 때 놓쳐요. 손님이 휴대폰으로 날짜와 인원을 적는 예약서를 만들어 주세요.",
         budget: 50_000,
-        draftDue: "2026-10-02",
-        finalDue: "2026-10-08",
+        draftDue: day(10),
+        finalDue: day(16),
         revisions: 1,
       },
     },
@@ -97,40 +46,12 @@ export const SAMPLE_OWNER_HOME: OwnerHome = {
         description:
           "10번 오면 음료 한 잔을 주는 도장카드를 만들고 싶어요. 가게 분위기에 맞게 디자인하고 인쇄용 파일로 주세요.",
         budget: 30_000,
-        draftDue: "2026-09-29",
-        finalDue: "2026-10-02",
+        draftDue: day(7),
+        finalDue: day(10),
         revisions: 1,
       },
     },
-  ],
-  done: [
-    {
-      id: "work-090",
-      kind: "request",
-      title: "메뉴판 제작",
-      student: { name: "김광운" },
-      completedOn: "2026-09-12",
-    },
-    {
-      id: "work-085",
-      kind: "request",
-      title: "인스타 계정 만들기",
-      student: { name: "정하은" },
-      completedOn: "2026-09-03",
-    },
-    {
-      id: "work-080",
-      kind: "proposal",
-      title: "네이버 지도 사진 정리",
-      student: { name: "박누리" },
-      completedOn: "2026-08-26",
-    },
-    {
-      id: "work-070",
-      kind: "request",
-      title: "가게 로고 만들기",
-      student: { name: "이은서" },
-      completedOn: "2026-08-14",
-    },
-  ],
-};
+  ];
+
+/** 첫 활동 여부. 백엔드가 알려 줄 때까지 예시 계정은 할 일이 있는 계정이다 */
+export const SAMPLE_FIRST_VISIT = false;

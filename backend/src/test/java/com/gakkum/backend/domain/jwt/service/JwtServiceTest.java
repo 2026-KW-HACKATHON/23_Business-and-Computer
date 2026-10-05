@@ -22,6 +22,8 @@ import com.gakkum.backend.domain.jwt.dto.JWTResponseDTO;
 import com.gakkum.backend.domain.jwt.entity.RefreshToken;
 import com.gakkum.backend.domain.jwt.repository.RefreshRepository;
 import com.gakkum.backend.domain.user.entity.UserRole;
+import com.gakkum.backend.global.exception.BusinessException;
+import com.gakkum.backend.global.exception.ErrorCode;
 import com.gakkum.backend.util.JWTUtil;
 
 class JwtServiceTest {
@@ -148,7 +150,9 @@ class JwtServiceTest {
     }
 
     private void assertRejected(org.assertj.core.api.ThrowableAssert.ThrowingCallable call) {
-        assertThatThrownBy(call).isInstanceOf(RuntimeException.class);
+        assertThatThrownBy(call)
+                .isInstanceOfSatisfying(BusinessException.class,
+                        exception -> assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.UNAUTHORIZED));
         verify(refreshRepository, never()).save(any());
     }
 }

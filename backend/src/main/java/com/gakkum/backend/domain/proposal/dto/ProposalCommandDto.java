@@ -13,6 +13,19 @@ public final class ProposalCommandDto {
     private ProposalCommandDto() {
     }
 
+    /** 제안한 학생이 결제된 제안 의뢰의 작업을 시작하려는 요청. */
+    @Getter
+    @AllArgsConstructor(access = AccessLevel.PRIVATE)
+    public static class StartProposalJobCommand {
+
+        private final String username;
+        private final Long jobId;
+
+        public static StartProposalJobCommand of(String username, Long jobId) {
+            return new StartProposalJobCommand(username, jobId);
+        }
+    }
+
     @Getter
     @Builder(access = AccessLevel.PRIVATE)
     @AllArgsConstructor(access = AccessLevel.PRIVATE)
@@ -55,6 +68,32 @@ public final class ProposalCommandDto {
                     .finalDays(finalDays)
                     .referenceImageUrls(List.copyOf(referenceImageUrls))
                     .build();
+        }
+    }
+
+    /** 학생이 보낸 제안 목록 조회 조건 */
+    @Getter
+    @Builder(access = AccessLevel.PRIVATE)
+    @AllArgsConstructor(access = AccessLevel.PRIVATE)
+    public static class GetMyProposalsCommand {
+
+        private final Long studentProfileId;
+
+        public static GetMyProposalsCommand of(Long studentProfileId) {
+            return GetMyProposalsCommand.builder().studentProfileId(studentProfileId).build();
+        }
+    }
+
+    /** 사장님이 받은 제안 목록 조회 조건 */
+    @Getter
+    @Builder(access = AccessLevel.PRIVATE)
+    @AllArgsConstructor(access = AccessLevel.PRIVATE)
+    public static class GetReceivedProposalsCommand {
+
+        private final Long ownerProfileId;
+
+        public static GetReceivedProposalsCommand of(Long ownerProfileId) {
+            return GetReceivedProposalsCommand.builder().ownerProfileId(ownerProfileId).build();
         }
     }
 

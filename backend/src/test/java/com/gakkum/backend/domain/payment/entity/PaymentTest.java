@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import java.time.Instant;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.DisplayName;
 
 import com.gakkum.backend.global.exception.BusinessException;
 import com.gakkum.backend.global.exception.ErrorCode;
@@ -80,5 +81,41 @@ class PaymentTest {
         assertThatThrownBy(action::run)
                 .isInstanceOfSatisfying(BusinessException.class, exception ->
                         assertThat(exception.getErrorCode()).isEqualTo(errorCode));
+    }
+
+    @Test
+    @DisplayName("제안 결제의 대기 주문은 의뢰·지원서 없이 제안과 사장님이 입력한 수정 횟수·한마디를 보존한다")
+    void createsPendingProposalPayment() {
+        Payment payment = Payment.pendingForProposal(5L, "owner-123", "order-123", 50_000L, 2, "잘 부탁드립니다.", NOW);
+
+        assertThat(payment.getProposalId()).isEqualTo(5L);
+        assertThat(payment.getJobId()).isNull();
+        assertThat(payment.getJobApplicationId()).isNull();
+        assertThat(payment.getAmount()).isEqualTo(50_000L);
+        assertThat(payment.getRevisionCount()).isEqualTo(2);
+        assertThat(payment.getMessageToStudent()).isEqualTo("잘 부탁드립니다.");
+        assertThat(payment.getRefundPolicyAgreedAt()).isEqualTo(NOW);
+        assertThat(payment.getStatus()).isEqualTo(PaymentStatus.PENDING);
+    }
+
+    @Test
+    @DisplayName("승인된 제안 결제에만 의뢰를 한 번 연결하고, 승인 전이거나 이미 연결됐거나 일반 결제이면 거부한다")
+    void linksJobOnlyOnceToApprovedProposalPayment() {
+        Payment payment = Payment.pendingForProposal(5L, "owner-123", "order-123", 50_000L, 0, null, NOW);
+        payment.recordKakaoTid("T123");
+        assertPaymentError(() -> payment.linkJob(42L), ErrorCode.PAYMENT_NOT_AVAILABLE);
+
+        payment.approve(NOW);
+        assertPaymentError(() -> payment.linkJob(null), ErrorCode.PAYMENT_NOT_AVAILABLE);
+        payment.linkJob(42L);
+        assertThat(payment.getJobId()).isEqualTo(42L);
+        assertPaymentError(() -> payment.linkJob(43L), ErrorCode.PAYMENT_NOT_AVAILABLE);
+        assertThat(payment.getJobId()).isEqualTo(42L);
+
+        Payment general = Payment.pending(11L, 21L, "owner-123", "order-456", 100_000L, NOW);
+        general.recordKakaoTid("T456");
+        general.approve(NOW);
+        assertPaymentError(() -> general.linkJob(42L), ErrorCode.PAYMENT_NOT_AVAILABLE);
+        assertThat(general.getJobId()).isEqualTo(11L);
     }
 }

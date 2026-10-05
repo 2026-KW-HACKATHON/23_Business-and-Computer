@@ -11,12 +11,14 @@
   --shadow:
     rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
 
-  --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --heading: system-ui, 'Segoe UI', Roboto, sans-serif;
+  /* 앱 글꼴 (styles/tokens.css 의 --font-sans 와 같다). 따로 정하지 않은 글자도 이 글꼴로 */
+  --sans: "Noto Sans KR", system-ui, -apple-system, "Apple SD Gothic Neo", sans-serif;
+  --heading: "Noto Sans KR", system-ui, -apple-system, "Apple SD Gothic Neo", sans-serif;
   --mono: ui-monospace, Consolas, monospace;
 
   font: 18px/145% var(--sans);
-  letter-spacing: 0.18px;
+  /* 피그마 글자는 자간 0% */
+  letter-spacing: normal;
   color-scheme: light dark;
   color: var(--text);
   background: var(--bg);
@@ -55,7 +57,6 @@
   max-width: 100%;
   margin: 0 auto;
   text-align: center;
-  border-inline: 1px solid var(--border);
   min-height: 100svh;
   display: flex;
   flex-direction: column;
@@ -64,6 +65,24 @@
 
 body {
   margin: 0;
+}
+
+/*
+ * 웹 글꼴(Google Fonts Noto Sans KR)의 띄어쓰기가 피그마의 Noto Sans KR보다 0.05em 넓어
+ * 긴 문장이 피그마보다 일찍 줄바꿈된다. 요소마다 자기 글자 크기 기준으로 줄인다.
+ */
+*,
+::before,
+::after {
+  word-spacing: -0.05em;
+}
+
+/* 버튼 · 입력칸은 브라우저 기본 글꼴 대신 앱 글꼴을 물려받는다 */
+button,
+input,
+textarea,
+select {
+  font-family: inherit;
 }
 
 h1,
@@ -75,7 +94,6 @@ h2 {
 
 h1 {
   font-size: 56px;
-  letter-spacing: -1.68px;
   margin: 32px 0;
   @media (max-width: 1024px) {
     font-size: 36px;
@@ -85,7 +103,6 @@ h1 {
 h2 {
   font-size: 24px;
   line-height: 118%;
-  letter-spacing: -0.24px;
   margin: 0 0 8px;
   @media (max-width: 1024px) {
     font-size: 20px;

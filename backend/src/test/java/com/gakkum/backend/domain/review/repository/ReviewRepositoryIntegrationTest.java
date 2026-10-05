@@ -2,10 +2,12 @@ package com.gakkum.backend.domain.review.repository;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.tuple;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -22,11 +24,14 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import com.gakkum.backend.domain.job.entity.Job;
+import com.gakkum.backend.domain.job.entity.JobStatus;
 import com.gakkum.backend.domain.job.repository.JobRepository;
+import com.gakkum.backend.domain.job.repository.JobRepository.StudentJobCount;
 import com.gakkum.backend.domain.job.service.JobService;
 import com.gakkum.backend.domain.review.dto.ReviewCommandDto.CreateReviewCommand;
 import com.gakkum.backend.domain.review.entity.Review;
 import com.gakkum.backend.domain.review.entity.ReviewPositivePoint;
+import com.gakkum.backend.domain.review.repository.ReviewRepository.StudentAverageRating;
 import com.gakkum.backend.domain.review.service.ReviewService;
 import com.gakkum.backend.global.exception.BusinessException;
 import com.gakkum.backend.global.exception.ErrorCode;
@@ -92,6 +97,85 @@ class ReviewRepositoryIntegrationTest {
                 .get().extracting(Review::getId).isEqualTo(saved.getId());
         assertThat(reviewRepository.findByJobIdAndStudentProfileId(job.getId(), 8L)).isEmpty();
         assertThat(reviewRepository.findByJobIdAndStudentProfileId(saveClosedJob().getId(), 7L)).isEmpty();
+    }
+
+    @Test
+    @DisplayName("PostgreSQL에서 학생별 평균 별점을 집계하고 리뷰가 없으면 null을 반환한다")
+    void averagesRatingPerStudent() {
+        long student = 987_001L;
+        long other = 987_002L;
+        long none = 987_003L;
+        reviewRepository.saveAndFlush(Review.create(saveClosedJob().getId(), 5L, student, List.of(), "a", 4));
+        reviewRepository.saveAndFlush(Review.create(saveClosedJob().getId(), 5L, student, List.of(), "b", 5));
+        reviewRepository.saveAndFlush(Review.create(saveClosedJob().getId(), 5L, other, List.of(), "c", 1));
+
+        assertThat(reviewRepository.findAverageRatingByStudentProfileId(student)).isEqualTo(4.5);
+        assertThat(reviewRepository.findAverageRatingByStudentProfileId(other)).isEqualTo(1.0);
+        assertThat(reviewRepository.findAverageRatingByStudentProfileId(none)).isNull();
+    }
+
+    @Test
+    @DisplayName("PostgreSQL에서 학생의 CLOSED 의뢰만 리뷰 유무와 무관하게 센다")
+    void countsClosedJobsPerStudent() {
+        long student = 987_010L;
+        long other = 987_011L;
+        Job reviewed = saveJob(student, true, false);
+        saveJob(student, true, false);
+        saveJob(student, false, false);
+        saveJob(student, false, true);
+        saveJob(other, true, false);
+        reviewRepository.saveAndFlush(Review.create(reviewed.getId(), 5L, student, List.of(), "리뷰", 5));
+
+        assertThat(jobRepository.countBySelectedStudentProfileIdAndStatus(student, JobStatus.CLOSED)).isEqualTo(2L);
+        assertThat(jobRepository.countBySelectedStudentProfileIdAndStatus(987_012L, JobStatus.CLOSED)).isZero();
+    }
+
+    @Test
+    @DisplayName("PostgreSQL에서 요청한 학생만 학생별 평균 별점을 집계하고 리뷰가 없는 학생은 행이 없다")
+    void averagesRatingsPerRequestedStudents() {
+        long student = 987_020L;
+        long other = 987_021L;
+        long none = 987_022L;
+        long excluded = 987_023L;
+        reviewRepository.saveAndFlush(Review.create(saveClosedJob().getId(), 5L, student, List.of(), "a", 4));
+        reviewRepository.saveAndFlush(Review.create(saveClosedJob().getId(), 5L, student, List.of(), "b", 4));
+        reviewRepository.saveAndFlush(Review.create(saveClosedJob().getId(), 5L, student, List.of(), "c", 5));
+        reviewRepository.saveAndFlush(Review.create(saveClosedJob().getId(), 5L, other, List.of(), "d", 1));
+        reviewRepository.saveAndFlush(Review.create(saveClosedJob().getId(), 5L, excluded, List.of(), "e", 5));
+
+        assertThat(reviewRepository.findAverageRatingsByStudentProfileIds(List.of(student, other, none)))
+                .extracting(StudentAverageRating::getStudentProfileId)
+                .containsExactlyInAnyOrder(student, other);
+        assertThat(reviewService.getAverageRatings(List.of(student, other, none)))
+                .containsOnlyKeys(student, other, none)
+                .satisfies(ratings -> {
+                    assertThat(ratings.get(student)).hasToString("4.3");
+                    assertThat(ratings.get(other)).hasToString("1.0");
+                    assertThat(ratings.get(none)).hasToString("0.0");
+                });
+    }
+
+    @Test
+    @DisplayName("PostgreSQL에서 요청한 학생만 학생별 CLOSED 의뢰 수를 리뷰 유무와 무관하게 세고 취소 건은 뺀다")
+    void countsClosedJobsPerRequestedStudents() {
+        long student = 987_030L;
+        long other = 987_031L;
+        long none = 987_032L;
+        long excluded = 987_033L;
+        Job reviewed = saveJob(student, true, false);
+        saveJob(student, true, false);
+        saveJob(student, false, false);
+        saveJob(student, false, true);
+        saveJob(other, true, false);
+        saveJob(none, false, true);
+        saveJob(excluded, true, false);
+        reviewRepository.saveAndFlush(Review.create(reviewed.getId(), 5L, student, List.of(), "리뷰", 5));
+
+        assertThat(jobRepository.countByStudentProfileIdsAndStatus(List.of(student, other, none), JobStatus.CLOSED))
+                .extracting(StudentJobCount::getStudentProfileId, StudentJobCount::getJobCount)
+                .containsExactlyInAnyOrder(tuple(student, 2L), tuple(other, 1L));
+        assertThat(jobService.countClosedJobsByStudentProfileIds(List.of(student, other, none)))
+                .containsOnly(Map.entry(student, 2L), Map.entry(other, 1L), Map.entry(none, 0L));
     }
 
     @Test
@@ -161,6 +245,21 @@ class ReviewRepositoryIntegrationTest {
         } finally {
             executor.shutdownNow();
         }
+    }
+
+    private Job saveJob(long studentProfileId, boolean closed, boolean cancelled) {
+        Job job = Job.create(5L, "집계 테스트 의뢰", "설명", 50000L,
+                LocalDateTime.now().toLocalDate(), LocalDateTime.now().toLocalDate().plusDays(3), 2);
+        job.match(studentProfileId);
+        if (closed) {
+            job.complete(LocalDateTime.now());
+        }
+        if (cancelled) {
+            job.cancel(LocalDateTime.now(), "취소 이유", "남길 말");
+        }
+        Job saved = jobRepository.saveAndFlush(job);
+        jobIds.add(saved.getId());
+        return saved;
     }
 
     private Job saveClosedJob() {

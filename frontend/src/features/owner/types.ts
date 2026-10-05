@@ -76,11 +76,7 @@ export interface PickedTask {
   task: string;
 }
 
-/** 초안 마감 · 최종 마감 ("2026-09-27", 아직 안 골랐으면 "") */
-export interface DueDates {
-  draftDue: string;
-  finalDue: string;
-}
+export type { DueDates } from "../../components";
 
 /** 의뢰 등록 2/3 에서 적는 내용 */
 export interface RequestContent {
@@ -118,7 +114,8 @@ export interface OwnerDoneItem {
 
 /** 사장님 홈 한 화면 분량. 날짜는 모두 YYYY-MM-DD */
 export interface OwnerHome {
-  hasUnreadNotifications: boolean;
+  /** 백엔드가 알려 주는 첫 활동 여부. 처음이면 할 일 대신 사용법 안내를 보여 준다 */
+  firstVisit: boolean;
   todos: OwnerTodo[];
   working: OwnerWorkingItem[];
   waiting: OwnerWaitingItem[];
@@ -127,7 +124,7 @@ export interface OwnerHome {
   done: OwnerDoneItem[];
 }
 
-export type ExploreProgress = "waitingAcceptance" | "completed";
+export type ExploreProgress = "waitingAcceptance" | "accepted" | "completed";
 
 /** 탐색 목록 카드 하나 (다른 가게의 제안·의뢰) */
 export interface ExploreItem {
@@ -215,6 +212,8 @@ export interface WorkHistoryItem {
 /** 작업 하나 (학생을 고르고 결제한 뒤). 작업 확인 · 결과물 · 채팅방 · 작업계획서가 같이 쓴다 */
 export interface OwnerWork {
   id: string;
+  /** 안전결제한 날 (결제 내역 · 작업 기록과 같다) */
+  paidOn: string;
   kind: WorkKind;
   title: string;
   field: Field;
@@ -310,6 +309,8 @@ export type ChatMessage =
 
 export interface OwnerChatThread {
   workId: string;
+  /** 안 읽은 메시지 수 */
+  unreadCount: number;
   messages: ChatMessage[];
 }
 
@@ -397,8 +398,10 @@ export interface ExploreProposalDetail {
   field: Field;
   storeName: string;
   receivedOn: string;
-  /** 제목 아래 상태 (예: 수락됨) */
-  statusLabel: string;
+  /** 탐색 카드와 같은 상태 (수락 대기 · 수락됨 · 완료) */
+  progress: ExploreProgress;
+  /** 탐색 목록 최신순 기준 (ISO 시각) */
+  createdAt: string;
   empathyCount: number;
   student: StudentProfileRef;
   problem: string;
@@ -413,6 +416,11 @@ export interface ExploreRequestDetail {
   title: string;
   field: Field;
   storeName: string;
+  /** 모집 중이면 마감. 끝난 의뢰는 progress = completed */
+  deadline?: { stage: DeadlineStage; due: string };
+  progress?: ExploreProgress;
+  /** 탐색 목록 최신순 기준 (ISO 시각) */
+  createdAt: string;
   tasks: string[];
   description: string;
   attachments: string[];

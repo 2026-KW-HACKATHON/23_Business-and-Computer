@@ -1,5 +1,6 @@
 package com.gakkum.backend.application.job.facade;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -11,20 +12,25 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.gakkum.backend.application.job.dto.JobCreateRequest;
+import com.gakkum.backend.domain.certificate.service.CertificateService;
 import com.gakkum.backend.domain.chat.entity.ChatMessageType;
 import com.gakkum.backend.domain.chat.service.ChatAttachmentPolicy;
 import com.gakkum.backend.domain.job.client.JobSubmissionFileStorageClient;
 import com.gakkum.backend.domain.job.client.JobSubmissionFileStorageClient.PresignedFileUpload;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.CancelJobCommand;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.CompleteJobSubmissionCommand;
+import com.gakkum.backend.domain.job.dto.JobCommandDto.CreateJobApplicationCommand;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.CreateJobCommand;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.CreateJobSubmissionCommand;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.GetClosedJobsCommand;
+import com.gakkum.backend.domain.job.dto.JobCommandDto.GetJobApplicantProfileCommand;
+import com.gakkum.backend.domain.job.dto.JobCommandDto.GetJobApplicationsCommand;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.GetJobResultCommand;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.GetJobSubmissionCommand;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.GetMatchedJobsCommand;
@@ -36,6 +42,14 @@ import com.gakkum.backend.domain.job.dto.JobQueryDto.CancelledJobData;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.ClosedJobData;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.ClosedJobListResult;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.ClosedJobResult;
+import com.gakkum.backend.domain.job.dto.JobApplicationSort;
+import com.gakkum.backend.domain.job.dto.JobQueryDto.ApplicantReviewResult;
+import com.gakkum.backend.domain.job.dto.JobQueryDto.JobApplicantProfileResult;
+import com.gakkum.backend.domain.job.dto.JobQueryDto.JobApplicantResult;
+import com.gakkum.backend.domain.job.dto.JobQueryDto.JobApplicationCreateResult;
+import com.gakkum.backend.domain.job.dto.JobQueryDto.JobApplicationJobResult;
+import com.gakkum.backend.domain.job.dto.JobQueryDto.JobApplicationListData;
+import com.gakkum.backend.domain.job.dto.JobQueryDto.JobApplicationListResult;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.JobCancelResult;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.JobDetailData;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.JobDetailResult;
@@ -57,6 +71,9 @@ import com.gakkum.backend.domain.job.dto.JobQueryDto.StudentMatchedJobData;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.StudentMatchedJobListResult;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.StudentMatchedJobResult;
 import com.gakkum.backend.domain.job.dto.JobSubmissionFileType;
+import com.gakkum.backend.domain.job.entity.Job;
+import com.gakkum.backend.domain.job.entity.JobApplication;
+import com.gakkum.backend.domain.job.entity.JobStatus;
 import com.gakkum.backend.domain.job.entity.JobSubmission;
 import com.gakkum.backend.domain.job.service.JobService;
 import com.gakkum.backend.domain.owner.entity.Owner;
@@ -64,6 +81,9 @@ import com.gakkum.backend.domain.owner.service.OwnerService;
 import com.gakkum.backend.domain.payment.dto.PaymentQueryDto.ApprovedPaymentData;
 import com.gakkum.backend.domain.payment.dto.PaymentQueryDto.RefundedPaymentData;
 import com.gakkum.backend.domain.payment.service.PaymentService;
+import com.gakkum.backend.domain.proposal.service.ProposalService;
+import com.gakkum.backend.domain.review.entity.Review;
+import com.gakkum.backend.domain.review.service.ReviewService;
 import com.gakkum.backend.domain.specialty.dto.SpecialtyQueryDto.SpecialtyDetail;
 import com.gakkum.backend.domain.specialty.service.SpecialtyCategoryService;
 import com.gakkum.backend.domain.specialty.service.SpecialtyService;
@@ -90,6 +110,9 @@ public class JobFacade {
     private final JobSubmissionFileStorageClient jobSubmissionFileStorageClient;
     private final ChatAttachmentPolicy chatAttachmentPolicy;
     private final PaymentService paymentService;
+    private final ReviewService reviewService;
+    private final CertificateService certificateService;
+    private final ProposalService proposalService;
 
     @Transactional
     public void createJob(String username, JobCreateRequest request) {
@@ -101,12 +124,41 @@ public class JobFacade {
         jobService.createJob(command);
     }
 
+    /**
+     * 의뢰 상세는 모든 활성 사용자가 조회한다. 취소된 의뢰의 취소 정보는 의뢰한 사장님과 선정 학생에게만 더한다.
+     * 결제 후(진행 중) 취소된 의뢰에는 선정 학생이 있고 환불 주문이 반드시 있어야 한다. 모집 중 취소는 결제가 없다.
+     */
     @Transactional(readOnly = true)
     public JobDetailResult getJobDetail(String username, Long jobId) {
-        userService.getActiveUser(username);
+        User user = userService.getActiveUser(username);
         JobDetailData data = jobService.getJobDetail(jobId);
         Map<Long, SpecialtyDetail> specialtiesById = specialtyCategoryService.getSpecialtyDetails(data.getSpecialtyIds());
-        return JobDetailResult.of(data, groupSpecialties(data.getSpecialtyIds(), specialtiesById));
+        List<SpecialtyCategoryResult> specialtyCategories = groupSpecialties(data.getSpecialtyIds(), specialtiesById);
+
+        Job job = data.getJob();
+        if (job.getStatus() != JobStatus.CANCELLED || !isCancellationParty(user, job)) {
+            return JobDetailResult.of(data, specialtyCategories);
+        }
+        Owner owner = ownerService.getOwnerProfileById(job.getOwnerProfileId());
+        RefundedPaymentData refund = job.getSelectedStudentProfileId() == null
+                ? null
+                : paymentService.getRefundedPayment(jobId);
+        return JobDetailResult.ofCancelled(data, specialtyCategories, owner.getStoreName(), refund);
+    }
+
+    /** 의뢰한 사장님 또는 선정 학생인지 확인한다. 해당 역할의 프로필이 없는 사용자는 당사자가 아니다. */
+    private boolean isCancellationParty(User user, Job job) {
+        if (user.getRole() == UserRole.OWNER) {
+            return ownerService.findOwnerProfileByUserId(user.getId())
+                    .filter(owner -> owner.getId().equals(job.getOwnerProfileId()))
+                    .isPresent();
+        }
+        if (user.getRole() == UserRole.STUDENT && job.getSelectedStudentProfileId() != null) {
+            return studentService.findStudentProfileByUserId(user.getId())
+                    .filter(student -> student.getId().equals(job.getSelectedStudentProfileId()))
+                    .isPresent();
+        }
+        return false;
     }
 
     @Transactional(readOnly = true)
@@ -121,7 +173,10 @@ public class JobFacade {
         return JobSubmissionDetailResult.of(data, studentUser);
     }
 
-    /** 완료된 의뢰의 결과물을 의뢰한 사장님 또는 담당 학생에게 보여준다. 작업 시작일은 결제 승인일이다. */
+    /**
+     * 완료된 의뢰의 결과물을 의뢰한 사장님 또는 담당 학생에게 보여준다.
+     * 작업 시작일은 일반 의뢰는 결제 승인일, 제안 의뢰는 학생이 실제로 작업을 시작한 날이다.
+     */
     @Transactional(readOnly = true)
     public JobResultResult getJobResult(String username, Long jobId) {
         User user = userService.getActiveUser(username);
@@ -130,7 +185,10 @@ public class JobFacade {
         Student student = studentService.getStudentProfile(data.getJob().getSelectedStudentProfileId());
         User studentUser = userService.getUser(student.getUserId());
         ApprovedPaymentData payment = paymentService.getPaidPayment(jobId);
-        return JobResultResult.of(data, studentUser, LocalDate.ofInstant(payment.approvedAt(), ZoneId.systemDefault()));
+        LocalDateTime startedAt = data.getJob().getStartedAt();
+        return JobResultResult.of(data, studentUser, startedAt != null
+                ? startedAt.toLocalDate()
+                : LocalDate.ofInstant(payment.approvedAt(), ZoneId.systemDefault()));
     }
 
     /** 사장님·학생 외 사용자와 학생 프로필이 없는 학생은 조회 권한이 없으므로 결과물이 없는 것과 같이 거부한다. */
@@ -208,11 +266,11 @@ public class JobFacade {
 
     /** 사장님 본인 의뢰를 취소한다. 결제 후 진행 중이던 의뢰는 학생 보상금을 뺀 금액을 환불 처리한다. */
     @Transactional
-    public JobCancelResult cancelJob(String username, Long jobId) {
-        User user = userService.getActiveUser(username);
+    public JobCancelResult cancelJob(CancelJobCommand command) {
+        User user = userService.getActiveUser(command.getUsername());
         Owner owner = ownerService.getOwnerProfile(user.getId());
-        CancelledJobData cancelled = jobService.cancelJob(CancelJobCommand.of(jobId, owner.getId()));
-        RefundedPaymentData refund = cancelled.isPaid() ? paymentService.refundOnCancel(jobId) : null;
+        CancelledJobData cancelled = jobService.cancelJob(command, owner.getId());
+        RefundedPaymentData refund = cancelled.isPaid() ? paymentService.refundOnCancel(command.getJobId()) : null;
         return JobCancelResult.of(cancelled.getJob(), refund);
     }
 
@@ -236,6 +294,144 @@ public class JobFacade {
         return OpenJobListResult.of(jobs.stream()
                 .map(job -> OpenJobResult.of(job, groupSpecialties(job.getSpecialtyIds(), specialtiesById)))
                 .toList());
+    }
+
+    /**
+     * 학생 본인이 모집 중 의뢰에 지원한다. 학생이 아니거나 학생 프로필이 없으면 의뢰를 조회하기 전에 거부한다.
+     * 사용자 확인이 의뢰 행 잠금을 붙잡지 않도록 이 메서드에는 트랜잭션을 두지 않는다.
+     */
+    public JobApplicationCreateResult createJobApplication(CreateJobApplicationCommand command) {
+        User user = userService.getActiveUser(command.getUsername());
+        if (user.getRole() != UserRole.STUDENT) {
+            throw new BusinessException(ErrorCode.JOB_APPLICATION_STUDENT_REQUIRED);
+        }
+        Student student = studentService.findStudentProfileByUserId(user.getId())
+                .orElseThrow(() -> new BusinessException(ErrorCode.JOB_APPLICATION_STUDENT_REQUIRED));
+        return JobApplicationCreateResult.from(jobService.createJobApplication(command, student.getId()));
+    }
+
+    /**
+     * 사장님 본인의 모집 중 의뢰에 지원한 대기 중 지원자 전체를 조회한다.
+     * 학생·사용자·특기·평균 별점·완료 의뢰 수는 지원자 수와 무관하게 한 번씩만 조회하고, 지원자가 없으면 생략한다.
+     * 지원자가 참조하는 학생·사용자·특기가 없으면 해당 지원자를 빼지 않고 500으로 거부한다.
+     */
+    @Transactional(readOnly = true)
+    public JobApplicationListResult getJobApplications(String username, Long jobId, JobApplicationSort sort) {
+        User user = userService.getActiveUser(username);
+        if (user.getRole() != UserRole.OWNER) {
+            throw new BusinessException(ErrorCode.JOB_APPLICATION_LIST_OWNER_REQUIRED);
+        }
+        Owner owner = ownerService.getOwnerProfile(user.getId());
+        JobApplicationListData data = jobService.getJobApplications(
+                GetJobApplicationsCommand.of(jobId, owner.getId()));
+
+        List<JobApplication> applications = data.getApplications();
+        if (applications.isEmpty()) {
+            Map<Long, SpecialtyDetail> specialtiesById =
+                    specialtyCategoryService.getSpecialtyDetails(data.getSpecialtyIds());
+            return JobApplicationListResult.of(
+                    JobApplicationJobResult.of(data.getJob(), groupSpecialties(data.getSpecialtyIds(), specialtiesById)),
+                    List.of());
+        }
+
+        List<Long> studentProfileIds = applications.stream()
+                .map(JobApplication::getStudentProfileId)
+                .distinct()
+                .toList();
+        Map<Long, Student> studentsById = studentService.getStudentProfilesByIds(studentProfileIds);
+        Map<String, User> usersById = userService.getUsersByIds(studentsById.values().stream()
+                .map(Student::getUserId)
+                .distinct()
+                .toList());
+        Map<Long, List<Long>> specialtyIdsByStudent =
+                specialtyService.getSpecialtyIdsByStudentProfileIds(studentProfileIds);
+        Map<Long, BigDecimal> averageRatings = reviewService.getAverageRatings(studentProfileIds);
+        Map<Long, Long> completedJobCounts = jobService.countClosedJobsByStudentProfileIds(studentProfileIds);
+
+        Set<Long> specialtyIds = Stream.concat(
+                        data.getSpecialtyIds().stream(),
+                        specialtyIdsByStudent.values().stream().flatMap(List::stream))
+                .collect(Collectors.toSet());
+        Map<Long, SpecialtyDetail> specialtiesById = specialtyCategoryService.getSpecialtyDetails(specialtyIds);
+
+        List<JobApplicantResult> applicants = applications.stream()
+                .map(application -> {
+                    Student student = studentsById.get(application.getStudentProfileId());
+                    return JobApplicantResult.of(
+                            application,
+                            student,
+                            usersById.get(student.getUserId()),
+                            averageRatings.get(student.getId()),
+                            completedJobCounts.get(student.getId()),
+                            groupSpecialties(
+                                    specialtyIdsByStudent.getOrDefault(student.getId(), List.of()), specialtiesById));
+                })
+                .sorted(applicantOrder(sort))
+                .toList();
+        return JobApplicationListResult.of(
+                JobApplicationJobResult.of(data.getJob(), groupSpecialties(data.getSpecialtyIds(), specialtiesById)),
+                applicants);
+    }
+
+    /** 모든 정렬의 마지막 기준은 최신 지원순(지원 시각 내림차순 → 지원서 ID 내림차순)이고 지원 시각이 없으면 뒤에 둔다. */
+    private static Comparator<JobApplicantResult> applicantOrder(JobApplicationSort sort) {
+        Comparator<JobApplicantResult> latest = Comparator
+                .comparing(JobApplicantResult::getAppliedAt, Comparator.nullsLast(Comparator.reverseOrder()))
+                .thenComparing(JobApplicantResult::getJobApplicationId, Comparator.reverseOrder());
+        return switch (sort) {
+            case LATEST -> latest;
+            case RATING -> Comparator
+                    .comparing(JobApplicantResult::getAverageRating, Comparator.reverseOrder())
+                    .thenComparing(latest);
+            case COMPLETED -> Comparator
+                    .comparing(JobApplicantResult::getCompletedJobCount, Comparator.reverseOrder())
+                    .thenComparing(latest);
+        };
+    }
+
+    /**
+     * 사장님 본인 의뢰의 지원자(모집 중) 또는 선정 학생(매칭·완료 후)의 학생 정보와 활동 이력을 조회한다.
+     * 의뢰·지원서 검증을 통과한 뒤에만 학생 정보를 조회한다. 리뷰는 학생이 모든 사장님에게 받은 전체를 내린다.
+     * 리뷰의 의뢰·매장은 리뷰 수와 무관하게 한 번씩만 조회하고, 참조하는 데이터가 없으면 500으로 거부한다.
+     */
+    @Transactional(readOnly = true)
+    public JobApplicantProfileResult getJobApplicantProfile(String username, Long jobId, Long jobApplicationId) {
+        User user = userService.getActiveUser(username);
+        if (user.getRole() != UserRole.OWNER) {
+            throw new BusinessException(ErrorCode.JOB_APPLICATION_PROFILE_OWNER_REQUIRED);
+        }
+        Owner owner = ownerService.getOwnerProfile(user.getId());
+        JobApplication application = jobService.getProfileViewableApplication(
+                GetJobApplicantProfileCommand.of(jobId, jobApplicationId, owner.getId()));
+
+        Student student = studentService.getStudentProfile(application.getStudentProfileId());
+        User studentUser = userService.getUser(student.getUserId());
+        List<Long> specialtyIds = specialtyService.getSpecialtyIdsByStudentProfileIds(List.of(student.getId()))
+                .getOrDefault(student.getId(), List.of());
+        Map<Long, SpecialtyDetail> specialtiesById = specialtyCategoryService.getSpecialtyDetails(specialtyIds);
+
+        List<Review> reviews = reviewService.getStudentReviews(student.getId());
+        Map<Long, Job> jobsById = jobService.getJobsByIds(reviews.stream()
+                .map(Review::getJobId)
+                .toList());
+        Map<Long, String> storeNames = ownerService.getStoreNames(jobsById.values().stream()
+                .map(Job::getOwnerProfileId)
+                .collect(Collectors.toSet()));
+
+        return JobApplicantProfileResult.of(
+                student,
+                studentUser,
+                proposalService.countProposals(student.getId()),
+                jobService.countClosedJobs(student.getId()),
+                groupSpecialties(specialtyIds, specialtiesById),
+                certificateService.getStudentCertificates(student.getId()),
+                reviews.stream()
+                        .map(review -> {
+                            Job job = jobsById.get(review.getJobId());
+                            return ApplicantReviewResult.of(
+                                    review, job.getTitle(), storeNames.get(job.getOwnerProfileId()));
+                        })
+                        .toList());
     }
 
     @Transactional(readOnly = true)

@@ -6,9 +6,13 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import org.junit.jupiter.api.DisplayName;
@@ -20,6 +24,7 @@ import com.gakkum.backend.domain.review.dto.ReviewCommandDto.CreateReviewCommand
 import com.gakkum.backend.domain.review.entity.Review;
 import com.gakkum.backend.domain.review.entity.ReviewPositivePoint;
 import com.gakkum.backend.domain.review.repository.ReviewRepository;
+import com.gakkum.backend.domain.review.repository.ReviewRepository.StudentAverageRating;
 import com.gakkum.backend.global.exception.BusinessException;
 import com.gakkum.backend.global.exception.ErrorCode;
 
@@ -90,6 +95,30 @@ class ReviewServiceTest {
         assertError(() -> reviewService.getStudentReview(42L, 8L), ErrorCode.REVIEW_NOT_FOUND);
     }
 
+    @Test
+    @DisplayName("학생이 받은 리뷰를 작성 시각 내림차순, 같은 시각은 ID 내림차순으로 정렬하고 작성 시각이 없으면 마지막에 둔다")
+    void sortsStudentReviewsByLatest() {
+        LocalDateTime createdAt = LocalDateTime.of(2026, 9, 30, 12, 0);
+        when(reviewRepository.findByStudentProfileId(7L)).thenReturn(List.of(
+                review(1L, null), review(2L, createdAt), review(3L, createdAt.plusSeconds(1)), review(4L, createdAt)));
+
+        assertThat(reviewService.getStudentReviews(7L))
+                .extracting(Review::getId)
+                .containsExactly(3L, 4L, 2L, 1L);
+    }
+
+    @Test
+    @DisplayName("학생이 받은 리뷰가 없으면 빈 목록을 반환한다")
+    void returnsEmptyStudentReviews() {
+        when(reviewRepository.findByStudentProfileId(7L)).thenReturn(List.of());
+
+        assertThat(reviewService.getStudentReviews(7L)).isEmpty();
+    }
+
+    private static Review review(Long id, LocalDateTime createdAt) {
+        return Review.builder().id(id).studentProfileId(7L).createdAt(createdAt).build();
+    }
+
     private static CreateReviewCommand command(List<ReviewPositivePoint> positivePoints) {
         return CreateReviewCommand.of("KAKAO_12345", 42L, positivePoints, "꼼꼼하게 작업해 주셨어요.", 4);
     }
@@ -98,5 +127,53 @@ class ReviewServiceTest {
         assertThatThrownBy(action::run)
                 .isInstanceOfSatisfying(BusinessException.class, exception ->
                         assertThat(exception.getErrorCode()).isEqualTo(errorCode));
+    }
+
+    @Test
+    @DisplayName("평균 별점은 소수 첫째 자리까지 HALF_UP으로 반올림한다")
+    void roundsAverageRatingHalfUp() {
+        when(reviewRepository.findAverageRatingByStudentProfileId(7L)).thenReturn(4.25);
+        when(reviewRepository.findAverageRatingByStudentProfileId(8L)).thenReturn(4.35);
+        when(reviewRepository.findAverageRatingByStudentProfileId(9L)).thenReturn(5.0);
+
+        assertThat(reviewService.getAverageRating(7L)).isEqualByComparingTo("4.3");
+        assertThat(reviewService.getAverageRating(8L)).isEqualByComparingTo("4.4");
+        assertThat(reviewService.getAverageRating(9L)).hasToString("5.0");
+    }
+
+    @Test
+    @DisplayName("받은 리뷰가 없으면 평균 별점은 0.0이다")
+    void returnsZeroAverageWithoutReviews() {
+        when(reviewRepository.findAverageRatingByStudentProfileId(7L)).thenReturn(null);
+
+        assertThat(reviewService.getAverageRating(7L)).hasToString("0.0");
+    }
+
+    @Test
+    @DisplayName("학생별 평균 별점을 한 번에 조회해 HALF_UP으로 반올림하고 리뷰가 없는 학생은 0.0으로 채운다")
+    void returnsAverageRatingsForAllRequestedStudents() {
+        List<StudentAverageRating> rows = List.of(averageRating(7L, 4.25), averageRating(8L, 4.35));
+        when(reviewRepository.findAverageRatingsByStudentProfileIds(List.of(7L, 8L, 9L))).thenReturn(rows);
+
+        Map<Long, BigDecimal> ratings = reviewService.getAverageRatings(List.of(7L, 8L, 9L));
+
+        assertThat(ratings).containsOnlyKeys(7L, 8L, 9L);
+        assertThat(ratings.get(7L)).hasToString("4.3");
+        assertThat(ratings.get(8L)).hasToString("4.4");
+        assertThat(ratings.get(9L)).hasToString("0.0");
+    }
+
+    @Test
+    @DisplayName("대상 학생이 없으면 평균 별점을 조회하지 않는다")
+    void skipsAverageRatingQueryWithoutStudents() {
+        assertThat(reviewService.getAverageRatings(List.of())).isEmpty();
+        verifyNoInteractions(reviewRepository);
+    }
+
+    private static StudentAverageRating averageRating(Long studentProfileId, Double average) {
+        StudentAverageRating row = mock(StudentAverageRating.class);
+        when(row.getStudentProfileId()).thenReturn(studentProfileId);
+        when(row.getAverageRating()).thenReturn(average);
+        return row;
     }
 }

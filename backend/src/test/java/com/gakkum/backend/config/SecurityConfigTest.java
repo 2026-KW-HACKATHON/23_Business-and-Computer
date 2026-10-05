@@ -124,6 +124,14 @@ class SecurityConfigTest {
     }
 
     @Test
+    @DisplayName("인증 없이 받은 제안 목록을 조회하면 401을 반환한다")
+    void receivedProposalsRequireAuthentication() throws Exception {
+        mockMvc.perform(get("/me/received-proposals"))
+            .andExpect(status().isUnauthorized())
+            .andExpect(jsonPath("$.error.code").value("COMMON_401"));
+    }
+
+    @Test
     @DisplayName("인증 없이 사진 업로드 URL을 요청하면 401을 반환한다")
     void imageUploadPreparationRequiresAuthentication() throws Exception {
         mockMvc.perform(post("/media/images/uploads")
@@ -256,6 +264,33 @@ class SecurityConfigTest {
     }
 
     @Test
+    @DisplayName("인증 없이 의뢰 지원자 목록을 조회하면 401을 반환한다")
+    void jobApplicationsRequireAuthentication() throws Exception {
+        mockMvc.perform(get("/jobs/42/applications").param("sort", "LATEST"))
+            .andExpect(status().isUnauthorized())
+            .andExpect(jsonPath("$.error.code").value("COMMON_401"));
+    }
+
+    @Test
+    @DisplayName("인증 없이 의뢰에 지원하면 401을 반환한다")
+    void jobApplicationCreationRequiresAuthentication() throws Exception {
+        mockMvc.perform(post("/jobs/42/applications")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"summary\":\"요약\",\"workPlan\":\"계획\",\"deliveryMethod\":\"전달\","
+                        + "\"deadlineAndPenaltyAgreed\":true}"))
+            .andExpect(status().isUnauthorized())
+            .andExpect(jsonPath("$.error.code").value("COMMON_401"));
+    }
+
+    @Test
+    @DisplayName("인증 없이 의뢰 지원자 프로필을 조회하면 401을 반환한다")
+    void jobApplicantProfileRequiresAuthentication() throws Exception {
+        mockMvc.perform(get("/jobs/42/applications/105/profile"))
+            .andExpect(status().isUnauthorized())
+            .andExpect(jsonPath("$.error.code").value("COMMON_401"));
+    }
+
+    @Test
     @DisplayName("인증 없이 의뢰 제출물 상세를 조회하면 401을 반환한다")
     void jobSubmissionRequiresAuthentication() throws Exception {
         mockMvc.perform(get("/jobs/42/submission"))
@@ -279,6 +314,22 @@ class SecurityConfigTest {
         mockMvc.perform(post("/payments/order-123/approve")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"pgToken\":\"pg-123\"}"))
+            .andExpect(status().isUnauthorized())
+            .andExpect(jsonPath("$.error.code").value("COMMON_401"));
+    }
+
+    @Test
+    @DisplayName("인증 없이 결제 내역을 조회하면 401을 반환한다")
+    void paymentHistoryRequiresAuthentication() throws Exception {
+        mockMvc.perform(get("/payments"))
+            .andExpect(status().isUnauthorized())
+            .andExpect(jsonPath("$.error.code").value("COMMON_401"));
+    }
+
+    @Test
+    @DisplayName("인증 없이 정산 내역을 조회하면 401을 반환한다")
+    void settlementHistoryRequiresAuthentication() throws Exception {
+        mockMvc.perform(get("/settlements"))
             .andExpect(status().isUnauthorized())
             .andExpect(jsonPath("$.error.code").value("COMMON_401"));
     }

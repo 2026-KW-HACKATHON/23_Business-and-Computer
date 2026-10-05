@@ -1,7 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import type { ChangeEvent, FormEvent } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { RoleAvatar, SubScreen, TextButton, WorkKindIcon } from "../components";
+import {
+  ReportSheet,
+  RoleAvatar,
+  SubScreen,
+  TextButton,
+  WorkKindIcon,
+} from "../components";
 import {
   OWNER_PATHS,
   OwnerMissing,
@@ -43,6 +49,7 @@ function OwnerChatRoomPage() {
   const [sent, setSent] = useState<ChatMessage[]>([]);
   const [draft, setDraft] = useState("");
   const [planOpen, setPlanOpen] = useState(false);
+  const [reportOpen, setReportOpen] = useState(false);
   const endRef = useRef<HTMLDivElement>(null);
   const messages = [...(thread?.messages ?? []), ...sent];
 
@@ -118,12 +125,22 @@ function OwnerChatRoomPage() {
           <p className="owner-chat__work-terms">
             {`${formatWon(work.budget)}, 수정 ${work.revisionLimit}회, 최종 마감 ${formatMonthDay(work.finalDue)}`}
           </p>
-          <div className="owner-chat__work-actions">
-            <TextButton showChevron={false} onClick={() => navigate(OWNER_PATHS.workCancel(work.id))}>
-              작업 취소
-            </TextButton>
-            <TextButton showChevron={false}>문제 신고</TextButton>
-          </div>
+          {/* 취소는 작업 중에만, 신고는 끝나기 전까지만 */}
+          {(work.status === "inProgress" || work.status === "submitted") && (
+            <div className="owner-chat__work-actions">
+              {work.status === "inProgress" && (
+                <TextButton
+                  showChevron={false}
+                  onClick={() => navigate(OWNER_PATHS.workCancel(work.id))}
+                >
+                  작업 취소
+                </TextButton>
+              )}
+              <TextButton showChevron={false} onClick={() => setReportOpen(true)}>
+                문제 신고
+              </TextButton>
+            </div>
+          )}
         </div>
 
         <p className="owner-chat__notice">
@@ -164,6 +181,7 @@ function OwnerChatRoomPage() {
       </div>
 
       <WorkPlanSheet work={planOpen ? work : undefined} onClose={() => setPlanOpen(false)} />
+      <ReportSheet open={reportOpen} workTitle={work.title} onClose={() => setReportOpen(false)} />
     </SubScreen>
   );
 }

@@ -24,10 +24,16 @@ class PaymentMappingTest {
             Table payments = metadata.getEntityBinding(Payment.class.getName()).getTable();
 
             assertThat(payments.getName()).isEqualTo("payments");
-            for (String name : new String[] { "job_id", "job_application_id", "owner_user_id", "order_id",
+            for (String name : new String[] { "owner_user_id", "order_id",
                     "amount", "refund_policy_agreed_at", "status" }) {
                 assertThat(payments.getColumn(new Column(name)).isNullable()).as(name).isFalse();
             }
+            // 제안 결제는 준비 중에 의뢰·지원서가 없다. 일반 결제의 필수 조건은 DB CHECK 제약이 지킨다
+            for (String name : new String[] { "job_id", "job_application_id", "proposal_id", "revision_count",
+                    "message_to_student" }) {
+                assertThat(payments.getColumn(new Column(name)).isNullable()).as(name).isTrue();
+            }
+            assertThat(payments.getColumn(new Column("message_to_student")).getSqlType(metadata)).isEqualTo("TEXT");
             assertThat(payments.getColumn(new Column("payment_key")).isNullable()).isTrue();
             assertThat(payments.getColumn(new Column("payment_key")).getSqlType(metadata)).isEqualTo("TEXT");
             assertThat(payments.getColumn(new Column("kakao_tid")).isNullable()).isTrue();

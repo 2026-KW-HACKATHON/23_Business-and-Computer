@@ -1,0 +1,82 @@
+.student-home__section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 20px 20px 16px;
+}
+
+/* 섹션 사이 8px 회색 띠 */
+.student-home__section + .student-home__section,
+.student-first-visit + .student-home__section {
+  border-top: 8px solid var(--role-muted);
+}
+
+/* 가로 목록이 화면 끝까지 넘어가도록 좌우 여백을 안쪽으로 옮긴다 */
+.student-home__section--wide {
+  padding-inline: 0;
+}
+
+.student-home__section-head {
+  padding: 0 20px;
+}
+
+/* 목록 줄 사이 1px 구분선 */
+.student-home__list > * + * {
+  border-top: 1px solid var(--role-border);
+}
+
+.student-home__examples {
+  display: flex;
+  gap: 10px;
+  margin: 0;
+  padding: 0 20px;
+  overflow-x: auto;
+  list-style: none;
+  scrollbar-width: none;
+}
+
+.student-home__examples::-webkit-scrollbar {
+  display: none;
+}
+
+.student-home__examples > li {
+  flex-shrink: 0;
+}
+
+.student-home__example {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  box-sizing: border-box;
+  width: 200px;
+  height: 100%;
+  padding: 16px;
+  border: 1px solid var(--role-border);
+  border-radius: 16px;
+  background: var(--color-white);
+  font-family: var(--font-sans);
+  text-align: left;
+  cursor: pointer;
+}
+
+.student-home__example:focus-visible {
+  outline: 2px solid var(--color-black);
+  outline-offset: 2px;
+}
+
+.student-home__example-title {
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.4;
+  color: var(--color-black);
+  white-space: pre-line;
+}
+
+.student-home__example-link {
+  margin-top: auto;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: normal;
+  color: var(--color-student);
+}

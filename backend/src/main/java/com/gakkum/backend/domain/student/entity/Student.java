@@ -50,6 +50,10 @@ public class Student {
     @Column(name = "profile_image_url", length = 255)
     private String profileImageUrl;
 
+    @Builder.Default
+    @Column(name = "penalty_count", nullable = false)
+    private Integer penaltyCount = 0;
+
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { CategoryBadge, SectionHeader, TaskRow } from "../components";
 import {
+  FirstVisitGuide,
   OWNER_PATHS,
   OwnerTabScreen,
   TodoCarousel,
@@ -14,18 +15,21 @@ import {
 } from "../features/owner";
 import type { OwnerTodo } from "../features/owner";
 import { formatMonthDay } from "../lib/date";
+import { useDragScroll } from "../hooks/useDragScroll";
 import "./OwnerHomePage.css";
 
 /**
  * 피그마 「사장님 홈 (개선안)」.
  * 확인할 일 → 학생이 작업 중 → 기다리는 중 → 이런 의뢰는 어때요? → 끝난 일.
  * 비어 있는 목록은 섹션째 숨기고, 「이런 의뢰는 어때요?」는 늘 보인다.
+ * 첫 활동 계정(피그마 「사장님 홈 - 처음」)은 할 일 목록 대신 사용법 안내를 보여 준다.
  */
 function OwnerHomePage() {
   const navigate = useNavigate();
   const home = useOwnerHome();
   // 끝난 일은 접힌 채 최근 1건만 보인다
   const [doneExpanded, setDoneExpanded] = useState(false);
+  const exampleScroll = useDragScroll<HTMLUListElement>();
   const doneRows = doneExpanded ? home.done : home.done.slice(0, 1);
   // 「학생이 작업 중」 줄을 누르면 작업계획서 바텀시트
   const [planWorkId, setPlanWorkId] = useState<string>();
@@ -43,15 +47,17 @@ function OwnerHomePage() {
   };
 
   return (
-    <OwnerTabScreen tab="home" hasUnread={home.hasUnreadNotifications} showFab>
-      {home.todos.length > 0 && (
+    <OwnerTabScreen tab="home" showFab>
+      {home.firstVisit && <FirstVisitGuide onStart={() => navigate(OWNER_PATHS.newRequest)} />}
+
+      {!home.firstVisit && home.todos.length > 0 && (
         <section className="owner-home__section">
           <SectionHeader title="확인할 일" count={home.todos.length} />
           <TodoCarousel todos={home.todos} onAction={openTodo} />
         </section>
       )}
 
-      {home.working.length > 0 && (
+      {!home.firstVisit && home.working.length > 0 && (
         <section className="owner-home__section">
           <SectionHeader title="학생이 작업 중" count={home.working.length} />
           <div className="owner-home__list">
@@ -68,7 +74,7 @@ function OwnerHomePage() {
         </section>
       )}
 
-      {home.waiting.length > 0 && (
+      {!home.firstVisit && home.waiting.length > 0 && (
         <section className="owner-home__section">
           <SectionHeader title="기다리는 중" count={home.waiting.length} />
           <div className="owner-home__list">
@@ -94,7 +100,7 @@ function OwnerHomePage() {
             onAction={() => navigate(OWNER_PATHS.explore)}
           />
         </div>
-        <ul className="owner-home__examples">
+        <ul className="owner-home__examples" {...exampleScroll}>
           {home.examples.map((example) => (
             <li key={example.id}>
               <button
@@ -111,7 +117,7 @@ function OwnerHomePage() {
         </ul>
       </section>
 
-      {home.done.length > 0 && (
+      {!home.firstVisit && home.done.length > 0 && (
         <section className="owner-home__section">
           <SectionHeader
             title="끝난 일"

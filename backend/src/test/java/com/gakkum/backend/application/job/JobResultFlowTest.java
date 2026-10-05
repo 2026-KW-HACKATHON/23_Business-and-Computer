@@ -27,6 +27,7 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import com.gakkum.backend.application.job.controller.JobController;
 import com.gakkum.backend.application.job.facade.JobFacade;
+import com.gakkum.backend.domain.certificate.service.CertificateService;
 import com.gakkum.backend.domain.chat.service.ChatAttachmentPolicy;
 import com.gakkum.backend.domain.job.client.JobSubmissionFileStorageClient;
 import com.gakkum.backend.domain.job.entity.Job;
@@ -47,6 +48,8 @@ import com.gakkum.backend.domain.payment.entity.Payment;
 import com.gakkum.backend.domain.payment.entity.PaymentStatus;
 import com.gakkum.backend.domain.payment.repository.PaymentRepository;
 import com.gakkum.backend.domain.payment.service.PaymentService;
+import com.gakkum.backend.domain.proposal.service.ProposalService;
+import com.gakkum.backend.domain.review.service.ReviewService;
 import com.gakkum.backend.domain.specialty.service.SpecialtyCategoryService;
 import com.gakkum.backend.domain.specialty.service.SpecialtyService;
 import com.gakkum.backend.domain.student.entity.Student;
@@ -87,7 +90,8 @@ class JobResultFlowTest {
         JobFacade facade = new JobFacade(userService, new OwnerService(ownerRepository), jobService,
                 mock(SpecialtyCategoryService.class), mock(SpecialtyService.class), new StudentService(studentRepository),
                 mock(JobSubmissionFileStorageClient.class), mock(ChatAttachmentPolicy.class),
-                new PaymentService(paymentRepository, Clock.systemUTC()));
+                new PaymentService(paymentRepository, Clock.systemUTC()),
+                mock(ReviewService.class), mock(CertificateService.class), mock(ProposalService.class));
         mockMvc = MockMvcBuilders.standaloneSetup(new JobController(facade))
                 .setControllerAdvice(new GlobalExceptionHandler())
                 .build();
@@ -117,6 +121,34 @@ class JobResultFlowTest {
                         contains("STARTED", "DRAFT_SUBMITTED", "COMPLETED")))
                 .andExpect(jsonPath("$.data.workHistory[*].date",
                         contains(STARTED_DATE, "2026-09-10", "2026-09-20")));
+    }
+
+    @Test
+    @DisplayName("제안으로 만든 의뢰의 시작 이력은 결제 승인일이 아니라 학생이 실제로 작업을 시작한 날이다")
+    void proposalJobUsesActualStartDate() throws Exception {
+        givenActiveOwner(5L);
+        givenClosedJob();
+        when(jobRepository.findById(42L)).thenReturn(Optional.of(Job.builder()
+                .id(42L)
+                .ownerProfileId(5L)
+                .title("가게 메뉴판 디자인")
+                .budget(150000L)
+                .status(JobStatus.CLOSED)
+                .selectedStudentProfileId(7L)
+                .proposalId(31L)
+                .startedAt(LocalDateTime.of(2026, 9, 5, 10, 0))
+                .completedAt(LocalDateTime.of(2026, 9, 20, 15, 0))
+                .build()));
+        givenSubmissions(submission(81L, 0, JobSubmissionReviewStatus.APPROVED,
+                LocalDateTime.of(2026, 9, 10, 9, 30), null));
+        givenPaidPayment();
+
+        mockMvc.perform(get(URL).principal(authentication))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.workHistory[*].type",
+                        contains("STARTED", "DRAFT_SUBMITTED", "COMPLETED")))
+                .andExpect(jsonPath("$.data.workHistory[*].date",
+                        contains("2026-09-05", "2026-09-10", "2026-09-20")));
     }
 
     @Test

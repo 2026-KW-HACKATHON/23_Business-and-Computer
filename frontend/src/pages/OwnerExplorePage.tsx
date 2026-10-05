@@ -11,6 +11,7 @@ import {
 import { formatMonthDay } from "../lib/date";
 import { FIELDS } from "../types/field";
 import type { Field } from "../types/field";
+import { useDragScroll } from "../hooks/useDragScroll";
 import "./OwnerExplorePage.css";
 
 /**
@@ -23,6 +24,7 @@ function OwnerExplorePage() {
   const [kind, setKind] = useState<CardKind>("all");
   const [field, setField] = useState<Field | null>(null);
   const [query, setQuery] = useState("");
+  const fieldScroll = useDragScroll<HTMLDivElement>();
 
   const keyword = query.trim();
   const visible = items
@@ -39,7 +41,7 @@ function OwnerExplorePage() {
       <div className="owner-explore">
         <div className="owner-explore__filters">
           <KindTabs value={kind} onChange={setKind} />
-          <div className="owner-explore__fields">
+          <div className="owner-explore__fields" {...fieldScroll}>
             <FieldFilter selected={field === null} onClick={() => setField(null)} />
             {FIELDS.map((f) => (
               <FieldFilter key={f} field={f} selected={field === f} onClick={() => setField(f)} />

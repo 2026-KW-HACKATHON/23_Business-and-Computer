@@ -1,0 +1,472 @@
+.student-new {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  padding: 20px 16px 32px;
+}
+
+.student-new__intro {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.student-new__title {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 30px;
+  letter-spacing: normal;
+  color: var(--color-black);
+}
+
+.student-new__description {
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--role-secondary);
+}
+
+.student-new__fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.student-new__field {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  box-sizing: border-box;
+  padding: 14px;
+  border: 1px solid #eef0f3;
+  border-radius: 16px;
+  background: #f9fafb;
+  font-family: var(--font-sans);
+  text-align: left;
+  cursor: pointer;
+}
+
+/* 고르면 흰 바탕 + 2px 검정 테두리. 크기가 변하지 않게 안쪽 여백을 1px 줄인다 */
+.student-new__field--selected {
+  padding: 13px;
+  border: 2px solid var(--color-black);
+  background: var(--color-white);
+}
+
+.student-new__field:focus-visible {
+  outline: 2px solid var(--color-black);
+  outline-offset: 2px;
+}
+
+.student-new__field-check {
+  position: absolute;
+  top: 13px;
+  right: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--color-main);
+  color: var(--color-black);
+}
+
+.student-new__field-check svg {
+  width: 12px;
+  height: 12px;
+}
+
+.student-new__field-name {
+  margin-top: 4px;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 21px;
+  color: var(--color-black);
+}
+
+.student-new__field-sub {
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--role-secondary);
+}
+
+.student-new__field--selected .student-new__field-sub {
+  font-weight: 700;
+  color: var(--color-black);
+}
+
+.student-new__tasks {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.student-new__tasks-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--text-placeholder);
+}
+
+.student-new__tasks-title {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 21px;
+  letter-spacing: normal;
+  color: var(--color-black);
+}
+
+.student-new__group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+  border-radius: 16px;
+  background: #f9fafb;
+}
+
+.student-new__group-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 17px;
+  color: var(--role-secondary);
+}
+
+.student-new__group-head > strong {
+  font-size: 15px;
+  line-height: 20px;
+  color: var(--color-black);
+}
+
+.student-new__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.student-new__group-note {
+  font-size: 13px;
+  line-height: 19px;
+  color: var(--role-secondary);
+}
+
+.student-new__footer {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* 고른 일 요약: 가로로 넘긴다 */
+.student-new__picked {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  white-space: nowrap;
+}
+
+.student-new__picked::-webkit-scrollbar {
+  display: none;
+}
+
+.student-new__picked > strong {
+  flex-shrink: 0;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 17px;
+  color: var(--color-black);
+}
+
+.student-new__picked-item {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 4px;
+  height: 28px;
+  padding: 0 8px 0 10px;
+  border-radius: 999px;
+  background: var(--role-muted);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 16px;
+  color: var(--text-title);
+}
+
+.student-new__picked-item > button {
+  padding: 0;
+  border: none;
+  background: none;
+  font-size: 11px;
+  line-height: 14px;
+  color: var(--text-placeholder);
+  cursor: pointer;
+}
+
+.student-confirm__card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-sizing: border-box;
+  padding: 16px;
+  border: 1px solid #e5e8eb;
+  border-radius: 16px;
+  background: var(--color-white);
+}
+
+.student-confirm__head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.student-confirm__title {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 24px;
+  letter-spacing: normal;
+  color: var(--color-black);
+  word-break: keep-all;
+  overflow-wrap: break-word;
+}
+
+.student-confirm__badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.student-confirm__divider {
+  width: 100%;
+  height: 1px;
+  margin: 0;
+  border: 0;
+  background: #e5e8eb;
+}
+
+.student-confirm__text {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.student-confirm__text-title {
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 17px;
+  color: var(--role-secondary);
+}
+
+.student-confirm__text-body {
+  font-size: 14px;
+  line-height: 21px;
+  color: #333d4b;
+  white-space: pre-line;
+  word-break: keep-all;
+  overflow-wrap: break-word;
+}
+
+.student-confirm__edit {
+  align-self: flex-start;
+}
+
+.student-confirm__notice {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: var(--role-muted);
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--role-secondary);
+  word-break: keep-all;
+}
+
+.student-confirm__notice strong {
+  font-size: 14px;
+  color: var(--color-black);
+}
+
+.student-new__empty {
+  padding: 24px 0;
+  font-size: 14px;
+  color: var(--text-placeholder);
+  text-align: center;
+}
+
+/* 1/4 가게 목록: 고른 줄은 연자주 바탕 + 자주 체크 */
+.student-new__stores {
+  margin: -8px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.student-new__store {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  box-sizing: border-box;
+  width: 100%;
+  padding: 12px;
+  border: none;
+  border-radius: 12px;
+  background: none;
+  font-family: var(--font-sans);
+  text-align: left;
+  cursor: pointer;
+}
+
+.student-new__stores > li + li .student-new__store {
+  border-top: 1px solid var(--role-muted);
+  border-radius: 0;
+}
+
+.student-new__store--selected,
+.student-new__stores > li + li .student-new__store--selected {
+  border-radius: 12px;
+  background: #fbeef2;
+}
+
+.student-new__store:focus-visible {
+  outline: 2px solid var(--color-black);
+  outline-offset: -2px;
+}
+
+.student-new__store-info {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.student-new__store-info > strong {
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 21px;
+  color: var(--color-black);
+}
+
+.student-new__store-info > span {
+  overflow: hidden;
+  font-size: 13px;
+  line-height: 16px;
+  color: var(--role-secondary);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.student-new__radio {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  width: 22px;
+  height: 22px;
+  border: 1.5px solid var(--input-border);
+  border-radius: 50%;
+  color: var(--color-white);
+}
+
+.student-new__store--selected .student-new__radio {
+  border: none;
+  background: var(--color-student);
+}
+
+.student-new__radio svg {
+  width: 12px;
+  height: 12px;
+}
+
+/* 3/4 예상 기간 두 칸 */
+/* 두 칸이 반씩 나눠 가진다 (입력칸 기본 너비로 늘어나 화면 밖으로 밀리지 않게) */
+.student-new__days-row {
+  display: flex;
+  gap: 10px;
+  width: 100%;
+}
+
+.student-new__days {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--role-secondary);
+}
+
+.student-new__days-unit {
+  font-size: 15px;
+  color: var(--text-body);
+}
+
+/* 3/4 참고 사진 */
+.student-new__photos {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.student-new__upload {
+  height: 48px;
+  border: 1px dashed var(--input-border);
+  border-radius: 12px;
+  background: var(--color-white);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-body);
+  cursor: pointer;
+}
+
+.student-new__file {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--role-muted);
+  font-size: 14px;
+}
+
+.student-new__file > strong {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  font-weight: 500;
+  color: var(--color-black);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.student-new__file > small {
+  font-size: 12px;
+  color: var(--role-secondary);
+}
+
+.student-new__file > button {
+  padding: 0 2px;
+  border: none;
+  background: none;
+  font-size: 13px;
+  color: var(--role-secondary);
+  cursor: pointer;
+}

@@ -5,6 +5,8 @@ import com.gakkum.backend.domain.jwt.dto.RefreshRequestDTO;
 import com.gakkum.backend.domain.jwt.entity.RefreshToken;
 import com.gakkum.backend.domain.jwt.repository.RefreshRepository;
 import com.gakkum.backend.domain.user.entity.UserRole;
+import com.gakkum.backend.global.exception.BusinessException;
+import com.gakkum.backend.global.exception.ErrorCode;
 import com.gakkum.backend.util.JWTUtil;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
@@ -33,7 +35,7 @@ public class JwtService {
         // 쿠키 리스트
         Cookie[] cookies = request.getCookies();
         if (cookies == null) {
-            throw new RuntimeException("쿠키가 존재하지 않습니다.");
+            throw new BusinessException(ErrorCode.UNAUTHORIZED);
         }
 
         // Refresh 토큰 획득
@@ -46,13 +48,13 @@ public class JwtService {
         }
 
         if (refreshToken == null) {
-            throw new RuntimeException("refreshToken 쿠키가 없습니다.");
+            throw new BusinessException(ErrorCode.UNAUTHORIZED);
         }
 
         // Refresh 토큰 검증
         Boolean isValid = jwtUtil.isValid(refreshToken, false);
         if (!isValid) {
-            throw new RuntimeException("유효하지 않은 refreshToken입니다.");
+            throw new BusinessException(ErrorCode.UNAUTHORIZED);
         }
 
         // 정보 추출
@@ -96,7 +98,7 @@ public class JwtService {
         // 쿠키 리스트
         Cookie[] cookies = request.getCookies();
         if (cookies == null) {
-            throw new RuntimeException("쿠키가 존재하지 않습니다.");
+            throw new BusinessException(ErrorCode.UNAUTHORIZED);
         }
 
         // Refresh 토큰 획득
@@ -109,17 +111,17 @@ public class JwtService {
         }
 
         if (refreshToken == null) {
-            throw new RuntimeException("refreshToken 쿠키가 없습니다.");
+            throw new BusinessException(ErrorCode.UNAUTHORIZED);
         }
 
         // Refresh 토큰 검증
         Boolean isValid = jwtUtil.isValid(refreshToken, false);
         if (!isValid) {
-            throw new RuntimeException("유효하지 않은 refreshToken입니다.");
+            throw new BusinessException(ErrorCode.UNAUTHORIZED);
         }
 
         if (!existsRefresh(refreshToken)) {
-            throw new RuntimeException("존재하지 않는 refreshToken입니다.");
+            throw new BusinessException(ErrorCode.UNAUTHORIZED);
         }
 
         // 정보 추출

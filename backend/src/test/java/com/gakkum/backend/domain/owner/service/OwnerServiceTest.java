@@ -100,4 +100,19 @@ class OwnerServiceTest {
         verify(ownerRepository).findExploreLatestInCategory(3L, bound, 9L, Limit.of(21));
         verify(ownerRepository).findExploreOldestInCategory(3L, bound, 9L, Limit.of(21));
     }
+
+    @Test
+    @DisplayName("사장님 프로필을 ID별 Map으로 한 번에 읽고 하나라도 없으면 500으로 거부한다")
+    void readsOwnerProfilesByIds() {
+        Owner owner = Owner.builder().id(5L).storeName("가꿈 카페").build();
+        when(ownerRepository.findAllById(java.util.Set.of(5L, 6L))).thenReturn(List.of(owner));
+        when(ownerRepository.findAllById(java.util.Set.of(5L))).thenReturn(List.of(owner));
+
+        assertThat(ownerService.getOwnerProfilesByIds(java.util.Set.of(5L))).containsEntry(5L, owner);
+        assertThat(ownerService.getOwnerProfilesByIds(java.util.Set.of())).isEmpty();
+        org.assertj.core.api.Assertions.assertThatThrownBy(
+                () -> ownerService.getOwnerProfilesByIds(java.util.Set.of(5L, 6L)))
+                .isInstanceOfSatisfying(BusinessException.class,
+                        e -> assertThat(e.getErrorCode()).isEqualTo(ErrorCode.INTERNAL_SERVER_ERROR));
+    }
 }

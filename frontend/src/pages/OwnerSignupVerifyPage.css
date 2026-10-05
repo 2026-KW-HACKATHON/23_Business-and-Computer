@@ -1,3 +1,13 @@
+/* 서버·네트워크 오류: 불일치 문구와 같은 자리·모양, 입력칸 테두리는 그대로 */
+.owner-signup-verify__error {
+  margin: 8px 0 0;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--color-danger);
+  text-align: left;
+}
+
 .owner-signup-verify__done {
   display: flex;
   align-items: center;

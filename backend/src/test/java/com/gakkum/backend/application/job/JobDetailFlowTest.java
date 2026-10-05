@@ -1,5 +1,6 @@
 package com.gakkum.backend.application.job;
 
+import static org.hamcrest.Matchers.nullValue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -10,6 +11,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import java.time.Clock;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -18,12 +20,15 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import com.gakkum.backend.application.job.controller.JobController;
 import com.gakkum.backend.application.job.facade.JobFacade;
+import com.gakkum.backend.domain.certificate.service.CertificateService;
 import com.gakkum.backend.domain.chat.service.ChatAttachmentPolicy;
 import com.gakkum.backend.domain.job.client.JobSubmissionFileStorageClient;
 import com.gakkum.backend.domain.job.entity.Job;
@@ -35,8 +40,15 @@ import com.gakkum.backend.domain.job.repository.JobSpecialtyRepository;
 import com.gakkum.backend.domain.job.repository.JobSubmissionRepository;
 import com.gakkum.backend.domain.job.service.JobService;
 import com.gakkum.backend.domain.jwt.service.JwtService;
+import com.gakkum.backend.domain.owner.entity.Owner;
+import com.gakkum.backend.domain.owner.repository.OwnerRepository;
 import com.gakkum.backend.domain.owner.service.OwnerService;
+import com.gakkum.backend.domain.payment.entity.Payment;
+import com.gakkum.backend.domain.payment.entity.PaymentStatus;
+import com.gakkum.backend.domain.payment.repository.PaymentRepository;
 import com.gakkum.backend.domain.payment.service.PaymentService;
+import com.gakkum.backend.domain.proposal.service.ProposalService;
+import com.gakkum.backend.domain.review.service.ReviewService;
 import com.gakkum.backend.domain.specialty.entity.Specialty;
 import com.gakkum.backend.domain.specialty.entity.SpecialtyCategory;
 import com.gakkum.backend.domain.specialty.repository.SpecialtyCategoryRepository;
@@ -44,6 +56,8 @@ import com.gakkum.backend.domain.specialty.repository.SpecialtyRepository;
 import com.gakkum.backend.domain.specialty.repository.StudentSpecialtyRepository;
 import com.gakkum.backend.domain.specialty.service.SpecialtyCategoryService;
 import com.gakkum.backend.domain.specialty.service.SpecialtyService;
+import com.gakkum.backend.domain.student.entity.Student;
+import com.gakkum.backend.domain.student.repository.StudentRepository;
 import com.gakkum.backend.domain.student.service.StudentService;
 import com.gakkum.backend.domain.user.entity.User;
 import com.gakkum.backend.domain.user.entity.UserRole;
@@ -55,8 +69,18 @@ import com.gakkum.backend.global.exception.GlobalExceptionHandler;
 class JobDetailFlowTest {
 
     private static final String USERNAME = "KAKAO_12345";
+    private static final String USER_ID = "01K58M6PJV8VAJMXHBHJ2PNB5C";
+    private static final Long JOB_OWNER_PROFILE_ID = 999L;
+    private static final Long SELECTED_STUDENT_PROFILE_ID = 7L;
+    private static final String STORE_NAME = "가꿈 베이커리";
+    private static final String CANCEL_REASON = "가게 운영 계획이 변경되었습니다.";
+    private static final String MESSAGE_TO_STUDENT = "함께하지 못해 아쉽습니다.";
+    private static final LocalDateTime CANCELLED_AT = LocalDateTime.of(2026, 10, 4, 12, 0);
 
     private final UserRepository userRepository = mock(UserRepository.class);
+    private final OwnerRepository ownerRepository = mock(OwnerRepository.class);
+    private final StudentRepository studentRepository = mock(StudentRepository.class);
+    private final PaymentRepository paymentRepository = mock(PaymentRepository.class);
     private final JobRepository jobRepository = mock(JobRepository.class);
     private final JobSpecialtyRepository jobSpecialtyRepository = mock(JobSpecialtyRepository.class);
     private final SpecialtyRepository specialtyRepository = mock(SpecialtyRepository.class);
@@ -75,9 +99,11 @@ class JobDetailFlowTest {
                 mock(JobApplicationRepository.class), mock(JobSubmissionRepository.class), Clock.systemUTC());
         SpecialtyCategoryService specialtyCategoryService =
                 new SpecialtyCategoryService(specialtyCategoryRepository, specialtyRepository);
-        JobFacade facade = new JobFacade(userService, mock(OwnerService.class), jobService,
-                specialtyCategoryService, specialtyService, mock(StudentService.class),
-                mock(JobSubmissionFileStorageClient.class), mock(ChatAttachmentPolicy.class), mock(PaymentService.class));
+        JobFacade facade = new JobFacade(userService, new OwnerService(ownerRepository), jobService,
+                specialtyCategoryService, specialtyService, new StudentService(studentRepository),
+                mock(JobSubmissionFileStorageClient.class), mock(ChatAttachmentPolicy.class),
+                new PaymentService(paymentRepository, Clock.systemUTC()),
+                mock(ReviewService.class), mock(CertificateService.class), mock(ProposalService.class));
         mockMvc = MockMvcBuilders.standaloneSetup(new JobController(facade))
                 .setControllerAdvice(new GlobalExceptionHandler())
                 .build();
@@ -107,7 +133,7 @@ class JobDetailFlowTest {
                 .andExpect(jsonPath("$.data.id").value(42))
                 .andExpect(jsonPath("$.data.jobId").doesNotExist())
                 .andExpect(jsonPath("$.data.ownerProfileId").doesNotExist())
-                .andExpect(jsonPath("$.data.status").doesNotExist())
+                .andExpect(jsonPath("$.data.status").value(jobStatus.name()))
                 .andExpect(jsonPath("$.data.title").value("가게 홍보 웹사이트 제작"))
                 .andExpect(jsonPath("$.data.description").value("메뉴와 위치를 소개하는 웹사이트가 필요합니다."))
                 .andExpect(jsonPath("$.data.budget").value(300000))
@@ -125,6 +151,153 @@ class JobDetailFlowTest {
                 .andExpect(jsonPath("$.data.draftDeadline").value("2026-10-10"))
                 .andExpect(jsonPath("$.data.finalDeadline").value("2026-10-20"))
                 .andExpect(jsonPath("$.data.revisionCount").value(1));
+        expectNoCancellationInfo(mockMvc.perform(get("/jobs/42").principal(authentication)));
+        verifyNoInteractions(paymentRepository);
+    }
+
+    @Test
+    @DisplayName("결제 후 취소된 의뢰를 의뢰한 사장님이 조회하면 취소 정보와 저장된 환불액·학생 정산액을 반환한다")
+    void returnsCancellationInfoToOwner() throws Exception {
+        givenActiveUser(UserRole.OWNER);
+        givenOwnerProfileOfUser(JOB_OWNER_PROFILE_ID);
+        givenJobOwnerStore();
+        givenJob(cancelledJob(SELECTED_STUDENT_PROFILE_ID));
+        givenRefundedPayment(70_000L, 30_000L);
+
+        expectPaidCancellationInfo(mockMvc.perform(get("/jobs/42").principal(authentication)));
+    }
+
+    @Test
+    @DisplayName("결제 후 취소된 의뢰를 선정 학생이 조회하면 취소 정보와 저장된 환불액·학생 정산액을 반환한다")
+    void returnsCancellationInfoToSelectedStudent() throws Exception {
+        givenActiveUser(UserRole.STUDENT);
+        givenStudentProfileOfUser(SELECTED_STUDENT_PROFILE_ID);
+        givenJobOwnerStore();
+        givenJob(cancelledJob(SELECTED_STUDENT_PROFILE_ID));
+        givenRefundedPayment(70_000L, 30_000L);
+
+        expectPaidCancellationInfo(mockMvc.perform(get("/jobs/42").principal(authentication)));
+    }
+
+    @Test
+    @DisplayName("결제 전 취소된 의뢰는 결제를 조회하지 않고 환불액과 학생 정산액을 0으로 반환한다")
+    void returnsZeroAmountsForCancellationBeforePayment() throws Exception {
+        givenActiveUser(UserRole.OWNER);
+        givenOwnerProfileOfUser(JOB_OWNER_PROFILE_ID);
+        givenJobOwnerStore();
+        givenJob(cancelledJob(null));
+
+        mockMvc.perform(get("/jobs/42").principal(authentication))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.status").value("CANCELLED"))
+                .andExpect(jsonPath("$.data.storeName").value(STORE_NAME))
+                .andExpect(jsonPath("$.data.cancelledBy").value("OWNER"))
+                .andExpect(jsonPath("$.data.cancelReason").value(CANCEL_REASON))
+                .andExpect(jsonPath("$.data.refundAmount").value(0))
+                .andExpect(jsonPath("$.data.studentCompensationAmount").value(0));
+        verifyNoInteractions(paymentRepository);
+    }
+
+    @Test
+    @DisplayName("취소 이유·남긴 말·취소 시각이 없는 과거 취소 기록은 해당 필드를 null로 반환한다")
+    void returnsNullForLegacyCancellationRecord() throws Exception {
+        givenActiveUser(UserRole.OWNER);
+        givenOwnerProfileOfUser(JOB_OWNER_PROFILE_ID);
+        givenJobOwnerStore();
+        givenJob(jobBuilder(JobStatus.CANCELLED).build());
+
+        mockMvc.perform(get("/jobs/42").principal(authentication))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.storeName").value(STORE_NAME))
+                .andExpect(jsonPath("$.data.cancelledBy").value("OWNER"))
+                .andExpect(jsonPath("$.data.cancelReason").value(nullValue()))
+                .andExpect(jsonPath("$.data.messageToStudent").value(nullValue()))
+                .andExpect(jsonPath("$.data.cancelledAt").value(nullValue()))
+                .andExpect(jsonPath("$.data.refundAmount").value(0))
+                .andExpect(jsonPath("$.data.studentCompensationAmount").value(0));
+    }
+
+    @Test
+    @DisplayName("다른 사장님에게는 취소 정보를 노출하지 않고 결제도 조회하지 않는다")
+    void hidesCancellationInfoFromOtherOwner() throws Exception {
+        givenActiveUser(UserRole.OWNER);
+        givenOwnerProfileOfUser(5L);
+        givenJob(cancelledJob(SELECTED_STUDENT_PROFILE_ID));
+
+        expectHiddenCancellationInfo();
+    }
+
+    @Test
+    @DisplayName("선정되지 않은 다른 학생에게는 취소 정보를 노출하지 않고 결제도 조회하지 않는다")
+    void hidesCancellationInfoFromOtherStudent() throws Exception {
+        givenActiveUser(UserRole.STUDENT);
+        givenStudentProfileOfUser(8L);
+        givenJob(cancelledJob(SELECTED_STUDENT_PROFILE_ID));
+
+        expectHiddenCancellationInfo();
+    }
+
+    @ParameterizedTest
+    @EnumSource(value = UserRole.class, names = {"OWNER", "STUDENT"})
+    @DisplayName("역할에 맞는 프로필이 없는 사용자에게는 취소 정보를 노출하지 않고 결제도 조회하지 않는다")
+    void hidesCancellationInfoFromUserWithoutProfile(UserRole role) throws Exception {
+        givenActiveUser(role);
+        givenJob(cancelledJob(SELECTED_STUDENT_PROFILE_ID));
+
+        expectHiddenCancellationInfo();
+    }
+
+    @Test
+    @DisplayName("모집 중 취소된 의뢰는 선정 학생이 없으므로 학생에게 취소 정보를 노출하지 않는다")
+    void hidesCancellationInfoOfUnmatchedJobFromStudent() throws Exception {
+        givenActiveUser(UserRole.STUDENT);
+        givenJob(cancelledJob(null));
+
+        expectHiddenCancellationInfo();
+        verifyNoInteractions(studentRepository);
+    }
+
+    @Test
+    @DisplayName("취소되지 않은 의뢰는 의뢰한 사장님에게도 취소 정보를 null로 반환한다")
+    void returnsNoCancellationInfoForActiveJob() throws Exception {
+        givenActiveUser(UserRole.OWNER);
+        givenOwnerProfileOfUser(JOB_OWNER_PROFILE_ID);
+        givenJob(jobBuilder(JobStatus.MATCHED).selectedStudentProfileId(SELECTED_STUDENT_PROFILE_ID).build());
+
+        expectNoCancellationInfo(mockMvc.perform(get("/jobs/42").principal(authentication))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.status").value("MATCHED")));
+        verifyNoInteractions(ownerRepository, paymentRepository);
+    }
+
+    @Test
+    @DisplayName("결제 후 취소된 의뢰에 환불 기록이 없으면 500을 반환한다")
+    void rejectsPaidCancellationWithoutRefundedPayment() throws Exception {
+        givenActiveUser(UserRole.OWNER);
+        givenOwnerProfileOfUser(JOB_OWNER_PROFILE_ID);
+        givenJobOwnerStore();
+        givenJob(cancelledJob(SELECTED_STUDENT_PROFILE_ID));
+        when(paymentRepository.findByJobIdAndStatus(42L, PaymentStatus.REFUNDED)).thenReturn(Optional.empty());
+
+        mockMvc.perform(get("/jobs/42").principal(authentication))
+                .andExpect(status().isInternalServerError())
+                .andExpect(jsonPath("$.data").doesNotExist())
+                .andExpect(jsonPath("$.error.code").value("COMMON_500"));
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    @DisplayName("환불 기록에 환불액 또는 학생 정산액이 없으면 500을 반환한다")
+    void rejectsRefundedPaymentWithoutStoredAmount(boolean missingRefundAmount) throws Exception {
+        givenActiveUser(UserRole.STUDENT);
+        givenStudentProfileOfUser(SELECTED_STUDENT_PROFILE_ID);
+        givenJobOwnerStore();
+        givenJob(cancelledJob(SELECTED_STUDENT_PROFILE_ID));
+        givenRefundedPayment(missingRefundAmount ? null : 70_000L, missingRefundAmount ? 30_000L : null);
+
+        mockMvc.perform(get("/jobs/42").principal(authentication))
+                .andExpect(status().isInternalServerError())
+                .andExpect(jsonPath("$.error.code").value("COMMON_500"));
     }
 
     @Test
@@ -177,23 +350,102 @@ class JobDetailFlowTest {
         verifyNoInteractions(jobRepository, jobSpecialtyRepository);
     }
 
+    private void expectPaidCancellationInfo(ResultActions result) throws Exception {
+        result.andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.id").value(42))
+                .andExpect(jsonPath("$.data.status").value("CANCELLED"))
+                .andExpect(jsonPath("$.data.title").value("가게 홍보 웹사이트 제작"))
+                .andExpect(jsonPath("$.data.storeName").value(STORE_NAME))
+                .andExpect(jsonPath("$.data.cancelledBy").value("OWNER"))
+                .andExpect(jsonPath("$.data.cancelReason").value(CANCEL_REASON))
+                .andExpect(jsonPath("$.data.messageToStudent").value(MESSAGE_TO_STUDENT))
+                .andExpect(jsonPath("$.data.budget").value(300000))
+                // 현재 보상 비율(20%)로 다시 계산한 값이 아니라 저장된 값이어야 한다
+                .andExpect(jsonPath("$.data.refundAmount").value(70_000))
+                .andExpect(jsonPath("$.data.studentCompensationAmount").value(30_000))
+                .andExpect(jsonPath("$.data.cancelledAt").value("2026-10-04T12:00:00"));
+    }
+
+    private void expectHiddenCancellationInfo() throws Exception {
+        expectNoCancellationInfo(mockMvc.perform(get("/jobs/42").principal(authentication))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.id").value(42))
+                .andExpect(jsonPath("$.data.status").value("CANCELLED"))
+                .andExpect(jsonPath("$.data.title").value("가게 홍보 웹사이트 제작"))
+                .andExpect(jsonPath("$.data.budget").value(300000)));
+        verifyNoInteractions(paymentRepository);
+    }
+
+    private void expectNoCancellationInfo(ResultActions result) throws Exception {
+        for (String field : List.of("storeName", "cancelledBy", "cancelReason", "messageToStudent",
+                "refundAmount", "studentCompensationAmount", "cancelledAt")) {
+            result.andExpect(jsonPath("$.data." + field).value(nullValue()));
+        }
+    }
+
     private void givenActiveStudent() {
         when(userRepository.findByUsernameAndIsLock(USERNAME, false))
                 .thenReturn(Optional.of(User.builder().username(USERNAME).role(UserRole.STUDENT).isLock(false).build()));
     }
 
+    private void givenActiveUser(UserRole role) {
+        when(userRepository.findByUsernameAndIsLock(USERNAME, false)).thenReturn(Optional.of(
+                User.builder().id(USER_ID).username(USERNAME).role(role).isLock(false).build()));
+    }
+
+    private void givenOwnerProfileOfUser(Long ownerProfileId) {
+        when(ownerRepository.findByUserId(USER_ID))
+                .thenReturn(Optional.of(Owner.builder().id(ownerProfileId).userId(USER_ID).build()));
+    }
+
+    private void givenStudentProfileOfUser(Long studentProfileId) {
+        when(studentRepository.findByUserId(USER_ID))
+                .thenReturn(Optional.of(Student.builder().id(studentProfileId).userId(USER_ID).build()));
+    }
+
+    private void givenJobOwnerStore() {
+        when(ownerRepository.findById(JOB_OWNER_PROFILE_ID)).thenReturn(Optional.of(
+                Owner.builder().id(JOB_OWNER_PROFILE_ID).storeName(STORE_NAME).build()));
+    }
+
+    private void givenJob(Job job) {
+        when(jobRepository.findById(42L)).thenReturn(Optional.of(job));
+        when(jobSpecialtyRepository.findByJobIdIn(List.of(42L))).thenReturn(List.of());
+    }
+
+    private void givenRefundedPayment(Long refundAmount, Long studentCompensationAmount) {
+        Payment payment = mock(Payment.class);
+        when(payment.getAmount()).thenReturn(100_000L);
+        when(payment.getRefundAmount()).thenReturn(refundAmount);
+        when(payment.getStudentCompensationAmount()).thenReturn(studentCompensationAmount);
+        when(paymentRepository.findByJobIdAndStatus(42L, PaymentStatus.REFUNDED)).thenReturn(Optional.of(payment));
+    }
+
+    /** 사장님이 취소한 의뢰. 선정 학생이 있으면 결제 후(진행 중) 취소, 없으면 결제 전(모집 중) 취소다. */
+    private Job cancelledJob(Long selectedStudentProfileId) {
+        return jobBuilder(JobStatus.CANCELLED)
+                .selectedStudentProfileId(selectedStudentProfileId)
+                .completedAt(CANCELLED_AT)
+                .cancelReason(CANCEL_REASON)
+                .messageToStudent(MESSAGE_TO_STUDENT)
+                .build();
+    }
+
     private Job job(JobStatus status) {
+        return jobBuilder(status).build();
+    }
+
+    private Job.JobBuilder jobBuilder(JobStatus status) {
         return Job.builder()
                 .id(42L)
-                .ownerProfileId(999L)
+                .ownerProfileId(JOB_OWNER_PROFILE_ID)
                 .title("가게 홍보 웹사이트 제작")
                 .description("메뉴와 위치를 소개하는 웹사이트가 필요합니다.")
                 .budget(300000L)
                 .draftDeadline(LocalDate.of(2026, 10, 10))
                 .finalDeadline(LocalDate.of(2026, 10, 20))
                 .revisionCount(1)
-                .status(status)
-                .build();
+                .status(status);
     }
 
     private Specialty specialty(Long id, Long categoryId, String name) {

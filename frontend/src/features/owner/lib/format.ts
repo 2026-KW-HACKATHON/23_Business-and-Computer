@@ -25,6 +25,7 @@ export const WAITING_STATUS_LABEL: Record<WaitingStatus, string> = {
 
 export const EXPLORE_PROGRESS_LABEL: Record<ExploreProgress, string> = {
   waitingAcceptance: "수락 대기",
+  accepted: "수락됨",
   completed: "완료",
 };
 

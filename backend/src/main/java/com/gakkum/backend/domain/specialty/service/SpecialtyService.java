@@ -1,7 +1,10 @@
 package com.gakkum.backend.domain.specialty.service;
 
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -44,5 +47,21 @@ public class SpecialtyService {
         if (!specialtyIds.isEmpty() && specialtyRepository.countByIdIn(specialtyIds) != specialtyIds.size()) {
             throw new BusinessException(ErrorCode.SPECIALTY_NOT_FOUND);
         }
+    }
+
+    /**
+     * 학생별 등록 특기 ID를 한 번에 조회한다.
+     * @param studentProfileIds 학생 프로필 ID 목록
+     * @return 학생 프로필 ID별 특기 ID 목록, 특기가 없는 학생은 키가 없다
+     */
+    @Transactional(readOnly = true)
+    public Map<Long, List<Long>> getSpecialtyIdsByStudentProfileIds(Collection<Long> studentProfileIds) {
+        if (studentProfileIds.isEmpty()) {
+            return Map.of();
+        }
+        return studentSpecialtyRepository.findByStudentProfileIdIn(studentProfileIds).stream()
+                .collect(Collectors.groupingBy(
+                        StudentSpecialty::getStudentProfileId,
+                        Collectors.mapping(StudentSpecialty::getSpecialtyId, Collectors.toList())));
     }
 }

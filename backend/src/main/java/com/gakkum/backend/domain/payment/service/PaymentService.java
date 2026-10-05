@@ -2,6 +2,9 @@ package com.gakkum.backend.domain.payment.service;
 
 import java.time.Clock;
 import java.time.Instant;
+import java.util.Collection;
+import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import org.springframework.stereotype.Service;
@@ -9,7 +12,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.gakkum.backend.domain.payment.dto.PaymentCommandDto.PreparePaymentCommand;
 import com.gakkum.backend.domain.payment.dto.PaymentQueryDto.ApprovedPaymentData;
+import com.gakkum.backend.domain.payment.dto.PaymentQueryDto.PaymentHistoryData;
 import com.gakkum.backend.domain.payment.dto.PaymentQueryDto.RefundedPaymentData;
+import com.gakkum.backend.domain.payment.dto.PaymentQueryDto.SettlementHistoryData;
 import com.gakkum.backend.domain.payment.entity.Payment;
 import com.gakkum.backend.domain.payment.entity.PaymentStatus;
 import com.gakkum.backend.domain.payment.repository.PaymentRepository;
@@ -59,6 +64,70 @@ public class PaymentService {
         return paymentRepository.save(payment);
     }
 
+    /**
+     * 제안 결제의 대기(PENDING) 주문 생성. 결제할 수 있는 제안인지는 호출하는 쪽이 제안 행을 잠가 먼저 검증하고 값만 넘긴다.
+     * 사장님이 입력한 수정 횟수와 한마디는 주문에 보존했다가 승인 시 의뢰로 옮긴다.
+     * @param proposalId
+     * @param ownerUserId
+     * @param amount 서버 기준 결제 금액(제안 작업비)
+     * @param revisionCount
+     * @param messageToStudent 입력하지 않았으면 null
+     * @return 저장된 PENDING 주문
+     */
+    public Payment prepareProposalPayment(
+            Long proposalId, String ownerUserId, Long amount, Integer revisionCount, String messageToStudent) {
+
+        // 예외: 결제 금액(제안 작업비)이 없거나 0 이하인 경우
+        if (amount == null || amount <= 0) {
+            throw new BusinessException(ErrorCode.PAYMENT_NOT_AVAILABLE);
+        }
+        // 예외: 이미 결제가 완료된 제안인 경우
+        if (paymentRepository.existsByProposalIdAndStatus(proposalId, PaymentStatus.PAID)) {
+            throw new BusinessException(ErrorCode.PAYMENT_ALREADY_PAID);
+        }
+
+        // 이미 PENDING 상태의 결제 시도가 있다면(현재가 재시도) 이전 요청을 무효 처리
+        paymentRepository.findByProposalIdAndStatus(proposalId, PaymentStatus.PENDING)
+                .ifPresent(previous -> {
+                    previous.supersede();
+                    paymentRepository.flush();
+                });
+
+        return paymentRepository.save(Payment.pendingForProposal(
+                proposalId,
+                ownerUserId,
+                UUID.randomUUID().toString(),
+                amount,
+                revisionCount,
+                messageToStudent,
+                Instant.now(clock)));
+    }
+
+    /**
+     * 제안의 결제 승인 시각. 결제된 제안에는 승인된 결제(PAID·REFUNDED)가 반드시 있어야 한다.
+     * @param proposalId
+     * @return 결제 승인 시각, 승인된 결제가 없으면 데이터 오류(500)
+     */
+    @Transactional(readOnly = true)
+    public Instant getProposalPaidAt(Long proposalId) {
+        return paymentRepository
+                .findByProposalIdAndStatusIn(proposalId, List.of(PaymentStatus.PAID, PaymentStatus.REFUNDED))
+                .map(Payment::getApprovedAt)
+                .orElseThrow(() -> new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR));
+    }
+
+    /** 의뢰의 결제 대기(PENDING) 주문. 재준비가 대체하기 전에 실제 결제 여부를 확인하는 데 쓴다. */
+    @Transactional(readOnly = true)
+    public Optional<Payment> findPendingPayment(Long jobId) {
+        return paymentRepository.findByJobIdAndStatus(jobId, PaymentStatus.PENDING);
+    }
+
+    /** 제안의 결제 대기(PENDING) 주문. 재준비가 대체하기 전에 실제 결제 여부를 확인하는 데 쓴다. */
+    @Transactional(readOnly = true)
+    public Optional<Payment> findPendingProposalPayment(Long proposalId) {
+        return paymentRepository.findByProposalIdAndStatus(proposalId, PaymentStatus.PENDING);
+    }
+
     @Transactional
     public void recordKakaoTid(String orderId, String tid) {
         Payment payment = paymentRepository.findByOrderId(orderId)
@@ -90,6 +159,22 @@ public class PaymentService {
     }
 
     /**
+     * 결제 후 취소된 의뢰의 환불(REFUNDED) 주문 조회. 금액은 취소 시 저장한 값을 그대로 읽고 다시 계산하지 않는다.
+     * @param jobId
+     * @return 결제 금액, 학생 보상금, 환불 금액, 환불 처리 시각. 환불 주문이나 저장된 금액이 없으면 데이터 오류(500)
+     */
+    @Transactional(readOnly = true)
+    public RefundedPaymentData getRefundedPayment(Long jobId) {
+        Payment payment = paymentRepository.findByJobIdAndStatus(jobId, PaymentStatus.REFUNDED)
+                .orElseThrow(() -> new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR));
+        if (payment.getRefundAmount() == null || payment.getStudentCompensationAmount() == null) {
+            throw new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR);
+        }
+        return new RefundedPaymentData(payment.getAmount(), payment.getStudentCompensationAmount(),
+                payment.getRefundAmount(), payment.getRefundedAt());
+    }
+
+    /**
      * 의뢰의 결제 완료(PAID) 주문 조회. 매칭 이후 의뢰에는 결제 완료 주문이 반드시 있어야 한다.
      * @param jobId
      * @return 주문 ID, 결제 금액, 결제 승인 시각
@@ -102,5 +187,38 @@ public class PaymentService {
             throw new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR);
         }
         return new ApprovedPaymentData(payment.getOrderId(), payment.getAmount(), payment.getApprovedAt());
+    }
+
+    /**
+     * 사장님 본인의 결제 내역 조회. 승인된 결제(PAID·REFUNDED)만 승인 시각 최신순으로 반환한다.
+     * @param ownerUserId
+     * @return 결제 내역, 없으면 빈 목록. 승인 시각이 없는 결제는 데이터 오류(500)
+     */
+    @Transactional(readOnly = true)
+    public List<PaymentHistoryData> getPaymentHistory(String ownerUserId) {
+        List<Payment> payments = paymentRepository.findByOwnerUserIdAndStatusInOrderByApprovedAtDescIdDesc(
+                ownerUserId, List.of(PaymentStatus.PAID, PaymentStatus.REFUNDED));
+        if (payments.stream().anyMatch(payment -> payment.getApprovedAt() == null)) {
+            throw new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR);
+        }
+        return payments.stream().map(PaymentHistoryData::from).toList();
+    }
+
+    /**
+     * 학생이 담당하는 의뢰에 연결된 정산 내역 조회. 일반 결제와 제안 결제를 함께, 승인된 결제(PAID·REFUNDED)만 승인 시각 최신순으로 반환한다.
+     * @param jobIds 학생 본인이 담당하는 의뢰 ID 목록
+     * @return 정산 내역, 없으면 빈 목록. 승인 시각이 없는 결제는 데이터 오류(500)
+     */
+    @Transactional(readOnly = true)
+    public List<SettlementHistoryData> getSettlementHistory(Collection<Long> jobIds) {
+        if (jobIds.isEmpty()) {
+            return List.of();
+        }
+        List<Payment> payments = paymentRepository.findByJobIdInAndStatusInOrderByApprovedAtDescIdDesc(
+                jobIds, List.of(PaymentStatus.PAID, PaymentStatus.REFUNDED));
+        if (payments.stream().anyMatch(payment -> payment.getApprovedAt() == null)) {
+            throw new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR);
+        }
+        return payments.stream().map(SettlementHistoryData::from).toList();
     }
 }

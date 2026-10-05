@@ -7,11 +7,13 @@ import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
+import java.util.List;
 import java.util.Optional;
 
 import org.junit.jupiter.api.DisplayName;
@@ -19,7 +21,9 @@ import org.junit.jupiter.api.Test;
 import org.mockito.InOrder;
 
 import com.gakkum.backend.domain.payment.dto.PaymentCommandDto.PreparePaymentCommand;
+import com.gakkum.backend.domain.payment.dto.PaymentQueryDto.PaymentHistoryData;
 import com.gakkum.backend.domain.payment.dto.PaymentQueryDto.RefundedPaymentData;
+import com.gakkum.backend.domain.payment.dto.PaymentQueryDto.SettlementHistoryData;
 import com.gakkum.backend.domain.payment.entity.Payment;
 import com.gakkum.backend.domain.payment.entity.PaymentStatus;
 import com.gakkum.backend.domain.payment.repository.PaymentRepository;
@@ -155,6 +159,198 @@ class PaymentServiceTest {
         when(repository.findByJobIdAndStatus(11L, PaymentStatus.PAID)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> service.refundOnCancel(11L))
+                .isInstanceOfSatisfying(BusinessException.class, exception ->
+                        assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.INTERNAL_SERVER_ERROR));
+    }
+
+    @Test
+    @DisplayName("취소된 의뢰의 환불 주문은 저장된 결제 금액·학생 보상금·환불 금액을 그대로 반환한다")
+    void returnsStoredRefundedPayment() {
+        Payment refunded = mock(Payment.class);
+        when(refunded.getAmount()).thenReturn(100_000L);
+        when(refunded.getStudentCompensationAmount()).thenReturn(30_000L);
+        when(refunded.getRefundAmount()).thenReturn(70_000L);
+        when(refunded.getRefundedAt()).thenReturn(NOW);
+        when(repository.findByJobIdAndStatus(11L, PaymentStatus.REFUNDED)).thenReturn(Optional.of(refunded));
+
+        assertThat(service.getRefundedPayment(11L))
+                .isEqualTo(new RefundedPaymentData(100_000L, 30_000L, 70_000L, NOW));
+    }
+
+    @Test
+    @DisplayName("환불 주문이 없거나 저장된 환불 금액·학생 보상금이 없으면 데이터 무결성 오류로 처리한다")
+    void rejectsMissingRefundedPaymentOrAmounts() {
+        Payment withoutRefundAmount = mock(Payment.class);
+        when(withoutRefundAmount.getRefundAmount()).thenReturn(null);
+        when(withoutRefundAmount.getStudentCompensationAmount()).thenReturn(30_000L);
+        Payment withoutCompensation = mock(Payment.class);
+        when(withoutCompensation.getRefundAmount()).thenReturn(70_000L);
+        when(withoutCompensation.getStudentCompensationAmount()).thenReturn(null);
+        when(repository.findByJobIdAndStatus(11L, PaymentStatus.REFUNDED)).thenReturn(Optional.empty());
+        when(repository.findByJobIdAndStatus(12L, PaymentStatus.REFUNDED)).thenReturn(Optional.of(withoutRefundAmount));
+        when(repository.findByJobIdAndStatus(13L, PaymentStatus.REFUNDED)).thenReturn(Optional.of(withoutCompensation));
+
+        for (Long jobId : List.of(11L, 12L, 13L)) {
+            assertThatThrownBy(() -> service.getRefundedPayment(jobId))
+                    .isInstanceOfSatisfying(BusinessException.class, exception ->
+                            assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.INTERNAL_SERVER_ERROR));
+        }
+    }
+
+    @Test
+    @DisplayName("결제 내역은 본인의 PAID·REFUNDED 결제만 저장소 정렬 순서대로 반환한다")
+    void returnsPaymentHistoryInRepositoryOrder() {
+        Payment refunded = historyPayment(12L, "order-refunded", "T0000000000000000002");
+        refunded.approve(NOW);
+        refunded.refundOnCancel(NOW.plusSeconds(60));
+        Payment paid = historyPayment(11L, "order-paid", "T0000000000000000001");
+        paid.approve(NOW.minusSeconds(60));
+        when(repository.findByOwnerUserIdAndStatusInOrderByApprovedAtDescIdDesc(
+                USER_ID, List.of(PaymentStatus.PAID, PaymentStatus.REFUNDED))).thenReturn(List.of(refunded, paid));
+
+        List<PaymentHistoryData> history = service.getPaymentHistory(USER_ID);
+
+        assertThat(history).extracting(PaymentHistoryData::getJobId).containsExactly(12L, 11L);
+        assertThat(history.get(0).getStatus()).isEqualTo(PaymentStatus.REFUNDED);
+        assertThat(history.get(0).getAmount()).isEqualTo(100_000L);
+        assertThat(history.get(0).getRefundAmount()).isEqualTo(80_000L);
+        assertThat(history.get(0).getApprovedAt()).isEqualTo(NOW);
+        assertThat(history.get(1).getStatus()).isEqualTo(PaymentStatus.PAID);
+        assertThat(history.get(1).getJobApplicationId()).isEqualTo(21L);
+        assertThat(history.get(1).getRefundAmount()).isNull();
+    }
+
+    @Test
+    @DisplayName("결제 내역에 승인 시각이 없는 결제가 있으면 누락하지 않고 서버 오류로 처리한다")
+    void rejectsPaymentHistoryWithoutApprovedAt() {
+        Payment broken = mock(Payment.class);
+        when(broken.getApprovedAt()).thenReturn(null);
+        when(repository.findByOwnerUserIdAndStatusInOrderByApprovedAtDescIdDesc(
+                USER_ID, List.of(PaymentStatus.PAID, PaymentStatus.REFUNDED))).thenReturn(List.of(broken));
+
+        assertThatThrownBy(() -> service.getPaymentHistory(USER_ID))
+                .isInstanceOfSatisfying(BusinessException.class, exception ->
+                        assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.INTERNAL_SERVER_ERROR));
+    }
+
+    @Test
+    @DisplayName("정산 내역은 담당 의뢰 ID에 연결된 PAID·REFUNDED 결제만 저장소 정렬 순서대로 반환한다")
+    void returnsSettlementHistoryInRepositoryOrder() {
+        Payment refunded = historyPayment(12L, "order-refunded", "T0000000000000000002");
+        refunded.approve(NOW);
+        refunded.refundOnCancel(NOW.plusSeconds(60));
+        Payment paid = historyPayment(11L, "order-paid", "T0000000000000000001");
+        paid.approve(NOW.minusSeconds(60));
+        when(repository.findByJobIdInAndStatusInOrderByApprovedAtDescIdDesc(
+                List.of(11L, 12L), List.of(PaymentStatus.PAID, PaymentStatus.REFUNDED)))
+                .thenReturn(List.of(refunded, paid));
+
+        List<SettlementHistoryData> history = service.getSettlementHistory(List.of(11L, 12L));
+
+        assertThat(history).extracting(SettlementHistoryData::getJobId).containsExactly(12L, 11L);
+        assertThat(history.get(0).getStatus()).isEqualTo(PaymentStatus.REFUNDED);
+        assertThat(history.get(0).getAmount()).isEqualTo(100_000L);
+        assertThat(history.get(0).getStudentCompensationAmount()).isEqualTo(20_000L);
+        assertThat(history.get(0).getApprovedAt()).isEqualTo(NOW);
+        assertThat(history.get(0).getRefundedAt()).isEqualTo(NOW.plusSeconds(60));
+        assertThat(history.get(1).getStatus()).isEqualTo(PaymentStatus.PAID);
+        assertThat(history.get(1).getJobApplicationId()).isEqualTo(21L);
+        assertThat(history.get(1).getStudentCompensationAmount()).isNull();
+        assertThat(history.get(1).getRefundedAt()).isNull();
+    }
+
+    @Test
+    @DisplayName("담당 의뢰가 없으면 저장소를 조회하지 않고 빈 정산 내역을 반환한다")
+    void returnsEmptySettlementHistoryWithoutJobs() {
+        assertThat(service.getSettlementHistory(List.of())).isEmpty();
+        verifyNoInteractions(repository);
+    }
+
+    @Test
+    @DisplayName("정산 내역에 승인 시각이 없는 결제가 있으면 누락하지 않고 서버 오류로 처리한다")
+    void rejectsSettlementHistoryWithoutApprovedAt() {
+        Payment broken = mock(Payment.class);
+        when(broken.getApprovedAt()).thenReturn(null);
+        when(repository.findByJobIdInAndStatusInOrderByApprovedAtDescIdDesc(
+                List.of(21L), List.of(PaymentStatus.PAID, PaymentStatus.REFUNDED))).thenReturn(List.of(broken));
+
+        assertThatThrownBy(() -> service.getSettlementHistory(List.of(21L)))
+                .isInstanceOfSatisfying(BusinessException.class, exception ->
+                        assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.INTERNAL_SERVER_ERROR));
+    }
+
+    private Payment historyPayment(Long jobId, String orderId, String tid) {
+        Payment payment = Payment.pending(jobId, 21L, USER_ID, orderId, 100_000L, NOW);
+        payment.recordKakaoTid(tid);
+        return payment;
+    }
+
+    @Test
+    @DisplayName("제안 결제는 서버 금액·수정 횟수·한마디·동의 시각으로 의뢰와 지원서가 없는 PENDING 주문을 저장한다")
+    void createsPendingProposalPayment() {
+        when(repository.save(any(Payment.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        Payment payment = service.prepareProposalPayment(5L, USER_ID, 50_000L, 2, "잘 부탁드립니다.");
+
+        assertThat(payment.getProposalId()).isEqualTo(5L);
+        assertThat(payment.getJobId()).isNull();
+        assertThat(payment.getJobApplicationId()).isNull();
+        assertThat(payment.getOwnerUserId()).isEqualTo(USER_ID);
+        assertThat(payment.getAmount()).isEqualTo(50_000L);
+        assertThat(payment.getRevisionCount()).isEqualTo(2);
+        assertThat(payment.getMessageToStudent()).isEqualTo("잘 부탁드립니다.");
+        assertThat(payment.getRefundPolicyAgreedAt()).isEqualTo(NOW);
+        assertThat(payment.getStatus()).isEqualTo(PaymentStatus.PENDING);
+        assertThat(payment.getOrderId()).matches("[0-9a-f-]{36}");
+    }
+
+    @Test
+    @DisplayName("같은 제안의 이전 PENDING 주문은 새 주문을 저장하기 전에 SUPERSEDED로 대체한다")
+    void supersedesPreviousPendingProposalPayment() {
+        Payment previous = Payment.pendingForProposal(5L, USER_ID, "old-order", 50_000L, 1, null, NOW);
+        when(repository.findByProposalIdAndStatus(5L, PaymentStatus.PENDING)).thenReturn(Optional.of(previous));
+        when(repository.save(any(Payment.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        Payment payment = service.prepareProposalPayment(5L, USER_ID, 50_000L, 3, null);
+
+        assertThat(previous.getStatus()).isEqualTo(PaymentStatus.SUPERSEDED);
+        assertThat(payment.getStatus()).isEqualTo(PaymentStatus.PENDING);
+        assertThat(payment.getRevisionCount()).isEqualTo(3);
+        assertThat(payment.getMessageToStudent()).isNull();
+        org.mockito.InOrder order = org.mockito.Mockito.inOrder(repository);
+        order.verify(repository).flush();
+        order.verify(repository).save(payment);
+    }
+
+    @Test
+    @DisplayName("이미 결제된 제안이거나 결제 금액이 없거나 0 이하이면 제안 결제 주문을 만들지 않는다")
+    void rejectsPaidProposalOrInvalidAmount() {
+        when(repository.existsByProposalIdAndStatus(5L, PaymentStatus.PAID)).thenReturn(true);
+
+        assertThatThrownBy(() -> service.prepareProposalPayment(5L, USER_ID, 50_000L, 2, null))
+                .isInstanceOfSatisfying(BusinessException.class, exception ->
+                        assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.PAYMENT_ALREADY_PAID));
+        for (Long amount : new Long[] { null, 0L, -1L }) {
+            assertThatThrownBy(() -> service.prepareProposalPayment(6L, USER_ID, amount, 2, null))
+                    .isInstanceOfSatisfying(BusinessException.class, exception ->
+                            assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.PAYMENT_NOT_AVAILABLE));
+        }
+        verify(repository, never()).save(any(Payment.class));
+    }
+
+    @Test
+    @DisplayName("제안의 결제 승인 시각은 PAID·REFUNDED 결제에서 읽고 승인된 결제가 없으면 서버 오류로 처리한다")
+    void returnsProposalPaidAt() {
+        Payment paid = Payment.pendingForProposal(5L, USER_ID, "order-123", 50_000L, 2, null, NOW);
+        paid.recordKakaoTid("T0000000000000000005");
+        paid.approve(NOW.plusSeconds(30));
+        when(repository.findByProposalIdAndStatusIn(5L, List.of(PaymentStatus.PAID, PaymentStatus.REFUNDED)))
+                .thenReturn(Optional.of(paid));
+        when(repository.findByProposalIdAndStatusIn(6L, List.of(PaymentStatus.PAID, PaymentStatus.REFUNDED)))
+                .thenReturn(Optional.empty());
+
+        assertThat(service.getProposalPaidAt(5L)).isEqualTo(NOW.plusSeconds(30));
+        assertThatThrownBy(() -> service.getProposalPaidAt(6L))
                 .isInstanceOfSatisfying(BusinessException.class, exception ->
                         assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.INTERNAL_SERVER_ERROR));
     }

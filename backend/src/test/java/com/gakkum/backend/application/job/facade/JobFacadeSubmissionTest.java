@@ -21,6 +21,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import com.gakkum.backend.domain.chat.entity.ChatMessageType;
+import com.gakkum.backend.domain.certificate.service.CertificateService;
 import com.gakkum.backend.domain.chat.service.ChatAttachmentPolicy;
 import com.gakkum.backend.domain.job.client.JobSubmissionFileStorageClient;
 import com.gakkum.backend.domain.job.client.JobSubmissionFileStorageClient.PresignedFileUpload;
@@ -35,6 +36,8 @@ import com.gakkum.backend.domain.job.entity.JobSubmissionType;
 import com.gakkum.backend.domain.job.service.JobService;
 import com.gakkum.backend.domain.owner.service.OwnerService;
 import com.gakkum.backend.domain.payment.service.PaymentService;
+import com.gakkum.backend.domain.proposal.service.ProposalService;
+import com.gakkum.backend.domain.review.service.ReviewService;
 import com.gakkum.backend.domain.specialty.service.SpecialtyCategoryService;
 import com.gakkum.backend.domain.specialty.service.SpecialtyService;
 import com.gakkum.backend.domain.student.entity.Student;
@@ -60,7 +63,8 @@ class JobFacadeSubmissionTest {
     private final JobFacade jobFacade = new JobFacade(
             userService, mock(OwnerService.class), jobService, mock(SpecialtyCategoryService.class),
             mock(SpecialtyService.class), studentService,
-            storageClient, chatAttachmentPolicy, mock(PaymentService.class));
+            storageClient, chatAttachmentPolicy, mock(PaymentService.class),
+                mock(ReviewService.class), mock(CertificateService.class), mock(ProposalService.class));
 
     @Test
     @DisplayName("업로드 준비는 채팅 첨부 규칙으로 검증한 형식으로 서명하고 공개 파일 URL을 반환한다")

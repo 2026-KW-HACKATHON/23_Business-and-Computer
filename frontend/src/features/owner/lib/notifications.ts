@@ -29,7 +29,7 @@ export function notificationPath({ type, targetId }: OwnerNotification): string 
     case "CHAT_MESSAGE":
       return OWNER_PATHS.chat(targetId);
     case "PAYMENT_ESCROWED":
-      return OWNER_PATHS.payments;
+      return OWNER_PATHS.activity("inProgress");
     case "REVIEW_REQUEST":
       return OWNER_PATHS.workReview(targetId);
     case "WORK_COMPLETED":

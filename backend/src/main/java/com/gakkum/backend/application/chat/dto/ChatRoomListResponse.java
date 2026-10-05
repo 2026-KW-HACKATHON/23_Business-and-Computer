@@ -7,6 +7,7 @@ import java.util.List;
 import com.gakkum.backend.domain.chat.entity.ChatMessageType;
 import com.gakkum.backend.domain.chat.entity.ChatRoom;
 import com.gakkum.backend.domain.job.entity.Job;
+import com.gakkum.backend.domain.job.entity.JobApplication;
 import com.gakkum.backend.domain.job.entity.JobSubmissionReviewStatus;
 
 import lombok.AccessLevel;
@@ -42,13 +43,15 @@ public class ChatRoomListResponse {
         private final Integer revisionCount;
         private final LocalDate draftDeadline;
         private final LocalDate finalDeadline;
-        private final String applicationContent;
+        private final String applicationSummary;
+        private final String applicationWorkPlan;
+        private final String applicationDeliveryMethod;
         private final LastMessage lastMessage;
         private final long unreadCount;
 
         public static Room of(ChatRoom room, Job job, String counterpartName, String counterpartProfileImageUrl,
                 LastMessage lastMessage, long unreadCount, DeadlineType deadlineType, LocalDate deadlineDate,
-                JobSubmissionReviewStatus submissionReviewStatus, String applicationContent) {
+                JobSubmissionReviewStatus submissionReviewStatus, JobApplication selectedApplication) {
             return Room.builder()
                     .roomId(room.getId())
                     .jobId(job.getId())
@@ -62,7 +65,10 @@ public class ChatRoomListResponse {
                     .revisionCount(job.getRevisionCount())
                     .draftDeadline(job.getDraftDeadline())
                     .finalDeadline(job.getFinalDeadline())
-                    .applicationContent(applicationContent)
+                    .applicationSummary(selectedApplication == null ? null : selectedApplication.getSummary())
+                    .applicationWorkPlan(selectedApplication == null ? null : selectedApplication.getWorkPlan())
+                    .applicationDeliveryMethod(
+                            selectedApplication == null ? null : selectedApplication.getDeliveryMethod())
                     .lastMessage(lastMessage)
                     .unreadCount(unreadCount)
                     .build();

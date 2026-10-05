@@ -3,6 +3,7 @@ package com.gakkum.backend.domain.owner.service;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import org.springframework.data.domain.Limit;
@@ -77,6 +78,16 @@ public class OwnerService {
     }
 
     /**
+     * 사용자 ID로 사장님 프로필 조회
+     * @param userId
+     * @return 사장님 프로필, 사장님 프로필이 없으면 빈 값
+     */
+    @Transactional(readOnly = true)
+    public Optional<Owner> findOwnerProfileByUserId(String userId) {
+        return ownerRepository.findByUserId(userId);
+    }
+
+    /**
      * 사장님 프로필 ID별 매장 이름을 한 번에 조회한다.
      * @return 요청한 프로필 중 하나라도 없으면 참조 무결성 오류(500)
      */
@@ -91,6 +102,23 @@ public class OwnerService {
             throw new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR);
         }
         return storeNames;
+    }
+
+    /**
+     * 사장님 프로필 ID별 현재 프로필을 한 번에 조회한다.
+     * @return 요청한 프로필 중 하나라도 없으면 참조 무결성 오류(500)
+     */
+    @Transactional(readOnly = true)
+    public Map<Long, Owner> getOwnerProfilesByIds(Collection<Long> ownerProfileIds) {
+        if (ownerProfileIds.isEmpty()) {
+            return Map.of();
+        }
+        Map<Long, Owner> owners = ownerRepository.findAllById(ownerProfileIds).stream()
+                .collect(Collectors.toMap(Owner::getId, owner -> owner));
+        if (!owners.keySet().containsAll(ownerProfileIds)) {
+            throw new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR);
+        }
+        return owners;
     }
 
     /** 탐색 목록용으로 매장(사장님 프로필)을 커서 경계 뒤부터 정렬 순서대로 limit개까지 읽는다. */
