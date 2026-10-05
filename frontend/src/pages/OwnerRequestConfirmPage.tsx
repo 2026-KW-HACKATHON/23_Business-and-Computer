@@ -2,6 +2,7 @@ import { useRef, useState } from "react";
 import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import {
   AppImage,
+  AttachmentTiles,
   Button,
   CategoryBadge,
   InfoRows,
@@ -49,7 +50,7 @@ function OwnerRequestConfirmPage() {
       revisionLimit: content.revisions,
       tasks: state.picked.map((p) => p.task),
       description: content.description,
-      attachments: [],
+      attachments: content.photos.map((photo) => photo.name),
       applicants: [],
     });
     navigate(OWNER_PATHS.newRequestDone, { replace: true });
@@ -99,6 +100,12 @@ function OwnerRequestConfirmPage() {
             <p className="owner-confirm__text-title">맡기고 싶은 일</p>
             <p className="owner-confirm__text-body">{content.description}</p>
           </div>
+          {content.photos.length > 0 && (
+            <div className="owner-confirm__text">
+              <p className="owner-confirm__text-title">참고 사진</p>
+              <AttachmentTiles names={content.photos.map((photo) => photo.name)} height={90} />
+            </div>
+          )}
           <hr className="owner-confirm__divider" />
           <TextButton className="owner-confirm__edit" onClick={back}>
             내용 고치기

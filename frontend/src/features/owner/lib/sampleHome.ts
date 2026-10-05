@@ -19,6 +19,7 @@ export const SAMPLE_REQUEST_EXAMPLES: RequestExample[] = [
         draftDue: day(8),
         finalDue: day(14),
         revisions: 1,
+        photos: [],
       },
     },
     {
@@ -34,6 +35,7 @@ export const SAMPLE_REQUEST_EXAMPLES: RequestExample[] = [
         draftDue: day(10),
         finalDue: day(16),
         revisions: 1,
+        photos: [],
       },
     },
     {
@@ -49,6 +51,7 @@ export const SAMPLE_REQUEST_EXAMPLES: RequestExample[] = [
         draftDue: day(7),
         finalDue: day(10),
         revisions: 1,
+        photos: [],
       },
     },
   ];
