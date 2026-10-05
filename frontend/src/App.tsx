@@ -1,6 +1,4 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
-import { DemoStrip } from './components'
-import { useIsDemo } from './features/auth'
 import IntroPage from './pages/IntroPage'
 import LoginPage from './pages/LoginPage'
 import RoleSelectPage from './pages/RoleSelectPage'
@@ -76,101 +74,95 @@ import StudentWorkCanceledPage from './pages/StudentWorkCanceledPage'
 import StudentChatRoomPage from './pages/StudentChatRoomPage'
 
 function App() {
-  // 둘러보기(데모 로그인) 중에는 모든 화면 위에 「둘러보기 중」 띠
-  const isDemo = useIsDemo()
-
   return (
-    <>
-      {isDemo && <DemoStrip />}
-      <Routes>
-        {/* No splash screen: every app start shows the intro, then the home for the role or login. */}
-        <Route path="/" element={<IntroPage />} />
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/signup/role" element={<RoleSelectPage mode="signup" />} />
-        <Route path="/demo/role" element={<RoleSelectPage mode="demo" />} />
-        {/* Signup steps share their input through each layout route. */}
-        <Route path="/signup/owner" element={<OwnerSignupLayout />}>
-          <Route index element={<Navigate to="1" replace />} />
-          <Route path="1" element={<OwnerSignupInfoPage />} />
-          <Route path="2" element={<OwnerSignupVerifyPage />} />
-          <Route path="3" element={<OwnerSignupProfilePage />} />
-          <Route path="done" element={<OwnerSignupDonePage />} />
-        </Route>
-        <Route path="/signup/student" element={<StudentSignupLayout />}>
-          <Route index element={<Navigate to="1" replace />} />
-          <Route path="1" element={<StudentSignupInfoPage />} />
-          <Route path="2" element={<StudentSignupVerifyPage />} />
-          <Route path="3" element={<StudentSignupProfilePage />} />
-          <Route path="done" element={<StudentSignupDonePage />} />
-        </Route>
-        <Route path="/owner" element={<OwnerHomePage />} />
-        <Route path="/owner/explore" element={<OwnerExplorePage />} />
-        <Route path="/owner/chats" element={<OwnerChatsPage />} />
-        <Route path="/owner/notifications" element={<OwnerNotificationsPage />} />
-        <Route path="/owner/me" element={<OwnerMePage />} />
-        <Route path="/owner/me/store" element={<OwnerStoreEditPage />} />
-        <Route path="/owner/me/payments" element={<OwnerPaymentsPage />} />
-        <Route path="/owner/requests" element={<OwnerActivityPage />} />
-        <Route path="/owner/chats/:workId" element={<OwnerChatRoomPage />} />
-        <Route path="/owner/works/:workId/check" element={<OwnerWorkCheckPage />} />
-        <Route path="/owner/works/:workId/result" element={<OwnerWorkResultPage />} />
-        <Route path="/owner/proposals/:proposalId" element={<OwnerProposalPage />} />
-        <Route path="/owner/requests/new" element={<OwnerRequestNewPage />} />
-        <Route path="/owner/requests/new/2" element={<OwnerRequestContentPage />} />
-        <Route path="/owner/requests/new/3" element={<OwnerRequestConfirmPage />} />
-        <Route path="/owner/requests/new/done" element={<OwnerRequestDonePage />} />
-        <Route path="/owner/requests/:requestId" element={<OwnerRequestPage />} />
-        <Route path="/owner/requests/:requestId/applicants" element={<OwnerApplicantsPage />} />
-        <Route path="/owner/requests/:requestId/assign/:studentId" element={<OwnerAssignPage />} />
-        <Route path="/owner/students/:studentId" element={<OwnerStudentPage />} />
-        <Route path="/owner/works/:workId/pay" element={<OwnerPayPage />} />
-        <Route path="/owner/works/:workId/revision" element={<OwnerRevisionPage />} />
-        <Route path="/owner/works/:workId/review" element={<OwnerReviewPage />} />
-        <Route path="/owner/works/:workId/review/done" element={<OwnerReviewDonePage />} />
-        <Route path="/owner/works/:workId/cancel" element={<OwnerWorkCancelPage />} />
-        <Route path="/owner/works/:workId/canceled" element={<OwnerWorkCanceledPage />} />
-        <Route path="/explore/proposals/:proposalId" element={<OwnerExploreProposalPage />} />
-        <Route path="/explore/requests/:requestId" element={<OwnerExploreRequestPage />} />
-        <Route path="/owner/proposals/:proposalId/accept" element={<OwnerProposalAcceptPage />} />
-        <Route path="/student" element={<StudentHomePage />} />
-        <Route path="/student/explore" element={<StudentExplorePage />} />
-        <Route path="/student/explore/stores" element={<StudentStoresPage />} />
-        <Route path="/student/chats" element={<StudentChatsPage />} />
-        <Route path="/student/chats/:workId" element={<StudentChatRoomPage />} />
-        <Route path="/student/notifications" element={<StudentNotificationsPage />} />
-        <Route path="/student/me" element={<StudentMePage />} />
-        <Route path="/student/me/profile" element={<StudentProfilePage />} />
-        <Route path="/student/me/profile/edit" element={<StudentProfileEditPage />} />
-        <Route path="/student/me/settlements" element={<StudentSettlementsPage />} />
-        <Route path="/student/me/portfolio" element={<StudentPortfolioPage />} />
-        <Route path="/student/activity" element={<StudentActivityPage />} />
-        <Route path="/student/proposals/new" element={<StudentProposalStorePage />} />
-        <Route path="/student/proposals/new/2" element={<StudentProposalTasksPage />} />
-        <Route path="/student/proposals/new/3" element={<StudentProposalContentPage />} />
-        <Route path="/student/proposals/new/4" element={<StudentProposalConfirmPage />} />
-        <Route path="/student/proposals/new/done" element={<StudentProposalDonePage />} />
-        <Route path="/student/proposals/:proposalId" element={<StudentProposalPage />} />
-        <Route path="/student/explore/proposals/:proposalId" element={<StudentPeerProposalPage />} />
-        <Route path="/student/requests/:requestId/full" element={<StudentRequestFullPage />} />
-        <Route path="/student/requests/:requestId/apply" element={<StudentApplyPage />} />
-        <Route path="/student/works/:workId/start" element={<StudentWorkStartPage />} />
-        <Route path="/student/works/:workId/submit" element={<StudentWorkSubmitPage />} />
-        <Route path="/student/works/:workId/revision" element={<StudentRevisionPage />} />
-        <Route path="/student/works/:workId/revision/submit" element={<StudentRevisionSubmitPage />} />
-        <Route path="/student/works/:workId/submitted" element={<StudentSubmittedPage />} />
-        <Route path="/student/works/:workId/result" element={<StudentWorkResultPage />} />
-        <Route path="/student/works/:workId/review" element={<StudentReviewPage />} />
-        <Route path="/student/works/:workId/canceled" element={<StudentWorkCanceledPage />} />
-        {/* Student screens not built yet fall back to the student home. */}
-        <Route path="/student/*" element={<Navigate to="/student" replace />} />
-        {/* Owner screens not built yet fall back to the owner home. */}
-        <Route path="/owner/*" element={<Navigate to="/owner" replace />} />
-        {/* Backend redirects here after a successful social login. */}
-        <Route path="/cookie" element={<CookiePage />} />
-        {/* Unknown paths land by login state and role (ADR 0015). */}
-        <Route path="*" element={<LandingRedirect />} />
-      </Routes>
-    </>
+    <Routes>
+      {/* No splash screen: every app start shows the intro, then the home for the role or login. */}
+      <Route path="/" element={<IntroPage />} />
+      <Route path="/login" element={<LoginPage />} />
+      <Route path="/signup/role" element={<RoleSelectPage mode="signup" />} />
+      <Route path="/demo/role" element={<RoleSelectPage mode="demo" />} />
+      {/* Signup steps share their input through each layout route. */}
+      <Route path="/signup/owner" element={<OwnerSignupLayout />}>
+        <Route index element={<Navigate to="1" replace />} />
+        <Route path="1" element={<OwnerSignupInfoPage />} />
+        <Route path="2" element={<OwnerSignupVerifyPage />} />
+        <Route path="3" element={<OwnerSignupProfilePage />} />
+        <Route path="done" element={<OwnerSignupDonePage />} />
+      </Route>
+      <Route path="/signup/student" element={<StudentSignupLayout />}>
+        <Route index element={<Navigate to="1" replace />} />
+        <Route path="1" element={<StudentSignupInfoPage />} />
+        <Route path="2" element={<StudentSignupVerifyPage />} />
+        <Route path="3" element={<StudentSignupProfilePage />} />
+        <Route path="done" element={<StudentSignupDonePage />} />
+      </Route>
+      <Route path="/owner" element={<OwnerHomePage />} />
+      <Route path="/owner/explore" element={<OwnerExplorePage />} />
+      <Route path="/owner/chats" element={<OwnerChatsPage />} />
+      <Route path="/owner/notifications" element={<OwnerNotificationsPage />} />
+      <Route path="/owner/me" element={<OwnerMePage />} />
+      <Route path="/owner/me/store" element={<OwnerStoreEditPage />} />
+      <Route path="/owner/me/payments" element={<OwnerPaymentsPage />} />
+      <Route path="/owner/requests" element={<OwnerActivityPage />} />
+      <Route path="/owner/chats/:workId" element={<OwnerChatRoomPage />} />
+      <Route path="/owner/works/:workId/check" element={<OwnerWorkCheckPage />} />
+      <Route path="/owner/works/:workId/result" element={<OwnerWorkResultPage />} />
+      <Route path="/owner/proposals/:proposalId" element={<OwnerProposalPage />} />
+      <Route path="/owner/requests/new" element={<OwnerRequestNewPage />} />
+      <Route path="/owner/requests/new/2" element={<OwnerRequestContentPage />} />
+      <Route path="/owner/requests/new/3" element={<OwnerRequestConfirmPage />} />
+      <Route path="/owner/requests/new/done" element={<OwnerRequestDonePage />} />
+      <Route path="/owner/requests/:requestId" element={<OwnerRequestPage />} />
+      <Route path="/owner/requests/:requestId/applicants" element={<OwnerApplicantsPage />} />
+      <Route path="/owner/requests/:requestId/assign/:studentId" element={<OwnerAssignPage />} />
+      <Route path="/owner/students/:studentId" element={<OwnerStudentPage />} />
+      <Route path="/owner/works/:workId/pay" element={<OwnerPayPage />} />
+      <Route path="/owner/works/:workId/revision" element={<OwnerRevisionPage />} />
+      <Route path="/owner/works/:workId/review" element={<OwnerReviewPage />} />
+      <Route path="/owner/works/:workId/review/done" element={<OwnerReviewDonePage />} />
+      <Route path="/owner/works/:workId/cancel" element={<OwnerWorkCancelPage />} />
+      <Route path="/owner/works/:workId/canceled" element={<OwnerWorkCanceledPage />} />
+      <Route path="/explore/proposals/:proposalId" element={<OwnerExploreProposalPage />} />
+      <Route path="/explore/requests/:requestId" element={<OwnerExploreRequestPage />} />
+      <Route path="/owner/proposals/:proposalId/accept" element={<OwnerProposalAcceptPage />} />
+      <Route path="/student" element={<StudentHomePage />} />
+      <Route path="/student/explore" element={<StudentExplorePage />} />
+      <Route path="/student/explore/stores" element={<StudentStoresPage />} />
+      <Route path="/student/chats" element={<StudentChatsPage />} />
+      <Route path="/student/chats/:workId" element={<StudentChatRoomPage />} />
+      <Route path="/student/notifications" element={<StudentNotificationsPage />} />
+      <Route path="/student/me" element={<StudentMePage />} />
+      <Route path="/student/me/profile" element={<StudentProfilePage />} />
+      <Route path="/student/me/profile/edit" element={<StudentProfileEditPage />} />
+      <Route path="/student/me/settlements" element={<StudentSettlementsPage />} />
+      <Route path="/student/me/portfolio" element={<StudentPortfolioPage />} />
+      <Route path="/student/activity" element={<StudentActivityPage />} />
+      <Route path="/student/proposals/new" element={<StudentProposalStorePage />} />
+      <Route path="/student/proposals/new/2" element={<StudentProposalTasksPage />} />
+      <Route path="/student/proposals/new/3" element={<StudentProposalContentPage />} />
+      <Route path="/student/proposals/new/4" element={<StudentProposalConfirmPage />} />
+      <Route path="/student/proposals/new/done" element={<StudentProposalDonePage />} />
+      <Route path="/student/proposals/:proposalId" element={<StudentProposalPage />} />
+      <Route path="/student/explore/proposals/:proposalId" element={<StudentPeerProposalPage />} />
+      <Route path="/student/requests/:requestId/full" element={<StudentRequestFullPage />} />
+      <Route path="/student/requests/:requestId/apply" element={<StudentApplyPage />} />
+      <Route path="/student/works/:workId/start" element={<StudentWorkStartPage />} />
+      <Route path="/student/works/:workId/submit" element={<StudentWorkSubmitPage />} />
+      <Route path="/student/works/:workId/revision" element={<StudentRevisionPage />} />
+      <Route path="/student/works/:workId/revision/submit" element={<StudentRevisionSubmitPage />} />
+      <Route path="/student/works/:workId/submitted" element={<StudentSubmittedPage />} />
+      <Route path="/student/works/:workId/result" element={<StudentWorkResultPage />} />
+      <Route path="/student/works/:workId/review" element={<StudentReviewPage />} />
+      <Route path="/student/works/:workId/canceled" element={<StudentWorkCanceledPage />} />
+      {/* Student screens not built yet fall back to the student home. */}
+      <Route path="/student/*" element={<Navigate to="/student" replace />} />
+      {/* Owner screens not built yet fall back to the owner home. */}
+      <Route path="/owner/*" element={<Navigate to="/owner" replace />} />
+      {/* Backend redirects here after a successful social login. */}
+      <Route path="/cookie" element={<CookiePage />} />
+      {/* Unknown paths land by login state and role (ADR 0015). */}
+      <Route path="*" element={<LandingRedirect />} />
+    </Routes>
   )
 }
 

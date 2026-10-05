@@ -1,4 +1,4 @@
-# 0023. 둘러보기 uses the demo login and shows a strip, not separate routes
+# 0024. 둘러보기 uses the demo login and shows a strip, not separate routes
 
 ## Status
 
@@ -45,8 +45,9 @@ route, and the URL could still disagree with the account actually logged in.
     주세요」 under the cards; any other failure shows 「둘러보기를 시작하지
     못했어요…」.
 - While a demo session and a token exist (`useIsDemo`):
-  - `src/App.tsx` draws `DemoStrip` 「둘러보기 중 · 체험용 데모 계정이에요」
-    (24 px, `--color-main`) above every screen.
+  - `src/main.tsx` renders the auth feature's `DemoSessionStrip`, which
+    draws `DemoStrip` 「둘러보기 중 · 체험용 데모 계정이에요」 (24 px,
+    `--color-main`) above every screen.
   - `:root:has(.demo-strip)` sets `--demo-strip-height`, and `SubScreen`,
     `MainTabScreen`, and `DoneScreen` subtract it, so no page scrolls
     because of the strip.

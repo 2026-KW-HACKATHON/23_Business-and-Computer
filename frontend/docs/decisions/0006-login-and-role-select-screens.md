@@ -3,7 +3,7 @@
 ## Status
 
 Accepted. The login and role-select layouts are updated by ADR 0007, and
-the demo routes by ADR 0023 (둘러보기 lands on /owner and /student); the
+the demo routes by ADR 0024 (둘러보기 lands on /owner and /student); the
 demo entry and Notion link rules here still apply.
 
 ## Context
@@ -31,7 +31,7 @@ demo accounts, and the signup and home screens come later.
   next routes differ.
 - Next routes follow the Notion route table: signup goes to /signup/owner/1 and
   /signup/student/1; demo logs in with `POST /demo/login` and goes to
-  /owner or /student (ADR 0023).
+  /owner or /student (ADR 0024).
 - The Figma hover variant (character grows from 136px to 160px) becomes a
   press effect, plus hover on devices that support it.
 
