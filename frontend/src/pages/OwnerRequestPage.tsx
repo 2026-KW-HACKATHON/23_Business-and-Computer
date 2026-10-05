@@ -1,10 +1,8 @@
-import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
   AttachmentTiles,
   Button,
   CategoryBadge,
-  Dialog,
   FlowBar,
   InfoRows,
   LabelChip,
@@ -25,8 +23,6 @@ function OwnerRequestPage() {
   const navigate = useNavigate();
   const back = useBack(OWNER_PATHS.home);
   const request = useOwnerRequest(requestId);
-  // 의뢰 취소 팝업: 확인 → 완료
-  const [cancelStep, setCancelStep] = useState<"closed" | "confirm" | "done">("closed");
 
   if (!request) return <OwnerMissing title="보낸 의뢰" onBack={back} />;
 
@@ -82,7 +78,10 @@ function OwnerRequestPage() {
               { label: "수정", value: `${request.revisionLimit}회` },
             ]}
           />
-          <TextButton className="owner-request__cancel" onClick={() => setCancelStep("confirm")}>
+          <TextButton
+            className="owner-request__cancel"
+            onClick={() => navigate(OWNER_PATHS.requestCancel(request.id))}
+          >
             의뢰 취소
           </TextButton>
         </div>
@@ -123,34 +122,6 @@ function OwnerRequestPage() {
           </ol>
         </div>
       </div>
-
-      <Dialog
-        open={cancelStep === "confirm"}
-        image="warningOwner"
-        title="의뢰를 취소할까요?"
-        description="아직 학생을 고르기 전이라 결제한 작업비가 없어요. 지원한 학생에게는 취소 안내가 가요."
-        onClose={() => setCancelStep("closed")}
-        actions={
-          <>
-            <Button fullWidth onClick={() => setCancelStep("done")}>
-              의뢰 취소하기
-            </Button>
-            <Button variant="secondary" fullWidth onClick={() => setCancelStep("closed")}>
-              돌아가기
-            </Button>
-          </>
-        }
-      />
-      <Dialog
-        open={cancelStep === "done"}
-        image="doneOwner"
-        title="의뢰를 취소했어요"
-        actions={
-          <Button fullWidth onClick={() => navigate(OWNER_PATHS.activity("sent"), { replace: true })}>
-            확인
-          </Button>
-        }
-      />
     </SubScreen>
   );
 }

@@ -17,7 +17,6 @@ import doneOwnerThumbsUp from "../../assets/illustrations/done-owner-thumbs-up.w
 import doneStudentV from "../../assets/illustrations/done-student-v.webp";
 import doneOwnerV from "../../assets/illustrations/done-owner-v.webp";
 import paymentFailOwner from "../../assets/illustrations/payment-fail-owner.webp";
-import warningOwner from "../../assets/illustrations/warning-owner.webp";
 import warningStudent from "../../assets/illustrations/warning-student.webp";
 import sorryOwner from "../../assets/illustrations/sorry-owner.webp";
 import splashPaperProposal from "../../assets/illustrations/splash-paper-proposal.webp";
@@ -87,7 +86,6 @@ export const IMAGES = {
   doneStudentV: { src: doneStudentV, width: 120, height: 120, alt: "" },
   doneOwnerV: { src: doneOwnerV, width: 56, height: 72, alt: "" },
   paymentFailOwner: { src: paymentFailOwner, width: 96, height: 101, alt: "" },
-  warningOwner: { src: warningOwner, width: 96, height: 104, alt: "" },
   warningStudent: { src: warningStudent, width: 96, height: 104, alt: "" },
   sorryOwner: { src: sorryOwner, width: 96, height: 103, alt: "" },
   splashPaperProposal: { src: splashPaperProposal, width: 40, height: 12, alt: "제안" },

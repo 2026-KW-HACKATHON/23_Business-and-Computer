@@ -25,6 +25,7 @@ import "./OwnerWorkCancelPage.css";
 /**
  * 피그마 「작업 취소 - 이유·환불 금액」. 학생이 작업을 시작했으면 착수 보상 20%를 뺀
  * 금액을 돌려받고, 결과물을 받은 뒤에는 취소할 수 없다 (노션 「취소·환불 정책」).
+ * 취소 이유와 학생에게 남길 말은 둘 다 적어야 한다 (POST /jobs/{id}/cancel).
  */
 function OwnerWorkCancelPage() {
   const { workId = "" } = useParams();
@@ -50,7 +51,7 @@ function OwnerWorkCancelPage() {
       footer={
         <Button
           fullWidth
-          disabled={!cancelable || reason.trim() === "" || !agreed}
+          disabled={!cancelable || reason.trim() === "" || message.trim() === "" || !agreed}
           onClick={() => setCanceled(true)}
         >
           작업 취소하기
@@ -89,7 +90,7 @@ function OwnerWorkCancelPage() {
               />
             </FormField>
 
-            <FormField label="학생에게 남길 말" hint="선택" wrapsInput>
+            <FormField label="학생에게 남길 말" wrapsInput>
               <TextAreaField
                 value={message}
                 maxLength={300}

@@ -90,6 +90,8 @@ export interface RequestContent {
   finalDue: string;
   /** 최소 1회 */
   revisions: number;
+  /** 참고 사진 (선택, 최대 5장). 등록할 때 올린다 */
+  photos: File[];
 }
 
 /** 「이런 의뢰는 어때요?」 예시. 누르면 의뢰 등록을 이 내용으로 채워 시작한다 */

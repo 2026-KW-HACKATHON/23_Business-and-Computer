@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
+import type { ChangeEvent } from "react";
 import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import {
   BudgetField,
@@ -12,8 +13,12 @@ import {
   TitleField,
 } from "../components";
 import {
+  MAX_REQUEST_PHOTOS,
   OWNER_PATHS,
+  REQUEST_PHOTO_ACCEPT,
+  addRequestPhotos,
   dueDatesReady,
+  photoSizeText,
   readNewRequestState,
   useRequestExample,
 } from "../features/owner";
@@ -28,10 +33,12 @@ const EMPTY_CONTENT: RequestContent = {
   draftDue: "",
   finalDue: "",
   revisions: 1,
+  photos: [],
 };
 
 /**
- * 피그마 「의뢰 등록 2/3 - 내용 입력」. 제목 · 맡기고 싶은 일 · 작업비 · 마감일 · 수정 횟수.
+ * 피그마 「의뢰 등록 2/3 - 내용 입력」. 제목 · 맡기고 싶은 일 · 작업비 · 마감일 · 수정 횟수 ·
+ * 참고 사진(선택).
  * 홈 예시 카드로 들어왔으면 그 예시 내용이 채워져 있다 (B-2).
  */
 function OwnerRequestContentPage() {
@@ -43,10 +50,24 @@ function OwnerRequestContentPage() {
   const [content, setContent] = useState<RequestContent>(
     state?.content ?? example?.content ?? EMPTY_CONTENT,
   );
+  const [photoNotice, setPhotoNotice] = useState("");
+  const fileInput = useRef<HTMLInputElement>(null);
 
   if (!state) return <Navigate to={OWNER_PATHS.newRequest} replace />;
 
   const update = (patch: Partial<RequestContent>) => setContent({ ...content, ...patch });
+
+  const addPhotos = (e: ChangeEvent<HTMLInputElement>) => {
+    const { photos, notice } = addRequestPhotos(content.photos, [...(e.target.files ?? [])]);
+    update({ photos });
+    setPhotoNotice(notice ?? "");
+    e.target.value = "";
+  };
+
+  const removePhoto = (index: number) => {
+    update({ photos: content.photos.filter((_, i) => i !== index) });
+    setPhotoNotice("");
+  };
 
   const canNext =
     content.title.trim() !== "" &&
@@ -115,6 +136,39 @@ function OwnerRequestContentPage() {
             value={content.revisions}
             onChange={(revisions) => update({ revisions })}
           />
+        </FormField>
+
+        <FormField label="참고 사진" hint={`선택 · 최대 ${MAX_REQUEST_PHOTOS}장`}>
+          <div className="owner-new__photos">
+            <input
+              ref={fileInput}
+              type="file"
+              accept={REQUEST_PHOTO_ACCEPT}
+              multiple
+              hidden
+              onChange={addPhotos}
+            />
+            {content.photos.length < MAX_REQUEST_PHOTOS && (
+              <button
+                type="button"
+                className="owner-new__upload"
+                onClick={() => fileInput.current?.click()}
+              >
+                + 사진 올리기
+              </button>
+            )}
+            {content.photos.map((photo, i) => (
+              <div key={`${photo.name}-${i}`} className="owner-new__file">
+                <span aria-hidden="true">📄</span>
+                <strong>{photo.name}</strong>
+                <small>{photoSizeText(photo.size)}</small>
+                <button type="button" aria-label={`${photo.name} 빼기`} onClick={() => removePhoto(i)}>
+                  ✕
+                </button>
+              </div>
+            ))}
+            {photoNotice && <p className="owner-new__photo-notice">{photoNotice}</p>}
+          </div>
         </FormField>
       </div>
     </SubScreen>

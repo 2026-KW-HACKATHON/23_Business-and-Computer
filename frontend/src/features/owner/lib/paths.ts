@@ -21,6 +21,7 @@ export const OWNER_PATHS = {
   newRequestStep: (step: number) => `/owner/requests/new/${step}`,
   newRequestDone: "/owner/requests/new/done",
   request: (id: string) => `/owner/requests/${id}`,
+  requestCancel: (id: string) => `/owner/requests/${id}/cancel`,
   requestApplicants: (id: string) => `/owner/requests/${id}/applicants`,
   proposal: (id: string) => `/owner/proposals/${id}`,
   assign: (requestId: string, studentId: string) =>
