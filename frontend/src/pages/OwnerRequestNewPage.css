@@ -213,3 +213,62 @@
   color: var(--text-placeholder);
   cursor: pointer;
 }
+
+/* 2/3 참고 사진: 올리기 버튼 + 고른 사진 줄 */
+.owner-new__photos {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.owner-new__upload {
+  height: 48px;
+  border: 1px dashed var(--input-border);
+  border-radius: 12px;
+  background: var(--color-white);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--role-secondary);
+  cursor: pointer;
+}
+
+.owner-new__file {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--role-muted);
+  font-size: 14px;
+}
+
+.owner-new__file > strong {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  font-weight: 500;
+  color: var(--color-black);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.owner-new__file > small {
+  font-size: 12px;
+  color: var(--role-secondary);
+}
+
+.owner-new__file > button {
+  padding: 0 2px;
+  border: none;
+  background: none;
+  font-size: 13px;
+  color: var(--role-secondary);
+  cursor: pointer;
+}
+
+.owner-new__photo-notice {
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--color-danger);
+}

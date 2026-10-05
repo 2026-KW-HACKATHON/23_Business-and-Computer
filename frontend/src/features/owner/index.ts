@@ -50,7 +50,11 @@ export {
 } from "./lib/format";
 export { checkoutWorkId } from "./lib/checkout";
 export {
+  MAX_REQUEST_PHOTOS,
+  REQUEST_PHOTO_ACCEPT,
+  addRequestPhotos,
   dueDatesReady,
+  photoSizeText,
   readNewRequestState,
   similarRequestState,
   taskSummary,

@@ -1,7 +1,7 @@
 .done-screen {
   display: flex;
   flex-direction: column;
-  min-height: 100svh;
+  min-height: calc(100svh - var(--demo-strip-height));
   padding-top: env(safe-area-inset-top);
   background: var(--color-white);
   font-family: var(--font-sans);

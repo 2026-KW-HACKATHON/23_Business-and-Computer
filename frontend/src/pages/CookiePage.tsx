@@ -1,6 +1,11 @@
 import { useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { exchangeCookieForAccessToken, landingPath, saveAccessToken } from "../features/auth";
+import {
+  clearDemoSession,
+  exchangeCookieForAccessToken,
+  landingPath,
+  saveAccessToken,
+} from "../features/auth";
 
 /**
  * Landing route after a successful social login. The backend has set an
@@ -22,7 +27,10 @@ function CookiePage() {
 
     const run = async () => {
       try {
-        saveAccessToken(await exchangeCookieForAccessToken());
+        const accessToken = await exchangeCookieForAccessToken();
+        // 둘러보던 중에 카카오로 로그인하면 데모 표시를 지운다
+        clearDemoSession();
+        saveAccessToken(accessToken);
         navigate(landingPath(), { replace: true });
       } catch {
         navigate("/login", { replace: true });
