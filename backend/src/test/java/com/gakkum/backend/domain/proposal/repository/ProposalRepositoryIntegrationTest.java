@@ -47,7 +47,7 @@ class ProposalRepositoryIntegrationTest {
     @DisplayName("PostgreSQL에 제안과 소분류를 함께 저장하고 사진 URL을 JSONB 배열로 같은 순서로 읽는다")
     void storesProposalWithSpecialtiesAndImages() {
         Proposal saved = proposalService.createProposal(command(List.of(1L, 2L),
-                List.of("https://bucket/b.png", "https://bucket/a.png")), 7L);
+                List.of("https://bucket/b.png", "https://bucket/a.png")), 7L, null);
         proposalRepository.flush();
 
         Proposal found = proposalRepository.findById(saved.getId()).orElseThrow();
@@ -65,8 +65,8 @@ class ProposalRepositoryIntegrationTest {
     @Test
     @DisplayName("PostgreSQL은 사진이 없는 제안을 빈 JSONB 배열로 저장하고 같은 학생의 반복 제안을 허용한다")
     void storesEmptyImagesAndRepeatedProposals() {
-        Proposal first = proposalService.createProposal(command(List.of(1L), List.of()), 7L);
-        Proposal second = proposalService.createProposal(command(List.of(1L), List.of()), 7L);
+        Proposal first = proposalService.createProposal(command(List.of(1L), List.of()), 7L, null);
+        Proposal second = proposalService.createProposal(command(List.of(1L), List.of()), 7L, null);
         proposalRepository.flush();
 
         assertThat(first.getId()).isNotEqualTo(second.getId());
@@ -76,7 +76,7 @@ class ProposalRepositoryIntegrationTest {
     @Test
     @DisplayName("PostgreSQL은 한 제안에 같은 소분류를 두 번 저장하면 유니크 제약으로 거부한다")
     void rejectsDuplicateSpecialtyInProposal() {
-        Proposal saved = proposalService.createProposal(command(List.of(1L), List.of()), 7L);
+        Proposal saved = proposalService.createProposal(command(List.of(1L), List.of()), 7L, null);
         proposalRepository.flush();
 
         assertThatThrownBy(() -> proposalSpecialtyRepository.saveAndFlush(ProposalSpecialty.create(saved.getId(), 1L)))
@@ -87,7 +87,7 @@ class ProposalRepositoryIntegrationTest {
     @DisplayName("PostgreSQL은 최종 기간이 초안 기간보다 짧은 제안을 체크 제약으로 거부한다")
     void rejectsInvalidDayOrder() {
         assertThatThrownBy(() -> proposalRepository.saveAndFlush(Proposal.create(
-                7L, 5L, "제목", "문제", "해결", "계획", 1L, 5, 4, List.of())))
+                7L, 5L, "제목", "문제", "해결", "계획", 1L, 5, 4, List.of(), null)))
                 .isInstanceOf(DataIntegrityViolationException.class);
     }
 
@@ -95,7 +95,7 @@ class ProposalRepositoryIntegrationTest {
     @DisplayName("PostgreSQL은 0 이하의 작업비를 체크 제약으로 거부한다")
     void rejectsNonPositiveFee() {
         assertThatThrownBy(() -> proposalRepository.saveAndFlush(Proposal.create(
-                7L, 5L, "제목", "문제", "해결", "계획", 0L, 0, 0, List.of())))
+                7L, 5L, "제목", "문제", "해결", "계획", 0L, 0, 0, List.of(), null)))
                 .isInstanceOf(DataIntegrityViolationException.class);
     }
 
@@ -103,14 +103,14 @@ class ProposalRepositoryIntegrationTest {
     @DisplayName("PostgreSQL은 500자를 넘는 내용을 거부한다")
     void rejectsTooLongContent() {
         assertThatThrownBy(() -> proposalRepository.saveAndFlush(Proposal.create(
-                7L, 5L, "제목", "가".repeat(501), "해결", "계획", 1L, 0, 0, List.of())))
+                7L, 5L, "제목", "가".repeat(501), "해결", "계획", 1L, 0, 0, List.of(), null)))
                 .isInstanceOf(DataIntegrityViolationException.class);
     }
 
     @Test
     @DisplayName("PostgreSQL은 한 제안에 여러 학생의 좋아요를 저장하고 같은 학생의 두 번째 좋아요는 유니크 제약으로 거부한다")
     void storesLikesOncePerStudent() {
-        Proposal saved = proposalService.createProposal(command(List.of(1L), List.of()), 7L);
+        Proposal saved = proposalService.createProposal(command(List.of(1L), List.of()), 7L, null);
         proposalLikeRepository.saveAndFlush(ProposalLike.create(saved.getId(), 8L));
         ProposalLike second = proposalLikeRepository.saveAndFlush(ProposalLike.create(saved.getId(), 9L));
 
@@ -126,7 +126,7 @@ class ProposalRepositoryIntegrationTest {
     @Test
     @DisplayName("PostgreSQL은 음수 좋아요 수를 체크 제약으로 거부한다")
     void rejectsNegativeLikeCount() {
-        Proposal saved = proposalService.createProposal(command(List.of(1L), List.of()), 7L);
+        Proposal saved = proposalService.createProposal(command(List.of(1L), List.of()), 7L, null);
         proposalRepository.flush();
 
         assertThatThrownBy(() -> entityManager
@@ -144,7 +144,7 @@ class ProposalRepositoryIntegrationTest {
     @Test
     @DisplayName("PostgreSQL은 신규 제안을 PENDING으로 저장하고 세 상태를 enum 문자열로 저장·조회한다")
     void storesProposalStatus() {
-        Proposal saved = proposalService.createProposal(command(List.of(1L), List.of()), 7L);
+        Proposal saved = proposalService.createProposal(command(List.of(1L), List.of()), 7L, null);
         proposalRepository.flush();
         entityManager.clear();
         assertThat(proposalRepository.findById(saved.getId()).orElseThrow().getStatus())
@@ -161,7 +161,7 @@ class ProposalRepositoryIntegrationTest {
     @Test
     @DisplayName("PostgreSQL은 허용하지 않는 상태 값과 NULL 상태를 거부한다")
     void enforcesProposalStatusConstraint() {
-        Proposal saved = proposalService.createProposal(command(List.of(1L), List.of()), 7L);
+        Proposal saved = proposalService.createProposal(command(List.of(1L), List.of()), 7L, null);
         proposalRepository.flush();
 
         assertThatThrownBy(() -> {
@@ -173,7 +173,7 @@ class ProposalRepositoryIntegrationTest {
     @Test
     @DisplayName("PostgreSQL은 NULL 상태를 거부한다")
     void rejectsNullStatus() {
-        Proposal saved = proposalService.createProposal(command(List.of(1L), List.of()), 7L);
+        Proposal saved = proposalService.createProposal(command(List.of(1L), List.of()), 7L, null);
         proposalRepository.flush();
 
         assertThatThrownBy(() -> entityManager.createNativeQuery("update proposals set status = null where id = :id")
@@ -197,9 +197,9 @@ class ProposalRepositoryIntegrationTest {
     @Test
     @DisplayName("본인의 모든 상태 제안만 최신순·ID 내림차순으로 조회한다")
     void findsOnlyOwnProposalsNewestFirst() {
-        Proposal first = proposalService.createProposal(command(List.of(1L), List.of()), 7L);
-        Proposal second = proposalService.createProposal(command(List.of(1L), List.of()), 7L);
-        Proposal other = proposalService.createProposal(command(List.of(1L), List.of()), 8L);
+        Proposal first = proposalService.createProposal(command(List.of(1L), List.of()), 7L, null);
+        Proposal second = proposalService.createProposal(command(List.of(1L), List.of()), 7L, null);
+        Proposal other = proposalService.createProposal(command(List.of(1L), List.of()), 8L, null);
         proposalRepository.flush();
 
         assertThat(proposalRepository.findByStudentProfileIdOrderByCreatedAtDescIdDesc(7L))
@@ -211,12 +211,12 @@ class ProposalRepositoryIntegrationTest {
     @DisplayName("받은 제안은 다른 사장님의 제안을 제외하고 모든 상태를 최신순·같은 시각은 ID 내림차순으로 조회한다")
     void findsOnlyReceivedProposalsNewestFirst() {
         // ID만으로 정렬하는 구현이 통과하지 못하도록 ID가 가장 작은 제안에 가장 최신 시각을, 가장 큰 제안에 가장 오래된 시각을 준다
-        Proposal newest = proposalService.createProposal(command(List.of(1L), List.of()), 7L);
-        Proposal sameTimeLowId = proposalService.createProposal(command(List.of(1L), List.of()), 8L);
-        Proposal sameTimeHighId = proposalService.createProposal(command(List.of(1L), List.of()), 9L);
-        Proposal older = proposalService.createProposal(command(List.of(1L), List.of()), 7L);
+        Proposal newest = proposalService.createProposal(command(List.of(1L), List.of()), 7L, null);
+        Proposal sameTimeLowId = proposalService.createProposal(command(List.of(1L), List.of()), 8L, null);
+        Proposal sameTimeHighId = proposalService.createProposal(command(List.of(1L), List.of()), 9L, null);
+        Proposal older = proposalService.createProposal(command(List.of(1L), List.of()), 7L, null);
         Proposal otherOwner = proposalRepository.save(Proposal.create(
-                7L, 6L, "제목", "문제", "해결", "계획", 1L, 0, 0, List.of()));
+                7L, 6L, "제목", "문제", "해결", "계획", 1L, 0, 0, List.of(), null));
         proposalRepository.flush();
         entityManager.createNativeQuery("update proposals set created_at = :at where id in (:ids)")
                 .setParameter("at", java.time.LocalDateTime.of(2030, 1, 1, 0, 0))

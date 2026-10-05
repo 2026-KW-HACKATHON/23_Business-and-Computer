@@ -24,7 +24,6 @@ export const STUDENT_PATHS = {
   settlements: "/student/me/settlements",
   portfolio: "/student/me/portfolio",
   activity: (tab: StudentActivityTab) => `/student/activity?tab=${tab}`,
-  request: (id: string) => `/student/requests/${id}`,
   requestFull: (id: string) => `/student/requests/${id}/full`,
   apply: (id: string) => `/student/requests/${id}/apply`,
   newProposal: "/student/proposals/new",

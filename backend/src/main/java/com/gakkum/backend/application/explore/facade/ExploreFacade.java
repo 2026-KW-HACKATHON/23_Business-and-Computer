@@ -74,16 +74,17 @@ public class ExploreFacade {
      */
     @Transactional(readOnly = true)
     public ExploreResult explore(ExploreCommand command) {
-        userService.getActiveUser(command.getUsername());
+        User user = userService.getActiveUser(command.getUsername());
+        String demoSessionId = user.getDemoSessionId();
         int limit = command.getSize() + 1;
 
         List<Candidate> candidates = new ArrayList<>();
         if (command.getType() != ExploreType.JOB) {
-            proposalService.getExploreProposals(proposalCommand(command, limit))
+            proposalService.getExploreProposals(proposalCommand(command, demoSessionId, limit))
                     .forEach(data -> candidates.add(Candidate.of(data)));
         }
         if (command.getType() != ExploreType.PROPOSAL) {
-            jobService.getExploreJobs(jobCommand(command, limit))
+            jobService.getExploreJobs(jobCommand(command, demoSessionId, limit))
                     .forEach(data -> candidates.add(Candidate.of(data)));
         }
         candidates.sort(comparator(command.getSort()));
@@ -117,7 +118,7 @@ public class ExploreFacade {
                 : cursor.getCreatedAt();
         long idBound = cursor == null ? (oldestFirst ? Long.MIN_VALUE : Long.MAX_VALUE) : cursor.getId();
         List<Owner> stores = ownerService.getExploreStores(GetExploreStoresCommand.of(
-                businessCategoryId, oldestFirst, createdAtBound, idBound, command.getSize() + 1));
+                user.getDemoSessionId(), businessCategoryId, oldestFirst, createdAtBound, idBound, command.getSize() + 1));
 
         boolean hasNext = stores.size() > command.getSize();
         List<Owner> page = hasNext ? stores.subList(0, command.getSize()) : stores;
@@ -139,24 +140,25 @@ public class ExploreFacade {
         return StoreExploreResult.of(items, nextCursor);
     }
 
-    private GetExploreProposalsCommand proposalCommand(ExploreCommand command, int limit) {
+    private GetExploreProposalsCommand proposalCommand(ExploreCommand command, String demoSessionId, int limit) {
         ExploreCursor cursor = command.getCursor();
         return switch (command.getSort()) {
-            case LATEST -> GetExploreProposalsCommand.of(command.getSpecialtyCategoryId(), ProposalExploreOrder.LATEST,
-                    null, createdAtBound(cursor, false), idBound(cursor, ExploreItemType.PROPOSAL, false), limit);
-            case OLDEST -> GetExploreProposalsCommand.of(command.getSpecialtyCategoryId(), ProposalExploreOrder.OLDEST,
-                    null, createdAtBound(cursor, true), idBound(cursor, ExploreItemType.PROPOSAL, true), limit);
-            case LIKES -> GetExploreProposalsCommand.of(command.getSpecialtyCategoryId(), ProposalExploreOrder.LIKES,
+            case LATEST -> GetExploreProposalsCommand.of(demoSessionId, command.getSpecialtyCategoryId(),
+                    ProposalExploreOrder.LATEST, null, createdAtBound(cursor, false), idBound(cursor, ExploreItemType.PROPOSAL, false), limit);
+            case OLDEST -> GetExploreProposalsCommand.of(demoSessionId, command.getSpecialtyCategoryId(),
+                    ProposalExploreOrder.OLDEST, null, createdAtBound(cursor, true), idBound(cursor, ExploreItemType.PROPOSAL, true), limit);
+            case LIKES -> GetExploreProposalsCommand.of(demoSessionId, command.getSpecialtyCategoryId(),
+                    ProposalExploreOrder.LIKES,
                     cursor == null ? Integer.MAX_VALUE : cursor.getLikeCount(),
                     createdAtBound(cursor, false), cursor == null ? Long.MAX_VALUE : cursor.getId(), limit);
         };
     }
 
     // 좋아요순은 제안 전용이라 의뢰 조회에는 최신순·오래된순만 온다
-    private GetExploreJobsCommand jobCommand(ExploreCommand command, int limit) {
+    private GetExploreJobsCommand jobCommand(ExploreCommand command, String demoSessionId, int limit) {
         boolean oldestFirst = command.getSort() == ExploreSort.OLDEST;
         ExploreCursor cursor = command.getCursor();
-        return GetExploreJobsCommand.of(command.getSpecialtyCategoryId(), oldestFirst,
+        return GetExploreJobsCommand.of(demoSessionId, command.getSpecialtyCategoryId(), oldestFirst,
                 createdAtBound(cursor, oldestFirst), idBound(cursor, ExploreItemType.JOB, oldestFirst), limit);
     }
 

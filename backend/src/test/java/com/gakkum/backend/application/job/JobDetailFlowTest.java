@@ -455,4 +455,36 @@ class JobDetailFlowTest {
     private SpecialtyCategory category(Long id, String name) {
         return SpecialtyCategory.builder().id(id).name(name).build();
     }
+
+    @ParameterizedTest(name = "조회자 {0}, 의뢰 {1}")
+    @org.junit.jupiter.params.provider.CsvSource(value = {
+            "null, 01K6DEMO00000000000000000A",
+            "01K6DEMO00000000000000000A, null",
+            "01K6DEMO00000000000000000A, 01K6DEMO00000000000000000B"}, nullValues = "null")
+    @DisplayName("조회자와 격리 범위가 다른 의뢰 상세는 없는 의뢰와 같은 404 JOB_404를 반환한다")
+    void hidesJobOutsideViewerDemoSession(String viewerSession, String jobSession) throws Exception {
+        when(userRepository.findByUsernameAndIsLock(USERNAME, false)).thenReturn(Optional.of(User.builder()
+                .id(USER_ID).username(USERNAME).role(UserRole.STUDENT).isLock(false)
+                .demoSessionId(viewerSession).build()));
+        when(jobRepository.findById(42L))
+                .thenReturn(Optional.of(jobBuilder(JobStatus.OPEN).demoSessionId(jobSession).build()));
+
+        mockMvc.perform(get("/jobs/42").principal(authentication))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.error.code").value("JOB_404"));
+    }
+
+    @Test
+    @DisplayName("같은 데모 세션의 의뢰 상세는 조회된다")
+    void returnsJobWithinViewerDemoSession() throws Exception {
+        when(userRepository.findByUsernameAndIsLock(USERNAME, false)).thenReturn(Optional.of(User.builder()
+                .id(USER_ID).username(USERNAME).role(UserRole.STUDENT).isLock(false)
+                .demoSessionId("01K6DEMO00000000000000000A").build()));
+        when(jobRepository.findById(42L)).thenReturn(Optional.of(
+                jobBuilder(JobStatus.OPEN).demoSessionId("01K6DEMO00000000000000000A").build()));
+
+        mockMvc.perform(get("/jobs/42").principal(authentication))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.id").value(42));
+    }
 }

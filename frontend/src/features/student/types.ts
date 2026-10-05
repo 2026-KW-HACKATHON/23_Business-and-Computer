@@ -130,7 +130,7 @@ export interface StudentWork {
 /** 의뢰 진행. closed = 다른 학생이 뽑혀 모집이 끝남 */
 export type RequestProgress = "recruiting" | "closed" | "completed";
 
-/** 가게가 올린 의뢰 (탐색 · 의뢰 상세 · 지원하기) */
+/** 가게가 올린 의뢰 (탐색 · 의뢰서 전체 보기 · 지원하기) */
 export interface StudentRequest {
   id: string;
   title: string;

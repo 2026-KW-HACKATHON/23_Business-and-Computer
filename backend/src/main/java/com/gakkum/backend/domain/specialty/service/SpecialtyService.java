@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.gakkum.backend.domain.specialty.dto.SpecialtyCommandDto.AddStudentSpecialtyCommand;
+import com.gakkum.backend.domain.specialty.entity.Specialty;
 import com.gakkum.backend.domain.specialty.entity.StudentSpecialty;
 import com.gakkum.backend.domain.specialty.repository.SpecialtyRepository;
 import com.gakkum.backend.domain.specialty.repository.StudentSpecialtyRepository;
@@ -47,6 +48,15 @@ public class SpecialtyService {
         if (!specialtyIds.isEmpty() && specialtyRepository.countByIdIn(specialtyIds) != specialtyIds.size()) {
             throw new BusinessException(ErrorCode.SPECIALTY_NOT_FOUND);
         }
+    }
+
+    /** 데모 예시 데이터에 쓸 특기. ID가 작은 순서로 limit개까지 고르고, 특기 기준 데이터가 없으면 비어 있다. */
+    @Transactional(readOnly = true)
+    public List<Long> getFirstSpecialtyIds(int limit) {
+        return specialtyRepository.findAllByOrderByIdAsc().stream()
+                .limit(limit)
+                .map(Specialty::getId)
+                .toList();
     }
 
     /**

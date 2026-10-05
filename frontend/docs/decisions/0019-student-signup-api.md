@@ -187,5 +187,5 @@ states.
 
 - `landingPath` sends STUDENT to /student; the student home still shows
   sample data (ADR 0018) until its API is wired.
-- Owner step 3 (`POST /auth/owner`) is wired in ADR 0020 with the same
+- Owner step 3 (`POST /auth/owner`) is wired in ADR 0021 with the same
   rules; image upload and the auth header now live in `src/api`.

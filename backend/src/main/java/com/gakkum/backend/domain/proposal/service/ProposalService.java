@@ -34,9 +34,9 @@ public class ProposalService {
     private final ProposalRepository proposalRepository;
     private final ProposalSpecialtyRepository proposalSpecialtyRepository;
 
-    /** 참조 ID와 사진 검증을 마친 제안과 소분류를 한 트랜잭션으로 저장한다. */
+    /** 참조 ID와 사진 검증을 마친 제안과 소분류를 한 트랜잭션으로 저장한다. demoSessionId는 제안한 학생의 격리 범위이고 실제 학생은 null이다. */
     @Transactional
-    public Proposal createProposal(CreateProposalCommand command, Long studentProfileId) {
+    public Proposal createProposal(CreateProposalCommand command, Long studentProfileId, String demoSessionId) {
         Proposal proposal = proposalRepository.save(Proposal.create(
                 studentProfileId,
                 command.getOwnerProfileId(),
@@ -47,7 +47,8 @@ public class ProposalService {
                 command.getProposedFee(),
                 command.getDraftDays(),
                 command.getFinalDays(),
-                command.getReferenceImageUrls()));
+                command.getReferenceImageUrls(),
+                demoSessionId));
 
         List<ProposalSpecialty> specialties = command.getSpecialtyIds().stream()
                 .map(specialtyId -> ProposalSpecialty.create(proposal.getId(), specialtyId))
@@ -164,6 +165,7 @@ public class ProposalService {
     }
 
     private List<Proposal> findExploreProposals(GetExploreProposalsCommand command) {
+        String demoSessionId = command.getDemoSessionId();
         Long categoryId = command.getSpecialtyCategoryId();
         Integer likeCount = command.getLikeCountBound();
         LocalDateTime createdAt = command.getCreatedAtBound();
@@ -171,26 +173,32 @@ public class ProposalService {
         if (categoryId != null) {
             Limit limit = Limit.of(command.getLimit());
             return switch (command.getOrder()) {
-                case LATEST -> proposalRepository.findExploreLatestInCategory(categoryId, createdAt, idBound, limit);
-                case OLDEST -> proposalRepository.findExploreOldestInCategory(categoryId, createdAt, idBound, limit);
+                case LATEST -> proposalRepository.findExploreLatestInCategory(
+                        demoSessionId, categoryId, createdAt, idBound, limit);
+                case OLDEST -> proposalRepository.findExploreOldestInCategory(
+                        demoSessionId, categoryId, createdAt, idBound, limit);
                 case LIKES -> proposalRepository.findExploreByLikesInCategory(
-                        categoryId, likeCount, createdAt, idBound, limit);
+                        demoSessionId, categoryId, likeCount, createdAt, idBound, limit);
             };
         }
         return switch (command.getOrder()) {
             case LATEST -> readInSegments(command.getLimit(),
-                    limit -> proposalRepository.findByCreatedAtAndIdLessThanOrderByIdDesc(createdAt, idBound, limit),
-                    limit -> proposalRepository.findByCreatedAtLessThanOrderByCreatedAtDescIdDesc(createdAt, limit));
+                    limit -> proposalRepository.findByDemoSessionIdAndCreatedAtAndIdLessThanOrderByIdDesc(
+                            demoSessionId, createdAt, idBound, limit),
+                    limit -> proposalRepository.findByDemoSessionIdAndCreatedAtLessThanOrderByCreatedAtDescIdDesc(
+                            demoSessionId, createdAt, limit));
             case OLDEST -> readInSegments(command.getLimit(),
-                    limit -> proposalRepository.findByCreatedAtAndIdGreaterThanOrderByIdAsc(createdAt, idBound, limit),
-                    limit -> proposalRepository.findByCreatedAtGreaterThanOrderByCreatedAtAscIdAsc(createdAt, limit));
+                    limit -> proposalRepository.findByDemoSessionIdAndCreatedAtAndIdGreaterThanOrderByIdAsc(
+                            demoSessionId, createdAt, idBound, limit),
+                    limit -> proposalRepository.findByDemoSessionIdAndCreatedAtGreaterThanOrderByCreatedAtAscIdAsc(
+                            demoSessionId, createdAt, limit));
             case LIKES -> readInSegments(command.getLimit(),
-                    limit -> proposalRepository.findByLikeCountAndCreatedAtAndIdLessThanOrderByIdDesc(
-                            likeCount, createdAt, idBound, limit),
-                    limit -> proposalRepository.findByLikeCountAndCreatedAtLessThanOrderByCreatedAtDescIdDesc(
-                            likeCount, createdAt, limit),
-                    limit -> proposalRepository.findByLikeCountLessThanOrderByLikeCountDescCreatedAtDescIdDesc(
-                            likeCount, limit));
+                    limit -> proposalRepository.findByDemoSessionIdAndLikeCountAndCreatedAtAndIdLessThanOrderByIdDesc(
+                            demoSessionId, likeCount, createdAt, idBound, limit),
+                    limit -> proposalRepository.findByDemoSessionIdAndLikeCountAndCreatedAtLessThanOrderByCreatedAtDescIdDesc(
+                            demoSessionId, likeCount, createdAt, limit),
+                    limit -> proposalRepository.findByDemoSessionIdAndLikeCountLessThanOrderByLikeCountDescCreatedAtDescIdDesc(
+                            demoSessionId, likeCount, limit));
         };
     }
 

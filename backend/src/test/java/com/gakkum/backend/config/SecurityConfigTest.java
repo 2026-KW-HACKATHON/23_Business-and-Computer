@@ -1,5 +1,6 @@
 package com.gakkum.backend.config;
 
+import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.options;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -8,6 +9,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+import java.util.List;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -18,11 +21,13 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.gakkum.backend.application.category.controller.BusinessCategoryController;
 import com.gakkum.backend.application.specialty.controller.SpecialtyController;
 import com.gakkum.backend.application.explore.controller.ExploreController;
 import com.gakkum.backend.application.explore.facade.ExploreFacade;
@@ -36,6 +41,9 @@ import com.gakkum.backend.application.proposal.controller.ProposalController;
 import com.gakkum.backend.application.proposal.facade.ProposalFacade;
 import com.gakkum.backend.application.review.controller.ReviewController;
 import com.gakkum.backend.application.review.facade.ReviewFacade;
+import com.gakkum.backend.domain.category.dto.BusinessCategoryResponse;
+import com.gakkum.backend.domain.category.entity.BusinessCategory;
+import com.gakkum.backend.domain.category.service.BusinessCategoryService;
 import com.gakkum.backend.domain.specialty.service.SpecialtyCategoryService;
 import com.gakkum.backend.global.exception.RestAuthenticationEntryPoint;
 import com.gakkum.backend.global.response.ApiResponse;
@@ -46,8 +54,9 @@ import com.gakkum.backend.util.JWTUtil;
 @DisplayName("보안 설정 - 기본 거부(default-deny) 인증 정책 검증")
 @WebMvcTest(controllers = {SecurityConfigTest.TestController.class, SpecialtyController.class,
         JobController.class, PaymentController.class, MediaController.class, ReviewController.class,
-        ProposalController.class, ExploreController.class})
+        ProposalController.class, ExploreController.class, BusinessCategoryController.class})
 @Import({SecurityConfig.class, RestAuthenticationEntryPoint.class})
+@TestPropertySource(properties = "demo-login.enabled=false")
 class SecurityConfigTest {
 
     @Autowired
@@ -70,6 +79,9 @@ class SecurityConfigTest {
 
     @MockitoBean
     private SpecialtyCategoryService specialtyCategoryService;
+
+    @MockitoBean
+    private BusinessCategoryService businessCategoryService;
 
     @MockitoBean
     private JobFacade jobFacade;
@@ -242,6 +254,33 @@ class SecurityConfigTest {
     }
 
     @Test
+    @DisplayName("인증 없이 업종 목록을 조회하면 공통 401 응답을 반환한다")
+    void businessCategoriesRequiresAuthentication() throws Exception {
+        mockMvc.perform(get("/business-categories"))
+            .andExpect(status().isUnauthorized())
+            .andExpect(jsonPath("$.success").value(false))
+            .andExpect(jsonPath("$.error.code").value("COMMON_401"));
+    }
+
+    @Test
+    @DisplayName("가입 전 PENDING 사용자의 Bearer 토큰으로 업종 목록을 조회할 수 있다")
+    void pendingUserCanReadBusinessCategories() throws Exception {
+        String token = "pending-access-token";
+        when(jwtUtil.isValid(token, true)).thenReturn(true);
+        when(jwtUtil.getUsername(token)).thenReturn("KAKAO_123");
+        when(jwtUtil.getRole(token)).thenReturn("PENDING");
+        when(businessCategoryService.getBusinessCategories()).thenReturn(List.of(
+                BusinessCategoryResponse.from(BusinessCategory.builder().id(5L).name("음식점").build())));
+
+        mockMvc.perform(get("/business-categories")
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.success").value(true))
+            .andExpect(jsonPath("$.data[0].id").value(5))
+            .andExpect(jsonPath("$.data[0].name").value("음식점"));
+    }
+
+    @Test
     @DisplayName("인증 없이 OPEN, MATCHED 또는 CLOSED 의뢰 목록을 조회하면 401을 반환한다")
     void jobsRequireAuthentication() throws Exception {
         mockMvc.perform(get("/me/jobs").param("status", "OPEN"))
@@ -330,6 +369,16 @@ class SecurityConfigTest {
     @DisplayName("인증 없이 정산 내역을 조회하면 401을 반환한다")
     void settlementHistoryRequiresAuthentication() throws Exception {
         mockMvc.perform(get("/settlements"))
+            .andExpect(status().isUnauthorized())
+            .andExpect(jsonPath("$.error.code").value("COMMON_401"));
+    }
+
+    @Test
+    @DisplayName("데모 로그인이 꺼져 있으면 인증 없는 /demo/login 요청은 401을 반환한다")
+    void demoLoginIsNotPublicWhenDisabled() throws Exception {
+        mockMvc.perform(post("/demo/login")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"role\":\"OWNER\"}"))
             .andExpect(status().isUnauthorized())
             .andExpect(jsonPath("$.error.code").value("COMMON_401"));
     }

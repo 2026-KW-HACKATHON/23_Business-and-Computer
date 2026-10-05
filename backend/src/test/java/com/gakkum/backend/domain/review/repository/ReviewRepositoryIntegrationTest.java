@@ -249,7 +249,7 @@ class ReviewRepositoryIntegrationTest {
 
     private Job saveJob(long studentProfileId, boolean closed, boolean cancelled) {
         Job job = Job.create(5L, "집계 테스트 의뢰", "설명", 50000L,
-                LocalDateTime.now().toLocalDate(), LocalDateTime.now().toLocalDate().plusDays(3), 2);
+                LocalDateTime.now().toLocalDate(), LocalDateTime.now().toLocalDate().plusDays(3), 2, null);
         job.match(studentProfileId);
         if (closed) {
             job.complete(LocalDateTime.now());
@@ -264,7 +264,7 @@ class ReviewRepositoryIntegrationTest {
 
     private Job saveClosedJob() {
         Job job = Job.create(5L, "리뷰 테스트 의뢰", "설명", 50000L,
-                LocalDateTime.now().toLocalDate(), LocalDateTime.now().toLocalDate().plusDays(3), 2);
+                LocalDateTime.now().toLocalDate(), LocalDateTime.now().toLocalDate().plusDays(3), 2, null);
         job.match(7L);
         job.complete(LocalDateTime.now());
         Job saved = jobRepository.saveAndFlush(job);

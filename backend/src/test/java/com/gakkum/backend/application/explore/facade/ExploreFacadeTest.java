@@ -17,6 +17,7 @@ import java.util.Map;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.BeforeEach;
 import org.mockito.ArgumentCaptor;
 
 import com.gakkum.backend.application.explore.dto.ExploreCommandDto.ExploreCommand;
@@ -46,6 +47,7 @@ import com.gakkum.backend.domain.proposal.service.ProposalService;
 import com.gakkum.backend.domain.specialty.dto.SpecialtyQueryDto.SpecialtyDetail;
 import com.gakkum.backend.domain.specialty.service.SpecialtyCategoryService;
 import com.gakkum.backend.domain.user.service.UserService;
+import com.gakkum.backend.domain.user.entity.User;
 import com.gakkum.backend.global.exception.BusinessException;
 import com.gakkum.backend.global.exception.ErrorCode;
 
@@ -65,6 +67,12 @@ class ExploreFacadeTest {
     private final ExploreFacade exploreFacade = new ExploreFacade(
             userService, proposalService, jobService, ownerService, specialtyCategoryService,
             mock(BusinessCategoryService.class));
+
+    @BeforeEach
+    void givenActiveUser() {
+        when(userService.getActiveUser(USERNAME)).thenReturn(
+                User.builder().id("01K58M6PJV8VAJMXHBHJ2PNB5C").username(USERNAME).isLock(false).build());
+    }
 
     @Test
     @DisplayName("최신순 전체 탐색은 두 종류를 size+1개씩 읽어 생성 시각, 같은 시각은 제안 먼저, ID 순으로 병합한다")
@@ -299,5 +307,23 @@ class ExploreFacadeTest {
                 .finalDeadline(LocalDate.of(2026, 10, 20))
                 .createdAt(createdAt)
                 .build(), specialtyIds, progressStage);
+    }
+
+    @Test
+    @DisplayName("실제 사용자의 탐색은 격리 범위 없이, 데모 사용자의 탐색은 자기 데모 세션 ID로 제안과 의뢰를 조회한다")
+    void passesViewerDemoSessionToBothQueries() {
+        exploreFacade.explore(command(ExploreType.ALL, ExploreSort.LATEST, 20, null));
+        assertThat(captureProposalCommand().getDemoSessionId()).isNull();
+        assertThat(captureJobCommand().getDemoSessionId()).isNull();
+
+        when(userService.getActiveUser(USERNAME)).thenReturn(User.builder()
+                .id("01K58M6PJV8VAJMXHBHJ2PNB5C").username(USERNAME).isLock(false)
+                .demoSessionId("01K6DEMO00000000000000000A").build());
+        for (ExploreSort sort : ExploreSort.values()) {
+            exploreFacade.explore(command(ExploreType.PROPOSAL, sort, 20, null));
+            assertThat(captureProposalCommand().getDemoSessionId()).isEqualTo("01K6DEMO00000000000000000A");
+        }
+        exploreFacade.explore(command(ExploreType.JOB, ExploreSort.OLDEST, 20, null));
+        assertThat(captureJobCommand().getDemoSessionId()).isEqualTo("01K6DEMO00000000000000000A");
     }
 }

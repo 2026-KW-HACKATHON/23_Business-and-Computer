@@ -177,7 +177,7 @@ class StoreExplorePostgresTest {
     private Long store(Long categoryId, LocalDateTime createdAt) {
         String unique = UUID.randomUUID().toString().replace("-", "");
         Long id = ownerRepository.saveAndFlush(Owner.create(unique.substring(0, 26), unique, null, null,
-                "매장 " + unique.substring(0, 6), categoryId, null, null, null, null)).getId();
+                "매장 " + unique.substring(0, 6), categoryId, null, null, null, null, null)).getId();
         entityManager.createNativeQuery("update owner_profiles set created_at = :createdAt where id = :id")
                 .setParameter("createdAt", createdAt)
                 .setParameter("id", id)

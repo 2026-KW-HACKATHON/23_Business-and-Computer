@@ -94,6 +94,39 @@ class GlobalExceptionHandlerTest {
             .andExpect(jsonPath("$.error.code").value("COMMON_409"));
     }
 
+    @Test
+    @DisplayName("핸들러가 없는 경로는 공통 404 오류를 반환한다")
+    void unknownPathReturnsCommonNotFoundError() throws Exception {
+        mockMvc.perform(get("/test/no-such-path"))
+            .andExpect(status().isNotFound())
+            .andExpect(jsonPath("$.success").value(false))
+            .andExpect(jsonPath("$.data").doesNotExist())
+            .andExpect(jsonPath("$.error.code").value("COMMON_404"))
+            .andExpect(jsonPath("$.error.message").value("요청한 경로를 찾을 수 없습니다."));
+    }
+
+    @Test
+    @DisplayName("지원하지 않는 HTTP 메서드는 공통 405 오류를 반환한다")
+    void unsupportedMethodReturnsCommonMethodNotAllowedError() throws Exception {
+        mockMvc.perform(post("/test/business-error"))
+            .andExpect(status().isMethodNotAllowed())
+            .andExpect(jsonPath("$.success").value(false))
+            .andExpect(jsonPath("$.error.code").value("COMMON_405"))
+            .andExpect(jsonPath("$.error.message").value("지원하지 않는 HTTP 메서드입니다."));
+    }
+
+    @Test
+    @DisplayName("지원하지 않는 Content-Type은 공통 415 오류를 반환한다")
+    void unsupportedMediaTypeReturnsCommonUnsupportedMediaTypeError() throws Exception {
+        mockMvc.perform(post("/test/validation")
+                .contentType(MediaType.TEXT_PLAIN)
+                .content("plain text"))
+            .andExpect(status().isUnsupportedMediaType())
+            .andExpect(jsonPath("$.success").value(false))
+            .andExpect(jsonPath("$.error.code").value("COMMON_415"))
+            .andExpect(jsonPath("$.error.message").value("지원하지 않는 Content-Type입니다."));
+    }
+
     @RestController
     static class TestController {
 

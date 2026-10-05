@@ -44,7 +44,7 @@ class JobExploreServiceTest {
     @Test
     @DisplayName("취소를 뺀 탐색 의뢰에 소분류 ID와 상태별 진행 단계를 붙이고 최신 제출물은 진행 중 의뢰만 조회한다")
     void returnsExploreJobsWithProgressStages() {
-        when(jobRepository.findExploreLatestInCategory(JobStatus.CANCELLED, 3L, BOUND, 50L, Limit.of(21)))
+        when(jobRepository.findExploreLatestInCategory(null, JobStatus.CANCELLED, 3L, BOUND, 50L, Limit.of(21)))
                 .thenReturn(List.of(
                         job(45L, JobStatus.OPEN),
                         job(44L, JobStatus.MATCHED),
@@ -60,7 +60,7 @@ class JobExploreServiceTest {
                 submission(42L, JobSubmissionType.DRAFT, 1, JobSubmissionReviewStatus.REVISION_REQUESTED),
                 submission(42L, JobSubmissionType.REVISION, 2, JobSubmissionReviewStatus.PENDING)));
 
-        List<ExploreJobData> result = jobService.getExploreJobs(GetExploreJobsCommand.of(3L, false, BOUND, 50L, 21));
+        List<ExploreJobData> result = jobService.getExploreJobs(GetExploreJobsCommand.of(null, 3L, false, BOUND, 50L, 21));
 
         assertThat(result).extracting(data -> data.getJob().getId(), ExploreJobData::getProgressStage)
                 .containsExactly(
@@ -71,18 +71,18 @@ class JobExploreServiceTest {
                         tuple(41L, JobProgressStage.COMPLETED));
         assertThat(result.get(0).getSpecialtyIds()).containsExactly(11L, 4L);
         assertThat(result.get(4).getSpecialtyIds()).isEmpty();
-        verify(jobRepository, never()).findByStatusNotAndCreatedAtLessThanOrderByCreatedAtDescIdDesc(any(), any(), any());
+        verify(jobRepository, never()).findByDemoSessionIdAndStatusNotAndCreatedAtLessThanOrderByCreatedAtDescIdDesc(any(), any(), any(), any());
     }
 
     @Test
     @DisplayName("대분류 없는 오래된순은 경계 시각과 같은 행 뒤에 경계 이후 행을 이어 붙이고, 진행 중 의뢰가 없으면 제출물을 조회하지 않는다")
     void usesOldestQueryWithoutSubmissionLookup() {
-        when(jobRepository.findByStatusNotAndCreatedAtAndIdGreaterThanOrderByIdAsc(
-                JobStatus.CANCELLED, BOUND, 50L, Limit.of(2))).thenReturn(List.of(job(41L, JobStatus.OPEN)));
-        when(jobRepository.findByStatusNotAndCreatedAtGreaterThanOrderByCreatedAtAscIdAsc(
-                JobStatus.CANCELLED, BOUND, Limit.of(1))).thenReturn(List.of(job(42L, JobStatus.CLOSED)));
+        when(jobRepository.findByDemoSessionIdAndStatusNotAndCreatedAtAndIdGreaterThanOrderByIdAsc(
+                null, JobStatus.CANCELLED, BOUND, 50L, Limit.of(2))).thenReturn(List.of(job(41L, JobStatus.OPEN)));
+        when(jobRepository.findByDemoSessionIdAndStatusNotAndCreatedAtGreaterThanOrderByCreatedAtAscIdAsc(
+                null, JobStatus.CANCELLED, BOUND, Limit.of(1))).thenReturn(List.of(job(42L, JobStatus.CLOSED)));
 
-        List<ExploreJobData> result = jobService.getExploreJobs(GetExploreJobsCommand.of(null, true, BOUND, 50L, 2));
+        List<ExploreJobData> result = jobService.getExploreJobs(GetExploreJobsCommand.of(null, null, true, BOUND, 50L, 2));
 
         assertThat(result).extracting(data -> data.getJob().getId(), ExploreJobData::getProgressStage)
                 .containsExactly(tuple(41L, JobProgressStage.REQUESTED), tuple(42L, JobProgressStage.COMPLETED));
@@ -92,20 +92,20 @@ class JobExploreServiceTest {
     @Test
     @DisplayName("대분류 없는 최신순은 경계 시각과 같은 행과 경계 이전 행을, 대분류 있는 오래된순은 분류 쿼리 하나를 쓴다")
     void dispatchesExploreQueryByOrderAndCategory() {
-        jobService.getExploreJobs(GetExploreJobsCommand.of(null, false, BOUND, 50L, 2));
-        jobService.getExploreJobs(GetExploreJobsCommand.of(4L, true, BOUND, 50L, 2));
+        jobService.getExploreJobs(GetExploreJobsCommand.of(null, null, false, BOUND, 50L, 2));
+        jobService.getExploreJobs(GetExploreJobsCommand.of(null, 4L, true, BOUND, 50L, 2));
 
-        verify(jobRepository).findByStatusNotAndCreatedAtAndIdLessThanOrderByIdDesc(
-                JobStatus.CANCELLED, BOUND, 50L, Limit.of(2));
-        verify(jobRepository).findByStatusNotAndCreatedAtLessThanOrderByCreatedAtDescIdDesc(
-                JobStatus.CANCELLED, BOUND, Limit.of(2));
-        verify(jobRepository).findExploreOldestInCategory(JobStatus.CANCELLED, 4L, BOUND, 50L, Limit.of(2));
+        verify(jobRepository).findByDemoSessionIdAndStatusNotAndCreatedAtAndIdLessThanOrderByIdDesc(
+                null, JobStatus.CANCELLED, BOUND, 50L, Limit.of(2));
+        verify(jobRepository).findByDemoSessionIdAndStatusNotAndCreatedAtLessThanOrderByCreatedAtDescIdDesc(
+                null, JobStatus.CANCELLED, BOUND, Limit.of(2));
+        verify(jobRepository).findExploreOldestInCategory(null, JobStatus.CANCELLED, 4L, BOUND, 50L, Limit.of(2));
     }
 
     @Test
     @DisplayName("조회된 의뢰가 없으면 빈 목록을 반환하고 연관 테이블을 조회하지 않는다")
     void returnsEmptyWithoutRelatedQueries() {
-        assertThat(jobService.getExploreJobs(GetExploreJobsCommand.of(null, false, BOUND, 50L, 2))).isEmpty();
+        assertThat(jobService.getExploreJobs(GetExploreJobsCommand.of(null, null, false, BOUND, 50L, 2))).isEmpty();
         verifyNoInteractions(jobSpecialtyRepository, jobSubmissionRepository);
     }
 

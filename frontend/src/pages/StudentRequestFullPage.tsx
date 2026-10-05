@@ -71,7 +71,7 @@ function StudentRequestFullPage() {
           </Button>
         ) : (
           <Button tone="student" fullWidth onClick={() => navigate(STUDENT_PATHS.apply(request.id))}>
-            작업계획서 쓰고 지원하기
+            지원하기
           </Button>
         ))
       }
