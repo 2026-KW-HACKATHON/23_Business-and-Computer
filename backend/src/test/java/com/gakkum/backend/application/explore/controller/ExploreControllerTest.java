@@ -42,6 +42,7 @@ import com.gakkum.backend.application.explore.dto.ExploreSort;
 import com.gakkum.backend.application.explore.dto.ExploreType;
 import com.gakkum.backend.application.explore.facade.ExploreFacade;
 import com.gakkum.backend.domain.job.entity.Job;
+import com.gakkum.backend.domain.job.entity.JobApplicationStatus;
 import com.gakkum.backend.domain.job.entity.JobProgressStage;
 import com.gakkum.backend.domain.job.entity.JobStatus;
 import com.gakkum.backend.domain.proposal.entity.Proposal;
@@ -158,20 +159,25 @@ class ExploreControllerTest {
     }
 
     @Test
-    @DisplayName("학생의 의뢰 카드는 지원 여부를 true·false로 담고, 학생이 아닌 사용자의 카드는 applied 키 자체를 내리지 않는다")
-    void returnsAppliedOnlyForStudent() throws Exception {
+    @DisplayName("의뢰 카드는 지원서 상태를 Boolean이 아닌 문자열 그대로 담고, 지원 상태가 없는 카드는 applied 키 자체를 내리지 않는다")
+    void returnsApplicationStatusAsStringAndOmitsMissing() throws Exception {
         Job job = Job.builder().id(42L).title("로고 제작").status(JobStatus.OPEN).budget(300_000L).build();
         when(exploreFacade.explore(any())).thenReturn(ExploreResult.of(List.of(
-                JobCardResult.of(job, JobProgressStage.REQUESTED, "가꿈 카페", List.of(), true),
-                JobCardResult.of(job, JobProgressStage.REQUESTED, "가꿈 카페", List.of(), false),
+                JobCardResult.of(job, JobProgressStage.REQUESTED, "가꿈 카페", List.of(), JobApplicationStatus.PENDING),
+                JobCardResult.of(job, JobProgressStage.REQUESTED, "가꿈 카페", List.of(), JobApplicationStatus.ACCEPTED),
+                JobCardResult.of(job, JobProgressStage.REQUESTED, "가꿈 카페", List.of(), JobApplicationStatus.REJECTED),
                 JobCardResult.of(job, JobProgressStage.REQUESTED, "가꿈 카페", List.of(), null)), null));
 
         mockMvc.perform(get("/explore").principal(authentication).param("type", "JOB"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.items[0].applied").value(true))
-                .andExpect(jsonPath("$.data.items[1].applied").value(false))
-                .andExpect(jsonPath("$.data.items[2]", not(hasKey("applied"))))
-                .andExpect(jsonPath("$.data.items[2].budget").value(300000));
+                .andExpect(jsonPath("$.data.items[0].applied").isString())
+                .andExpect(jsonPath("$.data.items[0].applied").value("PENDING"))
+                .andExpect(jsonPath("$.data.items[1].applied").value("ACCEPTED"))
+                .andExpect(jsonPath("$.data.items[2].applied").value("REJECTED"))
+                // 공고 상태와 본인 지원 상태는 별개로 내린다
+                .andExpect(jsonPath("$.data.items[2].status").value("OPEN"))
+                .andExpect(jsonPath("$.data.items[3]", not(hasKey("applied"))))
+                .andExpect(jsonPath("$.data.items[3].budget").value(300000));
     }
 
     @Test

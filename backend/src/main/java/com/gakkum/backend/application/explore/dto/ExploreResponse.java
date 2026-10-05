@@ -10,6 +10,7 @@ import com.gakkum.backend.application.explore.dto.ExploreQueryDto.JobCardResult;
 import com.gakkum.backend.application.explore.dto.ExploreQueryDto.ProposalCardResult;
 import com.gakkum.backend.application.explore.dto.ExploreQueryDto.SpecialtyCategoryResult;
 import com.gakkum.backend.application.explore.dto.ExploreQueryDto.SpecialtyResult;
+import com.gakkum.backend.domain.job.entity.JobApplicationStatus;
 import com.gakkum.backend.domain.job.entity.JobProgressStage;
 import com.gakkum.backend.domain.job.entity.JobStatus;
 import com.gakkum.backend.domain.proposal.entity.ProposalStatus;
@@ -97,9 +98,9 @@ public class ExploreResponse {
         private final LocalDate draftDeadline;
         private final LocalDate finalDeadline;
         private final Long budget;
-        // 학생이 아닌 사용자에게는 필드를 내리지 않는다
+        // 학생 본인의 지원서 상태. 지원 이력이 없거나 학생이 아닌 사용자에게는 필드를 내리지 않는다
         @JsonInclude(JsonInclude.Include.NON_NULL)
-        private final Boolean applied;
+        private final JobApplicationStatus applied;
         private final List<SpecialtyCategory> specialtyCategories;
 
         public static JobCard from(JobCardResult result) {

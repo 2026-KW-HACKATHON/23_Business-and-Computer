@@ -5,6 +5,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 import com.gakkum.backend.domain.job.entity.Job;
+import com.gakkum.backend.domain.job.entity.JobApplicationStatus;
 import com.gakkum.backend.domain.job.entity.JobProgressStage;
 import com.gakkum.backend.domain.job.entity.JobStatus;
 import com.gakkum.backend.domain.owner.entity.Owner;
@@ -90,12 +91,12 @@ public final class ExploreQueryDto {
         private final LocalDate draftDeadline;
         private final LocalDate finalDeadline;
         private final Long budget;
-        // 학생에게만 채운다. 학생이 아닌 사용자는 null이다
-        private final Boolean applied;
+        // 조회한 학생 본인의 지원서 상태. 지원 이력이 없거나 학생 프로필이 없는 학생, 학생이 아닌 사용자는 null이다
+        private final JobApplicationStatus applied;
         private final List<SpecialtyCategoryResult> specialtyCategories;
 
         public static JobCardResult of(Job job, JobProgressStage progressStage, String storeName,
-                List<SpecialtyCategoryResult> specialtyCategories, Boolean applied) {
+                List<SpecialtyCategoryResult> specialtyCategories, JobApplicationStatus applied) {
             return JobCardResult.builder()
                     .type(ExploreItemType.JOB)
                     .jobId(job.getId())

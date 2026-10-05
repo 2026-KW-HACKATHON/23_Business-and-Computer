@@ -165,7 +165,7 @@ class ExploreFlowTest {
                 .andExpect(jsonPath("$.data.items[0].draftDeadline").value("2026-10-10"))
                 .andExpect(jsonPath("$.data.items[0].finalDeadline").value("2026-10-20"))
                 .andExpect(jsonPath("$.data.items[0].budget").value(300000))
-                .andExpect(jsonPath("$.data.items[0].applied").value(true))
+                .andExpect(jsonPath("$.data.items[0].applied").value("PENDING"))
                 .andExpect(jsonPath("$.data.items[1]", not(hasKey("applied"))))
                 .andExpect(jsonPath("$.data.items[1]", not(hasKey("budget"))))
                 .andExpect(jsonPath("$.data.items[0].specialtyCategories[0].name").value("디자인"))
@@ -268,8 +268,8 @@ class ExploreFlowTest {
     }
 
     @Test
-    @DisplayName("학생의 의뢰 탐색은 본인 지원서가 대기·선정·거절 어느 상태든 true, 본인 지원서가 없는 의뢰는 false로 응답한다")
-    void returnsAppliedForStudentRegardlessOfStatus() throws Exception {
+    @DisplayName("학생의 의뢰 탐색은 본인 지원서의 대기·선정·거절 상태를 문자열 그대로 응답하고, 본인 지원서가 없는 의뢰는 applied 키를 내리지 않는다")
+    void returnsOwnApplicationStatusForStudent() throws Exception {
         givenActiveUser();
         givenJobs(job(44L, T3, JobStatus.OPEN, 60L), job(43L, T3, JobStatus.OPEN, 60L),
                 job(42L, T3, JobStatus.OPEN, 60L), job(41L, T3, JobStatus.OPEN, 60L));
@@ -284,12 +284,18 @@ class ExploreFlowTest {
         explore(get("/explore").param("type", "JOB"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.items.length()").value(4))
-                .andExpect(jsonPath("$.data.items[0].applied").value(true))
-                .andExpect(jsonPath("$.data.items[1].applied").value(true))
-                .andExpect(jsonPath("$.data.items[2].applied").value(true))
+                .andExpect(jsonPath("$.data.items[0].applied").isString())
+                .andExpect(jsonPath("$.data.items[0].applied").value("PENDING"))
+                .andExpect(jsonPath("$.data.items[1].applied").value("ACCEPTED"))
+                .andExpect(jsonPath("$.data.items[2].applied").value("REJECTED"))
+                // 공고 상태와 본인 지원 상태는 별개로 내린다
+                .andExpect(jsonPath("$.data.items[2].status").value("OPEN"))
                 .andExpect(jsonPath("$.data.items[3].jobId").value(41))
-                .andExpect(jsonPath("$.data.items[3].applied").value(false))
+                .andExpect(jsonPath("$.data.items[3]", not(hasKey("applied"))))
                 .andExpect(jsonPath("$.data.items[3].budget").value(300000));
+
+        // 이번 페이지의 의뢰 지원서를 한 번에 조회한다
+        verify(jobApplicationRepository).findByStudentProfileIdAndJobIdIn(STUDENT_PROFILE_ID, List.of(44L, 43L, 42L, 41L));
 
         // 제안 카드가 없는 페이지에서는 작성자와 공감 기록을 조회하지 않는다
         verify(studentRepository, never()).findAllById(any());
@@ -298,15 +304,16 @@ class ExploreFlowTest {
     }
 
     @Test
-    @DisplayName("학생 프로필이 없는 학생도 탐색에 성공하고 지원서를 조회하지 않은 채 false로 응답한다")
-    void returnsNotAppliedForStudentWithoutProfile() throws Exception {
+    @DisplayName("학생 프로필이 없는 학생도 탐색에 성공하고 지원서를 조회하지 않은 채 applied 키를 내리지 않는다")
+    void omitsAppliedForStudentWithoutProfile() throws Exception {
         givenActiveUser();
         givenJobs(job(42L, T3, JobStatus.OPEN, 60L));
         when(studentRepository.findByUserId(USER_ID)).thenReturn(Optional.empty());
 
         explore(get("/explore").param("type", "JOB"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.items[0].applied").value(false));
+                .andExpect(jsonPath("$.data.items[0].jobId").value(42))
+                .andExpect(jsonPath("$.data.items[0]", not(hasKey("applied"))));
 
         verifyNoInteractions(jobApplicationRepository);
     }

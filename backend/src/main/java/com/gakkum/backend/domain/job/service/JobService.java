@@ -10,7 +10,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -314,19 +313,18 @@ public class JobService {
     }
 
     /**
-     * 주어진 의뢰 중 학생 본인이 지원한 의뢰 조회. 지원서 상태(대기·선정·거절)는 가리지 않는다
+     * 주어진 의뢰 중 학생 본인이 지원한 의뢰의 지원서 상태 조회
      * @param studentProfileId
      * @param jobIds
-     * @return 지원한 의뢰 ID, 없으면 빈 집합
+     * @return 의뢰 ID별 지원서 상태, 지원하지 않은 의뢰는 키가 없다
      */
     @Transactional(readOnly = true)
-    public Set<Long> getAppliedJobIds(Long studentProfileId, Collection<Long> jobIds) {
+    public Map<Long, JobApplicationStatus> getApplicationStatuses(Long studentProfileId, Collection<Long> jobIds) {
         if (jobIds.isEmpty()) {
-            return Set.of();
+            return Map.of();
         }
         return jobApplicationRepository.findByStudentProfileIdAndJobIdIn(studentProfileId, jobIds).stream()
-                .map(JobApplication::getJobId)
-                .collect(Collectors.toSet());
+                .collect(Collectors.toMap(JobApplication::getJobId, JobApplication::getStatus));
     }
 
     @Transactional(readOnly = true)

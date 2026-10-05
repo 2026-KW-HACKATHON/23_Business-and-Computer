@@ -40,6 +40,7 @@ import com.gakkum.backend.domain.category.service.BusinessCategoryService;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.GetExploreJobsCommand;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.ExploreJobData;
 import com.gakkum.backend.domain.job.entity.Job;
+import com.gakkum.backend.domain.job.entity.JobApplicationStatus;
 import com.gakkum.backend.domain.job.entity.JobProgressStage;
 import com.gakkum.backend.domain.job.entity.JobStatus;
 import com.gakkum.backend.domain.job.service.JobService;
@@ -264,7 +265,7 @@ class ExploreFacadeTest {
     }
 
     @Test
-    @DisplayName("학생은 이번 페이지의 의뢰 ID만 한 번에 조회해 지원한 의뢰는 true, 아닌 의뢰는 false로 채운다")
+    @DisplayName("학생은 이번 페이지의 의뢰 ID만 한 번에 조회해 지원한 의뢰는 본인 지원서 상태로 채우고 아닌 의뢰는 비워 둔다")
     void fillsAppliedForStudentWithPageJobIdsOnly() {
         givenUser(UserRole.STUDENT);
         when(proposalService.getExploreProposals(any())).thenReturn(List.of(proposal(5L, T2, 0, 50L, List.of(3L))));
@@ -277,20 +278,21 @@ class ExploreFacadeTest {
         givenAuthors(Map.of(AUTHOR_PROFILE_ID, "김학생"));
         when(studentService.findStudentProfileByUserId(USER_ID))
                 .thenReturn(Optional.of(Student.builder().id(77L).userId(USER_ID).build()));
-        when(jobService.getAppliedJobIds(77L, List.of(8L, 9L))).thenReturn(Set.of(9L));
+        when(jobService.getApplicationStatuses(77L, List.of(8L, 9L)))
+                .thenReturn(Map.of(9L, JobApplicationStatus.REJECTED));
 
         ExploreResult result = exploreFacade.explore(command(ExploreType.ALL, ExploreSort.LATEST, 3, null));
 
         assertThat(result.getItems()).filteredOn(JobCardResult.class::isInstance)
                 .extracting(item -> ((JobCardResult) item).getJobId(), item -> ((JobCardResult) item).getApplied())
-                .containsExactly(tuple(8L, false), tuple(9L, true));
-        // 다음 페이지로 밀린 의뢰 7은 지원 여부를 조회하지 않는다
-        verify(jobService).getAppliedJobIds(77L, List.of(8L, 9L));
+                .containsExactly(tuple(8L, null), tuple(9L, JobApplicationStatus.REJECTED));
+        // 다음 페이지로 밀린 의뢰 7은 지원 상태를 조회하지 않는다
+        verify(jobService).getApplicationStatuses(77L, List.of(8L, 9L));
         verify(studentService).findStudentProfileByUserId(USER_ID);
     }
 
     @Test
-    @DisplayName("학생이 아닌 사용자는 지원 여부를 비워 두고 학생 프로필과 지원서를 조회하지 않는다")
+    @DisplayName("학생이 아닌 사용자는 지원 상태를 비워 두고 학생 프로필과 지원서를 조회하지 않는다")
     void leavesAppliedEmptyForNonStudent() {
         givenUser(UserRole.OWNER);
         when(jobService.getExploreJobs(any())).thenReturn(List.of(
@@ -302,11 +304,11 @@ class ExploreFacadeTest {
 
         assertThat(((JobCardResult) result.getItems().get(0)).getApplied()).isNull();
         verifyNoInteractions(studentService);
-        verify(jobService, never()).getAppliedJobIds(any(), any());
+        verify(jobService, never()).getApplicationStatuses(any(), any());
     }
 
     @Test
-    @DisplayName("학생 프로필이 없는 학생은 지원서를 조회하지 않고 모든 의뢰를 지원하지 않은 것으로 본다")
+    @DisplayName("학생 프로필이 없는 학생은 지원서를 조회하지 않고 지원 상태를 비워 둔다")
     void treatsStudentWithoutProfileAsNotApplied() {
         givenUser(UserRole.STUDENT);
         when(jobService.getExploreJobs(any())).thenReturn(List.of(
@@ -317,8 +319,8 @@ class ExploreFacadeTest {
 
         ExploreResult result = exploreFacade.explore(command(ExploreType.JOB, ExploreSort.LATEST, 20, null));
 
-        assertThat(((JobCardResult) result.getItems().get(0)).getApplied()).isFalse();
-        verify(jobService, never()).getAppliedJobIds(any(), any());
+        assertThat(((JobCardResult) result.getItems().get(0)).getApplied()).isNull();
+        verify(jobService, never()).getApplicationStatuses(any(), any());
     }
 
     @Test
@@ -335,7 +337,7 @@ class ExploreFacadeTest {
         ExploreResult result = exploreFacade.explore(command(ExploreType.ALL, ExploreSort.LATEST, 1, null));
 
         assertThat(result.getItems()).extracting(ExploreItemResult::getType).containsExactly(ExploreItemType.PROPOSAL);
-        verify(jobService, never()).getAppliedJobIds(any(), any());
+        verify(jobService, never()).getApplicationStatuses(any(), any());
     }
 
     @Test
@@ -368,7 +370,7 @@ class ExploreFacadeTest {
     }
 
     @Test
-    @DisplayName("학생은 이번 페이지의 제안 ID만 한 번에 조회해 본인이 공감한 제안만 true로 채우고 지원 여부와 학생 프로필 조회를 함께 쓴다")
+    @DisplayName("학생은 이번 페이지의 제안 ID만 한 번에 조회해 본인이 공감한 제안만 true로 채우고 지원 상태와 학생 프로필 조회를 함께 쓴다")
     void fillsLikedByMeForStudentWithPageProposalIdsOnly() {
         givenUser(UserRole.STUDENT);
         when(proposalService.getExploreProposals(any())).thenReturn(List.of(
@@ -393,7 +395,7 @@ class ExploreFacadeTest {
                 .containsExactly(tuple(5L, true), tuple(4L, false));
         // 다음 페이지로 밀린 제안 3은 공감 여부를 조회하지 않는다
         verify(proposalService).getLikedProposalIds(77L, List.of(5L, 4L));
-        verify(jobService).getAppliedJobIds(77L, List.of(8L));
+        verify(jobService).getApplicationStatuses(77L, List.of(8L));
         verify(studentService).findStudentProfileByUserId(USER_ID);
     }
 

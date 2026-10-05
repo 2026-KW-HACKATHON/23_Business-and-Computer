@@ -32,6 +32,7 @@ import com.gakkum.backend.application.explore.dto.StoreExploreSort;
 import com.gakkum.backend.domain.category.service.BusinessCategoryService;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.GetExploreJobsCommand;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.ExploreJobData;
+import com.gakkum.backend.domain.job.entity.JobApplicationStatus;
 import com.gakkum.backend.domain.job.service.JobService;
 import com.gakkum.backend.domain.owner.dto.OwnerCommandDto.GetExploreStoresCommand;
 import com.gakkum.backend.domain.owner.entity.Owner;
@@ -75,7 +76,7 @@ public class ExploreFacade {
     /**
      * 제안과 의뢰를 한 목록으로 탐색한다. 종류마다 커서 뒤의 카드를 size+1개까지 읽어 병합하고,
      * 한 장이 남으면 다음 페이지가 있다고 보고 이번 페이지 마지막 카드로 커서를 만든다.
-     * 매장 이름과 대분류·소분류, 제안 작성 학생 이름, 학생의 지원·공감 여부는 이번 페이지 카드에 대해서만 묶어서 조회한다.
+     * 매장 이름과 대분류·소분류, 제안 작성 학생 이름, 학생의 지원 상태·공감 여부는 이번 페이지 카드에 대해서만 묶어서 조회한다.
      */
     @Transactional(readOnly = true)
     public ExploreResult explore(ExploreCommand command) {
@@ -228,17 +229,16 @@ public class ExploreFacade {
         Map<Long, String> studentNames = studentNames(page);
         List<Long> proposalIds = idsOf(page, ExploreItemType.PROPOSAL);
         List<Long> jobIds = idsOf(page, ExploreItemType.JOB);
-        boolean student = user.getRole() == UserRole.STUDENT;
-        // 지원 여부와 공감 여부가 로그인 학생의 프로필 조회 한 번을 함께 쓴다. 학생 프로필이 없는 학생은 이력이 없는 것으로 본다
-        Long viewerProfileId = student
+        // 지원 상태와 공감 여부가 로그인 학생의 프로필 조회 한 번을 함께 쓴다. 학생 프로필이 없는 학생은 이력이 없는 것으로 본다
+        Long viewerProfileId = user.getRole() == UserRole.STUDENT
                 ? studentService.findStudentProfileByUserId(user.getId()).map(Student::getId).orElse(null)
                 : null;
         Set<Long> likedProposalIds = viewerProfileId == null || proposalIds.isEmpty()
                 ? Set.of()
                 : proposalService.getLikedProposalIds(viewerProfileId, proposalIds);
-        Set<Long> appliedJobIds = viewerProfileId == null || jobIds.isEmpty()
-                ? Set.of()
-                : jobService.getAppliedJobIds(viewerProfileId, jobIds);
+        Map<Long, JobApplicationStatus> applicationStatuses = viewerProfileId == null || jobIds.isEmpty()
+                ? Map.of()
+                : jobService.getApplicationStatuses(viewerProfileId, jobIds);
 
         return page.stream()
                 .map(candidate -> {
@@ -252,10 +252,10 @@ public class ExploreFacade {
                                 likedProposalIds.contains(candidate.getId()), categories);
                     }
                     ExploreJobData job = candidate.getJob();
-                    // 학생이 아니면 null로 두어 지원 여부를 내리지 않는다
+                    // 지원 이력이 없으면 null로 두어 지원 상태를 내리지 않는다
                     return (ExploreItemResult) JobCardResult.of(
                             job.getJob(), job.getProgressStage(), storeName, categories,
-                            student ? appliedJobIds.contains(candidate.getId()) : null);
+                            applicationStatuses.get(candidate.getId()));
                 })
                 .toList();
     }
