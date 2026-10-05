@@ -2,7 +2,8 @@
 
 ## Status
 
-Accepted
+Accepted. The MOCK verification, step 3's local-only 「회원가입 완료」, the
+badge source, and the certificate fields are replaced by ADR 0019.
 
 ## Context
 
@@ -49,9 +50,11 @@ wiring the backend.
 
 ## Agent Guidance
 
-- Backend integration still to do: `POST /auth/student-verification/email`
-  on send/resend, `POST /auth/student-verification/email/verify` on 「인증
-  완료」, profile photo upload, and the student registration call. Requests
-  need `Authorization: Bearer` (see ADR 0010).
+- Backend integration is done (ADR 0019): step 2 calls
+  `POST /auth/student-verification/email` and
+  `POST /auth/student-verification/email/verify` (code valid 10 minutes, not
+  5), step 3 uploads the photo, loads badges from
+  `GET /specialties`, and calls `POST /auth/student`. The MOCK code and the
+  timer/badge/certificate rules above are historical.
 - Replace the badge-limit hint with a toast when a shared toast component is
   added.
