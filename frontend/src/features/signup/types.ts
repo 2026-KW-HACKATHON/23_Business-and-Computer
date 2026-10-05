@@ -74,6 +74,8 @@ export interface StudentSignupDraft {
   agreedToTerms: boolean;
   /** 인증을 마친 학교 메일. 인증 전이나 인증번호를 다시 보낸 뒤에는 빈 값 */
   verifiedEmail: string;
+  /** verifiedEmail 을 인증한 시각 (ms). 30분 안이면 2/3 에서 다시 인증하지 않는다 */
+  verifiedAt: number;
   intro: string;
   portfolioUrl: string;
   /** 고른 특기 id (GET /specialties). 1~5개 */
@@ -90,6 +92,7 @@ export const EMPTY_STUDENT_SIGNUP: StudentSignupDraft = {
   takenStudentNumber: "",
   agreedToTerms: false,
   verifiedEmail: "",
+  verifiedAt: 0,
   intro: "",
   portfolioUrl: "",
   specialtyIds: [],

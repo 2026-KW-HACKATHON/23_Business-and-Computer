@@ -7,6 +7,7 @@ import {
   RESEND_COOLDOWN_MS,
   VERIFICATION_CODE_TTL_MS,
   formatRemaining,
+  isEmailVerificationFresh,
   isSchoolEmail,
   isStudentInfoComplete,
   sendVerificationCode,
@@ -43,7 +44,7 @@ const NOTICE_TEXT: Record<Exclude<Notice, null>, string> = {
 /**
  * 피그마 「학생 인증 (광운대 이메일) 2/3」.
  * 상태 = 발송 전 / 발송 후 / 오류 · 메일 도메인 / 오류 · 인증번호 (화면 하나 + 상태값)
- * 요청 중·재발송 제한·서버 오류는 피그마에 없어 버튼 문구와 안내 문구로만 보여준다 (ADR 0019).
+ * 요청 중·재발송 제한·서버 오류·인증 완료(재방문)는 피그마에 없어 버튼 문구와 안내 문구로만 보여준다 (ADR 0019).
  */
 function StudentSignupVerifyPage() {
   const navigate = useNavigate();
@@ -60,14 +61,24 @@ function StudentSignupVerifyPage() {
   const [notice, setNotice] = useState<Notice>(returned?.notice === "reverify" ? "reverify" : null);
   const [resent, setResent] = useState(false);
   const [expiresAt, setExpiresAt] = useState(0);
+  // 재발송 제한이 풀리는 시각. 발송에 성공하면 바로 60초를 세고, 429 를 받아도 센다
   const [cooldownUntil, setCooldownUntil] = useState(0);
+  // 429 로 막힌 경우만 빨간 안내로 보여준다 (발송 직후의 카운트다운은 회색)
+  const [limited, setLimited] = useState(false);
   const [now, setNow] = useState(() => Date.now());
+  // 학번 중복 등으로 다시 들어왔을 때, 같은 메일을 30분 안에 인증했으면 다시 인증하지 않는다.
+  // 3/3 이 메일 문제로 돌려보낸 경우(returned)는 서버가 인증을 받지 않은 것이라 다시 인증한다
+  const [alreadyVerified, setAlreadyVerified] = useState(
+    () => returned === null && isEmailVerificationFresh(draft, Date.now()),
+  );
   // 요청 중 여부는 이 화면에만 둔다. 요청 중에는 입력칸을 잠가서 응답과 화면이 어긋나지 않게 한다
   const [pending, setPending] = useState<Pending>(null);
   // 화면을 떠나면 번호가 바뀌어 늦게 온 응답을 버린다
   const requestId = useRef(0);
   // 마지막으로 발송에 성공한 시각. 재발송 제한(429)이 언제 풀리는지 계산한다
   const lastSentAt = useRef(0);
+  // state 가 다시 그려지기 전에 버튼이 두 번 눌려도 요청은 한 번만 보낸다
+  const inFlight = useRef(false);
 
   useEffect(() => {
     const latest = requestId;
@@ -90,11 +101,20 @@ function StudentSignupVerifyPage() {
   const remaining = expiresAt - now;
   const cooldownLeft = cooldownUntil - now;
   const coolingDown = cooldownLeft > 0;
-  const message = coolingDown
-    ? `1분 뒤에 다시 보낼 수 있어요 (${Math.ceil(cooldownLeft / 1000)}초)`
-    : notice
-      ? NOTICE_TEXT[notice]
-      : null;
+  const cooldownText = coolingDown ? `${Math.ceil(cooldownLeft / 1000)}초 뒤에 다시 보낼 수 있어요` : null;
+  // 오류·429 는 빨간 안내, 발송 직후의 카운트다운만 회색 안내
+  const message = notice ? NOTICE_TEXT[notice] : limited ? cooldownText : null;
+  const hint = message ? null : cooldownText;
+
+  const once = async (task: () => Promise<void>) => {
+    if (inFlight.current) return;
+    inFlight.current = true;
+    try {
+      await task();
+    } finally {
+      inFlight.current = false;
+    }
+  };
 
   const leave = (result: "unauthorized" | "alreadyRegistered") => {
     if (result === "unauthorized") {
@@ -125,14 +145,15 @@ function StudentSignupVerifyPage() {
         const at = Date.now();
         lastSentAt.current = at;
         // 서버도 새 번호를 보내면 이전 인증 완료를 지우므로 화면도 처음부터 센다
-        update({ verifiedEmail: "" });
+        update({ verifiedEmail: "", verifiedAt: 0 });
         setSent(true);
         setCode("");
         setCodeError(null);
         setFailedAttempts(0);
         setResent(resend);
-        setCooldownUntil(0);
+        setLimited(false);
         setNow(at);
+        setCooldownUntil(at + RESEND_COOLDOWN_MS);
         setExpiresAt(at + VERIFICATION_CODE_TTL_MS);
         break;
       }
@@ -142,6 +163,7 @@ function StudentSignupVerifyPage() {
         const at = Date.now();
         const sentUntil = lastSentAt.current + RESEND_COOLDOWN_MS;
         setNow(at);
+        setLimited(true);
         setCooldownUntil(sentUntil > at ? sentUntil : at + RESEND_COOLDOWN_MS);
         break;
       }
@@ -163,6 +185,7 @@ function StudentSignupVerifyPage() {
   };
 
   const handleChangeEmail = () => {
+    setAlreadyVerified(false);
     setSent(false);
     setCode("");
     setCodeError(null);
@@ -189,7 +212,7 @@ function StudentSignupVerifyPage() {
 
     switch (result) {
       case "verified":
-        update({ verifiedEmail: target });
+        update({ verifiedEmail: target, verifiedAt: Date.now() });
         navigate("/signup/student/3");
         break;
       case "invalid": {
@@ -212,6 +235,16 @@ function StudentSignupVerifyPage() {
     }
   };
 
+  // 화면에 머무는 사이 30분이 지났으면 다시 인증한다 (서버 403 도 3/3 에서 2/3 으로 돌려보낸다)
+  const handleNext = () => {
+    if (!isEmailVerificationFresh(draft, Date.now())) {
+      setAlreadyVerified(false);
+      setNotice("reverify");
+      return;
+    }
+    navigate("/signup/student/3");
+  };
+
   return (
     <div className="signup">
       <AppBar
@@ -223,7 +256,11 @@ function StudentSignupVerifyPage() {
 
       <main className="signup__body">
         <p className="student-signup-verify__guide" aria-live="polite">
-          {sent ? "메일로 인증번호를 보냈어요. 메일함을 확인해 주세요" : "학생 인증을 위해 학교 이메일을 사용해주세요"}
+          {alreadyVerified
+            ? "메일 인증을 이미 마쳤어요"
+            : sent
+              ? "메일로 인증번호를 보냈어요. 메일함을 확인해 주세요"
+              : "학생 인증을 위해 학교 이메일을 사용해주세요"}
         </p>
 
         <div className="signup__fields">
@@ -234,7 +271,7 @@ function StudentSignupVerifyPage() {
             placeholder="@kw.ac.kr 형식으로 입력해주세요."
             aria-label="학교 이메일"
             value={email}
-            readOnly={sent || pending !== null}
+            readOnly={alreadyVerified || sent || pending !== null}
             invalid={emailError !== null}
             errorText={emailError ? EMAIL_ERROR_TEXT[emailError] : undefined}
             onChange={(e) => {
@@ -243,7 +280,7 @@ function StudentSignupVerifyPage() {
               setNotice(null);
             }}
             trailing={
-              sent ? (
+              alreadyVerified || sent ? (
                 <button
                   type="button"
                   className="student-signup-verify__change"
@@ -256,13 +293,24 @@ function StudentSignupVerifyPage() {
             }
           />
 
-          {!sent && message && (
+          {alreadyVerified && (
+            <p className="student-signup-verify__done" role="status">
+              인증을 마친 메일이에요
+            </p>
+          )}
+
+          {!alreadyVerified && !sent && message && (
             <p className="student-signup-verify__error" role="alert">
               {message}
             </p>
           )}
+          {!alreadyVerified && !sent && hint && (
+            <p className="student-signup-verify__hint" role="status">
+              {hint}
+            </p>
+          )}
 
-          {sent && (
+          {!alreadyVerified && sent && (
             <div>
               <TextField
                 inputMode="numeric"
@@ -281,13 +329,19 @@ function StudentSignupVerifyPage() {
                 trailing={<span className="student-signup-verify__timer">{formatRemaining(remaining)}</span>}
               />
               <div className="student-signup-verify__code-row">
-                <p className="student-signup-verify__error" role="alert">
-                  {codeError ? CODE_ERROR_TEXT[codeError] : message}
-                </p>
+                {codeError || message ? (
+                  <p className="student-signup-verify__error" role="alert">
+                    {codeError ? CODE_ERROR_TEXT[codeError] : message}
+                  </p>
+                ) : (
+                  <p className="student-signup-verify__hint" role="status">
+                    {hint}
+                  </p>
+                )}
                 <ResendButton
                   sent={resent}
                   disabled={pending !== null || coolingDown}
-                  onClick={() => void send(true)}
+                  onClick={() => void once(() => send(true))}
                 />
               </div>
             </div>
@@ -296,12 +350,16 @@ function StudentSignupVerifyPage() {
       </main>
 
       <footer className="signup__footer">
-        {sent ? (
+        {alreadyVerified ? (
+          <Button fullWidth tone="student" onClick={handleNext}>
+            다음
+          </Button>
+        ) : sent ? (
           <Button
             fullWidth
             tone="student"
             disabled={code.length !== 6 || pending !== null}
-            onClick={() => void handleVerify()}
+            onClick={() => void once(handleVerify)}
           >
             {pending === "verify" ? "확인 중..." : "인증 완료"}
           </Button>
@@ -310,7 +368,7 @@ function StudentSignupVerifyPage() {
             fullWidth
             tone="student"
             disabled={email.trim() === "" || emailError !== null || pending !== null || coolingDown}
-            onClick={() => void send(false)}
+            onClick={() => void once(() => send(false))}
           >
             {pending === "send" ? "보내는 중..." : "인증번호 발송"}
           </Button>

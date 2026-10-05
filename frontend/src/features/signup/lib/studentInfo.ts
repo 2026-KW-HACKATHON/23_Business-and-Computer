@@ -29,6 +29,9 @@ export const VERIFICATION_CODE_TTL_MS = 10 * 60 * 1000;
 /** 인증번호를 다시 보낼 수 있을 때까지 (백엔드 기준, 메일 주소가 아니라 사용자마다) */
 export const RESEND_COOLDOWN_MS = 60 * 1000;
 
+/** 인증을 마친 메일로 가입할 수 있는 시간 (백엔드 consumeVerifiedStudentEmail 과 같은 30분) */
+export const VERIFIED_EMAIL_TTL_MS = 30 * 60 * 1000;
+
 /** 이만큼 틀리면 백엔드가 맞는 번호도 받지 않아 인증번호를 다시 받아야 한다 */
 export const MAX_CODE_ATTEMPTS = 5;
 
@@ -43,6 +46,11 @@ export function isSchoolEmail(email: string): boolean {
 /** 백엔드와 같은 형식: 숫자 10자리 */
 export function isStudentNumber(value: string): boolean {
   return /^\d{10}$/.test(value);
+}
+
+/** 인증을 마친 메일이 아직 가입에 쓸 수 있는 시간 안인지. 지났으면 2/3 에서 다시 인증한다 */
+export function isEmailVerificationFresh(draft: StudentSignupDraft, now: number): boolean {
+  return draft.verifiedEmail !== "" && now - draft.verifiedAt < VERIFIED_EMAIL_TTL_MS;
 }
 
 /** 1/3 에서 「다음」을 누를 수 있는지 */

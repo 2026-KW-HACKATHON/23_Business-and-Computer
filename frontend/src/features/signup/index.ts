@@ -18,6 +18,7 @@ export {
   VERIFICATION_CODE_TTL_MS,
   certificateStatuses,
   formatRemaining,
+  isEmailVerificationFresh,
   isSchoolEmail,
   isStudentInfoComplete,
   isStudentNumber,

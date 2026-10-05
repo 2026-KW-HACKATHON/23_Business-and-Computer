@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import type { FocusEvent } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { AppBar, AppImage, Button, Chip, ProfilePhoto, StepIndicator, TextField } from "../components";
 import { landingPath } from "../features/auth";
@@ -71,8 +72,12 @@ function StudentSignupProfilePage() {
   // 요청 중 여부와 오류는 이 화면에만 둔다 (사장님 2/3 과 같은 방식)
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<SubmitError>(null);
+  // 오류를 보여줄 자격증 줄 번호. 줄을 벗어나면 넣고, 고쳐서 맞으면 뺀다
+  const [touchedCertificates, setTouchedCertificates] = useState<number[]>([]);
   // 화면을 떠나면 번호가 바뀌어 늦게 온 응답을 버린다
   const requestId = useRef(0);
+  // state 가 다시 그려지기 전에 버튼이 두 번 눌려도 가입 요청은 한 번만 보낸다
+  const inFlight = useRef(false);
   // 다시 시도할 때 같은 사진을 또 올리지 않도록 올린 주소를 기억한다
   const uploadedPhoto = useRef<{ file: File; imageUrl: string } | null>(null);
   const profileFiles = useMemo(
@@ -138,26 +143,54 @@ function StudentSignupProfilePage() {
   };
 
   const editCertificate = (index: number, patch: Partial<Certificate>) => {
-    update({
-      certificates: draft.certificates.map((c, i) => (i === index ? { ...c, ...patch } : c)),
-    });
+    const certificates = draft.certificates.map((c, i) => (i === index ? { ...c, ...patch } : c));
+    // 오류를 보여준 줄도 고쳐서 맞으면 바로 지운다. 다시 틀리면 줄을 벗어날 때 보여준다
+    const status = certificateStatuses(certificates)[index];
+    if (status === "empty" || status === "complete") {
+      setTouchedCertificates((rows) => rows.filter((row) => row !== index));
+    }
+    update({ certificates });
   };
 
+  // 같은 줄 안에서 칸을 옮길 때는 두고, 줄 밖으로 나갈 때 오류를 보여준다
+  const leaveCertificate = (index: number) => (e: FocusEvent<HTMLDivElement>) => {
+    if (e.currentTarget.contains(e.relatedTarget as Node | null)) return;
+    setTouchedCertificates((rows) => (rows.includes(index) ? rows : [...rows, index]));
+  };
+
+  // 「기타」처럼 고를 특기가 없는 분류는 화면에서만 뺀다 (API 응답은 의뢰·제안 화면이 그대로 쓴다)
+  const specialtyCategories =
+    specialtyLoad.status === "loaded"
+      ? specialtyLoad.categories.filter((category) => category.specialties.length > 0)
+      : [];
   // 서버에 특기가 하나도 없으면 고를 수 없어 가입도 막힌다 (특기 1~5개 규칙은 항상 적용, ADR 0019)
-  const noSpecialties =
-    specialtyLoad.status === "loaded" &&
-    specialtyLoad.categories.every((category) => category.specialties.length === 0);
+  const noSpecialties = specialtyLoad.status === "loaded" && specialtyCategories.length === 0;
   // 비었거나 불러오지 못했을 때는 그 안내만 보이고 개수·고르기 안내는 숨긴다
   const specialtyUnavailable = noSpecialties || specialtyLoad.status === "error";
   const certificateStatusList = certificateStatuses(draft.certificates);
-  const canSubmit =
-    !submitting &&
+  const inputsValid =
     draft.specialtyIds.length > 0 &&
     draft.specialtyIds.length <= MAX_SPECIALTY_BADGES &&
     certificateStatusList.every((s) => s === "empty" || s === "complete");
+  const canSubmit = !submitting && inputsValid;
+
+  const handleComplete = async () => {
+    if (inFlight.current) return;
+    // 버튼은 비활성이면 눌리지 않지만, 눌렸는데 자격증이 틀렸다면 모든 줄의 오류를 보여준다
+    if (!inputsValid) {
+      setTouchedCertificates(draft.certificates.map((_, i) => i));
+      return;
+    }
+    inFlight.current = true;
+    try {
+      await submit();
+    } finally {
+      inFlight.current = false;
+    }
+  };
 
   // 사진이 있으면 먼저 올리고, 받은 주소로 가입을 저장한다
-  const handleComplete = async () => {
+  const submit = async () => {
     const id = ++requestId.current;
     const photo = draft.profilePhoto;
     setSubmitting(true);
@@ -322,7 +355,7 @@ function StudentSignupProfilePage() {
           )}
           {specialtyLoad.status === "loaded" && !noSpecialties && (
             <div className="student-signup-profile__groups">
-              {specialtyLoad.categories.map((category) => (
+              {specialtyCategories.map((category) => (
                 <div key={category.id} className="student-signup-profile__group">
                   <h4 className="student-signup-profile__group-title">{category.name}</h4>
                   <div className="student-signup-profile__chips">
@@ -347,10 +380,12 @@ function StudentSignupProfilePage() {
               <p className="student-signup-profile__certs-guide">자격증 이름과 취득 연도를 적어 주세요</p>
             </div>
             {draft.certificates.map((certificate, i) => {
-              const errorText = certificateErrorText(certificateStatusList[i]);
+              const errorText = touchedCertificates.includes(i)
+                ? certificateErrorText(certificateStatusList[i])
+                : null;
               const inputClass = `student-signup-profile__cert-input${errorText ? " student-signup-profile__cert-input--invalid" : ""}`;
               return (
-                <div key={i} className="student-signup-profile__cert">
+                <div key={i} className="student-signup-profile__cert" onBlur={leaveCertificate(i)}>
                   <div className="student-signup-profile__cert-row">
                     <input
                       className={inputClass}
