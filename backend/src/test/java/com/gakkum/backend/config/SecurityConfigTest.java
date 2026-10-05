@@ -21,6 +21,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -55,6 +56,7 @@ import com.gakkum.backend.util.JWTUtil;
         JobController.class, PaymentController.class, MediaController.class, ReviewController.class,
         ProposalController.class, ExploreController.class, BusinessCategoryController.class})
 @Import({SecurityConfig.class, RestAuthenticationEntryPoint.class})
+@TestPropertySource(properties = "demo-login.enabled=false")
 class SecurityConfigTest {
 
     @Autowired

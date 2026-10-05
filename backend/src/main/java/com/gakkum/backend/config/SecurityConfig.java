@@ -9,6 +9,7 @@ import com.gakkum.backend.handler.RefreshTokenLogoutHandler;
 import com.gakkum.backend.util.JWTUtil;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -95,6 +96,17 @@ public class SecurityConfig {
             );
 
         return http.build();
+    }
+
+    /**
+     * JWTFilter는 시큐리티 필터 체인 안에서만 실행한다.
+     * 서블릿 필터로도 자동 등록되면 체인보다 먼저 실행된 뒤 체인 안에서는 건너뛰어져 인증 정보가 사라질 수 있다.
+     */
+    @Bean
+    public FilterRegistrationBean<JWTFilter> jwtFilterRegistration(JWTFilter jwtFilter) {
+        FilterRegistrationBean<JWTFilter> registration = new FilterRegistrationBean<>(jwtFilter);
+        registration.setEnabled(false);
+        return registration;
     }
 
     @Bean
