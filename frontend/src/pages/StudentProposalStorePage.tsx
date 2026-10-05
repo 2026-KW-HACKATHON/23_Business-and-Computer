@@ -13,7 +13,7 @@ import "./StudentProposalNewPage.css";
 /**
  * 피그마 「제안 보내기 1/4 - 가게 고르기」. 업종 · 이름으로 찾아 가게 하나를 고른다.
  * 홈 「+ 새 제안」 · 「이런 제안은 어때요?」 예시에서 들어온다.
- * 가게는 GET /explore/stores 를 모두 불러와 화면에서 거른다 (이름 검색 API 가 없다, ADR 0021).
+ * 가게는 GET /explore/stores 를 모두 불러와 화면에서 거른다 (이름 검색 API 가 없다, ADR 0020).
  */
 function StudentProposalStorePage() {
   const navigate = useNavigate();

@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -98,8 +99,9 @@ public class JobService {
                 .collect(Collectors.toMap(Function.identity(), id -> counts.getOrDefault(id, 0L)));
     }
 
+    /** demoSessionId는 의뢰한 사장님의 격리 범위다. 실제 사장님은 null이다. */
     @Transactional
-    public Job createJob(CreateJobCommand command) {
+    public Job createJob(CreateJobCommand command, String demoSessionId) {
         Job job = Job.create(
                 command.getOwnerProfileId(),
                 command.getTitle(),
@@ -107,7 +109,8 @@ public class JobService {
                 command.getBudget(),
                 command.getDraftDeadline(),
                 command.getFinalDeadline(),
-                command.getRevisionCount());
+                command.getRevisionCount(),
+                demoSessionId);
 
         Job savedJob = jobRepository.save(job);
 
@@ -137,7 +140,8 @@ public class JobService {
                 command.getDraftDeadline(),
                 command.getFinalDeadline(),
                 command.getRevisionCount(),
-                command.getAcceptanceMessage()));
+                command.getAcceptanceMessage(),
+                command.getDemoSessionId()));
 
         jobSpecialtyRepository.saveAll(command.getSpecialtyIds().stream()
                 .map(specialtyId -> JobSpecialty.create(job.getId(), specialtyId))
@@ -164,11 +168,18 @@ public class JobService {
      */
     @Transactional(readOnly = true)
     public Map<Long, Long> getJobIdsByProposalIds(Collection<Long> proposalIds) {
+        return getJobsByProposalIds(proposalIds).values().stream()
+                .collect(Collectors.toMap(Job::getProposalId, Job::getId));
+    }
+
+    /** 제안 ID별 연결된 의뢰. 결제 전이라 의뢰가 없는 제안은 키가 없다. */
+    @Transactional(readOnly = true)
+    public Map<Long, Job> getJobsByProposalIds(Collection<Long> proposalIds) {
         if (proposalIds.isEmpty()) {
             return Map.of();
         }
         return jobRepository.findByProposalIdIn(proposalIds).stream()
-                .collect(Collectors.toMap(Job::getProposalId, Job::getId));
+                .collect(Collectors.toMap(Job::getProposalId, job -> job));
     }
 
     /**
@@ -317,13 +328,17 @@ public class JobService {
      * 학생이 모집 중(OPEN) 의뢰에 지원한다. 작업 마감일이 지나도 모집 중이면 지원할 수 있다.
      * 의뢰 행을 잠가 같은 의뢰의 결제 선정·취소·다른 지원과 순서대로 처리하고, 의뢰 상태와 선정 학생은 바꾸지 않는다.
      * 같은 학생의 재지원은 기존 지원서 상태와 무관하게 거부하며, 유니크 제약 충돌도 중복 지원으로 본다.
+     * 격리 범위(demoSessionId)가 학생과 다른 의뢰는 없는 의뢰와 같은 404로 거부한다.
      * @param command
      * @param studentProfileId
+     * @param demoSessionId 지원하는 학생의 격리 범위. 실제 학생은 null
      * @return 저장된 대기 중(PENDING) 지원서
      */
     @Transactional
-    public JobApplication createJobApplication(CreateJobApplicationCommand command, Long studentProfileId) {
+    public JobApplication createJobApplication(CreateJobApplicationCommand command, Long studentProfileId,
+            String demoSessionId) {
         Job job = jobRepository.findLockedById(command.getJobId())
+                .filter(found -> Objects.equals(found.getDemoSessionId(), demoSessionId))
                 .orElseThrow(() -> new BusinessException(ErrorCode.JOB_NOT_FOUND));
         if (job.getStatus() != JobStatus.OPEN) {
             throw new BusinessException(ErrorCode.JOB_APPLICATION_NOT_AVAILABLE);
@@ -820,6 +835,7 @@ public class JobService {
     }
 
     private List<Job> findExploreJobs(GetExploreJobsCommand command) {
+        String demoSessionId = command.getDemoSessionId();
         Long categoryId = command.getSpecialtyCategoryId();
         LocalDateTime createdAt = command.getCreatedAtBound();
         Long idBound = command.getIdBound();
@@ -827,22 +843,22 @@ public class JobService {
             Limit limit = Limit.of(command.getLimit());
             return command.isOldestFirst()
                     ? jobRepository.findExploreOldestInCategory(
-                            JobStatus.CANCELLED, categoryId, createdAt, idBound, limit)
+                            demoSessionId, JobStatus.CANCELLED, categoryId, createdAt, idBound, limit)
                     : jobRepository.findExploreLatestInCategory(
-                            JobStatus.CANCELLED, categoryId, createdAt, idBound, limit);
+                            demoSessionId, JobStatus.CANCELLED, categoryId, createdAt, idBound, limit);
         }
         if (command.isOldestFirst()) {
             return readInSegments(command.getLimit(),
-                    limit -> jobRepository.findByStatusNotAndCreatedAtAndIdGreaterThanOrderByIdAsc(
-                            JobStatus.CANCELLED, createdAt, idBound, limit),
-                    limit -> jobRepository.findByStatusNotAndCreatedAtGreaterThanOrderByCreatedAtAscIdAsc(
-                            JobStatus.CANCELLED, createdAt, limit));
+                    limit -> jobRepository.findByDemoSessionIdAndStatusNotAndCreatedAtAndIdGreaterThanOrderByIdAsc(
+                            demoSessionId, JobStatus.CANCELLED, createdAt, idBound, limit),
+                    limit -> jobRepository.findByDemoSessionIdAndStatusNotAndCreatedAtGreaterThanOrderByCreatedAtAscIdAsc(
+                            demoSessionId, JobStatus.CANCELLED, createdAt, limit));
         }
         return readInSegments(command.getLimit(),
-                limit -> jobRepository.findByStatusNotAndCreatedAtAndIdLessThanOrderByIdDesc(
-                        JobStatus.CANCELLED, createdAt, idBound, limit),
-                limit -> jobRepository.findByStatusNotAndCreatedAtLessThanOrderByCreatedAtDescIdDesc(
-                        JobStatus.CANCELLED, createdAt, limit));
+                limit -> jobRepository.findByDemoSessionIdAndStatusNotAndCreatedAtAndIdLessThanOrderByIdDesc(
+                        demoSessionId, JobStatus.CANCELLED, createdAt, idBound, limit),
+                limit -> jobRepository.findByDemoSessionIdAndStatusNotAndCreatedAtLessThanOrderByCreatedAtDescIdDesc(
+                        demoSessionId, JobStatus.CANCELLED, createdAt, limit));
     }
 
     /** 커서 경계 뒤를 정렬 순서상 앞 구간부터 읽어 limit개를 채운다. 채워지면 남은 구간은 조회하지 않는다. */

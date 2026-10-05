@@ -52,8 +52,12 @@ spring:
       mail.smtp.writetimeout: 5000
 jwt:
   secret: ${JWT_SECRET}
-  access-token-expiration: 3600000 # 1시간
+  # 개발 편의를 위해 임시로 1000시간. 운영 전환 전에 1시간(3600000)으로 되돌린다
+  access-token-expiration: ${JWT_ACCESS_TOKEN_EXPIRATION:3600000000}
   refresh-token-expiration: 604800000 # 7일
+demo-login: # 로그인 없는 체험용 데모 로그인(POST /demo/login). enabled가 true인 서버에서만 엔드포인트가 등록된다
+  enabled: ${DEMO_LOGIN_ENABLED:true}
+  max-new-sessions-per-hour: ${DEMO_LOGIN_MAX_NEW_SESSIONS_PER_HOUR:3600000000} # 최근 1시간에 새로 만들 수 있는 데모 계정 쌍 수
 nts-businessman:
   service-key: ${NTS_BUSINESSMAN_SERVICE_KEY}
 kakao-pay:

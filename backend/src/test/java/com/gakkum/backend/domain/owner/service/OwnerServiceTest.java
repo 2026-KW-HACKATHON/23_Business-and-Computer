@@ -10,6 +10,7 @@ import static org.mockito.Mockito.when;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -24,6 +25,9 @@ import com.gakkum.backend.global.exception.BusinessException;
 import com.gakkum.backend.global.exception.ErrorCode;
 
 class OwnerServiceTest {
+
+    private static final String SESSION_A = "01K6DEMO00000000000000000A";
+    private static final String SESSION_B = "01K6DEMO00000000000000000B";
 
     private final OwnerRepository ownerRepository = mock(OwnerRepository.class);
     private final OwnerService ownerService = new OwnerService(ownerRepository);
@@ -44,7 +48,7 @@ class OwnerServiceTest {
                 "https://image.example.com/profile.png",
                 List.of("https://image.example.com/store1.png", "https://image.example.com/store2.png"));
 
-        Owner savedOwner = ownerService.createOwnerProfile(command);
+        Owner savedOwner = ownerService.createOwnerProfile(command, null);
 
         ArgumentCaptor<Owner> ownerCaptor = ArgumentCaptor.forClass(Owner.class);
         verify(ownerRepository).save(ownerCaptor.capture());
@@ -74,11 +78,28 @@ class OwnerServiceTest {
     @Test
     @DisplayName("지정한 사장님 프로필이 있으면 통과하고 없으면 OWNER_404로 거부한다")
     void validatesOwnerProfileExists() {
-        when(ownerRepository.existsById(5L)).thenReturn(true);
-        when(ownerRepository.existsById(6L)).thenReturn(false);
+        when(ownerRepository.findById(5L)).thenReturn(Optional.of(Owner.builder().id(5L).build()));
+        when(ownerRepository.findById(6L)).thenReturn(Optional.empty());
 
-        ownerService.validateOwnerProfileExists(5L);
-        assertThatThrownBy(() -> ownerService.validateOwnerProfileExists(6L))
+        ownerService.validateOwnerProfileExists(5L, null);
+        assertOwnerNotFound(6L, null);
+    }
+
+    @Test
+    @DisplayName("사장님 프로필은 요청자와 격리 범위가 같을 때만 있는 것으로 보고 다르면 OWNER_404로 거부한다")
+    void validatesOwnerProfileWithinSameDemoSession() {
+        when(ownerRepository.findById(5L)).thenReturn(Optional.of(Owner.builder().id(5L).build()));
+        when(ownerRepository.findById(7L))
+                .thenReturn(Optional.of(Owner.builder().id(7L).demoSessionId(SESSION_A).build()));
+
+        ownerService.validateOwnerProfileExists(7L, SESSION_A);
+        assertOwnerNotFound(7L, null);
+        assertOwnerNotFound(7L, SESSION_B);
+        assertOwnerNotFound(5L, SESSION_A);
+    }
+
+    private void assertOwnerNotFound(Long ownerProfileId, String demoSessionId) {
+        assertThatThrownBy(() -> ownerService.validateOwnerProfileExists(ownerProfileId, demoSessionId))
                 .isInstanceOfSatisfying(BusinessException.class,
                         exception -> assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.OWNER_NOT_FOUND));
     }
@@ -88,17 +109,17 @@ class OwnerServiceTest {
     void readsExploreStoresWithMatchingQuery() {
         LocalDateTime bound = LocalDateTime.of(2026, 9, 30, 10, 0);
         Owner store = Owner.builder().id(7L).storeName("가꿈 카페").build();
-        when(ownerRepository.findExploreLatest(bound, 9L, Limit.of(21))).thenReturn(List.of(store));
+        when(ownerRepository.findExploreLatest(null, bound, 9L, Limit.of(21))).thenReturn(List.of(store));
 
-        assertThat(ownerService.getExploreStores(GetExploreStoresCommand.of(null, false, bound, 9L, 21)))
+        assertThat(ownerService.getExploreStores(GetExploreStoresCommand.of(null, null, false, bound, 9L, 21)))
                 .containsExactly(store);
-        ownerService.getExploreStores(GetExploreStoresCommand.of(null, true, bound, 9L, 21));
-        ownerService.getExploreStores(GetExploreStoresCommand.of(3L, false, bound, 9L, 21));
-        ownerService.getExploreStores(GetExploreStoresCommand.of(3L, true, bound, 9L, 21));
+        ownerService.getExploreStores(GetExploreStoresCommand.of(null, null, true, bound, 9L, 21));
+        ownerService.getExploreStores(GetExploreStoresCommand.of(null, 3L, false, bound, 9L, 21));
+        ownerService.getExploreStores(GetExploreStoresCommand.of(null, 3L, true, bound, 9L, 21));
 
-        verify(ownerRepository).findExploreOldest(bound, 9L, Limit.of(21));
-        verify(ownerRepository).findExploreLatestInCategory(3L, bound, 9L, Limit.of(21));
-        verify(ownerRepository).findExploreOldestInCategory(3L, bound, 9L, Limit.of(21));
+        verify(ownerRepository).findExploreOldest(null, bound, 9L, Limit.of(21));
+        verify(ownerRepository).findExploreLatestInCategory(null, 3L, bound, 9L, Limit.of(21));
+        verify(ownerRepository).findExploreOldestInCategory(null, 3L, bound, 9L, Limit.of(21));
     }
 
     @Test

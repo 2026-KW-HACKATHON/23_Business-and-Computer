@@ -146,7 +146,7 @@ class JobApplicantProfileQueryIntegrationTest {
 
     private Proposal saveProposal(long studentProfileId) {
         return proposalRepository.saveAndFlush(Proposal.create(studentProfileId, OWNER_PROFILE_ID, "메뉴판 개선 제안",
-                "문제", "해결", "계획", 50000L, 0, 7, List.of()));
+                "문제", "해결", "계획", 50000L, 0, 7, List.of(), null));
     }
 
     private StudentCertificate saveCertificate(long studentProfileId, String name, int acquiredYear) {
@@ -163,7 +163,7 @@ class JobApplicantProfileQueryIntegrationTest {
 
     private Job saveJob(Long studentProfileId, boolean closed, boolean cancelled) {
         Job job = Job.create(OWNER_PROFILE_ID, "지원자 프로필 테스트 의뢰", "설명", 50000L,
-                LocalDate.now(), LocalDate.now().plusDays(3), 2);
+                LocalDate.now(), LocalDate.now().plusDays(3), 2, null);
         if (studentProfileId != null) {
             job.match(studentProfileId);
         }

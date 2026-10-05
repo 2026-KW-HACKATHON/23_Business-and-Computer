@@ -104,7 +104,7 @@ class JobApplicationListQueryIntegrationTest {
 
     private Job saveOpenJob() {
         Job saved = jobRepository.saveAndFlush(Job.create(OWNER_PROFILE_ID, "지원자 목록 테스트 의뢰", "설명", 50000L,
-                LocalDate.now(), LocalDate.now().plusDays(3), 2));
+                LocalDate.now(), LocalDate.now().plusDays(3), 2, null));
         jobIds.add(saved.getId());
         return saved;
     }

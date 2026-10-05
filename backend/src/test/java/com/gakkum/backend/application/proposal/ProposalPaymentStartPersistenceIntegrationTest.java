@@ -513,7 +513,7 @@ class ProposalPaymentStartPersistenceIntegrationTest {
     private Proposal saveProposal() {
         Proposal proposal = proposalRepository.saveAndFlush(Proposal.create(
                 STUDENT_PROFILE_ID, OWNER_PROFILE_ID, "메뉴판 개선 제안", "문제", "해결", "계획",
-                50_000L, 3, 7, List.of()));
+                50_000L, 3, 7, List.of(), null));
         proposalIds.add(proposal.getId());
         proposalSpecialtyRepository.saveAllAndFlush(List.of(
                 ProposalSpecialty.create(proposal.getId(), 3L), ProposalSpecialty.create(proposal.getId(), 11L)));

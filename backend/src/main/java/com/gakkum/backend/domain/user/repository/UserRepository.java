@@ -1,12 +1,14 @@
 package com.gakkum.backend.domain.user.repository;
 
 import com.gakkum.backend.domain.user.entity.User;
+import com.gakkum.backend.domain.user.entity.UserRole;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 
 import jakarta.persistence.LockModeType;
 
+import java.time.LocalDateTime;
 import java.util.Optional;
 
 public interface UserRepository extends JpaRepository<User, String> {
@@ -17,4 +19,6 @@ public interface UserRepository extends JpaRepository<User, String> {
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     Optional<User> findByIdAndIsLockFalse(String id);
     boolean existsByEmailIgnoreCase(String email);
+    Optional<User> findByDemoSessionIdAndRoleAndIsLock(String demoSessionId, UserRole role, Boolean isLock);
+    long countByDemoSessionIdIsNotNullAndRoleAndCreatedAtAfter(UserRole role, LocalDateTime createdAt);
 }

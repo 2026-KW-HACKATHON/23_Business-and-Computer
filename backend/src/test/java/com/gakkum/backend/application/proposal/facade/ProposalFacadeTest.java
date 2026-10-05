@@ -73,6 +73,8 @@ import com.gakkum.backend.global.exception.ErrorCode;
 
 class ProposalFacadeTest {
 
+    private static final String DEMO_SESSION_A = "01K6DEMO00000000000000000A";
+
     private static final String USERNAME = "KAKAO_12345";
     private static final String USER_ID = "01K58M6PJV8VAJMXHBHJ2PNB5C";
     private static final String STUDENT_USER_ID = "01K58M6PJV8VAJMXHBHJ2PNB5D";
@@ -108,12 +110,12 @@ class ProposalFacadeTest {
         givenIssuedImage(IMAGE_URL_1, KEY_1, true);
         givenIssuedImage(IMAGE_URL_2, KEY_2, true);
         CreateProposalCommand command = command(List.of(IMAGE_URL_1, IMAGE_URL_2));
-        when(proposalService.createProposal(command, 7L)).thenReturn(Proposal.builder().id(31L).build());
+        when(proposalService.createProposal(command, 7L, null)).thenReturn(Proposal.builder().id(31L).build());
 
         ProposalCreateResult result = proposalFacade.createProposal(command);
 
         assertThat(result.getProposalId()).isEqualTo(31L);
-        verify(ownerService).validateOwnerProfileExists(5L);
+        verify(ownerService).validateOwnerProfileExists(5L, null);
         verify(specialtyService).validateSpecialtyIds(List.of(1L, 2L));
         verify(mediaService).isImageUploaded(KEY_1);
         verify(mediaService).isImageUploaded(KEY_2);
@@ -125,7 +127,7 @@ class ProposalFacadeTest {
         givenUser(UserRole.STUDENT);
         givenStudentProfile();
         CreateProposalCommand command = command(List.of());
-        when(proposalService.createProposal(command, 7L)).thenReturn(Proposal.builder().id(32L).build());
+        when(proposalService.createProposal(command, 7L, null)).thenReturn(Proposal.builder().id(32L).build());
 
         assertThat(proposalFacade.createProposal(command).getProposalId()).isEqualTo(32L);
         verifyNoInteractions(mediaService);
@@ -155,7 +157,7 @@ class ProposalFacadeTest {
     void rejectsMissingOwner() {
         givenUser(UserRole.STUDENT);
         givenStudentProfile();
-        doThrow(new BusinessException(ErrorCode.OWNER_NOT_FOUND)).when(ownerService).validateOwnerProfileExists(5L);
+        doThrow(new BusinessException(ErrorCode.OWNER_NOT_FOUND)).when(ownerService).validateOwnerProfileExists(5L, null);
 
         assertError(() -> proposalFacade.createProposal(command(List.of())), ErrorCode.OWNER_NOT_FOUND);
         verifyNoInteractions(proposalService);
@@ -187,7 +189,7 @@ class ProposalFacadeTest {
         assertError(() -> proposalFacade.createProposal(command(List.of(IMAGE_URL_1, "https://evil.example.com/a.png"))),
                 ErrorCode.PROPOSAL_IMAGE_URL_INVALID);
         verify(mediaService, never()).isImageUploaded(anyString());
-        verify(proposalService, never()).createProposal(any(), anyLong());
+        verify(proposalService, never()).createProposal(any(), anyLong(), any());
     }
 
     @Test
@@ -200,7 +202,7 @@ class ProposalFacadeTest {
 
         assertError(() -> proposalFacade.createProposal(command(List.of(IMAGE_URL_1, IMAGE_URL_2))),
                 ErrorCode.PROPOSAL_IMAGE_NOT_UPLOADED);
-        verify(proposalService, never()).createProposal(any(), anyLong());
+        verify(proposalService, never()).createProposal(any(), anyLong(), any());
     }
 
     @Test
@@ -210,16 +212,16 @@ class ProposalFacadeTest {
         givenStudentProfile();
         givenIssuedImage(IMAGE_URL_1, KEY_1, true);
         CreateProposalCommand command = command(List.of(IMAGE_URL_1));
-        when(proposalService.createProposal(command, 7L)).thenReturn(Proposal.builder().id(31L).build());
+        when(proposalService.createProposal(command, 7L, null)).thenReturn(Proposal.builder().id(31L).build());
 
         proposalFacade.createProposal(command);
 
         InOrder order = inOrder(studentService, ownerService, specialtyService, mediaService, proposalService);
         order.verify(studentService).findStudentProfileByUserId(USER_ID);
-        order.verify(ownerService).validateOwnerProfileExists(5L);
+        order.verify(ownerService).validateOwnerProfileExists(5L, null);
         order.verify(specialtyService).validateSpecialtyIds(List.of(1L, 2L));
         order.verify(mediaService).isImageUploaded(KEY_1);
-        order.verify(proposalService).createProposal(command, 7L);
+        order.verify(proposalService).createProposal(command, 7L, null);
     }
 
     @Test
@@ -242,6 +244,7 @@ class ProposalFacadeTest {
         assertThat(result.getProposalId()).isEqualTo(31L);
         assertThat(result.getTitle()).isEqualTo("메뉴판 개선 제안");
         assertThat(result.getStoreName()).isEqualTo("가게 이름");
+        assertThat(result.getStoreAddress()).isEqualTo("서울시 마포구 1");
         verify(ownerService).getOwnerProfileById(5L);
         assertThat(result.getLikeCount()).isEqualTo(4);
         assertThat(result.getCustomerProblem()).isEqualTo("메뉴를 알아보기 어렵습니다.");
@@ -333,7 +336,8 @@ class ProposalFacadeTest {
     }
 
     private void givenStore() {
-        when(ownerService.getOwnerProfileById(5L)).thenReturn(Owner.builder().id(5L).storeName("가게 이름").build());
+        when(ownerService.getOwnerProfileById(5L)).thenReturn(Owner.builder().id(5L).storeName("가게 이름")
+                .storeAddress("서울시 마포구 1").build());
     }
 
     private void givenProposingStudent() {
@@ -384,21 +388,24 @@ class ProposalFacadeTest {
                         assertThat(exception.getErrorCode()).isEqualTo(errorCode));
     }
 
-    @Test
-    @DisplayName("내가 보낸 제안을 매장·분류를 일괄 조회해 카드로 구성하고 같은 매장·소분류는 한 번만 조회한다")
-    void returnsMyProposals() {
+    @ParameterizedTest
+    @EnumSource(value = JobStatus.class, names = { "AWAITING_START", "MATCHED", "CLOSED", "CANCELLED" })
+    @DisplayName("내가 보낸 제안을 매장·분류·의뢰를 일괄 조회해 구성하고 연결 의뢰의 상태를 전달한다")
+    void returnsMyProposals(JobStatus jobStatus) {
         givenUser(UserRole.STUDENT);
         givenStudentProfile();
+        LocalDateTime createdAt = LocalDateTime.of(2026, 10, 5, 15, 30);
         when(proposalService.getMyProposals(any(GetMyProposalsCommand.class))).thenReturn(List.of(
-                ExploreProposalData.of(myProposal(32L, 5L, ProposalStatus.ACCEPTED), List.of(12L, 3L)),
-                ExploreProposalData.of(myProposal(31L, 5L, ProposalStatus.PENDING), List.of(3L))));
+                ExploreProposalData.of(myProposal(32L, 5L, ProposalStatus.ACCEPTED, createdAt), List.of(12L, 3L)),
+                ExploreProposalData.of(myProposal(31L, 5L, ProposalStatus.PENDING, null), List.of(3L))));
         when(ownerService.getOwnerProfilesByIds(Set.of(5L))).thenReturn(Map.of(5L, Owner.builder()
                 .id(5L).storeName("가꿈 카페").storeAddress(null).profileImageUrl("https://example.com/s.png").build()));
         when(specialtyCategoryService.getSpecialtyDetails(Set.of(3L, 12L))).thenReturn(Map.of(
                 3L, SpecialtyDetail.of(3L, "로고 디자인", 1L, "디자인"),
                 12L, SpecialtyDetail.of(12L, "영상 편집", 2L, "영상")));
 
-        when(jobService.getJobIdsByProposalIds(List.of(32L, 31L))).thenReturn(Map.of(32L, 420L));
+        when(jobService.getJobsByProposalIds(List.of(32L, 31L))).thenReturn(Map.of(
+                32L, Job.builder().id(420L).proposalId(32L).status(jobStatus).build()));
 
         MyProposalListResult result = proposalFacade.getMyProposals(USERNAME);
 
@@ -406,7 +413,11 @@ class ProposalFacadeTest {
                 .containsExactly(tuple(32L, ProposalStatus.ACCEPTED), tuple(31L, ProposalStatus.PENDING));
         // 연결 의뢰는 제안 수와 무관하게 한 번에 조회하고 결제 전 제안은 null이다
         assertThat(result.getProposals()).extracting(p -> p.getJobId()).containsExactly(420L, null);
-        verify(jobService, times(1)).getJobIdsByProposalIds(any());
+        assertThat(result.getProposals()).extracting(p -> p.getJobStatus()).containsExactly(jobStatus, null);
+        // 생성 시각은 변환 없이 원본 그대로 전달한다
+        assertThat(result.getProposals()).extracting(p -> p.getCreatedAt()).containsExactly(createdAt, null);
+        verify(jobService, times(1)).getJobsByProposalIds(any());
+        verify(jobService, never()).findJobByProposalId(anyLong());
         assertThat(result.getProposals().get(0).getProposedSolution()).isEqualTo("사진 메뉴판으로 바꿉니다.");
         assertThat(result.getProposals().get(0).getSpecialtyCategories())
                 .extracting(SpecialtyCategoryResult::getId).containsExactly(1L, 2L);
@@ -428,7 +439,7 @@ class ProposalFacadeTest {
         when(proposalService.getMyProposals(any())).thenReturn(List.of());
 
         assertThat(proposalFacade.getMyProposals(USERNAME).getProposals()).isEmpty();
-        verifyNoInteractions(ownerService, specialtyCategoryService);
+        verifyNoInteractions(ownerService, specialtyCategoryService, jobService);
     }
 
     @Test
@@ -450,10 +461,10 @@ class ProposalFacadeTest {
         verifyNoInteractions(proposalService);
     }
 
-    private Proposal myProposal(Long id, Long ownerProfileId, ProposalStatus status) {
+    private Proposal myProposal(Long id, Long ownerProfileId, ProposalStatus status, LocalDateTime createdAt) {
         return Proposal.builder().id(id).studentProfileId(7L).ownerProfileId(ownerProfileId).title("제안 " + id)
                 .customerProblem("메뉴를 알아보기 어렵습니다.").proposedSolution("사진 메뉴판으로 바꿉니다.")
-                .likeCount(5).status(status).build();
+                .likeCount(5).status(status).createdAt(createdAt).build();
     }
 
     @Test
@@ -628,6 +639,9 @@ class ProposalFacadeTest {
         assertThat(result.getFinalDays()).isEqualTo(7);
         assertThat(result.getStatus()).isEqualTo(ProposalStatus.PENDING);
         assertThat(result.getProposedFee()).isEqualTo(50000L);
+        // 주소를 등록하지 않은 매장과 생성 시각이 없는 제안은 null 그대로 전달한다
+        assertThat(result.getStoreAddress()).isNull();
+        assertThat(result.getCreatedAt()).isNull();
         // 시계는 UTC 10월 4일 23시 = 한국 10월 5일 8시
         assertThat(result.getEstimatedDraftDeadline()).isEqualTo(LocalDate.of(2026, 10, 8));
         assertThat(result.getEstimatedFinalDeadline()).isEqualTo(LocalDate.of(2026, 10, 12));
@@ -787,5 +801,66 @@ class ProposalFacadeTest {
                 ErrorCode.JOB_START_NOT_AVAILABLE);
         assertThat(proposal.getStatus()).isEqualTo(ProposalStatus.AWAITING_START);
         verifyNoInteractions(chatRoomService);
+    }
+
+    @Test
+    @DisplayName("데모 학생의 제안은 자기 데모 세션 ID로 대상 사장님을 확인하고 같은 값으로 저장한다")
+    void createsProposalInStudentDemoSession() {
+        when(userService.getActiveUser(USERNAME)).thenReturn(User.builder()
+                .id(USER_ID).username(USERNAME).role(UserRole.STUDENT).demoSessionId(DEMO_SESSION_A).build());
+        givenStudentProfile();
+        CreateProposalCommand command = command(List.of());
+        when(proposalService.createProposal(command, 7L, DEMO_SESSION_A))
+                .thenReturn(Proposal.builder().id(33L).build());
+
+        assertThat(proposalFacade.createProposal(command).getProposalId()).isEqualTo(33L);
+        verify(ownerService).validateOwnerProfileExists(5L, DEMO_SESSION_A);
+    }
+
+    @Test
+    @DisplayName("대상 사장님이 학생과 다른 격리 범위면 OWNER_404로 거부하고 제안을 저장하지 않는다")
+    void rejectsProposalToOwnerOutsideDemoSession() {
+        when(userService.getActiveUser(USERNAME)).thenReturn(User.builder()
+                .id(USER_ID).username(USERNAME).role(UserRole.STUDENT).demoSessionId(DEMO_SESSION_A).build());
+        givenStudentProfile();
+        doThrow(new BusinessException(ErrorCode.OWNER_NOT_FOUND))
+                .when(ownerService).validateOwnerProfileExists(5L, DEMO_SESSION_A);
+
+        assertError(() -> proposalFacade.createProposal(command(List.of())), ErrorCode.OWNER_NOT_FOUND);
+        verify(proposalService, never()).createProposal(any(), anyLong(), any());
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest(name = "조회자 {0}, 제안 {1}")
+    @org.junit.jupiter.params.provider.CsvSource(value = {
+            "null, 01K6DEMO00000000000000000A",
+            "01K6DEMO00000000000000000A, null",
+            "01K6DEMO00000000000000000A, 01K6DEMO00000000000000000B"}, nullValues = "null")
+    @DisplayName("조회자와 격리 범위가 다른 제안 상세는 PROPOSAL_404로 거부하고 매장·학생 정보를 조회하지 않는다")
+    void rejectsProposalDetailOutsideDemoSession(String viewerSession, String proposalSession) {
+        when(userService.getActiveUser(USERNAME)).thenReturn(User.builder()
+                .id(USER_ID).username(USERNAME).role(UserRole.STUDENT).demoSessionId(viewerSession).build());
+        when(proposalService.getProposalDetail(31L)).thenReturn(ProposalDetailData.of(
+                Proposal.builder().id(31L).studentProfileId(7L).ownerProfileId(5L)
+                        .demoSessionId(proposalSession).build(), List.of()));
+
+        assertError(() -> proposalFacade.getProposalDetail(USERNAME, 31L), ErrorCode.PROPOSAL_NOT_FOUND);
+        verifyNoInteractions(ownerService, studentService, reviewService, jobService, paymentService);
+    }
+
+    @Test
+    @DisplayName("같은 데모 세션의 제안 상세는 조회된다")
+    void returnsProposalDetailWithinDemoSession() {
+        when(userService.getActiveUser(USERNAME)).thenReturn(User.builder()
+                .id(USER_ID).username(USERNAME).role(UserRole.OWNER).demoSessionId(DEMO_SESSION_A).build());
+        Proposal proposal = Proposal.builder().id(31L).studentProfileId(7L).ownerProfileId(5L)
+                .title("메뉴판 개선 제안").customerProblem("문제").proposedSolution("해결").workPlan("계획")
+                .proposedFee(50000L).draftDays(3).finalDays(7).referenceImageUrls(List.of()).likeCount(0)
+                .status(ProposalStatus.PENDING).createdAt(LocalDateTime.of(2026, 9, 30, 10, 0))
+                .demoSessionId(DEMO_SESSION_A).build();
+        when(proposalService.getProposalDetail(31L)).thenReturn(ProposalDetailData.of(proposal, List.of()));
+        givenProposingStudent();
+        givenStore();
+
+        assertThat(proposalFacade.getProposalDetail(USERNAME, 31L).getProposalId()).isEqualTo(31L);
     }
 }

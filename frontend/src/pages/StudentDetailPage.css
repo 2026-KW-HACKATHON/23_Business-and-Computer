@@ -6,10 +6,6 @@
   padding: 20px 16px 32px;
 }
 
-.student-detail--tight {
-  gap: 16px;
-}
-
 /* 아이콘 28 + 22px 제목, 아래 분류 · 메타 */
 .student-detail__heading {
   display: flex;
@@ -302,40 +298,4 @@
 
 .student-detail__notice b {
   flex-shrink: 0;
-}
-
-.student-detail__summary {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 12px;
-  padding: 16px;
-  border: 1px solid var(--role-border);
-  border-radius: 16px;
-}
-
-.student-detail__summary-head {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  width: 100%;
-}
-
-.student-detail__summary-title {
-  flex: 1;
-  min-width: 0;
-  margin: 0;
-  font-family: var(--font-sans);
-  font-size: 18px;
-  font-weight: 700;
-  line-height: 24px;
-  letter-spacing: normal;
-  color: var(--color-black);
-  word-break: keep-all;
-}
-
-.student-detail__divider {
-  align-self: stretch;
-  height: 1px;
-  background: var(--role-border);
 }

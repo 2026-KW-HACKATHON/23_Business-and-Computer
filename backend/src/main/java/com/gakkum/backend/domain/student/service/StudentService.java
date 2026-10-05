@@ -43,6 +43,11 @@ public class StudentService {
         }
     }
 
+    @Transactional(readOnly = true)
+    public boolean existsStudentNumber(String studentNumber) {
+        return studentRepository.existsByStudentNumber(studentNumber);
+    }
+
     /**
      * 의뢰에 선택된 학생 프로필 단건 조회
      * @param studentProfileId

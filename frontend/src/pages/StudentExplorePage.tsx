@@ -98,7 +98,7 @@ function StudentExplorePage() {
                   <RequestCard
                     request={item.request}
                     applied={applications.some((a) => a.requestId === item.request.id)}
-                    onOpen={() => navigate(STUDENT_PATHS.request(item.request.id))}
+                    onOpen={() => navigate(STUDENT_PATHS.requestFull(item.request.id))}
                     onApply={() => navigate(STUDENT_PATHS.apply(item.request.id))}
                   />
                 </li>

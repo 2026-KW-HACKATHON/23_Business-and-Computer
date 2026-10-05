@@ -4,6 +4,8 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.util.List;
 
 import com.gakkum.backend.domain.job.entity.JobStatus;
@@ -24,9 +26,13 @@ import lombok.Getter;
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 public class ProposalDetailResponse {
 
+    private static final ZoneId RESPONSE_ZONE = ZoneId.of("Asia/Seoul");
+
     private final Long proposalId;
     private final String title;
     private final String storeName;
+    // 매장의 현재 프로필 주소. 등록하지 않았으면 null
+    private final String storeAddress;
     private final Integer likeCount;
     private final List<SpecialtyCategory> specialtyCategories;
     private final ProposalStudent student;
@@ -37,6 +43,7 @@ public class ProposalDetailResponse {
     private final Integer draftDays;
     private final Integer finalDays;
     private final List<String> referenceImageUrls;
+    // 한국 시각. 오프셋 없이 내린다
     private final LocalDateTime createdAt;
     private final ProposalStatus status;
     // 결제 전(PENDING)에만 내리는 한국 날짜 기준 예상 마감일
@@ -52,6 +59,7 @@ public class ProposalDetailResponse {
                 .proposalId(result.getProposalId())
                 .title(result.getTitle())
                 .storeName(result.getStoreName())
+                .storeAddress(result.getStoreAddress())
                 .likeCount(result.getLikeCount())
                 .specialtyCategories(result.getSpecialtyCategories().stream()
                         .map(SpecialtyCategory::from)
@@ -64,13 +72,19 @@ public class ProposalDetailResponse {
                 .draftDays(result.getDraftDays())
                 .finalDays(result.getFinalDays())
                 .referenceImageUrls(result.getReferenceImageUrls())
-                .createdAt(result.getCreatedAt())
+                .createdAt(toKoreaTime(result.getCreatedAt()))
                 .status(result.getStatus())
                 .estimatedDraftDeadline(result.getEstimatedDraftDeadline())
                 .estimatedFinalDeadline(result.getEstimatedFinalDeadline())
                 .jobId(result.getJobId())
                 .agreement(result.getAgreement() == null ? null : Agreement.from(result.getAgreement()))
                 .build();
+    }
+
+    /** UTC로 저장된 시각을 한국 시각으로 바꾼다. 제안 목록 응답과 함께 쓴다. */
+    static LocalDateTime toKoreaTime(LocalDateTime utc) {
+        return utc == null ? null
+                : utc.atOffset(ZoneOffset.UTC).atZoneSameInstant(RESPONSE_ZONE).toLocalDateTime();
     }
 
     @Getter
@@ -108,13 +122,16 @@ public class ProposalDetailResponse {
         private final Long studentProfileId;
         private final String name;
         private final String major;
+        // 전체 학번 대신 입학년도 뒤 두 자리만 전달한다 (2024402001 → "24")
         private final String studentNumber;
         private final BigDecimal averageRating;
         private final long completedJobCount;
 
         public static ProposalStudent from(ProposalStudentResult result) {
+            String studentNumber = result.getStudentNumber();
             return new ProposalStudent(result.getStudentProfileId(), result.getName(), result.getMajor(),
-                    result.getStudentNumber(), result.getAverageRating(), result.getCompletedJobCount());
+                    studentNumber == null ? null : studentNumber.substring(2, 4),
+                    result.getAverageRating(), result.getCompletedJobCount());
         }
     }
 

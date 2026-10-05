@@ -30,7 +30,7 @@ public class OwnerFacade {
         businessCategoryService.validateCategoryExists(request.getCategoryId());
 
         userService.completeOwnerRegistration(user, request.getOwnerName());
-        ownerService.createOwnerProfile(request.toCommand(user.getId()));
+        ownerService.createOwnerProfile(request.toCommand(user.getId()), null);
 
         String accessToken = jwtService.issueAccessToken(username, UserRole.OWNER);
         String refreshToken = jwtService.replaceRefreshToken(username, UserRole.OWNER);

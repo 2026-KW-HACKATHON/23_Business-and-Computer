@@ -17,7 +17,7 @@ import "./StudentStoresPage.css";
 /**
  * 피그마 「학생 탐색 · 가게」. 월계1동 가게를 업종 · 이름으로 찾고,
  * 「제안하기」를 누르면 그 가게를 고른 채 제안 보내기 2/4 로 간다.
- * 가게는 GET /explore/stores 를 모두 불러와 화면에서 거른다 (이름 검색 API 가 없다, ADR 0021).
+ * 가게는 GET /explore/stores 를 모두 불러와 화면에서 거른다 (이름 검색 API 가 없다, ADR 0020).
  */
 function StudentStoresPage() {
   const navigate = useNavigate();

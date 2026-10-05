@@ -85,7 +85,7 @@ owner's applicant list).
 - Uploads, portfolio export, and real reporting are frontend-only until the
   backend has student APIs.
 - The new-proposal flow (stores, tasks, photos, send) and 가게 탐색 now call
-  the backend (ADR 0021); its sample stores and the demo `sendProposal` are no
+  the backend (ADR 0020); its sample stores and the demo `sendProposal` are no
   longer used there. Sent proposals (내 활동 › 보낸 제안, their detail, the
   home 「기다리는 중」, the 내 정보 count) call the backend too (ADR 0022);
   `useMyProposals` was removed. Other student screens, including 탐색

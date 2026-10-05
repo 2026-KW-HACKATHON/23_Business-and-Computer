@@ -8,6 +8,8 @@ import com.gakkum.backend.filter.JWTFilter;
 import com.gakkum.backend.handler.RefreshTokenLogoutHandler;
 import com.gakkum.backend.util.JWTUtil;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -34,6 +36,7 @@ public class SecurityConfig {
     private final JWTFilter jwtFilter;
     private final JWTUtil jwtUtil;
     private final UserService userService;
+    private final boolean demoLoginEnabled;
 
     /**
      * 401 응답을 우리 형식에 맞춰서 주기위한 메서드
@@ -43,13 +46,15 @@ public class SecurityConfig {
                           JwtService jwtService,
                           JWTFilter jwtFilter,
                           UserService userService,
-                          JWTUtil jwtUtil) {
+                          JWTUtil jwtUtil,
+                          @Value("${demo-login.enabled:false}") boolean demoLoginEnabled) {
         this.authenticationEntryPoint = authenticationEntryPoint;
         this.socialSuccessHandler = socialSuccessHandler;
         this.jwtService = jwtService;
         this.jwtFilter = jwtFilter;
         this.userService = userService;
         this.jwtUtil = jwtUtil;
+        this.demoLoginEnabled = demoLoginEnabled;
     }
 
     @Bean
@@ -75,17 +80,33 @@ public class SecurityConfig {
                 .addFilterBefore(jwtFilter, LogoutFilter.class);
 
         http
-            .authorizeHttpRequests(authorize -> authorize
-                .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                .requestMatchers(HttpMethod.GET, "/oauth2/authorization/kakao", "/login/oauth2/code/kakao").permitAll()
-                .requestMatchers(HttpMethod.POST, "/jwt/exchange", "/refresh").permitAll()
-                .anyRequest().authenticated()
-            )
+            .authorizeHttpRequests(authorize -> {
+                authorize
+                    .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                    .requestMatchers(HttpMethod.GET, "/oauth2/authorization/kakao", "/login/oauth2/code/kakao").permitAll()
+                    .requestMatchers(HttpMethod.POST, "/jwt/exchange", "/refresh").permitAll();
+                // 데모 로그인은 demo-login.enabled가 켜진 서버에서만 공개한다
+                if (demoLoginEnabled) {
+                    authorize.requestMatchers(HttpMethod.POST, "/demo/login").permitAll();
+                }
+                authorize.anyRequest().authenticated();
+            })
             .exceptionHandling(exception -> exception
                 .authenticationEntryPoint(authenticationEntryPoint)
             );
 
         return http.build();
+    }
+
+    /**
+     * JWTFilter는 시큐리티 필터 체인 안에서만 실행한다.
+     * 서블릿 필터로도 자동 등록되면 체인보다 먼저 실행된 뒤 체인 안에서는 건너뛰어져 인증 정보가 사라질 수 있다.
+     */
+    @Bean
+    public FilterRegistrationBean<JWTFilter> jwtFilterRegistration(JWTFilter jwtFilter) {
+        FilterRegistrationBean<JWTFilter> registration = new FilterRegistrationBean<>(jwtFilter);
+        registration.setEnabled(false);
+        return registration;
     }
 
     @Bean

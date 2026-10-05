@@ -93,29 +93,29 @@ class JobExploreQueryIntegrationTest {
     @Test
     @DisplayName("대분류 없는 최신순·오래된순 구간 쿼리는 취소 의뢰를 빼고 같은 시각 행을 경계 ID로 자르며 이전·이후 행을 시각·ID 순으로 읽는다")
     void readsCreatedAtSegmentsWithoutCancelled() {
-        assertThat(ids(jobRepository.findByStatusNotAndCreatedAtAndIdLessThanOrderByIdDesc(
-                JobStatus.CANCELLED, T2, second, Limit.of(10)))).containsExactly(first);
-        assertThat(ids(jobRepository.findByStatusNotAndCreatedAtAndIdLessThanOrderByIdDesc(
-                JobStatus.CANCELLED, T2, Long.MAX_VALUE, Limit.of(10)))).containsExactly(otherCategory, second, first);
-        assertThat(ids(jobRepository.findByStatusNotAndCreatedAtLessThanOrderByCreatedAtDescIdDesc(
-                JobStatus.CANCELLED, T2, Limit.of(1)))).containsExactly(older);
+        assertThat(ids(jobRepository.findByDemoSessionIdAndStatusNotAndCreatedAtAndIdLessThanOrderByIdDesc(
+                null, JobStatus.CANCELLED, T2, second, Limit.of(10)))).containsExactly(first);
+        assertThat(ids(jobRepository.findByDemoSessionIdAndStatusNotAndCreatedAtAndIdLessThanOrderByIdDesc(
+                null, JobStatus.CANCELLED, T2, Long.MAX_VALUE, Limit.of(10)))).containsExactly(otherCategory, second, first);
+        assertThat(ids(jobRepository.findByDemoSessionIdAndStatusNotAndCreatedAtLessThanOrderByCreatedAtDescIdDesc(
+                null, JobStatus.CANCELLED, T2, Limit.of(1)))).containsExactly(older);
 
-        assertThat(ids(jobRepository.findByStatusNotAndCreatedAtAndIdGreaterThanOrderByIdAsc(
-                JobStatus.CANCELLED, T2, first, Limit.of(10)))).containsExactly(second, otherCategory);
-        assertThat(ids(jobRepository.findByStatusNotAndCreatedAtGreaterThanOrderByCreatedAtAscIdAsc(
-                JobStatus.CANCELLED, BEFORE_T1, Limit.of(4)))).containsExactly(older, first, second, otherCategory);
+        assertThat(ids(jobRepository.findByDemoSessionIdAndStatusNotAndCreatedAtAndIdGreaterThanOrderByIdAsc(
+                null, JobStatus.CANCELLED, T2, first, Limit.of(10)))).containsExactly(second, otherCategory);
+        assertThat(ids(jobRepository.findByDemoSessionIdAndStatusNotAndCreatedAtGreaterThanOrderByCreatedAtAscIdAsc(
+                null, JobStatus.CANCELLED, BEFORE_T1, Limit.of(4)))).containsExactly(older, first, second, otherCategory);
     }
 
     @Test
     @DisplayName("대분류 쿼리는 취소를 뺀 그 대분류 의뢰만 튜플 경계 뒤부터 정렬 순서대로 읽는다")
     void readsCategoryQueriesWithoutCancelled() {
         assertThat(ids(jobRepository.findExploreLatestInCategory(
-                JobStatus.CANCELLED, categoryA, AFTER_T2, Long.MAX_VALUE, Limit.of(10))))
+                null, JobStatus.CANCELLED, categoryA, AFTER_T2, Long.MAX_VALUE, Limit.of(10))))
                 .containsExactly(second, first, older);
         assertThat(ids(jobRepository.findExploreLatestInCategory(
-                JobStatus.CANCELLED, categoryA, T2, second, Limit.of(10)))).containsExactly(first, older);
+                null, JobStatus.CANCELLED, categoryA, T2, second, Limit.of(10)))).containsExactly(first, older);
         assertThat(ids(jobRepository.findExploreOldestInCategory(
-                JobStatus.CANCELLED, categoryA, T1, older, Limit.of(10)))).containsExactly(first, second);
+                null, JobStatus.CANCELLED, categoryA, T1, older, Limit.of(10)))).containsExactly(first, second);
     }
 
     private Long job(JobStatus status, Long specialtyId) {

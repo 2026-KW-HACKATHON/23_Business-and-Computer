@@ -33,7 +33,7 @@ class PaymentRepositoryDerivedQueryTest {
     @DisplayName("주문번호로 의뢰 ID를 투영하고 해당 의뢰를 잠금 조회한다")
     void projectsJobIdAndLocksJob() {
         Job job = jobRepository.saveAndFlush(Job.create(101L, "결제 테스트 의뢰", "설명", 100_000L,
-                LocalDate.of(2026, 10, 1), LocalDate.of(2026, 10, 31), 0));
+                LocalDate.of(2026, 10, 1), LocalDate.of(2026, 10, 31), 0, null));
         paymentRepository.saveAndFlush(Payment.pending(job.getId(), 201L,
                 "01K58M6PJV8VAJMXHBHJ2PNB5C", "order-derived-query", 100_000L, Instant.EPOCH));
 
