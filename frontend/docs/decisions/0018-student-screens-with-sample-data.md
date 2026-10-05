@@ -44,7 +44,7 @@ owner's applicant list).
 - The student home shows 「학생 홈 - 처음」 when the account has no works,
   applications, or proposals, derived from the lists (no backend flag). Sent
   proposals now come from the API, so the check waits for that list
-  (ADR 0022).
+  (ADR 0023).
 - Shared pieces moved out of the owner feature so both roles use them:
   `src/components/FormFields/FormFields.tsx` (title, text area, budget, due
   dates, revision stepper),
@@ -87,6 +87,6 @@ owner's applicant list).
 - The new-proposal flow (stores, tasks, photos, send) and 가게 탐색 now call
   the backend (ADR 0020); its sample stores and the demo `sendProposal` are no
   longer used there. Sent proposals (내 활동 › 보낸 제안, their detail, the
-  home 「기다리는 중」, the 내 정보 count) call the backend too (ADR 0022);
+  home 「기다리는 중」, the 내 정보 count) call the backend too (ADR 0023);
   `useMyProposals` was removed. Other student screens, including 탐색
   「내 제안」 and the work-start screen, still read the sample data.

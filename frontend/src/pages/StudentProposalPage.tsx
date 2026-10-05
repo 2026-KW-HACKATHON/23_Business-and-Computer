@@ -32,7 +32,7 @@ import { formatWon } from "../lib/money";
 import "./StudentDetailPage.css";
 
 /**
- * 피그마 「보낸 제안서 상세 보기」. GET /proposals/{id} (ADR 0022).
+ * 피그마 「보낸 제안서 상세 보기」. GET /proposals/{id} (ADR 0023).
  * 가게 주소(storeAddress) · 보낸 날짜(createdAt)가 없으면 그 줄만 숨긴다.
  * 수락된(AWAITING_START) · 작업 중(ACCEPTED) 제안은 확정된 작업 조건(agreement)을 보인다.
  * 아래 버튼은 「확인」 하나다. 「조건 확인하기」(작업 시작)는 다음 이슈, 「제안 취소」는 취소 API 가

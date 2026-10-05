@@ -78,7 +78,7 @@ function StoreLine({ name, address }: { name: string; address?: string }) {
 /**
  * 피그마 「내 활동 - 지원한 의뢰 · 보낸 제안 · 진행 중 · 완료 (학생)」.
  * 위 요약 카드 4칸이 탭이고, 고른 탭은 주소(?tab=)에 남아 돌아와도 그대로다.
- * 보낸 제안은 GET /me/proposals (ADR 0022). 나머지 탭은 아직 샘플 데이터다.
+ * 보낸 제안은 GET /me/proposals (ADR 0023). 나머지 탭은 아직 샘플 데이터다.
  */
 function StudentActivityPage() {
   const navigate = useNavigate();

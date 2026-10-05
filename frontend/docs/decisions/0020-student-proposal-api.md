@@ -80,7 +80,7 @@ The shared API layer (ADR 0021) provides `apiData` in `src/api/client.ts`
   blocks double sends and a `requestId` ref drops responses after leaving.
   Photos already uploaded are reused on retry. Results:
   - sent → done screen (history replaced) with `{ proposalId }` in router
-    state; its 「확인」 opens that proposal's detail (ADR 0022);
+    state; its 「확인」 opens that proposal's detail (ADR 0023);
   - 401 → /login;
   - `PROPOSAL_403_STUDENT` → alert 「학생만 제안을 보낼 수 있어요」, then
     `landingPath()`;
@@ -128,6 +128,6 @@ The shared API layer (ADR 0021) provides `apiData` in `src/api/client.ts`
   not reintroduce per-feature token or upload helpers.
 - The sent-proposal list, its detail, the home 「기다리는 중」 proposals, and
   the 내 정보 count now use `GET /me/proposals` and
-  `GET /proposals/{proposalId}` (ADR 0022).
+  `GET /proposals/{proposalId}` (ADR 0023).
 - Other screens still use `SPECIALTY_BADGES` (request writing, profile edit,
   sample data); move them to `useSpecialties` in the follow-up issue.

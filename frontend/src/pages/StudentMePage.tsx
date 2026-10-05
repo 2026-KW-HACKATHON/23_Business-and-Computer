@@ -21,7 +21,7 @@ const ACTIVITY_TABS: StudentActivityTab[] = ["applied", "proposals", "inProgress
 
 /**
  * 피그마 「내 정보 · 설정 (학생)」. 프로필 · 요약 · 내 활동 · 설정 · 로그아웃.
- * 보낸 제안 개수는 GET /me/proposals (ADR 0022). 불러오는 중이거나 실패하면 「-」.
+ * 보낸 제안 개수는 GET /me/proposals (ADR 0023). 불러오는 중이거나 실패하면 「-」.
  */
 function StudentMePage() {
   const navigate = useNavigate();
