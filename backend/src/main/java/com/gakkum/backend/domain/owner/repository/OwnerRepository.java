@@ -23,39 +23,47 @@ public interface OwnerRepository extends JpaRepository<Owner, Long> {
 
     @Query("""
             select o from Owner o
-            where o.createdAt is not null
-              and (o.createdAt, o.id) < (:createdAt, :idBound)
-            order by o.createdAt desc, o.id desc
-            """)
-    List<Owner> findExploreLatest(@Param("createdAt") LocalDateTime createdAt, @Param("idBound") Long idBound,
-            Limit limit);
-
-    @Query("""
-            select o from Owner o
-            where o.createdAt is not null
-              and (o.createdAt, o.id) > (:createdAt, :idBound)
-            order by o.createdAt asc, o.id asc
-            """)
-    List<Owner> findExploreOldest(@Param("createdAt") LocalDateTime createdAt, @Param("idBound") Long idBound,
-            Limit limit);
-
-    @Query("""
-            select o from Owner o
-            where o.categoryId = :categoryId
+            where o.demoSessionId is not distinct from :demoSessionId
               and o.createdAt is not null
               and (o.createdAt, o.id) < (:createdAt, :idBound)
             order by o.createdAt desc, o.id desc
             """)
-    List<Owner> findExploreLatestInCategory(@Param("categoryId") Long categoryId,
+    List<Owner> findExploreLatest(@Param("demoSessionId") String demoSessionId,
+            @Param("createdAt") LocalDateTime createdAt, @Param("idBound") Long idBound,
+            Limit limit);
+
+    @Query("""
+            select o from Owner o
+            where o.demoSessionId is not distinct from :demoSessionId
+              and o.createdAt is not null
+              and (o.createdAt, o.id) > (:createdAt, :idBound)
+            order by o.createdAt asc, o.id asc
+            """)
+    List<Owner> findExploreOldest(@Param("demoSessionId") String demoSessionId,
+            @Param("createdAt") LocalDateTime createdAt, @Param("idBound") Long idBound,
+            Limit limit);
+
+    @Query("""
+            select o from Owner o
+            where o.demoSessionId is not distinct from :demoSessionId
+              and o.categoryId = :categoryId
+              and o.createdAt is not null
+              and (o.createdAt, o.id) < (:createdAt, :idBound)
+            order by o.createdAt desc, o.id desc
+            """)
+    List<Owner> findExploreLatestInCategory(@Param("demoSessionId") String demoSessionId,
+            @Param("categoryId") Long categoryId,
             @Param("createdAt") LocalDateTime createdAt, @Param("idBound") Long idBound, Limit limit);
 
     @Query("""
             select o from Owner o
-            where o.categoryId = :categoryId
+            where o.demoSessionId is not distinct from :demoSessionId
+              and o.categoryId = :categoryId
               and o.createdAt is not null
               and (o.createdAt, o.id) > (:createdAt, :idBound)
             order by o.createdAt asc, o.id asc
             """)
-    List<Owner> findExploreOldestInCategory(@Param("categoryId") Long categoryId,
+    List<Owner> findExploreOldestInCategory(@Param("demoSessionId") String demoSessionId,
+            @Param("categoryId") Long categoryId,
             @Param("createdAt") LocalDateTime createdAt, @Param("idBound") Long idBound, Limit limit);
 }

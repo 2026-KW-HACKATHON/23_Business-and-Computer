@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import {
   AppImage,
@@ -32,12 +32,15 @@ function StudentProposalConfirmPage() {
   const store = useStore(state?.storeId);
   // 두 번 눌러 같은 제안이 두 번 가지 않게 한 번 누르면 잠근다
   const [sending, setSending] = useState(false);
+  // 다시 그려지기 전에 두 번 눌러도 한 번만 보낸다
+  const sentRef = useRef(false);
 
   if (!state?.content || !store) return <Navigate to={STUDENT_PATHS.newProposal} replace />;
   const { content } = state;
 
   const send = () => {
-    if (sending) return;
+    if (sentRef.current) return;
+    sentRef.current = true;
     setSending(true);
     sendProposal({
       id: `prop-new-${Date.now()}`,

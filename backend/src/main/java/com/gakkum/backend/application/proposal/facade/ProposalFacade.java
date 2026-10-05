@@ -7,6 +7,7 @@ import java.time.ZoneId;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
@@ -82,16 +83,17 @@ public class ProposalFacade {
     public ProposalCreateResult createProposal(CreateProposalCommand command) {
         User user = userService.getActiveUser(command.getUsername());
         Student student = getProposingStudent(user);
-        ownerService.validateOwnerProfileExists(command.getOwnerProfileId());
+        ownerService.validateOwnerProfileExists(command.getOwnerProfileId(), user.getDemoSessionId());
         specialtyService.validateSpecialtyIds(command.getSpecialtyIds());
         validateUploadedImages(command.getReferenceImageUrls(), user.getId());
 
-        Proposal proposal = proposalService.createProposal(command, student.getId());
+        Proposal proposal = proposalService.createProposal(command, student.getId(), user.getDemoSessionId());
         return ProposalCreateResult.from(proposal);
     }
 
     /**
      * 제안 상세. 활성 사용자라면 역할과 무관하게 모든 제안을 볼 수 있고 없는 제안은 404다.
+     * 격리 범위(demoSessionId)가 조회자와 다른 제안도 없는 제안과 같은 404로 거부한다.
      * 결제 전에는 한국 날짜 기준 오늘에 제안 기간을 더한 예상 마감일을 함께 내린다.
      * 제안을 찾은 뒤에만 매장(현재 이름)·학생 정보·학생 통계(평균 별점·완료 의뢰 수)·특기를 조회한다.
      */
@@ -99,6 +101,9 @@ public class ProposalFacade {
     public ProposalDetailResult getProposalDetail(String username, Long proposalId) {
         User viewer = userService.getActiveUser(username);
         ProposalDetailData data = proposalService.getProposalDetail(proposalId);
+        if (!Objects.equals(data.getProposal().getDemoSessionId(), viewer.getDemoSessionId())) {
+            throw new BusinessException(ErrorCode.PROPOSAL_NOT_FOUND);
+        }
 
         Owner owner = ownerService.getOwnerProfileById(data.getProposal().getOwnerProfileId());
         Student student = studentService.getStudentProfile(data.getProposal().getStudentProfileId());

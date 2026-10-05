@@ -101,7 +101,7 @@ class JobTest {
 
     private Job awaitingStart() {
         return Job.createAwaitingStart(7L, 31L, 5L, "메뉴판 개선 제안", "설명", 50_000L,
-                DRAFT_DEADLINE, FINAL_DEADLINE, 2, "잘 부탁드립니다.");
+                DRAFT_DEADLINE, FINAL_DEADLINE, 2, "잘 부탁드립니다.", null);
     }
 
     private void assertCode(Runnable action, ErrorCode errorCode) {

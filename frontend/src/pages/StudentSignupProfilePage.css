@@ -181,6 +181,13 @@
   color: var(--role-secondary);
 }
 
+/* 자격증 한 줄: 이름 + 취득 연도 / 오류 문구 */
+.student-signup-profile__cert {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
 .student-signup-profile__cert-row {
   display: flex;
   gap: 8px;
@@ -210,8 +217,13 @@
   border-color: var(--color-black);
 }
 
-.student-signup-profile__cert-input--date {
-  flex: 0 0 104px;
+.student-signup-profile__cert-input--year {
+  flex: 0 0 96px;
+}
+
+.student-signup-profile__cert-input--invalid,
+.student-signup-profile__cert-input--invalid:focus {
+  border-color: var(--color-danger);
 }
 
 .student-signup-profile__cert-add {
@@ -223,6 +235,48 @@
   font-size: 13px;
   font-weight: 500;
   line-height: 16px;
+  color: var(--text-body);
+  cursor: pointer;
+}
+
+/* 사진·자격증·가입 오류 문구 */
+.student-signup-profile__error {
+  margin: 8px 0 0;
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--color-danger);
+}
+
+.student-signup-profile__cert .student-signup-profile__error {
+  margin: 0;
+}
+
+.student-signup-profile__submit-error {
+  margin: 0 0 8px;
+  font-size: 13px;
+  text-align: center;
+}
+
+/* 특기 목록 불러오는 중 · 실패 */
+.student-signup-profile__status {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 16px 0 0;
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--role-secondary);
+}
+
+.student-signup-profile__retry {
+  padding: 6px 10px;
+  border: 1px solid var(--role-border);
+  border-radius: 8px;
+  background: var(--color-white);
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 500;
   color: var(--text-body);
   cursor: pointer;
 }

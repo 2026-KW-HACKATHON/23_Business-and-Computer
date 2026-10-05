@@ -14,11 +14,10 @@ The team has now dropped the splash screen.
 ## Decision
 
 - / renders the intro (`src/pages/IntroPage.tsx`) on every app start. After
-  3 s (with a 0.3 s fade) or on tap it goes to /home if a token is stored,
-  otherwise to /login, replacing the history entry.
-- The temporary home moves from / to /home. /cookie sends a signed-in user to
-  /home, and the catch-all route redirects to /home so an unknown path does
-  not replay the intro.
+  3 s (with a 0.3 s fade) or on tap it goes to the first screen for the
+  user (`landingPath`, ADR 0015), replacing the history entry. /cookie and
+  the catch-all route go there too, so an unknown path does not replay the
+  intro.
 - /onboarding and the first-run flag (src/features/onboarding (removed),
   `localStorage` key `onboardingSeen`) are removed: nothing reads them once the
   intro shows on every start.
@@ -37,7 +36,5 @@ The team has now dropped the splash screen.
 
 ## Agent Guidance
 
-- When real role homes exist (/owner, /student), send the intro and /cookie
-  there instead of /home.
 - Update the Notion 「화면 상태 전환표」: remove 스플래시 and 온보딩 rows and
   describe / as the intro.

@@ -38,7 +38,7 @@ export const SAMPLE_NOTIFICATIONS: OwnerNotification[] = [
     id: "noti-4",
     type: "CHAT_MESSAGE",
     title: "김광운 학생의 새 메시지",
-    body: "감사합니다! 초록 계열로 시안 2개 만들어서 금요일 오전까지 보내드릴게요.",
+    body: "감사합니다! 초록 계열로 시안 2개 만들어서 초안 마감일까지 보내드릴게요.",
     createdAt: yesterdayAt(14, 22),
     read: true,
     targetId: "work-103",

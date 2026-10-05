@@ -1,5 +1,4 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
-import HomePage from './pages/HomePage'
 import IntroPage from './pages/IntroPage'
 import LoginPage from './pages/LoginPage'
 import RoleSelectPage from './pages/RoleSelectPage'
@@ -60,7 +59,6 @@ import StudentProposalTasksPage from './pages/StudentProposalTasksPage'
 import StudentProposalContentPage from './pages/StudentProposalContentPage'
 import StudentProposalConfirmPage from './pages/StudentProposalConfirmPage'
 import StudentProposalDonePage from './pages/StudentProposalDonePage'
-import StudentRequestPage from './pages/StudentRequestPage'
 import StudentRequestFullPage from './pages/StudentRequestFullPage'
 import StudentApplyPage from './pages/StudentApplyPage'
 import StudentProposalPage from './pages/StudentProposalPage'
@@ -78,9 +76,8 @@ import StudentChatRoomPage from './pages/StudentChatRoomPage'
 function App() {
   return (
     <Routes>
-      {/* No splash screen: every app start shows the intro, then home or login. */}
+      {/* No splash screen: every app start shows the intro, then the home for the role or login. */}
       <Route path="/" element={<IntroPage />} />
-      <Route path="/home" element={<HomePage />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/signup/role" element={<RoleSelectPage mode="signup" />} />
       <Route path="/demo/role" element={<RoleSelectPage mode="demo" />} />
@@ -147,7 +144,6 @@ function App() {
       <Route path="/student/proposals/new/done" element={<StudentProposalDonePage />} />
       <Route path="/student/proposals/:proposalId" element={<StudentProposalPage />} />
       <Route path="/student/explore/proposals/:proposalId" element={<StudentPeerProposalPage />} />
-      <Route path="/student/requests/:requestId" element={<StudentRequestPage />} />
       <Route path="/student/requests/:requestId/full" element={<StudentRequestFullPage />} />
       <Route path="/student/requests/:requestId/apply" element={<StudentApplyPage />} />
       <Route path="/student/works/:workId/start" element={<StudentWorkStartPage />} />
@@ -164,7 +160,7 @@ function App() {
       <Route path="/owner/*" element={<Navigate to="/owner" replace />} />
       {/* Backend redirects here after a successful social login. */}
       <Route path="/cookie" element={<CookiePage />} />
-      {/* Unknown paths land by login state and role (ADR 0015), not via /home. */}
+      {/* Unknown paths land by login state and role (ADR 0015). */}
       <Route path="*" element={<LandingRedirect />} />
     </Routes>
   )

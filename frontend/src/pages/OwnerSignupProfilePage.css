@@ -119,3 +119,17 @@
   border-radius: 8px;
   cursor: pointer;
 }
+
+/* 사진 · 가입 오류 문구 */
+.owner-signup-profile__error {
+  margin: 8px 0 0;
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--color-danger);
+}
+
+.owner-signup-profile__submit-error {
+  margin: 0 0 8px;
+  font-size: 13px;
+  text-align: center;
+}

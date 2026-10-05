@@ -4,14 +4,12 @@ import {
   Button,
   Checkbox,
   Dialog,
-  DueDateFields,
   FormField,
   SubScreen,
   TextAreaField,
   TitleField,
   WorkKindIcon,
 } from "../components";
-import type { DueDates } from "../components";
 import {
   STUDENT_PATHS,
   StudentMissing,
@@ -20,13 +18,14 @@ import {
   useStudentRequest,
 } from "../features/student";
 import { useBack } from "../hooks/useBack";
+import { formatMonthDay } from "../lib/date";
 import { formatWon } from "../lib/money";
 import "./StudentDetailPage.css";
 import "./StudentApplyPage.css";
 
 /**
- * 피그마 「지원하기」. 작업계획서(한 줄 요약 · 작업 방법 · 일정 · 결과물)를 쓰고
- * 일정 약속에 동의하면 보낸다. 보내면 「지원 완료 팝업창」.
+ * 피그마 「지원하기」. 지원서(한 줄 요약 · 작업계획서 · 결과물)를 쓰고
+ * 마감 약속에 동의하면 보낸다. 마감은 사장님이 의뢰에서 정했다. 보내면 「지원 완료 팝업창」.
  */
 function StudentApplyPage() {
   const { requestId = "" } = useParams();
@@ -36,7 +35,6 @@ function StudentApplyPage() {
   const applied = useStudentApplication(requestId) !== undefined;
   const [summary, setSummary] = useState("");
   const [method, setMethod] = useState("");
-  const [dates, setDates] = useState<DueDates>({ draftDue: "", finalDue: "" });
   const [deliverable, setDeliverable] = useState("");
   const [agreed, setAgreed] = useState(false);
   const [sent, setSent] = useState(false);
@@ -49,11 +47,6 @@ function StudentApplyPage() {
     !applied &&
     summary.trim() !== "" &&
     method.trim() !== "" &&
-    dates.draftDue !== "" &&
-    dates.finalDue !== "" &&
-    dates.draftDue <= dates.finalDue &&
-    dates.draftDue <= request.draftDue &&
-    dates.finalDue <= request.finalDue &&
     deliverable.trim() !== "" &&
     agreed;
 
@@ -61,8 +54,6 @@ function StudentApplyPage() {
     applyToRequest(request.id, {
       summary: summary.trim(),
       method: method.trim(),
-      draftOn: dates.draftDue,
-      finalOn: dates.finalDue,
       deliverable: deliverable.trim(),
     });
     setSent(true);
@@ -87,12 +78,15 @@ function StudentApplyPage() {
           <p className="student-detail__work-meta">
             {request.store.name} · 작업비 {formatWon(request.budget)} · 수정 {request.revisionLimit}회
           </p>
+          <p className="student-detail__work-meta">
+            초안 마감 {formatMonthDay(request.draftDue)} · 최종 마감 {formatMonthDay(request.finalDue)}
+          </p>
         </div>
 
         <div className="student-apply__intro">
-          <h2 className="student-apply__title">작업계획서를 써 주세요</h2>
+          <h2 className="student-apply__title">지원서를 써 주세요</h2>
           <p className="student-apply__description">
-            사장님은 전공·작업계획서·후기를 보고 학생을 골라요
+            사장님은 전공·지원서·후기를 보고 학생을 골라요
           </p>
         </div>
 
@@ -104,21 +98,12 @@ function StudentApplyPage() {
           />
         </FormField>
 
-        <FormField label="작업 방법" hint="어떻게 만들고 검수할지 적어 주세요" wrapsInput>
+        <FormField label="작업계획서" hint="어떻게 만들고 검수할지 적어 주세요" wrapsInput>
           <TextAreaField
             value={method}
             maxLength={500}
             placeholder="예: 메뉴 이름은 소리 나는 대로 적고, 아래에 재료와 맛을 한 줄로 설명해요"
             onChange={setMethod}
-          />
-        </FormField>
-
-        <FormField label="일정" hint="사장님이 정한 마감 안에서 적어 주세요">
-          <DueDateFields
-            value={dates}
-            onChange={setDates}
-            labels={["초안 보내는 날", "최종본 드리는 날"]}
-            max={{ draftDue: request.draftDue, finalDue: request.finalDue }}
           />
         </FormField>
 
@@ -134,7 +119,7 @@ function StudentApplyPage() {
         <Checkbox
           checked={agreed}
           onChange={setAgreed}
-          label="선택되면 약속한 일정을 꼭 지킬게요 (필수)"
+          label="선택되면 사장님이 정한 마감을 꼭 지킬게요 (필수)"
           description="연락이 끊기거나 마감을 넘기면 노쇼 페널티가 있어요"
         />
       </div>

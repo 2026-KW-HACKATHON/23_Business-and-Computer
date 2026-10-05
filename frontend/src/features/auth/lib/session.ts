@@ -1,4 +1,4 @@
-import { clearTokens, getAccessToken } from "./tokenStorage";
+import { clearTokens, getAccessToken } from "../../../api/tokens";
 
 /** Account state read from the access token's `role` claim. */
 export type UserRole = "owner" | "student" | "pending";
@@ -37,8 +37,8 @@ export function getUserRole(): UserRole | null {
 
 /**
  * First screen after the intro or a social login (Notion 「화면 상태 전환표」):
- * no token → /login, signup not finished → /signup/role, owner → /owner.
- * Students land on the temporary /home until the student home exists.
+ * no token → /login, signup not finished → /signup/role, owner → /owner,
+ * student → /student.
  * A token whose role cannot be read is dropped and the user logs in again;
  * clearing is idempotent, so calling this during render stays safe.
  */
@@ -50,7 +50,7 @@ export function landingPath(): string {
     case "pending":
       return "/signup/role";
     case "student":
-      return "/home";
+      return "/student";
     default:
       clearTokens();
       return "/login";

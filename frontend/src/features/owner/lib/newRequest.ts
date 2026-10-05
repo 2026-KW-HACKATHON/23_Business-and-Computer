@@ -1,3 +1,4 @@
+import { todayIsoDate } from "../../../lib/date";
 import type { Field } from "../../../types/field";
 import { SPECIALTY_BADGES } from "../../../types/specialty";
 import type { DueDates, PickedTask, RequestContent } from "../types";
@@ -30,7 +31,7 @@ export function taskSummary({ fields, picked }: NewRequestState): string {
 
 /** 두 마감일을 다 고르고 최종 마감이 초안 마감보다 앞서지 않는지 */
 export function dueDatesReady({ draftDue, finalDue }: DueDates): boolean {
-  return draftDue !== "" && finalDue !== "" && finalDue >= draftDue;
+  return draftDue !== "" && finalDue !== "" && draftDue >= todayIsoDate() && finalDue >= draftDue;
 }
 
 /** 「우리 가게에도 비슷한 의뢰 만들기」: 같은 분야 · 같은 일이 골라진 의뢰 등록 1/3 */

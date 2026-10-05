@@ -78,6 +78,10 @@ public class Proposal {
     @Column(nullable = false, length = 20)
     private ProposalStatus status;
 
+    // 데모 로그인이 만든 데이터의 격리 범위. 실제 데이터는 null
+    @Column(name = "demo_session_id", length = 26, updatable = false)
+    private String demoSessionId;
+
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
@@ -92,7 +96,8 @@ public class Proposal {
             Long proposedFee,
             Integer draftDays,
             Integer finalDays,
-            List<String> referenceImageUrls) {
+            List<String> referenceImageUrls,
+            String demoSessionId) {
         return Proposal.builder()
                 .studentProfileId(studentProfileId)
                 .ownerProfileId(ownerProfileId)
@@ -106,6 +111,7 @@ public class Proposal {
                 .referenceImageUrls(List.copyOf(referenceImageUrls))
                 .likeCount(0)
                 .status(ProposalStatus.PENDING)
+                .demoSessionId(demoSessionId)
                 .build();
     }
 

@@ -99,7 +99,7 @@ function OwnerProposalPage() {
 
         <section className="owner-detail__section">
           <h2 className="owner-detail__section-title">작업계획서</h2>
-          <WorkPlan text={proposal.plan} />
+          <WorkPlan plan={proposal.plan} />
         </section>
 
         <section className="owner-detail__section">

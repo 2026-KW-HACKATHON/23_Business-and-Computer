@@ -121,17 +121,21 @@ public class JobFacade {
         CreateJobCommand command = request.toCommand(owner.getId());
         specialtyService.validateSpecialtyIds(command.getSpecialtyIds());
 
-        jobService.createJob(command);
+        jobService.createJob(command, owner.getDemoSessionId());
     }
 
     /**
      * 의뢰 상세는 모든 활성 사용자가 조회한다. 취소된 의뢰의 취소 정보는 의뢰한 사장님과 선정 학생에게만 더한다.
+     * 격리 범위(demoSessionId)가 조회자와 다른 의뢰는 없는 의뢰와 같은 404로 거부한다.
      * 결제 후(진행 중) 취소된 의뢰에는 선정 학생이 있고 환불 주문이 반드시 있어야 한다. 모집 중 취소는 결제가 없다.
      */
     @Transactional(readOnly = true)
     public JobDetailResult getJobDetail(String username, Long jobId) {
         User user = userService.getActiveUser(username);
         JobDetailData data = jobService.getJobDetail(jobId);
+        if (!Objects.equals(data.getJob().getDemoSessionId(), user.getDemoSessionId())) {
+            throw new BusinessException(ErrorCode.JOB_NOT_FOUND);
+        }
         Map<Long, SpecialtyDetail> specialtiesById = specialtyCategoryService.getSpecialtyDetails(data.getSpecialtyIds());
         List<SpecialtyCategoryResult> specialtyCategories = groupSpecialties(data.getSpecialtyIds(), specialtiesById);
 
@@ -307,7 +311,8 @@ public class JobFacade {
         }
         Student student = studentService.findStudentProfileByUserId(user.getId())
                 .orElseThrow(() -> new BusinessException(ErrorCode.JOB_APPLICATION_STUDENT_REQUIRED));
-        return JobApplicationCreateResult.from(jobService.createJobApplication(command, student.getId()));
+        return JobApplicationCreateResult.from(
+                jobService.createJobApplication(command, student.getId(), user.getDemoSessionId()));
     }
 
     /**

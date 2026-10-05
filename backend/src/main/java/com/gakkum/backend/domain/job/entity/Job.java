@@ -87,6 +87,10 @@ public class Job {
     @Column(name = "acceptance_message", columnDefinition = "TEXT")
     private String acceptanceMessage;
 
+    // 데모 로그인이 만든 데이터의 격리 범위. 실제 데이터는 null
+    @Column(name = "demo_session_id", length = 26, updatable = false)
+    private String demoSessionId;
+
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
@@ -102,7 +106,8 @@ public class Job {
             Long budget,
             LocalDate draftDeadline,
             LocalDate finalDeadline,
-            Integer revisionCount) {
+            Integer revisionCount,
+            String demoSessionId) {
         return Job.builder()
                 .ownerProfileId(ownerProfileId)
                 .title(title)
@@ -111,6 +116,7 @@ public class Job {
                 .draftDeadline(draftDeadline)
                 .finalDeadline(finalDeadline)
                 .revisionCount(revisionCount)
+                .demoSessionId(demoSessionId)
                 .status(JobStatus.OPEN)
                 .build();
     }
@@ -126,7 +132,8 @@ public class Job {
             LocalDate draftDeadline,
             LocalDate finalDeadline,
             Integer revisionCount,
-            String acceptanceMessage) {
+            String acceptanceMessage,
+            String demoSessionId) {
         return Job.builder()
                 .ownerProfileId(ownerProfileId)
                 .selectedStudentProfileId(studentProfileId)
@@ -138,6 +145,7 @@ public class Job {
                 .finalDeadline(finalDeadline)
                 .revisionCount(revisionCount)
                 .acceptanceMessage(acceptanceMessage)
+                .demoSessionId(demoSessionId)
                 .status(JobStatus.AWAITING_START)
                 .build();
     }

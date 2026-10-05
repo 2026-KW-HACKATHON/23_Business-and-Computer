@@ -389,4 +389,43 @@ class JobApplicationCreateFlowTest {
         verify(jobApplicationRepository).saveAndFlush(captor.capture());
         return captor.getValue();
     }
+
+    @ParameterizedTest(name = "학생 {0}, 의뢰 {1}")
+    @org.junit.jupiter.params.provider.CsvSource(value = {
+            "null, 01K6DEMO00000000000000000A",
+            "01K6DEMO00000000000000000A, null",
+            "01K6DEMO00000000000000000A, 01K6DEMO00000000000000000B"}, nullValues = "null")
+    @DisplayName("학생과 격리 범위가 다른 의뢰에는 없는 의뢰와 같은 404 JOB_404를 반환하고 지원서를 저장하지 않는다")
+    void rejectsJobOutsideStudentDemoSession(String studentSession, String jobSession) throws Exception {
+        givenStudentInDemoSession(studentSession);
+        when(jobRepository.findLockedById(JOB_ID)).thenReturn(Optional.of(Job.builder()
+                .id(JOB_ID).ownerProfileId(5L).status(JobStatus.OPEN).demoSessionId(jobSession).build()));
+
+        mockMvc.perform(applyRequest(VALID_BODY))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.error.code").value("JOB_404"));
+        verifyNoInteractions(jobApplicationRepository);
+    }
+
+    @Test
+    @DisplayName("데모 학생은 같은 데모 세션의 모집 중 의뢰에 지원할 수 있다")
+    void createsApplicationWithinDemoSession() throws Exception {
+        givenStudentInDemoSession("01K6DEMO00000000000000000A");
+        when(jobRepository.findLockedById(JOB_ID)).thenReturn(Optional.of(Job.builder()
+                .id(JOB_ID).ownerProfileId(5L).status(JobStatus.OPEN)
+                .demoSessionId("01K6DEMO00000000000000000A").build()));
+        givenSaveAssignsId();
+
+        mockMvc.perform(applyRequest(VALID_BODY))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.success").value(true));
+        verify(jobApplicationRepository).saveAndFlush(any());
+    }
+
+    private void givenStudentInDemoSession(String demoSessionId) {
+        when(userRepository.findByUsernameAndIsLock(USERNAME, false)).thenReturn(Optional.of(
+                User.builder().id(STUDENT_USER_ID).role(UserRole.STUDENT).demoSessionId(demoSessionId).build()));
+        when(studentRepository.findByUserId(STUDENT_USER_ID)).thenReturn(Optional.of(
+                Student.builder().id(STUDENT_PROFILE_ID).userId(STUDENT_USER_ID).build()));
+    }
 }

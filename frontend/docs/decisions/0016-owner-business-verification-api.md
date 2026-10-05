@@ -42,7 +42,7 @@ failures needed a decision.
     「잠시 후 다시 시도해 주세요」 in the same spot, 「인증하기」 enabled again.
   - 401 → /login (history replaced).
   - 409 → alert 「이미 가입을 마친 계정이에요」, then the owner home /owner
-    (replaced). /home is the student placeholder home.
+    (replaced).
   - While requesting, the button is disabled and reads 「인증 중...」.
 - The shared signup draft stores only the result in `business.check`
   (idle / verified / mismatch / error). "Requesting" is local `useState` in

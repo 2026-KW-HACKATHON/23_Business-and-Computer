@@ -15,3 +15,8 @@
   font-weight: 500;
   color: var(--color-success);
 }
+
+.resend-button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}

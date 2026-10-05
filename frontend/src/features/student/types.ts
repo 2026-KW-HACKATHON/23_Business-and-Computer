@@ -1,6 +1,7 @@
 import type { Field } from "../../types/field";
 import type { StoreCategory } from "../../types/storeCategory";
 import type { WorkKind } from "../../types/workKind";
+import type { ApplicationPlan, WorkPlanContent } from "../../types/workPlan";
 
 /** 마감 단계. draft = 초안, final = 최종 */
 export type DeadlineStage = "draft" | "final";
@@ -76,8 +77,8 @@ export interface StudentWork {
   revisionLimit: number;
   /** 지금까지 받은 수정 요청 수 */
   revisionCount: number;
-  /** 내 작업계획서. 줄마다 한 문단 */
-  plan: string;
+  /** 내 작업계획서 (의뢰 지원서, 제안으로 시작했으면 제안서의 작업계획서 글) */
+  plan: WorkPlanContent;
   planSentOn: string;
   status: StudentWorkStatus;
   /** 제안에서 시작된 작업이면 그 제안 */
@@ -117,7 +118,7 @@ export interface StudentWork {
 /** 의뢰 진행. closed = 다른 학생이 뽑혀 모집이 끝남 */
 export type RequestProgress = "recruiting" | "closed" | "completed";
 
-/** 가게가 올린 의뢰 (탐색 · 의뢰 상세 · 지원하기) */
+/** 가게가 올린 의뢰 (탐색 · 의뢰서 전체 보기 · 지원하기) */
 export interface StudentRequest {
   id: string;
   title: string;
@@ -138,17 +139,7 @@ export interface StudentRequest {
 }
 
 /** 지원하기에서 쓰는 작업계획서 */
-export interface ApplicationPlan {
-  /** 한 줄 요약 */
-  summary: string;
-  /** 작업 방법 */
-  method: string;
-  /** 초안 보내는 날 · 최종본 드리는 날 */
-  draftOn: string;
-  finalOn: string;
-  /** 결과물 */
-  deliverable: string;
-}
+export type { ApplicationPlan };
 
 export type ApplicationStatus = "reviewing" | "notSelected";
 

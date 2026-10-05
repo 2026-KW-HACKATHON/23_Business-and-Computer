@@ -32,7 +32,7 @@ import type {
   StudentProfileRef,
   StudentRef,
 } from "../types";
-import { useReadNotificationIds } from "./notificationReads";
+import { ownerDemo, useOwnerDemoVersion } from "./ownerDemo";
 
 /*
  * 사장님 화면 데이터. 지금은 임시 예시 데이터를 돌려준다.
@@ -107,7 +107,7 @@ function currentWork(work: OwnerWork): OwnerWork {
 const works = () => SAMPLE_WORKS.map(currentWork);
 
 const requests = () =>
-  SAMPLE_REQUESTS.map((request) => ({
+  [...ownerDemo.registeredRequests, ...SAMPLE_REQUESTS].map((request) => ({
     ...request,
     applicants: request.applicants.map((a) => ({ ...a, student: withStudent(a.student) })),
   }));
@@ -173,20 +173,24 @@ export function useOwnerChats(): OwnerChatRoom[] {
 
 /** 알림. 최근 것부터. 읽은 알림은 read 로 바꿔 준다 */
 export function useOwnerNotifications(): OwnerNotification[] {
-  const readIds = useReadNotificationIds();
-  return SAMPLE_NOTIFICATIONS.map((n) => (readIds.has(n.id) ? { ...n, read: true } : n));
+  useOwnerDemoVersion();
+  return SAMPLE_NOTIFICATIONS.map((n) =>
+    ownerDemo.readNotificationIds.has(n.id) ? { ...n, read: true } : n,
+  );
 }
 
 /** 내 정보 머리. 숫자는 내 활동 목록과 같다 */
 export function useOwnerProfile(): OwnerProfile {
+  useOwnerDemoVersion();
   const all = works();
+  const store = ownerDemo.store ?? SAMPLE_STORE;
   return {
-    storeName: SAMPLE_STORE.storeName,
-    ownerName: SAMPLE_STORE.representative,
-    address: `${SAMPLE_STORE.address}\n${SAMPLE_STORE.addressDetail}`,
+    storeName: store.storeName,
+    ownerName: store.representative,
+    address: `${store.address}\n${store.addressDetail}`,
     businessVerified: true,
     counts: {
-      sent: SAMPLE_REQUESTS.length,
+      sent: requests().length,
       proposals: SAMPLE_PROPOSALS.length,
       inProgress: all.filter((w) => w.status === "inProgress" || w.status === "submitted").length,
       done: all.filter((w) => w.status === "completed").length,
@@ -206,6 +210,7 @@ export function useOwnerProposal(proposalId: string): OwnerProposal | undefined 
 
 /** 보낸 의뢰 하나 (지원자 포함) */
 export function useOwnerRequest(requestId: string): OwnerRequest | undefined {
+  useOwnerDemoVersion();
   return requests().find((request) => request.id === requestId);
 }
 
@@ -226,6 +231,7 @@ export function useOwnerWorks(): OwnerWork[] {
 
 /** 보낸 의뢰 전체 (모집 중) */
 export function useOwnerRequests(): OwnerRequest[] {
+  useOwnerDemoVersion();
   return requests();
 }
 
@@ -236,7 +242,8 @@ export function useOwnerProposals(): OwnerProposal[] {
 
 /** 가게 정보 수정 */
 export function useOwnerStore(): OwnerStore {
-  return SAMPLE_STORE;
+  useOwnerDemoVersion();
+  return ownerDemo.store ?? SAMPLE_STORE;
 }
 
 /** 작업 하나의 결제. 작업 상태가 곧 결제 상태다 */

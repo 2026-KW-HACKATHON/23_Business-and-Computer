@@ -1,3 +1,4 @@
+import { useRef, useState } from "react";
 import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import {
   AppImage,
@@ -8,7 +9,12 @@ import {
   SubScreen,
   TextButton,
 } from "../components";
-import { OWNER_PATHS, readNewRequestState, taskSummary } from "../features/owner";
+import {
+  OWNER_PATHS,
+  readNewRequestState,
+  registerOwnerRequest,
+  taskSummary,
+} from "../features/owner";
 import { useBack } from "../hooks/useBack";
 import { formatMonthDayWeekday } from "../lib/date";
 import { formatWon } from "../lib/money";
@@ -21,16 +27,40 @@ function OwnerRequestConfirmPage() {
   const location = useLocation();
   const back = useBack(OWNER_PATHS.newRequest);
   const state = readNewRequestState(location.state);
+  const [registering, setRegistering] = useState(false);
+  // 다시 그려지기 전에 두 번 눌러도 한 번만 올린다
+  const registeredRef = useRef(false);
 
   if (!state?.content) return <Navigate to={OWNER_PATHS.newRequest} replace />;
   const { content } = state;
+
+  // 백엔드 연동 전: 내 활동 · 홈의 보낸 의뢰에만 넣는다 (새로고침하면 사라짐)
+  const register = () => {
+    if (registeredRef.current) return;
+    registeredRef.current = true;
+    setRegistering(true);
+    registerOwnerRequest({
+      id: `req-new-${Date.now()}`,
+      title: content.title,
+      field: state.fields[0] ?? state.picked[0]?.field ?? "기타",
+      budget: content.budget,
+      draftDue: content.draftDue,
+      finalDue: content.finalDue,
+      revisionLimit: content.revisions,
+      tasks: state.picked.map((p) => p.task),
+      description: content.description,
+      attachments: [],
+      applicants: [],
+    });
+    navigate(OWNER_PATHS.newRequestDone, { replace: true });
+  };
 
   return (
     <SubScreen
       title="의뢰 등록"
       onBack={back}
       footer={
-        <Button fullWidth onClick={() => navigate(OWNER_PATHS.newRequestDone, { replace: true })}>
+        <Button fullWidth disabled={registering} onClick={register}>
           의뢰 등록하기
         </Button>
       }

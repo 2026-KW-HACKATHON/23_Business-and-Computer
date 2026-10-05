@@ -1,5 +1,5 @@
 import { apiFetch, BACKEND_API_BASE_URL } from "../../../api/client";
-import type { SocialProvider, TokenPair } from "../types";
+import type { SocialProvider } from "../types";
 
 /**
  * Full backend URL that starts the OAuth2 login flow for a provider. The page
@@ -11,10 +11,14 @@ export function socialLoginUrl(provider: SocialProvider): string {
 }
 
 /**
- * After a social login the backend sets an HTTP-only JWT cookie and redirects
- * to the cookie page. This exchanges that cookie for a JWT pair in the response
- * body (same shape the normal login returns), which we can then store.
+ * After a social login the backend sets an HTTP-only refresh-token cookie and
+ * redirects to the cookie page. This exchanges that cookie for an access token
+ * in the response body (raw `{accessToken}`, no envelope) and rotates the
+ * cookie. The refresh token stays in the cookie.
  */
-export function exchangeCookieForTokens(): Promise<TokenPair> {
-  return apiFetch<TokenPair>("/jwt/exchange", { method: "POST" });
+export async function exchangeCookieForAccessToken(): Promise<string> {
+  const { accessToken } = await apiFetch<{ accessToken: string }>("/jwt/exchange", {
+    method: "POST",
+  });
+  return accessToken;
 }

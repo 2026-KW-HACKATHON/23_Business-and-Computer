@@ -45,9 +45,14 @@ owner's applicant list).
   applications, or proposals, derived from the lists (no backend flag).
 - Shared pieces moved out of the owner feature so both roles use them:
   `src/components/FormFields/FormFields.tsx` (title, text area, budget, due
-  dates with optional labels and limits, revision stepper),
+  dates, revision stepper),
   `src/components/ReportSheet/ReportSheet.tsx` with `tone` (who reports whom,
   mail text in `src/lib/support.ts`), and `src/lib/sampleTime.ts`.
+- An application holds 한 줄 요약 · 작업계획서 · 결과물 (`src/types/workPlan.ts`).
+  The owner already set the deadlines in the request, so the student does not
+  write a schedule. Owner screens (applicants, assign, the chat 작업계획서
+  sheet) show the same three parts. A work started from a proposal keeps the
+  proposal's plan text instead.
 - My own waiting proposals are public, so they also appear in explore marked
   「내 제안이에요」 with the empathy count only; they open my sent proposal and
   never appear under 「다른 학생들의 제안 공감하기」. A student cannot empathize
@@ -73,8 +78,7 @@ owner's applicant list).
 
 - When an owner sample fact that the student side also shows changes, change
   it in both features (ids above) and in Figma and Notion.
-- Login does not land students on /student yet: after the dev redirect cleanup
-  is merged, make `landingPath` in `src/features/auth/lib/session.ts` return
-  /student for students and drop the student case from `HomePage`.
+- Login and signup land students on /student (`landingPath` in
+  `src/features/auth/lib/session.ts`, ADR 0015).
 - Uploads, portfolio export, and real reporting are frontend-only until the
   backend has student APIs.

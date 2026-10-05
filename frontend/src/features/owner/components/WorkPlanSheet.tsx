@@ -42,7 +42,7 @@ function WorkPlanSheet({ work, onClose, onChat }: WorkPlanSheetProps) {
     >
       {work && (
         <div className="work-plan-sheet__body">
-          <WorkPlan text={work.plan} />
+          <WorkPlan plan={work.plan} />
           <div className="work-plan-sheet__terms">
             <InfoRows
               rows={[

@@ -64,6 +64,10 @@ public class Owner {
     @Column(name = "store_image_url", columnDefinition = "jsonb")
     private List<String> storeImageUrls;
 
+    // 데모 로그인이 만든 데이터의 격리 범위. 실제 데이터는 null
+    @Column(name = "demo_session_id", length = 26, updatable = false)
+    private String demoSessionId;
+
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
@@ -82,7 +86,8 @@ public class Owner {
             String storeAddress,
             String description,
             String profileImageUrl,
-            List<String> storeImageUrls) {
+            List<String> storeImageUrls,
+            String demoSessionId) {
         return Owner.builder()
                 .userId(userId)
                 .businessNumber(businessNumber)
@@ -94,6 +99,7 @@ public class Owner {
                 .description(description)
                 .profileImageUrl(profileImageUrl)
                 .storeImageUrls(storeImageUrls)
+                .demoSessionId(demoSessionId)
                 .build();
     }
 }

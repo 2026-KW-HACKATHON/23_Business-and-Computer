@@ -79,19 +79,20 @@ public interface JobRepository extends JpaRepository<Job, Long> {
      * 대분류 없는 조회는 경계 뒤를 정렬 순서상 연속된 두 구간(경계 시각과 같은 행 → 경계 시각 이전·이후)으로 나눈
      * 메서드 이름 쿼리로 읽고 서비스가 이어 붙인다. 각 구간은 (created_at, id) 인덱스의 연속 범위다.
      * idBound에 Long 최솟값·최댓값을 넣어 경계 시각과 같은 행 전체를 빼거나 포함한다.
+     * demoSessionId가 조회자와 같은 의뢰만 고른다. 실제 사용자는 null이고 메서드 이름 쿼리는 null을 IS NULL로 비교한다.
      */
 
-    List<Job> findByStatusNotAndCreatedAtAndIdLessThanOrderByIdDesc(
-            JobStatus excludedStatus, LocalDateTime createdAt, Long idBound, Limit limit);
+    List<Job> findByDemoSessionIdAndStatusNotAndCreatedAtAndIdLessThanOrderByIdDesc(
+            String demoSessionId, JobStatus excludedStatus, LocalDateTime createdAt, Long idBound, Limit limit);
 
-    List<Job> findByStatusNotAndCreatedAtLessThanOrderByCreatedAtDescIdDesc(
-            JobStatus excludedStatus, LocalDateTime createdAt, Limit limit);
+    List<Job> findByDemoSessionIdAndStatusNotAndCreatedAtLessThanOrderByCreatedAtDescIdDesc(
+            String demoSessionId, JobStatus excludedStatus, LocalDateTime createdAt, Limit limit);
 
-    List<Job> findByStatusNotAndCreatedAtAndIdGreaterThanOrderByIdAsc(
-            JobStatus excludedStatus, LocalDateTime createdAt, Long idBound, Limit limit);
+    List<Job> findByDemoSessionIdAndStatusNotAndCreatedAtAndIdGreaterThanOrderByIdAsc(
+            String demoSessionId, JobStatus excludedStatus, LocalDateTime createdAt, Long idBound, Limit limit);
 
-    List<Job> findByStatusNotAndCreatedAtGreaterThanOrderByCreatedAtAscIdAsc(
-            JobStatus excludedStatus, LocalDateTime createdAt, Limit limit);
+    List<Job> findByDemoSessionIdAndStatusNotAndCreatedAtGreaterThanOrderByCreatedAtAscIdAsc(
+            String demoSessionId, JobStatus excludedStatus, LocalDateTime createdAt, Limit limit);
 
     /*
      * 대분류 조건은 연관관계가 없는 JobSpecialty·Specialty를 EXISTS로 확인해야 해서 메서드 이름으로 표현할 수 없다.
@@ -100,7 +101,8 @@ public interface JobRepository extends JpaRepository<Job, Long> {
 
     @Query("""
             select j from Job j
-            where j.status <> :excludedStatus
+            where j.demoSessionId is not distinct from :demoSessionId
+              and j.status <> :excludedStatus
               and j.createdAt is not null
               and (j.createdAt, j.id) < (:createdAt, :idBound)
               and exists (
@@ -108,13 +110,15 @@ public interface JobRepository extends JpaRepository<Job, Long> {
                     where js.jobId = j.id and s.specialtyCategoryId = :categoryId)
             order by j.createdAt desc, j.id desc
             """)
-    List<Job> findExploreLatestInCategory(@Param("excludedStatus") JobStatus excludedStatus,
+    List<Job> findExploreLatestInCategory(@Param("demoSessionId") String demoSessionId,
+            @Param("excludedStatus") JobStatus excludedStatus,
             @Param("categoryId") Long categoryId, @Param("createdAt") LocalDateTime createdAt,
             @Param("idBound") Long idBound, Limit limit);
 
     @Query("""
             select j from Job j
-            where j.status <> :excludedStatus
+            where j.demoSessionId is not distinct from :demoSessionId
+              and j.status <> :excludedStatus
               and j.createdAt is not null
               and (j.createdAt, j.id) > (:createdAt, :idBound)
               and exists (
@@ -122,7 +126,8 @@ public interface JobRepository extends JpaRepository<Job, Long> {
                     where js.jobId = j.id and s.specialtyCategoryId = :categoryId)
             order by j.createdAt asc, j.id asc
             """)
-    List<Job> findExploreOldestInCategory(@Param("excludedStatus") JobStatus excludedStatus,
+    List<Job> findExploreOldestInCategory(@Param("demoSessionId") String demoSessionId,
+            @Param("excludedStatus") JobStatus excludedStatus,
             @Param("categoryId") Long categoryId, @Param("createdAt") LocalDateTime createdAt,
             @Param("idBound") Long idBound, Limit limit);
 }

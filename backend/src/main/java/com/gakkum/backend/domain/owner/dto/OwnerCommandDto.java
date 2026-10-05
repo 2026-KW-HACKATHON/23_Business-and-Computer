@@ -52,15 +52,17 @@ public final class OwnerCommandDto {
     @AllArgsConstructor(access = AccessLevel.PRIVATE)
     public static class GetExploreStoresCommand {
 
+        private final String demoSessionId;
         private final Long businessCategoryId;
         private final boolean oldestFirst;
         private final LocalDateTime createdAtBound;
         private final Long idBound;
         private final int limit;
 
-        public static GetExploreStoresCommand of(Long businessCategoryId, boolean oldestFirst,
+        public static GetExploreStoresCommand of(String demoSessionId, Long businessCategoryId, boolean oldestFirst,
                 LocalDateTime createdAtBound, Long idBound, int limit) {
             return GetExploreStoresCommand.builder()
+                    .demoSessionId(demoSessionId)
                     .businessCategoryId(businessCategoryId)
                     .oldestFirst(oldestFirst)
                     .createdAtBound(createdAtBound)

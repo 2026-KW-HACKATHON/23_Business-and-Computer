@@ -1,11 +1,11 @@
 /** Public entry for the auth feature — import auth only from here. */
-export { socialLoginUrl, exchangeCookieForTokens } from "./api/authApi";
+export { socialLoginUrl, exchangeCookieForAccessToken } from "./api/authApi";
 export {
-  saveTokens,
+  saveAccessToken,
   getAccessToken,
   clearTokens,
   isLoggedIn,
-} from "./lib/tokenStorage";
+} from "../../api/tokens";
 export { getUserRole, landingPath } from "./lib/session";
 export type { UserRole } from "./lib/session";
-export type { SocialProvider, TokenPair } from "./types";
+export type { SocialProvider } from "./types";
