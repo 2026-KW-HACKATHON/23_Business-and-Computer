@@ -92,6 +92,6 @@ Backend facts (dev):
   `uploadImage` for images (`PROPOSAL` for proposal photos).
 - Owner signup needs `GET /business-categories` (`[{ id, name }]`) on the
   server; until it is deployed, step 3 stops with the category message.
-- The demo login planned for 둘러보기 should return tokens the same way
-  (access token in the body, refresh token as the cookie) so `apiData`'s
+- The demo login for 둘러보기 (ADR 0023) returns tokens the same way
+  (access token in the body, refresh token as the cookie), so `apiData`'s
   refresh path serves it too.
