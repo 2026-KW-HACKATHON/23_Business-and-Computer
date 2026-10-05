@@ -89,9 +89,16 @@ states.
     disabled.
   - Certificates are 이름 / 취득 연도 (4 digits, 1900–this year) only; there
     is no 발급 기관 field and each item is sent as
-    `{ certificateName, acquiredYear }`. Fully empty rows are not sent; a
-    partly filled row or a bad year shows an error under the row and disables
-    「회원가입 완료」.
+    `{ certificateName, acquiredYear }`. A row whose two values are empty or
+    only spaces (the first row or one added with 「+ 자격증 추가」) is not
+    sent (`isBlankCertificate`). `certificateStatuses` checks the other rows,
+    and each problem shows under its row and disables 「회원가입 완료」:
+    - only one value → 「자격증 이름과 취득 연도를 모두 입력해 주세요」;
+    - year not 4 digits in 1900–this year → 「1900~(올해) 사이 연도를
+      입력해 주세요」 with the year number;
+    - the same name as an earlier row, ignoring spaces and case →
+      「같은 자격증이 두 번 입력됐어요」. The backend has no such rule; this is
+      a frontend rule.
   - A portfolio value that does not start with http:// or https:// gets
     https:// added when sent.
   - The photo picker accepts jpeg/png/webp; a wrong type or over 10 MB is
@@ -104,7 +111,19 @@ states.
     error (both through router state `StudentVerifyReturnState`);
     `SPECIALTY_400*` → clear picks, reload the list, 「특기를 다시 골라 주세요」;
     `USER_409_REGISTERED` → alert, then `landingPath()`; 401 → /login;
-    anything else → 「잠시 후 다시 시도해 주세요」.
+    any other 400 (e.g. `COMMON_400`) → 「입력한 내용을 다시 확인해
+    주세요」; any other 409 (e.g. `COMMON_409`) → 「일시적인 문제가 생겼어요.
+    다시 시도해도 안 되면 문의해 주세요」; 5xx or network →
+    「잠시 후 다시 시도해 주세요」.
+  - 409 wording rule: a 409 whose cause is clear keeps its own message and
+    flow (`STUDENT_409_NUMBER` → step 1 「이미 가입된 학번이에요」,
+    `USER_409_EMAIL` → step 2 「이미 다른 계정에서 사용 중인 메일이에요」,
+    `USER_409_REGISTERED` → alert). `COMMON_409` is any DB constraint
+    failure and can be a server data problem unrelated to the input (a
+    lagging identity sequence made one signup fail and the same retry pass),
+    so it must not tell the user to fix the input. A plain 400 still asks the
+    user to check the input, since it fails again with the same values (see
+    `docs/failures/0002-student-signup-common-409.md`).
 - On success `saveAccessToken` (auth feature) stores the new access token and
   removes the stored refresh token, which the backend no longer accepts and
   `POST /refresh` never reads (it uses the cookie). This happens inside
