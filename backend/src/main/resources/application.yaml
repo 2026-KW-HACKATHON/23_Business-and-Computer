@@ -1,7 +1,6 @@
 logging:
   pattern:
-    # 시각은 컨테이너 TZ와 무관하게 한국시간(UTC+9)으로 출력한다
-    console: '%clr(%d{yyyy-MM-dd HH:mm:ss.SSS,Asia/Seoul}){faint} %clr(%5p) %clr([%X{tid:-}]){magenta} %clr(%-40.40logger{39}){cyan} %clr(:){faint} %m%n%wEx'
+    console: '%clr(%5p) %clr([%X{tid:-}]){magenta} %clr(%replace(%logger){''^.*\.([^.]+\.[^.]+)$'',''$1''}){cyan} %clr(:){faint} %m%n%wEx'
 
 spring:
   application:
