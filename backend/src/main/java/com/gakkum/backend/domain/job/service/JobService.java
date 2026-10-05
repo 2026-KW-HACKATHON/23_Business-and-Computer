@@ -32,6 +32,7 @@ import com.gakkum.backend.domain.job.dto.JobCommandDto.GetJobResultCommand;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.GetJobSubmissionCommand;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.GetMatchedJobsCommand;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.GetOpenJobsCommand;
+import com.gakkum.backend.domain.job.dto.JobCommandDto.GetStudentAppliedJobsCommand;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.GetStudentMatchedJobsCommand;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.RequestJobSubmissionRevisionCommand;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.CancelledJobData;
@@ -44,6 +45,7 @@ import com.gakkum.backend.domain.job.dto.JobQueryDto.JobSubmissionDetailData;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.MatchedJobData;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.OpenJobData;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.ReviewedJobData;
+import com.gakkum.backend.domain.job.dto.JobQueryDto.StudentAppliedJobData;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.StudentMatchedJobData;
 import com.gakkum.backend.domain.job.entity.Job;
 import com.gakkum.backend.domain.job.entity.JobApplication;
@@ -787,6 +789,47 @@ public class JobService {
                                 .toList(),
                         latestSubmissionsByJobId.get(job.getId()),
                         calculateProgressStage(job, latestSubmissionsByJobId.get(job.getId()))))
+                .toList();
+    }
+
+    /**
+     * 학생 본인이 지원한 의뢰 중 모집 중(OPEN)이고 지원서가 대기 중(PENDING)인 항목을 최신 지원순으로 조회한다.
+     * 작업 마감일이 지나도 모집 중이면 포함한다. 격리 범위(demoSessionId)가 학생과 다르거나 없는 의뢰의 지원서는 뺀다.
+     * 지원서·의뢰·특기는 항목 수와 무관하게 한 번씩만 조회한다.
+     * @param command
+     * @return 지원 시각 내림차순 → 지원서 ID 내림차순
+     */
+    @Transactional(readOnly = true)
+    public List<StudentAppliedJobData> getStudentAppliedJobs(GetStudentAppliedJobsCommand command) {
+        List<JobApplication> applications = jobApplicationRepository
+                .findByStudentProfileIdAndStatusOrderByCreatedAtDescIdDesc(
+                        command.getStudentProfileId(), JobApplicationStatus.PENDING);
+        if (applications.isEmpty()) {
+            return List.of();
+        }
+
+        Map<Long, Job> jobsById = jobRepository.findByIdInAndStatusAndDemoSessionId(
+                        applications.stream().map(JobApplication::getJobId).toList(),
+                        JobStatus.OPEN, command.getDemoSessionId()).stream()
+                .collect(Collectors.toMap(Job::getId, Function.identity()));
+        List<JobApplication> listed = applications.stream()
+                .filter(application -> jobsById.containsKey(application.getJobId()))
+                .toList();
+        if (listed.isEmpty()) {
+            return List.of();
+        }
+
+        Map<Long, List<JobSpecialty>> specialtiesByJobId = jobSpecialtyRepository
+                .findByJobIdIn(listed.stream().map(JobApplication::getJobId).toList()).stream()
+                .collect(Collectors.groupingBy(JobSpecialty::getJobId));
+
+        return listed.stream()
+                .map(application -> StudentAppliedJobData.of(
+                        jobsById.get(application.getJobId()),
+                        application,
+                        specialtiesByJobId.getOrDefault(application.getJobId(), List.of()).stream()
+                                .map(JobSpecialty::getSpecialtyId)
+                                .toList()))
                 .toList();
     }
 

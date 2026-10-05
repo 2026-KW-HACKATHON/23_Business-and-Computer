@@ -61,6 +61,23 @@ public final class JobCommandDto {
     @Getter
     @Builder(access = AccessLevel.PRIVATE)
     @AllArgsConstructor(access = AccessLevel.PRIVATE)
+    public static class GetStudentAppliedJobsCommand {
+
+        private final Long studentProfileId;
+        private final String demoSessionId;
+
+        /** demoSessionId는 조회하는 학생의 격리 범위다. 실제 학생은 null이다. */
+        public static GetStudentAppliedJobsCommand of(Long studentProfileId, String demoSessionId) {
+            return GetStudentAppliedJobsCommand.builder()
+                    .studentProfileId(studentProfileId)
+                    .demoSessionId(demoSessionId)
+                    .build();
+        }
+    }
+
+    @Getter
+    @Builder(access = AccessLevel.PRIVATE)
+    @AllArgsConstructor(access = AccessLevel.PRIVATE)
     public static class GetClosedJobsCommand {
 
         private final Long ownerProfileId;

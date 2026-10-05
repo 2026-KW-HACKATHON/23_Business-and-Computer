@@ -11,6 +11,7 @@ import com.gakkum.backend.domain.job.entity.Job;
 import com.gakkum.backend.domain.job.entity.JobApplication;
 import com.gakkum.backend.domain.job.entity.JobApplicationStatus;
 import com.gakkum.backend.domain.job.entity.JobProgressStage;
+import com.gakkum.backend.domain.job.entity.JobStatus;
 import com.gakkum.backend.domain.job.entity.JobSubmission;
 import com.gakkum.backend.domain.job.entity.JobSubmissionReviewStatus;
 import com.gakkum.backend.domain.job.entity.JobSubmissionType;
@@ -346,6 +347,20 @@ public final class JobQueryDto {
         }
     }
 
+    /** 학생이 지원한 모집 중 의뢰와 본인의 대기 중 지원서. */
+    @Getter
+    @AllArgsConstructor(access = AccessLevel.PRIVATE)
+    public static class StudentAppliedJobData {
+
+        private final Job job;
+        private final JobApplication application;
+        private final List<Long> specialtyIds;
+
+        public static StudentAppliedJobData of(Job job, JobApplication application, List<Long> specialtyIds) {
+            return new StudentAppliedJobData(job, application, specialtyIds);
+        }
+    }
+
     /** 탐색 목록의 의뢰 카드 재료. 진행 단계는 의뢰 상태와 최신 제출물에서 계산한 값이다. */
     @Getter
     @AllArgsConstructor(access = AccessLevel.PRIVATE)
@@ -553,6 +568,52 @@ public final class JobQueryDto {
                     .submissionType(latest == null ? null : latest.getSubmissionType().name())
                     .reviewStatus(latest == null ? null : latest.getReviewStatus().name())
                     .progressStage(data.getProgressStage())
+                    .build();
+        }
+    }
+
+    @Getter
+    @AllArgsConstructor(access = AccessLevel.PRIVATE)
+    public static class StudentAppliedJobListResult {
+
+        private final List<StudentAppliedJobResult> jobs;
+
+        public static StudentAppliedJobListResult of(List<StudentAppliedJobResult> jobs) {
+            return new StudentAppliedJobListResult(jobs);
+        }
+    }
+
+    @Getter
+    @Builder(access = AccessLevel.PRIVATE)
+    @AllArgsConstructor(access = AccessLevel.PRIVATE)
+    public static class StudentAppliedJobResult {
+
+        private final Long jobId;
+        private final Long jobApplicationId;
+        private final String title;
+        private final List<SpecialtyCategoryResult> specialtyCategories;
+        private final Long budget;
+        private final LocalDate draftDeadline;
+        private final LocalDate finalDeadline;
+        private final JobStatus jobStatus;
+        private final JobApplicationStatus applicationStatus;
+        private final LocalDateTime appliedAt;
+
+        public static StudentAppliedJobResult of(
+                StudentAppliedJobData data, List<SpecialtyCategoryResult> specialtyCategories) {
+            Job job = data.getJob();
+            JobApplication application = data.getApplication();
+            return StudentAppliedJobResult.builder()
+                    .jobId(job.getId())
+                    .jobApplicationId(application.getId())
+                    .title(job.getTitle())
+                    .specialtyCategories(specialtyCategories)
+                    .budget(job.getBudget())
+                    .draftDeadline(job.getDraftDeadline())
+                    .finalDeadline(job.getFinalDeadline())
+                    .jobStatus(job.getStatus())
+                    .applicationStatus(application.getStatus())
+                    .appliedAt(application.getCreatedAt())
                     .build();
         }
     }
