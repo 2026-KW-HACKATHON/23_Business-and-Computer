@@ -2,7 +2,8 @@
 
 ## Status
 
-Accepted. The student 탐색 list, 의뢰서 전체 보기, and 지원하기 now read and
+Accepted. The student 탐색 list, 의뢰서 전체 보기, 지원하기, the
+peer-proposal detail, and the home 「다른 학생들의 제안 공감하기」 now read and
 write the backend instead of the sample data of ADR 0018.
 
 ## Context
@@ -34,17 +35,24 @@ The backend (dev) has:
   { jobApplicationId }. Errors: 403 JOB_APPLICATION_403_STUDENT (not a
   student), 404 JOB_404, 409 JOB_APPLICATION_409_STATUS (not OPEN),
   409 JOB_APPLICATION_409_DUPLICATE (already applied), 400 for invalid input.
+- GET /proposals/{proposalId} (ADR 0023) answers any active user in the
+  same demo session, so it also serves other students' proposals. Besides the
+  fields in ADR 0023 it has `student` (`studentProfileId`, `name`, `major`,
+  `studentNumber` as the two-digit entry year, `averageRating` (0 with no
+  reviews), `completedJobCount`). `agreement` comes only for the owner and
+  the student of that proposal, so another student never sees it.
 - There is no title or store search, no 「liked by me」, no student name on
   proposal cards, and no budget or 「already applied」 on job cards. There is
   no API to like a proposal. The job detail has no store name or address for
-  an open job and no 「already applied」.
+  an open job and no 「already applied」. The proposal detail has no 「liked by
+  me」 either.
 
 ## Decision
 
 - **New feature** `src/features/explore` (public entry
   `src/features/explore/index.ts`):
   - `fetchExplore` in `src/features/explore/api/exploreApi.ts` uses
-    `apiData` with size 20.
+    `apiData` with size 20 unless the query gives `size`.
   - `useExplore` (`src/features/explore/hooks/useExplore.ts`) keeps the
     loaded pages, `hasNext`, a separate state for the next page (`more`:
     idle / loading / error), `loadMore`, and `reload`. A new filter starts
@@ -117,6 +125,42 @@ The backend (dev) has:
   the detail, 「이미 지원한 의뢰예요」 with a disabled button on apply). Each
   shows only when the server sends it.
 
+- **Peer-proposal detail** (`src/pages/StudentPeerProposalPage.tsx`,
+  /student/explore/proposals/:proposalId): the same `useSentProposalDetail`
+  as the sent-proposal detail, plus `useSentProposals` for 「mine」.
+  - A proposal in my sent list replaces the route with the sent-proposal
+    detail, as the explore card does. While my sent list loads the screen
+    shows the loading line; if that list fails the screen shows the proposal
+    as another student's.
+  - A non-numeric id or 404 shows `StudentMissing`; 401 goes to /login; other
+    failures show `LoadNotice` with 「다시 시도」.
+  - The screen shows the notice 「다른 학생의 제안이에요. 가게 손님의 눈으로
+    읽어 보세요.」, the title, the status chip and flow bar of ADR 0023 (from
+    `status` only), one `CategoryBadge` per distinct category name, 「M월 D일
+    보냄」, 「학생 손님 N명이 공감했어요」, the student (name, major and
+    「NN학번」, then `peerRecord`: 「★ 4.8 · 완료 3건」, 「완료 3건」 with no
+    reviews, 「첫 작업이에요」 with none completed), the store box (name and
+    address), 손님 눈으로 본 문제, 이렇게 바꿔 드릴게요, 작업계획서, 희망
+    작업비 · 예상 기간, and reference photos (`ReferencePhotos`) when there
+    are any. The footer is 「확인」.
+  - Empathy is a count only. The heart is empty unless the optional
+    `likedByMe` slot on `ProposalDetailResponse` is true.
+- **Home 「다른 학생들의 제안 공감하기」**: `usePopularProposals(5)`
+  (`src/features/explore/hooks/useExplore.ts`) calls GET
+  /explore?type=PROPOSAL&sort=LIKES&size=5 once (no next page). `useStudentHome`
+  drops my proposals (ids from `useSentProposals`) and keeps the first two.
+  - The section shows only when both lists have loaded and something is left.
+    While either loads, or after a failure, the section is hidden and the rest
+    of the home shows as before. 401 goes to /login.
+  - `PeerProposalRow` shows the title, 「○○ 학생 → 가게」 when `studentName`
+    is sent (otherwise the store name), and the empathy count (filled heart
+    only with `likedByMe`). A row opens the peer-proposal detail; 「전체 ›」
+    opens 탐색.
+  - The section does not count as the student's own activity, so the
+    「학생 홈 - 처음」 check (ADR 0023) is unchanged; the first-visit home
+    shows it under the guide and the examples.
+- `EmpathyCount` is display-only (count and heart).
+
 ## Rationale
 
 - One hook for the list keeps paging, late-response handling, and the 401
@@ -125,6 +169,12 @@ The backend (dev) has:
   ids.
 - Showing optional fields only when present avoids fake budgets or
   「지원했어요」 that the server never said.
+- Without a like API, a count-only heart is honest; a button that changes
+  nothing on the server would not be.
+- Hiding the home section on loading or failure keeps a secondary list from
+  holding up the student's own work.
+- Asking for five and keeping two leaves room for my own proposals near the
+  top without a second request.
 
 ## Alternatives Considered
 
@@ -134,8 +184,11 @@ The backend (dev) has:
 
 ## Agent Guidance
 
-- The peer-proposal detail, the home 「다른 학생들의 제안 공감하기」, and the
-  owner 탐색 screens are wired to the API in later steps; extend this ADR
-  then.
+- The owner 탐색 screens are wired to the API in a later step; extend this
+  ADR then.
 - When the backend adds a slot field above, only the type comment needs a
   look; the screens already show it.
+- When a like API exists, the peer proposal detail gets the Figma 「공감하기」
+  button (no count on it; the count stays in 「학생 손님 N명이 공감했어요」), the
+  explore and home hearts toggle, and the explore copy goes back to Figma
+  (「…하트를 눌러 손님으로서 공감해 보세요」).

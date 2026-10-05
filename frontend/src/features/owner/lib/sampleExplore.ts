@@ -4,7 +4,6 @@ import { day, dayAt } from "../../../lib/sampleTime";
 /*
  * 탐색 상세 임시 예시 데이터 (피그마 「제안서 보기 · 의뢰서 보기 (다른 가게 · 읽기 전용)」).
  * 탐색 목록 카드도 이 데이터로 만든다. 최신순 = createdAt.
- * 학생 탐색(features/student/lib/sampleRequests.ts · sampleProposals.ts)과 같은 제안 · 의뢰다.
  */
 
 export const SAMPLE_EXPLORE_DETAILS: ExploreDetail[] = [

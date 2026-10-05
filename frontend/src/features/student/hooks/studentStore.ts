@@ -23,7 +23,6 @@ export const demo = {
   readNotificationIds: new Set<string>(),
   declinedWorkIds: new Set<string>(),
   submissions: new Map<string, Submission>(),
-  toggledEmpathyIds: new Set<string>(),
   /** 프로필 편집에서 저장한 값 */
   profile: null as ProfileEdit | null,
   /** 내 사진 (내 정보 · 프로필 수정 · 프로필 편집이 같이 본다) */
@@ -74,16 +73,6 @@ export function declineWork(workId: string): void {
 /** 초안 · 수정안 제출 */
 export function submitWork(workId: string, files: WorkFile[], message: string): void {
   demo.submissions.set(workId, { files, message, on: todayIsoDate() });
-  changed();
-}
-
-/**
- * 다른 학생 제안에 공감 켜기 · 끄기.
- * 내 제안은 화면에서 하트를 막고, 눌린 기록이 있어도 내 제안 목록에는 반영하지 않는다
- */
-export function toggleEmpathy(proposalId: string): void {
-  if (demo.toggledEmpathyIds.has(proposalId)) demo.toggledEmpathyIds.delete(proposalId);
-  else demo.toggledEmpathyIds.add(proposalId);
   changed();
 }
 

@@ -21,14 +21,11 @@ export {
   saveMyProfile,
   setMyProfilePhoto,
   submitWork,
-  toggleEmpathy,
   useMyProfilePhoto,
 } from "./hooks/studentStore";
 export {
   useMyProfile,
   useMyProposal,
-  usePeerProposal,
-  usePeerProposals,
   useProposalExample,
   useProposalExamples,
   useStore,
@@ -52,7 +49,6 @@ export { useStudentHome } from "./hooks/useStudentHome";
 export { flowSteps, workFlowSteps } from "./lib/flow";
 export {
   APPLICATION_STATUS_LABEL,
-  PEER_PROGRESS_LABEL,
   chatStatusText,
   currentDeadline,
   deadlineText,
@@ -97,7 +93,6 @@ export type {
   ExploreStore,
   ChatMessage,
   MyProposal,
-  PeerProposal,
   ProposalExample,
   Store,
   StudentApplication,

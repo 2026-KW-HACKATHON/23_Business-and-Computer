@@ -22,17 +22,16 @@ owner's applicant list).
   `useStudentHome.ts`.
 - Sample data has one source per kind: works and chat threads
   (`src/features/student/lib/sampleWorks.ts`), requests and applications
-  (`sampleRequests.ts`), my and other students' proposals
+  (`sampleRequests.ts`), my proposals and the home examples
   (`sampleProposals.ts`), stores, the profile, and notifications. The home,
   내 활동 counts, settlements, the portfolio, chat rows, and the profile's
   completed count, rating, and reviews are derived from them.
 - Facts shared with the owner sample keep the same ids and values: work-103
-  and work-090 (치킨플러스), the applied requests req-502 · 507, and the
-  proposals prop-501 · 503 · 505.
+  and work-090 (치킨플러스), and the applied requests req-502 · 507.
   김광운's owner-side profile matches the student's own profile. Where the
   Figma student sample conflicted with the owner sample, the student sample
   changed (store or title) and Figma was updated to match.
-- Demo state (agree to a request, submit a draft or revision, empathy, cancel
+- Demo state (agree to a request, submit a draft or revision, cancel
   a proposal, send a proposal, decline a request, edit the profile and
   photo) lives in
   `src/features/student/hooks/studentStore.ts` and re-renders readers through
@@ -88,5 +87,6 @@ owner's applicant list).
   the backend (ADR 0020); its sample stores and the demo `sendProposal` are no
   longer used there. Sent proposals (내 활동 › 보낸 제안, their detail, the
   home 「기다리는 중」, the 내 정보 count) call the backend too (ADR 0023);
-  The 탐색 list calls the backend too (ADR 0025). Other student screens,
+  탐색 (the list, the job detail, apply, and the peer-proposal detail) and
+  the home 「다른 학생들의 제안 공감하기」 call the backend too (ADR 0025). Other student screens,
   including the work-start screen, still read the sample data.

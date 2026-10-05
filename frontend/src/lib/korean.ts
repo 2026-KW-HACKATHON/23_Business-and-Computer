@@ -4,3 +4,8 @@ export function withSubject(word: string): string {
   const isHangul = last >= 0xac00 && last <= 0xd7a3;
   return `${word}${isHangul && (last - 0xac00) % 28 !== 0 ? "이" : "가"}`;
 }
+
+/** 「김광운」 → 「김광운 학생」. 이름이 이미 「학생」으로 끝나면(둘러보기의 「데모 학생」) 그대로 */
+export function studentTitle(name: string): string {
+  return name.endsWith("학생") ? name : `${name} 학생`;
+}

@@ -3,13 +3,15 @@ import { useNavigate } from "react-router-dom";
 import type { CardKind } from "../../../components";
 import type { Field } from "../../../types/field";
 import { useSpecialties } from "../../specialty";
-import type { ExploreItem, ExploreSort, ExploreType } from "../api/exploreApi";
+import type { ExploreItem, ExploreProposalCard, ExploreSort, ExploreType } from "../api/exploreApi";
 import { categoryIdOf, exploreItemKey, exploreType, loadExplorePage, sortForKind } from "../lib/explore";
 
 export interface ExploreFilter {
   type: ExploreType;
   categoryId?: number;
   sort: ExploreSort;
+  /** 한 쪽의 카드 수. 없으면 서버 기본 20 */
+  size?: number;
 }
 
 /** 탐색 목록. items 는 지금까지 불러온 쪽을 이어 붙인 것 */
@@ -46,8 +48,9 @@ export function useExplore(filter: ExploreFilter | null): ExploreFeed {
   const type = filter?.type;
   const categoryId = filter?.categoryId;
   const sort = filter?.sort;
+  const size = filter?.size;
   const [retry, setRetry] = useState(0);
-  const token = type && sort ? `${type}:${categoryId ?? ""}:${sort}#${retry}` : "";
+  const token = type && sort ? `${type}:${categoryId ?? ""}:${sort}:${size ?? ""}#${retry}` : "";
   const [feed, setFeed] = useState<FeedState>();
   // 지금 화면이 보여 주는 token. 다음 쪽 응답이 늦게 오면 이것과 비교해 버린다
   const live = useRef("");
@@ -59,7 +62,7 @@ export function useExplore(filter: ExploreFilter | null): ExploreFeed {
     const liveRef = live;
     liveRef.current = token;
     let active = true;
-    void loadExplorePage({ type, categoryId, sort }).then((result) => {
+    void loadExplorePage({ type, categoryId, sort, size }).then((result) => {
       if (!active) return;
       if (result.status === "unauthorized") {
         navigate("/login", { replace: true });
@@ -75,7 +78,7 @@ export function useExplore(filter: ExploreFilter | null): ExploreFeed {
       active = false;
       if (liveRef.current === token) liveRef.current = "";
     };
-  }, [type, categoryId, sort, token, navigate]);
+  }, [type, categoryId, sort, size, token, navigate]);
 
   const current = feed?.token === token ? feed : undefined;
   const nextCursor = current?.status === "loaded" && current.hasNext ? current.nextCursor : null;
@@ -84,7 +87,7 @@ export function useExplore(filter: ExploreFilter | null): ExploreFeed {
     if (!type || !sort || !nextCursor || moreFor.current === token) return;
     moreFor.current = token;
     setFeed((prev) => (prev?.token === token ? { ...prev, more: "loading" } : prev));
-    void loadExplorePage({ type, categoryId, sort, cursor: nextCursor }).then((result) => {
+    void loadExplorePage({ type, categoryId, sort, size, cursor: nextCursor }).then((result) => {
       if (moreFor.current === token) moreFor.current = null;
       if (live.current !== token) return;
       if (result.status === "unauthorized") {
@@ -104,7 +107,7 @@ export function useExplore(filter: ExploreFilter | null): ExploreFeed {
         };
       });
     });
-  }, [type, categoryId, sort, token, nextCursor, navigate]);
+  }, [type, categoryId, sort, size, token, nextCursor, navigate]);
 
   const reload = useCallback(() => setRetry((n) => n + 1), []);
 
@@ -153,4 +156,19 @@ export function useExploreFeed({
     return { status: "loaded", items: [], hasNext: false, more: "idle", loadMore: noop, reload: noop };
   }
   return feed;
+}
+
+/**
+ * 공감 많은 제안 앞의 size 개 (GET /explore?type=PROPOSAL&sort=LIKES). 첫 쪽만 부른다.
+ * 401 은 /login 으로 보낸다.
+ */
+export function usePopularProposals(size: number): {
+  status: ExploreFeed["status"];
+  proposals: ExploreProposalCard[];
+} {
+  const { status, items } = useExplore({ type: "PROPOSAL", sort: "LIKES", size });
+  return {
+    status,
+    proposals: items.filter((item): item is ExploreProposalCard => item.type === "PROPOSAL"),
+  };
 }

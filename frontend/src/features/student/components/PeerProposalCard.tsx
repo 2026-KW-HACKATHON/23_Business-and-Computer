@@ -3,6 +3,7 @@ import { categoryNames } from "../../explore";
 import type { ExploreProposalCard } from "../../explore";
 import { sentProposalStatusLabel } from "../lib/sentProposals";
 import "./ExploreCards.css";
+import { studentTitle } from "../../../lib/korean";
 
 interface PeerProposalCardProps {
   proposal: ExploreProposalCard;
@@ -32,7 +33,7 @@ function PeerProposalCard({ proposal, mine, onOpen }: PeerProposalCardProps) {
         ))}
         <span className="student-card__sub">
           {proposal.studentName
-            ? `${proposal.studentName} 학생 → ${proposal.storeName}`
+            ? `${studentTitle(proposal.studentName)} → ${proposal.storeName}`
             : proposal.storeName}
         </span>
       </div>

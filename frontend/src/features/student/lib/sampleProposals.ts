@@ -1,10 +1,9 @@
-import { day, dayAt } from "../../../lib/sampleTime";
-import type { MyProposal, PeerProposal, ProposalExample } from "../types";
+import { day } from "../../../lib/sampleTime";
+import type { MyProposal, ProposalExample } from "../types";
 
 /*
  * 제안 임시 예시 데이터. 내가 보낸 제안 (피그마 「내 활동 - 보낸 제안 · 보낸 제안서 상세 보기」),
- * 다른 학생 제안 (「학생 탐색 · 제안서 보기 (다른 학생 제안 · 공감)」), 홈 예시.
- * 다른 학생 제안은 사장님 탐색(features/owner/lib/sampleExplore.ts)과 같은 제안이다.
+ * 홈 예시.
  */
 
 export const SAMPLE_MY_PROPOSALS: MyProposal[] = [
@@ -82,80 +81,6 @@ export const SAMPLE_MY_PROPOSALS: MyProposal[] = [
     draftDays: 2,
     finalDays: 3,
     attachments: ["지금_배달앱_캡처.png"],
-  },
-];
-
-export const SAMPLE_PEER_PROPOSALS: PeerProposal[] = [
-  {
-    id: "prop-501",
-    title: "인기 메뉴를 강조한 메뉴판 시안",
-    field: "디자인",
-    storeName: "월계분식",
-    student: {
-      id: "student-eunseo",
-      name: "이은서",
-      department: "시각디자인학과",
-      year: "23학번",
-      rating: 4.9,
-      completedCount: 6,
-    },
-    receivedOn: day(-1),
-    progress: "accepted",
-    createdAt: dayAt(-1, 10, 0),
-    empathyCount: 34,
-    empathized: true,
-    problem:
-      "메뉴가 40개 넘게 빽빽해서 처음 온 손님은 뭘 시킬지 한참 고민해요. 인기 메뉴가 어디 있는지도 안 보여요.",
-    solution:
-      "인기 메뉴 5개를 사진과 함께 맨 위에 크게 넣고, 나머지는 종류별로 묶어 한눈에 보이게 정리해 드릴게요.",
-    attachments: ["IMG_2031.jpg", "메뉴판_시안.png"],
-  },
-  {
-    id: "prop-503",
-    title: "시험 기간 광운대생 이벤트 기획",
-    field: "홍보",
-    storeName: "월계반점",
-    student: {
-      id: "student-nuri",
-      name: "박누리",
-      department: "미디어커뮤니케이션학부",
-      year: "21학번",
-      rating: 4.8,
-      completedCount: 3,
-    },
-    receivedOn: day(-3),
-    progress: "waitingAcceptance",
-    createdAt: dayAt(-3, 12, 0),
-    empathyCount: 21,
-    empathized: false,
-    problem:
-      "시험 기간에는 학생 손님이 확 줄어요. 근처 카페에서 공부하다가 저녁도 거기서 간단히 해결하는 것 같아요.",
-    solution:
-      "학생증을 보여 주면 음료를 주는 시험 기간 이벤트를 기획하고, 인스타 공지와 매장 포스터까지 만들어 드릴게요.",
-    attachments: ["시험기간_포스터_예시.png"],
-  },
-  {
-    id: "prop-505",
-    title: "손님 리뷰로 본 아쉬운 점 정리",
-    field: "분석",
-    storeName: "동네빵집",
-    student: {
-      id: "student-haeun",
-      name: "정하은",
-      department: "영어영문학과",
-      year: "22학번",
-      rating: 4.9,
-      completedCount: 4,
-    },
-    receivedOn: day(-7),
-    progress: "waitingAcceptance",
-    createdAt: dayAt(-7, 18, 0),
-    empathyCount: 12,
-    empathized: false,
-    problem: "리뷰에 「빵이 금방 떨어져요」라는 말이 자주 보여요. 오후에 오면 살 게 없다는 손님이 많아요.",
-    solution:
-      "최근 리뷰 200개를 읽고 아쉬운 점을 종류별로 묶어, 무엇부터 고치면 좋을지 한 장으로 정리해 드릴게요.",
-    attachments: ["리뷰_캡처.png"],
   },
 ];
 

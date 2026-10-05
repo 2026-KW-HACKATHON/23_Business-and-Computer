@@ -9,7 +9,6 @@ import {
   StudentTabScreen,
   StudentTodoCarousel,
   deadlineText,
-  toggleEmpathy,
   useStudentHome,
 } from "../features/student";
 import type { StudentTodo, StudentWaitingItem } from "../features/student";
@@ -21,7 +20,9 @@ import "./StudentHomePage.css";
  * 피그마 「학생 홈 (개선안)」.
  * 확인할 일 → 다른 학생들의 제안 공감하기 → 사장님이 확인 중 → 기다리는 중 → 이런 제안은 어때요? → 끝난 일.
  * 비어 있는 목록은 섹션째 숨긴다. 이력이 하나도 없으면 피그마 「학생 홈 - 처음」처럼
- * 사용법 안내 → 이런 제안은 어때요? → 공감하기만 보인다.
+ * 사용법 안내 → 이런 제안은 어때요? → 공감하기만 보인다. 공감하기는 이력으로 세지 않는다.
+ * 공감하기는 GET /explore 공감 많은 순에서 내 제안을 뺀 앞의 2개 (ADR 0025). 불러오는 중이거나
+ * 실패하면 섹션째 숨기고 나머지 홈은 그대로 보인다.
  * 기다리는 중의 보낸 제안은 GET /me/proposals (ADR 0023). 작업 · 지원이 없는데 보낸 제안을 아직
  * 못 불러왔으면 처음인지 알 수 없어서, 사용법 안내 대신 불러오는 중 · 「다시 시도」 줄을 보인다.
  */
@@ -31,7 +32,6 @@ function StudentHomePage() {
   // 끝난 일은 접힌 채 최근 1건만 보인다
   const [doneExpanded, setDoneExpanded] = useState(false);
   const doneRows = doneExpanded ? home.done : home.done.slice(0, 1);
-  const peers = home.peerProposals.slice(0, 2);
   const exampleScroll = useDragScroll<HTMLUListElement>();
 
   // 상세보기: 지금 화면을 본다 / 아래 버튼: 바로 할 일로 간다
@@ -67,7 +67,7 @@ function StudentHomePage() {
       />
     );
 
-  const peerSection = peers.length > 0 && (
+  const peerSection = home.peerProposals.length > 0 && (
     <section className="student-home__section">
       <SectionHeader
         title="다른 학생들의 제안 공감하기"
@@ -75,12 +75,11 @@ function StudentHomePage() {
         onAction={() => navigate(STUDENT_PATHS.explore)}
       />
       <div className="student-home__list">
-        {peers.map((proposal) => (
+        {home.peerProposals.map((proposal) => (
           <PeerProposalRow
-            key={proposal.id}
+            key={proposal.proposalId}
             proposal={proposal}
-            onOpen={() => navigate(STUDENT_PATHS.peerProposal(proposal.id))}
-            onToggleEmpathy={() => toggleEmpathy(proposal.id)}
+            onOpen={() => navigate(STUDENT_PATHS.peerProposal(String(proposal.proposalId)))}
           />
         ))}
       </div>

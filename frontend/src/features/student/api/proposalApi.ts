@@ -78,7 +78,19 @@ export interface ProposalAgreementResponse {
   startedAt?: string | null;
 }
 
-/** GET /proposals/{id} (ProposalDetailResponse). 학생 정보(student)는 이 화면에서 쓰지 않아 뺐다 */
+/** GET /proposals/{id} 의 제안한 학생 */
+export interface ProposalStudentResponse {
+  studentProfileId: number;
+  name: string;
+  major?: string | null;
+  /** 입학년도 뒤 두 자리 "24" */
+  studentNumber?: string | null;
+  /** 후기 평균. 후기가 없으면 0 */
+  averageRating?: number | null;
+  completedJobCount: number;
+}
+
+/** GET /proposals/{id} (ProposalDetailResponse) */
 export interface ProposalDetailResponse {
   proposalId: number;
   title: string;
@@ -86,7 +98,11 @@ export interface ProposalDetailResponse {
   /** 가게의 지금 프로필 주소. 등록하지 않았으면 없음 */
   storeAddress?: string | null;
   likeCount: number;
+  /** 내가 공감했는지. 서버가 주면 다른 학생 제안서의 하트가 채워진다 */
+  likedByMe?: boolean | null;
   specialtyCategories: ProposalSpecialtyCategory[];
+  /** 다른 학생 제안서의 학생 소개 */
+  student?: ProposalStudentResponse | null;
   customerProblem: string;
   proposedSolution: string;
   workPlan: string;

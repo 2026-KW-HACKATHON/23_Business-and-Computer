@@ -3,11 +3,7 @@ import type { Field } from "../../../types/field";
 import { SPECIALTY_BADGES } from "../../../types/specialty";
 import { SAMPLE_MY_PROFILE } from "../lib/sampleMe";
 import { SAMPLE_NOTIFICATIONS } from "../lib/sampleNotifications";
-import {
-  SAMPLE_MY_PROPOSALS,
-  SAMPLE_PEER_PROPOSALS,
-  SAMPLE_PROPOSAL_EXAMPLES,
-} from "../lib/sampleProposals";
+import { SAMPLE_MY_PROPOSALS, SAMPLE_PROPOSAL_EXAMPLES } from "../lib/sampleProposals";
 import { SAMPLE_APPLICATIONS, SAMPLE_REQUESTS } from "../lib/sampleRequests";
 import { SAMPLE_STORES } from "../lib/sampleStores";
 import { SAMPLE_CHAT_THREADS, SAMPLE_WORKS } from "../lib/sampleWorks";
@@ -16,7 +12,6 @@ import type {
   MyProfile,
   MyProposal,
   OwnerReview,
-  PeerProposal,
   ProposalExample,
   SettlementSummary,
   Store,
@@ -77,53 +72,6 @@ function currentProposals(): MyProposal[] {
   return SAMPLE_MY_PROPOSALS.filter((p) => !settled(p.workId));
 }
 
-/** 공개된 내 제안을 탐색 카드 모양으로 (공감은 할 수 없다) */
-function myPublicProposals(): PeerProposal[] {
-  const completed = works().filter((w) => w.status === "completed");
-  const ratings = completed.flatMap((w) => (w.review ? [w.review.rating] : []));
-  const student = {
-    id: SAMPLE_MY_PROFILE.id,
-    name: SAMPLE_MY_PROFILE.name,
-    department: SAMPLE_MY_PROFILE.department,
-    year: SAMPLE_MY_PROFILE.year,
-    rating:
-      ratings.length > 0
-        ? Math.round((ratings.reduce((a, b) => a + b, 0) / ratings.length) * 10) / 10
-        : undefined,
-    completedCount: completed.length,
-  };
-  return currentProposals()
-    .filter((p) => p.status === "waiting")
-    .map((p) => ({
-      id: p.id,
-      title: p.title,
-      field: p.field,
-      storeName: p.store.name,
-      student,
-      receivedOn: p.sentOn,
-      progress: "waitingAcceptance" as const,
-      createdAt: `${p.sentOn}T12:00:00`,
-      empathyCount: p.empathyCount,
-      empathized: false,
-      mine: true,
-      problem: p.problem,
-      solution: p.solution,
-      attachments: p.attachments,
-    }));
-}
-
-function currentPeers(): PeerProposal[] {
-  const others = SAMPLE_PEER_PROPOSALS.filter((p) => p.student.id !== SAMPLE_MY_PROFILE.id).map((p) => {
-    if (!demo.toggledEmpathyIds.has(p.id)) return p;
-    return {
-      ...p,
-      empathized: !p.empathized,
-      empathyCount: p.empathyCount + (p.empathized ? -1 : 1),
-    };
-  });
-  return [...others, ...myPublicProposals()];
-}
-
 // ---- 작업 ----
 
 export function useStudentWorks(): StudentWork[] {
@@ -156,16 +104,6 @@ export function useStudentApplications(): StudentApplication[] {
 export function useMyProposal(proposalId: string | undefined): MyProposal | undefined {
   useDemoVersion();
   return currentProposals().find((p) => p.id === proposalId);
-}
-
-export function usePeerProposals(): PeerProposal[] {
-  useDemoVersion();
-  return currentPeers();
-}
-
-export function usePeerProposal(proposalId: string | undefined): PeerProposal | undefined {
-  useDemoVersion();
-  return currentPeers().find((p) => p.id === proposalId);
 }
 
 export function useProposalExample(exampleId: string | undefined): ProposalExample | undefined {

@@ -6,7 +6,6 @@
   box-sizing: border-box;
   height: 24px;
   padding: 4px 10px;
-  border: none;
   border-radius: 999px;
   background: var(--role-muted);
   font-family: var(--font-sans);
@@ -18,13 +17,4 @@
 
 .empathy-count--on {
   color: var(--color-black);
-}
-
-button.empathy-count {
-  cursor: pointer;
-}
-
-button.empathy-count:focus-visible {
-  outline: 2px solid var(--color-black);
-  outline-offset: 2px;
 }

@@ -1,129 +1,182 @@
 import { Navigate, useParams } from "react-router-dom";
 import {
   AppImage,
-  AttachmentTiles,
   Button,
   CategoryBadge,
   FlowBar,
+  InfoRows,
+  ReferencePhotos,
   RoleAvatar,
   SubScreen,
   WorkKindIcon,
+  WorkPlan,
 } from "../components";
 import {
-  PEER_PROGRESS_LABEL,
+  LoadNotice,
   STUDENT_PATHS,
+  StoreBox,
   StudentMissing,
-  flowSteps,
+  expectedDaysText,
   peerRecord,
-  toggleEmpathy,
-  usePeerProposal,
+  proposalBadgeNames,
+  sentOnText,
+  sentProposalFlowSteps,
+  sentProposalStatusLabel,
+  storeAddressText,
+  useSentProposalDetail,
+  useSentProposals,
 } from "../features/student";
 import { useBack } from "../hooks/useBack";
-import { formatMonthDay } from "../lib/date";
+import { formatWon } from "../lib/money";
 import "./StudentDetailPage.css";
+import { studentTitle } from "../lib/korean";
 
 /**
- * 피그마 「제안서 보기 (다른 학생 제안 · 공감)」. 다른 학생이 보낸 제안을 손님 입장에서 읽고
- * 공감한다. 공감은 수락을 기다리는 제안에만, 제안 하나에 한 번만 누를 수 있다.
+ * 피그마 「제안서 보기 (다른 학생 제안 · 공감)」. 다른 학생이 보낸 제안을 손님 입장에서 읽는다.
+ * GET /proposals/{id} (ADR 0025). 공감은 수만 보이고, 서버가 likedByMe 를 true 로 주면 하트가 채워진다.
+ * 내 제안(GET /me/proposals 에 있음)이면 보낸 제안 상세로 바꾼다. 내 제안 목록을 불러오는 동안은
+ * 불러오는 중으로 두고, 그 목록이 실패하면 다른 학생 제안으로 보인다.
  */
 function StudentPeerProposalPage() {
-  const { proposalId = "" } = useParams();
+  const { proposalId } = useParams();
   const back = useBack(STUDENT_PATHS.explore);
-  const proposal = usePeerProposal(proposalId);
+  const { load, reload } = useSentProposalDetail(proposalId);
+  const { load: sent } = useSentProposals();
 
-  if (!proposal) return <StudentMissing title="제안서" onBack={back} />;
-  // 내 제안에는 공감할 수 없으니 보낸 제안서로 보낸다
-  if (proposal.mine) return <Navigate to={STUDENT_PATHS.proposal(proposal.id)} replace />;
-  const { student } = proposal;
-  const open = proposal.progress === "waitingAcceptance";
+  const proposal = load.status === "loaded" ? load.proposal : undefined;
+  const mine =
+    sent.status === "loaded"
+      ? sent.proposals.find(
+          (p) => String(p.proposalId) === proposalId || p.proposalId === proposal?.proposalId,
+        )
+      : undefined;
+
+  if (mine) return <Navigate to={STUDENT_PATHS.proposal(String(mine.proposalId))} replace />;
+  if (load.status === "notFound") return <StudentMissing title="제안서" onBack={back} />;
+
+  const shown = sent.status === "loading" ? undefined : proposal;
+  const notice = load.status === "error" ? "error" : shown ? undefined : "loading";
+  const steps = shown && sentProposalFlowSteps(shown.status);
+  const sentOn = shown && sentOnText(shown.createdAt);
+  const student = shown?.student ?? undefined;
+  const photos = shown?.referenceImageUrls ?? [];
 
   return (
     <SubScreen
       title="제안서"
       onBack={back}
       footer={
-        open ? (
-          <Button
-            tone="student"
-            variant={proposal.empathized ? "secondary" : "primary"}
-            fullWidth
-            onClick={() => toggleEmpathy(proposal.id)}
-          >
-            {proposal.empathized
-              ? `공감했어요 · ${proposal.empathyCount}명`
-              : `공감하기 · ${proposal.empathyCount}명`}
-          </Button>
-        ) : (
-          <Button tone="student" variant="secondary" fullWidth disabled>
-            {proposal.progress === "accepted" ? "수락된 제안이에요" : "끝난 제안이에요"}
-          </Button>
-        )
+        <Button tone="student" fullWidth onClick={back}>
+          확인
+        </Button>
       }
     >
-      <div className="student-detail student-proposal">
-        <p className="student-detail__notice">
-          <b aria-hidden="true">ⓘ</b>
-          다른 학생의 제안이에요. 손님으로서 공감되면 눌러 주세요.
-        </p>
-
-        <div className="student-detail__heading">
-          <div className="student-detail__title-row">
-            <WorkKindIcon kind="proposal" size={28} />
-            <h2 className="student-detail__title">{proposal.title}</h2>
-          </div>
-          <div className="student-detail__meta">
-            <CategoryBadge field={proposal.field} />
-            {proposal.storeName} · {formatMonthDay(proposal.receivedOn)} ·{" "}
-            {open ? "사장님 확인 중" : PEER_PROGRESS_LABEL[proposal.progress]}
-          </div>
-        </div>
-
-        <FlowBar
-          tone="student"
-          steps={open ? flowSteps("제안", 0, "수락 대기") : flowSteps("제안", 1)}
+      {notice && (
+        <LoadNotice
+          status={notice}
+          loadingText="제안을 불러오는 중이에요"
+          errorText="제안을 불러오지 못했어요"
+          onRetry={reload}
         />
+      )}
 
-        <div className="student-proposal__empathy">
-          <AppImage name="iconHeart" width={24} alt="" />
-          <div>
-            <strong className="student-proposal__empathy-title">
-              학생 손님 {proposal.empathyCount}명이 공감했어요
-            </strong>
-            <p className="student-proposal__empathy-sub">
-              가게를 이용하는 학생들도 필요하다고 느낀 제안이에요
-            </p>
+      {shown && (
+        <div className="student-detail student-proposal">
+          <p className="student-detail__notice">
+            <b aria-hidden="true">ⓘ</b>
+            다른 학생의 제안이에요. 가게 손님의 눈으로 읽어 보세요.
+          </p>
+
+          <div className="student-detail__heading">
+            <div className="student-detail__title-row">
+              <WorkKindIcon kind="proposal" size={28} />
+              <h2 className="student-detail__title">{shown.title}</h2>
+            </div>
+            <div className="student-detail__meta student-proposal__meta">
+              <span className="student-proposal__chip">{sentProposalStatusLabel(shown.status)}</span>
+              {proposalBadgeNames(shown.specialtyCategories).map((name) => (
+                <CategoryBadge key={name} field={name} />
+              ))}
+              {sentOn && <span>{sentOn}</span>}
+            </div>
           </div>
-        </div>
 
-        <div className="student-proposal__student">
-          <RoleAvatar role="student" />
-          <div className="student-proposal__student-info">
-            <strong className="student-proposal__student-name">{student.name} 학생</strong>
-            <span className="student-proposal__student-sub">
-              {`${student.department} ${student.year}\n${peerRecord(student)}`}
-            </span>
+          {steps && <FlowBar tone="student" steps={steps} />}
+
+          <div className="student-proposal__empathy">
+            <AppImage name={shown.likedByMe === true ? "iconHeart" : "iconHeartEmpty"} width={24} alt="" />
+            <div>
+              <strong className="student-proposal__empathy-title">
+                학생 손님 {shown.likeCount}명이 공감했어요
+              </strong>
+              {shown.likeCount > 0 && (
+                <p className="student-proposal__empathy-sub">
+                  가게를 이용하는 학생들도 필요하다고 느낀 제안이에요
+                </p>
+              )}
+            </div>
           </div>
+
+          {student && (
+            <div className="student-proposal__student">
+              <RoleAvatar role="student" />
+              <div className="student-proposal__student-info">
+                <strong className="student-proposal__student-name">{studentTitle(student.name)}</strong>
+                <span className="student-proposal__student-sub">
+                  {[
+                    [student.major, student.studentNumber && `${student.studentNumber}학번`]
+                      .filter(Boolean)
+                      .join(" "),
+                    peerRecord({
+                      rating: student.averageRating,
+                      completedCount: student.completedJobCount,
+                    }),
+                  ]
+                    .filter(Boolean)
+                    .join("\n")}
+                </span>
+              </div>
+            </div>
+          )}
+
+          <StoreBox name={shown.storeName} address={storeAddressText(shown.storeAddress)} />
+
+          <section className="student-detail__section">
+            <h2 className="student-detail__section-title">손님 눈으로 본 문제</h2>
+            <p className="student-detail__text">{shown.customerProblem}</p>
+          </section>
+
+          <section className="student-detail__section">
+            <h2 className="student-detail__section-title">이렇게 바꿔 드릴게요</h2>
+            <p className="student-detail__text">{shown.proposedSolution}</p>
+          </section>
+
+          <section className="student-detail__section">
+            <h2 className="student-detail__section-title">작업계획서</h2>
+            <WorkPlan plan={shown.workPlan} />
+          </section>
+
+          <section className="student-detail__section">
+            <h2 className="student-detail__section-title">희망 작업비 · 예상 기간</h2>
+            <div className="student-detail__box">
+              <InfoRows
+                size="large"
+                rows={[
+                  { label: "희망 작업비", value: formatWon(shown.proposedFee) },
+                  { label: "예상 기간", value: expectedDaysText(shown.draftDays, shown.finalDays) },
+                ]}
+              />
+            </div>
+          </section>
+
+          {photos.length > 0 && (
+            <section className="student-detail__section">
+              <h2 className="student-detail__section-title">참고 사진</h2>
+              <ReferencePhotos urls={photos} />
+            </section>
+          )}
         </div>
-
-        <section className="student-detail__section">
-          <h2 className="student-detail__section-title">손님 눈으로 본 문제</h2>
-          <p className="student-detail__text">{proposal.problem}</p>
-        </section>
-
-        <section className="student-detail__section">
-          <h2 className="student-detail__section-title">이렇게 바꿔 드릴게요</h2>
-          <p className="student-detail__text">{proposal.solution}</p>
-        </section>
-
-        <section className="student-detail__section">
-          <h2 className="student-detail__section-title">참고 사진</h2>
-          <AttachmentTiles names={proposal.attachments} />
-        </section>
-
-        <p className="student-detail__footnote">
-          공감은 다시 누르면 취소돼요. 내 제안에는 누를 수 없어요.
-        </p>
-      </div>
+      )}
     </SubScreen>
   );
 }

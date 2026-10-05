@@ -1,10 +1,5 @@
 import { formatMonthDay } from "../../../lib/date";
-import type {
-  ApplicationStatus,
-  DeadlineStage,
-  PeerProposalProgress,
-  StudentWork,
-} from "../types";
+import type { ApplicationStatus, DeadlineStage, StudentWork } from "../types";
 
 /** 「초안 마감 : 9월 29일」 · 「최종 마감 : 10월 3일」 */
 export function deadlineText(stage: DeadlineStage, due: string): string {
@@ -68,19 +63,20 @@ export function workChatSummary(work: StudentWork): string {
   }
 }
 
-export const PEER_PROGRESS_LABEL: Record<PeerProposalProgress, string> = {
-  waitingAcceptance: "수락 대기",
-  accepted: "수락됨",
-  completed: "완료",
-};
-
 export const APPLICATION_STATUS_LABEL: Record<ApplicationStatus, string> = {
   reviewing: "사장님 검토 중",
   notSelected: "선택되지 않았어요",
 };
 
-/** 「★ 4.8 · 완료 3건」 · 후기가 없으면 「첫 작업이에요」 */
-export function peerRecord({ rating, completedCount }: { rating?: number; completedCount: number }) {
-  if (completedCount === 0 || rating === undefined) return "첫 작업이에요";
+/** 「★ 4.8 · 완료 3건」. 후기가 없으면(평균 0 · 없음) 「완료 3건」, 끝낸 작업이 없으면 「첫 작업이에요」 */
+export function peerRecord({
+  rating,
+  completedCount,
+}: {
+  rating?: number | null;
+  completedCount: number;
+}): string {
+  if (completedCount === 0) return "첫 작업이에요";
+  if (!rating) return `완료 ${completedCount}건`;
   return `★ ${rating.toFixed(1)} · 완료 ${completedCount}건`;
 }

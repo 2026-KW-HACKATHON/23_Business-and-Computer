@@ -78,14 +78,22 @@ export interface ExploreQuery {
   sort: ExploreSort;
   /** 앞 쪽의 nextCursor. 같은 type · categoryId · sort 로만 이어 부를 수 있다 */
   cursor?: string;
+  /** 한 쪽의 카드 수 (서버 허용 1~100). 없으면 20 */
+  size?: number;
 }
 
-/** 한 번에 받는 카드 수 (서버 허용 1~100) */
+/** 한 번에 받는 카드 수 기본값 */
 const EXPLORE_PAGE_SIZE = 20;
 
 /** GET /explore — 같은 데모 세션의 제안 · 의뢰를 커서로 한 쪽씩 */
-export async function fetchExplore({ type, categoryId, sort, cursor }: ExploreQuery): Promise<ExplorePage> {
-  const params = new URLSearchParams({ type, sort, size: String(EXPLORE_PAGE_SIZE) });
+export async function fetchExplore({
+  type,
+  categoryId,
+  sort,
+  cursor,
+  size = EXPLORE_PAGE_SIZE,
+}: ExploreQuery): Promise<ExplorePage> {
+  const params = new URLSearchParams({ type, sort, size: String(size) });
   if (categoryId !== undefined) params.set("specialtyCategoryId", String(categoryId));
   if (cursor) params.set("cursor", cursor);
   const data = await apiData<Partial<ExplorePage> | undefined>(`/explore?${params.toString()}`);
