@@ -25,6 +25,8 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.ArgumentCaptor;
 import org.springframework.http.MediaType;
@@ -169,9 +171,10 @@ class ProposalControllerTest {
                 .andExpect(jsonPath("$.error.code").value("PROPOSAL_403_STUDENT"));
     }
 
-    @Test
-    @DisplayName("제안 상세는 200과 제안 내용, 학생 정보, 대분류별 특기를 반환한다")
-    void returnsProposalDetail() throws Exception {
+    @ParameterizedTest
+    @CsvSource({ "2024402001, 24", "2001402001, 01", "1999402001, 99" })
+    @DisplayName("제안 상세는 제안 내용과 학생 정보, 특기를 반환하고 학번은 입학년도 뒤 두 자리 문자열만 공개한다")
+    void returnsProposalDetail(String studentNumber, String admissionYear) throws Exception {
         Proposal proposal = Proposal.builder()
                 .id(31L)
                 .title("메뉴판 개선 제안")
@@ -186,7 +189,7 @@ class ProposalControllerTest {
                 .status(ProposalStatus.PENDING)
                 .createdAt(LocalDateTime.of(2026, 9, 30, 10, 0))
                 .build();
-        Student student = Student.builder().id(7L).major("시각디자인학부").studentNumber("20260001").build();
+        Student student = Student.builder().id(7L).major("시각디자인학부").studentNumber(studentNumber).build();
         User studentUser = User.builder().name("김학생").build();
         List<SpecialtyCategoryResult> categories = List.of(
                 SpecialtyCategoryResult.of(1L, "디자인", List.of(SpecialtyResult.of(3L, "로고 디자인"))),
@@ -214,7 +217,7 @@ class ProposalControllerTest {
                 .andExpect(jsonPath("$.data.student.studentProfileId").value(7))
                 .andExpect(jsonPath("$.data.student.name").value("김학생"))
                 .andExpect(jsonPath("$.data.student.major").value("시각디자인학부"))
-                .andExpect(jsonPath("$.data.student.studentNumber").value("20260001"))
+                .andExpect(jsonPath("$.data.student.studentNumber").value(admissionYear))
                 .andExpect(jsonPath("$.data.student.averageRating").value(4.3))
                 .andExpect(jsonPath("$.data.student.completedJobCount").value(5))
                 .andExpect(jsonPath("$.data.customerProblem").value("메뉴를 알아보기 어렵습니다."))
@@ -252,6 +255,7 @@ class ProposalControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.status").value("AWAITING_START"))
                 .andExpect(jsonPath("$.data.jobId").value(42))
+                .andExpect(jsonPath("$.data.student.studentNumber").doesNotExist())
                 // 주소 미등록과 생성 시각 없음은 null로 내린다
                 .andExpect(jsonPath("$.data.storeAddress").doesNotExist())
                 .andExpect(jsonPath("$.data.createdAt").doesNotExist())
@@ -393,6 +397,7 @@ class ProposalControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.proposals[0].jobId").doesNotExist())
+                .andExpect(jsonPath("$.data.proposals[0].jobStatus").doesNotExist())
                 .andExpect(jsonPath("$.data.proposals[0].proposalId").value(31))
                 .andExpect(jsonPath("$.data.proposals[0].status").value("PENDING"))
                 .andExpect(jsonPath("$.data.proposals[0].likeCount").value(5))
@@ -402,6 +407,23 @@ class ProposalControllerTest {
                 .andExpect(jsonPath("$.data.proposals[0].store.storeAddress").doesNotExist())
                 .andExpect(jsonPath("$.data.proposals[0].store.profileImageUrl").doesNotExist())
                 .andExpect(jsonPath("$.data.proposals[0].createdAt").doesNotExist());
+    }
+
+    @ParameterizedTest
+    @EnumSource(value = JobStatus.class, names = { "AWAITING_START", "MATCHED", "CLOSED", "CANCELLED" })
+    @DisplayName("내가 보낸 제안 목록은 연결 의뢰의 작업 상태를 제안 상태와 구분해 반환한다")
+    void returnsMyProposalJobStatus(JobStatus jobStatus) throws Exception {
+        Proposal proposal = Proposal.builder().id(31L).title("메뉴판 개선 제안").likeCount(5)
+                .status(ProposalStatus.ACCEPTED).build();
+        Job job = Job.builder().id(42L).proposalId(31L).status(jobStatus).build();
+        when(proposalFacade.getMyProposals(USERNAME)).thenReturn(MyProposalListResult.of(List.of(
+                MyProposalResult.of(proposal, Owner.builder().id(50L).build(), List.of(), job))));
+
+        mockMvc.perform(get("/me/proposals").principal(authentication))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.proposals[0].status").value("ACCEPTED"))
+                .andExpect(jsonPath("$.data.proposals[0].jobId").value(42))
+                .andExpect(jsonPath("$.data.proposals[0].jobStatus").value(jobStatus.name()));
     }
 
     @Test

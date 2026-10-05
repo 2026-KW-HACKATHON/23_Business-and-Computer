@@ -122,13 +122,16 @@ public class ProposalDetailResponse {
         private final Long studentProfileId;
         private final String name;
         private final String major;
+        // 전체 학번 대신 입학년도 뒤 두 자리만 전달한다 (2024402001 → "24")
         private final String studentNumber;
         private final BigDecimal averageRating;
         private final long completedJobCount;
 
         public static ProposalStudent from(ProposalStudentResult result) {
+            String studentNumber = result.getStudentNumber();
             return new ProposalStudent(result.getStudentProfileId(), result.getName(), result.getMajor(),
-                    result.getStudentNumber(), result.getAverageRating(), result.getCompletedJobCount());
+                    studentNumber == null ? null : studentNumber.substring(2, 4),
+                    result.getAverageRating(), result.getCompletedJobCount());
         }
     }
 

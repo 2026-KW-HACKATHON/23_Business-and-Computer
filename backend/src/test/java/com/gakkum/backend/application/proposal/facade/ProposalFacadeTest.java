@@ -388,9 +388,10 @@ class ProposalFacadeTest {
                         assertThat(exception.getErrorCode()).isEqualTo(errorCode));
     }
 
-    @Test
-    @DisplayName("내가 보낸 제안을 매장·분류를 일괄 조회해 카드로 구성하고 같은 매장·소분류는 한 번만 조회한다")
-    void returnsMyProposals() {
+    @ParameterizedTest
+    @EnumSource(value = JobStatus.class, names = { "AWAITING_START", "MATCHED", "CLOSED", "CANCELLED" })
+    @DisplayName("내가 보낸 제안을 매장·분류·의뢰를 일괄 조회해 구성하고 연결 의뢰의 상태를 전달한다")
+    void returnsMyProposals(JobStatus jobStatus) {
         givenUser(UserRole.STUDENT);
         givenStudentProfile();
         LocalDateTime createdAt = LocalDateTime.of(2026, 10, 5, 15, 30);
@@ -403,7 +404,8 @@ class ProposalFacadeTest {
                 3L, SpecialtyDetail.of(3L, "로고 디자인", 1L, "디자인"),
                 12L, SpecialtyDetail.of(12L, "영상 편집", 2L, "영상")));
 
-        when(jobService.getJobIdsByProposalIds(List.of(32L, 31L))).thenReturn(Map.of(32L, 420L));
+        when(jobService.getJobsByProposalIds(List.of(32L, 31L))).thenReturn(Map.of(
+                32L, Job.builder().id(420L).proposalId(32L).status(jobStatus).build()));
 
         MyProposalListResult result = proposalFacade.getMyProposals(USERNAME);
 
@@ -411,9 +413,11 @@ class ProposalFacadeTest {
                 .containsExactly(tuple(32L, ProposalStatus.ACCEPTED), tuple(31L, ProposalStatus.PENDING));
         // 연결 의뢰는 제안 수와 무관하게 한 번에 조회하고 결제 전 제안은 null이다
         assertThat(result.getProposals()).extracting(p -> p.getJobId()).containsExactly(420L, null);
+        assertThat(result.getProposals()).extracting(p -> p.getJobStatus()).containsExactly(jobStatus, null);
         // 생성 시각은 변환 없이 원본 그대로 전달한다
         assertThat(result.getProposals()).extracting(p -> p.getCreatedAt()).containsExactly(createdAt, null);
-        verify(jobService, times(1)).getJobIdsByProposalIds(any());
+        verify(jobService, times(1)).getJobsByProposalIds(any());
+        verify(jobService, never()).findJobByProposalId(anyLong());
         assertThat(result.getProposals().get(0).getProposedSolution()).isEqualTo("사진 메뉴판으로 바꿉니다.");
         assertThat(result.getProposals().get(0).getSpecialtyCategories())
                 .extracting(SpecialtyCategoryResult::getId).containsExactly(1L, 2L);
@@ -435,7 +439,7 @@ class ProposalFacadeTest {
         when(proposalService.getMyProposals(any())).thenReturn(List.of());
 
         assertThat(proposalFacade.getMyProposals(USERNAME).getProposals()).isEmpty();
-        verifyNoInteractions(ownerService, specialtyCategoryService);
+        verifyNoInteractions(ownerService, specialtyCategoryService, jobService);
     }
 
     @Test

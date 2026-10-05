@@ -169,14 +169,16 @@ public class ProposalFacade {
                 .collect(Collectors.toSet());
         Map<Long, Owner> ownersById = ownerService.getOwnerProfilesByIds(ownerProfileIds);
         Map<Long, SpecialtyDetail> specialtiesById = specialtyCategoryService.getSpecialtyDetails(specialtyIds);
-        Map<Long, Long> jobIdsByProposalId = getJobIdsByProposalId(proposals);
+        Map<Long, Job> jobsByProposalId = jobService.getJobsByProposalIds(proposals.stream()
+                .map(data -> data.getProposal().getId())
+                .toList());
 
         return MyProposalListResult.of(proposals.stream()
                 .map(data -> MyProposalResult.of(
                         data.getProposal(),
                         ownersById.get(data.getProposal().getOwnerProfileId()),
                         groupSpecialties(data.getSpecialtyIds(), specialtiesById),
-                        jobIdsByProposalId.get(data.getProposal().getId())))
+                        jobsByProposalId.get(data.getProposal().getId())))
                 .toList());
     }
 

@@ -91,16 +91,18 @@ public final class ProposalQueryDto {
         private final ProposalStoreResult store;
         // 결제로 만들어진 의뢰. 결제 전이면 null
         private final Long jobId;
+        private final JobStatus jobStatus;
         // 저장된 원본 생성 시각(UTC)
         private final LocalDateTime createdAt;
 
         public static MyProposalResult of(Proposal proposal, Owner owner,
-                List<SpecialtyCategoryResult> specialtyCategories, Long jobId) {
+                List<SpecialtyCategoryResult> specialtyCategories, Job job) {
             return MyProposalResult.builder()
                     .proposalId(proposal.getId())
                     .title(proposal.getTitle())
                     .status(proposal.getStatus())
-                    .jobId(jobId)
+                    .jobId(job == null ? null : job.getId())
+                    .jobStatus(job == null ? null : job.getStatus())
                     .likeCount(proposal.getLikeCount())
                     .specialtyCategories(specialtyCategories)
                     .proposedSolution(proposal.getProposedSolution())
