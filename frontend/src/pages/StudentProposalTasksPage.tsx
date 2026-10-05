@@ -1,31 +1,51 @@
 import { useState } from "react";
 import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import { AppImage, Button, Chip, FIELD_ICONS, StepIndicator, SubScreen } from "../components";
-import { STUDENT_PATHS, readNewProposalState, useProposalExample } from "../features/student";
+import type { ImageName } from "../components";
+import { findSpecialtyByName, selectableCategories, useSpecialties } from "../features/specialty";
+import type { SpecialtyCategory } from "../features/specialty";
+import {
+  LoadNotice,
+  STUDENT_PATHS,
+  readNewProposalState,
+  useProposalExample,
+} from "../features/student";
 import type { NewProposalState, PickedTask } from "../features/student";
 import { useBack } from "../hooks/useBack";
 import { useDragScroll } from "../hooks/useDragScroll";
 import { FIELDS } from "../types/field";
 import type { Field } from "../types/field";
-import { SPECIALTY_BADGES } from "../types/specialty";
 import "./StudentProposalNewPage.css";
 
-/** 분야 카드 아래 회색 설명 */
-const FIELD_HINTS: Record<Field, string> = {
+/** 분야 카드 아래 회색 설명 (분류 이름이 피그마 분야와 같을 때만) */
+const FIELD_HINTS: Partial<Record<Field, string>> = {
   디자인: "메뉴판·전단지·로고",
   홍보: "사진·영상·SNS",
   "개발·IT": "홈페이지·예약·엑셀",
   분석: "리뷰·설문·매출",
   "글쓰기·번역": "소개 글·외국어",
-  기타: "그 밖의 일",
 };
 
-/** 분야마다 고를 수 있는 일 (학생 역량 뱃지와 같은 목록) */
-const TASKS_BY_FIELD = new Map(SPECIALTY_BADGES.map(({ field, badges }) => [field, badges]));
+function asField(name: string): Field | undefined {
+  return FIELDS.find((field) => field === name);
+}
+
+/** 분류 이름이 피그마 분야와 같으면 그 3D 아이콘, 아니면 「전체」 아이콘 */
+function categoryIcon(name: string): ImageName {
+  const field = asField(name);
+  return field ? FIELD_ICONS[field] : "iconFieldAll";
+}
+
+interface Choice {
+  categoryIds: number[];
+  picked: PickedTask[];
+}
 
 /**
  * 피그마 「제안 보내기 2/4 - 분야·할 일」. 분야를 고르고 분야마다 해 드릴 일을 고른다.
- * 홈 「이런 제안은 어때요?」 예시로 들어오면 그 예시의 분야와 일이 골라져 있다.
+ * 분야와 일은 GET /specialties 에서 온다. 「기타」처럼 고를 일이 없는 분류는 보이지 않는다
+ * (서버가 할 일을 1개 이상 받는다, ADR 0020).
+ * 홈 「이런 제안은 어때요?」 예시로 들어오면 같은 이름의 분야와 일이 골라져 있다.
  */
 function StudentProposalTasksPage() {
   const navigate = useNavigate();
@@ -33,47 +53,68 @@ function StudentProposalTasksPage() {
   const back = useBack(STUDENT_PATHS.newProposal);
   const saved = readNewProposalState(location.state);
   const example = useProposalExample(saved?.exampleId);
-  const hasPicked = (saved?.fields.length ?? 0) > 0;
-  const [fields, setFields] = useState<Field[]>(
-    hasPicked ? (saved?.fields ?? []) : example ? [example.field] : [],
-  );
-  const [picked, setPicked] = useState<PickedTask[]>(
-    hasPicked ? (saved?.picked ?? []) : example ? [{ field: example.field, task: example.task }] : [],
+  const { load, reload } = useSpecialties();
+  // 손대기 전에는 null: 저장해 둔 값이나 예시를 목록이 오면 그때 보여준다
+  const [choice, setChoice] = useState<Choice | null>(
+    saved && saved.picked.length > 0 ? { categoryIds: saved.categoryIds, picked: saved.picked } : null,
   );
 
   const pickedScroll = useDragScroll<HTMLDivElement>();
 
-  if (!saved?.storeId) return <Navigate to={STUDENT_PATHS.newProposal} replace />;
+  if (!saved?.store) return <Navigate to={STUDENT_PATHS.newProposal} replace />;
 
-  const countOf = (field: Field) => picked.filter((p) => p.field === field).length;
-  const isPicked = (field: Field, task: string) =>
-    picked.some((p) => p.field === field && p.task === task);
+  const categories: SpecialtyCategory[] =
+    load.status === "loaded" ? selectableCategories(load.categories) : [];
+
+  // 예시의 분야·일 이름이 서버 목록에 있으면 골라 둔다. 없으면 아무것도 고르지 않는다
+  const exampleChoice = (): Choice => {
+    const found = example ? findSpecialtyByName(categories, example.field, example.task) : undefined;
+    if (!found) return { categoryIds: [], picked: [] };
+    return {
+      categoryIds: [found.category.id],
+      picked: [
+        {
+          specialtyId: found.specialty.id,
+          name: found.specialty.name,
+          categoryId: found.category.id,
+          categoryName: found.category.name,
+        },
+      ],
+    };
+  };
+  const { categoryIds, picked } = choice ?? exampleChoice();
+
+  const countOf = (categoryId: number) => picked.filter((p) => p.categoryId === categoryId).length;
+  const isPicked = (specialtyId: number) => picked.some((p) => p.specialtyId === specialtyId);
 
   // 분야를 빼면 그 분야에서 고른 일도 함께 뺀다
-  const toggleField = (field: Field) => {
-    if (fields.includes(field)) {
-      setFields(fields.filter((f) => f !== field));
-      setPicked(picked.filter((p) => p.field !== field));
+  const toggleCategory = (category: SpecialtyCategory) => {
+    if (categoryIds.includes(category.id)) {
+      setChoice({
+        categoryIds: categoryIds.filter((id) => id !== category.id),
+        picked: picked.filter((p) => p.categoryId !== category.id),
+      });
     } else {
-      setFields([...fields, field]);
+      setChoice({ categoryIds: [...categoryIds, category.id], picked });
     }
   };
 
-  const toggleTask = (field: Field, task: string) => {
-    setPicked(
-      isPicked(field, task)
-        ? picked.filter((p) => !(p.field === field && p.task === task))
-        : [...picked, { field, task }],
-    );
+  const toggleTask = (task: PickedTask) => {
+    setChoice({
+      categoryIds,
+      picked: isPicked(task.specialtyId)
+        ? picked.filter((p) => p.specialtyId !== task.specialtyId)
+        : [...picked, task],
+    });
   };
 
-  // 기타는 고를 일이 없어 다음 단계에서 적는다
-  const canNext = picked.length > 0 || fields.includes("기타");
-
   const goNext = () => {
-    // 할 일을 하나도 고르지 않은 분야는 빼고 넘긴다 (기타는 고를 일이 없어 그대로)
-    const usedFields = fields.filter((f) => f === "기타" || countOf(f) > 0);
-    const next: NewProposalState = { ...saved, fields: usedFields, picked };
+    // 할 일을 하나도 고르지 않은 분야는 빼고 넘긴다
+    const next: NewProposalState = {
+      ...saved,
+      categoryIds: categoryIds.filter((id) => countOf(id) > 0),
+      picked,
+    };
     navigate(location.pathname, { replace: true, state: next });
     navigate(STUDENT_PATHS.newProposalStep(3), { state: next });
   };
@@ -87,21 +128,17 @@ function StudentProposalTasksPage() {
           {picked.length > 0 && (
             <div className="student-new__picked" {...pickedScroll}>
               <strong>고른 일 {picked.length}</strong>
-              {picked.map(({ field, task }) => (
-                <span key={`${field}-${task}`} className="student-new__picked-item">
-                  {field} › {task}
-                  <button
-                    type="button"
-                    aria-label={`${task} 빼기`}
-                    onClick={() => toggleTask(field, task)}
-                  >
+              {picked.map((task) => (
+                <span key={task.specialtyId} className="student-new__picked-item">
+                  {task.categoryName} › {task.name}
+                  <button type="button" aria-label={`${task.name} 빼기`} onClick={() => toggleTask(task)}>
                     ✕
                   </button>
                 </span>
               ))}
             </div>
           )}
-          <Button tone="student" fullWidth disabled={!canNext} onClick={goNext}>
+          <Button tone="student" fullWidth disabled={picked.length === 0} onClick={goNext}>
             다음
           </Button>
         </div>
@@ -115,74 +152,89 @@ function StudentProposalTasksPage() {
           <p className="student-new__description">전공을 살려 가게에 해 드리고 싶은 일을 골라 주세요</p>
         </div>
 
-        <div className="student-new__fields">
-          {FIELDS.map((field) => {
-            const selected = fields.includes(field);
-            return (
-              <button
-                key={field}
-                type="button"
-                className={`student-new__field${selected ? " student-new__field--selected" : ""}`}
-                aria-pressed={selected}
-                onClick={() => toggleField(field)}
-              >
-                <AppImage name={FIELD_ICONS[field]} width={36} height={36} alt="" />
-                {selected && (
-                  <span className="student-new__field-check" aria-hidden="true">
-                    <svg viewBox="0 0 12 12" fill="none">
-                      <path
-                        d="M2.5 6.2 4.9 8.5 9.5 3.5"
-                        stroke="currentColor"
-                        strokeWidth="1.8"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
+        {load.status !== "loaded" ? (
+          <LoadNotice
+            status={load.status}
+            loadingText="분야를 불러오는 중이에요"
+            errorText="분야를 불러오지 못했어요"
+            onRetry={reload}
+          />
+        ) : categories.length === 0 ? (
+          <p className="student-new__empty">고를 수 있는 일이 아직 없어요</p>
+        ) : (
+          <div className="student-new__fields">
+            {categories.map((category) => {
+              const selected = categoryIds.includes(category.id);
+              const count = countOf(category.id);
+              const field = asField(category.name);
+              return (
+                <button
+                  key={category.id}
+                  type="button"
+                  className={`student-new__field${selected ? " student-new__field--selected" : ""}`}
+                  aria-pressed={selected}
+                  onClick={() => toggleCategory(category)}
+                >
+                  <AppImage name={categoryIcon(category.name)} width={36} height={36} alt="" />
+                  {selected && (
+                    <span className="student-new__field-check" aria-hidden="true">
+                      <svg viewBox="0 0 12 12" fill="none">
+                        <path
+                          d="M2.5 6.2 4.9 8.5 9.5 3.5"
+                          stroke="currentColor"
+                          strokeWidth="1.8"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
+                    </span>
+                  )}
+                  <span className="student-new__field-name">{category.name}</span>
+                  <span className="student-new__field-sub">
+                    {selected && count > 0 ? `${count}개 골랐어요` : (field && FIELD_HINTS[field]) ?? ""}
                   </span>
-                )}
-                <span className="student-new__field-name">{field}</span>
-                <span className="student-new__field-sub">
-                  {selected && countOf(field) > 0 ? `${countOf(field)}개 골랐어요` : FIELD_HINTS[field]}
-                </span>
-              </button>
-            );
-          })}
-        </div>
+                </button>
+              );
+            })}
+          </div>
+        )}
 
-        {fields.length > 0 && (
+        {categoryIds.length > 0 && (
           <section className="student-new__tasks">
             <div className="student-new__tasks-head">
               <h2 className="student-new__tasks-title">해 드릴 일을 골라 주세요</h2>
               <span>여러 개 골라도 돼요</span>
             </div>
-            {FIELDS.filter((field) => fields.includes(field)).map((field) => {
-              const tasks = TASKS_BY_FIELD.get(field) ?? [];
-              return (
-                <div key={field} className="student-new__group">
+            {categories
+              .filter((category) => categoryIds.includes(category.id))
+              .map((category) => (
+                <div key={category.id} className="student-new__group">
                   <div className="student-new__group-head">
-                    <AppImage name={FIELD_ICONS[field]} width={22} height={22} alt="" />
-                    <strong>{field}</strong>
-                    {tasks.length > 0 && <span>{countOf(field)}개</span>}
+                    <AppImage name={categoryIcon(category.name)} width={22} height={22} alt="" />
+                    <strong>{category.name}</strong>
+                    <span>{countOf(category.id)}개</span>
                   </div>
-                  {tasks.length > 0 ? (
-                    <div className="student-new__chips">
-                      {tasks.map((task) => (
-                        <Chip
-                          key={task}
-                          variant="outlined"
-                          tone="student"
-                          label={task}
-                          selected={isPicked(field, task)}
-                          onClick={() => toggleTask(field, task)}
-                        />
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="student-new__group-note">해 드릴 일은 다음 단계에서 적어 주세요</p>
-                  )}
+                  <div className="student-new__chips">
+                    {category.specialties.map((specialty) => (
+                      <Chip
+                        key={specialty.id}
+                        variant="outlined"
+                        tone="student"
+                        label={specialty.name}
+                        selected={isPicked(specialty.id)}
+                        onClick={() =>
+                          toggleTask({
+                            specialtyId: specialty.id,
+                            name: specialty.name,
+                            categoryId: category.id,
+                            categoryName: category.name,
+                          })
+                        }
+                      />
+                    ))}
+                  </div>
                 </div>
-              );
-            })}
+              ))}
           </section>
         )}
       </div>
