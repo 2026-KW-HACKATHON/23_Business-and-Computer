@@ -7,13 +7,15 @@ interface ProfilePhotoProps {
   onSelect: (file: File) => void;
   /** large = 132px (가입), medium = 88px (가게 정보 수정), small = 72px (내 정보) */
   size?: "large" | "medium" | "small";
+  /** 고를 수 있는 파일 형식 (기본은 모든 사진) */
+  accept?: string;
 }
 
 /**
  * 내 프로필 사진 (사장님·학생 공통). 동그라미 어디를 눌러도 사진을 고르고,
  * 오른쪽 아래 +는 아직 사진이 없을 때만 보인다.
  */
-function ProfilePhoto({ src, onSelect, size = "large" }: ProfilePhotoProps) {
+function ProfilePhoto({ src, onSelect, size = "large", accept = "image/*" }: ProfilePhotoProps) {
   return (
     <label className={`profile-photo profile-photo--${size}`} aria-label={src ? "프로필 사진 바꾸기" : "프로필 사진 추가"}>
       {src ? (
@@ -29,7 +31,7 @@ function ProfilePhoto({ src, onSelect, size = "large" }: ProfilePhotoProps) {
       <input
         className="profile-photo__input"
         type="file"
-        accept="image/*"
+        accept={accept}
         onChange={(e) => {
           const file = e.target.files?.[0];
           if (file) onSelect(file);
