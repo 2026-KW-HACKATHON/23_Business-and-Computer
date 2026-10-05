@@ -59,7 +59,6 @@ import StudentProposalTasksPage from './pages/StudentProposalTasksPage'
 import StudentProposalContentPage from './pages/StudentProposalContentPage'
 import StudentProposalConfirmPage from './pages/StudentProposalConfirmPage'
 import StudentProposalDonePage from './pages/StudentProposalDonePage'
-import StudentRequestPage from './pages/StudentRequestPage'
 import StudentRequestFullPage from './pages/StudentRequestFullPage'
 import StudentApplyPage from './pages/StudentApplyPage'
 import StudentProposalPage from './pages/StudentProposalPage'
@@ -145,7 +144,6 @@ function App() {
       <Route path="/student/proposals/new/done" element={<StudentProposalDonePage />} />
       <Route path="/student/proposals/:proposalId" element={<StudentProposalPage />} />
       <Route path="/student/explore/proposals/:proposalId" element={<StudentPeerProposalPage />} />
-      <Route path="/student/requests/:requestId" element={<StudentRequestPage />} />
       <Route path="/student/requests/:requestId/full" element={<StudentRequestFullPage />} />
       <Route path="/student/requests/:requestId/apply" element={<StudentApplyPage />} />
       <Route path="/student/works/:workId/start" element={<StudentWorkStartPage />} />
