@@ -4,26 +4,29 @@
 
 Accepted. Replaces the sample `MyProposal` data for 내 활동 › 보낸 제안, the
 sent-proposal detail, the home 「기다리는 중」 proposals, and the 내 정보
-보낸 제안 count (ADR 0018). Follows ADR 0021, which sends the proposal.
+보낸 제안 count (ADR 0018). Follows ADR 0020, which sends the proposal.
 
 ## Context
 
-A proposal sent through `POST /proposals` (ADR 0021) did not show in any
+A proposal sent through `POST /proposals` (ADR 0020) did not show in any
 student screen, which still read `sampleProposals.ts`. The backend (dev) has:
 
 - `GET /me/proposals` → `{ data: { proposals: [...] } }`, newest first, all
   statuses. Each item: `proposalId`, `title`, `status`, `likeCount`,
   `specialtyCategories` (`[{ id, name, specialties: [{ id, name }] }]`),
   `proposedSolution`, `store` (`ownerProfileId`, `storeName`,
-  `storeAddress`, `profileImageUrl`), and `jobId` (null before payment).
-  There is no `createdAt` (requested from the backend) and no job status.
+  `storeAddress`, `profileImageUrl`), `jobId` and `jobStatus` (null before
+  payment), and `createdAt` (Korea time, no offset). `jobStatus` and
+  `createdAt` were added on the backend after this ADR was first written.
   Errors: 401 `COMMON_401`, 403 `PROPOSAL_403_LIST_STUDENT` (not a student,
   or no student profile).
-- `GET /proposals/{proposalId}` → one proposal for any active user:
-  `title`, `storeName` (no address), `likeCount`, `specialtyCategories`,
+- `GET /proposals/{proposalId}` → one proposal for any active user in the
+  same demo session (another session's proposal is 404):
+  `title`, `storeName`, `storeAddress` (the store's current address, null if
+  not set; added later), `likeCount`, `specialtyCategories`,
   `student`, `customerProblem`, `proposedSolution`, `workPlan`,
   `proposedFee`, `draftDays`, `finalDays`, `referenceImageUrls`, `createdAt`
-  (a zone-less `LocalDateTime`), `status`, `estimatedDraftDeadline` /
+  (Korea time, no offset), `status`, `estimatedDraftDeadline` /
   `estimatedFinalDeadline` (dates, PENDING only, counted from today in
   Asia/Seoul), `jobId`, and `agreement` (`jobStatus`, `budget`,
   `draftDeadline`, `finalDeadline`, `revisionCount`, `messageToStudent`,
@@ -69,27 +72,29 @@ student screen, which still read `sampleProposals.ts`. The backend (dev) has:
 - **Status chip** (`sentProposalStatusLabel`):
   - PENDING 「수락 대기 중」, AWAITING_START 「수락됨」, ACCEPTED 「작업 중」,
     REJECTED 「거절됨」.
-  - `agreement.jobStatus` CANCELLED overrides all of them with 「취소됨」.
-  - Every status stays in the list. The list has no job status, so 「취소됨」
-    can show only on the detail, which now has a chip in its heading.
+  - A CANCELLED job status overrides all of them with 「취소됨」: the list's
+    `jobStatus` on cards, `agreement.jobStatus` on the detail.
+  - Every status stays in the list. The detail has the same chip in its
+    heading.
 - **Flow bar** (`sentProposalFlowSteps`): PENDING → 제안 「수락 대기」,
   AWAITING_START → 시작 「시작 전」, ACCEPTED → 초안 「작업 중」. A cancelled or
   rejected proposal shows no bar.
 - **List card**:
   - Shows the chip, `likeCount`, one badge per category name, the solution
-    excerpt, and the store name and address.
-  - No sent date, until the backend adds `createdAt`.
+    excerpt, 「M월 D일 보냄」, and the store name and address.
+  - The sent date or the address line is hidden when its value is missing
+    (`sentOnText`, `storeAddressText`).
   - No 「조건 확인하기」; starting the work is the next issue.
 - **Detail**:
   - Heading: the chip, all category badges, and 「M월 D일 보냄」. The date is
-    read from the text of `createdAt`, so the browser time zone cannot shift
-    it.
+    read from the text of `createdAt` (already Korea time), so the browser
+    time zone cannot shift it. No `createdAt` hides the date.
   - Empathy: only 「학생 손님 N명이 공감했어요」 from `likeCount`. The
     「공감이 많이 모이면 …」 line is gone, because nothing implements it.
-  - Store box: name only. The store address arrives through router state
-    (`SentProposalRouteState`) from 내 활동 and the home; with no address
-    the line is hidden. The 「사장님이 확인했어요 / 아직 확인하지 않았어요」
-    note is removed, since no API exposes it.
+  - Store box: name and `storeAddress`; with no address the line is hidden.
+    (Before the backend added it, the address came from the list through
+    router state; that workaround is removed.) The 「사장님이 확인했어요 /
+    아직 확인하지 않았어요」 note is removed, since no API exposes it.
   - AWAITING_START or ACCEPTED with an `agreement` shows 「사장님이 정한 작업
     조건」: 작업비, 초안 마감, 최종 마감, 수정 횟수, and 「사장님 메시지」 when
     it is not blank.
@@ -124,8 +129,10 @@ student screen, which still read `sampleProposals.ts`. The backend (dev) has:
 ## Alternatives Considered
 
 - Loading each detail from the list to find cancelled jobs: rejected, one
-  request per card; asking the backend to add the job status to the list is
-  cheaper.
+  request per card; the backend added `jobStatus` to the list instead.
+- Passing the store address from the list through router state: used until
+  the detail got `storeAddress`, then removed, since a detail opened from the
+  done screen, a notification, or a link had no address.
 - Showing 0 while loading: rejected, it looks like a real count and would make
   the home pick the first-visit guide.
 - Reusing `AttachmentTiles` for real photos: rejected by the request; it stays
@@ -133,14 +140,12 @@ student screen, which still read `sampleProposals.ts`. The backend (dev) has:
 
 ## Agent Guidance
 
-- When the backend adds `createdAt` (and ideally `agreement.jobStatus`) to
-  `GET /me/proposals`, show the sent date on list cards and pass the job
-  status to `sentProposalStatusLabel` there.
 - Wire 「조건 확인하기」 (`POST /jobs/{jobId}/start`) in the next issue, from
   the AWAITING_START detail.
 - Connect 「제안 취소」 to the dialogs in `StudentProposalPage` once a cancel
   API exists.
 - `useMyProposal` (sample) is still used by the work-start screen;
   `useMyProposals` was removed because nothing else used it.
-- `GET /proposals/{id}` does not check that the viewer wrote the proposal; the
-  screen trusts that it was reached from the student's own list.
+- `GET /proposals/{id}` does not check that the viewer wrote the proposal
+  (only the demo session); the screen trusts that it was reached from the
+  student's own list.
