@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -168,6 +169,53 @@ public class ProposalService {
         return proposalLikeRepository.findByStudentProfileIdAndProposalIdIn(studentProfileId, proposalIds).stream()
                 .map(ProposalLike::getProposalId)
                 .collect(Collectors.toSet());
+    }
+
+    /**
+     * 학생의 공감을 켠다. 제안 행을 잠가 같은 제안의 공감 변경을 순서대로 처리하고,
+     * 공감 기록이 없을 때만 저장하고 공감 수를 1 올린다. 이미 공감한 제안은 그대로 둔다.
+     * 본인 제안과 모든 상태의 제안에 허용하고, 없거나 격리 범위가 다른 제안은 404로 거부한다.
+     * @param proposalId
+     * @param studentProfileId
+     * @param demoSessionId 공감하는 학생의 격리 범위. 실제 학생은 null
+     * @return 공감 수가 반영된 제안
+     */
+    @Transactional
+    public Proposal likeProposal(Long proposalId, Long studentProfileId, String demoSessionId) {
+        Proposal proposal = getLikeableProposalForUpdate(proposalId, demoSessionId);
+        if (proposalLikeRepository.findByProposalIdAndStudentProfileId(proposalId, studentProfileId).isEmpty()) {
+            proposalLikeRepository.save(ProposalLike.create(proposalId, studentProfileId));
+            proposal.increaseLikeCount();
+        }
+        return proposal;
+    }
+
+    /**
+     * 학생의 공감을 끈다. 제안 행을 잠가 같은 제안의 공감 변경을 순서대로 처리하고,
+     * 공감 기록이 있을 때만 삭제하고 공감 수를 1 내린다. 공감하지 않은 제안은 그대로 둔다.
+     * 없거나 격리 범위가 다른 제안은 공감 기록과 무관하게 404로 거부한다.
+     * @param proposalId
+     * @param studentProfileId
+     * @param demoSessionId 공감을 취소하는 학생의 격리 범위. 실제 학생은 null
+     * @return 공감 수가 반영된 제안
+     */
+    @Transactional
+    public Proposal unlikeProposal(Long proposalId, Long studentProfileId, String demoSessionId) {
+        Proposal proposal = getLikeableProposalForUpdate(proposalId, demoSessionId);
+        proposalLikeRepository.findByProposalIdAndStudentProfileId(proposalId, studentProfileId)
+                .ifPresent(like -> {
+                    proposalLikeRepository.delete(like);
+                    proposal.decreaseLikeCount();
+                });
+        return proposal;
+    }
+
+    private Proposal getLikeableProposalForUpdate(Long proposalId, String demoSessionId) {
+        Proposal proposal = getProposalForUpdate(proposalId);
+        if (!Objects.equals(proposal.getDemoSessionId(), demoSessionId)) {
+            throw new BusinessException(ErrorCode.PROPOSAL_NOT_FOUND);
+        }
+        return proposal;
     }
 
     private List<ExploreProposalData> withSpecialtyIds(List<Proposal> proposals) {

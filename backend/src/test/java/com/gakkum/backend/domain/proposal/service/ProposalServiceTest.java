@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -17,7 +18,11 @@ import java.util.Optional;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InOrder;
 import org.springframework.data.domain.Limit;
 
 import com.gakkum.backend.domain.proposal.dto.ProposalCommandDto.CreateProposalCommand;
@@ -320,6 +325,129 @@ class ProposalServiceTest {
         assertThat(new ProposalService(proposalRepository, proposalSpecialtyRepository, unused)
                 .getLikedProposalIds(77L, List.of())).isEmpty();
         verifyNoInteractions(unused);
+    }
+
+    @Test
+    @DisplayName("처음 공감하면 제안 행을 잠근 뒤 공감 기록을 저장하고 공감 수를 1 올린다")
+    void likesProposalOnce() {
+        Proposal proposal = likeableProposal(ProposalStatus.PENDING, 4, null);
+        when(proposalRepository.findLockedById(31L)).thenReturn(Optional.of(proposal));
+        when(proposalLikeRepository.findByProposalIdAndStudentProfileId(31L, 77L)).thenReturn(Optional.empty());
+
+        Proposal result = proposalService.likeProposal(31L, 77L, null);
+
+        assertThat(result).isSameAs(proposal);
+        assertThat(result.getLikeCount()).isEqualTo(5);
+        ArgumentCaptor<ProposalLike> captor = ArgumentCaptor.forClass(ProposalLike.class);
+        verify(proposalLikeRepository).save(captor.capture());
+        assertThat(captor.getValue().getProposalId()).isEqualTo(31L);
+        assertThat(captor.getValue().getStudentProfileId()).isEqualTo(77L);
+        // 공감 기록은 제안 행을 잠근 뒤에 읽는다
+        InOrder order = inOrder(proposalRepository, proposalLikeRepository);
+        order.verify(proposalRepository).findLockedById(31L);
+        order.verify(proposalLikeRepository).findByProposalIdAndStudentProfileId(31L, 77L);
+        verify(proposalRepository, never()).findById(anyLong());
+    }
+
+    @Test
+    @DisplayName("이미 공감한 제안에 다시 공감하면 기록을 저장하지 않고 공감 수를 그대로 둔다")
+    void keepsLikeCountWhenAlreadyLiked() {
+        Proposal proposal = likeableProposal(ProposalStatus.PENDING, 4, null);
+        when(proposalRepository.findLockedById(31L)).thenReturn(Optional.of(proposal));
+        when(proposalLikeRepository.findByProposalIdAndStudentProfileId(31L, 77L))
+                .thenReturn(Optional.of(ProposalLike.create(31L, 77L)));
+
+        assertThat(proposalService.likeProposal(31L, 77L, null).getLikeCount()).isEqualTo(4);
+        verify(proposalLikeRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("공감을 취소하면 제안 행을 잠근 뒤 본인의 공감 기록을 삭제하고 공감 수를 1 내린다")
+    void unlikesProposalOnce() {
+        Proposal proposal = likeableProposal(ProposalStatus.PENDING, 4, null);
+        ProposalLike like = ProposalLike.create(31L, 77L);
+        when(proposalRepository.findLockedById(31L)).thenReturn(Optional.of(proposal));
+        when(proposalLikeRepository.findByProposalIdAndStudentProfileId(31L, 77L)).thenReturn(Optional.of(like));
+
+        Proposal result = proposalService.unlikeProposal(31L, 77L, null);
+
+        assertThat(result).isSameAs(proposal);
+        assertThat(result.getLikeCount()).isEqualTo(3);
+        verify(proposalLikeRepository).delete(like);
+        InOrder order = inOrder(proposalRepository, proposalLikeRepository);
+        order.verify(proposalRepository).findLockedById(31L);
+        order.verify(proposalLikeRepository).findByProposalIdAndStudentProfileId(31L, 77L);
+    }
+
+    @Test
+    @DisplayName("공감하지 않은 제안의 공감을 취소하면 기록을 삭제하지 않고 공감 수를 그대로 둔다")
+    void keepsLikeCountWhenNotLiked() {
+        Proposal proposal = likeableProposal(ProposalStatus.PENDING, 4, null);
+        when(proposalRepository.findLockedById(31L)).thenReturn(Optional.of(proposal));
+        when(proposalLikeRepository.findByProposalIdAndStudentProfileId(31L, 77L)).thenReturn(Optional.empty());
+
+        assertThat(proposalService.unlikeProposal(31L, 77L, null).getLikeCount()).isEqualTo(4);
+        verify(proposalLikeRepository, never()).delete(any());
+    }
+
+    @ParameterizedTest
+    @EnumSource(ProposalStatus.class)
+    @DisplayName("모든 상태의 제안과 본인이 작성한 제안에 공감하고 취소할 수 있다")
+    void likesAndUnlikesOwnProposalInEveryStatus(ProposalStatus status) {
+        // 공감하는 학생 77번이 제안의 작성자다
+        Proposal proposal = likeableProposal(status, 0, null);
+        when(proposalRepository.findLockedById(31L)).thenReturn(Optional.of(proposal));
+        when(proposalLikeRepository.findByProposalIdAndStudentProfileId(31L, 77L))
+                .thenReturn(Optional.empty())
+                .thenReturn(Optional.of(ProposalLike.create(31L, 77L)));
+
+        assertThat(proposalService.likeProposal(31L, 77L, null).getLikeCount()).isEqualTo(1);
+        assertThat(proposalService.unlikeProposal(31L, 77L, null).getLikeCount()).isZero();
+        assertThat(proposal.getStatus()).isEqualTo(status);
+    }
+
+    @Test
+    @DisplayName("없는 제안의 공감 추가·취소는 PROPOSAL_404로 거부하고 공감 기록을 조회하지 않는다")
+    void rejectsLikeForMissingProposal() {
+        when(proposalRepository.findLockedById(31L)).thenReturn(Optional.empty());
+
+        assertProposalError(() -> proposalService.likeProposal(31L, 77L, null), ErrorCode.PROPOSAL_NOT_FOUND);
+        assertProposalError(() -> proposalService.unlikeProposal(31L, 77L, null), ErrorCode.PROPOSAL_NOT_FOUND);
+        verifyNoInteractions(proposalLikeRepository);
+    }
+
+    @ParameterizedTest(name = "학생 {0}, 제안 {1}")
+    @CsvSource(value = {
+            "null, 01K6DEMO00000000000000000A",
+            "01K6DEMO00000000000000000A, null",
+            "01K6DEMO00000000000000000A, 01K6DEMO00000000000000000B"}, nullValues = "null")
+    @DisplayName("격리 범위가 다른 제안의 공감 추가·취소는 PROPOSAL_404로 거부하고 공감 기록과 공감 수를 바꾸지 않는다")
+    void rejectsLikeOutsideDemoSession(String studentSession, String proposalSession) {
+        Proposal proposal = likeableProposal(ProposalStatus.PENDING, 4, proposalSession);
+        when(proposalRepository.findLockedById(31L)).thenReturn(Optional.of(proposal));
+
+        assertProposalError(() -> proposalService.likeProposal(31L, 77L, studentSession),
+                ErrorCode.PROPOSAL_NOT_FOUND);
+        assertProposalError(() -> proposalService.unlikeProposal(31L, 77L, studentSession),
+                ErrorCode.PROPOSAL_NOT_FOUND);
+        assertThat(proposal.getLikeCount()).isEqualTo(4);
+        verifyNoInteractions(proposalLikeRepository);
+    }
+
+    @Test
+    @DisplayName("같은 데모 세션의 제안에는 공감할 수 있다")
+    void likesProposalWithinDemoSession() {
+        Proposal proposal = likeableProposal(ProposalStatus.PENDING, 0, "01K6DEMO00000000000000000A");
+        when(proposalRepository.findLockedById(31L)).thenReturn(Optional.of(proposal));
+        when(proposalLikeRepository.findByProposalIdAndStudentProfileId(31L, 77L)).thenReturn(Optional.empty());
+
+        assertThat(proposalService.likeProposal(31L, 77L, "01K6DEMO00000000000000000A").getLikeCount())
+                .isEqualTo(1);
+    }
+
+    private Proposal likeableProposal(ProposalStatus status, int likeCount, String demoSessionId) {
+        return Proposal.builder().id(31L).studentProfileId(77L).ownerProfileId(5L).status(status)
+                .likeCount(likeCount).demoSessionId(demoSessionId).build();
     }
 
     private void assertProposalError(Runnable action, ErrorCode errorCode) {
