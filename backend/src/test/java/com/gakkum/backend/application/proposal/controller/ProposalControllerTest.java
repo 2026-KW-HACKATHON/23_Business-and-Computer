@@ -9,6 +9,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -28,10 +29,13 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import com.gakkum.backend.application.proposal.facade.ProposalFacade;
@@ -41,6 +45,7 @@ import com.gakkum.backend.domain.proposal.dto.ProposalCommandDto.CreateProposalC
 import com.gakkum.backend.domain.proposal.dto.ProposalCommandDto.StartProposalJobCommand;
 import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.ProposalAgreementResult;
 import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.ProposalJobStartResult;
+import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.ProposalLikeResult;
 import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.MyProposalListResult;
 import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.MyProposalResult;
 import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.ProposalCreateResult;
@@ -197,7 +202,7 @@ class ProposalControllerTest {
                         SpecialtyResult.of(11L, "숏폼 촬영"), SpecialtyResult.of(12L, "영상 편집"))));
         when(proposalFacade.getProposalDetail(USERNAME, 31L))
                 .thenReturn(ProposalDetailResult.of(proposal, "가게 이름", "서울시 마포구 1", student, studentUser,
-                        new java.math.BigDecimal("4.3"), 5L, categories, LocalDate.of(2026, 10, 5), null, null));
+                        new java.math.BigDecimal("4.3"), 5L, categories, true, LocalDate.of(2026, 10, 5), null, null));
 
         mockMvc.perform(get("/proposals/31").principal(authentication))
                 .andExpect(status().isOk())
@@ -207,6 +212,7 @@ class ProposalControllerTest {
                 .andExpect(jsonPath("$.data.storeName").value("가게 이름"))
                 .andExpect(jsonPath("$.data.storeAddress").value("서울시 마포구 1"))
                 .andExpect(jsonPath("$.data.likeCount").value(4))
+                .andExpect(jsonPath("$.data.likedByMe").value(true))
                 .andExpect(jsonPath("$.data.specialtyCategories.length()").value(2))
                 .andExpect(jsonPath("$.data.specialtyCategories[0].id").value(1))
                 .andExpect(jsonPath("$.data.specialtyCategories[0].name").value("디자인"))
@@ -248,13 +254,15 @@ class ProposalControllerTest {
         when(proposalFacade.getProposalDetail(USERNAME, 31L))
                 .thenReturn(ProposalDetailResult.of(proposal, "가게 이름", null,
                         Student.builder().id(7L).build(), User.builder().name("김학생").build(),
-                        new java.math.BigDecimal("4.3"), 5L, List.of(), LocalDate.of(2026, 10, 9), 42L,
+                        new java.math.BigDecimal("4.3"), 5L, List.of(), false, LocalDate.of(2026, 10, 9), 42L,
                         ProposalAgreementResult.of(job, Instant.parse("2026-10-05T03:00:00Z"))));
 
         mockMvc.perform(get("/proposals/31").principal(authentication))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.status").value("AWAITING_START"))
                 .andExpect(jsonPath("$.data.jobId").value(42))
+                // 공감하지 않았으면 필드를 빼지 않고 false로 내린다
+                .andExpect(jsonPath("$.data.likedByMe").value(false))
                 .andExpect(jsonPath("$.data.student.studentNumber").doesNotExist())
                 // 주소 미등록과 생성 시각 없음은 null로 내린다
                 .andExpect(jsonPath("$.data.storeAddress").doesNotExist())
@@ -362,6 +370,80 @@ class ProposalControllerTest {
         verify(proposalFacade, never()).getProposalDetail(anyString(), anyLong());
     }
 
+    @Test
+    @DisplayName("공감 추가는 인증 사용자와 제안 ID를 전달하고 200과 제안 ID·공감 수·likedByMe true를 반환한다")
+    void likesProposal() throws Exception {
+        when(proposalFacade.likeProposal(USERNAME, 31L)).thenReturn(
+                ProposalLikeResult.of(Proposal.builder().id(31L).likeCount(5).build(), true));
+
+        mockMvc.perform(post("/proposals/31/likes").principal(authentication))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.length()").value(3))
+                .andExpect(jsonPath("$.data.proposalId").value(31))
+                .andExpect(jsonPath("$.data.likeCount").value(5))
+                .andExpect(jsonPath("$.data.likedByMe").value(true));
+
+        verify(proposalFacade).likeProposal(USERNAME, 31L);
+        verify(proposalFacade, never()).unlikeProposal(anyString(), anyLong());
+    }
+
+    @Test
+    @DisplayName("공감 취소는 인증 사용자와 제안 ID를 전달하고 200과 제안 ID·공감 수·likedByMe false를 반환한다")
+    void unlikesProposal() throws Exception {
+        when(proposalFacade.unlikeProposal(USERNAME, 31L)).thenReturn(
+                ProposalLikeResult.of(Proposal.builder().id(31L).likeCount(0).build(), false));
+
+        mockMvc.perform(delete("/proposals/31/likes").principal(authentication))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.length()").value(3))
+                .andExpect(jsonPath("$.data.proposalId").value(31))
+                .andExpect(jsonPath("$.data.likeCount").value(0))
+                .andExpect(jsonPath("$.data.likedByMe").value(false));
+
+        verify(proposalFacade).unlikeProposal(USERNAME, 31L);
+        verify(proposalFacade, never()).likeProposal(anyString(), anyLong());
+    }
+
+    @ParameterizedTest(name = "제안 ID {0}")
+    @ValueSource(strings = { "abc", "0", "-1", "1.5" })
+    @DisplayName("공감 추가·취소는 숫자가 아니거나 0 이하인 제안 ID를 COMMON_400으로 거부하고 파사드를 호출하지 않는다")
+    void rejectsInvalidProposalIdForLike(String proposalId) throws Exception {
+        for (HttpMethod method : List.of(HttpMethod.POST, HttpMethod.DELETE)) {
+            mockMvc.perform(MockMvcRequestBuilders.request(method, "/proposals/" + proposalId + "/likes")
+                            .principal(authentication))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.success").value(false))
+                    .andExpect(jsonPath("$.error.code").value("COMMON_400"));
+        }
+        verifyNoInteractions(proposalFacade);
+    }
+
+    static Stream<Arguments> likeErrors() {
+        return Stream.of(
+                Arguments.of(ErrorCode.UNAUTHORIZED, 401, "COMMON_401"),
+                Arguments.of(ErrorCode.PROPOSAL_LIKE_STUDENT_REQUIRED, 403, "PROPOSAL_403_LIKE_STUDENT"),
+                Arguments.of(ErrorCode.PROPOSAL_NOT_FOUND, 404, "PROPOSAL_404"));
+    }
+
+    @ParameterizedTest(name = "{2}")
+    @MethodSource("likeErrors")
+    @DisplayName("공감 추가·취소의 잠긴 사용자·학생 아님·없는 제안 오류는 각 오류 코드의 상태로 반환한다")
+    void returnsLikeErrors(ErrorCode errorCode, int status, String code) throws Exception {
+        when(proposalFacade.likeProposal(USERNAME, 31L)).thenThrow(new BusinessException(errorCode));
+        when(proposalFacade.unlikeProposal(USERNAME, 31L)).thenThrow(new BusinessException(errorCode));
+
+        mockMvc.perform(post("/proposals/31/likes").principal(authentication))
+                .andExpect(status().is(status))
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.error.code").value(code));
+        mockMvc.perform(delete("/proposals/31/likes").principal(authentication))
+                .andExpect(status().is(status))
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.error.code").value(code));
+    }
+
     private static String body(String specialtyIds, String title, String customerProblem, String proposedFee,
             String draftDays, String finalDays, String referenceImageUrls) {
         StringBuilder json = new StringBuilder("{\"ownerProfileId\":5");
@@ -439,7 +521,7 @@ class ProposalControllerTest {
         when(proposalFacade.getProposalDetail(USERNAME, 31L))
                 .thenReturn(ProposalDetailResult.of(proposal, "가꿈 카페", null,
                         Student.builder().id(7L).build(), User.builder().name("김학생").build(),
-                        new java.math.BigDecimal("4.3"), 5L, List.of(), LocalDate.of(2026, 10, 6), null, null));
+                        new java.math.BigDecimal("4.3"), 5L, List.of(), false, LocalDate.of(2026, 10, 6), null, null));
 
         mockMvc.perform(get("/me/proposals").principal(authentication))
                 .andExpect(status().isOk())

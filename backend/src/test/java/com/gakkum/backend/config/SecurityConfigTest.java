@@ -1,6 +1,7 @@
 package com.gakkum.backend.config;
 
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.options;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -131,6 +132,17 @@ class SecurityConfigTest {
     @DisplayName("인증 없이 제안 상세를 조회하면 401을 반환한다")
     void receivedProposalDetailRequiresAuthentication() throws Exception {
         mockMvc.perform(get("/proposals/31"))
+            .andExpect(status().isUnauthorized())
+            .andExpect(jsonPath("$.error.code").value("COMMON_401"));
+    }
+
+    @Test
+    @DisplayName("인증 없이 제안에 공감하거나 공감을 취소하면 401을 반환한다")
+    void proposalLikeRequiresAuthentication() throws Exception {
+        mockMvc.perform(post("/proposals/31/likes"))
+            .andExpect(status().isUnauthorized())
+            .andExpect(jsonPath("$.error.code").value("COMMON_401"));
+        mockMvc.perform(delete("/proposals/31/likes"))
             .andExpect(status().isUnauthorized())
             .andExpect(jsonPath("$.error.code").value("COMMON_401"));
     }
