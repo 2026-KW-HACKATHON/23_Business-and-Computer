@@ -181,5 +181,5 @@ states.
 
 - `landingPath` still sends STUDENT to /home and the student home at /student
   is sample data (ADR 0018); switching it is separate work.
-- Owner step 3 (`POST /auth/owner`, same token response) can reuse
-  `uploadProfileImage` and `saveAccessToken`.
+- Owner step 3 (`POST /auth/owner`) is wired in ADR 0020 with the same
+  rules; image upload and the auth header now live in `src/api`.
