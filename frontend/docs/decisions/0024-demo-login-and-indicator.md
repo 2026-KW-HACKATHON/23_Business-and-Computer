@@ -58,6 +58,13 @@ route, and the URL could still disagree with the account actually logged in.
   「역할을 바꾸지 못했어요…」.
 - `CookiePage` clears the demo session before saving a Kakao token, so a
   Kakao login never shows the strip.
+- Screens only open for their role: `RoleRouteGuard` (auth feature, wrapped
+  around `App` in `src/main.tsx`) checks /owner/…, /explore/… (owner) and
+  /student/… against the token's role, and redirects to `landingPath()`
+  before the page renders when they differ. It re-checks when the token
+  changes, so after a badge switch, 「뒤로」 to the other role's screens
+  lands on the current role's home instead of calling APIs with the wrong
+  role (the backend answers 403, e.g. 가게 목록 for an owner token).
 - Figma: the 「사장님 홈 · 둘러보기 모드」 and 「학생 홈 · 둘러보기 모드」 frames
   show the strip. Notion 「화면 상태 전환표」 and 「페이지 주소 정리」 follow
   this ADR.
