@@ -151,7 +151,7 @@ class JobApplicantProfileQueryIntegrationTest {
 
     private StudentCertificate saveCertificate(long studentProfileId, String name, int acquiredYear) {
         return studentCertificateRepository.saveAndFlush(
-                StudentCertificate.create(studentProfileId, name, acquiredYear, "발급 기관"));
+                StudentCertificate.create(studentProfileId, name, acquiredYear));
     }
 
     /** 리뷰는 의뢰당 하나만 저장할 수 있어 리뷰마다 완료 의뢰를 새로 만든다. */

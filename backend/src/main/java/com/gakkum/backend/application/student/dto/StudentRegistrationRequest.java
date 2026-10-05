@@ -135,24 +135,15 @@ public class StudentRegistrationRequest {
         @Min(1900)
         private Integer acquiredYear;
 
-        @NotBlank
-        @Size(max = 255)
-        private String issuingOrganization;
-
-        public static CertificateRequest of(String certificateName, Integer acquiredYear, String issuingOrganization) {
+        public static CertificateRequest of(String certificateName, Integer acquiredYear) {
             return CertificateRequest.builder()
                     .certificateName(certificateName)
                     .acquiredYear(acquiredYear)
-                    .issuingOrganization(issuingOrganization)
                     .build();
         }
 
         public String getNormalizedCertificateName() {
             return certificateName.trim();
-        }
-
-        public String getNormalizedIssuingOrganization() {
-            return issuingOrganization.trim();
         }
     }
 }

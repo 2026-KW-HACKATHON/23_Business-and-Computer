@@ -53,8 +53,7 @@ public class StudentFacade {
             certificateService.addStudentCertificate(AddStudentCertificateCommand.of(
                     student.getId(),
                     certificate.getNormalizedCertificateName(),
-                    certificate.getAcquiredYear(),
-                    certificate.getNormalizedIssuingOrganization()
+                    certificate.getAcquiredYear()
             ));
         }
 
