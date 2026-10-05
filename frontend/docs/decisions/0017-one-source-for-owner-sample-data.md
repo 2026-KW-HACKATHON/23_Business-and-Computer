@@ -38,8 +38,7 @@ work never became completed.
 - Demo state: `completeOwnerWork` (완료 확인) and `markOwnerWorkReviewed`
   (후기 남기기) mark a work in memory, so the result screen, 내 활동 완료, the
   home 끝난 일, and 결제 내역 follow the demo until the page reloads.
-- `OwnerHome.firstVisit` comes from the backend later (`SAMPLE_FIRST_VISIT`
-  for now). When true, the home shows `FirstVisitGuide` (피그마 「사장님 홈 -
+- `OwnerHome.firstVisit` comes from `SAMPLE_FIRST_VISIT`. When true, the home shows `FirstVisitGuide` (피그마 「사장님 홈 -
   처음」) instead of 확인할 일, 학생이 작업 중, 기다리는 중, and 끝난 일.
 - 보낸 의뢰 and 진행 중 in 내 활동 are sorted by 초안 마감, earliest first.
 - 「신고」 on 초안 확인 and 「문제 신고」 in the chat room open `ReportSheet`.

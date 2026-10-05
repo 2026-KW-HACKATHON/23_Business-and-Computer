@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted. Replaces the sample `OwnerProposal` data (now deleted) for 내 활동 ›
+Accepted. Replaces the sample `OwnerProposal` data (deleted) for 내 활동 ›
 받은 제안, the received-proposal detail, the proposal summary on the accept
 screen, the 「새 제안」 cards in the owner home's 확인할 일, and the 내 정보
 받은 제안 count (ADR 0012, 0017). Moves the proposal detail code that both
@@ -10,7 +10,7 @@ roles use out of the student feature (ADR 0023).
 
 ## Context
 
-The owner side still read `SAMPLE_PROPOSALS`, so a proposal a student sent
+The owner side read `SAMPLE_PROPOSALS`, so a proposal a student sent
 (ADR 0020) never reached the owner. The backend (dev) has:
 
 - `GET /me/received-proposals` → `{ data: { proposals: [...] } }`, newest
@@ -20,8 +20,7 @@ The owner side still read `SAMPLE_PROPOSALS`, so a proposal a student sent
   - `student` (`studentProfileId`, `name`, `studentNumber`, `major`). Here
     `studentNumber` is the full 10 digits;
   - `jobId`, which is null before payment.
-  - There is no `createdAt` and no `jobStatus`. Both have been requested
-    from the backend.
+  - The list has no `createdAt` and no `jobStatus`.
   - Errors: 401 `COMMON_401`, 403 `PROPOSAL_403_LIST_OWNER` (not an owner),
     403 `OWNER_403` (no owner profile).
 - `GET /proposals/{id}` is the same endpoint the student uses (ADR 0023). For
@@ -35,34 +34,43 @@ The owner side still read `SAMPLE_PROPOSALS`, so a proposal a student sent
   - Any active user in the same demo session can open any proposal. Another
     store's proposal comes without `agreement`, and nothing in the response
     says whose store it is. A different session gives 404 `PROPOSAL_404`.
-- There is no API to reject a proposal or to read the proposing student's
-  profile. `POST /proposals/{id}/payments` exists; paying from the accept
-  screen is wired in a later issue.
+- `POST /proposals/{id}/payments` takes only `revisionCount`,
+  `messageToStudent`, and `refundPolicyAgreed`. The server sets the fee to
+  the proposal's `proposedFee`, and the deadlines to the payment date plus
+  `draftDays` / `finalDays`.
+- The backend has no endpoint to reject a proposal or to read the proposing
+  student's profile.
 
 ## Decision
 
 - **Shared proposal feature** `src/features/proposal`, following the
   `src/features/specialty` pattern (ADR 0020):
-  - Holds `fetchProposalDetail` with its response types (`ProposalStatus`,
-    `ProposalJobStatus`, `ProposalSpecialtyCategory`,
-    `ProposalAgreementResponse`, `ProposalStudentResponse`,
-    `ProposalDetailResponse`).
-  - Holds `loadProposalDetail`, `parseProposalId`, and `useProposalDetail`
-    (loading / error / notFound / loaded; 401 → /login).
-  - Holds `proposalBadgeNames`, `estimatedDeadlineText`, and
+  - Exports `useProposalDetail` (loading / error / notFound / loaded; 401 →
+    /login) and the types that other features use (`ProposalDetail`,
+    `ProposalStatus`, `ProposalJobStatus`, `ProposalSpecialtyCategory`,
+    `ProposalStudentResponse`).
+  - Exports the display helpers `proposalBadgeNames`,
+    `estimatedDeadlineText`, `expectedDaysText` (「초안 N일 · 최종 N일」), and
     `proposalMonthDay`, which turns the text of `createdAt` into 「M월 D일」.
+  - The request, error mapping, and id parsing (`fetchProposalDetail`,
+    `loadProposalDetail`, `parseProposalId`) stay inside the feature.
   - The student feature keeps only the student wording (`sentOnText`, status
     chip, flow bar) and `useSentProposals`. Student behavior is unchanged.
+- **`LoadNotice`** (one loading or 「다시 시도」 line) lives in
+  `src/components/LoadNotice`. Owner and student screens import it from
+  there.
 - **Owner code** in `src/features/owner`:
   - `src/features/owner/api/receivedProposalApi.ts` (`fetchReceivedProposals`,
-    using `apiData`).
+    using `apiData`). `createdAt` and `jobStatus` are optional fields, used
+    when the server sends them.
   - `src/features/owner/lib/receivedProposals.ts`: result values and display
     helpers.
   - `src/features/owner/hooks/useReceivedProposals.ts`: loading / error /
-    loaded with
-    `reload`. It drops late responses. 401 goes to /login.
-    `PROPOSAL_403_LIST_OWNER` or `OWNER_403` shows the alert 「사장님만 받은
-    제안을 볼 수 있어요」, then goes to `landingPath()`.
+    loaded with `reload`.
+    - It drops late responses.
+    - 401 goes to /login.
+    - `PROPOSAL_403_LIST_OWNER` or `OWNER_403` shows the alert 「사장님만 받은
+      제안을 볼 수 있어요」, then goes to `landingPath()`.
 - **One hook for three places**: 내 활동 › 받은 제안, the home 「확인할 일」,
   and the 내 정보 count all use `useReceivedProposals`.
   - The summary counts read 「-」 while loading or after a failure.
@@ -70,23 +78,24 @@ The owner side still read `SAMPLE_PROPOSALS`, so a proposal a student sent
   - Home: only PENDING proposals become 「새 제안」 cards. The card badge is
     the first category name, and the student line shows `major`. While the
     list loads or after a failure, 확인할 일 shows `LoadNotice` and no count.
-  - `firstVisit` is still the sample flag.
+  - `firstVisit` comes from the sample flag.
 - **Status chip** (`receivedProposalStatusLabel`):
   - PENDING 「결정 대기」, AWAITING_START 「결제 완료」, ACCEPTED 「작업 중」,
     REJECTED 「거절됨」.
+  - Any other status 「확인 필요」, so the chip is never blank.
   - A CANCELLED job status overrides them with 「취소됨」. On the detail that
-    comes from `agreement.jobStatus`; on list cards it shows once the
-    backend adds `jobStatus`.
+    comes from `agreement.jobStatus`; list cards use `jobStatus` only when
+    the server sends it.
 - **Flow bar** (`receivedProposalFlowSteps`): PENDING → 제안 「결정해 주세요」,
-  AWAITING_START → 시작 「학생 시작 전」, ACCEPTED → 초안 「작업 중」. Cancelled
-  or rejected proposals have no bar.
+  AWAITING_START → 시작 「학생 시작 전」, ACCEPTED → 초안 「작업 중」. Cancelled,
+  rejected, and unknown statuses have no bar.
 - **Student line** (`studentMetaText`): 「24학번 · 전공」. A 10-digit number
   becomes its third and fourth digits; a two-digit number is used as is.
   Missing parts are left out.
 - **List card** (all statuses):
   - Shows the chip, `likeCount`, one badge per category, 「M월 D일 도착」
     when `createdAt` exists, the solution excerpt, and the student line.
-  - PENDING cards keep 「제안 받기」, which opens the detail.
+  - PENDING cards have 「제안 받기」, which opens the detail.
 - **Detail**:
   - Heading: chip, badges, and 「M월 D일 도착」. A missing `createdAt` hides
     the date.
@@ -95,32 +104,42 @@ The owner side still read `SAMPLE_PROPOSALS`, so a proposal a student sent
     when there is no rating or completed job.
   - After payment, 「정한 작업 조건」 shows 작업비, 초안 마감, 최종 마감,
     수정 횟수, and 「학생에게 한마디」 when it is not blank.
-  - PENDING shows 「수락하면 M월 D일까지 초안, M월 D일까지 최종」 and the old
-    footnote.
+  - PENDING shows:
+    - 「수락하면 M월 D일까지 초안, M월 D일까지 최종」;
+    - the footnote: 작업비 is the student's amount, 수정 횟수 is set when
+      requesting, and 마감일 counts the student's period from the payment
+      date.
   - Reference photos use `ReferencePhotos`.
   - Footer: 「의뢰하기」 for PENDING (to the accept screen), otherwise
     「확인」.
   - Errors: load failure → `LoadNotice`, 404 → `OwnerMissing`,
     401 → /login.
-- **Hidden until their APIs exist**: 「거절하기」 (list and detail) and the
-  student 「프로필 보기」 (list and detail). They are removed rather than
-  left as dead code. `OWNER_PATHS.student` and the student profile page stay
-  for the applicant flow.
-- **Accept screen** (`OwnerProposalAcceptPage`, minimal change):
-  - It reads the proposal with `useProposalDetail` instead of the sample, so
-    a real id no longer shows 「찾는 내용이 없어요」.
-  - It shows the title, category badges, student name, 희망 작업비, and
-    「예상 초안 N일 · 최종 N일」 from the detail.
-  - Loading and failure show `LoadNotice` with 「다시 시도」; 404 shows
-    `OwnerMissing`; 401 goes to /login. These are the same rules as the
-    detail page.
-  - A proposal that is not PENDING redirects (history replaced) to its
-    detail, where the status chip explains why. The backend would refuse
-    payment anyway (409 `PROPOSAL_409_PAYMENT`).
-  - The form mounts only after the proposal loads, so 작업비 starts at
-    `proposedFee`.
-  - The form and 「안전결제하기」 are unchanged: payment is still the
-    `useSafePayment` stand-in.
+- **Actions**:
+  - The received-proposal screens have no 「거절하기」 and no student
+    「프로필 보기」.
+  - `OWNER_PATHS.student` and the student profile page serve the applicant
+    flow.
+- **Accept screen** (`OwnerProposalAcceptPage`):
+  - **Data**:
+    - It reads the proposal with `useProposalDetail`.
+    - It shows the title, category badges, student name, 희망 작업비, and
+      「예상 초안 N일 · 최종 N일」.
+  - **Read-only fields**: these match what the payment API accepts.
+    - 작업비 shows `proposedFee` with 「학생이 제안한 금액이에요」.
+    - 마감일 shows 「초안 N일 · 최종 N일」 with 「학생이 제안한 기간 · 결제한
+      날부터 세요」.
+  - **Inputs**: 수정 횟수, 학생에게 한마디, and the refund-policy agreement.
+    「안전결제하기」 needs only the agreement.
+  - **Payment**: the payment amount is `proposedFee`. Payment progress is
+    `useSafePayment`.
+  - **Errors**: loading and failure show `LoadNotice` with 「다시 시도」; 404
+    shows `OwnerMissing`; 401 goes to /login. These are the same rules as
+    the detail page.
+  - **Not PENDING**: the screen redirects (history replaced) to the detail,
+    where the status chip shows the state. The server refuses payment for it
+    with 409 `PROPOSAL_409_PAYMENT`.
+- **Notification**: 「새 제안이 왔어요」 (`PROPOSAL_RECEIVED`) opens 내 활동 ›
+  받은 제안 (`OWNER_PATHS.activity("proposals")`).
 - **Sample data removed**: `SAMPLE_PROPOSALS`, `useOwnerProposal`,
   `useOwnerProposals`, the `OwnerProposal` type, and `counts.proposals` in
   `useOwnerProfile`.
@@ -131,31 +150,31 @@ The owner side still read `SAMPLE_PROPOSALS`, so a proposal a student sent
 
 - One shared detail feature keeps both roles on the same request, 404, and
   401 rules, as the specialty list already does.
+- Moving `LoadNotice` and `expectedDaysText` out of the student feature keeps
+  owner screens from depending on student code.
 - Showing every status keeps proposals the owner already paid for findable;
   the chip tells them apart.
-- Removing buttons that would do nothing matches how the student cancel popup
-  was removed (ADR 0023).
+- Read-only 작업비 and 마감일 show exactly what the server charges and
+  schedules; editable fields would suggest values the payment ignores.
+- The screens show only actions the backend supports.
 
 ## Alternatives Considered
 
 - Keeping the detail code in the student feature and importing it from the
   owner feature: rejected, the owner would depend on student internals and
-  their naming.
-- Only PENDING in the 받은 제안 tab: rejected by the request; paid proposals
-  would vanish before the 진행 중 tab is wired.
+  their naming. The first version of this change still imported
+  `LoadNotice` and `expectedDaysText` from the student feature; they were
+  moved for the same reason.
+- Only PENDING in the 받은 제안 tab: rejected; paid proposals would disappear
+  from every owner list.
+- Opening the proposal detail from the 「새 제안」 notification: rejected, the
+  sample notification has no real proposal id, so the detail would show
+  「없음」.
 
 ## Agent Guidance
 
-- When the backend adds `createdAt` and `jobStatus` to
-  `GET /me/received-proposals`, the list shows them with no code change.
-  Remove the 「백엔드에 추가 요청함」 notes in `receivedProposalApi.ts`.
-- Wire 「거절하기」 and 「프로필 보기」 when their APIs arrive, and the accept
-  screen's payment with `POST /proposals/{id}/payments`. That payment takes
-  only `revisionCount`, `messageToStudent`, and `refundPolicyAgreed`; fee and
-  deadlines come from the proposal, so the editable 작업비 and 마감일 fields
-  must be revisited then.
-- Owner notifications still use sample ids such as `prop-201`. Since the
-  detail is now an API call, those links show 「없음」 until notifications
-  are wired.
-- The owner pages import `LoadNotice` and `expectedDaysText` from the student
-  feature. Move them to a shared layer if more owner screens need them.
+- `GET /me/received-proposals` items may carry `createdAt` and `jobStatus`;
+  the list shows them whenever they are present.
+- The accept screen must not offer fee or deadline inputs: the payment API
+  takes only `revisionCount`, `messageToStudent`, and `refundPolicyAgreed`.
+- Keep `src/features/proposal/index.ts` limited to what other folders import.

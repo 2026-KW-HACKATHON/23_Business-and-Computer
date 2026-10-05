@@ -71,8 +71,7 @@ student screen, which still read `sampleProposals.ts`. The backend (dev) has:
     are works or applications. Otherwise it is decided only once the sent list
     has loaded. Until then the home shows only the loading or retry line,
     never the guide.
-  - 탐색 「내 제안」 still uses the sample data and is wired together with
-    /explore.
+  - 탐색 「내 제안」 uses the sample data.
 - **Status chip** (`sentProposalStatusLabel`):
   - PENDING 「수락 대기 중」, AWAITING_START 「수락됨」, ACCEPTED 「작업 중」,
     REJECTED 「거절됨」.
@@ -88,7 +87,7 @@ student screen, which still read `sampleProposals.ts`. The backend (dev) has:
     excerpt, 「M월 D일 보냄」, and the store name and address.
   - The sent date or the address line is hidden when its value is missing
     (`sentOnText`, `storeAddressText`).
-  - No 「조건 확인하기」; starting the work is the next issue.
+  - No 「조건 확인하기」 button.
 - **Detail**:
   - Heading: the chip, all category badges, and 「M월 D일 보냄」. The date is
     read from the text of `createdAt` (already Korea time), so the browser
@@ -138,9 +137,9 @@ student screen, which still read `sampleProposals.ts`. The backend (dev) has:
 
 ## Agent Guidance
 
-- Wire 「조건 확인하기」 (`POST /jobs/{jobId}/start`) in the next issue, from
-  the AWAITING_START detail.
-- `useMyProposal` (sample) is still used by the work-start screen.
+- The sent-proposal screens do not start work; `POST /jobs/{jobId}/start`
+  is not called from them.
+- `useMyProposal` (sample) is used by the work-start screen.
 - `GET /proposals/{id}` does not check that the viewer wrote the proposal
   (only the demo session); the screen trusts that it was reached from the
   student's own list.
