@@ -32,6 +32,7 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import com.gakkum.backend.application.explore.dto.ExploreCommandDto.ExploreCommand;
 import com.gakkum.backend.application.explore.dto.ExploreCursor;
 import com.gakkum.backend.application.explore.dto.ExploreItemType;
+import com.gakkum.backend.application.explore.dto.ExploreQueryDto.ExploreItemResult;
 import com.gakkum.backend.application.explore.dto.ExploreQueryDto.ExploreResult;
 import com.gakkum.backend.application.explore.dto.ExploreQueryDto.JobCardResult;
 import com.gakkum.backend.application.explore.dto.ExploreQueryDto.ProposalCardResult;
@@ -44,6 +45,7 @@ import com.gakkum.backend.domain.job.entity.Job;
 import com.gakkum.backend.domain.job.entity.JobProgressStage;
 import com.gakkum.backend.domain.job.entity.JobStatus;
 import com.gakkum.backend.domain.proposal.entity.Proposal;
+import com.gakkum.backend.domain.proposal.entity.ProposalStatus;
 import com.gakkum.backend.global.exception.GlobalExceptionHandler;
 
 @DisplayName("탐색 컨트롤러 (GET /explore)")
@@ -112,11 +114,12 @@ class ExploreControllerTest {
         List<SpecialtyCategoryResult> categories = List.of(
                 SpecialtyCategoryResult.of(1L, "디자인", List.of(SpecialtyResult.of(3L, "로고 디자인"))),
                 SpecialtyCategoryResult.of(2L, "영상", List.of(SpecialtyResult.of(11L, "숏폼 촬영"))));
-        Proposal proposal = Proposal.builder().id(31L).title("메뉴판 개선 제안").likeCount(4).build();
+        Proposal proposal = Proposal.builder().id(31L).title("메뉴판 개선 제안").likeCount(4)
+                .status(ProposalStatus.AWAITING_START).proposedSolution("사진 메뉴판으로 바꿉니다.").build();
         Job job = Job.builder().id(42L).title("로고 제작").status(JobStatus.MATCHED).budget(300_000L)
                 .draftDeadline(LocalDate.of(2026, 10, 10)).finalDeadline(LocalDate.of(2026, 10, 20)).build();
         when(exploreFacade.explore(any())).thenReturn(ExploreResult.of(List.of(
-                ProposalCardResult.of(proposal, "가꿈 분식", categories),
+                ProposalCardResult.of(proposal, "가꿈 분식", "김학생", true, categories),
                 JobCardResult.of(job, JobProgressStage.DRAFT, "가꿈 카페", categories.subList(0, 1), null)), "next"));
 
         mockMvc.perform(get("/explore").principal(authentication))
@@ -126,6 +129,10 @@ class ExploreControllerTest {
                 .andExpect(jsonPath("$.data.items[0].title").value("메뉴판 개선 제안"))
                 .andExpect(jsonPath("$.data.items[0].storeName").value("가꿈 분식"))
                 .andExpect(jsonPath("$.data.items[0].likeCount").value(4))
+                .andExpect(jsonPath("$.data.items[0].studentName").value("김학생"))
+                .andExpect(jsonPath("$.data.items[0].status").value("AWAITING_START"))
+                .andExpect(jsonPath("$.data.items[0].proposedSolution").value("사진 메뉴판으로 바꿉니다."))
+                .andExpect(jsonPath("$.data.items[0].likedByMe").value(true))
                 .andExpect(jsonPath("$.data.items[0].specialtyCategories.length()").value(2))
                 .andExpect(jsonPath("$.data.items[0].specialtyCategories[1].specialties[0].name").value("숏폼 촬영"))
                 .andExpect(jsonPath("$.data.items[0].jobId").doesNotExist())
@@ -143,6 +150,9 @@ class ExploreControllerTest {
                 .andExpect(jsonPath("$.data.items[0].applied").doesNotExist())
                 .andExpect(jsonPath("$.data.items[1].specialtyCategories[0].id").value(1))
                 .andExpect(jsonPath("$.data.items[1].likeCount").doesNotExist())
+                .andExpect(jsonPath("$.data.items[1]", not(hasKey("studentName"))))
+                .andExpect(jsonPath("$.data.items[1]", not(hasKey("proposedSolution"))))
+                .andExpect(jsonPath("$.data.items[1]", not(hasKey("likedByMe"))))
                 .andExpect(jsonPath("$.data.nextCursor").value("next"))
                 .andExpect(jsonPath("$.data.hasNext").value(true));
     }
@@ -162,6 +172,28 @@ class ExploreControllerTest {
                 .andExpect(jsonPath("$.data.items[1].applied").value(false))
                 .andExpect(jsonPath("$.data.items[2]", not(hasKey("applied"))))
                 .andExpect(jsonPath("$.data.items[2].budget").value(300000));
+    }
+
+    @Test
+    @DisplayName("제안 카드는 공감하지 않았어도 likedByMe 키를 false로 내리고 네 가지 상태를 문자열 그대로 담는다")
+    void returnsLikedByMeFalseAndEveryProposalStatus() throws Exception {
+        when(exploreFacade.explore(any())).thenReturn(ExploreResult.of(Stream.of(ProposalStatus.values())
+                .map(status -> (ExploreItemResult) ProposalCardResult.of(
+                        Proposal.builder().id(31L).title("메뉴판 개선 제안").likeCount(7).status(status)
+                                .proposedSolution("해결 방안").build(),
+                        "가꿈 분식", "김학생", false, List.of()))
+                .toList(), null));
+
+        mockMvc.perform(get("/explore").principal(authentication).param("type", "PROPOSAL"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.items.length()").value(4))
+                .andExpect(jsonPath("$.data.items[0]", hasKey("likedByMe")))
+                .andExpect(jsonPath("$.data.items[0].likedByMe").value(false))
+                .andExpect(jsonPath("$.data.items[0].likeCount").value(7))
+                .andExpect(jsonPath("$.data.items[0].status").value("PENDING"))
+                .andExpect(jsonPath("$.data.items[1].status").value("AWAITING_START"))
+                .andExpect(jsonPath("$.data.items[2].status").value("ACCEPTED"))
+                .andExpect(jsonPath("$.data.items[3].status").value("REJECTED"));
     }
 
     static Stream<Arguments> invalidRequests() {

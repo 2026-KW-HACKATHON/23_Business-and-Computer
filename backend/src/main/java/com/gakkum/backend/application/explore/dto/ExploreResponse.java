@@ -12,6 +12,7 @@ import com.gakkum.backend.application.explore.dto.ExploreQueryDto.SpecialtyCateg
 import com.gakkum.backend.application.explore.dto.ExploreQueryDto.SpecialtyResult;
 import com.gakkum.backend.domain.job.entity.JobProgressStage;
 import com.gakkum.backend.domain.job.entity.JobStatus;
+import com.gakkum.backend.domain.proposal.entity.ProposalStatus;
 
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -58,7 +59,12 @@ public class ExploreResponse {
         private final Long proposalId;
         private final String title;
         private final String storeName;
+        private final String studentName;
+        private final ProposalStatus status;
+        private final String proposedSolution;
         private final Integer likeCount;
+        // 학생이 아닌 사용자에게도 false로 항상 내린다
+        private final boolean likedByMe;
         private final List<SpecialtyCategory> specialtyCategories;
 
         public static ProposalCard from(ProposalCardResult result) {
@@ -67,7 +73,11 @@ public class ExploreResponse {
                     .proposalId(result.getProposalId())
                     .title(result.getTitle())
                     .storeName(result.getStoreName())
+                    .studentName(result.getStudentName())
+                    .status(result.getStatus())
+                    .proposedSolution(result.getProposedSolution())
                     .likeCount(result.getLikeCount())
+                    .likedByMe(result.isLikedByMe())
                     .specialtyCategories(SpecialtyCategory.from(result.getSpecialtyCategories()))
                     .build();
         }

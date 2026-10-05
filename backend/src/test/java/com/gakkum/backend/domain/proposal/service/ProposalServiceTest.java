@@ -8,6 +8,7 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import java.time.LocalDateTime;
@@ -27,8 +28,10 @@ import com.gakkum.backend.domain.proposal.dto.ProposalExploreOrder;
 import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.ExploreProposalData;
 import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.ProposalDetailData;
 import com.gakkum.backend.domain.proposal.entity.Proposal;
+import com.gakkum.backend.domain.proposal.entity.ProposalLike;
 import com.gakkum.backend.domain.proposal.entity.ProposalSpecialty;
 import com.gakkum.backend.domain.proposal.entity.ProposalStatus;
+import com.gakkum.backend.domain.proposal.repository.ProposalLikeRepository;
 import com.gakkum.backend.domain.proposal.repository.ProposalRepository;
 import com.gakkum.backend.domain.proposal.repository.ProposalSpecialtyRepository;
 import com.gakkum.backend.global.exception.BusinessException;
@@ -38,7 +41,9 @@ class ProposalServiceTest {
 
     private final ProposalRepository proposalRepository = mock(ProposalRepository.class);
     private final ProposalSpecialtyRepository proposalSpecialtyRepository = mock(ProposalSpecialtyRepository.class);
-    private final ProposalService proposalService = new ProposalService(proposalRepository, proposalSpecialtyRepository);
+    private final ProposalLikeRepository proposalLikeRepository = mock(ProposalLikeRepository.class);
+    private final ProposalService proposalService =
+            new ProposalService(proposalRepository, proposalSpecialtyRepository, proposalLikeRepository);
 
     @Test
     @DisplayName("발신 학생과 요청 값으로 좋아요 0개인 제안을 저장하고 저장된 제안 ID로 소분류를 저장한다")
@@ -294,6 +299,27 @@ class ProposalServiceTest {
                 ProposalSpecialty.create(5L, 3L), ProposalSpecialty.create(5L, 11L)));
 
         assertThat(proposalService.getSpecialtyIds(5L)).containsExactly(3L, 11L);
+    }
+
+    @Test
+    @DisplayName("공감한 제안은 학생 프로필 ID와 제안 ID 목록으로 한 번에 조회해 공감 기록이 있는 제안 ID만 반환한다")
+    void returnsLikedProposalIdsOfStudent() {
+        when(proposalLikeRepository.findByStudentProfileIdAndProposalIdIn(77L, List.of(5L, 6L, 7L)))
+                .thenReturn(List.of(ProposalLike.create(5L, 77L), ProposalLike.create(7L, 77L)));
+
+        assertThat(proposalService.getLikedProposalIds(77L, List.of(5L, 6L, 7L))).containsExactlyInAnyOrder(5L, 7L);
+    }
+
+    @Test
+    @DisplayName("공감 기록이 없으면 빈 집합을 반환하고, 제안 ID 목록이 비어 있으면 공감 기록을 조회하지 않는다")
+    void returnsNoLikedProposalIdsWithoutRecordsOrIds() {
+        assertThat(proposalService.getLikedProposalIds(77L, List.of(5L))).isEmpty();
+        verify(proposalLikeRepository).findByStudentProfileIdAndProposalIdIn(77L, List.of(5L));
+
+        ProposalLikeRepository unused = mock(ProposalLikeRepository.class);
+        assertThat(new ProposalService(proposalRepository, proposalSpecialtyRepository, unused)
+                .getLikedProposalIds(77L, List.of())).isEmpty();
+        verifyNoInteractions(unused);
     }
 
     private void assertProposalError(Runnable action, ErrorCode errorCode) {

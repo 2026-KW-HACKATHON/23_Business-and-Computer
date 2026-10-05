@@ -5,6 +5,7 @@ import static org.hamcrest.Matchers.not;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -53,7 +54,10 @@ import com.gakkum.backend.domain.owner.entity.Owner;
 import com.gakkum.backend.domain.owner.repository.OwnerRepository;
 import com.gakkum.backend.domain.owner.service.OwnerService;
 import com.gakkum.backend.domain.proposal.entity.Proposal;
+import com.gakkum.backend.domain.proposal.entity.ProposalLike;
 import com.gakkum.backend.domain.proposal.entity.ProposalSpecialty;
+import com.gakkum.backend.domain.proposal.entity.ProposalStatus;
+import com.gakkum.backend.domain.proposal.repository.ProposalLikeRepository;
 import com.gakkum.backend.domain.proposal.repository.ProposalRepository;
 import com.gakkum.backend.domain.proposal.repository.ProposalSpecialtyRepository;
 import com.gakkum.backend.domain.proposal.service.ProposalService;
@@ -77,6 +81,8 @@ class ExploreFlowTest {
     private static final String USERNAME = "KAKAO_12345";
     private static final String USER_ID = "01K58M6PJV8VAJMXHBHJ2PNB5C";
     private static final long STUDENT_PROFILE_ID = 77L;
+    private static final long AUTHOR_PROFILE_ID = 70L;
+    private static final String AUTHOR_USER_ID = "01K58M6PJV8VAJMXHBHJ2PAUTH";
     private static final LocalDateTime T1 = LocalDateTime.of(2026, 9, 28, 10, 0);
     private static final LocalDateTime T2 = LocalDateTime.of(2026, 9, 29, 10, 0);
     private static final LocalDateTime T3 = LocalDateTime.of(2026, 9, 30, 10, 0);
@@ -84,6 +90,7 @@ class ExploreFlowTest {
     private final UserRepository userRepository = mock(UserRepository.class);
     private final ProposalRepository proposalRepository = mock(ProposalRepository.class);
     private final ProposalSpecialtyRepository proposalSpecialtyRepository = mock(ProposalSpecialtyRepository.class);
+    private final ProposalLikeRepository proposalLikeRepository = mock(ProposalLikeRepository.class);
     private final JobRepository jobRepository = mock(JobRepository.class);
     private final JobSpecialtyRepository jobSpecialtyRepository = mock(JobSpecialtyRepository.class);
     private final JobSubmissionRepository jobSubmissionRepository = mock(JobSubmissionRepository.class);
@@ -102,7 +109,7 @@ class ExploreFlowTest {
     void setUp() {
         ExploreFacade facade = new ExploreFacade(
                 new UserService(userRepository, mock(JwtService.class)),
-                new ProposalService(proposalRepository, proposalSpecialtyRepository),
+                new ProposalService(proposalRepository, proposalSpecialtyRepository, proposalLikeRepository),
                 new JobService(jobRepository, jobSpecialtyRepository, jobApplicationRepository,
                         jobSubmissionRepository, Clock.systemUTC()),
                 new OwnerService(ownerRepository),
@@ -120,7 +127,7 @@ class ExploreFlowTest {
     void returnsMixedCardsThroughAllLayers() throws Exception {
         givenActiveUser();
         when(proposalRepository.findByDemoSessionIdAndCreatedAtLessThanOrderByCreatedAtDescIdDesc(any(), any(), eq(Limit.of(3))))
-                .thenReturn(List.of(proposal(31L, T2, 4, 50L), proposal(30L, T1, 0, 50L)));
+                .thenReturn(List.of(proposal(31L, T2, 4, 50L), proposal(30L, T1, 0, 50L, 71L)));
         when(jobRepository.findByDemoSessionIdAndStatusNotAndCreatedAtLessThanOrderByCreatedAtDescIdDesc(
                 any(), eq(JobStatus.CANCELLED), any(), eq(Limit.of(3))))
                 .thenReturn(List.of(job(42L, T3, JobStatus.MATCHED, 60L), job(41L, T1, JobStatus.OPEN, 60L)));
@@ -140,6 +147,10 @@ class ExploreFlowTest {
                 .thenReturn(Optional.of(Student.builder().id(STUDENT_PROFILE_ID).userId(USER_ID).build()));
         when(jobApplicationRepository.findByStudentProfileIdAndJobIdIn(STUDENT_PROFILE_ID, List.of(42L)))
                 .thenReturn(List.of(application(42L, JobApplicationStatus.PENDING)));
+        // 다음 페이지로 밀린 제안 30의 작성자(71)와 공감 기록은 조회하지 않는다
+        givenAuthor("김학생");
+        when(proposalLikeRepository.findByStudentProfileIdAndProposalIdIn(STUDENT_PROFILE_ID, List.of(31L)))
+                .thenReturn(List.of(ProposalLike.create(31L, STUDENT_PROFILE_ID)));
 
         explore(get("/explore").param("size", "2"))
                 .andExpect(status().isOk())
@@ -163,6 +174,12 @@ class ExploreFlowTest {
                 .andExpect(jsonPath("$.data.items[1].title").value("제안 31"))
                 .andExpect(jsonPath("$.data.items[1].storeName").value("가꿈 분식"))
                 .andExpect(jsonPath("$.data.items[1].likeCount").value(4))
+                .andExpect(jsonPath("$.data.items[1].studentName").value("김학생"))
+                .andExpect(jsonPath("$.data.items[1].status").value("PENDING"))
+                .andExpect(jsonPath("$.data.items[1].proposedSolution").value("해결 방안 31"))
+                .andExpect(jsonPath("$.data.items[1].likedByMe").value(true))
+                .andExpect(jsonPath("$.data.items[0]", not(hasKey("likedByMe"))))
+                .andExpect(jsonPath("$.data.items[0]", not(hasKey("studentName"))))
                 .andExpect(jsonPath("$.data.items[1].specialtyCategories.length()").value(2))
                 .andExpect(jsonPath("$.data.items[1].specialtyCategories[0].id").value(1))
                 .andExpect(jsonPath("$.data.items[1].specialtyCategories[0].specialties[0].id").value(11))
@@ -170,6 +187,84 @@ class ExploreFlowTest {
                 .andExpect(jsonPath("$.data.items[1].specialtyCategories[1].id").value(2))
                 .andExpect(jsonPath("$.data.hasNext").value(true))
                 .andExpect(jsonPath("$.data.nextCursor").isString());
+
+        verify(studentRepository).findAllById(List.of(AUTHOR_PROFILE_ID));
+        verify(studentRepository).findByUserId(USER_ID);
+    }
+
+    @Test
+    @DisplayName("학생의 제안 탐색은 본인 공감 기록이 있는 제안만 true, 다른 학생만 공감했거나 아무도 공감하지 않은 제안은 false로 응답한다")
+    void returnsLikedByMeOnlyForOwnLikes() throws Exception {
+        givenActiveUser();
+        givenProposals(proposal(33L, T3, 2, 50L), proposal(32L, T2, 5, 50L), proposal(31L, T1, 0, 50L));
+        givenAuthor("김학생");
+        when(studentRepository.findByUserId(USER_ID))
+                .thenReturn(Optional.of(Student.builder().id(STUDENT_PROFILE_ID).userId(USER_ID).build()));
+        // 제안 32에는 다른 학생의 공감 기록만 있어 본인 조회 결과에 없다
+        when(proposalLikeRepository.findByStudentProfileIdAndProposalIdIn(STUDENT_PROFILE_ID, List.of(33L, 32L, 31L)))
+                .thenReturn(List.of(ProposalLike.create(33L, STUDENT_PROFILE_ID)));
+
+        explore(get("/explore").param("type", "PROPOSAL"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.items.length()").value(3))
+                .andExpect(jsonPath("$.data.items[0].proposalId").value(33))
+                .andExpect(jsonPath("$.data.items[0].likedByMe").value(true))
+                .andExpect(jsonPath("$.data.items[1].likeCount").value(5))
+                .andExpect(jsonPath("$.data.items[1].likedByMe").value(false))
+                .andExpect(jsonPath("$.data.items[2].likeCount").value(0))
+                .andExpect(jsonPath("$.data.items[2].likedByMe").value(false))
+                .andExpect(jsonPath("$.data.items[2].studentName").value("김학생"));
+
+        // 세 제안의 작성자가 같아 학생 프로필과 사용자를 한 번씩만 조회한다
+        verify(studentRepository).findAllById(List.of(AUTHOR_PROFILE_ID));
+        verify(userRepository).findAllById(List.of(AUTHOR_USER_ID));
+        verifyNoInteractions(jobApplicationRepository);
+    }
+
+    @Test
+    @DisplayName("학생 프로필이 없는 학생도 제안 탐색에 성공하고 공감 기록을 조회하지 않은 채 likedByMe를 false로 응답한다")
+    void returnsNotLikedForStudentWithoutProfile() throws Exception {
+        givenActiveUser();
+        givenProposals(proposal(31L, T2, 4, 50L));
+        givenAuthor("김학생");
+        when(studentRepository.findByUserId(USER_ID)).thenReturn(Optional.empty());
+
+        explore(get("/explore").param("type", "PROPOSAL"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.items[0]", hasKey("likedByMe")))
+                .andExpect(jsonPath("$.data.items[0].likedByMe").value(false));
+
+        verifyNoInteractions(proposalLikeRepository);
+    }
+
+    @Test
+    @DisplayName("학생이 아닌 사용자의 제안 카드는 likedByMe를 false로 내리고 학생 이름·상태·해결 방안은 그대로 담으며 공감 기록을 조회하지 않는다")
+    void returnsLikedByMeFalseForNonStudent() throws Exception {
+        givenActiveUser(UserRole.OWNER);
+        givenProposals(proposal(31L, T2, 4, 50L));
+        givenAuthor("김학생");
+
+        explore(get("/explore").param("type", "PROPOSAL"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.items[0]", hasKey("likedByMe")))
+                .andExpect(jsonPath("$.data.items[0].likedByMe").value(false))
+                .andExpect(jsonPath("$.data.items[0].studentName").value("김학생"))
+                .andExpect(jsonPath("$.data.items[0].status").value("PENDING"))
+                .andExpect(jsonPath("$.data.items[0].proposedSolution").value("해결 방안 31"));
+
+        verify(studentRepository, never()).findByUserId(any());
+        verifyNoInteractions(proposalLikeRepository);
+    }
+
+    @Test
+    @DisplayName("제안 작성자의 학생 프로필을 찾지 못하면 COMMON_500으로 응답한다")
+    void failsWhenProposalAuthorIsMissing() throws Exception {
+        givenActiveUser();
+        givenProposals(proposal(31L, T2, 4, 50L));
+
+        explore(get("/explore").param("type", "PROPOSAL"))
+                .andExpect(status().isInternalServerError())
+                .andExpect(jsonPath("$.error.code").value("COMMON_500"));
     }
 
     @Test
@@ -195,6 +290,11 @@ class ExploreFlowTest {
                 .andExpect(jsonPath("$.data.items[3].jobId").value(41))
                 .andExpect(jsonPath("$.data.items[3].applied").value(false))
                 .andExpect(jsonPath("$.data.items[3].budget").value(300000));
+
+        // 제안 카드가 없는 페이지에서는 작성자와 공감 기록을 조회하지 않는다
+        verify(studentRepository, never()).findAllById(any());
+        verify(userRepository, never()).findAllById(any());
+        verifyNoInteractions(proposalLikeRepository);
     }
 
     @Test
@@ -242,7 +342,7 @@ class ExploreFlowTest {
         verify(proposalRepository).findByDemoSessionIdAndCreatedAtLessThanOrderByCreatedAtDescIdDesc(null, T2, Limit.of(3));
         verify(jobRepository).findByDemoSessionIdAndStatusNotAndCreatedAtAndIdLessThanOrderByIdDesc(
                 null, JobStatus.CANCELLED, T2, Long.MAX_VALUE, Limit.of(3));
-        verifyNoInteractions(ownerRepository, specialtyRepository);
+        verifyNoInteractions(ownerRepository, specialtyRepository, studentRepository, proposalLikeRepository);
     }
 
     @Test
@@ -304,6 +404,21 @@ class ExploreFlowTest {
                 Owner.builder().id(60L).storeName("가꿈 카페").build()));
     }
 
+    private void givenProposals(Proposal... proposals) {
+        when(proposalRepository.findByDemoSessionIdAndCreatedAtLessThanOrderByCreatedAtDescIdDesc(any(), any(), any()))
+                .thenReturn(List.of(proposals));
+        when(ownerRepository.findAllById(any())).thenReturn(List.of(
+                Owner.builder().id(50L).storeName("가꿈 분식").build()));
+    }
+
+    // 기본 작성자(학생 프로필 70)만 등록한다. 다른 작성자를 조회하면 일괄 조회가 COMMON_500으로 실패한다
+    private void givenAuthor(String name) {
+        when(studentRepository.findAllById(List.of(AUTHOR_PROFILE_ID))).thenReturn(List.of(
+                Student.builder().id(AUTHOR_PROFILE_ID).userId(AUTHOR_USER_ID).build()));
+        when(userRepository.findAllById(List.of(AUTHOR_USER_ID))).thenReturn(List.of(
+                User.builder().id(AUTHOR_USER_ID).name(name).build()));
+    }
+
     private JobApplication application(Long jobId, JobApplicationStatus status) {
         return JobApplication.builder().jobId(jobId).studentProfileId(STUDENT_PROFILE_ID).status(status).build();
     }
@@ -319,10 +434,18 @@ class ExploreFlowTest {
     }
 
     private Proposal proposal(Long id, LocalDateTime createdAt, int likeCount, Long ownerProfileId) {
+        return proposal(id, createdAt, likeCount, ownerProfileId, AUTHOR_PROFILE_ID);
+    }
+
+    private Proposal proposal(Long id, LocalDateTime createdAt, int likeCount, Long ownerProfileId,
+            Long studentProfileId) {
         return Proposal.builder()
                 .id(id)
+                .studentProfileId(studentProfileId)
                 .ownerProfileId(ownerProfileId)
                 .title("제안 " + id)
+                .proposedSolution("해결 방안 " + id)
+                .status(ProposalStatus.PENDING)
                 .likeCount(likeCount)
                 .createdAt(createdAt)
                 .build();

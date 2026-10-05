@@ -2,8 +2,10 @@ package com.gakkum.backend.domain.proposal.service;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -18,8 +20,10 @@ import com.gakkum.backend.domain.proposal.dto.ProposalCommandDto.GetReceivedProp
 import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.ExploreProposalData;
 import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.ProposalDetailData;
 import com.gakkum.backend.domain.proposal.entity.Proposal;
+import com.gakkum.backend.domain.proposal.entity.ProposalLike;
 import com.gakkum.backend.domain.proposal.entity.ProposalSpecialty;
 import com.gakkum.backend.domain.proposal.entity.ProposalStatus;
+import com.gakkum.backend.domain.proposal.repository.ProposalLikeRepository;
 import com.gakkum.backend.domain.proposal.repository.ProposalRepository;
 import com.gakkum.backend.domain.proposal.repository.ProposalSpecialtyRepository;
 import com.gakkum.backend.global.exception.BusinessException;
@@ -33,6 +37,7 @@ public class ProposalService {
 
     private final ProposalRepository proposalRepository;
     private final ProposalSpecialtyRepository proposalSpecialtyRepository;
+    private final ProposalLikeRepository proposalLikeRepository;
 
     /** 참조 ID와 사진 검증을 마친 제안과 소분류를 한 트랜잭션으로 저장한다. demoSessionId는 제안한 학생의 격리 범위이고 실제 학생은 null이다. */
     @Transactional
@@ -147,6 +152,22 @@ public class ProposalService {
     public List<ExploreProposalData> getReceivedProposals(GetReceivedProposalsCommand command) {
         return withSpecialtyIds(proposalRepository
                 .findByOwnerProfileIdOrderByCreatedAtDescIdDesc(command.getOwnerProfileId()));
+    }
+
+    /**
+     * 주어진 제안 중 학생 본인이 공감한 제안 조회. 전체 공감 수가 아닌 본인의 공감 기록으로만 판단한다
+     * @param studentProfileId
+     * @param proposalIds
+     * @return 공감한 제안 ID, 없으면 빈 집합
+     */
+    @Transactional(readOnly = true)
+    public Set<Long> getLikedProposalIds(Long studentProfileId, Collection<Long> proposalIds) {
+        if (proposalIds.isEmpty()) {
+            return Set.of();
+        }
+        return proposalLikeRepository.findByStudentProfileIdAndProposalIdIn(studentProfileId, proposalIds).stream()
+                .map(ProposalLike::getProposalId)
+                .collect(Collectors.toSet());
     }
 
     private List<ExploreProposalData> withSpecialtyIds(List<Proposal> proposals) {

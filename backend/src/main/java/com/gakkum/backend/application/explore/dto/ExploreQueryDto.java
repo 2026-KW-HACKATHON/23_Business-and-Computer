@@ -9,6 +9,7 @@ import com.gakkum.backend.domain.job.entity.JobProgressStage;
 import com.gakkum.backend.domain.job.entity.JobStatus;
 import com.gakkum.backend.domain.owner.entity.Owner;
 import com.gakkum.backend.domain.proposal.entity.Proposal;
+import com.gakkum.backend.domain.proposal.entity.ProposalStatus;
 
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -50,17 +51,26 @@ public final class ExploreQueryDto {
         private final Long proposalId;
         private final String title;
         private final String storeName;
+        private final String studentName;
+        private final ProposalStatus status;
+        private final String proposedSolution;
         private final Integer likeCount;
+        // 로그인 학생 본인의 공감 기록이 있을 때만 true다. 학생이 아니거나 학생 프로필이 없으면 false다
+        private final boolean likedByMe;
         private final List<SpecialtyCategoryResult> specialtyCategories;
 
-        public static ProposalCardResult of(
-                Proposal proposal, String storeName, List<SpecialtyCategoryResult> specialtyCategories) {
+        public static ProposalCardResult of(Proposal proposal, String storeName, String studentName,
+                boolean likedByMe, List<SpecialtyCategoryResult> specialtyCategories) {
             return ProposalCardResult.builder()
                     .type(ExploreItemType.PROPOSAL)
                     .proposalId(proposal.getId())
                     .title(proposal.getTitle())
                     .storeName(storeName)
+                    .studentName(studentName)
+                    .status(proposal.getStatus())
+                    .proposedSolution(proposal.getProposedSolution())
                     .likeCount(proposal.getLikeCount())
+                    .likedByMe(likedByMe)
                     .specialtyCategories(specialtyCategories)
                     .build();
         }
