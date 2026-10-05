@@ -470,3 +470,20 @@
   color: var(--role-secondary);
   cursor: pointer;
 }
+
+/* 3/4 참고 사진 형식·크기 오류 */
+.student-new__photo-error {
+  margin: 8px 0 0;
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--color-danger);
+}
+
+/* 4/4 전송 실패: 버튼 바로 위 가운데 */
+.student-new__send-error {
+  margin: 0 0 8px;
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--color-danger);
+  text-align: center;
+}

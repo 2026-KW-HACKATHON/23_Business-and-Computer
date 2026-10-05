@@ -169,6 +169,22 @@ class JobProposalStartServiceTest {
     }
 
     @Test
+    @DisplayName("제안 ID 목록에서 연결 의뢰와 취소 상태를 한 번에 조회하고 빈 목록은 조회하지 않는다")
+    void findsJobsByProposalIdsInOneQuery() {
+        Job cancelled = Job.builder().id(42L).proposalId(5L).status(JobStatus.CANCELLED).build();
+        Job started = Job.builder().id(43L).proposalId(7L).status(JobStatus.MATCHED).build();
+        when(jobRepository.findByProposalIdIn(List.of(5L, 6L, 7L)))
+                .thenReturn(List.of(cancelled, started));
+
+        Map<Long, Job> jobs = jobService.getJobsByProposalIds(List.of(5L, 6L, 7L));
+
+        assertThat(jobs).containsOnly(Map.entry(5L, cancelled), Map.entry(7L, started));
+        assertThat(jobs.get(5L).getStatus()).isEqualTo(JobStatus.CANCELLED);
+        assertThat(jobService.getJobsByProposalIds(List.of())).isEmpty();
+        verify(jobRepository).findByProposalIdIn(anyCollection());
+    }
+
+    @Test
     @DisplayName("수락 대기 의뢰의 상세는 진행 단계를 AWAITING_START로 계산하고 제출물을 조회하지 않는다")
     void calculatesAwaitingStartStage() {
         when(jobRepository.findById(42L)).thenReturn(Optional.of(proposalJob(JobStatus.AWAITING_START)));

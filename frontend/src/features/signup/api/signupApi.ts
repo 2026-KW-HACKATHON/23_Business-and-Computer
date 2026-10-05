@@ -4,7 +4,6 @@ import type {
   BusinessCategory,
   BusinessInfo,
   OwnerRegistrationRequest,
-  SpecialtyCategory,
   StudentRegistrationRequest,
 } from "../types";
 
@@ -58,11 +57,7 @@ export async function verifyStudentEmailCode(email: string, code: string): Promi
   });
 }
 
-/** GET /specialties — 대분류별 특기 목록 (data 는 배열) */
-export async function fetchSpecialties(): Promise<SpecialtyCategory[]> {
-  const categories = await apiData<SpecialtyCategory[] | undefined>("/specialties");
-  return categories ?? [];
-}
+/* GET /specialties 는 가입·제안이 함께 쓰는 features/specialty 의 fetchSpecialties 로 옮겼다 */
 
 /** 프로필 사진을 올리고 공개 주소를 돌려준다 (공용 uploadImage, 용도 PROFILE) */
 export function uploadProfileImage(file: File): Promise<string> {

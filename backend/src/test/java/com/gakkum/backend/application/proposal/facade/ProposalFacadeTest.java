@@ -244,6 +244,7 @@ class ProposalFacadeTest {
         assertThat(result.getProposalId()).isEqualTo(31L);
         assertThat(result.getTitle()).isEqualTo("메뉴판 개선 제안");
         assertThat(result.getStoreName()).isEqualTo("가게 이름");
+        assertThat(result.getStoreAddress()).isEqualTo("서울시 마포구 1");
         verify(ownerService).getOwnerProfileById(5L);
         assertThat(result.getLikeCount()).isEqualTo(4);
         assertThat(result.getCustomerProblem()).isEqualTo("메뉴를 알아보기 어렵습니다.");
@@ -335,7 +336,8 @@ class ProposalFacadeTest {
     }
 
     private void givenStore() {
-        when(ownerService.getOwnerProfileById(5L)).thenReturn(Owner.builder().id(5L).storeName("가게 이름").build());
+        when(ownerService.getOwnerProfileById(5L)).thenReturn(Owner.builder().id(5L).storeName("가게 이름")
+                .storeAddress("서울시 마포구 1").build());
     }
 
     private void givenProposingStudent() {
@@ -386,21 +388,24 @@ class ProposalFacadeTest {
                         assertThat(exception.getErrorCode()).isEqualTo(errorCode));
     }
 
-    @Test
-    @DisplayName("내가 보낸 제안을 매장·분류를 일괄 조회해 카드로 구성하고 같은 매장·소분류는 한 번만 조회한다")
-    void returnsMyProposals() {
+    @ParameterizedTest
+    @EnumSource(value = JobStatus.class, names = { "AWAITING_START", "MATCHED", "CLOSED", "CANCELLED" })
+    @DisplayName("내가 보낸 제안을 매장·분류·의뢰를 일괄 조회해 구성하고 연결 의뢰의 상태를 전달한다")
+    void returnsMyProposals(JobStatus jobStatus) {
         givenUser(UserRole.STUDENT);
         givenStudentProfile();
+        LocalDateTime createdAt = LocalDateTime.of(2026, 10, 5, 15, 30);
         when(proposalService.getMyProposals(any(GetMyProposalsCommand.class))).thenReturn(List.of(
-                ExploreProposalData.of(myProposal(32L, 5L, ProposalStatus.ACCEPTED), List.of(12L, 3L)),
-                ExploreProposalData.of(myProposal(31L, 5L, ProposalStatus.PENDING), List.of(3L))));
+                ExploreProposalData.of(myProposal(32L, 5L, ProposalStatus.ACCEPTED, createdAt), List.of(12L, 3L)),
+                ExploreProposalData.of(myProposal(31L, 5L, ProposalStatus.PENDING, null), List.of(3L))));
         when(ownerService.getOwnerProfilesByIds(Set.of(5L))).thenReturn(Map.of(5L, Owner.builder()
                 .id(5L).storeName("가꿈 카페").storeAddress(null).profileImageUrl("https://example.com/s.png").build()));
         when(specialtyCategoryService.getSpecialtyDetails(Set.of(3L, 12L))).thenReturn(Map.of(
                 3L, SpecialtyDetail.of(3L, "로고 디자인", 1L, "디자인"),
                 12L, SpecialtyDetail.of(12L, "영상 편집", 2L, "영상")));
 
-        when(jobService.getJobIdsByProposalIds(List.of(32L, 31L))).thenReturn(Map.of(32L, 420L));
+        when(jobService.getJobsByProposalIds(List.of(32L, 31L))).thenReturn(Map.of(
+                32L, Job.builder().id(420L).proposalId(32L).status(jobStatus).build()));
 
         MyProposalListResult result = proposalFacade.getMyProposals(USERNAME);
 
@@ -408,7 +413,11 @@ class ProposalFacadeTest {
                 .containsExactly(tuple(32L, ProposalStatus.ACCEPTED), tuple(31L, ProposalStatus.PENDING));
         // 연결 의뢰는 제안 수와 무관하게 한 번에 조회하고 결제 전 제안은 null이다
         assertThat(result.getProposals()).extracting(p -> p.getJobId()).containsExactly(420L, null);
-        verify(jobService, times(1)).getJobIdsByProposalIds(any());
+        assertThat(result.getProposals()).extracting(p -> p.getJobStatus()).containsExactly(jobStatus, null);
+        // 생성 시각은 변환 없이 원본 그대로 전달한다
+        assertThat(result.getProposals()).extracting(p -> p.getCreatedAt()).containsExactly(createdAt, null);
+        verify(jobService, times(1)).getJobsByProposalIds(any());
+        verify(jobService, never()).findJobByProposalId(anyLong());
         assertThat(result.getProposals().get(0).getProposedSolution()).isEqualTo("사진 메뉴판으로 바꿉니다.");
         assertThat(result.getProposals().get(0).getSpecialtyCategories())
                 .extracting(SpecialtyCategoryResult::getId).containsExactly(1L, 2L);
@@ -430,7 +439,7 @@ class ProposalFacadeTest {
         when(proposalService.getMyProposals(any())).thenReturn(List.of());
 
         assertThat(proposalFacade.getMyProposals(USERNAME).getProposals()).isEmpty();
-        verifyNoInteractions(ownerService, specialtyCategoryService);
+        verifyNoInteractions(ownerService, specialtyCategoryService, jobService);
     }
 
     @Test
@@ -452,10 +461,10 @@ class ProposalFacadeTest {
         verifyNoInteractions(proposalService);
     }
 
-    private Proposal myProposal(Long id, Long ownerProfileId, ProposalStatus status) {
+    private Proposal myProposal(Long id, Long ownerProfileId, ProposalStatus status, LocalDateTime createdAt) {
         return Proposal.builder().id(id).studentProfileId(7L).ownerProfileId(ownerProfileId).title("제안 " + id)
                 .customerProblem("메뉴를 알아보기 어렵습니다.").proposedSolution("사진 메뉴판으로 바꿉니다.")
-                .likeCount(5).status(status).build();
+                .likeCount(5).status(status).createdAt(createdAt).build();
     }
 
     @Test
@@ -630,6 +639,9 @@ class ProposalFacadeTest {
         assertThat(result.getFinalDays()).isEqualTo(7);
         assertThat(result.getStatus()).isEqualTo(ProposalStatus.PENDING);
         assertThat(result.getProposedFee()).isEqualTo(50000L);
+        // 주소를 등록하지 않은 매장과 생성 시각이 없는 제안은 null 그대로 전달한다
+        assertThat(result.getStoreAddress()).isNull();
+        assertThat(result.getCreatedAt()).isNull();
         // 시계는 UTC 10월 4일 23시 = 한국 10월 5일 8시
         assertThat(result.getEstimatedDraftDeadline()).isEqualTo(LocalDate.of(2026, 10, 8));
         assertThat(result.getEstimatedFinalDeadline()).isEqualTo(LocalDate.of(2026, 10, 12));
