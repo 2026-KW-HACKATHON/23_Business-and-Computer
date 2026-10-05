@@ -1,6 +1,7 @@
 package com.gakkum.backend.application.job.dto;
 
 import java.time.LocalDate;
+import java.util.HashSet;
 import java.util.List;
 
 import jakarta.validation.constraints.AssertTrue;
@@ -52,6 +53,10 @@ public class JobCreateRequest {
     @PositiveOrZero
     private Integer revisionCount;
 
+    // 선택 입력. 최대 4장
+    @Size(max = 4)
+    private List<@NotBlank String> referenceImageUrls;
+
     public static JobCreateRequest of(
             List<Long> specialtyIds,
             String title,
@@ -60,6 +65,18 @@ public class JobCreateRequest {
             LocalDate draftDeadline,
             LocalDate finalDeadline,
             Integer revisionCount) {
+        return of(specialtyIds, title, description, budget, draftDeadline, finalDeadline, revisionCount, List.of());
+    }
+
+    public static JobCreateRequest of(
+            List<Long> specialtyIds,
+            String title,
+            String description,
+            Long budget,
+            LocalDate draftDeadline,
+            LocalDate finalDeadline,
+            Integer revisionCount,
+            List<String> referenceImageUrls) {
         return JobCreateRequest.builder()
                 .specialtyIds(specialtyIds)
                 .title(title)
@@ -68,6 +85,7 @@ public class JobCreateRequest {
                 .draftDeadline(draftDeadline)
                 .finalDeadline(finalDeadline)
                 .revisionCount(revisionCount)
+                .referenceImageUrls(referenceImageUrls)
                 .build();
     }
 
@@ -79,6 +97,11 @@ public class JobCreateRequest {
         return !draftDeadline.isAfter(finalDeadline);
     }
 
+    @AssertTrue(message = "참고 사진 URL은 중복될 수 없습니다.")
+    private boolean isReferenceImageUrlsUnique() {
+        return referenceImageUrls == null || new HashSet<>(referenceImageUrls).size() == referenceImageUrls.size();
+    }
+
     public CreateJobCommand toCommand(Long ownerProfileId) {
         return CreateJobCommand.of(
                 ownerProfileId,
@@ -88,6 +111,7 @@ public class JobCreateRequest {
                 budget,
                 draftDeadline,
                 finalDeadline,
-                revisionCount);
+                revisionCount,
+                referenceImageUrls == null ? List.of() : List.copyOf(referenceImageUrls));
     }
 }

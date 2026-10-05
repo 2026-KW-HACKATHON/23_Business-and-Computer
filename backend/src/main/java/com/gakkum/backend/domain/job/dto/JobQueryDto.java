@@ -51,6 +51,7 @@ public final class JobQueryDto {
         private final Long id;
         private final String title;
         private final String description;
+        private final List<String> referenceImageUrls;
         private final Long budget;
         private final List<SpecialtyCategoryResult> specialtyCategories;
         private final LocalDate draftDeadline;
@@ -96,6 +97,7 @@ public final class JobQueryDto {
                     .id(job.getId())
                     .title(job.getTitle())
                     .description(job.getDescription())
+                    .referenceImageUrls(List.copyOf(job.getReferenceImageUrls()))
                     .budget(job.getBudget())
                     .specialtyCategories(specialtyCategories)
                     .draftDeadline(job.getDraftDeadline())

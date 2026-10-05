@@ -19,6 +19,8 @@ import org.assertj.core.groups.Tuple;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -29,6 +31,9 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import com.gakkum.backend.application.job.controller.JobController;
 import com.gakkum.backend.application.job.facade.JobFacade;
+import com.gakkum.backend.domain.media.service.MediaService;
+import com.gakkum.backend.domain.media.client.MediaImageStorageClient;
+import org.springframework.util.unit.DataSize;
 import com.gakkum.backend.domain.certificate.service.CertificateService;
 import com.gakkum.backend.domain.chat.service.ChatAttachmentPolicy;
 import com.gakkum.backend.domain.job.client.JobSubmissionFileStorageClient;
@@ -85,6 +90,7 @@ class JobCreationFlowTest {
     private final SpecialtyRepository specialtyRepository = mock(SpecialtyRepository.class);
     private final SpecialtyCategoryRepository specialtyCategoryRepository = mock(SpecialtyCategoryRepository.class);
     private final StudentSpecialtyRepository studentSpecialtyRepository = mock(StudentSpecialtyRepository.class);
+    private final MediaImageStorageClient imageStorageClient = mock(MediaImageStorageClient.class);
     private final JwtService jwtService = mock(JwtService.class);
 
     private final User ownerUser = User.builder()
@@ -120,7 +126,7 @@ class JobCreationFlowTest {
         JobFacade facade = new JobFacade(userService, ownerService, jobService,
                 specialtyCategoryService, specialtyService, mock(StudentService.class),
                 mock(JobSubmissionFileStorageClient.class), mock(ChatAttachmentPolicy.class), mock(PaymentService.class),
-                mock(ReviewService.class), mock(CertificateService.class), mock(ProposalService.class));
+                mock(ReviewService.class), mock(CertificateService.class), mock(ProposalService.class), new MediaService(imageStorageClient, DataSize.ofMegabytes(10)));
         JobController controller = new JobController(facade);
 
         mockMvc = MockMvcBuilders.standaloneSetup(controller)
@@ -163,6 +169,8 @@ class JobCreationFlowTest {
         assertThat(job.getBudget()).isEqualTo(500000L);
         assertThat(job.getRevisionCount()).isEqualTo(1);
         assertThat(job.getStatus()).isEqualTo(JobStatus.OPEN);
+        assertThat(job.getReferenceImageUrls()).isEmpty();
+        verifyNoInteractions(imageStorageClient);
 
         ArgumentCaptor<List<JobSpecialty>> specialtiesCaptor = ArgumentCaptor.forClass(List.class);
         verify(jobSpecialtyRepository).saveAll(specialtiesCaptor.capture());
@@ -242,6 +250,132 @@ class JobCreationFlowTest {
             .andExpect(jsonPath("$.error.code").value("COMMON_400"));
 
         verifyNoInteractions(userRepository, ownerRepository, jobRepository, jobSpecialtyRepository);
+    }
+
+    @Test
+    @DisplayName("본인이 업로드한 참고 사진은 최대 4장까지 요청 순서대로 저장한다")
+    void storesMultipleUploadedReferenceImages() throws Exception {
+        givenValidCreation();
+        String first = jobImageUrl(USER_ID, "00000000-0000-0000-0000-000000000002.png");
+        String second = jobImageUrl(USER_ID, "00000000-0000-0000-0000-000000000001.png");
+        String third = jobImageUrl(USER_ID, "00000000-0000-0000-0000-000000000004.png");
+        String fourth = jobImageUrl(USER_ID, "00000000-0000-0000-0000-000000000003.png");
+        givenUploadedImage(first);
+        givenUploadedImage(second);
+        givenUploadedImage(third);
+        givenUploadedImage(fourth);
+
+        createJob(withImages("[\"" + first + "\",\"" + second + "\",\"" + third + "\",\"" + fourth + "\"]"))
+                .andExpect(status().isOk());
+
+        ArgumentCaptor<Job> captor = ArgumentCaptor.forClass(Job.class);
+        verify(jobRepository).save(captor.capture());
+        assertThat(captor.getValue().getReferenceImageUrls()).containsExactly(first, second, third, fourth);
+    }
+
+    @ParameterizedTest
+    @ValueSource(ints = {5, 1000})
+    @DisplayName("참고 사진이 4장을 초과하면 저장소 조회와 저장 전에 400으로 거부한다")
+    void rejectsTooManyReferenceImages(int count) throws Exception {
+        String images = java.util.stream.IntStream.range(0, count)
+                .mapToObj(index -> "\"" + jobImageUrl(USER_ID,
+                        String.format("00000000-0000-0000-0000-%012d.png", index)) + "\"")
+                .collect(java.util.stream.Collectors.joining(",", "[", "]"));
+
+        createJob(withImages(images)).andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error.code").value("COMMON_400"));
+        verifyNoInteractions(userRepository, ownerRepository, jobRepository, jobSpecialtyRepository, imageStorageClient);
+    }
+
+    @Test
+    @DisplayName("4장 이내여도 같은 참고 사진 URL이 중복되면 저장소 조회와 저장 전에 400으로 거부한다")
+    void rejectsDuplicateReferenceImages() throws Exception {
+        String url = jobImageUrl(USER_ID, "00000000-0000-0000-0000-000000000001.png");
+
+        createJob(withImages("[\"" + url + "\",\"" + url + "\"]"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error.code").value("COMMON_400"));
+        verifyNoInteractions(userRepository, ownerRepository, jobRepository, jobSpecialtyRepository, imageStorageClient);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"null", "[]"})
+    @DisplayName("참고 사진이 null 또는 빈 배열이면 사진 없이 등록한다")
+    void acceptsNoReferenceImages(String images) throws Exception {
+        givenValidCreation();
+        createJob(withImages(images)).andExpect(status().isOk());
+
+        ArgumentCaptor<Job> captor = ArgumentCaptor.forClass(Job.class);
+        verify(jobRepository).save(captor.capture());
+        assertThat(captor.getValue().getReferenceImageUrls()).isEmpty();
+        verifyNoInteractions(imageStorageClient);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"[null]", "[\"\"]", "[\"   \"]"})
+    @DisplayName("참고 사진 배열에 null이나 빈 문자열·공백이 있으면 저장 전에 400으로 거부한다")
+    void rejectsBlankImageElements(String images) throws Exception {
+        createJob(withImages(images)).andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error.code").value("COMMON_400"));
+        verifyNoInteractions(userRepository, jobRepository, imageStorageClient);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {
+            "https://evil.example.com/image.png",
+            "https://images.example.com/images/job/other-user/00000000-0000-0000-0000-000000000001.png",
+            "https://images.example.com/images/proposal/01K58M6PJV8VAJMXHBHJ2PNB5C/00000000-0000-0000-0000-000000000001.png",
+            "https://images.example.com/images/job/01K58M6PJV8VAJMXHBHJ2PNB5C/photo.png"})
+    @DisplayName("외부·타인·다른 용도·발급 형태가 아닌 사진 URL은 400으로 거부하고 업로드 여부를 조회하지 않는다")
+    void rejectsUnissuedReferenceImageUrl(String invalidUrl) throws Exception {
+        givenValidCreation();
+        String validUrl = jobImageUrl(USER_ID, "00000000-0000-0000-0000-000000000001.png");
+        givenUploadedImage(validUrl);
+        when(imageStorageClient.findKey(invalidUrl, "images/job/" + USER_ID + "/"))
+                .thenReturn(invalidUrl.endsWith("/photo.png")
+                        ? Optional.of("images/job/" + USER_ID + "/photo.png") : Optional.empty());
+
+        createJob(withImages("[\"" + validUrl + "\",\"" + invalidUrl + "\"]"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error.code").value("JOB_400_IMAGE_URL"));
+        verify(imageStorageClient, never()).exists(any());
+        verify(jobRepository, never()).save(any());
+        verifyNoInteractions(jobSpecialtyRepository);
+    }
+
+    @Test
+    @DisplayName("발급된 사진 URL이라도 업로드가 끝나지 않았으면 409로 거부하고 의뢰와 특기를 저장하지 않는다")
+    void rejectsImageNotUploaded() throws Exception {
+        givenValidCreation();
+        String url = jobImageUrl(USER_ID, "00000000-0000-0000-0000-000000000001.png");
+        String key = url.substring("https://images.example.com/".length());
+        when(imageStorageClient.findKey(url, "images/job/" + USER_ID + "/")).thenReturn(Optional.of(key));
+
+        createJob(withImages("[\"" + url + "\"]"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.error.code").value("JOB_409_IMAGE_NOT_UPLOADED"));
+        verify(jobRepository, never()).save(any());
+        verifyNoInteractions(jobSpecialtyRepository);
+    }
+
+    private void givenValidCreation() {
+        givenOwner();
+        when(specialtyRepository.countByIdIn(List.of(1L, 2L, 3L))).thenReturn(3L);
+        when(jobRepository.save(any(Job.class))).thenAnswer(invocation -> invocation.getArgument(0));
+    }
+
+    private void givenUploadedImage(String url) {
+        String key = url.substring("https://images.example.com/".length());
+        when(imageStorageClient.findKey(url, "images/job/" + USER_ID + "/")).thenReturn(Optional.of(key));
+        when(imageStorageClient.exists(key)).thenReturn(true);
+    }
+
+    private String jobImageUrl(String userId, String fileName) {
+        return "https://images.example.com/images/job/" + userId + "/" + fileName;
+    }
+
+    private String withImages(String images) {
+        return REQUEST_BODY.replace("\"revisionCount\": 1", "\"revisionCount\": 1, \"referenceImageUrls\": " + images);
     }
 
     private ResultActions createJob(String body) throws Exception {

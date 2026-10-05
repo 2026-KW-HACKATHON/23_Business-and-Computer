@@ -28,6 +28,7 @@ public final class JobDetailResponse {
         private final Long id;
         private final String title;
         private final String description;
+        private final List<String> referenceImageUrls;
         private final Long budget;
         private final List<SpecialtyCategory> specialtyCategories;
         private final LocalDate draftDeadline;
@@ -49,6 +50,7 @@ public final class JobDetailResponse {
                     .id(result.getId())
                     .title(result.getTitle())
                     .description(result.getDescription())
+                    .referenceImageUrls(result.getReferenceImageUrls())
                     .budget(result.getBudget())
                     .specialtyCategories(result.getSpecialtyCategories().stream()
                             .map(SpecialtyCategory::from)
