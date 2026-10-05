@@ -20,12 +20,12 @@ import {
   StudentMissing,
   agreeToWork,
   declineWork,
-  expectedDaysText,
   useMyProposal,
   useStore,
   useStudentWork,
   workFlowSteps,
 } from "../features/student";
+import { expectedDaysText } from "../features/proposal";
 import { useBack } from "../hooks/useBack";
 import { formatMonthDay, formatMonthDayWeekday } from "../lib/date";
 import { formatWon } from "../lib/money";

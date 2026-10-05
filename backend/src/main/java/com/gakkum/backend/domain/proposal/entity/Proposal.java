@@ -150,4 +150,16 @@ public class Proposal {
         }
         status = ProposalStatus.ACCEPTED;
     }
+
+    /** 공감 기록이 새로 저장될 때 공감 수를 1 올린다. */
+    public void increaseLikeCount() {
+        likeCount++;
+    }
+
+    /** 공감 기록이 삭제될 때 공감 수를 1 내린다. 공감 수는 0 아래로 내려가지 않는다. */
+    public void decreaseLikeCount() {
+        if (likeCount > 0) {
+            likeCount--;
+        }
+    }
 }

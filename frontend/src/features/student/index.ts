@@ -2,7 +2,6 @@
 export { default as ApplicationSheet } from "./components/ApplicationSheet";
 export { default as ExploreTabs } from "./components/ExploreTabs";
 export { default as FilePicker } from "./components/FilePicker";
-export { default as LoadNotice } from "./components/LoadNotice";
 export { default as MyPlanSheet } from "./components/MyPlanSheet";
 export { default as PeerProposalCard } from "./components/PeerProposalCard";
 export { default as PeerProposalRow } from "./components/PeerProposalRow";
@@ -49,8 +48,8 @@ export {
 export type { MyProfileView, ReceivedReview } from "./hooks/useStudentData";
 export { useExploreStores } from "./hooks/useExploreStores";
 export type { ExploreStoresLoad } from "./hooks/useExploreStores";
-export { useSentProposalDetail, useSentProposals } from "./hooks/useSentProposals";
-export type { SentProposalDetailLoad, SentProposalsLoad } from "./hooks/useSentProposals";
+export { useSentProposals } from "./hooks/useSentProposals";
+export type { SentProposalsLoad } from "./hooks/useSentProposals";
 export { useStudentHome } from "./hooks/useStudentHome";
 export { flowSteps, workFlowSteps } from "./lib/flow";
 export {
@@ -67,7 +66,6 @@ export {
   MAX_PROPOSAL_PHOTOS,
   PROPOSAL_PHOTO_ACCEPT,
   checkProposalPhoto,
-  expectedDaysText,
   proposalCategoryNames,
   proposalTaskSummary,
   readNewProposalState,
@@ -84,14 +82,12 @@ export type {
   ProposalSendResult,
 } from "./lib/newProposal";
 export {
-  estimatedDeadlineText,
-  proposalBadgeNames,
   sentOnText,
   sentProposalFlowSteps,
   sentProposalStatusLabel,
   storeAddressText,
 } from "./lib/sentProposals";
-export type { SentProposal, SentProposalDetail } from "./lib/sentProposals";
+export type { SentProposal } from "./lib/sentProposals";
 export { NOTIFICATION_ICON, notificationPath, notificationState } from "./lib/notifications";
 export { STUDENT_PATHS } from "./lib/paths";
 export type { ProfileEditSection, StudentActivityTab } from "./lib/paths";

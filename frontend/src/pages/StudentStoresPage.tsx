@@ -1,9 +1,8 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { RoleAvatar, SearchBar, TextButton } from "../components";
+import { LoadNotice, RoleAvatar, SearchBar, TextButton } from "../components";
 import {
   ExploreTabs,
-  LoadNotice,
   STUDENT_PATHS,
   StudentTabScreen,
   useExploreStores,

@@ -34,6 +34,8 @@ public class ProposalDetailResponse {
     // 매장의 현재 프로필 주소. 등록하지 않았으면 null
     private final String storeAddress;
     private final Integer likeCount;
+    // 학생이 아닌 사용자에게도 false로 항상 내린다
+    private final boolean likedByMe;
     private final List<SpecialtyCategory> specialtyCategories;
     private final ProposalStudent student;
     private final String customerProblem;
@@ -61,6 +63,7 @@ public class ProposalDetailResponse {
                 .storeName(result.getStoreName())
                 .storeAddress(result.getStoreAddress())
                 .likeCount(result.getLikeCount())
+                .likedByMe(result.isLikedByMe())
                 .specialtyCategories(result.getSpecialtyCategories().stream()
                         .map(SpecialtyCategory::from)
                         .toList())

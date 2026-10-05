@@ -35,6 +35,7 @@ import com.gakkum.backend.domain.job.dto.JobCommandDto.GetJobResultCommand;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.GetJobSubmissionCommand;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.GetMatchedJobsCommand;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.GetOpenJobsCommand;
+import com.gakkum.backend.domain.job.dto.JobCommandDto.GetStudentAppliedJobsCommand;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.GetStudentMatchedJobsCommand;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.PrepareSubmissionFileUploadCommand;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.RequestJobSubmissionRevisionCommand;
@@ -67,12 +68,16 @@ import com.gakkum.backend.domain.job.dto.JobQueryDto.OpenJobResult;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.PrepareSubmissionFileUploadResult;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.SpecialtyCategoryResult;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.SpecialtyResult;
+import com.gakkum.backend.domain.job.dto.JobQueryDto.StudentAppliedJobData;
+import com.gakkum.backend.domain.job.dto.JobQueryDto.StudentAppliedJobListResult;
+import com.gakkum.backend.domain.job.dto.JobQueryDto.StudentAppliedJobResult;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.StudentMatchedJobData;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.StudentMatchedJobListResult;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.StudentMatchedJobResult;
 import com.gakkum.backend.domain.job.dto.JobSubmissionFileType;
 import com.gakkum.backend.domain.job.entity.Job;
 import com.gakkum.backend.domain.job.entity.JobApplication;
+import com.gakkum.backend.domain.job.entity.JobApplicationStatus;
 import com.gakkum.backend.domain.job.entity.JobStatus;
 import com.gakkum.backend.domain.job.entity.JobSubmission;
 import com.gakkum.backend.domain.job.service.JobService;
@@ -141,7 +146,8 @@ public class JobFacade {
     }
 
     /**
-     * 의뢰 상세는 모든 활성 사용자가 조회한다. 취소된 의뢰의 취소 정보는 의뢰한 사장님과 선정 학생에게만 더한다.
+     * 의뢰 상세는 모든 활성 사용자가 조회한다. 매장명·주소는 의뢰한 사장님의 현재 프로필에서 가져와 항상 내리고,
+     * 학생에게는 본인 지원서 상태를 더한다. 취소된 의뢰의 취소 정보는 의뢰한 사장님과 선정 학생에게만 더한다.
      * 격리 범위(demoSessionId)가 조회자와 다른 의뢰는 없는 의뢰와 같은 404로 거부한다.
      * 결제 후(진행 중) 취소된 의뢰에는 선정 학생이 있고 환불 주문이 반드시 있어야 한다. 모집 중 취소는 결제가 없다.
      */
@@ -156,29 +162,32 @@ public class JobFacade {
         List<SpecialtyCategoryResult> specialtyCategories = groupSpecialties(data.getSpecialtyIds(), specialtiesById);
 
         Job job = data.getJob();
-        if (job.getStatus() != JobStatus.CANCELLED || !isCancellationParty(user, job)) {
-            return JobDetailResult.of(data, specialtyCategories);
-        }
         Owner owner = ownerService.getOwnerProfileById(job.getOwnerProfileId());
+        // 지원 상태와 취소 당사자 판정이 로그인 학생의 프로필 조회 한 번을 함께 쓴다
+        Long viewerStudentProfileId = user.getRole() == UserRole.STUDENT
+                ? studentService.findStudentProfileByUserId(user.getId()).map(Student::getId).orElse(null)
+                : null;
+        JobApplicationStatus applied = viewerStudentProfileId == null
+                ? null
+                : jobService.getApplicationStatuses(viewerStudentProfileId, List.of(jobId)).get(jobId);
+
+        if (job.getStatus() != JobStatus.CANCELLED || !isCancellationParty(user, job, viewerStudentProfileId)) {
+            return JobDetailResult.of(data, specialtyCategories, owner, applied);
+        }
         RefundedPaymentData refund = job.getSelectedStudentProfileId() == null
                 ? null
                 : paymentService.getRefundedPayment(jobId);
-        return JobDetailResult.ofCancelled(data, specialtyCategories, owner.getStoreName(), refund);
+        return JobDetailResult.ofCancelled(data, specialtyCategories, owner, applied, refund);
     }
 
     /** 의뢰한 사장님 또는 선정 학생인지 확인한다. 해당 역할의 프로필이 없는 사용자는 당사자가 아니다. */
-    private boolean isCancellationParty(User user, Job job) {
+    private boolean isCancellationParty(User user, Job job, Long viewerStudentProfileId) {
         if (user.getRole() == UserRole.OWNER) {
             return ownerService.findOwnerProfileByUserId(user.getId())
                     .filter(owner -> owner.getId().equals(job.getOwnerProfileId()))
                     .isPresent();
         }
-        if (user.getRole() == UserRole.STUDENT && job.getSelectedStudentProfileId() != null) {
-            return studentService.findStudentProfileByUserId(user.getId())
-                    .filter(student -> student.getId().equals(job.getSelectedStudentProfileId()))
-                    .isPresent();
-        }
-        return false;
+        return viewerStudentProfileId != null && viewerStudentProfileId.equals(job.getSelectedStudentProfileId());
     }
 
     @Transactional(readOnly = true)
@@ -511,6 +520,35 @@ public class JobFacade {
 
         return StudentMatchedJobListResult.of(jobs.stream()
                 .map(job -> StudentMatchedJobResult.of(job, groupSpecialties(job.getSpecialtyIds(), specialtiesById)))
+                .toList());
+    }
+
+    /**
+     * 학생 본인이 지원한 의뢰 중 모집 중이고 선정 대기인 항목을 최신 지원순으로 조회한다.
+     * 학생이 아니면 지원서를 조회하기 전에 거부하고, 학생 계정에 학생 프로필이 없으면 500으로 거부한다.
+     */
+    @Transactional(readOnly = true)
+    public StudentAppliedJobListResult getStudentAppliedJobs(String username) {
+        User user = userService.getActiveUser(username);
+        if (user.getRole() != UserRole.STUDENT) {
+            throw new BusinessException(ErrorCode.JOB_APPLICATION_LIST_STUDENT_REQUIRED);
+        }
+        Student student = studentService.findStudentProfileByUserId(user.getId())
+                .orElseThrow(() -> new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR));
+        List<StudentAppliedJobData> jobs = jobService.getStudentAppliedJobs(
+                GetStudentAppliedJobsCommand.of(student.getId(), user.getDemoSessionId()));
+
+        if (jobs.isEmpty()) {
+            return StudentAppliedJobListResult.of(List.of());
+        }
+
+        Set<Long> specialtyIds = jobs.stream()
+                .flatMap(job -> job.getSpecialtyIds().stream())
+                .collect(Collectors.toSet());
+        Map<Long, SpecialtyDetail> specialtiesById = specialtyCategoryService.getSpecialtyDetails(specialtyIds);
+
+        return StudentAppliedJobListResult.of(jobs.stream()
+                .map(job -> StudentAppliedJobResult.of(job, groupSpecialties(job.getSpecialtyIds(), specialtiesById)))
                 .toList());
     }
 

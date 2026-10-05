@@ -1,6 +1,7 @@
 package com.gakkum.backend.application.job.dto;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonValue;
@@ -13,9 +14,13 @@ import com.gakkum.backend.domain.job.dto.JobQueryDto.OpenJobListResult;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.OpenJobResult;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.SpecialtyCategoryResult;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.SpecialtyResult;
+import com.gakkum.backend.domain.job.dto.JobQueryDto.StudentAppliedJobListResult;
+import com.gakkum.backend.domain.job.dto.JobQueryDto.StudentAppliedJobResult;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.StudentMatchedJobListResult;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.StudentMatchedJobResult;
+import com.gakkum.backend.domain.job.entity.JobApplicationStatus;
 import com.gakkum.backend.domain.job.entity.JobProgressStage;
+import com.gakkum.backend.domain.job.entity.JobStatus;
 
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -205,6 +210,53 @@ public final class JobListResponse {
                     .submissionType(result.getSubmissionType())
                     .reviewStatus(result.getReviewStatus())
                     .progressStage(result.getProgressStage())
+                    .build();
+        }
+    }
+
+    @Getter
+    @AllArgsConstructor(access = AccessLevel.PRIVATE)
+    public static class StudentAppliedJobList {
+
+        private final List<StudentAppliedJob> jobs;
+
+        public static StudentAppliedJobList from(StudentAppliedJobListResult result) {
+            return new StudentAppliedJobList(result.getJobs().stream()
+                    .map(StudentAppliedJob::from)
+                    .toList());
+        }
+    }
+
+    @Getter
+    @Builder(access = AccessLevel.PRIVATE)
+    @AllArgsConstructor(access = AccessLevel.PRIVATE)
+    public static class StudentAppliedJob {
+
+        private final Long jobId;
+        private final Long jobApplicationId;
+        private final String title;
+        private final List<SpecialtyCategory> specialtyCategories;
+        private final Long budget;
+        private final LocalDate draftDeadline;
+        private final LocalDate finalDeadline;
+        private final JobStatus jobStatus;
+        private final JobApplicationStatus applicationStatus;
+        private final LocalDateTime appliedAt;
+
+        public static StudentAppliedJob from(StudentAppliedJobResult result) {
+            return StudentAppliedJob.builder()
+                    .jobId(result.getJobId())
+                    .jobApplicationId(result.getJobApplicationId())
+                    .title(result.getTitle())
+                    .specialtyCategories(result.getSpecialtyCategories().stream()
+                            .map(SpecialtyCategory::from)
+                            .toList())
+                    .budget(result.getBudget())
+                    .draftDeadline(result.getDraftDeadline())
+                    .finalDeadline(result.getFinalDeadline())
+                    .jobStatus(result.getJobStatus())
+                    .applicationStatus(result.getApplicationStatus())
+                    .appliedAt(result.getAppliedAt())
                     .build();
         }
     }

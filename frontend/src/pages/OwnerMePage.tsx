@@ -7,6 +7,7 @@ import {
   setOwnerStorePhoto,
   useOwnerProfile,
   useOwnerStorePhoto,
+  useReceivedProposals,
 } from "../features/owner";
 import type { ActivityTab } from "../features/owner";
 import { TermsSheet } from "../features/signup";
@@ -16,7 +17,10 @@ import "./OwnerMePage.css";
 
 const ACTIVITY_TABS: ActivityTab[] = ["sent", "proposals", "inProgress", "done"];
 
-/** 피그마 「내 정보 · 설정 (사장님)」. 가게 정보 · 요약 · 내 활동 · 설정 · 로그아웃 */
+/**
+ * 피그마 「내 정보 · 설정 (사장님)」. 가게 정보 · 요약 · 내 활동 · 설정 · 로그아웃.
+ * 받은 제안 개수는 GET /me/received-proposals (ADR 0025). 불러오는 중이거나 실패하면 「-」.
+ */
 function OwnerMePage() {
   const navigate = useNavigate();
   const back = useBack(OWNER_PATHS.home);
@@ -27,6 +31,7 @@ function OwnerMePage() {
   const [photoUrl] = useObjectUrls(photoFiles);
   const [termsOpen, setTermsOpen] = useState(false);
   const { counts } = profile;
+  const { load: proposalsLoad } = useReceivedProposals();
 
   const openActivity = (tab: ActivityTab) => navigate(OWNER_PATHS.activity(tab));
 
@@ -74,7 +79,10 @@ function OwnerMePage() {
         <SummaryCard
           items={[
             { label: "보낸 의뢰", count: counts.sent },
-            { label: "받은 제안", count: counts.proposals },
+            {
+              label: "받은 제안",
+              count: proposalsLoad.status === "loaded" ? proposalsLoad.proposals.length : "-",
+            },
             { label: "진행 중", count: counts.inProgress },
             { label: "완료", count: counts.done },
           ]}

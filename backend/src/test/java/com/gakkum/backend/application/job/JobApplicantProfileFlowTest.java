@@ -63,6 +63,7 @@ import com.gakkum.backend.domain.owner.entity.Owner;
 import com.gakkum.backend.domain.owner.repository.OwnerRepository;
 import com.gakkum.backend.domain.owner.service.OwnerService;
 import com.gakkum.backend.domain.payment.service.PaymentService;
+import com.gakkum.backend.domain.proposal.repository.ProposalLikeRepository;
 import com.gakkum.backend.domain.proposal.repository.ProposalRepository;
 import com.gakkum.backend.domain.proposal.repository.ProposalSpecialtyRepository;
 import com.gakkum.backend.domain.proposal.service.ProposalService;
@@ -131,7 +132,9 @@ class JobApplicantProfileFlowTest {
                 mock(PaymentService.class),
                 new ReviewService(reviewRepository),
                 new CertificateService(studentCertificateRepository),
-                new ProposalService(proposalRepository, mock(ProposalSpecialtyRepository.class)), mock(MediaService.class));
+                new ProposalService(proposalRepository, mock(ProposalSpecialtyRepository.class),
+                        mock(ProposalLikeRepository.class)),
+                mock(MediaService.class));
 
         mockMvc = MockMvcBuilders.standaloneSetup(new JobController(facade))
                 .setControllerAdvice(new GlobalExceptionHandler())

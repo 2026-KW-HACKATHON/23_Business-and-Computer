@@ -55,3 +55,30 @@
   color: var(--role-secondary);
   white-space: pre-line;
 }
+
+/* 받은 제안: 상태 칩 · 대분류 뱃지(여러 개면 다음 줄로) · 도착 날짜 */
+.owner-proposal__meta {
+  flex-wrap: wrap;
+}
+
+.owner-proposal__chip {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  height: 22px;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: var(--role-muted);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 16px;
+  color: var(--text-body);
+}
+
+.owner-proposal__message-title {
+  margin: 4px 0 0;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 18px;
+  color: var(--text-title);
+}

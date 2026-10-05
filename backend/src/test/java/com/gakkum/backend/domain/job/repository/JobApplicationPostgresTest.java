@@ -3,6 +3,8 @@ package com.gakkum.backend.domain.job.repository;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.util.List;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
@@ -121,6 +123,37 @@ class JobApplicationPostgresTest {
 
         assertThat(jobApplicationRepository.findByStudentProfileId(STUDENT_PROFILE_ID)).hasSize(1);
         assertThat(jobApplicationRepository.findByStudentProfileId(STUDENT_PROFILE_ID + 1)).hasSize(1);
+    }
+
+    @Test
+    @DisplayName("학생과 의뢰 ID 목록으로 조회하면 상태와 무관하게 그 학생이 그 의뢰들에 낸 지원서만 반환한다")
+    void findsByStudentAndJobIdsRegardlessOfStatus() {
+        jobApplicationRepository.saveAndFlush(application(STUDENT_PROFILE_ID, JOB_ID, JobApplicationStatus.PENDING));
+        jobApplicationRepository.saveAndFlush(
+                application(STUDENT_PROFILE_ID, JOB_ID + 1, JobApplicationStatus.ACCEPTED));
+        jobApplicationRepository.saveAndFlush(
+                application(STUDENT_PROFILE_ID, JOB_ID + 2, JobApplicationStatus.REJECTED));
+        // 조회 목록에 없는 의뢰와 다른 학생만 지원한 의뢰는 빠진다
+        jobApplicationRepository.saveAndFlush(application(STUDENT_PROFILE_ID, JOB_ID + 3, JobApplicationStatus.PENDING));
+        jobApplicationRepository.saveAndFlush(
+                application(STUDENT_PROFILE_ID + 1, JOB_ID + 4, JobApplicationStatus.PENDING));
+        entityManager.clear();
+
+        assertThat(jobApplicationRepository.findByStudentProfileIdAndJobIdIn(
+                STUDENT_PROFILE_ID, List.of(JOB_ID, JOB_ID + 1, JOB_ID + 2, JOB_ID + 4)))
+                .extracting(JobApplication::getJobId)
+                .containsExactlyInAnyOrder(JOB_ID, JOB_ID + 1, JOB_ID + 2);
+    }
+
+    private static JobApplication application(Long studentProfileId, Long jobId, JobApplicationStatus status) {
+        return JobApplication.builder()
+                .jobId(jobId)
+                .studentProfileId(studentProfileId)
+                .summary("요약")
+                .workPlan("계획")
+                .deliveryMethod("전달")
+                .status(status)
+                .build();
     }
 
     private static JobApplication application(

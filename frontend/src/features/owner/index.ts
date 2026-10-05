@@ -19,8 +19,6 @@ export {
   useOwnerNotifications,
   useOwnerPayments,
   useOwnerProfile,
-  useOwnerProposal,
-  useOwnerProposals,
   useOwnerRequest,
   useOwnerRequests,
   useOwnerStore,
@@ -38,6 +36,15 @@ export {
 } from "./hooks/ownerDemo";
 export { useSafePayment } from "./hooks/useSafePayment";
 export { useOwnerHome } from "./hooks/useOwnerHome";
+export { useReceivedProposals } from "./hooks/useReceivedProposals";
+export {
+  proposalStudentRecord,
+  receivedOnText,
+  receivedProposalFlowSteps,
+  receivedProposalStatusLabel,
+  studentMetaText,
+} from "./lib/receivedProposals";
+export type { ReceivedProposal } from "./lib/receivedProposals";
 export { flowSteps } from "./lib/flow";
 export {
   EXPLORE_PROGRESS_LABEL,
@@ -75,7 +82,6 @@ export type {
   OwnerNotification,
   OwnerPayment,
   OwnerProfile,
-  OwnerProposal,
   OwnerRequest,
   OwnerStore,
   OwnerTodo,
