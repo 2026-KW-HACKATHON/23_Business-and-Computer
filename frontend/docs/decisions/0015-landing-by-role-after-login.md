@@ -41,5 +41,5 @@ their role. The backend has no 「who am I」 API, but the access token carries 
 ## Agent Guidance
 
 - Student signup (POST /auth/student, ADR 0019) and owner signup
-  (POST /auth/owner, ADR 0020) store the new access token with
+  (POST /auth/owner, ADR 0021) store the new access token with
   `saveAccessToken`, so `landingPath` reads the new role right after signup.
