@@ -2,7 +2,6 @@
 export { default as OwnerSignupProvider } from "./components/OwnerSignupProvider";
 export { default as StudentSignupProvider } from "./components/StudentSignupProvider";
 export { default as TermsSheet } from "./components/TermsSheet";
-export { fetchSpecialties } from "./api/signupApi";
 export { useOwnerSignup } from "./lib/ownerSignupContext";
 export { useStudentSignup } from "./lib/studentSignupContext";
 export {
@@ -35,7 +34,6 @@ export type {
   Certificate,
   CertificateStatus,
   OwnerSignupDraft,
-  SpecialtyCategory,
   StudentSignupDraft,
   StudentVerifyReturnState,
 } from "./types";

@@ -2,7 +2,7 @@ import { apiFetch } from "../../../api/client";
 import type { ApiResponse } from "../../../api/client";
 import { getAccessToken } from "../../auth";
 import { PROFILE_PHOTO_EXTENSIONS } from "../lib/profilePhoto";
-import type { BusinessInfo, SpecialtyCategory, StudentRegistrationRequest } from "../types";
+import type { BusinessInfo, StudentRegistrationRequest } from "../types";
 
 interface OwnerBusinessVerificationResponse {
   verified: boolean;
@@ -68,14 +68,6 @@ export async function verifyStudentEmailCode(email: string, code: string): Promi
     headers: authHeaders(),
     body: JSON.stringify({ email, code }),
   });
-}
-
-/** GET /specialties — 대분류별 특기 목록 (data 는 배열) */
-export async function fetchSpecialties(): Promise<SpecialtyCategory[]> {
-  const response = await apiFetch<ApiResponse<SpecialtyCategory[]>>("/specialties", {
-    headers: authHeaders(),
-  });
-  return response.data ?? [];
 }
 
 /**

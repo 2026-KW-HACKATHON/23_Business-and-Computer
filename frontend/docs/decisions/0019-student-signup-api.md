@@ -103,8 +103,9 @@ states.
     `src/types/specialty.ts` is no longer used for signup (other screens
     still use it for sample data).
   - Categories with `specialties: []` (e.g. the coming 「기타」) are hidden on
-    this screen only; `fetchSpecialties` returns them unchanged because the
-    request and proposal screens will need 「기타」.
+    this screen with `selectableCategories`; `fetchSpecialties` returns them
+    unchanged so each screen decides (the request screen may need 「기타」).
+    Both now live in the shared `src/features/specialty` (ADR 0020).
   - The 1–5 rule always applies. If no category has a specialty after that
     filter, the panel shows only 「선택할 특기가 아직 없어요」, and
     a failed load shows only 「특기 목록을 불러오지 못했어요」 with 「다시 시도」
