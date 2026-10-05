@@ -25,7 +25,7 @@ This needs (1) client-side routing for the login, cookie, and home routes, and
 - On the /cookie route, `CookiePage` calls `POST /jwt/exchange` with
   `credentials: "include"` so the backend reads its HTTP-only refresh-token
   cookie and returns `{ accessToken }` in the body; the access token is stored
-  and the user is sent home. The refresh token stays in the cookie (ADR 0020).
+  and the user is sent home. The refresh token stays in the cookie (ADR 0021).
 - All backend access goes through `src/api/client.ts` (`apiFetch`) and the auth
   feature's `src/features/auth/api`; the base URL comes from
   `VITE_BACKEND_API_BASE_URL`. The access token lives in `src/api/tokens.ts`
