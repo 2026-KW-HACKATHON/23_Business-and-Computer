@@ -28,6 +28,7 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import com.gakkum.backend.application.job.controller.JobController;
 import com.gakkum.backend.application.job.facade.JobFacade;
+import com.gakkum.backend.domain.media.service.MediaService;
 import com.gakkum.backend.domain.certificate.service.CertificateService;
 import com.gakkum.backend.domain.chat.service.ChatAttachmentPolicy;
 import com.gakkum.backend.domain.job.client.JobSubmissionFileStorageClient;
@@ -103,7 +104,7 @@ class JobDetailFlowTest {
                 specialtyCategoryService, specialtyService, new StudentService(studentRepository),
                 mock(JobSubmissionFileStorageClient.class), mock(ChatAttachmentPolicy.class),
                 new PaymentService(paymentRepository, Clock.systemUTC()),
-                mock(ReviewService.class), mock(CertificateService.class), mock(ProposalService.class));
+                mock(ReviewService.class), mock(CertificateService.class), mock(ProposalService.class), mock(MediaService.class));
         mockMvc = MockMvcBuilders.standaloneSetup(new JobController(facade))
                 .setControllerAdvice(new GlobalExceptionHandler())
                 .build();
@@ -401,6 +402,33 @@ class JobDetailFlowTest {
     private void givenStudentProfileOfUser(Long studentProfileId) {
         when(studentRepository.findByUserId(USER_ID))
                 .thenReturn(Optional.of(Student.builder().id(studentProfileId).userId(USER_ID).build()));
+    }
+
+    @Test
+    @DisplayName("의뢰 상세는 여러 참고 사진 URL을 저장된 순서대로 반환한다")
+    void returnsReferenceImagesInOrder() throws Exception {
+        givenActiveStudent();
+        givenJob(jobBuilder(JobStatus.OPEN)
+                .referenceImageUrls(List.of("https://images.example.com/b.png", "https://images.example.com/a.png"))
+                .build());
+
+        mockMvc.perform(get("/jobs/42").principal(authentication))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.referenceImageUrls.length()").value(2))
+                .andExpect(jsonPath("$.data.referenceImageUrls[0]").value("https://images.example.com/b.png"))
+                .andExpect(jsonPath("$.data.referenceImageUrls[1]").value("https://images.example.com/a.png"));
+    }
+
+    @Test
+    @DisplayName("참고 사진이 없는 기존 의뢰는 상세에서 빈 배열을 반환한다")
+    void returnsEmptyReferenceImages() throws Exception {
+        givenActiveStudent();
+        givenJob(job(JobStatus.OPEN));
+
+        mockMvc.perform(get("/jobs/42").principal(authentication))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.referenceImageUrls").isArray())
+                .andExpect(jsonPath("$.data.referenceImageUrls").isEmpty());
     }
 
     private void givenJobOwnerStore() {

@@ -4,7 +4,8 @@ package com.gakkum.backend.domain.media.dto;
 public enum ImagePurpose {
     PROFILE("profile"),
     STORE("store"),
-    PROPOSAL("proposal");
+    PROPOSAL("proposal"),
+    JOB("job");
 
     private final String keyPrefix;
 

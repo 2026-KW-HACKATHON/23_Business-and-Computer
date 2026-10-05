@@ -20,6 +20,7 @@ import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import com.gakkum.backend.domain.media.service.MediaService;
 import com.gakkum.backend.domain.chat.entity.ChatMessageType;
 import com.gakkum.backend.domain.certificate.service.CertificateService;
 import com.gakkum.backend.domain.chat.service.ChatAttachmentPolicy;
@@ -64,7 +65,7 @@ class JobFacadeSubmissionTest {
             userService, mock(OwnerService.class), jobService, mock(SpecialtyCategoryService.class),
             mock(SpecialtyService.class), studentService,
             storageClient, chatAttachmentPolicy, mock(PaymentService.class),
-                mock(ReviewService.class), mock(CertificateService.class), mock(ProposalService.class));
+                mock(ReviewService.class), mock(CertificateService.class), mock(ProposalService.class), mock(MediaService.class));
 
     @Test
     @DisplayName("업로드 준비는 채팅 첨부 규칙으로 검증한 형식으로 서명하고 공개 파일 URL을 반환한다")

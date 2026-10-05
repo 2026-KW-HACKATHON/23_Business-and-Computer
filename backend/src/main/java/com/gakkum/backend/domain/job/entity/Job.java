@@ -2,9 +2,12 @@ package com.gakkum.backend.domain.job.entity;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.annotations.UpdateTimestamp;
+import org.hibernate.type.SqlTypes;
 
 import com.gakkum.backend.global.exception.BusinessException;
 import com.gakkum.backend.global.exception.ErrorCode;
@@ -55,6 +58,11 @@ public class Job {
 
     @Column(name = "revision_count", nullable = false)
     private Integer revisionCount;
+
+    @Builder.Default
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "reference_image_urls", nullable = false, columnDefinition = "jsonb")
+    private List<String> referenceImageUrls = List.of();
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 30)
@@ -108,6 +116,20 @@ public class Job {
             LocalDate finalDeadline,
             Integer revisionCount,
             String demoSessionId) {
+        return create(ownerProfileId, title, description, budget, draftDeadline, finalDeadline, revisionCount,
+                List.of(), demoSessionId);
+    }
+
+    public static Job create(
+            Long ownerProfileId,
+            String title,
+            String description,
+            Long budget,
+            LocalDate draftDeadline,
+            LocalDate finalDeadline,
+            Integer revisionCount,
+            List<String> referenceImageUrls,
+            String demoSessionId) {
         return Job.builder()
                 .ownerProfileId(ownerProfileId)
                 .title(title)
@@ -116,6 +138,7 @@ public class Job {
                 .draftDeadline(draftDeadline)
                 .finalDeadline(finalDeadline)
                 .revisionCount(revisionCount)
+                .referenceImageUrls(List.copyOf(referenceImageUrls))
                 .demoSessionId(demoSessionId)
                 .status(JobStatus.OPEN)
                 .build();

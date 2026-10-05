@@ -80,6 +80,24 @@ class MediaControllerTest {
     }
 
     @ParameterizedTest
+    @ValueSource(strings = {"STORE", "JOB"})
+    @DisplayName("매장과 의뢰용 업로드 요청의 용도를 서비스에 전달한다")
+    void acceptsImagePurpose(String purpose) throws Exception {
+        when(facade.prepareImageUpload(any())).thenReturn(PrepareImageUploadResult.of(
+                "https://upload.example.com", Map.of("content-type", "image/png"),
+                LocalDateTime.of(2026, 10, 5, 12, 0), "https://images.example.com/image.png"));
+
+        mockMvc.perform(post("/media/images/uploads").principal(authentication)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(VALID_BODY.replace("STORE", purpose)))
+                .andExpect(status().isCreated());
+
+        ArgumentCaptor<PrepareImageUploadCommand> captor = ArgumentCaptor.forClass(PrepareImageUploadCommand.class);
+        verify(facade).prepareImageUpload(captor.capture());
+        assertThat(captor.getValue().getPurpose()).isEqualTo(ImagePurpose.valueOf(purpose));
+    }
+
+    @ParameterizedTest
     @ValueSource(strings = {
             "{\"purpose\":\"CHAT\",\"fileName\":\"a.png\",\"contentType\":\"image/png\",\"size\":1}",
             "{\"fileName\":\"a.png\",\"contentType\":\"image/png\",\"size\":1}",

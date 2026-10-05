@@ -110,6 +110,7 @@ public class JobService {
                 command.getDraftDeadline(),
                 command.getFinalDeadline(),
                 command.getRevisionCount(),
+                command.getReferenceImageUrls(),
                 demoSessionId);
 
         Job savedJob = jobRepository.save(job);
