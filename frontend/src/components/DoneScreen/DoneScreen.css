@@ -1,7 +1,12 @@
+/* 다른 화면 틀처럼 폭 390px 로 가운데에 둔다 */
 .done-screen {
   display: flex;
   flex-direction: column;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 390px;
   min-height: calc(100svh - var(--demo-strip-height));
+  margin: 0 auto;
   padding-top: env(safe-area-inset-top);
   background: var(--color-white);
   font-family: var(--font-sans);
