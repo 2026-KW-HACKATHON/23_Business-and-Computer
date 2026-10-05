@@ -39,7 +39,7 @@ const SEND_ERROR_TEXT: Record<SendError, string> = {
 
 /**
  * 피그마 「제안 보내기 4/4 - 확인」. 3/4 에서 적은 내용을 제안서 모양으로 보여 주고,
- * 「제안 보내기」에서 참고 사진을 올린 뒤 POST /proposals 로 보낸다 (ADR 0020).
+ * 「제안 보내기」에서 참고 사진을 올린 뒤 POST /proposals 로 보낸다 (ADR 0021).
  */
 function StudentProposalConfirmPage() {
   const navigate = useNavigate();

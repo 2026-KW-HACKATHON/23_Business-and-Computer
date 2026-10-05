@@ -1,4 +1,4 @@
-# 0020. Student 「제안 보내기」 calls the backend API
+# 0021. Student 「제안 보내기」 calls the backend API
 
 ## Status
 
@@ -32,10 +32,9 @@ proposal to the demo store. The backend (dev) has:
   `specialties: []`.
 - `POST /media/images/uploads` with `purpose: "PROPOSAL"`, then an S3 `PUT`.
 
-The team lead is building shared API helpers (a tokens module under src/api,
-`apiData` and `authHeaders` in `src/api/client.ts`, and `uploadImage` in a
-new media module under src/api). This change must not touch `src/api/client.ts`, the auth
-token files, or the signup photo upload, to avoid conflicts with that PR.
+The shared API layer (ADR 0020) provides `apiData` in `src/api/client.ts`
+(stored token, `data` only, one `POST /refresh` retry on 401) and
+`uploadImage(file, purpose)` in `src/api/media.ts`.
 
 ## Decision
 
@@ -44,13 +43,11 @@ token files, or the signup photo upload, to avoid conflicts with that PR.
   `reload`, late responses dropped), `selectableCategories` (drops categories
   with no specialty), and `findSpecialtyByName`. Signup step 3 now uses it;
   its behavior is unchanged (ADR 0019).
-- **Temporary request helpers**: every proposal and store call goes through
-  two small functions in `src/features/student/api/request.ts` —
-  `requestData<T>` (adds the stored token, returns `data`) and
-  `uploadImageAsProposal` (prepare with purpose PROPOSAL, then S3 `PUT`). For
-  now they copy the signup approach (`getAccessToken` + `apiFetch`, the same
-  upload steps). `src/features/specialty/api/specialtyApi.ts` has the same
-  `requestData`.
+- **Shared API layer** (ADR 0020): the store, proposal, and specialty calls use
+  `apiData`, and reference photos use `uploadImage(file, "PROPOSAL")`. A 401
+  that survives the `POST /refresh` retry goes to /login. Photo type and size checks
+  use `IMAGE_UPLOAD_EXTENSIONS` / `MAX_IMAGE_UPLOAD_BYTES` from
+  `src/api/media.ts`, like the signup photos.
 - **1/4 and 가게 탐색** (`StudentStoresPage`) use `useExploreStores`, which
   loads every page of `GET /explore/stores` (`sort=OLDEST` for 「등록순」,
   `size=100`, at most 20 pages). Category chips (fixed 11 from Figma) and the
@@ -97,8 +94,8 @@ token files, or the signup photo upload, to avoid conflicts with that PR.
   list is small.
 - Uploading at send time avoids expired upload URLs and orphan photos when the
   student leaves before sending.
-- Keeping the token and upload code in one tiny function per feature makes
-  the switch to the shared helpers a one-line change.
+- Using the shared helpers keeps token refresh and upload rules in one place
+  for every feature.
 
 ## Alternatives Considered
 
@@ -107,18 +104,15 @@ token files, or the signup photo upload, to avoid conflicts with that PR.
 - Infinite scroll for stores: rejected for now; the name search would only see
   loaded pages.
 - Uploading photos as soon as they are picked: rejected, see Rationale.
-- Creating a separate media feature for uploads: dropped, the team lead's
-  shared media module will cover it.
+- A separate media feature or temporary request helpers in this feature:
+  dropped once the shared API layer (ADR 0020) was merged; the temporary
+  `requestData` / `uploadImageAsProposal` were replaced by `apiData` /
+  `uploadImage`.
 
 ## Agent Guidance
 
-- **After the team lead's shared API is merged**, replace:
-  - `requestData` in `src/features/student/api/request.ts` and
-    `src/features/specialty/api/specialtyApi.ts` with `apiData<T>(path, init)`
-    (it also retries 401 once through `POST /refresh`);
-  - `uploadImageAsProposal` with `uploadImage(file, "PROPOSAL")`.
-  Keep the function names so callers do not change, or inline them and delete
-  the file.
+- New student API calls should use `apiData` and `uploadImage` directly; do
+  not reintroduce per-feature token or upload helpers.
 - The sent-proposal list (내 활동 › 보낸 제안) and the proposal detail still
   use sample data, so a proposal sent through the API does not show there
   yet. Wire `GET /me/proposals` and `GET /proposals/{proposalId}` next.

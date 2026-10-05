@@ -1,7 +1,7 @@
 import { ApiError } from "../../../api/client";
+import { IMAGE_UPLOAD_EXTENSIONS, MAX_IMAGE_UPLOAD_BYTES, uploadImage } from "../../../api/media";
 import { createProposal } from "../api/proposalApi";
 import type { ProposalCreateRequest } from "../api/proposalApi";
-import { uploadImageAsProposal } from "../api/request";
 import type { ExploreStore } from "../types";
 
 /** 제안 보내기 2/4 에서 고른 일 하나 (GET /specialties 의 특기) */
@@ -47,15 +47,14 @@ export interface NewProposalState {
   content?: ProposalContent;
 }
 
-/** 참고 사진 장 수 · 형식 · 크기 (형식·크기는 백엔드 이미지 업로드와 같다) */
+/** 참고 사진 장 수 · 형식 · 크기 (형식·크기는 공용 api/media 의 백엔드 기준) */
 export const MAX_PROPOSAL_PHOTOS = 5;
-export const PROPOSAL_PHOTO_ACCEPT = "image/jpeg,image/png,image/webp";
-const MAX_PROPOSAL_PHOTO_BYTES = 10 * 1024 * 1024;
+export const PROPOSAL_PHOTO_ACCEPT = Object.keys(IMAGE_UPLOAD_EXTENSIONS).join(",");
 
 /** 고른 사진을 올릴 수 있는지. accept 는 우회될 수 있어 형식도 다시 본다 */
 export function checkProposalPhoto(file: File): "ok" | "type" | "size" {
-  if (!PROPOSAL_PHOTO_ACCEPT.split(",").includes(file.type)) return "type";
-  if (file.size > MAX_PROPOSAL_PHOTO_BYTES) return "size";
+  if (!(file.type in IMAGE_UPLOAD_EXTENSIONS)) return "type";
+  if (file.size > MAX_IMAGE_UPLOAD_BYTES) return "size";
   return "ok";
 }
 
@@ -124,10 +123,14 @@ export type ProposalPhotoUploadResult =
   | { status: "unauthorized" }
   | { status: "failed" };
 
-/** 참고 사진 한 장을 올린다. 401 말고는 모두 실패로 본다 (형식·크기는 고를 때 이미 막았다) */
+/**
+ * 참고 사진 한 장을 공용 uploadImage(용도 PROPOSAL)로 올린다.
+ * 401 은 apiData 가 /refresh 로 한 번 다시 시도한 뒤에도 실패한 경우다. 그 밖에는 모두 실패로 본다
+ * (형식·크기는 고를 때 이미 막았다).
+ */
 export async function uploadProposalPhoto(file: File): Promise<ProposalPhotoUploadResult> {
   try {
-    return { status: "uploaded", imageUrl: await uploadImageAsProposal(file) };
+    return { status: "uploaded", imageUrl: await uploadImage(file, "PROPOSAL") };
   } catch (error) {
     if (error instanceof ApiError && error.status === 401) return { status: "unauthorized" };
     return { status: "failed" };

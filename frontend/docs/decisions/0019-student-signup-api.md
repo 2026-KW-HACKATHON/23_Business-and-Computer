@@ -105,7 +105,7 @@ states.
   - Categories with `specialties: []` (e.g. the coming 「기타」) are hidden on
     this screen with `selectableCategories`; `fetchSpecialties` returns them
     unchanged so each screen decides (the request screen may need 「기타」).
-    Both now live in the shared `src/features/specialty` (ADR 0020).
+    Both now live in the shared `src/features/specialty` (ADR 0021).
   - The 1–5 rule always applies. If no category has a specialty after that
     filter, the panel shows only 「선택할 특기가 아직 없어요」, and
     a failed load shows only 「특기 목록을 불러오지 못했어요」 with 「다시 시도」
@@ -180,7 +180,7 @@ states.
 
 ## Agent Guidance
 
-- `landingPath` still sends STUDENT to /home and the student home at /student
-  is sample data (ADR 0018); switching it is separate work.
-- Owner step 3 (`POST /auth/owner`, same token response) can reuse
-  `uploadProfileImage` and `saveAccessToken`.
+- `landingPath` sends STUDENT to /student; the student home still shows
+  sample data (ADR 0018) until its API is wired.
+- Owner step 3 (`POST /auth/owner`) is wired in ADR 0020 with the same
+  rules; image upload and the auth header now live in `src/api`.

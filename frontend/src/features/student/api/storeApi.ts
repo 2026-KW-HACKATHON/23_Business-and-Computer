@@ -1,5 +1,5 @@
+import { apiData } from "../../../api/client";
 import type { ExploreStore } from "../types";
-import { requestData } from "./request";
 
 interface StoreExploreResponse {
   items: {
@@ -29,7 +29,7 @@ export async function fetchAllExploreStores(): Promise<ExploreStore[]> {
   for (let page = 0; page < MAX_PAGES; page += 1) {
     const params = new URLSearchParams({ sort: "OLDEST", size: String(PAGE_SIZE) });
     if (cursor) params.set("cursor", cursor);
-    const data: StoreExploreResponse | undefined = await requestData<StoreExploreResponse>(
+    const data: StoreExploreResponse | undefined = await apiData<StoreExploreResponse | undefined>(
       `/explore/stores?${params.toString()}`,
     );
     for (const item of data?.items ?? []) {

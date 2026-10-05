@@ -9,6 +9,11 @@ export {
   formatBusinessNumber,
   isStoreInfoComplete,
 } from "./lib/businessInfo";
+export {
+  findBusinessCategoryId,
+  registerOwnerSignup,
+  uploadStorePhoto,
+} from "./lib/ownerRegistration";
 export { PROFILE_PHOTO_ACCEPT, checkProfilePhoto } from "./lib/profilePhoto";
 export {
   MAX_CODE_ATTEMPTS,
@@ -34,6 +39,7 @@ export type {
   Certificate,
   CertificateStatus,
   OwnerSignupDraft,
+  PhotoUploadResult,
   StudentSignupDraft,
   StudentVerifyReturnState,
 } from "./types";

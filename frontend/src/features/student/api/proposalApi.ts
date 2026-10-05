@@ -1,4 +1,4 @@
-import { requestData } from "./request";
+import { apiData } from "../../../api/client";
 
 /** POST /proposals 요청 본문 (ProposalCreateRequest) */
 export interface ProposalCreateRequest {
@@ -22,7 +22,7 @@ export interface ProposalCreateRequest {
 
 /** POST /proposals — 학생이 가게(사장님)에 제안을 보낸다. 201, 만든 제안 id 를 돌려준다 */
 export async function createProposal(request: ProposalCreateRequest): Promise<number> {
-  const data = await requestData<{ proposalId: number }>("/proposals", {
+  const data = await apiData<{ proposalId: number } | undefined>("/proposals", {
     method: "POST",
     body: JSON.stringify(request),
   });

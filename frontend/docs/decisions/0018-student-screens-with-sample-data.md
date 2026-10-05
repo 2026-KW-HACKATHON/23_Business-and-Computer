@@ -78,11 +78,10 @@ owner's applicant list).
 
 - When an owner sample fact that the student side also shows changes, change
   it in both features (ids above) and in Figma and Notion.
-- Login does not land students on /student yet: after the dev redirect cleanup
-  is merged, make `landingPath` in `src/features/auth/lib/session.ts` return
-  /student for students and drop the student case from `HomePage`.
+- Login and signup land students on /student (`landingPath` in
+  `src/features/auth/lib/session.ts`, ADR 0015).
 - Uploads, portfolio export, and real reporting are frontend-only until the
   backend has student APIs.
 - The new-proposal flow (stores, tasks, photos, send) and 가게 탐색 now call
-  the backend (ADR 0020); its sample stores and the demo `sendProposal` are no
+  the backend (ADR 0021); its sample stores and the demo `sendProposal` are no
   longer used there. Other student screens still read the sample data.

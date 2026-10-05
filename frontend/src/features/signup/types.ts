@@ -163,3 +163,50 @@ export interface StudentRegistrationRequest {
   specialtyIds: number[];
   certificates: { certificateName: string; acquiredYear: number }[];
 }
+
+/** GET /business-categories 한 줄. name 은 가입 1/3 업종 칩 이름과 같다 */
+export interface BusinessCategory {
+  id: number;
+  name: string;
+}
+
+/** 고른 업종의 서버 id 찾기 결과 */
+export type BusinessCategoryLookup =
+  | { status: "found"; id: number }
+  /** 목록에 같은 이름이 없다 */
+  | { status: "missing" }
+  | { status: "unauthorized" }
+  | { status: "failed" };
+
+/** POST /auth/owner 요청 본문 (OwnerRegistrationRequest). 빈 선택 값은 빼고 보낸다 */
+export interface OwnerRegistrationRequest {
+  name: string;
+  storeName: string;
+  storeAddress?: string;
+  categoryId: number;
+  /** 입력 그대로 (하이픈 있어도 됨) */
+  businessNumber: string;
+  /** YYYY-MM-DD */
+  openedAt: string;
+  representativeName: string;
+  description?: string;
+  /** 최대 5장 */
+  storeImageUrls: string[];
+  profileImageUrl?: string;
+}
+
+/** 사장님 가입 저장 결과. registered 면 새 access token 을 이미 저장했다 */
+export type OwnerRegisterResult =
+  | "registered"
+  | "unauthorized"
+  | "alreadyRegistered"
+  /** OWNER_409_BUSINESS_NUMBER: 다른 계정이 이미 쓰는 사업자등록번호 */
+  | "businessNumberTaken"
+  /** CATEGORY_400: 보낸 업종 id 가 서버에 없다 */
+  | "categoryInvalid"
+  /** 그 밖의 400. 같은 값으로 다시 보내도 실패한다 */
+  | "invalidInput"
+  /** 그 밖의 409 (COMMON_409). 다시 시도하면 될 수도 있다 (docs/failures/0002) */
+  | "dataConflict"
+  /** 5xx · 네트워크 */
+  | "error";

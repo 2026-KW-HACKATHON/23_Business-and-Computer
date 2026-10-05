@@ -1,3 +1,5 @@
+import { clearTokens, getAccessToken, saveAccessToken } from "./tokens";
+
 /**
  * Backend API client. All network access to the Spring Boot backend goes
  * through here (or a feature's own `api` module) — components must not call
@@ -52,4 +54,61 @@ export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise
   }
 
   return response.json() as Promise<T>;
+}
+
+/** `Authorization: Bearer …` for the stored access token, or nothing when logged out. */
+export function authHeaders(): Record<string, string> {
+  const token = getAccessToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
+/** In-flight `/refresh`, shared so parallel 401s trigger one refresh. */
+let refreshing: Promise<boolean> | null = null;
+
+/**
+ * `POST /refresh` trades the HTTP-only refresh cookie for a new access token
+ * (raw `{accessToken}`, no envelope) and rotates the cookie. Resolves `false`
+ * when the cookie is missing, expired, or already used.
+ */
+function refreshAccessToken(): Promise<boolean> {
+  refreshing ??= apiFetch<{ accessToken: string }>("/refresh", { method: "POST" })
+    .then(({ accessToken }) => {
+      saveAccessToken(accessToken);
+      return true;
+    })
+    .catch(() => false)
+    .finally(() => {
+      refreshing = null;
+    });
+  return refreshing;
+}
+
+/**
+ * Authenticated backend call that returns the envelope's `data`
+ * (`undefined` for endpoints that answer just `{"success":true}`).
+ *
+ * Adds the stored access token. On 401 it refreshes the token once and
+ * retries; if the refresh fails it clears the stored tokens and rethrows the
+ * 401 {@link ApiError}, so the caller can send the user to /login.
+ * `init.headers` must be a plain object (it is spread, see ADR 0016).
+ */
+export async function apiData<T>(path: string, init: RequestInit = {}): Promise<T> {
+  const send = async () => {
+    const body = await apiFetch<ApiResponse<T>>(path, {
+      ...init,
+      headers: { ...authHeaders(), ...init.headers },
+    });
+    return body.data as T;
+  };
+
+  try {
+    return await send();
+  } catch (error) {
+    if (!(error instanceof ApiError) || error.status !== 401 || getAccessToken() === null) throw error;
+    if (!(await refreshAccessToken())) {
+      clearTokens();
+      throw error;
+    }
+    return send();
+  }
 }
