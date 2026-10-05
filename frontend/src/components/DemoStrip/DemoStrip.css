@@ -1,0 +1,25 @@
+.demo-strip {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  max-width: 390px;
+  height: var(--demo-strip-height);
+  margin: 0 auto;
+  box-sizing: border-box;
+  background: var(--color-main);
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 16px;
+  color: var(--color-black);
+}
+
+.demo-strip__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--color-black);
+}

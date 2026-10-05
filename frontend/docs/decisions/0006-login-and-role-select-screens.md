@@ -2,8 +2,9 @@
 
 ## Status
 
-Accepted. The login and role-select layouts are updated by ADR 0007; the
-routes, demo entry, and Notion link rules here still apply.
+Accepted. The login and role-select layouts are updated by ADR 0007, and
+the demo routes by ADR 0024 (둘러보기 lands on /owner and /student); the
+demo entry and Notion link rules here still apply.
 
 ## Context
 
@@ -29,9 +30,8 @@ demo accounts, and the signup and home screens come later.
   with `mode="signup"` or `mode="demo"`. Only the title, button wording, and
   next routes differ.
 - Next routes follow the Notion route table: signup goes to /signup/owner/1 and
-  /signup/student/1; demo goes to /demo/owner and /demo/student, kept apart
-  from the logged-in homes /owner and /student so the demo mode is visible in
-  the URL. Until those screens exist, the catch-all route sends them to /.
+  /signup/student/1; demo logs in with `POST /demo/login` and goes to
+  /owner or /student (ADR 0024).
 - The Figma hover variant (character grows from 136px to 160px) becomes a
   press effect, plus hover on devices that support it.
 

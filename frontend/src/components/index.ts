@@ -14,6 +14,7 @@ export { default as DeadlineBadge } from "./DeadlineBadge/DeadlineBadge";
 export { default as Dialog } from "./Dialog/Dialog";
 export { default as DemoButton } from "./DemoButton/DemoButton";
 export { default as DemoRoleBadge } from "./DemoRoleBadge/DemoRoleBadge";
+export { default as DemoStrip } from "./DemoStrip/DemoStrip";
 export { default as DoneScreen } from "./DoneScreen/DoneScreen";
 export { default as DownloadButton } from "./DownloadButton/DownloadButton";
 export { default as EmpathyCount } from "./EmpathyCount/EmpathyCount";

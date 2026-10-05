@@ -67,6 +67,15 @@ body {
   margin: 0;
 }
 
+/* 「둘러보기 중」 띠 높이. 띠가 없으면 0 이라 화면 틀 높이가 그대로다 */
+:root {
+  --demo-strip-height: 0px;
+}
+
+:root:has(.demo-strip) {
+  --demo-strip-height: 24px;
+}
+
 /*
  * 웹 글꼴(Google Fonts Noto Sans KR)의 띄어쓰기가 피그마의 Noto Sans KR보다 0.05em 넓어
  * 긴 문장이 피그마보다 일찍 줄바꿈된다. 요소마다 자기 글자 크기 기준으로 줄인다.

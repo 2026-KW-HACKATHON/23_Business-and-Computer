@@ -32,3 +32,13 @@
   width: 100%;
   margin-top: 56px;
 }
+
+/* 둘러보기를 시작하지 못했을 때 카드 아래 안내 */
+.role-select__error {
+  margin: 16px 0 0;
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--color-danger);
+  text-align: center;
+  word-break: keep-all;
+}
