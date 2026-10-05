@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useLocation, useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import {
   AppImage,
   Button,
@@ -20,10 +20,10 @@ import {
   estimatedDeadlineText,
   expectedDaysText,
   proposalBadgeNames,
-  readStoreAddress,
   sentOnText,
   sentProposalFlowSteps,
   sentProposalStatusLabel,
+  storeAddressText,
   useSentProposalDetail,
 } from "../features/student";
 import { useBack } from "../hooks/useBack";
@@ -33,18 +33,16 @@ import "./StudentDetailPage.css";
 
 /**
  * 피그마 「보낸 제안서 상세 보기」. GET /proposals/{id} (ADR 0022).
- * 가게 주소는 상세 API 에 없어서 목록 · 홈에서 router state 로 받고, 없으면 주소 줄을 숨긴다.
+ * 가게 주소(storeAddress) · 보낸 날짜(createdAt)가 없으면 그 줄만 숨긴다.
  * 수락된(AWAITING_START) · 작업 중(ACCEPTED) 제안은 확정된 작업 조건(agreement)을 보인다.
  * 아래 버튼은 「확인」 하나다. 「조건 확인하기」(작업 시작)는 다음 이슈, 「제안 취소」는 취소 API 가
  * 생기면 연결한다 (아래 취소 팝업은 그때 쓰려고 남겨 둔다).
  */
 function StudentProposalPage() {
   const { proposalId } = useParams();
-  const location = useLocation();
   const navigate = useNavigate();
   const back = useBack(STUDENT_PATHS.activity("proposals"));
   const { load, reload } = useSentProposalDetail(proposalId);
-  const storeAddress = readStoreAddress(location.state);
   const [cancelStep, setCancelStep] = useState<"closed" | "confirm" | "done">("closed");
 
   if (load.status === "notFound") {
@@ -63,6 +61,7 @@ function StudentProposalPage() {
   const showAgreement =
     agreement && (proposal?.status === "AWAITING_START" || proposal?.status === "ACCEPTED");
   const photos = proposal?.referenceImageUrls ?? [];
+  const sentOn = proposal && sentOnText(proposal.createdAt);
 
   return (
     <SubScreen
@@ -97,7 +96,7 @@ function StudentProposalPage() {
               {proposalBadgeNames(proposal.specialtyCategories).map((name) => (
                 <CategoryBadge key={name} field={name} />
               ))}
-              {sentOnText(proposal.createdAt)}
+              {sentOn && <span>{sentOn}</span>}
             </div>
           </div>
 
@@ -110,7 +109,7 @@ function StudentProposalPage() {
             </strong>
           </div>
 
-          <StoreBox name={proposal.storeName} address={storeAddress} />
+          <StoreBox name={proposal.storeName} address={storeAddressText(proposal.storeAddress)} />
 
           {showAgreement && agreement && (
             <section className="student-detail__section">

@@ -20,7 +20,9 @@ import {
   currentDeadline,
   deadlineText,
   proposalBadgeNames,
+  sentOnText,
   sentProposalStatusLabel,
+  storeAddressText,
   useSentProposals,
   useStores,
   useStudentApplications,
@@ -32,7 +34,6 @@ import {
 } from "../features/student";
 import type {
   SentProposal,
-  SentProposalRouteState,
   StudentActivityTab,
   StudentApplication,
   StudentWork,
@@ -149,12 +150,10 @@ function StudentActivityPage() {
     );
   };
 
-  // 「조건 확인하기」(작업 시작)는 다음 이슈에서 연동해서 지금은 숨긴다. 보낸 날짜는 목록 API 에 없다
+  // 「조건 확인하기」(작업 시작)는 다음 이슈에서 연동해서 지금은 숨긴다
   const proposalCard = (proposal: SentProposal) => {
-    const openDetail = () =>
-      navigate(STUDENT_PATHS.proposal(String(proposal.proposalId)), {
-        state: { storeAddress: proposal.store.storeAddress } satisfies SentProposalRouteState,
-      });
+    const openDetail = () => navigate(STUDENT_PATHS.proposal(String(proposal.proposalId)));
+    const sentOn = sentOnText(proposal.createdAt);
     return (
       <li key={proposal.proposalId} className="student-activity__card">
         <CardHead
@@ -162,7 +161,7 @@ function StudentActivityPage() {
           title={proposal.title}
           right={
             <>
-              <span className="student-activity__chip">{sentProposalStatusLabel(proposal.status)}</span>
+              <span className="student-activity__chip">{sentProposalStatusLabel(proposal.status, proposal.jobStatus)}</span>
               <EmpathyCount count={proposal.likeCount} empathized />
             </>
           }
@@ -171,13 +170,14 @@ function StudentActivityPage() {
           {proposalBadgeNames(proposal.specialtyCategories).map((name) => (
             <CategoryBadge key={name} field={name} />
           ))}
+          {sentOn && <span>{sentOn}</span>}
         </div>
         <div className="student-activity__box student-activity__box--column">
           <p className="student-activity__excerpt">{proposal.proposedSolution}</p>
           <TextButton onClick={openDetail}>상세보기</TextButton>
         </div>
         <div className="student-activity__divider" />
-        <StoreLine name={proposal.store.storeName} address={proposal.store.storeAddress} />
+        <StoreLine name={proposal.store.storeName} address={storeAddressText(proposal.store.storeAddress)} />
       </li>
     );
   };

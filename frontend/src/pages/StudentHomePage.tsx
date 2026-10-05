@@ -12,7 +12,7 @@ import {
   toggleEmpathy,
   useStudentHome,
 } from "../features/student";
-import type { SentProposalRouteState, StudentTodo, StudentWaitingItem } from "../features/student";
+import type { StudentTodo, StudentWaitingItem } from "../features/student";
 import { formatMonthDay } from "../lib/date";
 import { useDragScroll } from "../hooks/useDragScroll";
 import "./StudentHomePage.css";
@@ -54,11 +54,7 @@ function StudentHomePage() {
         title={item.proposal.title}
         lines={[`${item.proposal.store.storeName}에 보낸 제안`, `손님 ${item.proposal.likeCount}명 공감`]}
         status="수락 대기"
-        onClick={() =>
-          navigate(STUDENT_PATHS.proposal(String(item.proposal.proposalId)), {
-            state: { storeAddress: item.proposal.store.storeAddress } satisfies SentProposalRouteState,
-          })
-        }
+        onClick={() => navigate(STUDENT_PATHS.proposal(String(item.proposal.proposalId)))}
       />
     ) : (
       <TaskRow

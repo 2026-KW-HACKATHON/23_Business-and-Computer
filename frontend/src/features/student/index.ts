@@ -88,12 +88,12 @@ export type {
 export {
   estimatedDeadlineText,
   proposalBadgeNames,
-  readStoreAddress,
   sentOnText,
   sentProposalFlowSteps,
   sentProposalStatusLabel,
+  storeAddressText,
 } from "./lib/sentProposals";
-export type { SentProposal, SentProposalDetail, SentProposalRouteState } from "./lib/sentProposals";
+export type { SentProposal, SentProposalDetail } from "./lib/sentProposals";
 export { NOTIFICATION_ICON, notificationPath, notificationState } from "./lib/notifications";
 export { STUDENT_PATHS } from "./lib/paths";
 export type { ProfileEditSection, StudentActivityTab } from "./lib/paths";

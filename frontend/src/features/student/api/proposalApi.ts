@@ -59,6 +59,10 @@ export interface MyProposalResponse {
   };
   /** 결제로 만들어진 의뢰. 결제 전이면 없음 */
   jobId?: number | null;
+  /** 그 의뢰의 상태. 결제 전이면 없음 */
+  jobStatus?: ProposalJobStatus | null;
+  /** 한국 시각, 오프셋 없음 "2026-10-05T14:03:11.123" */
+  createdAt?: string | null;
 }
 
 /** GET /proposals/{id} 의 결제로 확정된 작업 조건. 결제 전이거나 당사자가 아니면 없음 */
@@ -79,6 +83,8 @@ export interface ProposalDetailResponse {
   proposalId: number;
   title: string;
   storeName: string;
+  /** 가게의 지금 프로필 주소. 등록하지 않았으면 없음 */
+  storeAddress?: string | null;
   likeCount: number;
   specialtyCategories: ProposalSpecialtyCategory[];
   customerProblem: string;
@@ -88,8 +94,8 @@ export interface ProposalDetailResponse {
   draftDays: number;
   finalDays: number;
   referenceImageUrls?: string[] | null;
-  /** 서버 시간대의 LocalDateTime "2026-10-05T14:03:11.123" */
-  createdAt: string;
+  /** 한국 시각, 오프셋 없음 "2026-10-05T14:03:11.123" */
+  createdAt?: string | null;
   status: ProposalStatus;
   /** PENDING 일 때만. 오늘(한국 날짜) 수락하면 생기는 마감일 "2026-10-12" */
   estimatedDraftDeadline?: string | null;

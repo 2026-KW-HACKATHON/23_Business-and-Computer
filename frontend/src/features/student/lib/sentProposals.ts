@@ -17,10 +17,13 @@ export type SentProposal = MyProposalResponse;
 export type SentProposalDetail = ProposalDetailResponse;
 
 /**
- * 상태 칩 글자. 사장님이 의뢰를 취소했으면(agreement.jobStatus CANCELLED) 상태와 관계없이 「취소됨」.
- * jobStatus 는 상세에만 있어서 목록 칩은 status 로만 정한다.
+ * 상태 칩 글자. 사장님이 의뢰를 취소했으면(목록 jobStatus · 상세 agreement.jobStatus 가 CANCELLED)
+ * 상태와 관계없이 「취소됨」.
  */
-export function sentProposalStatusLabel(status: ProposalStatus, jobStatus?: ProposalJobStatus): string {
+export function sentProposalStatusLabel(
+  status: ProposalStatus,
+  jobStatus?: ProposalJobStatus | null,
+): string {
   if (jobStatus === "CANCELLED") return "취소됨";
   switch (status) {
     case "PENDING":
@@ -40,7 +43,7 @@ export function sentProposalStatusLabel(status: ProposalStatus, jobStatus?: Prop
  */
 export function sentProposalFlowSteps(
   status: ProposalStatus,
-  jobStatus?: ProposalJobStatus,
+  jobStatus?: ProposalJobStatus | null,
 ): FlowStep[] | undefined {
   if (jobStatus === "CANCELLED") return undefined;
   switch (status) {
@@ -60,9 +63,14 @@ export function proposalBadgeNames(categories: ProposalSpecialtyCategory[]): str
   return [...new Set(categories.map((category) => category.name))];
 }
 
-/** 서버 LocalDateTime "2026-10-05T14:03:11" → 「10월 5일 보냄」 (날짜 글자를 그대로 읽는다) */
-export function sentOnText(createdAt: string): string {
-  return `${formatMonthDay(createdAt.slice(0, 10))} 보냄`;
+/**
+ * 한국 시각 "2026-10-05T14:03:11" → 「10월 5일 보냄」. 브라우저 시간대로 밀리지 않게 날짜 글자를
+ * 그대로 읽는다. 값이 없거나 날짜 모양이 아니면 undefined (그 줄을 숨긴다)
+ */
+export function sentOnText(createdAt: string | null | undefined): string | undefined {
+  const date = createdAt?.slice(0, 10);
+  if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return undefined;
+  return `${formatMonthDay(date)} 보냄`;
 }
 
 /** PENDING 상세: 「수락하면 10월 7일까지 초안, 10월 9일까지 최종」. 서버가 날짜를 안 주면 undefined */
@@ -72,16 +80,9 @@ export function estimatedDeadlineText(detail: SentProposalDetail): string | unde
   return `수락하면 ${formatMonthDay(draft)}까지 초안, ${formatMonthDay(final)}까지 최종`;
 }
 
-/** 목록 → 상세로 갈 때 넘기는 router state. 상세 API 에 가게 주소가 없어서 목록의 주소를 넘긴다 */
-export interface SentProposalRouteState {
-  storeAddress?: string;
-}
-
-/** 상세 router state 에서 가게 주소를 읽는다. 주소로 바로 들어왔으면 undefined (주소 줄을 숨긴다) */
-export function readStoreAddress(state: unknown): string | undefined {
-  if (!state || typeof state !== "object") return undefined;
-  const { storeAddress } = state as SentProposalRouteState;
-  return typeof storeAddress === "string" && storeAddress.trim() !== "" ? storeAddress : undefined;
+/** 가게 주소. 비었으면 undefined (주소 줄을 숨긴다) */
+export function storeAddressText(address: string | null | undefined): string | undefined {
+  return address?.trim() ? address : undefined;
 }
 
 /** GET /me/proposals 결과 */
