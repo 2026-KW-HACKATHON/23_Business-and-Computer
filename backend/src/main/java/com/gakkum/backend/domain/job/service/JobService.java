@@ -168,11 +168,18 @@ public class JobService {
      */
     @Transactional(readOnly = true)
     public Map<Long, Long> getJobIdsByProposalIds(Collection<Long> proposalIds) {
+        return getJobsByProposalIds(proposalIds).values().stream()
+                .collect(Collectors.toMap(Job::getProposalId, Job::getId));
+    }
+
+    /** 제안 ID별 연결된 의뢰. 결제 전이라 의뢰가 없는 제안은 키가 없다. */
+    @Transactional(readOnly = true)
+    public Map<Long, Job> getJobsByProposalIds(Collection<Long> proposalIds) {
         if (proposalIds.isEmpty()) {
             return Map.of();
         }
         return jobRepository.findByProposalIdIn(proposalIds).stream()
-                .collect(Collectors.toMap(Job::getProposalId, Job::getId));
+                .collect(Collectors.toMap(Job::getProposalId, job -> job));
     }
 
     /**

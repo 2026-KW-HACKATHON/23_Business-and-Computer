@@ -1,7 +1,9 @@
 package com.gakkum.backend.application.proposal.dto;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
+import com.gakkum.backend.domain.job.entity.JobStatus;
 import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.MyProposalListResult;
 import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.MyProposalResult;
 import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.ProposalStoreResult;
@@ -34,6 +36,9 @@ public class MyProposalListResponse {
         private final Store store;
         // 결제로 만들어진 의뢰. 결제 전이면 null
         private final Long jobId;
+        private final JobStatus jobStatus;
+        // 한국 시각. 오프셋 없이 내린다
+        private final LocalDateTime createdAt;
 
         public static MyProposal from(MyProposalResult result) {
             return new MyProposal(
@@ -46,7 +51,9 @@ public class MyProposalListResponse {
                             .toList(),
                     result.getProposedSolution(),
                     Store.from(result.getStore()),
-                    result.getJobId());
+                    result.getJobId(),
+                    result.getJobStatus(),
+                    ProposalDetailResponse.toKoreaTime(result.getCreatedAt()));
         }
     }
 
