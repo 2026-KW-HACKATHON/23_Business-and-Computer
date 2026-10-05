@@ -1,5 +1,6 @@
 package com.gakkum.backend.domain.user.service;
 
+import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -159,6 +160,36 @@ public class UserService extends DefaultOAuth2UserService {
             }
         }
         return usersById;
+    }
+
+    /**
+     * 데모 로그인용 사용자를 만든다. 가입 절차 없이 역할이 정해진 상태로 저장하고, 같은 방문자의 사장님·학생은 demoSessionId가 같다.
+     * username은 소셜 로그인 형식(KAKAO_<id>)과 겹치지 않는다.
+     */
+    @Transactional
+    public User createDemoUser(String demoSessionId, UserRole role, String name, String email) {
+        return userRepository.save(User.builder()
+                .id(UlidGenerator.generate())
+                .username("DEMO_" + demoSessionId + "_" + role.name())
+                .name(name)
+                .email(email)
+                .isLock(false)
+                .role(role)
+                .demoSessionId(demoSessionId)
+                .build());
+    }
+
+    /** 데모 세션에 속한 해당 역할의 사용자를 조회한다. 모르는 세션이거나 계정이 지워졌으면 인증 오류다. */
+    @Transactional(readOnly = true)
+    public User getDemoUser(String demoSessionId, UserRole role) {
+        return userRepository.findByDemoSessionIdAndRoleAndIsLock(demoSessionId, role, false)
+                .orElseThrow(() -> new BusinessException(ErrorCode.UNAUTHORIZED));
+    }
+
+    /** 기준 시각 이후에 만들어진 데모 세션 수. 세션마다 사장님이 한 명이라 데모 사장님 수로 센다. */
+    @Transactional(readOnly = true)
+    public long countDemoSessionsCreatedAfter(LocalDateTime createdAt) {
+        return userRepository.countByDemoSessionIdIsNotNullAndRoleAndCreatedAtAfter(UserRole.OWNER, createdAt);
     }
 
     private User findPendingUser(String username) {

@@ -97,48 +97,48 @@ class ProposalExploreQueryIntegrationTest {
     @Test
     @DisplayName("대분류 없는 최신순·오래된순 구간 쿼리는 같은 시각 행을 경계 ID로 자르고 이전·이후 행을 시각·ID 순으로 읽는다")
     void readsCreatedAtSegments() {
-        assertThat(ids(proposalRepository.findByCreatedAtAndIdLessThanOrderByIdDesc(T2, second, Limit.of(10))))
+        assertThat(ids(proposalRepository.findByDemoSessionIdAndCreatedAtAndIdLessThanOrderByIdDesc(null, T2, second, Limit.of(10))))
                 .containsExactly(first);
-        assertThat(ids(proposalRepository.findByCreatedAtAndIdLessThanOrderByIdDesc(T2, Long.MAX_VALUE, Limit.of(10))))
+        assertThat(ids(proposalRepository.findByDemoSessionIdAndCreatedAtAndIdLessThanOrderByIdDesc(null, T2, Long.MAX_VALUE, Limit.of(10))))
                 .containsExactly(otherCategory, second, first);
-        assertThat(ids(proposalRepository.findByCreatedAtLessThanOrderByCreatedAtDescIdDesc(T2, Limit.of(1))))
+        assertThat(ids(proposalRepository.findByDemoSessionIdAndCreatedAtLessThanOrderByCreatedAtDescIdDesc(null, T2, Limit.of(1))))
                 .containsExactly(older);
 
-        assertThat(ids(proposalRepository.findByCreatedAtAndIdGreaterThanOrderByIdAsc(T2, first, Limit.of(10))))
+        assertThat(ids(proposalRepository.findByDemoSessionIdAndCreatedAtAndIdGreaterThanOrderByIdAsc(null, T2, first, Limit.of(10))))
                 .containsExactly(second, otherCategory);
-        assertThat(ids(proposalRepository.findByCreatedAtGreaterThanOrderByCreatedAtAscIdAsc(BEFORE_T1, Limit.of(4))))
+        assertThat(ids(proposalRepository.findByDemoSessionIdAndCreatedAtGreaterThanOrderByCreatedAtAscIdAsc(null, BEFORE_T1, Limit.of(4))))
                 .containsExactly(older, first, second, otherCategory);
     }
 
     @Test
     @DisplayName("대분류 없는 좋아요순 구간 쿼리는 같은 좋아요·같은 시각, 같은 좋아요·이전 시각, 더 적은 좋아요 순으로 나눠 읽는다")
     void readsLikeSegments() {
-        assertThat(ids(proposalRepository.findByLikeCountAndCreatedAtAndIdLessThanOrderByIdDesc(
-                LIKES + 3, T2, second, Limit.of(10)))).containsExactly(first);
-        assertThat(ids(proposalRepository.findByLikeCountAndCreatedAtLessThanOrderByCreatedAtDescIdDesc(
-                LIKES + 3, T2, Limit.of(10)))).containsExactly(older);
-        assertThat(ids(proposalRepository.findByLikeCountLessThanOrderByLikeCountDescCreatedAtDescIdDesc(
-                LIKES + 5, Limit.of(3)))).containsExactly(second, first, older);
+        assertThat(ids(proposalRepository.findByDemoSessionIdAndLikeCountAndCreatedAtAndIdLessThanOrderByIdDesc(
+                null, LIKES + 3, T2, second, Limit.of(10)))).containsExactly(first);
+        assertThat(ids(proposalRepository.findByDemoSessionIdAndLikeCountAndCreatedAtLessThanOrderByCreatedAtDescIdDesc(
+                null, LIKES + 3, T2, Limit.of(10)))).containsExactly(older);
+        assertThat(ids(proposalRepository.findByDemoSessionIdAndLikeCountLessThanOrderByLikeCountDescCreatedAtDescIdDesc(
+                null, LIKES + 5, Limit.of(3)))).containsExactly(second, first, older);
     }
 
     @Test
     @DisplayName("대분류 쿼리는 그 대분류 소분류가 연결된 제안만 튜플 경계 뒤부터 정렬 순서대로 읽는다")
     void readsCategoryQueries() {
         assertThat(ids(proposalRepository.findExploreLatestInCategory(
-                categoryA, AFTER_T2, Long.MAX_VALUE, Limit.of(10)))).containsExactly(second, first, older);
+                null, categoryA, AFTER_T2, Long.MAX_VALUE, Limit.of(10)))).containsExactly(second, first, older);
         assertThat(ids(proposalRepository.findExploreLatestInCategory(
-                categoryA, T2, second, Limit.of(10)))).containsExactly(first, older);
+                null, categoryA, T2, second, Limit.of(10)))).containsExactly(first, older);
         assertThat(ids(proposalRepository.findExploreOldestInCategory(
-                categoryA, T1, older, Limit.of(10)))).containsExactly(first, second);
+                null, categoryA, T1, older, Limit.of(10)))).containsExactly(first, second);
         assertThat(ids(proposalRepository.findExploreByLikesInCategory(
-                categoryA, LIKES + 3, T2, second, Limit.of(10)))).containsExactly(first, older);
+                null, categoryA, LIKES + 3, T2, second, Limit.of(10)))).containsExactly(first, older);
         assertThat(proposalRepository.findExploreLatestInCategory(
-                Long.MAX_VALUE, AFTER_T2, Long.MAX_VALUE, Limit.of(10))).isEmpty();
+                null, Long.MAX_VALUE, AFTER_T2, Long.MAX_VALUE, Limit.of(10))).isEmpty();
     }
 
     private Long proposal(Long specialtyId) {
         Proposal proposal = proposalRepository.save(Proposal.create(
-                7L, 5L, "제안", "문제", "해결", "계획", 10000L, 0, 7, List.of()));
+                7L, 5L, "제안", "문제", "해결", "계획", 10000L, 0, 7, List.of(), null));
         proposalSpecialtyRepository.save(ProposalSpecialty.create(proposal.getId(), specialtyId));
         return proposal.getId();
     }

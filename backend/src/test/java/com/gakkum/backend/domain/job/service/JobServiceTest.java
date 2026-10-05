@@ -47,7 +47,7 @@ class JobServiceTest {
                 LocalDate.of(2026, 1, 15),
                 1);
 
-        Job savedJob = jobService.createJob(command);
+        Job savedJob = jobService.createJob(command, null);
 
         ArgumentCaptor<Job> jobCaptor = ArgumentCaptor.forClass(Job.class);
         verify(jobRepository).save(jobCaptor.capture());

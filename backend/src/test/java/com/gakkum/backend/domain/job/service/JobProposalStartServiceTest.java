@@ -187,7 +187,7 @@ class JobProposalStartServiceTest {
         when(jobRepository.findByIdAndOwnerProfileId(42L, 7L)).thenReturn(Optional.of(job));
 
         assertCode(() -> jobService.createJobApplication(
-                CreateJobApplicationCommand.of("KAKAO_1", 42L, "요약", "계획", "전달"), 33L),
+                CreateJobApplicationCommand.of("KAKAO_1", 42L, "요약", "계획", "전달"), 33L, null),
                 ErrorCode.JOB_APPLICATION_NOT_AVAILABLE);
         assertCode(() -> jobService.getSubmittableJob(42L, 31L), ErrorCode.JOB_SUBMISSION_NOT_AVAILABLE);
         assertCode(() -> jobService.validateDraftSubmittable(42L, 31L), ErrorCode.JOB_SUBMISSION_NOT_AVAILABLE);
