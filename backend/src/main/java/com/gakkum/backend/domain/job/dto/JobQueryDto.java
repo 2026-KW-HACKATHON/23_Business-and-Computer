@@ -9,11 +9,13 @@ import java.util.Map;
 
 import com.gakkum.backend.domain.job.entity.Job;
 import com.gakkum.backend.domain.job.entity.JobApplication;
+import com.gakkum.backend.domain.job.entity.JobApplicationStatus;
 import com.gakkum.backend.domain.job.entity.JobProgressStage;
 import com.gakkum.backend.domain.job.entity.JobSubmission;
 import com.gakkum.backend.domain.job.entity.JobSubmissionReviewStatus;
 import com.gakkum.backend.domain.job.entity.JobSubmissionType;
 import com.gakkum.backend.domain.certificate.entity.StudentCertificate;
+import com.gakkum.backend.domain.owner.entity.Owner;
 import com.gakkum.backend.domain.payment.dto.PaymentQueryDto.RefundedPaymentData;
 import com.gakkum.backend.domain.review.entity.Review;
 import com.gakkum.backend.domain.student.entity.Student;
@@ -59,8 +61,11 @@ public final class JobQueryDto {
         private final Integer revisionCount;
         private final JobProgressStage progressStage;
         private final String status;
-        // 아래 취소 정보는 취소된 의뢰를 의뢰한 사장님 또는 선정 학생이 조회할 때만 채우고, 그 외에는 모두 null
+        // 조회한 학생 본인의 지원서 상태. 지원 이력이 없거나 학생 프로필이 없는 학생, 학생이 아닌 사용자는 null이다
+        private final JobApplicationStatus applied;
         private final String storeName;
+        private final String storeAddress;
+        // 아래 취소 정보는 취소된 의뢰를 의뢰한 사장님 또는 선정 학생이 조회할 때만 채우고, 그 외에는 모두 null
         private final String cancelledBy;
         private final String cancelReason;
         private final String messageToStudent;
@@ -68,8 +73,9 @@ public final class JobQueryDto {
         private final Long studentCompensationAmount;
         private final LocalDateTime cancelledAt;
 
-        public static JobDetailResult of(JobDetailData data, List<SpecialtyCategoryResult> specialtyCategories) {
-            return base(data, specialtyCategories).build();
+        public static JobDetailResult of(JobDetailData data, List<SpecialtyCategoryResult> specialtyCategories,
+                Owner owner, JobApplicationStatus applied) {
+            return base(data, specialtyCategories, owner, applied).build();
         }
 
         /**
@@ -77,10 +83,9 @@ public final class JobQueryDto {
          * @param refund 결제 전(모집 중) 취소면 null이고 금액은 0으로 내린다
          */
         public static JobDetailResult ofCancelled(JobDetailData data, List<SpecialtyCategoryResult> specialtyCategories,
-                String storeName, RefundedPaymentData refund) {
+                Owner owner, JobApplicationStatus applied, RefundedPaymentData refund) {
             Job job = data.getJob();
-            return base(data, specialtyCategories)
-                    .storeName(storeName)
+            return base(data, specialtyCategories, owner, applied)
                     .cancelledBy(UserRole.OWNER.name())
                     .cancelReason(job.getCancelReason())
                     .messageToStudent(job.getMessageToStudent())
@@ -90,8 +95,8 @@ public final class JobQueryDto {
                     .build();
         }
 
-        private static JobDetailResultBuilder base(
-                JobDetailData data, List<SpecialtyCategoryResult> specialtyCategories) {
+        private static JobDetailResultBuilder base(JobDetailData data,
+                List<SpecialtyCategoryResult> specialtyCategories, Owner owner, JobApplicationStatus applied) {
             Job job = data.getJob();
             return JobDetailResult.builder()
                     .id(job.getId())
@@ -104,7 +109,10 @@ public final class JobQueryDto {
                     .finalDeadline(job.getFinalDeadline())
                     .revisionCount(job.getRevisionCount())
                     .progressStage(data.getProgressStage())
-                    .status(job.getStatus().name());
+                    .status(job.getStatus().name())
+                    .applied(applied)
+                    .storeName(owner.getStoreName())
+                    .storeAddress(owner.getStoreAddress());
         }
     }
 
