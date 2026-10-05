@@ -22,6 +22,7 @@ import OwnerMePage from './pages/OwnerMePage'
 import OwnerWorkCheckPage from './pages/OwnerWorkCheckPage'
 import OwnerWorkResultPage from './pages/OwnerWorkResultPage'
 import OwnerProposalPage from './pages/OwnerProposalPage'
+import OwnerRequestCancelPage from './pages/OwnerRequestCancelPage'
 import OwnerRequestPage from './pages/OwnerRequestPage'
 import OwnerApplicantsPage from './pages/OwnerApplicantsPage'
 import OwnerChatRoomPage from './pages/OwnerChatRoomPage'
@@ -113,6 +114,7 @@ function App() {
       <Route path="/owner/requests/new/3" element={<OwnerRequestConfirmPage />} />
       <Route path="/owner/requests/new/done" element={<OwnerRequestDonePage />} />
       <Route path="/owner/requests/:requestId" element={<OwnerRequestPage />} />
+      <Route path="/owner/requests/:requestId/cancel" element={<OwnerRequestCancelPage />} />
       <Route path="/owner/requests/:requestId/applicants" element={<OwnerApplicantsPage />} />
       <Route path="/owner/requests/:requestId/assign/:studentId" element={<OwnerAssignPage />} />
       <Route path="/owner/students/:studentId" element={<OwnerStudentPage />} />
