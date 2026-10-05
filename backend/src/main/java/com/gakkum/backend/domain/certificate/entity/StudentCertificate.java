@@ -38,9 +38,6 @@ public class StudentCertificate {
     @Column(name = "acquired_year", nullable = false)
     private Integer acquiredYear;
 
-    @Column(name = "issuing_organization", nullable = false, length = 255)
-    private String issuingOrganization;
-
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
@@ -52,13 +49,11 @@ public class StudentCertificate {
     public static StudentCertificate create(
             Long studentProfileId,
             String certificateName,
-            Integer acquiredYear,
-            String issuingOrganization) {
+            Integer acquiredYear) {
         return StudentCertificate.builder()
                 .studentProfileId(studentProfileId)
                 .certificateName(certificateName)
                 .acquiredYear(acquiredYear)
-                .issuingOrganization(issuingOrganization)
                 .build();
     }
 }

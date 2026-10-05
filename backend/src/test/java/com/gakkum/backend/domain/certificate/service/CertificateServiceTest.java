@@ -32,8 +32,7 @@ class CertificateServiceTest {
         AddStudentCertificateCommand command = AddStudentCertificateCommand.of(
                 10L,
                 "정보처리기사",
-                2025,
-                "한국산업인력공단");
+                2025);
 
         StudentCertificate savedCertificate = certificateService.addStudentCertificate(command);
 
@@ -43,7 +42,6 @@ class CertificateServiceTest {
         assertThat(savedCertificate.getStudentProfileId()).isEqualTo(10L);
         assertThat(savedCertificate.getCertificateName()).isEqualTo("정보처리기사");
         assertThat(savedCertificate.getAcquiredYear()).isEqualTo(2025);
-        assertThat(savedCertificate.getIssuingOrganization()).isEqualTo("한국산업인력공단");
     }
 
     @Test
@@ -51,8 +49,7 @@ class CertificateServiceTest {
         AddStudentCertificateCommand command = AddStudentCertificateCommand.of(
                 10L,
                 "정보처리기사",
-                Year.now().getValue() + 1,
-                "한국산업인력공단");
+                Year.now().getValue() + 1);
 
         assertThatThrownBy(() -> certificateService.addStudentCertificate(command))
                 .isInstanceOfSatisfying(BusinessException.class, exception ->

@@ -132,8 +132,7 @@ class StudentRegistrationFlowTest {
                           "certificates": [
                             {
                               "certificateName": "정보처리기사",
-                              "acquiredYear": 2025,
-                              "issuingOrganization": "한국산업인력공단"
+                              "acquiredYear": 2025
                             }
                           ]
                         }
