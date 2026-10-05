@@ -101,13 +101,6 @@ export const EMPTY_STUDENT_SIGNUP: StudentSignupDraft = {
   completed: false,
 };
 
-/** GET /specialties 의 대분류 하나. 백엔드가 id 순서로 준다 */
-export interface SpecialtyCategory {
-  id: number;
-  name: string;
-  specialties: { id: number; name: string }[];
-}
-
 /** 인증번호 발송 결과. unauthorized·alreadyRegistered 는 화면을 떠난다 */
 export type EmailCodeSendResult =
   | "sent"

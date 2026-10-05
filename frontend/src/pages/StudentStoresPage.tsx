@@ -1,7 +1,13 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { RoleAvatar, SearchBar, TextButton } from "../components";
-import { ExploreTabs, STUDENT_PATHS, StudentTabScreen, useStores } from "../features/student";
+import {
+  ExploreTabs,
+  LoadNotice,
+  STUDENT_PATHS,
+  StudentTabScreen,
+  useExploreStores,
+} from "../features/student";
 import { STORE_CATEGORIES } from "../types/storeCategory";
 import type { StoreCategory } from "../types/storeCategory";
 import { useDragScroll } from "../hooks/useDragScroll";
@@ -11,15 +17,18 @@ import "./StudentStoresPage.css";
 /**
  * 피그마 「학생 탐색 · 가게」. 월계1동 가게를 업종 · 이름으로 찾고,
  * 「제안하기」를 누르면 그 가게를 고른 채 제안 보내기 2/4 로 간다.
+ * 가게는 GET /explore/stores 를 모두 불러와 화면에서 거른다 (이름 검색 API 가 없다, ADR 0020).
  */
 function StudentStoresPage() {
   const navigate = useNavigate();
-  const stores = useStores();
+  const { load, reload } = useExploreStores();
   const [category, setCategory] = useState<StoreCategory | null>(null);
   const [query, setQuery] = useState("");
   const chipScroll = useDragScroll<HTMLDivElement>();
 
   const keyword = query.trim();
+  const stores = load.status === "loaded" ? load.stores : [];
+  // 업종 칩은 피그마의 고정 11개, 백엔드 업종 이름과 같은 글자로 거른다
   const visible = stores
     .filter((s) => category === null || s.category === category)
     .filter((s) => keyword === "" || s.name.includes(keyword));
@@ -73,10 +82,17 @@ function StudentStoresPage() {
           <p className="student-explore__description">자주 가는 가게를 골라 먼저 제안해 보세요.</p>
         </div>
 
-        {visible.length > 0 ? (
+        {load.status !== "loaded" ? (
+          <LoadNotice
+            status={load.status}
+            loadingText="가게 목록을 불러오는 중이에요"
+            errorText="가게 목록을 불러오지 못했어요"
+            onRetry={reload}
+          />
+        ) : visible.length > 0 ? (
           <ul className="student-stores__list">
             {visible.map((store) => (
-              <li key={store.id} className="student-stores__row">
+              <li key={store.ownerProfileId} className="student-stores__row">
                 <RoleAvatar role="owner" size={40} />
                 <span className="student-stores__info">
                   <span className="student-stores__name">
@@ -87,7 +103,7 @@ function StudentStoresPage() {
                 </span>
                 <TextButton
                   onClick={() =>
-                    navigate(STUDENT_PATHS.newProposalStep(2), { state: { storeId: store.id } })
+                    navigate(STUDENT_PATHS.newProposalStep(2), { state: { store } })
                   }
                 >
                   제안하기

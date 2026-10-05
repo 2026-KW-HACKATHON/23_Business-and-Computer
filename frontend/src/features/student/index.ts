@@ -2,6 +2,7 @@
 export { default as ApplicationSheet } from "./components/ApplicationSheet";
 export { default as ExploreTabs } from "./components/ExploreTabs";
 export { default as FilePicker } from "./components/FilePicker";
+export { default as LoadNotice } from "./components/LoadNotice";
 export { default as MyPlanSheet } from "./components/MyPlanSheet";
 export { default as PeerProposalCard } from "./components/PeerProposalCard";
 export { default as PeerProposalRow } from "./components/PeerProposalRow";
@@ -49,6 +50,8 @@ export {
   useStudentWorks,
 } from "./hooks/useStudentData";
 export type { MyProfileView, ReceivedReview } from "./hooks/useStudentData";
+export { useExploreStores } from "./hooks/useExploreStores";
+export type { ExploreStoresLoad } from "./hooks/useExploreStores";
 export { useStudentHome } from "./hooks/useStudentHome";
 export { flowSteps, workFlowSteps } from "./lib/flow";
 export {
@@ -62,16 +65,29 @@ export {
   workStatusText,
 } from "./lib/format";
 export {
+  MAX_PROPOSAL_PHOTOS,
+  PROPOSAL_PHOTO_ACCEPT,
+  checkProposalPhoto,
   expectedDaysText,
+  proposalCategoryNames,
   proposalTaskSummary,
   readNewProposalState,
+  sendProposalRequest,
+  toProposalRequest,
+  uploadProposalPhoto,
 } from "./lib/newProposal";
-export type { NewProposalState, PickedTask, ProposalContent } from "./lib/newProposal";
+export type {
+  NewProposalState,
+  PickedTask,
+  ProposalContent,
+  ProposalSendResult,
+} from "./lib/newProposal";
 export { NOTIFICATION_ICON, notificationPath, notificationState } from "./lib/notifications";
 export { STUDENT_PATHS } from "./lib/paths";
 export type { ProfileEditSection, StudentActivityTab } from "./lib/paths";
 export type {
   ApplicationPlan,
+  ExploreStore,
   ChatMessage,
   MyProposal,
   PeerProposal,

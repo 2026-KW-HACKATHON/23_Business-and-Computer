@@ -14,6 +14,18 @@ export interface Store {
   address: string;
 }
 
+/**
+ * GET /explore/stores 의 가게 하나 (사장님 프로필 하나 = 가게 하나).
+ * 제안을 보낼 때 ownerProfileId 를 쓰고, 가게 하나만 조회하는 API 가 없어 이름·업종·주소도 함께 넘긴다.
+ */
+export interface ExploreStore {
+  ownerProfileId: number;
+  name: string;
+  /** 백엔드 업종 이름 (예: 음식점) */
+  category: string;
+  address: string;
+}
+
 /** 다른 데이터에서 가게를 가리킬 때 */
 export interface StoreRef {
   id: string;

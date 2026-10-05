@@ -8,7 +8,6 @@ import {
   PROFILE_PHOTO_ACCEPT,
   certificateStatuses,
   checkProfilePhoto,
-  fetchSpecialties,
   registerStudentSignup,
   uploadSignupPhoto,
   useStudentSignup,
@@ -16,18 +15,13 @@ import {
 import type {
   Certificate,
   CertificateStatus,
-  SpecialtyCategory,
   StudentVerifyReturnState,
 } from "../features/signup";
+import { implicitSpecialty, selectableCategories, useSpecialties } from "../features/specialty";
 import { useObjectUrls } from "../hooks/useObjectUrls";
 import { MAX_SPECIALTY_BADGES } from "../types/specialty";
 import "./SignupPage.css";
 import "./StudentSignupProfilePage.css";
-
-type SpecialtyLoad =
-  | { status: "loading" }
-  | { status: "error" }
-  | { status: "loaded"; categories: SpecialtyCategory[] };
 
 type PhotoError = "type" | "size" | null;
 type SubmitError = "photo" | "invalidInput" | "dataConflict" | "retry" | null;
@@ -64,8 +58,7 @@ function StudentSignupProfilePage() {
   const navigate = useNavigate();
   const { draft, update } = useStudentSignup();
   const [limitReached, setLimitReached] = useState(false);
-  const [specialtyLoad, setSpecialtyLoad] = useState<SpecialtyLoad>({ status: "loading" });
-  const [specialtyRequest, setSpecialtyRequest] = useState(0);
+  const { load: specialtyLoad, reload: reloadSpecialties } = useSpecialties();
   // 가입 저장이 특기 오류로 실패해 목록을 다시 불러왔을 때
   const [specialtyReset, setSpecialtyReset] = useState(false);
   const [photoError, setPhotoError] = useState<PhotoError>(null);
@@ -93,28 +86,8 @@ function StudentSignupProfilePage() {
     };
   }, []);
 
-  useEffect(() => {
-    let active = true;
-    fetchSpecialties().then(
-      (categories) => {
-        if (active) setSpecialtyLoad({ status: "loaded", categories });
-      },
-      () => {
-        if (active) setSpecialtyLoad({ status: "error" });
-      },
-    );
-    return () => {
-      active = false;
-    };
-  }, [specialtyRequest]);
-
   // 메일 인증을 마치지 않고 들어오면(새로고침 포함) 역할 선택부터 다시
   if (draft.verifiedEmail === "") return <Navigate to="/signup/role" replace />;
-
-  const reloadSpecialties = () => {
-    setSpecialtyLoad({ status: "loading" });
-    setSpecialtyRequest((n) => n + 1);
-  };
 
   const toggleSpecialty = (id: number) => {
     setSpecialtyReset(false);
@@ -158,10 +131,11 @@ function StudentSignupProfilePage() {
     setTouchedCertificates((rows) => (rows.includes(index) ? rows : [...rows, index]));
   };
 
-  // 「기타」처럼 고를 특기가 없는 분류는 화면에서만 뺀다 (API 응답은 의뢰·제안 화면이 그대로 쓴다)
+  // 고를 특기가 없는 분류와, 「기타」처럼 특기가 분류 이름과 같은 1개뿐인 분류는 가입에서 뺀다.
+  // 제안 2/4 는 「기타」를 보여주므로 selectableCategories 는 그대로 두고 여기서만 더 거른다 (ADR 0019)
   const specialtyCategories =
     specialtyLoad.status === "loaded"
-      ? specialtyLoad.categories.filter((category) => category.specialties.length > 0)
+      ? selectableCategories(specialtyLoad.categories).filter((category) => !implicitSpecialty(category))
       : [];
   // 서버에 특기가 하나도 없으면 고를 수 없어 가입도 막힌다 (특기 1~5개 규칙은 항상 적용, ADR 0019)
   const noSpecialties = specialtyLoad.status === "loaded" && specialtyCategories.length === 0;

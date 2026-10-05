@@ -11,12 +11,22 @@ import {
   TextField,
   TitleField,
 } from "../components";
-import { STUDENT_PATHS, readNewProposalState, useProposalExample } from "../features/student";
+import {
+  MAX_PROPOSAL_PHOTOS,
+  PROPOSAL_PHOTO_ACCEPT,
+  STUDENT_PATHS,
+  checkProposalPhoto,
+  readNewProposalState,
+  useProposalExample,
+} from "../features/student";
 import type { ProposalContent } from "../features/student";
 import { useBack } from "../hooks/useBack";
 import "./StudentProposalNewPage.css";
 
-const MAX_PHOTOS = 5;
+const PHOTO_ERROR_TEXT = {
+  type: "JPG, PNG, WEBP 사진만 올릴 수 있어요",
+  size: "10MB 이하 사진만 올릴 수 있어요",
+} as const;
 
 const EMPTY_CONTENT: ProposalContent = {
   title: "",
@@ -74,16 +84,21 @@ function StudentProposalContentPage() {
     state?.content ?? { ...EMPTY_CONTENT, title: example?.proposalTitle ?? "" },
   );
   const fileInput = useRef<HTMLInputElement>(null);
+  const [photoError, setPhotoError] = useState<keyof typeof PHOTO_ERROR_TEXT | null>(null);
 
-  if (!state?.storeId || (state.fields.length === 0 && state.picked.length === 0)) {
+  if (!state?.store || state.picked.length === 0) {
     return <Navigate to={STUDENT_PATHS.newProposal} replace />;
   }
 
   const update = (patch: Partial<ProposalContent>) => setContent({ ...content, ...patch });
 
+  // 형식·크기가 맞지 않는 사진은 빼고, 빠진 이유 하나를 알린다 (백엔드 이미지 업로드와 같은 기준)
   const addPhotos = (e: ChangeEvent<HTMLInputElement>) => {
-    const files = [...(e.target.files ?? [])].map((f) => ({ name: f.name, size: sizeText(f.size) }));
-    update({ photos: [...content.photos, ...files].slice(0, MAX_PHOTOS) });
+    const files = [...(e.target.files ?? [])];
+    const rejected = files.map(checkProposalPhoto).find((check) => check !== "ok");
+    const accepted = files.filter((file) => checkProposalPhoto(file) === "ok");
+    setPhotoError(rejected ?? null);
+    update({ photos: [...content.photos, ...accepted].slice(0, MAX_PROPOSAL_PHOTOS) });
     e.target.value = "";
   };
 
@@ -175,17 +190,17 @@ function StudentProposalContentPage() {
           </div>
         </FormField>
 
-        <FormField label="참고 사진" hint={`사진 · 최대 ${MAX_PHOTOS}장`}>
+        <FormField label="참고 사진" hint={`JPG·PNG·WEBP 사진 · 최대 ${MAX_PROPOSAL_PHOTOS}장 · 장당 10MB`}>
           <div className="student-new__photos">
             <input
               ref={fileInput}
               type="file"
-              accept="image/*"
+              accept={PROPOSAL_PHOTO_ACCEPT}
               multiple
               hidden
               onChange={addPhotos}
             />
-            {content.photos.length < MAX_PHOTOS && (
+            {content.photos.length < MAX_PROPOSAL_PHOTOS && (
               <button
                 type="button"
                 className="student-new__upload"
@@ -198,7 +213,7 @@ function StudentProposalContentPage() {
               <div key={`${photo.name}-${i}`} className="student-new__file">
                 <span aria-hidden="true">📄</span>
                 <strong>{photo.name}</strong>
-                <small>{photo.size}</small>
+                <small>{sizeText(photo.size)}</small>
                 <button
                   type="button"
                   aria-label={`${photo.name} 빼기`}
@@ -209,6 +224,11 @@ function StudentProposalContentPage() {
               </div>
             ))}
           </div>
+          {photoError && (
+            <p className="student-new__photo-error" role="alert">
+              {PHOTO_ERROR_TEXT[photoError]}
+            </p>
+          )}
         </FormField>
       </div>
     </SubScreen>
