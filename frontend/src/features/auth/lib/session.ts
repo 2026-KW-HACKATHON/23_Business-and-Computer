@@ -1,4 +1,4 @@
-import { clearTokens, getAccessToken } from "./tokenStorage";
+import { clearTokens, getAccessToken } from "../../../api/tokens";
 
 /** Account state read from the access token's `role` claim. */
 export type UserRole = "owner" | "student" | "pending";
