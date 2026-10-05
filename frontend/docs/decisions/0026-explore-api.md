@@ -1,4 +1,4 @@
-# 0025. Student 탐색 calls GET /explore and the job APIs
+# 0026. Student 탐색 calls GET /explore and the job APIs
 
 ## Status
 

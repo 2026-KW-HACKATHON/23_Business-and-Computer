@@ -67,7 +67,7 @@ student screen, which still read `sampleProposals.ts`. The backend (dev) has:
     are works or applications. Otherwise it is decided only once the sent list
     has loaded. Until then the home shows only the loading or retry line,
     never the guide.
-  - 탐색 marks 「내 제안」 by the ids in this list (ADR 0025).
+  - 탐색 marks 「내 제안」 by the ids in this list (ADR 0026).
 - **Status chip** (`sentProposalStatusLabel`):
   - PENDING 「수락 대기 중」, AWAITING_START 「수락됨」, ACCEPTED 「작업 중」,
     REJECTED 「거절됨」.

@@ -33,7 +33,7 @@ import { studentTitle } from "../lib/korean";
 
 /**
  * 피그마 「제안서 보기 (다른 학생 제안 · 공감)」. 다른 학생이 보낸 제안을 손님 입장에서 읽는다.
- * GET /proposals/{id} (ADR 0025). 공감은 수만 보이고, 서버가 likedByMe 를 true 로 주면 하트가 채워진다.
+ * GET /proposals/{id} (ADR 0026). 공감은 수만 보이고, 서버가 likedByMe 를 true 로 주면 하트가 채워진다.
  * 내 제안(GET /me/proposals 에 있음)이면 보낸 제안 상세로 바꾼다. 내 제안 목록을 불러오는 동안은
  * 불러오는 중으로 두고, 그 목록이 실패하면 다른 학생 제안으로 보인다.
  */

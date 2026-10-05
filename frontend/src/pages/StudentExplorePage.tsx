@@ -27,7 +27,7 @@ import "./StudentExplorePage.css";
 
 /**
  * 피그마 「학생 탐색」. GET /explore 의 의뢰 · 제안을 종류 · 분야 · 정렬로 서버에서 거르고,
- * 검색어는 불러온 카드의 제목 · 가게 이름에서 찾는다. 끝까지 내리면 다음 쪽을 부른다 (ADR 0025).
+ * 검색어는 불러온 카드의 제목 · 가게 이름에서 찾는다. 끝까지 내리면 다음 쪽을 부른다 (ADR 0026).
  * 내 제안(GET /me/proposals 에 있는 id)은 「내 제안이에요」로 보이고 보낸 제안서로 간다.
  */
 function StudentExplorePage() {

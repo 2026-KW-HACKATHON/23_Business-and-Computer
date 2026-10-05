@@ -60,7 +60,7 @@ owner's applicant list).
   with their own proposal.
 - Explore cards show the store name only, as on the owner side. The store
   list and my own proposals keep the store address, since a student visits
-  the store; request details show it when the server sends it (ADR 0025).
+  the store; request details show it when the server sends it (ADR 0026).
 - Popups added in code and Figma: 내 지원서 보기 · 지원 결과 보기, 의뢰서 거절
   확인, 사장님 문제 신고 - 메일 문의 안내.
 
@@ -88,5 +88,5 @@ owner's applicant list).
   longer used there. Sent proposals (내 활동 › 보낸 제안, their detail, the
   home 「기다리는 중」, the 내 정보 count) call the backend too (ADR 0023);
   탐색 (the list, the job detail, apply, and the peer-proposal detail) and
-  the home 「다른 학생들의 제안 공감하기」 call the backend too (ADR 0025). Other student screens,
+  the home 「다른 학생들의 제안 공감하기」 call the backend too (ADR 0026). Other student screens,
   including the work-start screen, still read the sample data.

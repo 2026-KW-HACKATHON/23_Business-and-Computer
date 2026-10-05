@@ -30,7 +30,7 @@ const SEND_ERROR_TEXT: Record<SendError, string> = {
 
 /**
  * 피그마 「지원하기」. GET /jobs/{id} 로 의뢰를 보여 주고, 지원서(한 줄 요약 · 작업계획서 · 결과물)를
- * 쓰고 마감 약속에 동의하면 POST /jobs/{id}/applications 로 보낸다 (ADR 0025).
+ * 쓰고 마감 약속에 동의하면 POST /jobs/{id}/applications 로 보낸다 (ADR 0026).
  * 마감은 사장님이 의뢰에서 정했다. 보내면 「지원 완료 팝업창」.
  */
 function StudentApplyPage() {
