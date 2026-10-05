@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { AppBar, Button, Checkbox, StepIndicator, TextField, UniversityField } from "../components";
-import { TermsSheet, isStudentInfoComplete, useStudentSignup } from "../features/signup";
+import { TermsSheet, isStudentInfoComplete, isStudentNumber, useStudentSignup } from "../features/signup";
 import "./SignupPage.css";
 import "./StudentSignupInfoPage.css";
 
@@ -10,6 +10,13 @@ function StudentSignupInfoPage() {
   const navigate = useNavigate();
   const { draft, update } = useStudentSignup();
   const [termsOpen, setTermsOpen] = useState(false);
+  // 가입 저장(3/3)에서 이미 가입된 학번이라고 돌아온 번호면 고칠 때까지 막는다
+  const taken = draft.studentNumber !== "" && draft.studentNumber === draft.takenStudentNumber;
+  const studentNumberError = taken
+    ? "이미 가입된 학번이에요"
+    : draft.studentNumber !== "" && !isStudentNumber(draft.studentNumber)
+      ? "학번 10자리를 입력해 주세요"
+      : undefined;
 
   return (
     <div className="signup">
@@ -40,8 +47,11 @@ function StudentSignupInfoPage() {
             placeholder="학번"
             aria-label="학번"
             inputMode="numeric"
+            maxLength={10}
             value={draft.studentNumber}
-            onChange={(e) => update({ studentNumber: e.target.value.replace(/\D/g, "") })}
+            invalid={studentNumberError !== undefined}
+            errorText={studentNumberError}
+            onChange={(e) => update({ studentNumber: e.target.value.replace(/\D/g, "").slice(0, 10) })}
           />
         </div>
       </main>

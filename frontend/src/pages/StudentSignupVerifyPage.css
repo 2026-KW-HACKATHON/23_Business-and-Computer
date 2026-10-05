@@ -12,6 +12,11 @@
   color: var(--color-student);
 }
 
+.text-field__trailing .student-signup-verify__change:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
 .student-signup-verify__timer {
   font-weight: 500;
   color: var(--color-danger);
