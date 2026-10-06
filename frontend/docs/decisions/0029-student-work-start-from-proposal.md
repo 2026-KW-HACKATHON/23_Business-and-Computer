@@ -71,5 +71,5 @@ POST /jobs/{jobId}/start. The sample work-start screen for sample works
 
 - When a decline API exists, call it from 「거절하기」 and go to 내 활동 ›
   보낸 제안 on success.
-- 내 활동 › 진행 중 still reads sample works; a started job shows there once
-  student works read the backend.
+- A started job shows in 내 활동 › 진행 중 (GET /me/jobs?status=MATCHED,
+  ADR 0032).
