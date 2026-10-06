@@ -20,8 +20,8 @@ export const SAMPLE_STUDENT_PROFILES: StudentProfile[] = [
     onTimeRate: 100,
     badges: ["영어 번역", "중국어 번역", "소개·공지 글쓰기"],
     certificates: [
-      { name: "TOEIC 950점", acquiredOn: "2025-03" },
-      { name: "HSK 5급", acquiredOn: "2024-11" },
+      { name: "TOEIC 950점", acquiredYear: 2025 },
+      { name: "HSK 5급", acquiredYear: 2024 },
     ],
     portfolioUrl: "notion.so/haeun-portfolio",
     reviews: [
@@ -60,7 +60,7 @@ export const SAMPLE_STUDENT_PROFILES: StudentProfile[] = [
     noShowCount: 0,
     onTimeRate: 100,
     badges: ["중국어 번역", "영어 번역"],
-    certificates: [{ name: "TOPIK 6급", acquiredOn: "2024-05" }],
+    certificates: [{ name: "TOPIK 6급", acquiredYear: 2024 }],
     reviews: [
       {
         storeName: "석계반점",
@@ -88,7 +88,7 @@ export const SAMPLE_STUDENT_PROFILES: StudentProfile[] = [
     proposalCount: 1,
     noShowCount: 0,
     badges: ["영어 번역", "일본어 번역"],
-    certificates: [{ name: "JLPT N2", acquiredOn: "2025-07" }],
+    certificates: [{ name: "JLPT N2", acquiredYear: 2025 }],
     reviews: [],
   },
   {
@@ -103,7 +103,7 @@ export const SAMPLE_STUDENT_PROFILES: StudentProfile[] = [
     noShowCount: 0,
     onTimeRate: 100,
     badges: ["영어 번역", "메뉴판·가격표 디자인"],
-    certificates: [{ name: "TOEIC 900점", acquiredOn: "2025-01" }],
+    certificates: [{ name: "TOEIC 900점", acquiredYear: 2025 }],
     portfolioUrl: "behance.net/seoyun-choi",
     reviews: [
       {
@@ -125,7 +125,7 @@ export const SAMPLE_STUDENT_PROFILES: StudentProfile[] = [
     proposalCount: 0,
     noShowCount: 0,
     badges: ["중국어 번역", "영어 번역"],
-    certificates: [{ name: "HSK 6급", acquiredOn: "2025-06" }],
+    certificates: [{ name: "HSK 6급", acquiredYear: 2025 }],
     reviews: [],
   },
   {
@@ -140,7 +140,7 @@ export const SAMPLE_STUDENT_PROFILES: StudentProfile[] = [
     noShowCount: 0,
     onTimeRate: 67,
     badges: ["가게 홈페이지", "메뉴판(QR,웹,모바일)", "온라인 예약·주문서"],
-    certificates: [{ name: "정보처리기사", acquiredOn: "2025-06" }],
+    certificates: [{ name: "정보처리기사", acquiredYear: 2025 }],
     portfolioUrl: "github.com/minjun-oh",
     reviews: [
       {
@@ -246,8 +246,8 @@ export const SAMPLE_STUDENT_PROFILES: StudentProfile[] = [
     onTimeRate: 100,
     badges: ["메뉴판·가격표 디자인", "로고 디자인", "SNS 게시물"],
     certificates: [
-      { name: "GTQ 1급", acquiredOn: "2023-08" },
-      { name: "ACP (Adobe 인증)", acquiredOn: "2024-02" },
+      { name: "GTQ 1급", acquiredYear: 2023 },
+      { name: "ACP (Adobe 인증)", acquiredYear: 2024 },
     ],
     portfolioUrl: "behance.net/kwangwoon",
     reviews: [
@@ -286,7 +286,7 @@ export const SAMPLE_STUDENT_PROFILES: StudentProfile[] = [
     noShowCount: 0,
     onTimeRate: 100,
     badges: ["메뉴판·가격표 디자인", "간판·현수막 시안", "로고 디자인"],
-    certificates: [{ name: "GTQ 1급", acquiredOn: "2024-08" }],
+    certificates: [{ name: "GTQ 1급", acquiredYear: 2024 }],
     portfolioUrl: "behance.net/eunseo-lee",
     reviews: [
       {

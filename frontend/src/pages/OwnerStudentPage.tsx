@@ -80,7 +80,7 @@ function OwnerStudentPage() {
               {profile.certificates.map((certificate) => (
                 <div key={certificate.name} className="owner-student__cert">
                   <strong>{certificate.name}</strong>
-                  <span>{formatDotDate(certificate.acquiredOn)}</span>
+                  <span>{certificate.acquiredYear}</span>
                 </div>
               ))}
               {profile.certificates.length > 0 && profile.portfolioUrl && (

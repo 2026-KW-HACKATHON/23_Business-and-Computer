@@ -106,7 +106,7 @@ function StudentProfilePage() {
             {profile.certificates.map((certificate) => (
               <div key={certificate.name} className="student-profile__cert">
                 <strong>{certificate.name}</strong>
-                <span>{formatDotDate(certificate.acquiredOn)}</span>
+                <span>{certificate.acquiredYear}</span>
               </div>
             ))}
             {profile.certificates.length > 0 && profile.portfolioUrl && (

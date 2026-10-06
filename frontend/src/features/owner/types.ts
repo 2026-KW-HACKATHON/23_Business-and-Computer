@@ -334,8 +334,8 @@ export interface OwnerCheckout {
 
 export interface StudentCertificate {
   name: string;
-  /** "2025-03" */
-  acquiredOn: string;
+  /** 취득 연도. 서버도 연도만 둔다 (acquiredYear) */
+  acquiredYear: number;
 }
 
 /** 학생이 받은 사장님 후기 */

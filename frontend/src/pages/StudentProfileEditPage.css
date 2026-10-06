@@ -129,7 +129,7 @@
   border-color: var(--color-black);
 }
 
-.student-profile-edit__cert-input--date {
+.student-profile-edit__cert-input--year {
   flex: 0 0 104px;
 }
 

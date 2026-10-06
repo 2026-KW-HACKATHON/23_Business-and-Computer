@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import type { FocusEvent } from "react";
 import { useLocation } from "react-router-dom";
 import { Button, Chip, ProfilePhoto, SubScreen, TextField } from "../components";
 import {
@@ -8,27 +9,13 @@ import {
   useMyProfile,
   useMyProfilePhoto,
 } from "../features/student";
+import { EMPTY_CERTIFICATE, certificateErrorText, certificateStatuses } from "../features/signup";
+import type { Certificate } from "../features/signup";
 import type { ProfileEditSection } from "../features/student";
 import { useBack } from "../hooks/useBack";
 import { useObjectUrls } from "../hooks/useObjectUrls";
-import { formatDotDate } from "../lib/date";
 import { MAX_SPECIALTY_BADGES, SPECIALTY_BADGES } from "../types/specialty";
 import "./StudentProfileEditPage.css";
-
-interface CertificateRow {
-  name: string;
-  /** 「2023.08」처럼 적는다 */
-  acquired: string;
-}
-
-/** 「2023.08」 · 「2023-8」 → 「2023-08」. 알아볼 수 없으면 비운다 */
-function toYearMonth(text: string): string | undefined {
-  const match = /^(\d{4})\s*[.\-/]\s*(\d{1,2})\.?$/.exec(text.trim());
-  if (!match) return undefined;
-  const month = Number(match[2]);
-  if (month < 1 || month > 12) return undefined;
-  return `${match[1]}-${String(month).padStart(2, "0")}`;
-}
 
 /**
  * 피그마 「프로필 편집(학생)」. 프로필 수정의 「기본 정보 수정」 · 각 「수정」에서 열린다.
@@ -47,9 +34,10 @@ function StudentProfileEditPage() {
   const [intro, setIntro] = useState(profile.intro);
   const [badges, setBadges] = useState(profile.badges);
   const [limitReached, setLimitReached] = useState(false);
-  const [certificates, setCertificates] = useState<CertificateRow[]>(() =>
-    profile.certificates.map((c) => ({ name: c.name, acquired: formatDotDate(c.acquiredOn) })),
+  const [certificates, setCertificates] = useState<Certificate[]>(() =>
+    profile.certificates.map((c) => ({ name: c.name, acquiredYear: String(c.acquiredYear) })),
   );
+  const [touchedCertificates, setTouchedCertificates] = useState<number[]>([]);
   const [portfolioUrl, setPortfolioUrl] = useState(profile.portfolioUrl ?? "");
   const badgesRef = useRef<HTMLElement>(null);
   const certificatesRef = useRef<HTMLElement>(null);
@@ -74,25 +62,35 @@ function StudentProfileEditPage() {
     setBadges([...badges, badge]);
   };
 
-  const editCertificate = (index: number, patch: Partial<CertificateRow>) => {
-    setCertificates((rows) => rows.map((row, i) => (i === index ? { ...row, ...patch } : row)));
+  // 가입과 같은 규칙: 비운 줄은 저장하지 않고, 덜 채웠거나 연도가 틀리거나 겹친 줄은 저장을 막는다
+  const certificateStatusList = certificateStatuses(certificates);
+  const canSave =
+    badges.length > 0 && certificateStatusList.every((s) => s === "empty" || s === "complete");
+
+  const editCertificate = (index: number, patch: Partial<Certificate>) => {
+    const next = certificates.map((row, i) => (i === index ? { ...row, ...patch } : row));
+    // 오류를 보여준 줄도 고쳐서 맞으면 바로 지운다. 다시 틀리면 줄을 벗어날 때 보여준다
+    const status = certificateStatuses(next)[index];
+    if (status === "empty" || status === "complete") {
+      setTouchedCertificates((rows) => rows.filter((row) => row !== index));
+    }
+    setCertificates(next);
   };
 
-  // 이름을 적은 줄만 저장한다. 연월을 알아볼 수 없으면 그 줄에 안내를 띄운다
-  const filledCertificates = certificates.filter((c) => c.name.trim() !== "");
-  const dateInvalid = (row: CertificateRow) =>
-    row.name.trim() !== "" && toYearMonth(row.acquired) === undefined;
-  const canSave = badges.length > 0 && !filledCertificates.some(dateInvalid);
+  // 같은 줄 안에서 칸을 옮길 때는 두고, 줄 밖으로 나갈 때 오류를 보여준다
+  const leaveCertificate = (index: number) => (e: FocusEvent<HTMLDivElement>) => {
+    if (e.currentTarget.contains(e.relatedTarget as Node | null)) return;
+    setTouchedCertificates((rows) => (rows.includes(index) ? rows : [...rows, index]));
+  };
 
   const handleSave = () => {
     if (!canSave) return;
     saveMyProfile({
       intro: intro.trim(),
       badges,
-      certificates: filledCertificates.map((c) => ({
-        name: c.name.trim(),
-        acquiredOn: toYearMonth(c.acquired) ?? "",
-      })),
+      certificates: certificates
+        .filter((_, i) => certificateStatusList[i] === "complete")
+        .map((c) => ({ name: c.name.trim(), acquiredYear: Number(c.acquiredYear) })),
       portfolioUrl: portfolioUrl.trim().replace(/^https?:\/\//, "") || undefined,
     });
     if (photo !== savedPhoto) setMyProfilePhoto(photo);
@@ -173,37 +171,45 @@ function StudentProfileEditPage() {
             <h3 id="edit-certificates" className="student-profile-edit__title">
               보유 자격증
             </h3>
-            <p className="student-profile-edit__guide">자격증 이름과 취득한 연월을 적어 주세요</p>
+            <p className="student-profile-edit__guide">자격증 이름과 취득 연도를 적어 주세요</p>
           </div>
-          {certificates.map((certificate, i) => (
-            <div key={i} className="student-profile-edit__cert">
-              <div className="student-profile-edit__cert-row">
-                <input
-                  className="student-profile-edit__cert-input"
-                  placeholder="자격증명"
-                  aria-label={`자격증 ${i + 1} 이름`}
-                  value={certificate.name}
-                  onChange={(e) => editCertificate(i, { name: e.target.value })}
-                />
-                <input
-                  className={`student-profile-edit__cert-input student-profile-edit__cert-input--date${dateInvalid(certificate) ? " student-profile-edit__cert-input--invalid" : ""}`}
-                  placeholder="2024.02"
-                  inputMode="decimal"
-                  aria-label={`자격증 ${i + 1} 취득 연월`}
-                  aria-invalid={dateInvalid(certificate) || undefined}
-                  value={certificate.acquired}
-                  onChange={(e) => editCertificate(i, { acquired: e.target.value })}
-                />
+          {certificates.map((certificate, i) => {
+            const errorText = touchedCertificates.includes(i)
+              ? certificateErrorText(certificateStatusList[i])
+              : null;
+            const inputClass = `student-profile-edit__cert-input${errorText ? " student-profile-edit__cert-input--invalid" : ""}`;
+            return (
+              <div key={i} className="student-profile-edit__cert" onBlur={leaveCertificate(i)}>
+                <div className="student-profile-edit__cert-row">
+                  <input
+                    className={inputClass}
+                    placeholder="자격증명"
+                    aria-label={`자격증 ${i + 1} 이름`}
+                    aria-invalid={errorText ? true : undefined}
+                    value={certificate.name}
+                    onChange={(e) => editCertificate(i, { name: e.target.value })}
+                  />
+                  <input
+                    className={`${inputClass} student-profile-edit__cert-input--year`}
+                    placeholder="취득 연도"
+                    aria-label={`자격증 ${i + 1} 취득 연도`}
+                    aria-invalid={errorText ? true : undefined}
+                    inputMode="numeric"
+                    maxLength={4}
+                    value={certificate.acquiredYear}
+                    onChange={(e) =>
+                      editCertificate(i, { acquiredYear: e.target.value.replace(/\D/g, "").slice(0, 4) })
+                    }
+                  />
+                </div>
+                {errorText && <p className="student-profile-edit__cert-error">{errorText}</p>}
               </div>
-              {dateInvalid(certificate) && (
-                <p className="student-profile-edit__cert-error">취득 연월을 2024.02처럼 적어 주세요</p>
-              )}
-            </div>
-          ))}
+            );
+          })}
           <button
             type="button"
             className="student-profile-edit__cert-add"
-            onClick={() => setCertificates((rows) => [...rows, { name: "", acquired: "" }])}
+            onClick={() => setCertificates((rows) => [...rows, EMPTY_CERTIFICATE])}
           >
             + 자격증 추가
           </button>

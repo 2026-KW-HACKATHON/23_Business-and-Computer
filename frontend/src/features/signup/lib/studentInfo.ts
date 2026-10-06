@@ -106,6 +106,17 @@ export function certificateStatuses(
   });
 }
 
+/** 자격증 줄 상태의 안내 문구. 비었거나 다 맞으면 null */
+export function certificateErrorText(
+  status: CertificateStatus,
+  thisYear: number = new Date().getFullYear(),
+): string | null {
+  if (status === "incomplete") return "자격증 이름과 취득 연도를 모두 입력해 주세요";
+  if (status === "invalidYear") return `${MIN_ACQUIRED_YEAR}~${thisYear} 사이 연도를 입력해 주세요`;
+  if (status === "duplicate") return "같은 자격증이 두 번 입력됐어요";
+  return null;
+}
+
 /** 값이 있는데 http(s):// 로 시작하지 않으면 https:// 를 붙인다 (백엔드는 http(s) 주소만 받는다) */
 export function normalizePortfolioUrl(input: string): string {
   const value = input.trim();
