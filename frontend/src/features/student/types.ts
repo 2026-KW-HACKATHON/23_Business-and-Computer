@@ -40,6 +40,8 @@ export interface WorkFile {
   name: string;
   /** 「24.1MB」 */
   size: string;
+  /** 제출 화면에서 고른 파일 (올릴 때 쓴다) */
+  file?: File;
 }
 
 /** 작업 기록 한 줄 */

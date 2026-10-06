@@ -21,6 +21,7 @@ import {
 import type { WorkFile } from "../features/student";
 import { useBack } from "../hooks/useBack";
 import { formatMonthDay } from "../lib/date";
+import StudentJobSubmitPage from "./StudentJobSubmitPage";
 import "./StudentDetailPage.css";
 import "./StudentWorkPage.css";
 
@@ -30,6 +31,16 @@ import "./StudentWorkPage.css";
  */
 function StudentWorkSubmitPage() {
   const { workId = "" } = useParams();
+  const jobId = Number(workId);
+  return Number.isSafeInteger(jobId) && jobId > 0 ? (
+    <StudentJobSubmitPage jobId={jobId} kind="draft" />
+  ) : (
+    <SampleWorkSubmit workId={workId} />
+  );
+}
+
+/** 샘플 작업(알림 · 채팅의 예시)의 초안 제출. 서버 작업은 StudentJobSubmitPage */
+function SampleWorkSubmit({ workId }: { workId: string }) {
   const navigate = useNavigate();
   const back = useBack(STUDENT_PATHS.home);
   const work = useStudentWork(workId);

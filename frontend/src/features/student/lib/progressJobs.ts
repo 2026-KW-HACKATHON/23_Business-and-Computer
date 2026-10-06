@@ -8,6 +8,7 @@ import type { MatchedJobResponse } from "../api/progressApi";
 import { fetchMyProposals } from "../api/proposalApi";
 import type { DeadlineStage } from "../types";
 import { flowSteps } from "./flow";
+import { STUDENT_PATHS } from "./paths";
 
 /**
  * 진행 중 작업의 단계. drafting = 초안 만드는 중, revising = 수정 요청을 받아 수정안 만드는 중,
@@ -68,6 +69,14 @@ export function progressFlowSteps(job: ProgressJob, sub?: string): FlowStep[] {
   if (job.stage === "drafting") return flowSteps(first, 2, sub);
   if (job.stage === "revising") return flowSteps(first, 3, sub);
   return flowSteps(first, job.revisionSubmitted ? 3 : 2, sub);
+}
+
+/** 지금 단계의 화면 (초안 제출 · 수정 요청 확인 · 제출한 결과물) */
+export function progressStagePath(job: ProgressJob): string {
+  const id = String(job.jobId);
+  if (job.stage === "drafting") return STUDENT_PATHS.workSubmit(id);
+  if (job.stage === "revising") return STUDENT_PATHS.workRevision(id);
+  return STUDENT_PATHS.workSubmitted(id);
 }
 
 /** 「가게 이름 · 수정 N회」처럼 비지 않은 것만 잇는다 */

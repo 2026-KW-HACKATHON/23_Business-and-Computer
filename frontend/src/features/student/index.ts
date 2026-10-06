@@ -50,8 +50,17 @@ export {
   progressDeadline,
   progressFlowSteps,
   progressMeta,
+  progressStagePath,
   progressStatusText,
 } from "./lib/progressJobs";
+export {
+  MAX_SUBMISSION_FILES,
+  SUBMISSION_FILE_ACCEPT,
+  SUBMISSION_FILE_HINT,
+  isSubmittableFile,
+  sendSubmission,
+} from "./lib/submission";
+export type { SubmissionKind, SubmissionResult } from "./lib/submission";
 export type { ProgressJob, ProgressStage } from "./lib/progressJobs";
 export { flowSteps, workFlowSteps } from "./lib/flow";
 export {
