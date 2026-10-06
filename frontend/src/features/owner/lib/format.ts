@@ -2,7 +2,6 @@ import { formatMonthDay } from "../../../lib/date";
 import type {
   ChatProgress,
   DeadlineStage,
-  ExploreProgress,
   OwnerWork,
   StudentProfileRef,
   StudentRef,
@@ -22,12 +21,6 @@ export function deadlineText(stage: DeadlineStage, due: string): string {
 
 export const WAITING_STATUS_LABEL: Record<WaitingStatus, string> = {
   recruiting: "학생 모집 중",
-};
-
-export const EXPLORE_PROGRESS_LABEL: Record<ExploreProgress, string> = {
-  waitingAcceptance: "수락 대기",
-  accepted: "수락됨",
-  completed: "완료",
 };
 
 /** 채팅 목록의 굵은 진행 상태 */
