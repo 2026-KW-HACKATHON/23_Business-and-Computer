@@ -130,8 +130,8 @@ The owner side read `SAMPLE_PROPOSALS`, so a proposal a student sent
       날부터 세요」.
   - **Inputs**: 수정 횟수, 학생에게 한마디, and the refund-policy agreement.
     「안전결제하기」 needs only the agreement.
-  - **Payment**: the payment amount is `proposedFee`. Payment progress is
-    `useSafePayment`.
+  - **Payment**: the payment amount is `proposedFee`. 「안전결제하기」 pays
+    through KakaoPay (ADR 0028).
   - **Errors**: loading and failure show `LoadNotice` with 「다시 시도」; 404
     shows `OwnerMissing`; 401 goes to /login. These are the same rules as
     the detail page.
