@@ -11,6 +11,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 import org.junit.jupiter.api.DisplayName;
@@ -42,10 +43,15 @@ import com.gakkum.backend.application.proposal.controller.ProposalController;
 import com.gakkum.backend.application.proposal.facade.ProposalFacade;
 import com.gakkum.backend.application.review.controller.ReviewController;
 import com.gakkum.backend.application.review.facade.ReviewFacade;
+import com.gakkum.backend.application.student.controller.StudentController;
+import com.gakkum.backend.application.student.facade.StudentFacade;
 import com.gakkum.backend.domain.category.dto.BusinessCategoryResponse;
 import com.gakkum.backend.domain.category.entity.BusinessCategory;
 import com.gakkum.backend.domain.category.service.BusinessCategoryService;
 import com.gakkum.backend.domain.specialty.service.SpecialtyCategoryService;
+import com.gakkum.backend.domain.student.dto.StudentQueryDto.StudentMeResult;
+import com.gakkum.backend.domain.student.entity.Student;
+import com.gakkum.backend.domain.user.entity.User;
 import com.gakkum.backend.global.exception.RestAuthenticationEntryPoint;
 import com.gakkum.backend.global.response.ApiResponse;
 import com.gakkum.backend.domain.jwt.service.JwtService;
@@ -55,7 +61,8 @@ import com.gakkum.backend.util.JWTUtil;
 @DisplayName("보안 설정 - 기본 거부(default-deny) 인증 정책 검증")
 @WebMvcTest(controllers = {SecurityConfigTest.TestController.class, SpecialtyController.class,
         JobController.class, PaymentController.class, MediaController.class, ReviewController.class,
-        ProposalController.class, ExploreController.class, BusinessCategoryController.class})
+        ProposalController.class, ExploreController.class, BusinessCategoryController.class,
+        StudentController.class})
 @Import({SecurityConfig.class, RestAuthenticationEntryPoint.class})
 @TestPropertySource(properties = "demo-login.enabled=false")
 class SecurityConfigTest {
@@ -101,6 +108,9 @@ class SecurityConfigTest {
 
     @MockitoBean
     private ExploreFacade exploreFacade;
+
+    @MockitoBean
+    private StudentFacade studentFacade;
 
     @Test
     @DisplayName("인증 없이 탐색 목록을 조회하면 401을 반환한다")
@@ -233,6 +243,35 @@ class SecurityConfigTest {
             .andDo(print())
             .andExpect(status().isUnauthorized())
             .andExpect(jsonPath("$.error.code").value("COMMON_401"));
+    }
+
+    @Test
+    @DisplayName("인증 없이 학생 내 정보를 조회하면 401을 반환한다")
+    void studentMeRequiresAuthentication() throws Exception {
+        mockMvc.perform(get("/students/me"))
+            .andExpect(status().isUnauthorized())
+            .andExpect(jsonPath("$.error.code").value("COMMON_401"));
+    }
+
+    @Test
+    @DisplayName("학생의 Bearer 토큰으로 학생 내 정보를 조회하면 인증된 사용자 이름으로 컨트롤러까지 도달한다")
+    void authenticatedStudentCanReadStudentMe() throws Exception {
+        String token = "student-access-token";
+        when(jwtUtil.isValid(token, true)).thenReturn(true);
+        when(jwtUtil.getUsername(token)).thenReturn("KAKAO_123");
+        when(jwtUtil.getRole(token)).thenReturn("STUDENT");
+        when(studentFacade.getMe("KAKAO_123")).thenReturn(StudentMeResult.of(
+                Student.builder().id(7L).university("광운대학교").penaltyCount(0).build(),
+                User.builder().name("김광운").build(),
+                "24", 0L, 0L, new BigDecimal("0.0"), List.of(), List.of(), 0L, List.of(), List.of()));
+
+        mockMvc.perform(get("/students/me")
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.success").value(true))
+            .andExpect(jsonPath("$.data.studentProfileId").value(7))
+            .andExpect(jsonPath("$.data.name").value("김광운"))
+            .andExpect(jsonPath("$.data.studentNumber").value("24"));
     }
 
     @Test

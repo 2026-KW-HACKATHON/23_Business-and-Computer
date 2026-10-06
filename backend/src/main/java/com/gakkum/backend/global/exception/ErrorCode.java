@@ -87,6 +87,7 @@ public enum ErrorCode {
     STUDENT_EMAIL_DELIVERY_FAILED(HttpStatus.SERVICE_UNAVAILABLE, "STUDENT_EMAIL_503", "인증 메일을 발송하지 못했습니다."),
     OWNER_BUSINESS_VERIFICATION_UNAVAILABLE(HttpStatus.SERVICE_UNAVAILABLE, "OWNER_BUSINESS_503", "사업자등록정보를 확인할 수 없습니다. 잠시 후 다시 시도해 주세요."),
     ALREADY_REGISTERED(HttpStatus.CONFLICT, "USER_409_REGISTERED", "이미 회원가입이 완료된 사용자입니다."),
+    STUDENT_ME_REQUIRED(HttpStatus.FORBIDDEN, "STUDENT_403_ME", "학생만 내 정보를 조회할 수 있습니다."),
     DUPLICATE_STUDENT_NUMBER(HttpStatus.CONFLICT, "STUDENT_409_NUMBER", "이미 사용 중인 학번입니다."),
     DUPLICATE_BUSINESS_NUMBER(HttpStatus.CONFLICT, "OWNER_409_BUSINESS_NUMBER", "이미 사용 중인 사업자등록번호입니다."),
     DEMO_SESSION_LIMIT_EXCEEDED(HttpStatus.TOO_MANY_REQUESTS, "DEMO_429", "지금은 데모 계정을 더 만들 수 없습니다. 잠시 후 다시 시도해 주세요."),

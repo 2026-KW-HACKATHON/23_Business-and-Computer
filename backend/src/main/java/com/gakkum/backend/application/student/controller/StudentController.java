@@ -6,10 +6,12 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.gakkum.backend.application.student.dto.StudentMeResponse;
 import com.gakkum.backend.application.student.dto.StudentRegistrationRequest;
 import com.gakkum.backend.application.student.dto.StudentRegistrationResponse;
 import com.gakkum.backend.application.student.facade.StudentFacade;
@@ -46,5 +48,11 @@ public class StudentController {
         httpServletResponse.addHeader(HttpHeaders.SET_COOKIE, refreshCookie.toString());
 
         return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    @GetMapping("/students/me")
+    public ResponseEntity<ApiResponse<StudentMeResponse>> getMe(Authentication authentication) {
+        return ResponseEntity.ok(ApiResponse.success(
+                StudentMeResponse.from(studentFacade.getMe(authentication.getName()))));
     }
 }
