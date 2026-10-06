@@ -122,7 +122,7 @@
   color: var(--color-black);
 }
 
-/* 제안 수락: 학생이 제안한 작업비 · 기간 (읽기 전용) */
+/* 제안 수락: 학생이 제안한 기간 (읽기 전용) */
 .owner-pay__fixed {
   box-sizing: border-box;
   width: 100%;

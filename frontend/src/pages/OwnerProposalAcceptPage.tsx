@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Navigate, useNavigate, useParams } from "react-router-dom";
 import {
   AppImage,
+  BudgetField,
   Button,
   CategoryBadge,
   FlowBar,
@@ -30,9 +31,9 @@ import "./OwnerPayPage.css";
 import { studentTitle } from "../lib/korean";
 
 /**
- * 피그마 「제안 수락 - 의뢰서작성·결제」. 학생 제안을 의뢰서로 바꾸면서 수정 횟수 · 학생에게
- * 한마디를 정하고 바로 안전결제한다. 작업비는 학생이 제안한 금액, 마감일은 결제한 날부터 학생이
- * 제안한 기간이라 보여 주기만 한다 (서버가 제안에서 정한다).
+ * 피그마 「제안 수락 - 의뢰서작성·결제」. 학생 제안을 의뢰서로 바꾸면서 작업비 · 수정 횟수 ·
+ * 학생에게 한마디를 정하고 바로 안전결제한다. 작업비는 학생 희망 작업비를 채워 두고 사장님이
+ * 고칠 수 있다. 마감일은 결제한 날부터 학생이 제안한 기간이라 보여 주기만 한다 (서버가 정한다).
  * 제안은 GET /proposals/{id} 로 읽는다 (ADR 0025). 결정 대기(PENDING)가 아니면 상세로 돌려보낸다.
  * 「안전결제하기」는 POST /proposals/{id}/payments 로 결제를 준비하고 카카오페이로 간다 (ADR 0028).
  * 카카오페이에서는 /payments/kakao/… (KakaoPayResultPage) 로 돌아온다.
@@ -88,6 +89,8 @@ function prepareFailureExit(
 
 function AcceptForm({ proposal, onBack }: { proposal: ProposalDetail; onBack: () => void }) {
   const navigate = useNavigate();
+  // 학생 희망 작업비를 채워 두고 사장님이 고친다
+  const [budget, setBudget] = useState(proposal.proposedFee);
   const [revisions, setRevisions] = useState(1);
   const [message, setMessage] = useState("");
   const [agreed, setAgreed] = useState(false);
@@ -95,7 +98,7 @@ function AcceptForm({ proposal, onBack }: { proposal: ProposalDetail; onBack: ()
   // 빠른 두 번 누름에도 결제 준비를 한 번만 보낸다
   const inFlight = useRef(false);
 
-  const canPay = agreed && phase === "idle";
+  const canPay = agreed && budget > 0 && phase === "idle";
 
   // 카카오페이에서 브라우저 「뒤로」로 돌아와 이 화면이 그대로 되살아나면 이동 화면을 걷는다
   useEffect(() => {
@@ -117,6 +120,7 @@ function AcceptForm({ proposal, onBack }: { proposal: ProposalDetail; onBack: ()
       prepareProposalPayment(proposalId, {
         revisionCount: revisions,
         messageToStudent: message,
+        budget,
         refundPolicyAgreed: agreed,
       }),
     );
@@ -149,7 +153,7 @@ function AcceptForm({ proposal, onBack }: { proposal: ProposalDetail; onBack: ()
         <div className="owner-pay__intro">
           <h2 className="owner-pay__title">학생의 제안을 받아들일까요?</h2>
           <p className="owner-pay__description">
-            {"제안을 바탕으로 의뢰서를 만들어요.\n수정 횟수를 정해 주세요."}
+            {"제안을 바탕으로 의뢰서를 만들어요.\n희망 작업비를 보고 작업비와 수정 횟수를 정해 주세요."}
           </p>
         </div>
 
@@ -169,8 +173,8 @@ function AcceptForm({ proposal, onBack }: { proposal: ProposalDetail; onBack: ()
           </p>
         </section>
 
-        <FormField label="작업비" hint="학생이 제안한 금액이에요">
-          <p className="owner-pay__fixed">{formatWon(proposal.proposedFee)}</p>
+        <FormField label="작업비" hint="학생 희망 작업비를 참고해 정해 주세요" wrapsInput>
+          <BudgetField value={budget} onChange={setBudget} />
         </FormField>
 
         <FormField label="마감일" hint="학생이 제안한 기간 · 결제한 날부터 세요">
@@ -191,7 +195,7 @@ function AcceptForm({ proposal, onBack }: { proposal: ProposalDetail; onBack: ()
         </FormField>
 
         <PaymentSection
-          amount={proposal.proposedFee}
+          amount={budget}
           method="kakaoPay"
           methods={["kakaoPay"]}
           onMethodChange={() => undefined}

@@ -24,6 +24,8 @@ export interface PaymentApproveResponse {
 
 /** POST /proposals/{id}/payments 요청 본문 (ProposalPaymentPrepareRequest) */
 export interface ProposalPaymentRequest {
+  /** 사장님이 정한 작업비(원). 양수. 결제 금액 · 의뢰 작업비가 된다 */
+  budget: number;
   /** 0 이상 (화면은 1 이상) */
   revisionCount: number;
   /** 5000자 이하. 비었으면 서버가 null 로 본다 */
@@ -32,7 +34,7 @@ export interface ProposalPaymentRequest {
   refundPolicyAgreed: boolean;
 }
 
-/** POST /proposals/{proposalId}/payments — 받은 제안의 결제를 준비한다. 금액은 서버가 제안 작업비로 정한다 */
+/** POST /proposals/{proposalId}/payments — 받은 제안의 결제를 준비한다. 금액은 사장님이 정한 작업비(budget) */
 export async function prepareProposalPayment(
   proposalId: number,
   request: ProposalPaymentRequest,
