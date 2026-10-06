@@ -299,13 +299,12 @@ function OwnerActivityPage() {
       <CardHead
         kind={work.kind}
         title={work.title}
-        right={<span className="owner-activity__chip">취소됨</span>}
+        right={<span className="owner-activity__chip">성사되지 않음</span>}
       />
       <div className="owner-activity__meta">
         <CategoryBadge field={work.field} />
         <span>
-          {work.student.name} 학생, {work.cancel ? formatMonthDay(work.cancel.canceledOn) : ""}{" "}
-          {work.cancel?.stage === "inProgress" ? "작업 중 취소" : "시작 전 취소"}
+          {work.student.name} 학생, {work.cancel ? formatMonthDay(work.cancel.canceledOn) : ""} 성사되지 않음
         </span>
       </div>
       {work.cancel && (
@@ -316,7 +315,7 @@ function OwnerActivityPage() {
       <div className="owner-activity__divider" />
       <div className="owner-activity__footer">
         <TextButton onClick={() => navigate(OWNER_PATHS.workCanceled(work.id))}>
-          취소 상세보기
+          상세보기
         </TextButton>
       </div>
     </li>
@@ -373,7 +372,7 @@ function OwnerActivityPage() {
 
         {tab === "done" && canceled.length > 0 && (
           <>
-            {listTitle("취소된 일", canceled.length)}
+            {listTitle("성사되지 않은 일", canceled.length)}
             <ul className="owner-activity__list">{canceled.map(canceledCard)}</ul>
           </>
         )}

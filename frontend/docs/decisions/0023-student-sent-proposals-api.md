@@ -74,9 +74,9 @@ student screen, which still read `sampleProposals.ts`. The backend (dev) has:
   - 탐색 marks 「내 제안」 by the ids in this list (ADR 0026).
 - **Status chip** (`sentProposalStatusLabel`):
   - PENDING 「수락 대기 중」, AWAITING_START 「수락됨」, ACCEPTED 「작업 중」,
-    REJECTED 「거절됨」.
-  - A CANCELLED job status overrides all of them with 「취소됨」: the list's
-    `jobStatus` on cards, `agreement.jobStatus` on the detail.
+    REJECTED · CANCELLED 「성사되지 않음」.
+  - A CANCELLED job status overrides all of them with 「성사되지 않음」: the
+    list's `jobStatus` on cards, `agreement.jobStatus` on the detail.
   - Every status stays in the list. The detail has the same chip in its
     heading.
 - **Flow bar** (`sentProposalFlowSteps`): PENDING → 제안 「수락 대기」,

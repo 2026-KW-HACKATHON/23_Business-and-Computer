@@ -11,7 +11,7 @@ export type WorkStartResult =
         | "forbidden"
         /** 404 JOB_404 */
         | "notFound"
-        /** 409 JOB_START_409 — 시작할 수 없는 상태 (취소됨 등) */
+        /** 409 JOB_START_409 — 시작할 수 없는 상태 (성사되지 않음 등) */
         | "notAvailable"
         /** 5xx · 네트워크 */
         | "error";

@@ -53,7 +53,7 @@ export function jobStatusLabel(status: JobStatus): string {
     case "CLOSED":
       return "완료";
     case "CANCELLED":
-      return "취소됨";
+      return "성사되지 않음";
   }
 }
 

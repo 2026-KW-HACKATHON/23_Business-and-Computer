@@ -39,7 +39,7 @@ function OwnerPaymentsPage() {
   const sorted = [...payments].sort((a, b) => eventDate(b).localeCompare(eventDate(a)));
   const months = [...new Set(sorted.map((p) => eventDate(p).slice(0, 7)))];
 
-  // 보관 중 → 내 활동(진행 중), 정산 완료 → 결과물, 환불 → 취소된 작업
+  // 보관 중 → 내 활동(진행 중), 정산 완료 → 결과물, 환불 → 성사되지 않은 작업
   const open = (p: OwnerPayment) => {
     if (p.status === "escrowed") navigate(OWNER_PATHS.activity("inProgress"));
     else if (p.status === "settled") navigate(OWNER_PATHS.workResult(p.workId));
