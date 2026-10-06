@@ -14,7 +14,7 @@ interface PeerProposalRowProps {
 
 /**
  * 홈 「다른 학생들의 제안 공감하기」 한 줄 (GET /explore 의 제안, 내 제안은 빠져 있다).
- * 하트를 누르면 공감하고, 다시 누르면 취소한다. 학생 이름은 studentName 을 줄 때만 보인다.
+ * 하트를 누르면 공감하고, 다시 누르면 취소한다 (수락 대기 제안만). 학생 이름은 studentName 을 줄 때만 보인다.
  */
 function PeerProposalRow({ proposal, like, onToggleLike, onOpen }: PeerProposalRowProps) {
   return (
@@ -30,7 +30,11 @@ function PeerProposalRow({ proposal, like, onToggleLike, onOpen }: PeerProposalR
           </span>
         </span>
       </button>
-      <EmpathyCount count={like.likeCount} empathized={like.likedByMe} onToggle={onToggleLike} />
+      <EmpathyCount
+        count={like.likeCount}
+        empathized={like.likedByMe}
+        onToggle={!proposal.status || proposal.status === "PENDING" ? onToggleLike : undefined}
+      />
     </div>
   );
 }

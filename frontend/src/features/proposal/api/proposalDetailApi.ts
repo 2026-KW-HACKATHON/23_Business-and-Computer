@@ -48,6 +48,8 @@ export interface ProposalDetailResponse {
   likeCount: number;
   /** 내가 공감했는지. 서버가 주면 다른 학생 제안서의 하트가 채워진다 */
   likedByMe?: boolean | null;
+  /** 사장님이 제안을 열어 봤는지. 서버가 주면 보낸 제안서의 가게 칸에 보인다 */
+  seenByOwner?: boolean | null;
   specialtyCategories: ProposalSpecialtyCategory[];
   student: ProposalStudentResponse;
   customerProblem: string;

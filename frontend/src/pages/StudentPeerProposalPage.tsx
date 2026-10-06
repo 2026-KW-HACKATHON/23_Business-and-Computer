@@ -37,6 +37,7 @@ import { studentTitle } from "../lib/korean";
 /**
  * 피그마 「제안서 보기 (다른 학생 제안 · 공감)」. 다른 학생이 보낸 제안을 손님 입장에서 읽는다.
  * GET /proposals/{id} (ADR 0026). 「공감하기」로 공감하고, 공감한 뒤 「공감했어요」를 다시 누르면 취소한다.
+ * 공감은 수락 대기 제안만: 수락된 제안은 「수락된 제안이에요」, 거절된 제안은 「끝난 제안이에요」 (누를 수 없음).
  * 내 제안(GET /me/proposals 에 있음)이면 보낸 제안 상세로 바꾼다. 내 제안 목록을 불러오는 동안은
  * 불러오는 중으로 두고, 그 목록이 실패하면 다른 학생 제안으로 보인다.
  */
@@ -77,7 +78,8 @@ function StudentPeerProposalPage() {
       onBack={back}
       footer={
         shown &&
-        like && (
+        like &&
+        (shown.status === "PENDING" ? (
           <Button
             tone="student"
             variant={like.likedByMe ? "secondary" : "primary"}
@@ -87,7 +89,11 @@ function StudentPeerProposalPage() {
           >
             {like.likedByMe ? "공감했어요" : "공감하기"}
           </Button>
-        )
+        ) : (
+          <Button tone="student" variant="secondary" fullWidth disabled>
+            {shown.status === "REJECTED" ? "끝난 제안이에요" : "수락된 제안이에요"}
+          </Button>
+        ))
       }
     >
       {notice && (
@@ -195,7 +201,7 @@ function StudentPeerProposalPage() {
             </section>
           )}
 
-          {likes.failedId === shown.proposalId ? (
+          {shown.status !== "PENDING" ? null : likes.failedId === shown.proposalId ? (
             <p className="student-proposal__like-note student-proposal__like-note--error" role="alert">
               공감하지 못했어요. 잠시 후 다시 눌러 주세요.
             </p>

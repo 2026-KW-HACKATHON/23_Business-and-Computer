@@ -122,7 +122,8 @@ The backend (dev) has:
   `StudentMissing` without a request; 404 shows `StudentMissing`; 401 goes to
   /login; other failures show `LoadNotice` with 「다시 시도」. The screen
   shows the title, one `CategoryBadge` per distinct category name, the
-  status text of the cards, the conditions (작업비 · 초안 마감 · 최종 마감 ·
+  status text of the cards (「다른 학생이 선택됐어요」 when the job is no
+  longer OPEN and `applied` is REJECTED), the conditions (작업비 · 초안 마감 · 최종 마감 ·
   수정 n회), 할 일 chips (specialty names), 맡기고 싶은 일 (description),
   「참고 자료」 (`ReferencePhotos`) when `referenceImageUrls` has any, and
   the 「선택되면 이렇게 진행돼요」 steps. The footer shows only while
@@ -171,6 +172,10 @@ The backend (dev) has:
   - The footer is 「공감하기」 (student color) before a like and the gray
     「공감했어요」 after; pressing 「공감했어요」 takes the like back. The heart
     and 「학생 손님 N명이 공감했어요」 follow the same values.
+  - Only PENDING proposals take likes. AWAITING_START or ACCEPTED shows a
+    disabled 「수락된 제안이에요」, REJECTED a disabled 「끝난 제안이에요」, and
+    the like note is hidden. Explore cards and home rows do not toggle the
+    heart for them either (a card with no `status` still can).
 - **Home 「다른 학생들의 제안 공감하기」**: `usePopularProposals(5)`
   (`src/features/explore/hooks/useExplore.ts`) calls GET
   /explore?type=PROPOSAL&sort=LIKES&size=5 once (no next page). `useStudentHome`
