@@ -10,7 +10,7 @@ import {
   useExploreFeed,
   useLoadMoreSentinel,
 } from "../features/explore";
-import type { ExploreSort } from "../features/explore";
+import type { ExploreProposalCard, ExploreSort } from "../features/explore";
 import {
   ExploreTabs,
   PeerProposalCard,
@@ -24,11 +24,13 @@ import type { Field } from "../types/field";
 import { useDragScroll } from "../hooks/useDragScroll";
 import "./StudentExplorePage.css";
 import { LoadNotice } from "../components";
+import { useProposalLikes } from "../features/proposal";
 
 /**
  * 피그마 「학생 탐색」. GET /explore 의 의뢰 · 제안을 종류 · 분야 · 정렬로 서버에서 거르고,
  * 검색어는 불러온 카드의 제목 · 가게 이름에서 찾는다. 끝까지 내리면 다음 쪽을 부른다 (ADR 0026).
  * 내 제안(GET /me/proposals 에 있는 id)은 「내 제안이에요」로 보이고 보낸 제안서로 간다.
+ * 다른 학생 제안은 하트로 공감하고 다시 누르면 취소한다 (useProposalLikes).
  */
 function StudentExplorePage() {
   const navigate = useNavigate();
@@ -40,6 +42,7 @@ function StudentExplorePage() {
   const fieldScroll = useDragScroll<HTMLDivElement>();
   const feed = useExploreFeed({ kind, field, sort });
   const { load: sent } = useSentProposals();
+  const likes = useProposalLikes();
   const sentIds = new Set(sent.status === "loaded" ? sent.proposals.map((p) => p.proposalId) : []);
   const sentinel = useLoadMoreSentinel(
     feed.status === "loaded" && feed.hasNext && feed.more === "idle",
@@ -51,6 +54,10 @@ function StudentExplorePage() {
     setKind(next);
     if (next !== "proposal" && sort === "LIKES") setSort("LATEST");
   };
+
+  // 이 화면에서 누른 공감이 있으면 그 값, 없으면 카드의 값
+  const likeOf = (item: ExploreProposalCard) =>
+    likes.likeOf(item.proposalId, { likeCount: item.likeCount, likedByMe: item.likedByMe === true });
 
   const keyword = query.trim();
   const visible = feed.items.filter((item) => matchesKeyword(item, keyword));
@@ -85,7 +92,7 @@ function StudentExplorePage() {
             </TextButton>
           </div>
           <p className="student-explore__description">
-            {"가게 의뢰에 지원하고, 다른 학생의 제안을\n손님 눈으로 둘러보세요."}
+            {"가게 의뢰에 지원하고, 다른 학생의 제안에\n하트를 눌러 손님으로서 공감해 보세요."}
           </p>
         </div>
 
@@ -112,6 +119,8 @@ function StudentExplorePage() {
                       <PeerProposalCard
                         proposal={item}
                         mine={sentIds.has(item.proposalId)}
+                        like={likeOf(item)}
+                        onToggleLike={() => likes.toggle(item.proposalId, likeOf(item))}
                         onOpen={() =>
                           navigate(
                             sentIds.has(item.proposalId)

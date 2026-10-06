@@ -3,8 +3,8 @@
 ## Status
 
 Accepted. The student 탐색 list, 의뢰서 전체 보기, 지원하기, the
-peer-proposal detail, and the home 「다른 학생들의 제안 공감하기」 now read and
-write the backend instead of the sample data of ADR 0018.
+peer-proposal detail, the home 「다른 학생들의 제안 공감하기」, and 공감 (like)
+now read and write the backend instead of the sample data of ADR 0018.
 
 ## Context
 
@@ -89,9 +89,12 @@ The backend (dev) has:
   - Job: draft-deadline badge and 「지원하기」 while OPEN; status text
     OPEN 「모집 중」, AWAITING_START / MATCHED 「진행 중」, CLOSED 「완료」;
     「의뢰서 전체 보기 ›」 always in the footer row. Links use the job id.
-  - Proposal: the empathy count only. 「내 제안이에요」 when the id is
-    in `useSentProposals` (GET /me/proposals); mine opens the sent-proposal
-    detail, others the peer-proposal route.
+  - Proposal: the heart pill (`EmpathyCount` with `onToggle`) likes the
+    proposal, and a second tap takes the like back. The footer row shows
+    「하트를 눌러 공감」 or 「공감했어요」. 「내 제안이에요」 when the id is in
+    `useSentProposals` (GET /me/proposals); mine has a heart that cannot be
+    pressed. Mine opens the sent-proposal detail, others the peer-proposal
+    route.
 - **Optional fields**: the card types keep the newer fields optional, and
   the screen shows each only when the server sends it, never a guess:
   - job `budget` → the 「예산」 line; job `applied` (any status) →
@@ -100,7 +103,17 @@ The backend (dev) has:
     heart; `status` → the status line; `proposedSolution` → a two-line
     excerpt.
 - The description under the title reads 「가게 의뢰에 지원하고, 다른 학생의
-  제안을 손님 눈으로 둘러보세요.」
+  제안에 하트를 눌러 손님으로서 공감해 보세요.」
+- **Likes** (`useProposalLikes` in
+  `src/features/proposal/hooks/useProposalLikes.ts`, `sendProposalLike` in
+  `src/features/proposal/api/proposalLikeApi.ts`): a tap shows the new count
+  and heart at once and sends POST (like) or DELETE (take back)
+  /proposals/{id}/likes; the answer's `likeCount` and `likedByMe` replace the
+  shown values. A second tap while that proposal's request is in flight is
+  ignored. A failure puts back the values from before the tap and sets
+  `failedId`; 401 goes to /login; an answer after leaving the screen is
+  dropped. The values stay on that screen only; the next visit reads the
+  server again.
 - **Job detail** (`src/pages/StudentRequestFullPage.tsx`): `useJobDetail`
   (`src/features/explore/hooks/useJobDetail.ts`) calls `fetchJobDetail`
   (`src/features/explore/api/jobApi.ts`). A non-numeric id shows
@@ -142,17 +155,19 @@ The backend (dev) has:
     as another student's.
   - A non-numeric id or 404 shows `StudentMissing`; 401 goes to /login; other
     failures show `LoadNotice` with 「다시 시도」.
-  - The screen shows the notice 「다른 학생의 제안이에요. 가게 손님의 눈으로
-    읽어 보세요.」, the title, the status chip and flow bar of ADR 0023 (from
+  - The screen shows the notice 「다른 학생의 제안이에요. 손님으로서 공감되면
+    눌러 주세요.」, the title, the status chip and flow bar of ADR 0023 (from
     `status` only), one `CategoryBadge` per distinct category name, 「M월 D일
     보냄」, 「학생 손님 N명이 공감했어요」, the student (name, major and
     「NN학번」, then `peerRecord`: 「★ 4.8 · 완료 3건」, 「완료 3건」 with no
     reviews, 「첫 작업이에요」 with none completed), the store box (name and
     address), 손님 눈으로 본 문제, 이렇게 바꿔 드릴게요, 작업계획서, 희망
     작업비 · 예상 기간, and reference photos (`ReferencePhotos`) when there
-    are any. The footer is 「확인」.
-  - Empathy is a count only. The heart is filled when `likedByMe` on
-    `ProposalDetailResponse` is true.
+    are any, then 「공감은 다시 누르면 취소돼요. 내 제안에는 누를 수 없어요.」
+    (after a failed tap: 「공감하지 못했어요. 잠시 후 다시 눌러 주세요.」).
+  - The footer is 「공감하기」 (student color) before a like and the gray
+    「공감했어요」 after; pressing 「공감했어요」 takes the like back. The heart
+    and 「학생 손님 N명이 공감했어요」 follow the same values.
 - **Home 「다른 학생들의 제안 공감하기」**: `usePopularProposals(5)`
   (`src/features/explore/hooks/useExplore.ts`) calls GET
   /explore?type=PROPOSAL&sort=LIKES&size=5 once (no next page). `useStudentHome`
@@ -161,13 +176,14 @@ The backend (dev) has:
     While either loads, or after a failure, the section is hidden and the rest
     of the home shows as before. 401 goes to /login.
   - `PeerProposalRow` shows the title, 「○○ 학생 → 가게」 when `studentName`
-    is sent (otherwise the store name), and the empathy count (filled heart
-    only with `likedByMe`). A row opens the peer-proposal detail; 「전체 ›」
-    opens 탐색.
+    is sent (otherwise the store name), and the heart pill, which likes and
+    takes back like the explore card. A row opens the peer-proposal detail;
+    「전체 ›」 opens 탐색.
   - The section does not count as the student's own activity, so the
     「학생 홈 - 처음」 check (ADR 0023) is unchanged; the first-visit home
     shows it under the guide and the examples.
-- `EmpathyCount` is display-only (count and heart).
+- `EmpathyCount` shows the count and heart; with `onToggle` it is a button
+  (`aria-pressed` follows the like).
 
 ## Rationale
 
@@ -177,8 +193,11 @@ The backend (dev) has:
   ids.
 - Showing optional fields only when present avoids fake budgets or
   「지원했어요」 that the server never said.
-- Until the like API is called, a count-only heart is honest; a button that
-  changes nothing on the server would not be.
+- Showing the tap at once keeps the heart responsive; putting the old
+  values back on failure keeps the screen from claiming a like the server
+  never stored.
+- Own proposals cannot be liked, as the Figma note says, even though the
+  server would accept it.
 - Hiding the home section on loading or failure keeps a secondary list from
   holding up the student's own work.
 - Asking for five and keeping two leaves room for my own proposals near the
@@ -194,9 +213,5 @@ The backend (dev) has:
 
 - The owner 탐색 screens are wired to the API in a later step; extend this
   ADR then.
-- The like API, the job's `referenceImageUrls`, and GET
-  /me/job-applications are wired in a later step.
-- With the like API, the peer proposal detail gets the Figma 「공감하기」
-  button (no count on it; the count stays in 「학생 손님 N명이 공감했어요」), the
-  explore and home hearts toggle, and the explore copy goes back to Figma
-  (「…하트를 눌러 손님으로서 공감해 보세요」).
+- The job's `referenceImageUrls` and GET /me/job-applications are wired in
+  a later step.
