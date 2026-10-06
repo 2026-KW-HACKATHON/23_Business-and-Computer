@@ -8,8 +8,8 @@ import type { PaymentFailure, PaymentTarget } from "../features/payment";
 const UNKNOWN_PAYMENT_PATH = OWNER_PATHS.activity("inProgress");
 
 interface TargetScreens {
-  /** 「제안」 · 「의뢰」 */
-  noun: string;
+  /** 이미 결제된 주문을 다시 승인했을 때 알림 */
+  alreadyPaid: string;
   /** 결제 완료 「확인」 */
   done: string;
   /** 「다시 결제하기」 */
@@ -23,7 +23,7 @@ interface TargetScreens {
 function targetScreens(target: PaymentTarget | undefined): TargetScreens {
   if (!target) {
     return {
-      noun: "결제",
+      alreadyPaid: "이미 결제됐어요",
       done: UNKNOWN_PAYMENT_PATH,
       retry: UNKNOWN_PAYMENT_PATH,
       list: UNKNOWN_PAYMENT_PATH,
@@ -33,7 +33,7 @@ function targetScreens(target: PaymentTarget | undefined): TargetScreens {
   if (target.kind === "proposal") {
     const id = String(target.proposalId);
     return {
-      noun: "제안",
+      alreadyPaid: "이미 결제된 제안이에요",
       done: OWNER_PATHS.proposal(id),
       retry: OWNER_PATHS.proposalAccept(id),
       list: OWNER_PATHS.activity("proposals"),
@@ -41,18 +41,13 @@ function targetScreens(target: PaymentTarget | undefined): TargetScreens {
     };
   }
   return {
-    noun: "의뢰",
+    alreadyPaid: "이미 결제된 의뢰예요",
     done: OWNER_PATHS.activity("inProgress"),
     retry: OWNER_PATHS.workPay(String(target.jobId)),
     list: OWNER_PATHS.activity("inProgress"),
     successDescription: "작업비는 가꿈이 보관해요.\n학생과 채팅으로 자세한 내용을 나눠 보세요.",
   };
 }
-
-const ALREADY_PAID_MESSAGE: Record<string, string> = {
-  제안: "이미 결제된 제안이에요",
-  의뢰: "이미 결제된 의뢰예요",
-};
 
 /** 승인 실패: 알림을 띄우고 갈 곳. undefined 면 결제 실패 팝업 (502 · 네트워크 · pg_token 없음) */
 function approveFailureExit(
@@ -63,7 +58,7 @@ function approveFailureExit(
     case "unauthorized":
       return { to: "/login" };
     case "alreadyPaid":
-      return { message: ALREADY_PAID_MESSAGE[screens.noun] ?? "이미 결제됐어요", to: screens.done };
+      return { message: screens.alreadyPaid, to: screens.done };
     case "otherOwnerOrder":
       return { message: "다른 계정에서 진행한 결제예요. 결제한 사장님 계정으로 확인해 주세요", to: screens.list };
     case "orderNotFound":
