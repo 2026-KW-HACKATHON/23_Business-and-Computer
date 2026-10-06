@@ -4,9 +4,11 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
+import com.gakkum.backend.domain.job.dto.JobQueryDto.JobLatestSubmissionResult;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.JobSubmissionCreateResult;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.JobSubmissionDetailResult;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.PrepareSubmissionFileUploadResult;
+import com.gakkum.backend.domain.job.dto.JobQueryDto.RevisionRequestResult;
 
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -62,6 +64,55 @@ public final class JobSubmissionResponse {
                     .fileUrls(result.getFileUrls())
                     .message(result.getMessage())
                     .revisionNumber(result.getRevisionNumber())
+                    .build();
+        }
+    }
+
+    /** 수정 요청을 받지 않은 제출물은 revisionRequest를 생략하지 않고 null로 내린다. */
+    @Getter
+    @Builder(access = AccessLevel.PRIVATE)
+    @AllArgsConstructor(access = AccessLevel.PRIVATE)
+    public static class Latest {
+
+        private final Long submissionId;
+        private final String submissionType;
+        private final Integer revisionNumber;
+        private final List<String> fileUrls;
+        private final String message;
+        private final String reviewStatus;
+        private final LocalDateTime submittedAt;
+        private final RevisionRequest revisionRequest;
+
+        public static Latest from(JobLatestSubmissionResult result) {
+            return Latest.builder()
+                    .submissionId(result.getSubmissionId())
+                    .submissionType(result.getSubmissionType())
+                    .revisionNumber(result.getRevisionNumber())
+                    .fileUrls(result.getFileUrls())
+                    .message(result.getMessage())
+                    .reviewStatus(result.getReviewStatus())
+                    .submittedAt(result.getSubmittedAt())
+                    .revisionRequest(result.getRevisionRequest() == null
+                            ? null
+                            : RevisionRequest.from(result.getRevisionRequest()))
+                    .build();
+        }
+    }
+
+    @Getter
+    @Builder(access = AccessLevel.PRIVATE)
+    @AllArgsConstructor(access = AccessLevel.PRIVATE)
+    public static class RevisionRequest {
+
+        private final String message;
+        private final List<String> referenceImageUrls;
+        private final LocalDateTime requestedAt;
+
+        public static RevisionRequest from(RevisionRequestResult result) {
+            return RevisionRequest.builder()
+                    .message(result.getMessage())
+                    .referenceImageUrls(result.getReferenceImageUrls())
+                    .requestedAt(result.getRequestedAt())
                     .build();
         }
     }

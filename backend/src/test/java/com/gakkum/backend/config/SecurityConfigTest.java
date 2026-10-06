@@ -237,6 +237,19 @@ class SecurityConfigTest {
     }
 
     @Test
+    @DisplayName("인증 없이 수정을 요청하거나 최신 제출물을 조회하면 401을 반환한다")
+    void revisionRequestAndLatestSubmissionRequireAuthentication() throws Exception {
+        mockMvc.perform(post("/jobs/42/submissions/81/revision-request")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"message\":\"로고를 조금 더 크게 해주세요.\"}"))
+            .andExpect(status().isUnauthorized())
+            .andExpect(jsonPath("$.error.code").value("COMMON_401"));
+        mockMvc.perform(get("/jobs/42/submissions/latest"))
+            .andExpect(status().isUnauthorized())
+            .andExpect(jsonPath("$.error.code").value("COMMON_401"));
+    }
+
+    @Test
     @DisplayName("인증 없이 임의의 보호된 API를 호출하면 공통 401 응답 형식으로 반환된다")
     void unauthenticatedRequestReturnsCommonUnauthorizedResponse() throws Exception {
         // 인증 정보 없이 임의의 보호 대상 엔드포인트를 호출

@@ -61,8 +61,14 @@ public class JobSubmission {
     @Column(name = "review_status", nullable = false, length = 30)
     private JobSubmissionReviewStatus reviewStatus;
 
+    // 수정 요청 내용
     @Column(name = "review_comment", columnDefinition = "TEXT")
     private String reviewComment;
+
+    @Builder.Default
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "revision_reference_image_urls", nullable = false, columnDefinition = "jsonb")
+    private List<String> revisionReferenceImageUrls = List.of();
 
     @Column(name = "reviewed_at")
     private LocalDateTime reviewedAt;
@@ -91,12 +97,17 @@ public class JobSubmission {
                 .build();
     }
 
-    /** 검토 대기(PENDING) 제출물만 수정 요청 상태로 바꿀 수 있고, 요청 시각을 reviewedAt에 기록한다. */
-    public void requestRevision(LocalDateTime requestedAt) {
+    /**
+     * 검토 대기(PENDING) 제출물만 수정 요청 상태로 바꿀 수 있다.
+     * 요청 내용은 reviewComment, 요청 시각은 reviewedAt에 기록하고 학생의 제출 메시지와 파일은 그대로 둔다.
+     */
+    public void requestRevision(LocalDateTime requestedAt, String message, List<String> referenceImageUrls) {
         if (reviewStatus != JobSubmissionReviewStatus.PENDING) {
             throw new BusinessException(ErrorCode.JOB_SUBMISSION_ALREADY_REVIEWED);
         }
         reviewStatus = JobSubmissionReviewStatus.REVISION_REQUESTED;
+        reviewComment = message;
+        revisionReferenceImageUrls = List.copyOf(referenceImageUrls);
         reviewedAt = requestedAt;
     }
 

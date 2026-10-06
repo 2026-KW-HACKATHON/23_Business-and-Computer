@@ -13,6 +13,8 @@ public enum ErrorCode {
     JOB_IMAGE_NOT_UPLOADED(HttpStatus.CONFLICT, "JOB_409_IMAGE_NOT_UPLOADED", "업로드가 끝나지 않은 사진이 있습니다."),
     JOB_RESULT_NOT_FOUND(HttpStatus.NOT_FOUND, "JOB_RESULT_404", "조회할 수 있는 결과물이 없습니다."),
     JOB_SUBMISSION_NOT_FOUND(HttpStatus.NOT_FOUND, "JOB_SUBMISSION_404", "검토 대기 중인 제출물이 없습니다."),
+    JOB_SUBMISSION_LATEST_NOT_FOUND(HttpStatus.NOT_FOUND, "JOB_SUBMISSION_404_LATEST", "제출한 작업물이 없습니다."),
+    JOB_SUBMISSION_VIEW_FORBIDDEN(HttpStatus.FORBIDDEN, "JOB_SUBMISSION_403_VIEW", "학생만 제출한 작업물을 조회할 수 있습니다."),
     JOB_SUBMISSION_FORBIDDEN(HttpStatus.FORBIDDEN, "JOB_SUBMISSION_403", "의뢰에 매칭된 학생만 작업물을 제출할 수 있습니다."),
     JOB_SUBMISSION_NOT_AVAILABLE(HttpStatus.CONFLICT, "JOB_SUBMISSION_409_STATUS", "작업물을 제출할 수 없는 의뢰 상태입니다."),
     JOB_SUBMISSION_ALREADY_EXISTS(HttpStatus.CONFLICT, "JOB_SUBMISSION_409_DUPLICATE", "이미 초안을 제출했습니다."),

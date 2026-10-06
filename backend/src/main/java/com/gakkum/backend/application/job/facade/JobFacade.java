@@ -33,6 +33,7 @@ import com.gakkum.backend.domain.job.dto.JobCommandDto.GetJobApplicantProfileCom
 import com.gakkum.backend.domain.job.dto.JobCommandDto.GetJobApplicationsCommand;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.GetJobResultCommand;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.GetJobSubmissionCommand;
+import com.gakkum.backend.domain.job.dto.JobCommandDto.GetLatestJobSubmissionCommand;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.GetMatchedJobsCommand;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.GetOpenJobsCommand;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.GetStudentAppliedJobsCommand;
@@ -54,6 +55,7 @@ import com.gakkum.backend.domain.job.dto.JobQueryDto.JobApplicationListResult;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.JobCancelResult;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.JobDetailData;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.JobDetailResult;
+import com.gakkum.backend.domain.job.dto.JobQueryDto.JobLatestSubmissionResult;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.JobResultData;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.JobResultResult;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.JobSubmissionCreateResult;
@@ -203,6 +205,22 @@ public class JobFacade {
     }
 
     /**
+     * 담당 학생 본인 의뢰의 최신 제출물을 수정 요청 내용과 함께 조회한다.
+     * 학생이 아니거나 학생 프로필이 없으면 의뢰를 조회하기 전에 거부한다.
+     */
+    @Transactional(readOnly = true)
+    public JobLatestSubmissionResult getLatestSubmission(String username, Long jobId) {
+        User user = userService.getActiveUser(username);
+        if (user.getRole() != UserRole.STUDENT) {
+            throw new BusinessException(ErrorCode.JOB_SUBMISSION_VIEW_FORBIDDEN);
+        }
+        Student student = studentService.findStudentProfileByUserId(user.getId())
+                .orElseThrow(() -> new BusinessException(ErrorCode.JOB_SUBMISSION_VIEW_FORBIDDEN));
+        return JobLatestSubmissionResult.from(
+                jobService.getLatestSubmission(GetLatestJobSubmissionCommand.of(jobId, student.getId())));
+    }
+
+    /**
      * 완료된 의뢰의 결과물을 의뢰한 사장님 또는 담당 학생에게 보여준다.
      * 작업 시작일은 일반 의뢰는 결제 승인일, 제안 의뢰는 학생이 실제로 작업을 시작한 날이다.
      */
@@ -277,12 +295,17 @@ public class JobFacade {
         return JobSubmissionCreateResult.from(submission);
     }
 
-    /** 사장님 본인 의뢰의 검토 대기 제출물에 수정을 요청한다. */
-    @Transactional
-    public void requestRevision(String username, Long jobId, Long submissionId) {
-        User user = userService.getActiveUser(username);
+    /**
+     * 사장님 본인 의뢰의 검토 대기 제출물에 수정 요청 내용과 참고 사진을 남긴다.
+     * 사진 저장소 확인이 의뢰 행 잠금과 DB 커넥션을 붙잡지 않도록 이 메서드에는 트랜잭션을 두지 않는다.
+     */
+    public void requestRevision(RequestJobSubmissionRevisionCommand command) {
+        User user = userService.getActiveUser(command.getUsername());
         Owner owner = ownerService.getOwnerProfile(user.getId());
-        jobService.requestRevision(RequestJobSubmissionRevisionCommand.of(jobId, submissionId, owner.getId()));
+        jobService.validateRevisionRequestable(command.getJobId(), command.getSubmissionId(), owner.getId());
+        validateUploadedImages(command.getReferenceImageUrls(), user.getId());
+
+        jobService.requestRevision(command, owner.getId());
     }
 
     /** 사장님 본인 의뢰의 검토 대기 제출물을 최종 결과로 수락하고 의뢰를 종료한다. */

@@ -30,6 +30,7 @@ import com.gakkum.backend.domain.job.dto.JobCommandDto.GetJobApplicantProfileCom
 import com.gakkum.backend.domain.job.dto.JobCommandDto.GetJobApplicationsCommand;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.GetJobResultCommand;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.GetJobSubmissionCommand;
+import com.gakkum.backend.domain.job.dto.JobCommandDto.GetLatestJobSubmissionCommand;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.GetMatchedJobsCommand;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.GetOpenJobsCommand;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.GetStudentAppliedJobsCommand;
@@ -59,10 +60,12 @@ import com.gakkum.backend.domain.job.entity.JobStatus;
 import com.gakkum.backend.domain.job.repository.JobApplicationRepository;
 import com.gakkum.backend.domain.job.repository.JobRepository;
 import com.gakkum.backend.domain.job.repository.JobRepository.DeclineTargetProjection;
+import com.gakkum.backend.domain.job.repository.JobRepository.RevisionRequestTargetProjection;
 import com.gakkum.backend.domain.job.repository.JobRepository.StartTargetProjection;
 import com.gakkum.backend.domain.job.repository.JobRepository.StudentJobCount;
 import com.gakkum.backend.domain.job.repository.JobSpecialtyRepository;
 import com.gakkum.backend.domain.job.repository.JobSubmissionRepository;
+import com.gakkum.backend.domain.job.repository.JobSubmissionRepository.ReviewTargetProjection;
 import com.gakkum.backend.global.exception.BusinessException;
 import com.gakkum.backend.global.exception.ErrorCode;
 
@@ -536,6 +539,21 @@ public class JobService {
     }
 
     /**
+     * 담당 학생 본인 의뢰의 최신 제출물(수정 번호가 가장 큰 초안 또는 수정안) 조회. 완료·취소된 의뢰도 조회할 수 있다.
+     * 존재하지 않거나 다른 학생이 담당한 의뢰는 같은 404, 제출물이 없는 본인 의뢰는 JOB_SUBMISSION_404_LATEST로 거부한다.
+     * @param command
+     * @return 최신 제출물
+     */
+    @Transactional(readOnly = true)
+    public JobSubmission getLatestSubmission(GetLatestJobSubmissionCommand command) {
+        Job job = jobRepository.findById(command.getJobId())
+                .filter(found -> command.getStudentProfileId().equals(found.getSelectedStudentProfileId()))
+                .orElseThrow(() -> new BusinessException(ErrorCode.JOB_NOT_FOUND));
+        return jobSubmissionRepository.findFirstByJobIdOrderByRevisionNumberDesc(job.getId())
+                .orElseThrow(() -> new BusinessException(ErrorCode.JOB_SUBMISSION_LATEST_NOT_FOUND));
+    }
+
+    /**
      * 학생이 작업물 파일을 올릴 수 있는 의뢰인지 확인
      * @param jobId
      * @param studentProfileId
@@ -621,28 +639,54 @@ public class JobService {
     }
 
     /**
-     * 사장님이 검토 대기(PENDING) 제출물에 수정을 요청한다.
-     * 의뢰 행을 잠가 같은 의뢰의 수정 요청·수정안 제출을 순서대로 처리한다.
+     * 수정을 요청할 수 있는지 잠금 없이 확인. 사진 저장소 확인 전에 빠르게 거절하기 위해 사용한다.
+     * 거부 조건과 순서는 requestRevision과 같다.
+     * @param jobId
+     * @param submissionId
+     * @param ownerProfileId
+     */
+    @Transactional(readOnly = true)
+    public void validateRevisionRequestable(Long jobId, Long submissionId, Long ownerProfileId) {
+        RevisionRequestTargetProjection job = jobRepository
+                .findRevisionRequestTargetByIdAndOwnerProfileId(jobId, ownerProfileId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.JOB_NOT_FOUND));
+        ReviewTargetProjection submission = jobSubmissionRepository.findReviewTargetById(submissionId)
+                .filter(found -> found.getJobId().equals(jobId))
+                .orElseThrow(() -> new BusinessException(ErrorCode.JOB_SUBMISSION_NOT_FOUND));
+        validateRevisionRequestable(
+                job.getStatus(), job.getRevisionCount(), submission.getReviewStatus(), submission.getRevisionNumber());
+    }
+
+    /**
+     * 사장님이 검토 대기(PENDING) 제출물에 수정을 요청하고 요청 내용·참고 사진·요청 시각을 상태와 함께 저장한다.
+     * 의뢰 행을 잠가 같은 의뢰의 수정 요청·수정안 제출을 순서대로 처리하고, 잠근 뒤 조건을 다시 확인한다.
      * 요청 후 학생이 낼 수정안 번호(현재 번호 + 1)가 수정 가능 횟수를 넘으면 거부한다.
      * @param command
+     * @param ownerProfileId
      */
     @Transactional
-    public void requestRevision(RequestJobSubmissionRevisionCommand command) {
-        Job job = jobRepository.findByIdAndOwnerProfileId(command.getJobId(), command.getOwnerProfileId())
+    public void requestRevision(RequestJobSubmissionRevisionCommand command, Long ownerProfileId) {
+        Job job = jobRepository.findByIdAndOwnerProfileId(command.getJobId(), ownerProfileId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.JOB_NOT_FOUND));
         JobSubmission submission = jobSubmissionRepository.findById(command.getSubmissionId())
                 .filter(found -> found.getJobId().equals(job.getId()))
                 .orElseThrow(() -> new BusinessException(ErrorCode.JOB_SUBMISSION_NOT_FOUND));
-        if (job.getStatus() != JobStatus.MATCHED) {
+        validateRevisionRequestable(
+                job.getStatus(), job.getRevisionCount(), submission.getReviewStatus(), submission.getRevisionNumber());
+        submission.requestRevision(now(), command.getMessage(), command.getReferenceImageUrls());
+    }
+
+    private void validateRevisionRequestable(JobStatus jobStatus, Integer revisionCount,
+            JobSubmissionReviewStatus reviewStatus, Integer revisionNumber) {
+        if (jobStatus != JobStatus.MATCHED) {
             throw new BusinessException(ErrorCode.JOB_SUBMISSION_REVIEW_NOT_AVAILABLE);
         }
-        if (submission.getReviewStatus() != JobSubmissionReviewStatus.PENDING) {
+        if (reviewStatus != JobSubmissionReviewStatus.PENDING) {
             throw new BusinessException(ErrorCode.JOB_SUBMISSION_ALREADY_REVIEWED);
         }
-        if (submission.getRevisionNumber() >= job.getRevisionCount()) {
+        if (revisionNumber >= revisionCount) {
             throw new BusinessException(ErrorCode.JOB_SUBMISSION_REVISION_LIMIT_EXCEEDED);
         }
-        submission.requestRevision(now());
     }
 
     /**
