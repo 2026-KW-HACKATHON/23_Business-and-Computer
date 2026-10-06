@@ -27,9 +27,11 @@ import com.gakkum.backend.domain.proposal.dto.ProposalCommandDto.CreateProposalC
 import com.gakkum.backend.domain.proposal.dto.ProposalCommandDto.GetMyProposalsCommand;
 import com.gakkum.backend.domain.proposal.dto.ProposalCommandDto.GetReceivedProposalsCommand;
 import com.gakkum.backend.domain.proposal.dto.ProposalCommandDto.StartProposalJobCommand;
+import com.gakkum.backend.domain.payment.dto.PaymentQueryDto.RefundedPaymentData;
 import com.gakkum.backend.domain.payment.service.PaymentService;
 import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.ProposalAgreementResult;
 import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.ProposalCancelResult;
+import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.ProposalJobDeclineResult;
 import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.ProposalJobStartResult;
 import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.ProposalLikeResult;
 import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.ExploreProposalData;
@@ -198,6 +200,32 @@ public class ProposalFacade {
         proposal.accept();
         ChatRoom chatRoom = chatRoomService.getOrCreate(job.getId());
         return ProposalJobStartResult.of(job, proposal, chatRoom.getId());
+    }
+
+    /**
+     * 제안한 학생이 결제된 제안 의뢰서를 작업 시작 전에 거절한다. 거절 사유는 받지 않는다.
+     * 제안의 거절 전환, 의뢰의 취소 전환, 결제의 전액 환불 기록(학생 보상금 0원)을 한 트랜잭션으로 처리하고 채팅방은 만들지 않는다.
+     * 잠금 순서는 제안 → 의뢰 → 결제다. 의뢰의 제안 ID를 먼저 읽고, 잠근 뒤 연결 관계·작성자·상태를 다시 확인한다.
+     * 이미 시작·거절·종료된 의뢰의 재요청은 409로 거부해 환불을 다시 처리하지 않는다.
+     * 결제 완료 주문이 없거나 주문의 제안·결제한 사장님이 의뢰와 맞지 않으면 500으로 전체 변경을 되돌린다.
+     */
+    @Transactional
+    public ProposalJobDeclineResult declineProposalJob(String username, Long jobId) {
+        User user = userService.getActiveUser(username);
+        if (user.getRole() != UserRole.STUDENT) {
+            throw new BusinessException(ErrorCode.JOB_DECLINE_FORBIDDEN);
+        }
+        Student student = studentService.findStudentProfileByUserId(user.getId())
+                .orElseThrow(() -> new BusinessException(ErrorCode.JOB_DECLINE_FORBIDDEN));
+
+        Long proposalId = jobService.getDeclinableProposalId(jobId, student.getId(), user.getDemoSessionId());
+        Proposal proposal = proposalService.getDeclinableProposalForUpdate(proposalId, student.getId());
+        Job job = jobService.declineJob(jobId, proposalId, student.getId());
+        proposal.reject();
+        // 환불 대상 결제가 이 의뢰의 사장님이 결제한 주문인지 확인하도록 의뢰한 사장님을 넘긴다
+        Owner owner = ownerService.getOwnerProfileById(job.getOwnerProfileId());
+        RefundedPaymentData refund = paymentService.refundOnDecline(jobId, proposalId, owner.getUserId());
+        return ProposalJobDeclineResult.of(job, proposal, refund);
     }
 
     /**

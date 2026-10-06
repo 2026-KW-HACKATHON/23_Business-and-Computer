@@ -15,6 +15,7 @@ import com.gakkum.backend.application.proposal.dto.ProposalCancelResponse;
 import com.gakkum.backend.application.proposal.dto.ProposalCreateRequest;
 import com.gakkum.backend.application.proposal.dto.ProposalCreateResponse;
 import com.gakkum.backend.application.proposal.dto.ProposalDetailResponse;
+import com.gakkum.backend.application.proposal.dto.ProposalJobDeclineResponse;
 import com.gakkum.backend.application.proposal.dto.ProposalJobStartRequest;
 import com.gakkum.backend.application.proposal.dto.ProposalJobStartResponse;
 import com.gakkum.backend.application.proposal.dto.ProposalLikeResponse;
@@ -85,6 +86,15 @@ public class ProposalController {
             @Valid @RequestBody ProposalJobStartRequest request) {
         ProposalJobStartResponse response = ProposalJobStartResponse.from(
                 proposalFacade.startProposalJob(request.toCommand(authentication.getName(), jobId)));
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    /** 제안한 학생이 결제된 제안 의뢰서를 작업 시작 전에 거절하는 API. 사장님 작업비는 전액 환불 처리한다 */
+    @PostMapping("/jobs/{jobId}/decline")
+    public ResponseEntity<ApiResponse<ProposalJobDeclineResponse>> declineProposalJob(
+            Authentication authentication, @PathVariable @Positive Long jobId) {
+        ProposalJobDeclineResponse response = ProposalJobDeclineResponse.from(
+                proposalFacade.declineProposalJob(authentication.getName(), jobId));
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 

@@ -26,6 +26,8 @@ public enum ErrorCode {
     JOB_CANCEL_NOT_AVAILABLE(HttpStatus.CONFLICT, "JOB_409_CANCEL", "취소할 수 없는 의뢰 상태입니다."),
     JOB_START_FORBIDDEN(HttpStatus.FORBIDDEN, "JOB_START_403", "제안한 학생만 작업을 시작할 수 있습니다."),
     JOB_START_NOT_AVAILABLE(HttpStatus.CONFLICT, "JOB_START_409", "작업을 시작할 수 없는 의뢰 상태입니다."),
+    JOB_DECLINE_FORBIDDEN(HttpStatus.FORBIDDEN, "JOB_DECLINE_403", "제안한 학생만 의뢰서를 거절할 수 있습니다."),
+    JOB_DECLINE_NOT_AVAILABLE(HttpStatus.CONFLICT, "JOB_DECLINE_409", "거절할 수 없는 의뢰 상태입니다."),
     REVIEW_NOT_FOUND(HttpStatus.NOT_FOUND, "REVIEW_404", "조회할 수 있는 리뷰가 없습니다."),
     REVIEW_STUDENT_REQUIRED(HttpStatus.FORBIDDEN, "REVIEW_403_STUDENT", "학생만 받은 리뷰를 조회할 수 있습니다."),
     REVIEW_NOT_AVAILABLE(HttpStatus.CONFLICT, "REVIEW_409_STATUS", "완료된 의뢰에만 리뷰를 작성할 수 있습니다."),

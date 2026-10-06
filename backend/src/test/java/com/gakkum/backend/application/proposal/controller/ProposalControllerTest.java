@@ -1,5 +1,7 @@
 package com.gakkum.backend.application.proposal.controller;
 
+import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.ProposalJobDeclineResult;
+import com.gakkum.backend.domain.payment.dto.PaymentQueryDto.RefundedPaymentData;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -658,5 +660,65 @@ class ProposalControllerTest {
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.error.code").value("PROPOSAL_403_LIST_OWNER"));
+    }
+
+    @Test
+    @DisplayName("의뢰서 거절은 본문 없이 인증 사용자와 의뢰 ID를 전달하고 200과 상태·전액 환불 금액·거절 시각을 반환한다")
+    void declinesProposalJob() throws Exception {
+        Proposal proposal = Proposal.builder().id(31L).status(ProposalStatus.REJECTED).build();
+        Job job = Job.builder().id(42L).status(JobStatus.CANCELLED)
+                .completedAt(LocalDateTime.of(2026, 10, 6, 12, 0)).build();
+        when(proposalFacade.declineProposalJob(USERNAME, 42L)).thenReturn(ProposalJobDeclineResult.of(job, proposal,
+                new RefundedPaymentData(100_000L, 0L, 100_000L, Instant.parse("2026-10-06T03:00:00Z"))));
+
+        mockMvc.perform(post("/jobs/42/decline").principal(authentication))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.length()").value(7))
+                .andExpect(jsonPath("$.data.jobId").value(42))
+                .andExpect(jsonPath("$.data.jobStatus").value("CANCELLED"))
+                .andExpect(jsonPath("$.data.proposalStatus").value("REJECTED"))
+                .andExpect(jsonPath("$.data.paidAmount").value(100000))
+                .andExpect(jsonPath("$.data.studentCompensationAmount").value(0))
+                .andExpect(jsonPath("$.data.refundAmount").value(100000))
+                .andExpect(jsonPath("$.data.declinedAt").exists());
+
+        verify(proposalFacade).declineProposalJob(USERNAME, 42L);
+    }
+
+    @ParameterizedTest(name = "의뢰 ID {0}")
+    @ValueSource(strings = { "abc", "0", "-1", "1.5" })
+    @DisplayName("의뢰서 거절은 숫자가 아니거나 0 이하인 의뢰 ID를 COMMON_400으로 거부하고 파사드를 호출하지 않는다")
+    void rejectsInvalidJobIdForDecline(String jobId) throws Exception {
+        mockMvc.perform(post("/jobs/" + jobId + "/decline").principal(authentication))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.error.code").value("COMMON_400"));
+        verifyNoInteractions(proposalFacade);
+    }
+
+    static Stream<Arguments> declineErrors() {
+        return Stream.of(
+                Arguments.of(ErrorCode.UNAUTHORIZED, 401, "COMMON_401", null),
+                Arguments.of(ErrorCode.JOB_DECLINE_FORBIDDEN, 403, "JOB_DECLINE_403", "제안한 학생만 의뢰서를 거절할 수 있습니다."),
+                Arguments.of(ErrorCode.JOB_NOT_FOUND, 404, "JOB_404", null),
+                Arguments.of(ErrorCode.JOB_DECLINE_NOT_AVAILABLE, 409, "JOB_DECLINE_409", "거절할 수 없는 의뢰 상태입니다."),
+                Arguments.of(ErrorCode.INTERNAL_SERVER_ERROR, 500, "COMMON_500", null));
+    }
+
+    @ParameterizedTest(name = "{2}")
+    @MethodSource("declineErrors")
+    @DisplayName("의뢰서 거절의 잠긴 사용자·권한·대상·상태·데이터 오류는 각 오류 코드의 상태와 기존 오류 응답 형식으로 반환한다")
+    void returnsDeclineErrors(ErrorCode errorCode, int status, String code, String message) throws Exception {
+        when(proposalFacade.declineProposalJob(USERNAME, 42L)).thenThrow(new BusinessException(errorCode));
+
+        org.springframework.test.web.servlet.ResultActions result =
+                mockMvc.perform(post("/jobs/42/decline").principal(authentication))
+                        .andExpect(status().is(status))
+                        .andExpect(jsonPath("$.success").value(false))
+                        .andExpect(jsonPath("$.error.code").value(code));
+        if (message != null) {
+            result.andExpect(jsonPath("$.error.message").value(message));
+        }
     }
 }

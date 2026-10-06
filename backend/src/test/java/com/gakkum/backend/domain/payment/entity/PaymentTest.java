@@ -118,4 +118,37 @@ class PaymentTest {
         assertPaymentError(() -> general.linkJob(42L), ErrorCode.PAYMENT_NOT_AVAILABLE);
         assertThat(general.getJobId()).isEqualTo(11L);
     }
+
+    @Test
+    @DisplayName("의뢰서 거절 환불은 결제 금액 전액을 환불액으로, 학생 보상금을 0원으로 기록하고 환불 시각을 남긴다")
+    void refundsFullAmountOnDecline() {
+        Payment payment = Payment.pendingForProposal(5L, "owner-123", "order-123", 50_001L, 0, null, NOW);
+        payment.recordKakaoTid("T123");
+        payment.approve(NOW);
+        payment.linkJob(42L);
+
+        payment.refundOnDecline(NOW.plusSeconds(60));
+
+        assertThat(payment.getStatus()).isEqualTo(PaymentStatus.REFUNDED);
+        assertThat(payment.getAmount()).isEqualTo(50_001L);
+        assertThat(payment.getRefundAmount()).isEqualTo(50_001L);
+        assertThat(payment.getStudentCompensationAmount()).isZero();
+        assertThat(payment.getRefundedAt()).isEqualTo(NOW.plusSeconds(60));
+        assertThat(payment.getApprovedAt()).isEqualTo(NOW);
+    }
+
+    @Test
+    @DisplayName("결제 완료가 아니거나 이미 환불된 주문은 의뢰서 거절 환불을 거부하고 저장된 환불 금액을 바꾸지 않는다")
+    void refundOnDeclineRejectsUnpaidOrAlreadyRefundedPayment() {
+        Payment pending = Payment.pendingForProposal(5L, "owner-123", "order-123", 50_000L, 0, null, NOW);
+        assertPaymentError(() -> pending.refundOnDecline(NOW), ErrorCode.PAYMENT_NOT_AVAILABLE);
+        assertThat(pending.getRefundAmount()).isNull();
+
+        Payment refunded = paidPayment(100_000L);
+        refunded.refundOnCancel(NOW);
+        assertPaymentError(() -> refunded.refundOnDecline(NOW.plusSeconds(60)), ErrorCode.PAYMENT_NOT_AVAILABLE);
+        assertThat(refunded.getRefundAmount()).isEqualTo(80_000L);
+        assertThat(refunded.getStudentCompensationAmount()).isEqualTo(20_000L);
+        assertThat(refunded.getRefundedAt()).isEqualTo(NOW);
+    }
 }

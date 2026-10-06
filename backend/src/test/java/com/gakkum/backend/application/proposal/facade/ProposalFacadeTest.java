@@ -1,5 +1,7 @@
 package com.gakkum.backend.application.proposal.facade;
 
+import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.ProposalJobDeclineResult;
+import com.gakkum.backend.domain.payment.dto.PaymentQueryDto.RefundedPaymentData;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.tuple;
@@ -1136,5 +1138,155 @@ class ProposalFacadeTest {
         verifyNoInteractions(ownerService, reviewService, jobService, paymentService, specialtyCategoryService);
         verify(userService, never()).getUser(anyString());
         verify(proposalService, never()).getLikedProposalIds(anyLong(), any());
+    }
+
+    @Test
+    @DisplayName("제안한 학생이 의뢰서를 거절하면 제안을 거절로, 의뢰를 취소로 넘기고 전액 환불 기록을 반환하며 채팅방은 만들지 않는다")
+    void declinesProposalJob() {
+        givenStartingStudent();
+        Proposal proposal = detailProposal(ProposalStatus.AWAITING_START);
+        LocalDateTime declinedAt = LocalDateTime.of(2026, 10, 6, 12, 0);
+        Job declined = Job.builder().id(42L).ownerProfileId(5L).proposalId(31L).status(JobStatus.CANCELLED)
+                .completedAt(declinedAt).build();
+        givenJobOwner();
+        when(jobService.getDeclinableProposalId(42L, 7L, null)).thenReturn(31L);
+        when(proposalService.getDeclinableProposalForUpdate(31L, 7L)).thenReturn(proposal);
+        when(jobService.declineJob(42L, 31L, 7L)).thenReturn(declined);
+        when(paymentService.refundOnDecline(42L, 31L, OWNER_USER_ID)).thenReturn(
+                new RefundedPaymentData(100_000L, 0L, 100_000L, Instant.parse("2026-10-06T03:00:00Z")));
+
+        ProposalJobDeclineResult result = proposalFacade.declineProposalJob(USERNAME, 42L);
+
+        assertThat(result.getJobId()).isEqualTo(42L);
+        assertThat(result.getJobStatus()).isEqualTo(JobStatus.CANCELLED);
+        assertThat(result.getProposalStatus()).isEqualTo(ProposalStatus.REJECTED);
+        assertThat(proposal.getStatus()).isEqualTo(ProposalStatus.REJECTED);
+        assertThat(result.getPaidAmount()).isEqualTo(100_000L);
+        assertThat(result.getStudentCompensationAmount()).isZero();
+        assertThat(result.getRefundAmount()).isEqualTo(100_000L);
+        assertThat(result.getDeclinedAt()).isEqualTo(declinedAt);
+        // 잠금 순서: 제안 ID를 잠금 없이 읽은 뒤 제안 → 의뢰 → 결제. 결제는 의뢰한 사장님의 사용자 ID로 확인한다
+        InOrder order = inOrder(jobService, proposalService, paymentService);
+        order.verify(jobService).getDeclinableProposalId(42L, 7L, null);
+        order.verify(proposalService).getDeclinableProposalForUpdate(31L, 7L);
+        order.verify(jobService).declineJob(42L, 31L, 7L);
+        order.verify(paymentService).refundOnDecline(42L, 31L, OWNER_USER_ID);
+        verifyNoInteractions(chatRoomService);
+    }
+
+    @Test
+    @DisplayName("데모 학생의 의뢰서 거절은 자기 데모 세션 ID를 격리 범위로 전달한다")
+    void passesDemoSessionForDecline() {
+        when(userService.getActiveUser(USERNAME)).thenReturn(User.builder().id(USER_ID).username(USERNAME)
+                .role(UserRole.STUDENT).demoSessionId(DEMO_SESSION_A).build());
+        givenStudentProfile();
+        when(jobService.getDeclinableProposalId(42L, 7L, DEMO_SESSION_A))
+                .thenThrow(new BusinessException(ErrorCode.JOB_NOT_FOUND));
+
+        assertError(() -> proposalFacade.declineProposalJob(USERNAME, 42L), ErrorCode.JOB_NOT_FOUND);
+        verify(jobService).getDeclinableProposalId(42L, 7L, DEMO_SESSION_A);
+        verifyNoInteractions(proposalService, paymentService);
+    }
+
+    @Test
+    @DisplayName("학생이 아니거나 학생 프로필이 없으면 JOB_DECLINE_403으로 거부하고 의뢰·제안·결제를 조회하지 않는다")
+    void rejectsNonStudentForDecline() {
+        for (UserRole role : List.of(UserRole.OWNER, UserRole.PENDING)) {
+            givenUser(role);
+            assertError(() -> proposalFacade.declineProposalJob(USERNAME, 42L), ErrorCode.JOB_DECLINE_FORBIDDEN);
+        }
+
+        givenUser(UserRole.STUDENT);
+        when(studentService.findStudentProfileByUserId(USER_ID)).thenReturn(Optional.empty());
+        assertError(() -> proposalFacade.declineProposalJob(USERNAME, 42L), ErrorCode.JOB_DECLINE_FORBIDDEN);
+
+        verifyNoInteractions(jobService, proposalService, paymentService, chatRoomService);
+    }
+
+    @Test
+    @DisplayName("잠긴 사용자의 의뢰서 거절은 UNAUTHORIZED로 거부하고 학생 프로필과 의뢰를 조회하지 않는다")
+    void rejectsInactiveUserForDecline() {
+        when(userService.getActiveUser(USERNAME)).thenThrow(new BusinessException(ErrorCode.UNAUTHORIZED));
+
+        assertError(() -> proposalFacade.declineProposalJob(USERNAME, 42L), ErrorCode.UNAUTHORIZED);
+        verifyNoInteractions(studentService, jobService, proposalService, paymentService);
+    }
+
+    @ParameterizedTest
+    @EnumSource(value = ErrorCode.class,
+            names = { "JOB_NOT_FOUND", "JOB_DECLINE_FORBIDDEN", "JOB_DECLINE_NOT_AVAILABLE" })
+    @DisplayName("없는 의뢰·담당 학생 아님·일반 의뢰이면 제안을 잠그지 않고 의뢰와 결제를 바꾸지 않는다")
+    void doesNotLockWhenJobIsNotDeclinable(ErrorCode errorCode) {
+        givenStartingStudent();
+        when(jobService.getDeclinableProposalId(42L, 7L, null)).thenThrow(new BusinessException(errorCode));
+
+        assertError(() -> proposalFacade.declineProposalJob(USERNAME, 42L), errorCode);
+        verifyNoInteractions(proposalService, paymentService);
+        verify(jobService, never()).declineJob(anyLong(), anyLong(), anyLong());
+    }
+
+    @Test
+    @DisplayName("이미 시작했거나 거절한 제안이면 JOB_DECLINE_409로 거부하고 의뢰를 바꾸거나 환불을 다시 처리하지 않는다")
+    void doesNotRefundAgainWhenProposalIsNotAwaiting() {
+        givenStartingStudent();
+        when(jobService.getDeclinableProposalId(42L, 7L, null)).thenReturn(31L);
+        when(proposalService.getDeclinableProposalForUpdate(31L, 7L))
+                .thenThrow(new BusinessException(ErrorCode.JOB_DECLINE_NOT_AVAILABLE));
+
+        assertError(() -> proposalFacade.declineProposalJob(USERNAME, 42L), ErrorCode.JOB_DECLINE_NOT_AVAILABLE);
+        verify(jobService, never()).declineJob(anyLong(), anyLong(), anyLong());
+        verifyNoInteractions(paymentService);
+    }
+
+    @Test
+    @DisplayName("잠근 뒤 의뢰를 거절할 수 없으면 제안을 거절로 바꾸지 않고 환불하지 않는다")
+    void keepsProposalWhenDeclineFailsUnderLock() {
+        givenStartingStudent();
+        Proposal proposal = detailProposal(ProposalStatus.AWAITING_START);
+        when(jobService.getDeclinableProposalId(42L, 7L, null)).thenReturn(31L);
+        when(proposalService.getDeclinableProposalForUpdate(31L, 7L)).thenReturn(proposal);
+        when(jobService.declineJob(42L, 31L, 7L))
+                .thenThrow(new BusinessException(ErrorCode.JOB_DECLINE_NOT_AVAILABLE));
+
+        assertError(() -> proposalFacade.declineProposalJob(USERNAME, 42L), ErrorCode.JOB_DECLINE_NOT_AVAILABLE);
+        assertThat(proposal.getStatus()).isEqualTo(ProposalStatus.AWAITING_START);
+        verifyNoInteractions(paymentService);
+    }
+
+    @Test
+    @DisplayName("결제 완료 주문이 없거나 참조가 맞지 않는 환불 오류는 500으로 그대로 전달해 트랜잭션을 되돌린다")
+    void propagatesRefundDataErrorForDecline() {
+        givenStartingStudent();
+        when(jobService.getDeclinableProposalId(42L, 7L, null)).thenReturn(31L);
+        when(proposalService.getDeclinableProposalForUpdate(31L, 7L))
+                .thenReturn(detailProposal(ProposalStatus.AWAITING_START));
+        when(jobService.declineJob(42L, 31L, 7L)).thenReturn(
+                Job.builder().id(42L).ownerProfileId(5L).proposalId(31L).status(JobStatus.CANCELLED).build());
+        givenJobOwner();
+        when(paymentService.refundOnDecline(42L, 31L, OWNER_USER_ID))
+                .thenThrow(new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR));
+
+        assertError(() -> proposalFacade.declineProposalJob(USERNAME, 42L), ErrorCode.INTERNAL_SERVER_ERROR);
+    }
+
+    @Test
+    @DisplayName("의뢰한 사장님 프로필을 찾을 수 없으면 500으로 그대로 전달하고 환불하지 않는다")
+    void propagatesMissingJobOwnerForDecline() {
+        givenStartingStudent();
+        when(jobService.getDeclinableProposalId(42L, 7L, null)).thenReturn(31L);
+        when(proposalService.getDeclinableProposalForUpdate(31L, 7L))
+                .thenReturn(detailProposal(ProposalStatus.AWAITING_START));
+        when(jobService.declineJob(42L, 31L, 7L)).thenReturn(
+                Job.builder().id(42L).ownerProfileId(5L).proposalId(31L).status(JobStatus.CANCELLED).build());
+        when(ownerService.getOwnerProfileById(5L)).thenThrow(new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR));
+
+        assertError(() -> proposalFacade.declineProposalJob(USERNAME, 42L), ErrorCode.INTERNAL_SERVER_ERROR);
+        verifyNoInteractions(paymentService);
+    }
+
+    // 의뢰 42번을 의뢰한 사장님 프로필(5번)과 그 사용자
+    private void givenJobOwner() {
+        when(ownerService.getOwnerProfileById(5L))
+                .thenReturn(Owner.builder().id(5L).userId(OWNER_USER_ID).build());
     }
 }

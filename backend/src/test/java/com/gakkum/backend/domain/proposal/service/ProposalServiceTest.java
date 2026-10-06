@@ -548,4 +548,27 @@ class ProposalServiceTest {
                 .isInstanceOfSatisfying(BusinessException.class, exception ->
                         assertThat(exception.getErrorCode()).isEqualTo(errorCode));
     }
+
+    @Test
+    @DisplayName("의뢰서를 거절할 제안은 행을 잠가 읽고 다른 학생의 제안은 403, 수락 대기가 아닌 제안은 409, 없는 제안은 데이터 오류로 거부한다")
+    void locksDeclinableProposal() {
+        Proposal awaiting = Proposal.builder().id(5L).studentProfileId(31L)
+                .status(ProposalStatus.AWAITING_START).build();
+        when(proposalRepository.findLockedById(5L)).thenReturn(Optional.of(awaiting));
+        when(proposalRepository.findLockedById(99L)).thenReturn(Optional.empty());
+
+        assertThat(proposalService.getDeclinableProposalForUpdate(5L, 31L)).isSameAs(awaiting);
+        assertProposalError(() -> proposalService.getDeclinableProposalForUpdate(5L, 32L),
+                ErrorCode.JOB_DECLINE_FORBIDDEN);
+        assertProposalError(() -> proposalService.getDeclinableProposalForUpdate(99L, 31L),
+                ErrorCode.INTERNAL_SERVER_ERROR);
+        for (ProposalStatus status : List.of(ProposalStatus.PENDING, ProposalStatus.ACCEPTED,
+                ProposalStatus.REJECTED, ProposalStatus.CANCELLED)) {
+            when(proposalRepository.findLockedById(6L)).thenReturn(Optional.of(
+                    Proposal.builder().id(6L).studentProfileId(31L).status(status).build()));
+            assertProposalError(() -> proposalService.getDeclinableProposalForUpdate(6L, 31L),
+                    ErrorCode.JOB_DECLINE_NOT_AVAILABLE);
+        }
+        assertThat(awaiting.getStatus()).isEqualTo(ProposalStatus.AWAITING_START);
+    }
 }

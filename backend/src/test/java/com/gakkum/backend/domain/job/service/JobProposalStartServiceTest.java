@@ -1,5 +1,6 @@
 package com.gakkum.backend.domain.job.service;
 
+import com.gakkum.backend.domain.job.repository.JobRepository.DeclineTargetProjection;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -229,5 +230,80 @@ class JobProposalStartServiceTest {
         assertThatThrownBy(action::run)
                 .isInstanceOfSatisfying(BusinessException.class, exception ->
                         assertThat(exception.getErrorCode()).isEqualTo(errorCode));
+    }
+
+    @Test
+    @DisplayName("거절 전 의뢰의 제안 ID를 잠금 없이 읽고, 없거나 격리 범위가 다른 의뢰는 404, 일반 의뢰는 409, 담당 학생이 아니면 403으로 거부한다")
+    void readsDeclinableProposalId() {
+        DeclineTargetProjection proposalJob = declineTarget(5L, 31L, null);
+        DeclineTargetProjection generalJob = declineTarget(null, 31L, null);
+        DeclineTargetProjection demoJob = declineTarget(6L, 31L, "01K6DEMO00000000000000000A");
+        when(jobRepository.findDeclineTargetById(42L)).thenReturn(Optional.of(proposalJob));
+        when(jobRepository.findDeclineTargetById(43L)).thenReturn(Optional.of(generalJob));
+        when(jobRepository.findDeclineTargetById(44L)).thenReturn(Optional.of(demoJob));
+        when(jobRepository.findDeclineTargetById(99L)).thenReturn(Optional.empty());
+
+        assertThat(jobService.getDeclinableProposalId(42L, 31L, null)).isEqualTo(5L);
+        assertThat(jobService.getDeclinableProposalId(44L, 31L, "01K6DEMO00000000000000000A")).isEqualTo(6L);
+        assertCode(() -> jobService.getDeclinableProposalId(99L, 31L, null), ErrorCode.JOB_NOT_FOUND);
+        // 실제 학생과 데모 의뢰, 데모 학생과 실제·다른 세션 의뢰는 서로 보이지 않는다
+        assertCode(() -> jobService.getDeclinableProposalId(44L, 31L, null), ErrorCode.JOB_NOT_FOUND);
+        assertCode(() -> jobService.getDeclinableProposalId(42L, 31L, "01K6DEMO00000000000000000A"),
+                ErrorCode.JOB_NOT_FOUND);
+        assertCode(() -> jobService.getDeclinableProposalId(44L, 31L, "01K6DEMO00000000000000000B"),
+                ErrorCode.JOB_NOT_FOUND);
+        assertCode(() -> jobService.getDeclinableProposalId(43L, 31L, null), ErrorCode.JOB_DECLINE_NOT_AVAILABLE);
+        assertCode(() -> jobService.getDeclinableProposalId(42L, 32L, null), ErrorCode.JOB_DECLINE_FORBIDDEN);
+        verify(jobRepository, never()).findById(any());
+        verify(jobRepository, never()).findLockedById(any());
+    }
+
+    @Test
+    @DisplayName("담당 학생이 수락 대기 의뢰를 거절하면 의뢰 행을 잠가 취소로 넘기고 거절 시각과 고정 취소 이유를 기록하며 마감일과 담당 학생은 그대로 둔다")
+    void declinesAwaitingJob() {
+        Job job = proposalJob(JobStatus.AWAITING_START);
+        when(jobRepository.findLockedById(42L)).thenReturn(Optional.of(job));
+
+        Job declined = jobService.declineJob(42L, 5L, 31L);
+
+        assertThat(declined).isSameAs(job);
+        assertThat(job.getStatus()).isEqualTo(JobStatus.CANCELLED);
+        assertThat(job.getCompletedAt()).isEqualTo(EXPECTED_STARTED_AT);
+        assertThat(job.getCancelReason()).isEqualTo(Job.DECLINE_CANCEL_REASON);
+        assertThat(job.getMessageToStudent()).isNull();
+        assertThat(job.getStartedAt()).isNull();
+        assertThat(job.getSelectedStudentProfileId()).isEqualTo(31L);
+        assertThat(job.getDraftDeadline()).isEqualTo(DRAFT_DEADLINE);
+        assertThat(job.getFinalDeadline()).isEqualTo(FINAL_DEADLINE);
+    }
+
+    @Test
+    @DisplayName("거절은 잠근 의뢰의 제안이 먼저 읽은 제안과 다르면 409, 담당 학생이 아니면 403, 이미 시작·종료·거절된 의뢰면 409로 거부한다")
+    void revalidatesDeclineUnderLock() {
+        Job awaiting = proposalJob(JobStatus.AWAITING_START);
+        when(jobRepository.findLockedById(42L)).thenReturn(Optional.of(awaiting));
+        when(jobRepository.findLockedById(99L)).thenReturn(Optional.empty());
+
+        assertCode(() -> jobService.declineJob(42L, 6L, 31L), ErrorCode.JOB_DECLINE_NOT_AVAILABLE);
+        assertCode(() -> jobService.declineJob(42L, 5L, 32L), ErrorCode.JOB_DECLINE_FORBIDDEN);
+        assertCode(() -> jobService.declineJob(99L, 5L, 31L), ErrorCode.JOB_NOT_FOUND);
+        assertThat(awaiting.getStatus()).isEqualTo(JobStatus.AWAITING_START);
+
+        for (JobStatus status : List.of(JobStatus.MATCHED, JobStatus.CLOSED, JobStatus.CANCELLED)) {
+            Job job = proposalJob(status);
+            when(jobRepository.findLockedById(44L)).thenReturn(Optional.of(job));
+            assertCode(() -> jobService.declineJob(44L, 5L, 31L), ErrorCode.JOB_DECLINE_NOT_AVAILABLE);
+            assertThat(job.getStatus()).isEqualTo(status);
+            assertThat(job.getCompletedAt()).isNull();
+        }
+    }
+
+    private DeclineTargetProjection declineTarget(Long proposalId, Long selectedStudentProfileId,
+            String demoSessionId) {
+        DeclineTargetProjection target = mock(DeclineTargetProjection.class);
+        when(target.getProposalId()).thenReturn(proposalId);
+        when(target.getSelectedStudentProfileId()).thenReturn(selectedStudentProfileId);
+        when(target.getDemoSessionId()).thenReturn(demoSessionId);
+        return target;
     }
 }

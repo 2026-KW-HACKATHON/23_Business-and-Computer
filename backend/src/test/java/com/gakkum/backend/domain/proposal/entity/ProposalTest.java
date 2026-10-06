@@ -156,4 +156,27 @@ class ProposalTest {
     private Proposal proposal(ProposalStatus status) {
         return Proposal.builder().id(5L).status(status).build();
     }
+
+    @Test
+    @DisplayName("수락 대기 제안은 의뢰서 거절로 거절 상태가 되고 공감 수는 그대로다")
+    void rejectsAwaitingStartProposal() {
+        Proposal proposal = Proposal.builder().id(5L).status(ProposalStatus.AWAITING_START).likeCount(3).build();
+
+        proposal.reject();
+
+        assertThat(proposal.getStatus()).isEqualTo(ProposalStatus.REJECTED);
+        assertThat(proposal.getLikeCount()).isEqualTo(3);
+    }
+
+    @ParameterizedTest
+    @EnumSource(value = ProposalStatus.class, names = "AWAITING_START", mode = EnumSource.Mode.EXCLUDE)
+    @DisplayName("수락 대기가 아닌(결제 전·시작·이미 거절·취소된) 제안의 거절은 JOB_DECLINE_409로 거부하고 상태를 바꾸지 않는다")
+    void rejectsRejectOfProposalNotAwaiting(ProposalStatus status) {
+        Proposal proposal = proposal(status);
+
+        assertThatThrownBy(proposal::reject)
+                .isInstanceOfSatisfying(BusinessException.class, exception ->
+                        assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.JOB_DECLINE_NOT_AVAILABLE));
+        assertThat(proposal.getStatus()).isEqualTo(status);
+    }
 }

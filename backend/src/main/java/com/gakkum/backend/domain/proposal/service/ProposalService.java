@@ -115,6 +115,27 @@ public class ProposalService {
     }
 
     /**
+     * 학생이 거절하려는 의뢰서의 본인 제안을 잠가 반환한다. 같은 제안의 작업 시작·거절을 순서대로 처리한다.
+     * 다른 학생의 제안은 403, 수락 대기가 아닌(이미 시작·거절된) 제안은 409로 거부한다.
+     * 의뢰가 가리키는 제안이 없으면 데이터 오류(500)다.
+     * @param proposalId 의뢰를 만든 제안 ID
+     * @param studentProfileId
+     * @return 수락 대기(AWAITING_START) 제안
+     */
+    @Transactional
+    public Proposal getDeclinableProposalForUpdate(Long proposalId, Long studentProfileId) {
+        Proposal proposal = proposalRepository.findLockedById(proposalId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR));
+        if (!proposal.getStudentProfileId().equals(studentProfileId)) {
+            throw new BusinessException(ErrorCode.JOB_DECLINE_FORBIDDEN);
+        }
+        if (proposal.getStatus() != ProposalStatus.AWAITING_START) {
+            throw new BusinessException(ErrorCode.JOB_DECLINE_NOT_AVAILABLE);
+        }
+        return proposal;
+    }
+
+    /**
      * 학생이 취소하려는 본인 제안을 잠가 반환한다. 같은 제안의 취소·결제 준비·승인·공감 변경을 순서대로 처리한다.
      * 없거나 격리 범위가 다른 제안은 404, 다른 학생의 제안은 403, 결제됐거나 거절된 제안은 409로 거부한다.
      * @param proposalId
