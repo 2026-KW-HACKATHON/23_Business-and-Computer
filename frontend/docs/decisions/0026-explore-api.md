@@ -1,10 +1,12 @@
-# 0026. Student 탐색 calls GET /explore and the job APIs
+# 0026. Student and owner 탐색 call GET /explore and the job APIs
 
 ## Status
 
 Accepted. The student 탐색 list, 의뢰서 전체 보기, 지원하기, the
 peer-proposal detail, the home 「다른 학생들의 제안 공감하기」, and 공감 (like)
-now read and write the backend instead of the sample data of ADR 0018.
+now read and write the backend instead of the sample data of ADR 0018. The
+owner 탐색 list and its read-only 제안서 · 의뢰서 now read the backend instead
+of the sample data of ADR 0014.
 
 ## Context
 
@@ -185,6 +187,41 @@ The backend (dev) has:
     shows it under the guide and the examples.
 - `EmpathyCount` shows the count and heart; with `onToggle` it is a button
   (`aria-pressed` follows the like).
+- **Owner 탐색** (`src/pages/OwnerExplorePage.tsx`, /owner/explore): the same
+  `useExploreFeed`, field filter, `ExploreSortSheet`, search,
+  `useLoadMoreSentinel`, and `LoadNotice` as the student list, with the
+  owner's description and empty text.
+  - `ExploreCard` takes `fields` (one `CategoryBadge` per distinct category
+    name), the store name, and a status line. Proposal: the like count (a
+    filled heart that cannot be pressed) and, when the card sends `status`,
+    `receivedProposalStatusLabel` (결정 대기 · 결제 완료 · 작업 중 · 거절됨).
+    Job: 「모집 중」 / 「진행 중」 / 「완료」 and, while OPEN, the 「초안 M월
+    D일까지」 badge.
+  - Proposal cards open /explore/proposals/:id, job cards
+    /explore/requests/:id. A proposal in my received list
+    (`useReceivedProposals`, GET /me/received-proposals, ADR 0025) shows
+    「우리 가게가 받은 제안이에요」 under the card and opens the received-proposal
+    detail (/owner/proposals/:id) instead; /explore/proposals/:id for such a
+    proposal replaces the route with it. While that list loads the detail
+    shows the loading line; if it fails the proposal shows as another
+    store's.
+- **Owner read-only details**:
+  - 제안서 보기 (`src/pages/OwnerExploreProposalPage.tsx`): `useProposalDetail`.
+    The notice 「○○가 받은 제안이에요. 읽기만 할 수 있어요.」, the title, one
+    `CategoryBadge` per distinct category name, 「가게 · M월 D일 · 상태」, the
+    like count, the student (name, 「NN학번 · 학과」, record) with no profile
+    link (there is no student profile API, as in ADR 0025), 손님 눈으로 본
+    문제, 이렇게 바꿔 드릴게요, and 참고 사진 (`ReferencePhotos`) when there
+    are any. The fee and days stay hidden.
+  - 의뢰서 보기 (`src/pages/OwnerExploreRequestPage.tsx`): `useJobDetail`. The
+    notice, the title, the category badges, the store, 할 일 chips, 맡기고
+    싶은 일, and 참고 자료 when there are any. The budget and deadlines stay
+    hidden.
+  - Both: a non-numeric id or 404 shows `OwnerMissing`; 401 goes to /login;
+    other failures show `LoadNotice` with 「다시 시도」. 「우리 가게에도 비슷한
+    의뢰 만들기」 opens 의뢰 등록 with the first category that is one of the
+    six fields picked (and, for a job, its tasks in that field); with no such
+    category it opens empty.
 
 ## Rationale
 
@@ -212,7 +249,5 @@ The backend (dev) has:
 
 ## Agent Guidance
 
-- The owner 탐색 screens are wired to the API in a later step; extend this
-  ADR then.
 - Sent applications are listed in 내 활동 through GET /me/job-applications
   (ADR 0027).

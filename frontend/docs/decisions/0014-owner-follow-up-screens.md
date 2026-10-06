@@ -46,8 +46,8 @@ read-only explore details. The backend has no API for them yet.
   with the same field and tasks picked.
 - Sample data stays behind the hooks in
   `src/features/owner/hooks/useOwnerData.ts`; student profiles live in
-  `src/features/owner/lib/sampleStudents.ts` and explore details in
-  `src/features/owner/lib/sampleExplore.ts`.
+  `src/features/owner/lib/sampleStudents.ts`. 탐색 reads the backend
+  (ADR 0026).
 - New shared components: `Dialog`, `DoneScreen`, `NumberedSteps`,
   `StarRating`, and `TrustChips`. `Chip` takes `tone` so an outlined chip
   turns owner yellow when picked.

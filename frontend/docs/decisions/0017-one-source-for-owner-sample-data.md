@@ -21,10 +21,10 @@ work never became completed.
 ## Decision
 
 - Single sources: works and requests (and, until ADR 0025, proposals) in
-  `src/features/owner/lib/sampleDetails.ts`, student profiles in
-  `sampleStudents.ts`, and explore details in `sampleExplore.ts`. The home,
-  내 활동, 결제 내역 and its summary, the chat list, the explore list, and the
-  내 정보 counts are built from them in
+  `src/features/owner/lib/sampleDetails.ts` and student profiles in
+  `sampleStudents.ts` (탐색 reads the backend, ADR 0026). The home, 내 활동,
+  결제 내역 and its summary, the chat list, and the 내 정보 counts are built
+  from them in
   `src/features/owner/hooks/useOwnerData.ts` and `useOwnerHome.ts`.
 - A work, request, or proposal refers to a student by id. Name, department,
   year, rating (the average of the profile's reviews), and completed count

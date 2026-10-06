@@ -11,11 +11,9 @@ export { default as WorkPlanSheet } from "./components/WorkPlanSheet";
 export {
   completeOwnerWork,
   markOwnerWorkReviewed,
-  useExploreDetail,
   useOwnerChatThread,
   useOwnerChats,
   useOwnerCheckout,
-  useOwnerExplore,
   useOwnerNotifications,
   useOwnerPayments,
   useOwnerProfile,
@@ -47,7 +45,6 @@ export {
 export type { ReceivedProposal } from "./lib/receivedProposals";
 export { flowSteps } from "./lib/flow";
 export {
-  EXPLORE_PROGRESS_LABEL,
   WAITING_STATUS_LABEL,
   chatProgressText,
   deadlineText,
@@ -74,8 +71,6 @@ export type { ActivityTab } from "./lib/paths";
 export type {
   ChatMessage,
   DueDates,
-  ExploreDetail,
-  ExploreItem,
   OwnerChatRoom,
   OwnerDoneItem,
   OwnerHome,

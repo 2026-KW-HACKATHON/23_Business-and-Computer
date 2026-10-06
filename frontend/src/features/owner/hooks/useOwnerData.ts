@@ -5,7 +5,6 @@ import {
   SAMPLE_REQUESTS,
   SAMPLE_WORKS,
 } from "../lib/sampleDetails";
-import { SAMPLE_EXPLORE_DETAILS } from "../lib/sampleExplore";
 import { SAMPLE_REQUEST_EXAMPLES } from "../lib/sampleHome";
 import { SAMPLE_STORE } from "../lib/sampleMe";
 import { SAMPLE_STUDENT_PROFILES } from "../lib/sampleStudents";
@@ -13,8 +12,6 @@ import { SAMPLE_NOTIFICATIONS } from "../lib/sampleTabs";
 import type {
   ChatMessage,
   ChatProgress,
-  ExploreDetail,
-  ExploreItem,
   OwnerChatRoom,
   OwnerChatThread,
   OwnerCheckout,
@@ -110,27 +107,7 @@ const requests = () =>
     applicants: request.applicants.map((a) => ({ ...a, student: withStudent(a.student) })),
   }));
 
-const exploreDetails = (): ExploreDetail[] =>
-  SAMPLE_EXPLORE_DETAILS.map((detail) =>
-    detail.kind === "proposal" ? { ...detail, student: withStudent(detail.student) } : detail,
-  );
-
 // ---- 화면별 ----
-
-/** 탐색 목록 (다른 가게의 제안·의뢰). 카드 내용은 탐색 상세와 같다 */
-export function useOwnerExplore(): ExploreItem[] {
-  return exploreDetails().map((detail) => ({
-    id: detail.id,
-    kind: detail.kind,
-    title: detail.title,
-    field: detail.field,
-    storeName: detail.storeName,
-    createdAt: detail.createdAt,
-    progress: detail.progress,
-    empathyCount: detail.kind === "proposal" ? detail.empathyCount : undefined,
-    deadline: detail.kind === "request" ? detail.deadline : undefined,
-  }));
-}
 
 /** 채팅 목록의 진행 상태는 작업 상태에서 */
 function chatProgress(work: OwnerWork): ChatProgress {
@@ -289,7 +266,3 @@ export function useOwnerCheckout(workId: string): OwnerCheckout | undefined {
   return request && applicant ? { workId, request, applicant } : undefined;
 }
 
-/** 탐색 상세 (다른 가게의 제안 · 의뢰, 읽기 전용) */
-export function useExploreDetail(id: string): ExploreDetail | undefined {
-  return exploreDetails().find((detail) => detail.id === id);
-}
