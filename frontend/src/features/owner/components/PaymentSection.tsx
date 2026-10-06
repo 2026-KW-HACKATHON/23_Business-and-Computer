@@ -14,6 +14,8 @@ interface PaymentSectionProps {
   onAgreeChange: (agreed: boolean) => void;
   /** 「안전결제는 이렇게 진행돼요」와 취소 기준 상자 (안전결제 화면) */
   showGuide?: boolean;
+  /** 고를 수 있는 결제 수단. 없으면 전부 (제안 수락은 카카오페이만) */
+  methods?: PaymentMethod[];
 }
 
 /** 결제 금액 · 결제 수단 · (진행 순서 · 취소 기준) · 약관 동의. 안전결제와 제안 수락이 같이 쓴다 */
@@ -24,8 +26,10 @@ function PaymentSection({
   agreed,
   onAgreeChange,
   showGuide = false,
+  methods,
 }: PaymentSectionProps) {
   const [guideOpen, setGuideOpen] = useState(false);
+  const shownMethods = methods ? PAYMENT_METHODS.filter((m) => methods.includes(m.value)) : PAYMENT_METHODS;
 
   return (
     <>
@@ -52,7 +56,7 @@ function PaymentSection({
       <section className="pay-section">
         <h3 className="pay-section__title">결제 수단</h3>
         <div className="pay-methods" role="radiogroup" aria-label="결제 수단">
-          {PAYMENT_METHODS.map(({ value, label }) => (
+          {shownMethods.map(({ value, label }) => (
             <label
               key={value}
               className={`pay-methods__item${method === value ? " pay-methods__item--selected" : ""}`}
