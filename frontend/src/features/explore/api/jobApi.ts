@@ -29,6 +29,17 @@ export interface JobDetail {
   storeAddress?: string | null;
   /** 내 지원서 상태. 지원한 적이 없으면 오지 않고, 오면 「지원했어요」로 바뀐다 */
   applied?: JobApplicationStatus | null;
+  /*
+   * 아래 취소 정보는 취소된 의뢰의 사장님 · 맡은 학생에게만 온다. 환불 · 보상 금액은 결제한 의뢰만
+   * (모집 중에 취소했으면 없음). 학생이 의뢰서를 거절했으면 cancelledBy 가 STUDENT.
+   */
+  cancelledBy?: "OWNER" | "STUDENT" | null;
+  cancelReason?: string | null;
+  messageToStudent?: string | null;
+  refundAmount?: number | null;
+  studentCompensationAmount?: number | null;
+  /** "2026-10-06T12:00:00" */
+  cancelledAt?: string | null;
 }
 
 /** GET /jobs/{jobId} — 같은 데모 세션의 의뢰만 (다른 세션은 404 JOB_404) */

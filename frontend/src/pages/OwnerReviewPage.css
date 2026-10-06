@@ -114,3 +114,11 @@
 .owner-review__submit {
   flex: 1;
 }
+
+.owner-review__send-error {
+  margin: 0 0 8px;
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--color-danger);
+  text-align: center;
+}
