@@ -20,11 +20,11 @@ interface RequestCardProps {
 
 /**
  * 학생 탐색의 의뢰 카드 (GET /explore 의 JOB). 모집 중이면 초안 마감 뱃지와 「지원하기」.
- * 예산은 서버가 budget 을 줄 때만, 「지원했어요」는 applied 가 true 일 때만 보인다.
+ * 예산은 서버가 budget 을 줄 때만, 「지원했어요」는 applied(내 지원서 상태)가 올 때만 보인다.
  */
 function RequestCard({ job, onOpen, onApply }: RequestCardProps) {
   const recruiting = job.status === "OPEN";
-  const applied = job.applied === true;
+  const applied = job.applied != null;
 
   return (
     <article className="student-card">

@@ -55,7 +55,7 @@ function StudentRequestFullPage() {
       footer={
         job &&
         recruiting &&
-        (job.applied === true ? (
+        (job.applied != null ? (
           <Button tone="student" variant="secondary" fullWidth disabled>
             지원했어요
           </Button>

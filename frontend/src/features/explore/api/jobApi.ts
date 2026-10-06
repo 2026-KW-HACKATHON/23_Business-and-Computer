@@ -1,5 +1,10 @@
 import { apiData } from "../../../api/client";
-import type { ExploreSpecialtyCategory, JobProgressStage, JobStatus } from "./exploreApi";
+import type {
+  ExploreSpecialtyCategory,
+  JobApplicationStatus,
+  JobProgressStage,
+  JobStatus,
+} from "./exploreApi";
 
 /** GET /jobs/{jobId} 의 의뢰 하나 */
 export interface JobDetail {
@@ -20,8 +25,8 @@ export interface JobDetail {
   storeName?: string | null;
   /** 가게 주소. 서버가 주면 가게 상자에 주소 줄이 보인다 */
   storeAddress?: string | null;
-  /** 내가 이미 지원했는지. 서버가 주면 「지원했어요」로 바뀐다 */
-  applied?: boolean | null;
+  /** 내 지원서 상태. 지원한 적이 없으면 오지 않고, 오면 「지원했어요」로 바뀐다 */
+  applied?: JobApplicationStatus | null;
 }
 
 /** GET /jobs/{jobId} — 같은 데모 세션의 의뢰만 (다른 세션은 404 JOB_404) */

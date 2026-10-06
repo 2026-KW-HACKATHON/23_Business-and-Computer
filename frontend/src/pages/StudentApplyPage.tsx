@@ -80,8 +80,9 @@ function StudentApplyPage() {
   }
 
   // 이미 지원했거나 모집이 끝났으면 다시 보내지 않는다
-  const blocked = job.applied === true || sendError === "duplicate" || sendError === "closed";
-  const shownError: SendError | null = job.applied === true ? "duplicate" : sendError;
+  const alreadyApplied = job.applied != null;
+  const blocked = alreadyApplied || sendError === "duplicate" || sendError === "closed";
+  const shownError: SendError | null = alreadyApplied ? "duplicate" : sendError;
   const canSend =
     !blocked &&
     !sending &&

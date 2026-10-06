@@ -19,6 +19,9 @@ export type JobProgressStage =
   | "COMPLETED"
   | "CANCELLED";
 
+/** 내 지원서 상태 */
+export type JobApplicationStatus = "PENDING" | "ACCEPTED" | "REJECTED";
+
 /** 대분류 + 그 안의 특기 */
 export interface ExploreSpecialtyCategory {
   id: number;
@@ -58,8 +61,8 @@ export interface ExploreJobCard {
   specialtyCategories: ExploreSpecialtyCategory[];
   /** 작업비(원). 서버가 주면 카드에 「예산」 줄이 보인다 */
   budget?: number | null;
-  /** 내가 이미 지원했는지. 서버가 주면 「지원했어요」로 바뀐다 */
-  applied?: boolean | null;
+  /** 내 지원서 상태. 지원한 적이 없으면 오지 않고, 오면 「지원했어요」로 바뀐다 */
+  applied?: JobApplicationStatus | null;
 }
 
 export type ExploreItem = ExploreProposalCard | ExploreJobCard;
