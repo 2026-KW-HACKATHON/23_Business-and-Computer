@@ -570,4 +570,59 @@ class SettlementHistoryFacadeTest {
 
         assertError(ErrorCode.INTERNAL_SERVER_ERROR);
     }
+
+    @Test
+    @DisplayName("본인이 거절한 의뢰의 전액 환불 결제는 REFUNDED 상태·0원·한국 시간 환불 처리일로 반환하고 요약 금액을 바꾸지 않는다")
+    void returnsDeclinedProposalPaymentAsRefundedWithZeroAmount() {
+        // 환불 처리 시각은 UTC로 10월 4일이지만 한국 시간으로는 10월 5일이다
+        declined(51L, 5L, "2026-10-03T03:00:00Z", "2026-10-04T15:00:00Z", 50_000L);
+        paid(43L, "2026-10-02T03:00:00Z", JobStatus.MATCHED, null);
+        refunded(41L, "2026-10-01T03:00:00Z", "2026-10-01T04:00:00Z", JobStatus.CANCELLED);
+
+        SettlementHistoryResult result = facade.getSettlementHistory(USERNAME);
+
+        List<SettlementHistoryItemResult> items = result.getMonths().get(0).getSettlements();
+        assertThat(items).extracting(SettlementHistoryItemResult::getJobId, SettlementHistoryItemResult::getStatus,
+                        SettlementHistoryItemResult::getAmount, SettlementHistoryItemResult::getSettledDate)
+                .containsExactly(
+                        org.assertj.core.api.Assertions.tuple(
+                                51L, SettlementHistoryStatus.REFUNDED, 0L, LocalDate.of(2026, 10, 5)),
+                        org.assertj.core.api.Assertions.tuple(43L, SettlementHistoryStatus.SCHEDULED, 100_000L, null),
+                        org.assertj.core.api.Assertions.tuple(
+                                41L, SettlementHistoryStatus.START_COMPENSATION, 20_000L, LocalDate.of(2026, 10, 1)));
+        assertThat(items.get(0).getStoreName()).isEqualTo("가꿈 카페");
+        // 0원 항목은 이번 달 작업비·정산 예정·정산 완료 합계 어디에도 더해지지 않는다
+        assertThat(result.getSummary().getThisMonthWorkAmount()).isEqualTo(120_000L);
+        assertThat(result.getSummary().getScheduledAmount()).isEqualTo(100_000L);
+        assertThat(result.getSummary().getTotalSettledAmount()).isEqualTo(20_000L);
+    }
+
+    @Test
+    @DisplayName("다음 달에 거절한 의뢰의 환불 내역도 최초 결제 승인 월에 유지한다")
+    void keepsDeclinedPaymentInApprovalMonth() {
+        declined(51L, 5L, "2026-09-20T03:00:00Z", "2026-10-05T03:00:00Z", 50_000L);
+
+        SettlementHistoryResult result = facade.getSettlementHistory(USERNAME);
+
+        assertThat(result.getMonths()).extracting(SettlementHistoryMonthResult::getYearMonth)
+                .containsExactly("2026-09");
+        assertThat(result.getMonths().get(0).getSettlements().get(0).getStatus())
+                .isEqualTo(SettlementHistoryStatus.REFUNDED);
+        assertThat(result.getSummary().getThisMonthWorkAmount()).isZero();
+        assertThat(result.getSummary().getTotalSettledAmount()).isZero();
+    }
+
+    // 본인이 작업 시작 전에 거절해 전액 환불된 제안 의뢰
+    private void declined(Long jobId, Long proposalId, String approvedAt, String refundedAt, Long amount) {
+        Payment payment = Payment.pendingForProposal(proposalId, OWNER_USER_ID, "order-" + jobId, amount, 2, null,
+                Instant.EPOCH);
+        payment.recordKakaoTid("T" + jobId);
+        payment.approve(Instant.parse(approvedAt));
+        payment.linkJob(jobId);
+        payment.refundOnDecline(Instant.parse(refundedAt));
+        payments.add(SettlementHistoryData.from(payment));
+        jobsById.put(jobId, Job.builder().id(jobId).title("의뢰 " + jobId).status(JobStatus.CANCELLED)
+                .ownerProfileId(OWNER_PROFILE_ID).selectedStudentProfileId(STUDENT_PROFILE_ID)
+                .proposalId(proposalId).completedAt(LocalDateTime.parse("2026-10-05T00:00:00")).build());
+    }
 }

@@ -4,5 +4,6 @@ package com.gakkum.backend.domain.payment.dto;
 public enum PaymentHistoryStatus {
     HELD,  // 보관중: 결제 완료, 의뢰 진행 중
     SETTLED,  // 정산 완료: 결제 완료, 의뢰 완료
-    PARTIALLY_REFUNDED  // 부분 환불: 의뢰 취소로 학생 보상금을 뺀 금액을 환불함
+    PARTIALLY_REFUNDED,  // 부분 환불: 의뢰 취소로 학생 보상금을 뺀 금액을 환불함
+    FULLY_REFUNDED  // 전액 환불: 학생이 작업 시작 전에 의뢰서를 거절해 결제 금액 전액을 환불함
 }
