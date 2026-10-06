@@ -4,7 +4,6 @@ import { SPECIALTY_BADGES } from "../../../types/specialty";
 import { SAMPLE_MY_PROFILE } from "../lib/sampleMe";
 import { SAMPLE_NOTIFICATIONS } from "../lib/sampleNotifications";
 import { SAMPLE_MY_PROPOSALS, SAMPLE_PROPOSAL_EXAMPLES } from "../lib/sampleProposals";
-import { SAMPLE_APPLICATIONS, SAMPLE_REQUESTS } from "../lib/sampleRequests";
 import { SAMPLE_STORES } from "../lib/sampleStores";
 import { SAMPLE_CHAT_THREADS, SAMPLE_WORKS } from "../lib/sampleWorks";
 import { chatStatusText } from "../lib/format";
@@ -15,11 +14,9 @@ import type {
   ProposalExample,
   SettlementSummary,
   Store,
-  StudentApplication,
   StudentChatRoom,
   StudentChatThread,
   StudentNotification,
-  StudentRequest,
   StudentSettlement,
   StudentWork,
 } from "../types";
@@ -82,21 +79,6 @@ export function useStudentWorks(): StudentWork[] {
 export function useStudentWork(workId: string | undefined): StudentWork | undefined {
   useDemoVersion();
   return works().find((w) => w.id === workId);
-}
-
-// ---- 의뢰 · 지원 ----
-
-/** 지원한 의뢰 */
-export function useStudentRequests(): StudentRequest[] {
-  return SAMPLE_REQUESTS;
-}
-
-export function useStudentRequest(requestId: string | undefined): StudentRequest | undefined {
-  return SAMPLE_REQUESTS.find((r) => r.id === requestId);
-}
-
-export function useStudentApplications(): StudentApplication[] {
-  return SAMPLE_APPLICATIONS;
 }
 
 // ---- 제안 ----

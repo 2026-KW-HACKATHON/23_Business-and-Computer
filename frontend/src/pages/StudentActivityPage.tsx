@@ -13,7 +13,6 @@ import {
   WorkKindIcon,
 } from "../components";
 import {
-  APPLICATION_STATUS_LABEL,
   ApplicationSheet,
   STUDENT_PATHS,
   SettlementSummaryBox,
@@ -21,21 +20,20 @@ import {
   deadlineText,
   sentOnText,
   sentProposalStatusLabel,
+  appliedStatusLabel,
   storeAddressText,
+  useAppliedJobs,
   useSentProposals,
   useStores,
-  useStudentApplications,
-  useStudentRequest,
-  useStudentRequests,
   useStudentSettlements,
   useStudentWorks,
   workStatusText,
 } from "../features/student";
 import { proposalBadgeNames } from "../features/proposal";
 import type {
+  AppliedJob,
   SentProposal,
   StudentActivityTab,
-  StudentApplication,
   StudentWork,
 } from "../features/student";
 import { useBack } from "../hooks/useBack";
@@ -78,23 +76,23 @@ function StoreLine({ name, address }: { name: string; address?: string }) {
 /**
  * 피그마 「내 활동 - 지원한 의뢰 · 보낸 제안 · 진행 중 · 완료 (학생)」.
  * 위 요약 카드 4칸이 탭이고, 고른 탭은 주소(?tab=)에 남아 돌아와도 그대로다.
- * 보낸 제안은 GET /me/proposals (ADR 0023). 나머지 탭은 아직 샘플 데이터다.
+ * 지원한 의뢰는 GET /me/job-applications (ADR 0027), 보낸 제안은 GET /me/proposals (ADR 0023).
+ * 진행 중 · 완료 탭은 아직 샘플 데이터다.
  */
 function StudentActivityPage() {
   const navigate = useNavigate();
   const back = useBack(STUDENT_PATHS.me);
   const [params, setParams] = useSearchParams();
   const tab = TABS.find((t) => t.tab === params.get("tab"))?.tab ?? "applied";
-  const applications = useStudentApplications();
+  const { load: appliedLoad, reload: reloadApplied } = useAppliedJobs();
+  const applied = appliedLoad.status === "loaded" ? appliedLoad.jobs : [];
   const { load: proposalsLoad, reload: reloadProposals } = useSentProposals();
   const proposals = proposalsLoad.status === "loaded" ? proposalsLoad.proposals : [];
   const works = useStudentWorks();
   const stores = useStores();
-  const requests = useStudentRequests();
   const { summary } = useStudentSettlements();
-  const [sheetRequestId, setSheetRequestId] = useState<string>();
-  const sheetRequest = useStudentRequest(sheetRequestId);
-  const sheetApplication = applications.find((a) => a.requestId === sheetRequestId);
+  const [sheetJobId, setSheetJobId] = useState<number>();
+  const sheetJob = applied.find((job) => job.jobId === sheetJobId);
 
   const addressOf = (storeId: string) => stores.find((s) => s.id === storeId)?.address;
   // 진행 중은 지금 지켜야 할 마감이 빠른 것부터
@@ -105,43 +103,43 @@ function StudentActivityPage() {
     .filter((w) => w.status === "completed")
     .sort((a, b) => (b.completedOn ?? "").localeCompare(a.completedOn ?? ""));
   const canceled = works.filter((w) => w.status === "canceled");
-  // 보낸 제안을 불러오는 중이거나 실패하면 개수 대신 「-」
+  // 지원한 의뢰 · 보낸 제안을 불러오는 중이거나 실패하면 개수 대신 「-」
   const counts: Record<StudentActivityTab, number | string> = {
-    applied: applications.length,
+    applied: appliedLoad.status === "loaded" ? applied.length : "-",
     proposals: proposalsLoad.status === "loaded" ? proposals.length : "-",
     inProgress: inProgress.length,
     done: done.length,
   };
   const selectedIndex = TABS.findIndex((t) => t.tab === tab);
 
-  const appliedCard = (application: StudentApplication) => {
-    const request = requests.find((r) => r.id === application.requestId);
-    if (!request) return null;
-    const reviewing = application.status === "reviewing";
+  const appliedCard = (job: AppliedJob) => {
+    const reviewing = job.applicationStatus === "PENDING";
     return (
-      <li key={application.requestId} className="student-activity__card">
-        <CardHead kind="request" title={request.title} />
+      <li key={job.jobApplicationId} className="student-activity__card">
+        <CardHead kind="request" title={job.title} />
         <div className="student-activity__meta">
-          <CategoryBadge field={request.field} />
+          {proposalBadgeNames(job.specialtyCategories).map((name) => (
+            <CategoryBadge key={name} field={name} />
+          ))}
           <span>
-            {request.store.name}, {APPLICATION_STATUS_LABEL[application.status]}
+            {[job.storeName, appliedStatusLabel(job.applicationStatus)].filter(Boolean).join(", ")}
           </span>
           <TextButton
             className="student-activity__push"
             onClick={() =>
               reviewing
-                ? navigate(STUDENT_PATHS.requestFull(request.id))
-                : setSheetRequestId(request.id)
+                ? navigate(STUDENT_PATHS.requestFull(String(job.jobId)))
+                : setSheetJobId(job.jobId)
             }
           >
             {reviewing ? "의뢰서 보기" : "지원 결과 보기"}
           </TextButton>
         </div>
-        <p className="student-activity__line">{deadlineText("draft", request.draftDue)}</p>
+        <p className="student-activity__line">{deadlineText("draft", job.draftDeadline)}</p>
         {reviewing && (
           <>
             <div className="student-activity__divider" />
-            <Button tone="student" size="medium" fullWidth onClick={() => setSheetRequestId(request.id)}>
+            <Button tone="student" size="medium" fullWidth onClick={() => setSheetJobId(job.jobId)}>
               내 지원서 보기
             </Button>
           </>
@@ -307,11 +305,19 @@ function StudentActivityPage() {
 
         {listTitle(TABS[selectedIndex].label, counts[tab])}
         <ul className="student-activity__list">
-          {tab === "applied" && applications.map(appliedCard)}
+          {tab === "applied" && applied.map(appliedCard)}
           {tab === "proposals" && proposals.map(proposalCard)}
           {tab === "inProgress" && inProgress.map(inProgressCard)}
           {tab === "done" && done.map(doneCard)}
         </ul>
+        {tab === "applied" && appliedLoad.status !== "loaded" && (
+          <LoadNotice
+            status={appliedLoad.status}
+            loadingText="지원한 의뢰를 불러오는 중이에요"
+            errorText="지원한 의뢰를 불러오지 못했어요"
+            onRetry={reloadApplied}
+          />
+        )}
         {tab === "proposals" && proposalsLoad.status !== "loaded" && (
           <LoadNotice
             status={proposalsLoad.status}
@@ -330,11 +336,7 @@ function StudentActivityPage() {
         )}
       </div>
 
-      <ApplicationSheet
-        application={sheetApplication}
-        request={sheetRequest}
-        onClose={() => setSheetRequestId(undefined)}
-      />
+      <ApplicationSheet job={sheetJob} onClose={() => setSheetJobId(undefined)} />
     </SubScreen>
   );
 }

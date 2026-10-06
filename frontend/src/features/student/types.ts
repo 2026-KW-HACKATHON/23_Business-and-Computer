@@ -3,6 +3,7 @@ import type { StoreCategory } from "../../types/storeCategory";
 import type { WorkKind } from "../../types/workKind";
 import type { ApplicationPlan, WorkPlanContent } from "../../types/workPlan";
 import type { ExploreProposalCard } from "../explore";
+import type { AppliedJob } from "./lib/appliedJobs";
 import type { SentProposal } from "./lib/sentProposals";
 
 /** 마감 단계. draft = 초안, final = 최종 */
@@ -129,30 +130,8 @@ export interface StudentWork {
   };
 }
 
-/** 내가 지원한 가게 의뢰 (내 활동 「지원한 의뢰」 · 홈) */
-export interface StudentRequest {
-  id: string;
-  title: string;
-  field: Field;
-  store: StoreRef;
-  budget: number;
-  draftDue: string;
-  finalDue: string;
-  revisionLimit: number;
-}
-
 /** 지원하기에서 쓰는 작업계획서 */
 export type { ApplicationPlan };
-
-export type ApplicationStatus = "reviewing" | "notSelected";
-
-/** 내가 지원한 의뢰 */
-export interface StudentApplication {
-  requestId: string;
-  appliedOn: string;
-  status: ApplicationStatus;
-  plan: ApplicationPlan;
-}
 
 /** 내가 보낸 제안. accepted = 사장님이 의뢰서를 보내 작업(workId)이 생김 */
 export type MyProposalStatus = "waiting" | "accepted";
@@ -291,12 +270,12 @@ export type StudentTodo =
 /** 기다리는 중 한 줄 */
 export type StudentWaitingItem =
   | { type: "proposal"; proposal: SentProposal }
-  | { type: "application"; application: StudentApplication; request: StudentRequest };
+  | { type: "application"; job: AppliedJob };
 
 export interface StudentHome {
   /**
    * 이력(작업 · 지원 · 제안)이 하나도 없으면 할 일 대신 사용법 안내.
-   * 작업 · 지원이 없고 보낸 제안을 아직 못 불러왔으면(불러오는 중 · 실패) undefined (모름)
+   * 작업 · 지원 · 제안이 없고 지원한 의뢰나 보낸 제안을 아직 못 불러왔으면(불러오는 중 · 실패) undefined (모름)
    */
   firstVisit: boolean | undefined;
   todos: StudentTodo[];

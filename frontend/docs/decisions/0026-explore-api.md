@@ -122,7 +122,8 @@ The backend (dev) has:
   shows the title, one `CategoryBadge` per distinct category name, the
   status text of the cards, the conditions (작업비 · 초안 마감 · 최종 마감 ·
   수정 n회), 할 일 chips (specialty names), 맡기고 싶은 일 (description),
-  and the 「선택되면 이렇게 진행돼요」 steps. The footer shows only while
+  「참고 자료」 (`ReferencePhotos`) when `referenceImageUrls` has any, and
+  the 「선택되면 이렇게 진행돼요」 steps. The footer shows only while
   OPEN: 「지원하기」, or a disabled 「지원했어요」.
 - **Apply** (`src/pages/StudentApplyPage.tsx`): the same hook loads the job
   for the summary box; a job that is not OPEN shows 「지원할 수 없는
@@ -213,5 +214,5 @@ The backend (dev) has:
 
 - The owner 탐색 screens are wired to the API in a later step; extend this
   ADR then.
-- The job's `referenceImageUrls` and GET /me/job-applications are wired in
-  a later step.
+- Sent applications are listed in 내 활동 through GET /me/job-applications
+  (ADR 0027).

@@ -12,6 +12,8 @@ export interface JobDetail {
   title: string;
   /** 맡기고 싶은 일 */
   description: string;
+  /** 사장님이 올린 참고 사진 주소. 없으면 빈 목록 */
+  referenceImageUrls?: string[] | null;
   /** 작업비(원) */
   budget: number;
   specialtyCategories: ExploreSpecialtyCategory[];
