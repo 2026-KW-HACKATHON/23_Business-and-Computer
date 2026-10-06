@@ -214,7 +214,19 @@ function StudentProposalStartPage() {
               <InfoRows
                 size="large"
                 rows={[
-                  { label: "작업비", value: formatWon(agreement.budget) },
+                  {
+                    label: "작업비",
+                    // 사장님이 희망 작업비와 다르게 정했으면 둘을 함께 보인다
+                    value:
+                      agreement.budget === proposal.proposedFee ? (
+                        formatWon(agreement.budget)
+                      ) : (
+                        <>
+                          <span className="student-work__wish">희망 {formatWon(proposal.proposedFee)} → </span>
+                          {formatWon(agreement.budget)}
+                        </>
+                      ),
+                  },
                   { label: "초안 마감", value: formatMonthDayWeekday(agreement.draftDeadline) },
                   { label: "최종 마감", value: formatMonthDayWeekday(agreement.finalDeadline) },
                   { label: "수정", value: `${agreement.revisionCount}회` },

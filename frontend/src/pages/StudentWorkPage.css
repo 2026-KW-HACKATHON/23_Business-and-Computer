@@ -330,3 +330,9 @@
   line-height: 18px;
   color: var(--color-danger);
 }
+
+/* 작업 시작: 사장님이 정한 작업비 앞의 희망 작업비 */
+.student-work__wish {
+  font-weight: 400;
+  color: var(--role-secondary);
+}

@@ -1,7 +1,8 @@
+import type { ReactNode } from "react";
 import "./InfoRows.css";
 
 interface InfoRowsProps {
-  rows: { label: string; value: string }[];
+  rows: { label: string; value: ReactNode }[];
   /** large = 받은 제안의 희망 작업비처럼 조금 큰 글자 */
   size?: "default" | "large";
 }
