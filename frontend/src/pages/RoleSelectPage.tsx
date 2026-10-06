@@ -72,7 +72,7 @@ function RoleSelectPage({ mode }: RoleSelectPageProps) {
 
       <main className="role-select__content">
         <div className="role-select__brand">
-          <AppImage name="logoGakkum" priority />
+          <AppImage name="logoGolmok" priority />
           <AppImage name="taglineRole" priority />
         </div>
 

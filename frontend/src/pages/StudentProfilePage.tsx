@@ -71,10 +71,6 @@ function StudentProfilePage() {
             <dd>{profile.completedCount}건</dd>
           </div>
           <div className="student-profile__stat">
-            <dt>마감 지킴</dt>
-            <dd>{profile.onTimeRate === undefined ? "-" : `${profile.onTimeRate}%`}</dd>
-          </div>
-          <div className="student-profile__stat">
             <dt>사장님 평점</dt>
             <dd>{profile.rating === undefined ? "-" : `★ ${profile.rating.toFixed(1)}`}</dd>
           </div>
@@ -106,7 +102,7 @@ function StudentProfilePage() {
             {profile.certificates.map((certificate) => (
               <div key={certificate.name} className="student-profile__cert">
                 <strong>{certificate.name}</strong>
-                <span>{formatDotDate(certificate.acquiredOn)}</span>
+                <span>{certificate.acquiredYear}</span>
               </div>
             ))}
             {profile.certificates.length > 0 && profile.portfolioUrl && (

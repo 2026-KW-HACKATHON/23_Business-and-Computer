@@ -31,7 +31,7 @@ function MainAppBar({
           <h1 className="main-app-bar__title">{title}</h1>
         ) : (
           <span className="main-app-bar__logo">
-            <AppImage name="logoGakkum" width={54} priority />
+            <AppImage name="logoGolmok" height={20} priority />
             <AppImage name={role === "owner" ? "miniOwner" : "miniStudent"} alt="" priority />
           </span>
         )}

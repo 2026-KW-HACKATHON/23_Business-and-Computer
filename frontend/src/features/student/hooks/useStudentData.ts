@@ -122,8 +122,6 @@ export interface MyProfileView extends MyProfile {
   storeCount: number;
   /** 후기 평균. 후기가 없으면 비운다 */
   rating?: number;
-  /** 마감을 지킨 비율 (%) */
-  onTimeRate?: number;
   /** 보낸 제안 수 (수락돼 작업이 된 것까지) */
   proposalCount: number;
   /** 최근 것부터 */
@@ -156,7 +154,6 @@ export function useMyProfile(): MyProfileView {
     completedCount: completed.length,
     storeCount: new Set(completed.map((w) => w.store.id)).size,
     rating,
-    onTimeRate: completed.length > 0 ? 100 : undefined,
     proposalCount: proposals.length + fromWorks,
     reviews,
   };

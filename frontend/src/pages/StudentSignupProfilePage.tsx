@@ -6,6 +6,7 @@ import { landingPath } from "../features/auth";
 import {
   EMPTY_CERTIFICATE,
   PROFILE_PHOTO_ACCEPT,
+  certificateErrorText,
   certificateStatuses,
   checkProfilePhoto,
   registerStudentSignup,
@@ -14,7 +15,6 @@ import {
 } from "../features/signup";
 import type {
   Certificate,
-  CertificateStatus,
   StudentVerifyReturnState,
 } from "../features/signup";
 import { implicitSpecialty, selectableCategories, useSpecialties } from "../features/specialty";
@@ -37,13 +37,6 @@ const SUBMIT_ERROR_TEXT: Record<Exclude<SubmitError, null>, string> = {
   dataConflict: "일시적인 문제가 생겼어요. 다시 시도해도 안 되면 문의해 주세요",
   retry: "잠시 후 다시 시도해 주세요",
 };
-
-function certificateErrorText(status: CertificateStatus): string | null {
-  if (status === "incomplete") return "자격증 이름과 취득 연도를 모두 입력해 주세요";
-  if (status === "invalidYear") return `1900~${new Date().getFullYear()} 사이 연도를 입력해 주세요`;
-  if (status === "duplicate") return "같은 자격증이 두 번 입력됐어요";
-  return null;
-}
 
 /** 학번 앞 두 자리로 「24학번」을 만든다 (예: 2024402145 → 24학번) */
 function admissionYear(studentNumber: string): string {

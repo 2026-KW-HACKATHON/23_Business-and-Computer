@@ -40,8 +40,6 @@ export interface OpenJobResponse {
   revisionCount: number;
   applicantCount: number;
   progressStage?: string | null;
-  /** 작업비(원). 서버가 주면 홈 「지원자가 생긴 의뢰」 카드에 「예산」이 보인다 */
-  budget?: number | null;
 }
 
 /** GET /me/jobs?status=OPEN — 모집 중인 내 의뢰 */
@@ -110,8 +108,6 @@ export interface ApplicantProfileResponse {
   specialtyCategories: JobSpecialtyCategory[];
   /** 한 줄 소개. 서버가 주면 프로필 이름 아래에 보인다 */
   intro?: string | null;
-  /** 마감을 지킨 비율(%). 서버가 주면 「마감 지킴」에 보인다 */
-  onTimeRate?: number | null;
   certificates: { certificateName: string; acquiredYear?: number | null }[];
   portfolioUrl?: string | null;
   penaltyCount: number;

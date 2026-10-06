@@ -80,7 +80,7 @@ function PaymentSection({
                 {
                   title: (
                     <>
-                      지금 결제한 돈은 <b>가꿈</b>이 맡아 둬요
+                      지금 결제한 돈은 <b>골목인턴</b>이 맡아 둬요
                     </>
                   ),
                   description: "학생에게 바로 가지 않아요",

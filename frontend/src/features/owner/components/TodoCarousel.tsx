@@ -12,8 +12,13 @@ const SLIDE_MS = 300;
 /** TodoCarousel.css 의 카드 사이 간격과 같게 둔다 */
 const SLIDE_GAP_PX = 12;
 
-/** 카드 종류마다 보여 줄 문구 */
-function describe(todo: OwnerTodo) {
+/** 카드 종류마다 보여 줄 문구. meta 가 없으면 분야 뱃지만 둔다 */
+function describe(todo: OwnerTodo): {
+  meta?: string;
+  status: string;
+  detail: string;
+  action: string;
+} {
   switch (todo.type) {
     case "draftArrived":
       return {
@@ -31,7 +36,6 @@ function describe(todo: OwnerTodo) {
       };
     case "applicants":
       return {
-        meta: todo.budget === undefined ? "" : `예산 ${todo.budget.toLocaleString("ko-KR")}원`,
         status: `학생 ${todo.applicantCount}명이 지원했어요`,
         detail: `초안 마감 : ${formatMonthDay(todo.draftDue)}`,
         action: "학생 고르기",
@@ -95,7 +99,7 @@ function TodoCarousel({ todos, onAction }: TodoCarouselProps) {
                     </div>
                     <div className="todo-carousel__meta">
                       <CategoryBadge field={todo.field} />
-                      <span className="todo-carousel__meta-text">{meta}</span>
+                      {meta && <span className="todo-carousel__meta-text">{meta}</span>}
                     </div>
                   </div>
                   <div className="todo-carousel__status">

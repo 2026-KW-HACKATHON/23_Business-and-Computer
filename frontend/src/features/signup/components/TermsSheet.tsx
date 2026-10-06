@@ -16,7 +16,7 @@ function TermsSheet({ open, onClose, tone }: TermsSheetProps) {
     <BottomSheet
       open={open}
       onClose={onClose}
-      title="가꿈 이용약관"
+      title="골목인턴 이용약관"
       description="가입 전에 꼭 확인해 주세요"
       footer={
         <Button fullWidth tone={tone} onClick={onClose}>

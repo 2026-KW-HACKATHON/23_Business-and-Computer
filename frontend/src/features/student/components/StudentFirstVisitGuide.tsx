@@ -22,7 +22,7 @@ function StudentFirstVisitGuide({ onStart }: StudentFirstVisitGuideProps) {
       <AppImage name="roleStudent" width={96} priority alt="" />
       <h2 className="student-first-visit__title">{"월계1동 가게에\n첫 제안을 보내 볼까요?"}</h2>
       <div className="student-first-visit__card">
-        <h3 className="student-first-visit__card-title">가꿈은 이렇게 써요</h3>
+        <h3 className="student-first-visit__card-title">골목인턴은 이렇게 써요</h3>
         <ol className="student-first-visit__steps">
           {STEPS.map((step, i) => (
             <li key={step} className="student-first-visit__step">

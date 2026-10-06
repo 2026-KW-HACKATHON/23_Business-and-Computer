@@ -51,7 +51,7 @@ function OwnerPaymentsPage() {
       <div className="owner-payments">
         <PaymentSummaryBox summary={summary} />
         <p className="owner-payments__note">
-          안전결제한 작업비는 완료를 확인할 때까지 가꿈이 보관해요. 해커톤 기간에는 수수료가 없어요.
+          안전결제한 작업비는 완료를 확인할 때까지 골목인턴이 보관해요. 해커톤 기간에는 수수료가 없어요.
         </p>
 
         {months.map((month) => {

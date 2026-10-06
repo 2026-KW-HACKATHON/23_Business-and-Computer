@@ -172,8 +172,8 @@ export interface ProposalExample {
 
 export interface StudentCertificate {
   name: string;
-  /** "2025-03" */
-  acquiredOn: string;
+  /** 취득 연도. 서버도 연도만 둔다 (acquiredYear) */
+  acquiredYear: number;
 }
 
 /** 내 프로필. 완료 건수 · 평점 · 후기는 작업에서 센다 */

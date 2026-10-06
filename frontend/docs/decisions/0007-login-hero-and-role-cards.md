@@ -12,7 +12,7 @@ After the mid-presentation the Figma page 「1. 공통 (온보딩·로그인)」
   takes their place: app icon, slogan, and the five-step service flow
   (제안 또는 의뢰 → 작업 시작 → 초안 → 수정 → 완료) appearing one by one, then an
   automatic move to login after about 3 seconds. Tapping moves on at once.
-- The login screen shows the 가꿈 logo, 「가꿈은 이렇게 돌아가요」, and the
+- The login screen shows the 골목인턴 logo, 「골목인턴은 이렇게 돌아가요」, and the
   「사용법 카드 넘기기」 carousel (제안 → 공감 → 의뢰, auto-advance every 2 s,
   swipe or tap to advance, three page dots) instead of the app icon hero.
 - Both role-select screens use the new 「카드 / 역할 선택」 cards (character,

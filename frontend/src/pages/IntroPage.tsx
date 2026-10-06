@@ -47,11 +47,11 @@ function IntroPage() {
       type="button"
       className={`intro${leaving ? " intro--leaving" : ""}`}
       onClick={() => leave(false)}
-      aria-label="가꿈 소개. 누르면 다음 화면으로 넘어가요"
+      aria-label="골목인턴 소개. 누르면 다음 화면으로 넘어가요"
     >
       <span className="intro__hero">
         <AppImage name="appIcon" className="intro__app-icon" priority />
-        <span className="intro__title">{"월계1동 가게와 광운대생,\n가꿈에서 만나요"}</span>
+        <span className="intro__title">{"월계1동 가게와 광운대생,\n골목인턴에서 만나요"}</span>
       </span>
 
       <span className="intro__flow">
@@ -66,7 +66,7 @@ function IntroPage() {
         </span>
       </span>
 
-      <span className="intro__note">작업비는 가꿈이 맡아 두었다가 완료되면 학생에게 보내요</span>
+      <span className="intro__note">작업비는 골목인턴이 맡아 두었다가 완료되면 학생에게 보내요</span>
     </button>
   );
 }

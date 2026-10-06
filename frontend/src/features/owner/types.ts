@@ -42,8 +42,6 @@ export interface ProposalArrivedTodo extends TodoBase {
 /** 의뢰에 학생들이 지원했다 (id = 의뢰) */
 export interface ApplicantsTodo extends TodoBase {
   type: "applicants";
-  /** 작업비(원). 목록이 주지 않으면 없음 (「예산」 줄을 숨긴다) */
-  budget?: number;
   applicantCount: number;
   draftDue: string;
 }
@@ -336,8 +334,8 @@ export interface OwnerCheckout {
 
 export interface StudentCertificate {
   name: string;
-  /** "2025-03" */
-  acquiredOn: string;
+  /** 취득 연도. 서버도 연도만 둔다 (acquiredYear) */
+  acquiredYear: number;
 }
 
 /** 학생이 받은 사장님 후기 */
@@ -355,8 +353,6 @@ export interface StudentProfile extends StudentProfileRef {
   intro: string;
   proposalCount: number;
   noShowCount: number;
-  /** 마감을 지킨 비율 (%). 완료한 작업이 없으면 비운다 */
-  onTimeRate?: number;
   badges: string[];
   certificates: StudentCertificate[];
   /** 「notion.so/…」처럼 https:// 없이 */
