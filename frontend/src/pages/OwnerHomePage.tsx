@@ -9,6 +9,7 @@ import {
   WorkPlanSheet,
   WAITING_STATUS_LABEL,
   deadlineText,
+  ownerWorkPlanContent,
   studentLabel,
   useOwnerHome,
   useOwnerWork,
@@ -154,7 +155,7 @@ function OwnerHomePage() {
       )}
 
       <WorkPlanSheet
-        work={planWork}
+        content={planWork && ownerWorkPlanContent(planWork)}
         onClose={() => setPlanWorkId(undefined)}
         onChat={() => planWork && navigate(OWNER_PATHS.chat(planWork.id))}
       />

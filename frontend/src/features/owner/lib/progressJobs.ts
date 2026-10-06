@@ -6,7 +6,7 @@ import type { JobSpecialtyCategory } from "../api/jobApi";
 import { fetchMyChatRooms, fetchOwnerMatchedJobs } from "../api/progressApi";
 import type { OwnerMatchedJobResponse } from "../api/progressApi";
 import { fetchReceivedProposals } from "../api/receivedProposalApi";
-import type { DeadlineStage } from "../types";
+import type { DeadlineStage, WorkPlanSheetContent } from "../types";
 import { flowSteps } from "./flow";
 
 /**
@@ -75,6 +75,20 @@ export function ownerProgressStatusText(job: OwnerProgressJob): string {
 export function ownerProgressFlowSteps(job: OwnerProgressJob, sub?: string): FlowStep[] {
   const first = job.kind === "proposal" ? "제안" : "의뢰";
   return flowSteps(first, ownerProgressNoun(job) === "수정안" ? 3 : 2, sub);
+}
+
+/** 지원서가 있으면 작업계획서 바텀시트 내용, 없으면(제안으로 시작) undefined */
+export function progressWorkPlanContent(job: OwnerProgressJob): WorkPlanSheetContent | undefined {
+  if (!job.plan) return undefined;
+  return {
+    title: job.title,
+    studentName: job.student.name,
+    plan: job.plan,
+    budget: job.budget,
+    draftDue: job.draftDeadline,
+    finalDue: job.finalDeadline,
+    revisionLimit: job.revisionLimit,
+  };
 }
 
 export type OwnerProgressJobsResult =

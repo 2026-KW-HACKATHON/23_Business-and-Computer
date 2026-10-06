@@ -44,6 +44,7 @@ export {
   ownerProgressFlowSteps,
   ownerProgressNoun,
   ownerProgressStatusText,
+  progressWorkPlanContent,
 } from "./lib/progressJobs";
 export type { OwnerProgressJob, OwnerProgressStage } from "./lib/progressJobs";
 export {
@@ -75,6 +76,7 @@ export {
   WAITING_STATUS_LABEL,
   chatProgressText,
   deadlineText,
+  ownerWorkPlanContent,
   studentLabel,
   studentRecord,
   workChatSummary,
@@ -118,4 +120,5 @@ export type {
   PickedTask,
   RequestContent,
   RequestExample,
+  WorkPlanSheetContent,
 } from "./types";

@@ -12,6 +12,7 @@ import {
   OWNER_PATHS,
   OwnerMissing,
   WorkPlanSheet,
+  ownerWorkPlanContent,
   useOwnerChatThread,
   useOwnerWork,
   workChatSummary,
@@ -180,7 +181,10 @@ function OwnerChatRoomPage() {
         <div ref={endRef} />
       </div>
 
-      <WorkPlanSheet work={planOpen ? work : undefined} onClose={() => setPlanOpen(false)} />
+      <WorkPlanSheet
+        content={planOpen ? ownerWorkPlanContent(work) : undefined}
+        onClose={() => setPlanOpen(false)}
+      />
       <ReportSheet open={reportOpen} workTitle={work.title} onClose={() => setReportOpen(false)} />
     </SubScreen>
   );

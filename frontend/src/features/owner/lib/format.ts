@@ -6,6 +6,7 @@ import type {
   StudentProfileRef,
   StudentRef,
   WaitingStatus,
+  WorkPlanSheetContent,
 } from "../types";
 import { studentTitle } from "../../../lib/korean";
 
@@ -52,4 +53,18 @@ export function workChatSummary(work: OwnerWork): string {
   return work.revisionCount > 0
     ? `수정안 만드는 중, ${formatMonthDay(work.finalDue)}까지 도착`
     : `초안 만드는 중, ${formatMonthDay(work.draftDue)}까지 도착`;
+}
+
+/** 샘플 작업의 작업계획서 바텀시트 내용 */
+export function ownerWorkPlanContent(work: OwnerWork): WorkPlanSheetContent {
+  return {
+    title: work.title,
+    studentName: work.student.name,
+    sentOn: work.planSentOn,
+    plan: work.plan,
+    budget: work.budget,
+    draftDue: work.draftDue,
+    finalDue: work.finalDue,
+    revisionLimit: work.revisionLimit,
+  };
 }

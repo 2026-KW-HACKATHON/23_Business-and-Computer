@@ -106,6 +106,19 @@ export interface RequestExample {
   content: RequestContent;
 }
 
+/** 「작업계획서 보기」 바텀시트 내용. 모르는 칸은 빼고 보인다 */
+export interface WorkPlanSheetContent {
+  title: string;
+  studentName?: string;
+  /** 지원할 때 보낸 날 */
+  sentOn?: string;
+  plan: WorkPlanContent;
+  budget?: number;
+  draftDue: string;
+  finalDue: string;
+  revisionLimit?: number;
+}
+
 /** 「끝난 일」 한 줄 (id = 작업) */
 export interface OwnerDoneItem {
   id: string;
