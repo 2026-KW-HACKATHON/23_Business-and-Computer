@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -13,6 +14,8 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
@@ -23,7 +26,11 @@ import com.gakkum.backend.domain.job.dto.JobCommandDto.CancelJobCommand;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.JobCancelResult;
 import com.gakkum.backend.domain.job.entity.Job;
 import com.gakkum.backend.domain.job.entity.JobStatus;
+import com.gakkum.backend.domain.job.entity.JobSubmission;
+import com.gakkum.backend.domain.job.entity.JobSubmissionReviewStatus;
+import com.gakkum.backend.domain.job.entity.JobSubmissionType;
 import com.gakkum.backend.domain.job.repository.JobRepository;
+import com.gakkum.backend.domain.job.repository.JobSubmissionRepository;
 import com.gakkum.backend.domain.owner.entity.Owner;
 import com.gakkum.backend.domain.owner.repository.OwnerRepository;
 import com.gakkum.backend.domain.payment.entity.Payment;
@@ -48,6 +55,9 @@ class JobCancelPersistenceIntegrationTest {
 
     @Autowired
     private JobRepository jobRepository;
+
+    @Autowired
+    private JobSubmissionRepository jobSubmissionRepository;
 
     @Autowired
     private UserRepository userRepository;
@@ -83,6 +93,7 @@ class JobCancelPersistenceIntegrationTest {
     void cleanUp() {
         transactionTemplate.executeWithoutResult(status -> {
             paymentRepository.deleteAllById(paymentIds);
+            jobSubmissionRepository.deleteAll(jobSubmissionRepository.findByJobIdIn(jobIds));
             jobRepository.deleteAllById(jobIds);
             ownerRepository.deleteById(ownerProfileId);
             userRepository.deleteById(userId);
@@ -138,6 +149,53 @@ class JobCancelPersistenceIntegrationTest {
         assertThat(found.getCompletedAt()).isNull();
         assertThat(found.getCancelReason()).isNull();
         assertThat(found.getMessageToStudent()).isNull();
+    }
+
+    /** 제출 이후 취소를 시도하는 시점의 제출 이력. */
+    enum SubmittedStage {
+        DRAFT_PENDING, REVISION_REQUESTED, REVISION_PENDING
+    }
+
+    @ParameterizedTest
+    @EnumSource(SubmittedStage.class)
+    @DisplayName("PostgreSQL에서 제출 이력이 있는 진행 중 의뢰의 취소는 검토 상태와 관계없이 거부되고 의뢰·결제·제출물이 그대로 남는다")
+    void rejectsCancellationAfterSubmissionAndKeepsEverything(SubmittedStage stage) {
+        Job job = saveJob(true);
+        Payment payment = savePaidPayment(job.getId(), 100_000L);
+        List<JobSubmissionReviewStatus> reviewStatuses = saveSubmissions(job.getId(), stage);
+
+        assertThatThrownBy(() -> jobFacade.cancelJob(command(job.getId())))
+                .isInstanceOfSatisfying(BusinessException.class, exception ->
+                        assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.JOB_CANCEL_SUBMITTED));
+
+        Job found = jobRepository.findById(job.getId()).orElseThrow();
+        assertThat(found.getStatus()).isEqualTo(JobStatus.MATCHED);
+        assertThat(found.getCompletedAt()).isNull();
+        assertThat(found.getCancelReason()).isNull();
+        assertThat(found.getMessageToStudent()).isNull();
+        Payment foundPayment = paymentRepository.findById(payment.getId()).orElseThrow();
+        assertThat(foundPayment.getStatus()).isEqualTo(PaymentStatus.PAID);
+        assertThat(foundPayment.getRefundedAt()).isNull();
+        assertThat(jobSubmissionRepository.findByJobIdOrderByRevisionNumberAsc(job.getId()))
+                .extracting(JobSubmission::getReviewStatus)
+                .containsExactlyElementsOf(reviewStatuses);
+    }
+
+    private List<JobSubmissionReviewStatus> saveSubmissions(Long jobId, SubmittedStage stage) {
+        JobSubmission draft = JobSubmission.create(
+                jobId, JobSubmissionType.DRAFT, 0, List.of("https://example.com/draft.png"), "초안입니다.");
+        if (stage == SubmittedStage.DRAFT_PENDING) {
+            jobSubmissionRepository.saveAndFlush(draft);
+            return List.of(JobSubmissionReviewStatus.PENDING);
+        }
+        draft.requestRevision(LocalDateTime.now(), "로고를 조금 더 크게 해주세요.", List.of());
+        jobSubmissionRepository.saveAndFlush(draft);
+        if (stage == SubmittedStage.REVISION_REQUESTED) {
+            return List.of(JobSubmissionReviewStatus.REVISION_REQUESTED);
+        }
+        jobSubmissionRepository.saveAndFlush(JobSubmission.create(
+                jobId, JobSubmissionType.REVISION, 1, List.of("https://example.com/revision.png"), "수정안입니다."));
+        return List.of(JobSubmissionReviewStatus.REVISION_REQUESTED, JobSubmissionReviewStatus.PENDING);
     }
 
     private CancelJobCommand command(Long jobId) {

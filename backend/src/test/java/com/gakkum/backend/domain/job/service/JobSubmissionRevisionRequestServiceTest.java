@@ -12,6 +12,7 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.util.List;
 import java.util.Optional;
 
 import org.junit.jupiter.api.DisplayName;
@@ -27,14 +28,19 @@ import com.gakkum.backend.domain.job.entity.JobSubmissionReviewStatus;
 import com.gakkum.backend.domain.job.entity.JobSubmissionType;
 import com.gakkum.backend.domain.job.repository.JobApplicationRepository;
 import com.gakkum.backend.domain.job.repository.JobRepository;
+import com.gakkum.backend.domain.job.repository.JobRepository.RevisionRequestTargetProjection;
 import com.gakkum.backend.domain.job.repository.JobSpecialtyRepository;
 import com.gakkum.backend.domain.job.repository.JobSubmissionRepository;
+import com.gakkum.backend.domain.job.repository.JobSubmissionRepository.ReviewTargetProjection;
 import com.gakkum.backend.global.exception.BusinessException;
 import com.gakkum.backend.global.exception.ErrorCode;
 
 class JobSubmissionRevisionRequestServiceTest {
 
     private static final Instant NOW = Instant.parse("2026-09-28T03:15:30Z");
+    private static final String MESSAGE = "로고를 조금 더 크게 해주세요.";
+    private static final List<String> IMAGES = List.of(
+            "https://images.example.com/images/job/owner/b.png", "https://images.example.com/images/job/owner/a.png");
 
     private final JobRepository jobRepository = mock(JobRepository.class);
     private final JobSubmissionRepository jobSubmissionRepository = mock(JobSubmissionRepository.class);
@@ -48,7 +54,7 @@ class JobSubmissionRevisionRequestServiceTest {
         givenOwnedJob(JobStatus.MATCHED, 2);
         JobSubmission submission = givenSubmission(81L, 42L, 0, JobSubmissionReviewStatus.PENDING);
 
-        jobService.requestRevision(command(81L));
+        jobService.requestRevision(command(81L), 5L);
 
         assertThat(submission.getReviewStatus()).isEqualTo(JobSubmissionReviewStatus.REVISION_REQUESTED);
         verify(jobRepository).findByIdAndOwnerProfileId(42L, 5L);
@@ -60,9 +66,88 @@ class JobSubmissionRevisionRequestServiceTest {
         givenOwnedJob(JobStatus.MATCHED, 2);
         JobSubmission submission = givenSubmission(81L, 42L, 0, JobSubmissionReviewStatus.PENDING);
 
-        jobService.requestRevision(command(81L));
+        jobService.requestRevision(command(81L), 5L);
 
         assertThat(submission.getReviewedAt()).isEqualTo(LocalDateTime.ofInstant(NOW, ZoneId.systemDefault()));
+    }
+
+    @Test
+    @DisplayName("수정을 요청하면 요청 내용과 참고 사진을 순서대로 기록하고 학생의 제출 메시지와 파일은 그대로 둔다")
+    void recordsRevisionRequestContent() {
+        givenOwnedJob(JobStatus.MATCHED, 2);
+        JobSubmission submission = givenSubmission(81L, 42L, 0, JobSubmissionReviewStatus.PENDING);
+
+        jobService.requestRevision(command(81L), 5L);
+
+        assertThat(submission.getReviewComment()).isEqualTo(MESSAGE);
+        assertThat(submission.getRevisionReferenceImageUrls()).containsExactlyElementsOf(IMAGES);
+        assertThat(submission.getMessage()).isEqualTo("초안입니다.");
+        assertThat(submission.getFileUrls()).containsExactly("https://example.com/draft.pdf");
+    }
+
+    @Test
+    @DisplayName("참고 사진 없이 수정을 요청하면 사진 목록을 빈 목록으로 기록한다")
+    void recordsRevisionRequestWithoutImages() {
+        givenOwnedJob(JobStatus.MATCHED, 2);
+        JobSubmission submission = givenSubmission(81L, 42L, 0, JobSubmissionReviewStatus.PENDING);
+
+        jobService.requestRevision(
+                RequestJobSubmissionRevisionCommand.of("KAKAO_12345", 42L, 81L, MESSAGE, List.of()), 5L);
+
+        assertThat(submission.getReviewComment()).isEqualTo(MESSAGE);
+        assertThat(submission.getRevisionReferenceImageUrls()).isEmpty();
+    }
+
+    @Test
+    @DisplayName("거부된 수정 요청은 요청 내용·참고 사진·요청 시각을 남기지 않는다")
+    void leavesSubmissionUntouchedWhenRejected() {
+        givenOwnedJob(JobStatus.CLOSED, 2);
+        JobSubmission submission = givenSubmission(81L, 42L, 0, JobSubmissionReviewStatus.PENDING);
+
+        assertError(() -> jobService.requestRevision(command(81L), 5L),
+                ErrorCode.JOB_SUBMISSION_REVIEW_NOT_AVAILABLE);
+        assertThat(submission.getReviewComment()).isNull();
+        assertThat(submission.getRevisionReferenceImageUrls()).isEmpty();
+        assertThat(submission.getReviewedAt()).isNull();
+    }
+
+    @Test
+    @DisplayName("사전 확인은 의뢰 행을 잠그지 않고 프로젝션으로 읽어 수정 요청 가능 여부만 확인한다")
+    void validatesWithoutLock() {
+        givenTargetJob(JobStatus.MATCHED, 2);
+        givenTargetSubmission(81L, 42L, 0, JobSubmissionReviewStatus.PENDING);
+
+        jobService.validateRevisionRequestable(42L, 81L, 5L);
+
+        verify(jobRepository, never()).findByIdAndOwnerProfileId(any(), any());
+        verify(jobSubmissionRepository, never()).findById(any());
+    }
+
+    @Test
+    @DisplayName("사전 확인은 저장과 같은 조건·순서로 거부한다")
+    void validatesWithSameRulesAsRequest() {
+        when(jobRepository.findRevisionRequestTargetByIdAndOwnerProfileId(42L, 5L)).thenReturn(Optional.empty());
+        assertError(() -> jobService.validateRevisionRequestable(42L, 81L, 5L), ErrorCode.JOB_NOT_FOUND);
+
+        givenTargetJob(JobStatus.MATCHED, 2);
+        when(jobSubmissionRepository.findReviewTargetById(99L)).thenReturn(Optional.empty());
+        assertError(() -> jobService.validateRevisionRequestable(42L, 99L, 5L), ErrorCode.JOB_SUBMISSION_NOT_FOUND);
+
+        givenTargetSubmission(91L, 43L, 0, JobSubmissionReviewStatus.PENDING);
+        assertError(() -> jobService.validateRevisionRequestable(42L, 91L, 5L), ErrorCode.JOB_SUBMISSION_NOT_FOUND);
+
+        givenTargetSubmission(82L, 42L, 0, JobSubmissionReviewStatus.REVISION_REQUESTED);
+        assertError(() -> jobService.validateRevisionRequestable(42L, 82L, 5L),
+                ErrorCode.JOB_SUBMISSION_ALREADY_REVIEWED);
+
+        givenTargetSubmission(88L, 42L, 2, JobSubmissionReviewStatus.PENDING);
+        assertError(() -> jobService.validateRevisionRequestable(42L, 88L, 5L),
+                ErrorCode.JOB_SUBMISSION_REVISION_LIMIT_EXCEEDED);
+
+        givenTargetJob(JobStatus.CANCELLED, 2);
+        givenTargetSubmission(81L, 42L, 0, JobSubmissionReviewStatus.PENDING);
+        assertError(() -> jobService.validateRevisionRequestable(42L, 81L, 5L),
+                ErrorCode.JOB_SUBMISSION_REVIEW_NOT_AVAILABLE);
     }
 
     @Test
@@ -71,7 +156,7 @@ class JobSubmissionRevisionRequestServiceTest {
         givenOwnedJob(JobStatus.MATCHED, 2);
         JobSubmission submission = givenSubmission(87L, 42L, 1, JobSubmissionReviewStatus.PENDING);
 
-        jobService.requestRevision(command(87L));
+        jobService.requestRevision(command(87L), 5L);
 
         assertThat(submission.getReviewStatus()).isEqualTo(JobSubmissionReviewStatus.REVISION_REQUESTED);
     }
@@ -82,7 +167,7 @@ class JobSubmissionRevisionRequestServiceTest {
         givenOwnedJob(JobStatus.MATCHED, 2);
         JobSubmission submission = givenSubmission(88L, 42L, 2, JobSubmissionReviewStatus.PENDING);
 
-        assertError(() -> jobService.requestRevision(command(88L)), ErrorCode.JOB_SUBMISSION_REVISION_LIMIT_EXCEEDED);
+        assertError(() -> jobService.requestRevision(command(88L), 5L), ErrorCode.JOB_SUBMISSION_REVISION_LIMIT_EXCEEDED);
         assertThat(submission.getReviewStatus()).isEqualTo(JobSubmissionReviewStatus.PENDING);
         assertThat(submission.getReviewedAt()).isNull();
     }
@@ -93,7 +178,7 @@ class JobSubmissionRevisionRequestServiceTest {
         givenOwnedJob(JobStatus.MATCHED, 0);
         givenSubmission(81L, 42L, 0, JobSubmissionReviewStatus.PENDING);
 
-        assertError(() -> jobService.requestRevision(command(81L)), ErrorCode.JOB_SUBMISSION_REVISION_LIMIT_EXCEEDED);
+        assertError(() -> jobService.requestRevision(command(81L), 5L), ErrorCode.JOB_SUBMISSION_REVISION_LIMIT_EXCEEDED);
     }
 
     @ParameterizedTest
@@ -103,7 +188,7 @@ class JobSubmissionRevisionRequestServiceTest {
         givenOwnedJob(JobStatus.MATCHED, 2);
         JobSubmission submission = givenSubmission(81L, 42L, 0, status);
 
-        assertError(() -> jobService.requestRevision(command(81L)), ErrorCode.JOB_SUBMISSION_ALREADY_REVIEWED);
+        assertError(() -> jobService.requestRevision(command(81L), 5L), ErrorCode.JOB_SUBMISSION_ALREADY_REVIEWED);
         assertThat(submission.getReviewStatus()).isEqualTo(status);
     }
 
@@ -112,7 +197,7 @@ class JobSubmissionRevisionRequestServiceTest {
     void rejectsOtherOwnersJob() {
         when(jobRepository.findByIdAndOwnerProfileId(42L, 5L)).thenReturn(Optional.empty());
 
-        assertError(() -> jobService.requestRevision(command(81L)), ErrorCode.JOB_NOT_FOUND);
+        assertError(() -> jobService.requestRevision(command(81L), 5L), ErrorCode.JOB_NOT_FOUND);
         verify(jobSubmissionRepository, never()).findById(any());
     }
 
@@ -122,7 +207,7 @@ class JobSubmissionRevisionRequestServiceTest {
         givenOwnedJob(JobStatus.MATCHED, 2);
         when(jobSubmissionRepository.findById(99L)).thenReturn(Optional.empty());
 
-        assertError(() -> jobService.requestRevision(command(99L)), ErrorCode.JOB_SUBMISSION_NOT_FOUND);
+        assertError(() -> jobService.requestRevision(command(99L), 5L), ErrorCode.JOB_SUBMISSION_NOT_FOUND);
     }
 
     @Test
@@ -131,7 +216,7 @@ class JobSubmissionRevisionRequestServiceTest {
         givenOwnedJob(JobStatus.MATCHED, 2);
         JobSubmission submission = givenSubmission(91L, 43L, 0, JobSubmissionReviewStatus.PENDING);
 
-        assertError(() -> jobService.requestRevision(command(91L)), ErrorCode.JOB_SUBMISSION_NOT_FOUND);
+        assertError(() -> jobService.requestRevision(command(91L), 5L), ErrorCode.JOB_SUBMISSION_NOT_FOUND);
         assertThat(submission.getReviewStatus()).isEqualTo(JobSubmissionReviewStatus.PENDING);
     }
 
@@ -141,7 +226,7 @@ class JobSubmissionRevisionRequestServiceTest {
         givenOwnedJob(JobStatus.CLOSED, 2);
         JobSubmission submission = givenSubmission(81L, 42L, 0, JobSubmissionReviewStatus.PENDING);
 
-        assertError(() -> jobService.requestRevision(command(81L)), ErrorCode.JOB_SUBMISSION_REVIEW_NOT_AVAILABLE);
+        assertError(() -> jobService.requestRevision(command(81L), 5L), ErrorCode.JOB_SUBMISSION_REVIEW_NOT_AVAILABLE);
         assertThat(submission.getReviewStatus()).isEqualTo(JobSubmissionReviewStatus.PENDING);
     }
 
@@ -162,14 +247,32 @@ class JobSubmissionRevisionRequestServiceTest {
                 .jobId(jobId)
                 .submissionType(revisionNumber == 0 ? JobSubmissionType.DRAFT : JobSubmissionType.REVISION)
                 .revisionNumber(revisionNumber)
+                .fileUrls(List.of("https://example.com/draft.pdf"))
+                .message("초안입니다.")
                 .reviewStatus(reviewStatus)
                 .build();
         when(jobSubmissionRepository.findById(id)).thenReturn(Optional.of(submission));
         return submission;
     }
 
+    private void givenTargetJob(JobStatus status, int revisionCount) {
+        RevisionRequestTargetProjection job = mock(RevisionRequestTargetProjection.class);
+        when(job.getStatus()).thenReturn(status);
+        when(job.getRevisionCount()).thenReturn(revisionCount);
+        when(jobRepository.findRevisionRequestTargetByIdAndOwnerProfileId(42L, 5L)).thenReturn(Optional.of(job));
+    }
+
+    private void givenTargetSubmission(
+            Long id, Long jobId, int revisionNumber, JobSubmissionReviewStatus reviewStatus) {
+        ReviewTargetProjection submission = mock(ReviewTargetProjection.class);
+        when(submission.getJobId()).thenReturn(jobId);
+        when(submission.getReviewStatus()).thenReturn(reviewStatus);
+        when(submission.getRevisionNumber()).thenReturn(revisionNumber);
+        when(jobSubmissionRepository.findReviewTargetById(id)).thenReturn(Optional.of(submission));
+    }
+
     private RequestJobSubmissionRevisionCommand command(Long submissionId) {
-        return RequestJobSubmissionRevisionCommand.of(42L, submissionId, 5L);
+        return RequestJobSubmissionRevisionCommand.of("KAKAO_12345", 42L, submissionId, MESSAGE, IMAGES);
     }
 
     private void assertError(Runnable action, ErrorCode errorCode) {

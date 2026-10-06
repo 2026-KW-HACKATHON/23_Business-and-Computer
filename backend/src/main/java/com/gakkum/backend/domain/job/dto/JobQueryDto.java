@@ -168,6 +168,57 @@ public final class JobQueryDto {
         }
     }
 
+    /** 학생이 보는 최신 제출물. 날짜는 서버 로컬 시각 기준이다. */
+    @Getter
+    @Builder(access = AccessLevel.PRIVATE)
+    @AllArgsConstructor(access = AccessLevel.PRIVATE)
+    public static class JobLatestSubmissionResult {
+
+        private final Long submissionId;
+        private final String submissionType;
+        private final Integer revisionNumber;
+        private final List<String> fileUrls;
+        private final String message;
+        private final String reviewStatus;
+        private final LocalDateTime submittedAt;
+        private final RevisionRequestResult revisionRequest;
+
+        /** 수정 요청(REVISION_REQUESTED) 상태가 아닌 제출물은 revisionRequest가 null이다. */
+        public static JobLatestSubmissionResult from(JobSubmission submission) {
+            return JobLatestSubmissionResult.builder()
+                    .submissionId(submission.getId())
+                    .submissionType(submission.getSubmissionType().name())
+                    .revisionNumber(submission.getRevisionNumber())
+                    .fileUrls(List.copyOf(submission.getFileUrls()))
+                    .message(submission.getMessage())
+                    .reviewStatus(submission.getReviewStatus().name())
+                    .submittedAt(submission.getCreatedAt())
+                    .revisionRequest(submission.getReviewStatus() == JobSubmissionReviewStatus.REVISION_REQUESTED
+                            ? RevisionRequestResult.from(submission)
+                            : null)
+                    .build();
+        }
+    }
+
+    @Getter
+    @Builder(access = AccessLevel.PRIVATE)
+    @AllArgsConstructor(access = AccessLevel.PRIVATE)
+    public static class RevisionRequestResult {
+
+        private final String message;
+        private final List<String> referenceImageUrls;
+        private final LocalDateTime requestedAt;
+
+        /** 내용·시각이 기록되지 않은 과거 수정 요청은 message와 requestedAt이 null이다. */
+        public static RevisionRequestResult from(JobSubmission submission) {
+            return RevisionRequestResult.builder()
+                    .message(submission.getReviewComment())
+                    .referenceImageUrls(List.copyOf(submission.getRevisionReferenceImageUrls()))
+                    .requestedAt(submission.getReviewedAt())
+                    .build();
+        }
+    }
+
     @Getter
     @AllArgsConstructor(access = AccessLevel.PRIVATE)
     public static class JobResultData {
