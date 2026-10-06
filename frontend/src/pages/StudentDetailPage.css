@@ -299,3 +299,15 @@
 .student-detail__notice b {
   flex-shrink: 0;
 }
+
+/* 다른 학생 제안서 맨 아래 공감 안내 */
+.student-proposal__like-note {
+  margin: 0;
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--role-secondary);
+}
+
+.student-proposal__like-note--error {
+  color: var(--color-danger);
+}

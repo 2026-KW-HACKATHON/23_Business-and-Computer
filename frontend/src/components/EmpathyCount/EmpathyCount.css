@@ -18,3 +18,10 @@
 .empathy-count--on {
   color: var(--color-black);
 }
+
+/* 누를 수 있는 공감 (탐색 카드 · 홈) */
+.empathy-count--button {
+  border: 0;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}

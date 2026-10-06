@@ -14,6 +14,8 @@ import type { StudentTodo, StudentWaitingItem } from "../features/student";
 import { formatMonthDay } from "../lib/date";
 import { useDragScroll } from "../hooks/useDragScroll";
 import "./StudentHomePage.css";
+import { useProposalLikes } from "../features/proposal";
+import type { ExploreProposalCard } from "../features/explore";
 
 /**
  * 피그마 「학생 홈 (개선안)」.
@@ -28,6 +30,7 @@ import "./StudentHomePage.css";
 function StudentHomePage() {
   const navigate = useNavigate();
   const home = useStudentHome();
+  const likes = useProposalLikes();
   // 끝난 일은 접힌 채 최근 1건만 보인다
   const [doneExpanded, setDoneExpanded] = useState(false);
   const doneRows = doneExpanded ? home.done : home.done.slice(0, 1);
@@ -66,6 +69,13 @@ function StudentHomePage() {
       />
     );
 
+  // 이 화면에서 누른 공감이 있으면 그 값, 없으면 목록의 값
+  const likeOf = (proposal: ExploreProposalCard) =>
+    likes.likeOf(proposal.proposalId, {
+      likeCount: proposal.likeCount,
+      likedByMe: proposal.likedByMe === true,
+    });
+
   const peerSection = home.peerProposals.length > 0 && (
     <section className="student-home__section">
       <SectionHeader
@@ -78,6 +88,8 @@ function StudentHomePage() {
           <PeerProposalRow
             key={proposal.proposalId}
             proposal={proposal}
+            like={likeOf(proposal)}
+            onToggleLike={() => likes.toggle(proposal.proposalId, likeOf(proposal))}
             onOpen={() => navigate(STUDENT_PATHS.peerProposal(String(proposal.proposalId)))}
           />
         ))}

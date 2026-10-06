@@ -23,7 +23,12 @@ import {
   storeAddressText,
   useSentProposals,
 } from "../features/student";
-import { expectedDaysText, proposalBadgeNames, useProposalDetail } from "../features/proposal";
+import {
+  expectedDaysText,
+  proposalBadgeNames,
+  useProposalDetail,
+  useProposalLikes,
+} from "../features/proposal";
 import { useBack } from "../hooks/useBack";
 import { formatWon } from "../lib/money";
 import "./StudentDetailPage.css";
@@ -31,7 +36,7 @@ import { studentTitle } from "../lib/korean";
 
 /**
  * 피그마 「제안서 보기 (다른 학생 제안 · 공감)」. 다른 학생이 보낸 제안을 손님 입장에서 읽는다.
- * GET /proposals/{id} (ADR 0026). 공감은 수만 보이고, 서버가 likedByMe 를 true 로 주면 하트가 채워진다.
+ * GET /proposals/{id} (ADR 0026). 「공감하기」로 공감하고, 공감한 뒤 「공감했어요」를 다시 누르면 취소한다.
  * 내 제안(GET /me/proposals 에 있음)이면 보낸 제안 상세로 바꾼다. 내 제안 목록을 불러오는 동안은
  * 불러오는 중으로 두고, 그 목록이 실패하면 다른 학생 제안으로 보인다.
  */
@@ -40,6 +45,7 @@ function StudentPeerProposalPage() {
   const back = useBack(STUDENT_PATHS.explore);
   const { load, reload } = useProposalDetail(proposalId);
   const { load: sent } = useSentProposals();
+  const likes = useProposalLikes();
 
   const proposal = load.status === "loaded" ? load.proposal : undefined;
   const mine =
@@ -58,15 +64,30 @@ function StudentPeerProposalPage() {
   const sentOn = shown && sentOnText(shown.createdAt);
   const student = shown?.student ?? undefined;
   const photos = shown?.referenceImageUrls ?? [];
+  const like =
+    shown &&
+    likes.likeOf(shown.proposalId, {
+      likeCount: shown.likeCount,
+      likedByMe: shown.likedByMe === true,
+    });
 
   return (
     <SubScreen
       title="제안서"
       onBack={back}
       footer={
-        <Button tone="student" fullWidth onClick={back}>
-          확인
-        </Button>
+        shown &&
+        like && (
+          <Button
+            tone="student"
+            variant={like.likedByMe ? "secondary" : "primary"}
+            fullWidth
+            aria-pressed={like.likedByMe}
+            onClick={() => likes.toggle(shown.proposalId, like)}
+          >
+            {like.likedByMe ? "공감했어요" : "공감하기"}
+          </Button>
+        )
       }
     >
       {notice && (
@@ -82,7 +103,7 @@ function StudentPeerProposalPage() {
         <div className="student-detail student-proposal">
           <p className="student-detail__notice">
             <b aria-hidden="true">ⓘ</b>
-            다른 학생의 제안이에요. 가게 손님의 눈으로 읽어 보세요.
+            다른 학생의 제안이에요. 손님으로서 공감되면 눌러 주세요.
           </p>
 
           <div className="student-detail__heading">
@@ -102,12 +123,12 @@ function StudentPeerProposalPage() {
           {steps && <FlowBar tone="student" steps={steps} />}
 
           <div className="student-proposal__empathy">
-            <AppImage name={shown.likedByMe === true ? "iconHeart" : "iconHeartEmpty"} width={24} alt="" />
+            <AppImage name={like?.likedByMe ? "iconHeart" : "iconHeartEmpty"} width={24} alt="" />
             <div>
               <strong className="student-proposal__empathy-title">
-                학생 손님 {shown.likeCount}명이 공감했어요
+                학생 손님 {like?.likeCount ?? shown.likeCount}명이 공감했어요
               </strong>
-              {shown.likeCount > 0 && (
+              {(like?.likeCount ?? shown.likeCount) > 0 && (
                 <p className="student-proposal__empathy-sub">
                   가게를 이용하는 학생들도 필요하다고 느낀 제안이에요
                 </p>
@@ -172,6 +193,16 @@ function StudentPeerProposalPage() {
               <h2 className="student-detail__section-title">참고 사진</h2>
               <ReferencePhotos urls={photos} />
             </section>
+          )}
+
+          {likes.failedId === shown.proposalId ? (
+            <p className="student-proposal__like-note student-proposal__like-note--error" role="alert">
+              공감하지 못했어요. 잠시 후 다시 눌러 주세요.
+            </p>
+          ) : (
+            <p className="student-proposal__like-note">
+              공감은 다시 누르면 취소돼요. 내 제안에는 누를 수 없어요.
+            </p>
           )}
         </div>
       )}
