@@ -26,6 +26,7 @@ public enum ErrorCode {
     JOB_SUBMISSION_FILE_NOT_UPLOADED(HttpStatus.CONFLICT, "JOB_SUBMISSION_409_FILE_NOT_UPLOADED", "업로드가 끝나지 않은 파일이 있습니다."),
     JOB_SUBMISSION_FILE_UNAVAILABLE(HttpStatus.BAD_GATEWAY, "JOB_SUBMISSION_502", "작업 파일 저장소에 연결하지 못했습니다. 잠시 후 다시 시도해 주세요."),
     JOB_CANCEL_NOT_AVAILABLE(HttpStatus.CONFLICT, "JOB_409_CANCEL", "취소할 수 없는 의뢰 상태입니다."),
+    JOB_CANCEL_SUBMITTED(HttpStatus.CONFLICT, "JOB_409_CANCEL_SUBMITTED", "결과물이 제출된 의뢰는 취소할 수 없습니다. 수정 요청 또는 완료 확인을 진행해 주세요."),
     JOB_START_FORBIDDEN(HttpStatus.FORBIDDEN, "JOB_START_403", "제안한 학생만 작업을 시작할 수 있습니다."),
     JOB_START_NOT_AVAILABLE(HttpStatus.CONFLICT, "JOB_START_409", "작업을 시작할 수 없는 의뢰 상태입니다."),
     JOB_DECLINE_FORBIDDEN(HttpStatus.FORBIDDEN, "JOB_DECLINE_403", "제안한 학생만 의뢰서를 거절할 수 있습니다."),

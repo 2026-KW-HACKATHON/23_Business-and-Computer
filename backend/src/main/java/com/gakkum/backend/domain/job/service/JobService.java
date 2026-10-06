@@ -710,7 +710,8 @@ public class JobService {
 
     /**
      * 사장님 본인의 모집 중(OPEN) 또는 진행 중(MATCHED) 의뢰를 취소한다.
-     * 의뢰 행을 잠가 같은 의뢰의 결제 승인·제출물 검토와 순서대로 처리한다.
+     * 의뢰 행을 잠가 같은 의뢰의 결제 승인·작업물 제출·제출물 검토와 순서대로 처리한다.
+     * 학생이 한 번이라도 작업물을 제출한 진행 중 의뢰는 제출물의 검토 상태와 관계없이 취소할 수 없다.
      * @param command
      * @param ownerProfileId
      * @return 취소된 의뢰와 취소 전 결제 완료(MATCHED) 여부
@@ -720,6 +721,9 @@ public class JobService {
         Job job = jobRepository.findByIdAndOwnerProfileId(command.getJobId(), ownerProfileId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.JOB_NOT_FOUND));
         boolean paid = job.getStatus() == JobStatus.MATCHED;
+        if (paid && jobSubmissionRepository.existsByJobId(job.getId())) {
+            throw new BusinessException(ErrorCode.JOB_CANCEL_SUBMITTED);
+        }
         job.cancel(now(), command.getCancelReason(), command.getMessageToStudent());
         return CancelledJobData.of(job, paid);
     }

@@ -2,7 +2,9 @@ package com.gakkum.backend.application.job;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -74,6 +76,7 @@ class JobCancelFlowTest {
     private final UserRepository userRepository = mock(UserRepository.class);
     private final OwnerRepository ownerRepository = mock(OwnerRepository.class);
     private final JobRepository jobRepository = mock(JobRepository.class);
+    private final JobSubmissionRepository jobSubmissionRepository = mock(JobSubmissionRepository.class);
     private final PaymentRepository paymentRepository = mock(PaymentRepository.class);
     private final UsernamePasswordAuthenticationToken authentication =
             new UsernamePasswordAuthenticationToken(USERNAME, null);
@@ -85,7 +88,7 @@ class JobCancelFlowTest {
         Clock clock = Clock.fixed(NOW, ZoneId.of("UTC"));
         UserService userService = new UserService(userRepository, mock(JwtService.class));
         JobService jobService = new JobService(jobRepository, mock(JobSpecialtyRepository.class),
-                mock(JobApplicationRepository.class), mock(JobSubmissionRepository.class), clock);
+                mock(JobApplicationRepository.class), jobSubmissionRepository, clock);
         JobFacade facade = new JobFacade(userService, new OwnerService(ownerRepository), jobService,
                 mock(SpecialtyCategoryService.class), mock(SpecialtyService.class), new StudentService(mock(StudentRepository.class)),
                 mock(JobSubmissionFileStorageClient.class), mock(ChatAttachmentPolicy.class),
@@ -120,6 +123,29 @@ class JobCancelFlowTest {
         assertThat(job.getCompletedAt()).isEqualTo(LocalDateTime.ofInstant(NOW, ZoneId.systemDefault()));
         assertThat(payment.getStatus()).isEqualTo(PaymentStatus.REFUNDED);
         assertThat(payment.getRefundedAt()).isEqualTo(NOW);
+    }
+
+    @Test
+    @DisplayName("제출 이력이 있는 진행 중 의뢰를 취소하면 409 JOB_409_CANCEL_SUBMITTED를 반환하고 의뢰와 결제를 건드리지 않는다")
+    void rejectsMatchedJobWithSubmission() throws Exception {
+        givenActiveOwner();
+        Job job = givenOwnedJob(JobStatus.MATCHED);
+        when(jobSubmissionRepository.existsByJobId(42L)).thenReturn(true);
+
+        mockMvc.perform(cancelRequest(VALID_BODY))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.error.code").value("JOB_409_CANCEL_SUBMITTED"))
+                .andExpect(jsonPath("$.error.message")
+                        .value("결과물이 제출된 의뢰는 취소할 수 없습니다. 수정 요청 또는 완료 확인을 진행해 주세요."));
+        assertThat(job.getStatus()).isEqualTo(JobStatus.MATCHED);
+        assertThat(job.getCompletedAt()).isNull();
+        assertThat(job.getCancelReason()).isNull();
+        assertThat(job.getMessageToStudent()).isNull();
+        // 검토 상태로 걸러 읽지 않고 제출 이력 유무만 확인한다
+        verify(jobSubmissionRepository).existsByJobId(42L);
+        verifyNoMoreInteractions(jobSubmissionRepository);
+        verifyNoInteractions(paymentRepository);
     }
 
     @Test
