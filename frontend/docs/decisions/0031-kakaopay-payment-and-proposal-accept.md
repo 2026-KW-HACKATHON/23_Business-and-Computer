@@ -93,7 +93,7 @@ The backend (dev) pays through the KakaoPay test merchant:
     - It shows the loading screen titled 「결제를 확인하고 있어요」 with the
       single line 「잠시만 기다려 주세요. 이 화면을 닫지 말아 주세요.」,
       approves, and then shows the success popup.
-    - For a proposal the text is 「작업비는 가꿈이 보관해요. 학생이 작업을
+    - For a proposal the text is 「작업비는 골목인턴이 보관해요. 학생이 작업을
       시작하면 알려 드릴게요」, and 「확인」 replaces the history entry with
       that proposal's detail.
     - `pg_token` stays in the URL, so a refresh approves again and gets the

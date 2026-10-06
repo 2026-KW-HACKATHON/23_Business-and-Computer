@@ -27,7 +27,7 @@ function targetScreens(target: PaymentTarget | undefined): TargetScreens {
       done: UNKNOWN_PAYMENT_PATH,
       retry: UNKNOWN_PAYMENT_PATH,
       list: UNKNOWN_PAYMENT_PATH,
-      successDescription: "작업비는 가꿈이 보관해요.",
+      successDescription: "작업비는 골목인턴이 보관해요.",
     };
   }
   if (target.kind === "proposal") {
@@ -37,7 +37,7 @@ function targetScreens(target: PaymentTarget | undefined): TargetScreens {
       done: OWNER_PATHS.proposal(id),
       retry: OWNER_PATHS.proposalAccept(id),
       list: OWNER_PATHS.activity("proposals"),
-      successDescription: "작업비는 가꿈이 보관해요.\n학생이 작업을 시작하면 알려 드릴게요",
+      successDescription: "작업비는 골목인턴이 보관해요.\n학생이 작업을 시작하면 알려 드릴게요",
     };
   }
   return {
@@ -45,7 +45,7 @@ function targetScreens(target: PaymentTarget | undefined): TargetScreens {
     done: OWNER_PATHS.activity("inProgress"),
     retry: OWNER_PATHS.workPay(String(target.jobId)),
     list: OWNER_PATHS.activity("inProgress"),
-    successDescription: "작업비는 가꿈이 보관해요.\n학생과 채팅으로 자세한 내용을 나눠 보세요.",
+    successDescription: "작업비는 골목인턴이 보관해요.\n학생과 채팅으로 자세한 내용을 나눠 보세요.",
   };
 }
 
