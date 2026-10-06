@@ -280,12 +280,12 @@ function StudentActivityPage() {
       <CardHead
         kind={work.kind}
         title={work.title}
-        right={<span className="student-activity__chip">취소됨</span>}
+        right={<span className="student-activity__chip">성사되지 않음</span>}
       />
       <div className="student-activity__meta">
         <CategoryBadge field={work.field} />
         <span>
-          {work.store.name}, {work.cancel ? formatMonthDay(work.cancel.canceledOn) : ""} 사장님이 취소
+          {work.store.name}, {work.cancel ? formatMonthDay(work.cancel.canceledOn) : ""} 성사되지 않음
         </span>
       </div>
       {work.cancel && work.cancel.reward > 0 && (
@@ -293,7 +293,7 @@ function StudentActivityPage() {
       )}
       <div className="student-activity__divider" />
       <div className="student-activity__footer">
-        <TextButton onClick={() => navigate(STUDENT_PATHS.workCanceled(work.id))}>취소 상세보기</TextButton>
+        <TextButton onClick={() => navigate(STUDENT_PATHS.workCanceled(work.id))}>상세보기</TextButton>
       </div>
     </li>
   );
@@ -358,7 +358,7 @@ function StudentActivityPage() {
 
         {tab === "done" && canceled.length > 0 && (
           <>
-            {listTitle("취소된 일", canceled.length)}
+            {listTitle("성사되지 않은 일", canceled.length)}
             <ul className="student-activity__list">{canceled.map(canceledCard)}</ul>
           </>
         )}

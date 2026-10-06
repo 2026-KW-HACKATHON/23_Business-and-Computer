@@ -58,3 +58,11 @@ export async function fetchMyProposals(): Promise<MyProposalResponse[]> {
   const data = await apiData<{ proposals?: MyProposalResponse[] } | undefined>("/me/proposals");
   return data?.proposals ?? [];
 }
+
+/**
+ * POST /proposals/{proposalId}/cancel — 결제 전(수락 대기) 제안을 취소한다. 공감도 함께 지워진다.
+ * 이미 취소한 제안을 다시 보내도 같은 결과다. 취소한 제안은 목록 · 탐색에서 빠진다.
+ */
+export async function cancelMyProposal(proposalId: number): Promise<void> {
+  await apiData<unknown>(`/proposals/${proposalId}/cancel`, { method: "POST" });
+}

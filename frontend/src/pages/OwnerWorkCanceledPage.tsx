@@ -6,20 +6,20 @@ import { formatMonthDay } from "../lib/date";
 import { formatWon } from "../lib/money";
 import "./OwnerWorkCancelPage.css";
 
-/** 피그마 「취소된 작업 상세 (사장님)」. 취소 이유 · 남긴 말 · 돌려받은 금액 */
+/** 피그마 「성사되지 않은 작업 상세 (사장님)」. 취소 이유 · 남긴 말 · 돌려받은 금액 */
 function OwnerWorkCanceledPage() {
   const { workId = "" } = useParams();
   const back = useBack(OWNER_PATHS.activity("done"));
   const work = useOwnerWork(workId);
 
-  if (!work?.cancel) return <OwnerMissing title="취소된 작업" onBack={back} />;
+  if (!work?.cancel) return <OwnerMissing title="성사되지 않은 작업" onBack={back} />;
   const { cancel } = work;
   const started = cancel.stage === "inProgress";
   const canceledOn = formatMonthDay(cancel.canceledOn);
 
   return (
     <SubScreen
-      title="취소된 작업"
+      title="성사되지 않은 작업"
       onBack={back}
       footer={
         <Button fullWidth onClick={back}>
@@ -40,7 +40,7 @@ function OwnerWorkCanceledPage() {
         </section>
 
         <div className="owner-cancel__intro">
-          <h2 className="owner-cancel__title">{canceledOn}에 취소된 작업이에요</h2>
+          <h2 className="owner-cancel__title">{canceledOn}에 성사되지 않은 작업이에요</h2>
           <p className="owner-cancel__description">
             {started
               ? "학생이 이미 작업을 시작해서 착수 보상 20%를 뺀 금액을 돌려받았어요."

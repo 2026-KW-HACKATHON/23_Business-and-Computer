@@ -10,14 +10,14 @@ import { flowSteps } from "./flow";
 export type ReceivedProposal = ReceivedProposalResponse;
 
 /**
- * 사장님 쪽 상태 칩 글자. 의뢰가 취소됐으면(jobStatus CANCELLED) 상태와 관계없이 「취소됨」.
- * 목록은 서버가 jobStatus 를 줄 때만 「취소됨」이 된다. 모르는 상태는 「확인 필요」.
+ * 사장님 쪽 상태 칩 글자. 거절 · 취소된 제안과 의뢰가 취소된 제안(jobStatus CANCELLED)은 누가 했든
+ * 「성사되지 않음」. 목록은 서버가 jobStatus 를 줄 때만 의뢰 상태를 본다. 모르는 상태는 「확인 필요」.
  */
 export function receivedProposalStatusLabel(
   status: ProposalStatus,
   jobStatus?: ProposalJobStatus | null,
 ): string {
-  if (jobStatus === "CANCELLED") return "취소됨";
+  if (jobStatus === "CANCELLED") return "성사되지 않음";
   switch (status) {
     case "PENDING":
       return "결정 대기";
@@ -26,7 +26,8 @@ export function receivedProposalStatusLabel(
     case "ACCEPTED":
       return "작업 중";
     case "REJECTED":
-      return "거절됨";
+    case "CANCELLED":
+      return "성사되지 않음";
     default:
       return "확인 필요";
   }
@@ -34,7 +35,7 @@ export function receivedProposalStatusLabel(
 
 /**
  * 흐름 막대 (제안 → 시작 → 초안 → 수정 → 완료). 결정 대기 = 제안, 결제 완료 = 시작(학생이 시작 전),
- * 작업 중 = 초안. 취소 · 거절된 제안과 모르는 상태는 막대를 보이지 않는다 (undefined).
+ * 작업 중 = 초안. 성사되지 않은 제안과 모르는 상태는 막대를 보이지 않는다 (undefined).
  */
 export function receivedProposalFlowSteps(
   status: ProposalStatus,

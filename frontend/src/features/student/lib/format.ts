@@ -26,7 +26,7 @@ export function workStatusText(work: StudentWork): string {
     case "completed":
       return "완료";
     case "canceled":
-      return "취소됨";
+      return "성사되지 않음";
   }
 }
 

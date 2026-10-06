@@ -9,7 +9,7 @@ import "./StudentDetailPage.css";
 import "./StudentWorkPage.css";
 
 /**
- * 피그마 「취소된 작업 상세 (학생)」. 취소 이유 · 사장님이 남긴 말 · 정산 받은 금액.
+ * 피그마 「성사되지 않은 작업 상세 (학생)」. 취소 이유 · 사장님이 남긴 말 · 정산 받은 금액.
  * 알림 「사장님이 작업을 취소했어요」로 들어오면 먼저 「의뢰 취소 알림 - 사장님 사정」 팝업.
  */
 function StudentWorkCanceledPage() {
@@ -26,14 +26,14 @@ function StudentWorkCanceledPage() {
     navigate(location.pathname, { replace: true, state: null });
   };
 
-  if (!work?.cancel) return <StudentMissing title="취소된 작업" onBack={back} />;
+  if (!work?.cancel) return <StudentMissing title="성사되지 않은 작업" onBack={back} />;
   const { cancel } = work;
   const canceledOn = formatMonthDay(cancel.canceledOn);
   const refund = work.budget - cancel.reward;
 
   return (
     <SubScreen
-      title="취소된 작업"
+      title="성사되지 않은 작업"
       onBack={back}
       footer={
         <Button tone="student" fullWidth onClick={back}>
@@ -49,7 +49,7 @@ function StudentWorkCanceledPage() {
         />
 
         <div className="student-work__info">
-          <strong>{canceledOn}에 취소된 작업이에요</strong>
+          <strong>{canceledOn}에 성사되지 않은 작업이에요</strong>
           <p>
             {cancel.reward > 0
               ? "사장님 사정으로 취소돼 착수 보상 20%가 정산됐어요."

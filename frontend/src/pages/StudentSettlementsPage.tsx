@@ -36,7 +36,7 @@ function StudentSettlementsPage() {
   const monthOf = (s: StudentSettlement) => (s.status === "expected" ? thisMonth : s.date.slice(0, 7));
   const months = [...new Set(settlements.map(monthOf))].sort((a, b) => b.localeCompare(a));
 
-  // 작업 중 → 지금 할 일 화면, 정산 완료 → 내 결과물, 착수 보상 → 취소된 작업
+  // 작업 중 → 지금 할 일 화면, 정산 완료 → 내 결과물, 착수 보상 → 성사되지 않은 작업
   const open = (s: StudentSettlement) => {
     if (s.status === "settled") return navigate(STUDENT_PATHS.workResult(s.workId));
     if (s.status === "reward") return navigate(STUDENT_PATHS.workCanceled(s.workId));

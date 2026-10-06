@@ -80,9 +80,9 @@ The owner side read `SAMPLE_PROPOSALS`, so a proposal a student sent
   - `firstVisit` comes from the sample flag.
 - **Status chip** (`receivedProposalStatusLabel`):
   - PENDING 「결정 대기」, AWAITING_START 「결제 완료」, ACCEPTED 「작업 중」,
-    REJECTED 「거절됨」.
+    REJECTED · CANCELLED 「성사되지 않음」.
   - Any other status 「확인 필요」, so the chip is never blank.
-  - A CANCELLED job status overrides them with 「취소됨」. On the detail that
+  - A CANCELLED job status overrides them with 「성사되지 않음」. On the detail that
     comes from `agreement.jobStatus`; list cards use `jobStatus` only when
     the server sends it.
 - **Flow bar** (`receivedProposalFlowSteps`): PENDING → 제안 「결정해 주세요」,

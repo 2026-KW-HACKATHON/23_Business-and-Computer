@@ -199,7 +199,7 @@ The backend (dev) has:
   - `ExploreCard` takes `fields` (one `CategoryBadge` per distinct category
     name), the store name, and a status line. Proposal: the like count (a
     filled heart that cannot be pressed) and, when the card sends `status`,
-    `receivedProposalStatusLabel` (결정 대기 · 결제 완료 · 작업 중 · 거절됨).
+    `receivedProposalStatusLabel` (결정 대기 · 결제 완료 · 작업 중 · 성사되지 않음).
     Job: 「모집 중」 / 「진행 중」 / 「완료」 and, while OPEN, the 「초안 M월
     D일까지」 badge.
   - Proposal cards open /explore/proposals/:id, job cards

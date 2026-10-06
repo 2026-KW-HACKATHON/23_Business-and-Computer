@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
   AppImage,
@@ -17,6 +17,7 @@ import {
   STUDENT_PATHS,
   StoreBox,
   StudentMissing,
+  sendProposalCancel,
   sentOnText,
   sentProposalFlowSteps,
   sentProposalStatusLabel,
@@ -28,6 +29,7 @@ import {
   proposalBadgeNames,
   useProposalDetail,
 } from "../features/proposal";
+import { landingPath } from "../features/auth";
 import { useBack } from "../hooks/useBack";
 import { formatMonthDay } from "../lib/date";
 import { formatWon } from "../lib/money";
@@ -39,15 +41,20 @@ import "./StudentDetailPage.css";
  * 수락된(AWAITING_START) · 작업 중(ACCEPTED) 제안은 확정된 작업 조건(agreement)을 보인다.
  * 수락됐으면 가게 칸 아래에 「사장님이 제안을 받아들였어요」. 의뢰서가 왔으면(AWAITING_START) 아래 버튼은
  * 「조건 확인하기」 → 작업 시작 (ADR 0029).
- * 수락 대기인 제안은 아래에 「제안 취소」 · 「확인」. 제안 취소 API 가 아직 없어서 「제안 취소하기」를 누르면
- * 「곧 열려요」 안내를 띄운다 (취소 완료 팝업은 API 가 생기면 그 성공 뒤에 연다).
+ * 수락 대기인 제안은 아래에 「제안 취소」 · 「확인」. 「제안 취소하기」는 POST /proposals/{id}/cancel 로 취소하고
+ * 「제안을 취소했어요」 → 내 활동 (보낸 제안) (ADR 0033). 사장님이 결제하는 중이거나 이미 수락된 제안이면
+ * 버튼 위에 안내를 띄운다.
  */
 function StudentProposalPage() {
   const { proposalId } = useParams();
   const navigate = useNavigate();
   const back = useBack(STUDENT_PATHS.activity("proposals"));
   const { load, reload } = useProposalDetail(proposalId);
-  const [cancelStep, setCancelStep] = useState<"closed" | "confirm" | "soon" | "done">("closed");
+  const [cancelStep, setCancelStep] = useState<"closed" | "confirm" | "done">("closed");
+  const [cancelling, setCancelling] = useState(false);
+  const [cancelError, setCancelError] = useState<string | null>(null);
+  // 다시 그려지기 전에 두 번 눌러도 한 번만 보낸다
+  const inFlight = useRef(false);
 
   if (load.status === "notFound") {
     return <StudentMissing title="보낸 제안" onBack={back} />;
@@ -69,6 +76,40 @@ function StudentProposalPage() {
   const startable = proposal?.status === "AWAITING_START" && jobStatus !== "CANCELLED";
   const storeNote = accepted ? "사장님이 제안을 받아들였어요" : undefined;
 
+  const cancel = async () => {
+    if (!proposal || inFlight.current) return;
+    inFlight.current = true;
+    setCancelling(true);
+    setCancelError(null);
+    const result = await sendProposalCancel(proposal.proposalId);
+    inFlight.current = false;
+    setCancelling(false);
+    if (result.status === "cancelled") {
+      setCancelStep("done");
+      return;
+    }
+    setCancelStep("closed");
+    switch (result.status) {
+      case "unauthorized":
+        navigate("/login", { replace: true });
+        break;
+      case "forbidden":
+        window.alert("제안을 보낸 학생만 취소할 수 있어요");
+        navigate(landingPath(), { replace: true });
+        break;
+      case "paymentPending":
+        setCancelError("사장님이 결제하는 중이라 지금은 취소할 수 없어요");
+        break;
+      case "notFound":
+      case "notAvailable":
+        setCancelError("이미 수락됐거나 끝난 제안이라 취소할 수 없어요");
+        reload();
+        break;
+      default:
+        setCancelError("잠시 후 다시 시도해 주세요");
+    }
+  };
+
   return (
     <SubScreen
       title="보낸 제안"
@@ -83,14 +124,21 @@ function StudentProposalPage() {
             조건 확인하기
           </Button>
         ) : cancellable ? (
-          <div className="student-detail__actions">
-            <Button variant="secondary" onClick={() => setCancelStep("confirm")}>
-              제안 취소
-            </Button>
-            <Button tone="student" onClick={back}>
-              확인
-            </Button>
-          </div>
+          <>
+            {cancelError && (
+              <p className="student-detail__send-error" role="alert">
+                {cancelError}
+              </p>
+            )}
+            <div className="student-detail__actions">
+              <Button variant="secondary" onClick={() => setCancelStep("confirm")}>
+                제안 취소
+              </Button>
+              <Button tone="student" onClick={back}>
+                확인
+              </Button>
+            </div>
+          </>
         ) : (
           <Button tone="student" fullWidth onClick={back}>
             확인
@@ -219,25 +267,13 @@ function StudentProposalPage() {
         onClose={() => setCancelStep("closed")}
         actions={
           <>
-            <Button tone="student" fullWidth onClick={() => setCancelStep("soon")}>
-              제안 취소하기
+            <Button tone="student" fullWidth disabled={cancelling} onClick={() => void cancel()}>
+              {cancelling ? "취소하는 중..." : "제안 취소하기"}
             </Button>
-            <Button variant="secondary" fullWidth onClick={() => setCancelStep("closed")}>
+            <Button variant="secondary" fullWidth disabled={cancelling} onClick={() => setCancelStep("closed")}>
               돌아가기
             </Button>
           </>
-        }
-      />
-      <Dialog
-        open={cancelStep === "soon"}
-        image="warningStudent"
-        title="제안 취소는 곧 열려요"
-        description={"지금은 보낸 제안을 취소할 수 없어요.\n준비되면 이 화면에서 바로 취소할 수 있어요."}
-        onClose={() => setCancelStep("closed")}
-        actions={
-          <Button tone="student" fullWidth onClick={() => setCancelStep("closed")}>
-            확인
-          </Button>
         }
       />
       <Dialog
