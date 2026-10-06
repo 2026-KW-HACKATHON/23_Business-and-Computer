@@ -74,6 +74,16 @@ public class StudentService {
     }
 
     /**
+     * 학생 프로필 ID로 학생 프로필 조회
+     * @param studentProfileId
+     * @return 학생 프로필, 없으면 빈 값
+     */
+    @Transactional(readOnly = true)
+    public Optional<Student> findStudentProfile(Long studentProfileId) {
+        return studentRepository.findById(studentProfileId);
+    }
+
+    /**
      * 사용자 ID로 학생 프로필 조회
      * @param userId
      * @return 학생 프로필, 학생이 아니면 빈 값

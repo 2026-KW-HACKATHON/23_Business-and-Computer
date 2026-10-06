@@ -19,6 +19,10 @@ import com.gakkum.backend.application.student.dto.StudentRegistrationResponse;
 import com.gakkum.backend.domain.certificate.dto.CertificateCommandDto.AddStudentCertificateCommand;
 import com.gakkum.backend.domain.certificate.service.CertificateService;
 import com.gakkum.backend.domain.auth.service.AuthService;
+import com.gakkum.backend.domain.job.dto.JobQueryDto.ApplicantReviewResult;
+import com.gakkum.backend.domain.job.dto.JobQueryDto.JobApplicantProfileResult;
+import com.gakkum.backend.domain.job.dto.JobQueryDto.SpecialtyCategoryResult;
+import com.gakkum.backend.domain.job.dto.JobQueryDto.SpecialtyResult;
 import com.gakkum.backend.domain.job.entity.Job;
 import com.gakkum.backend.domain.job.entity.JobApplication;
 import com.gakkum.backend.domain.job.service.JobService;
@@ -162,6 +166,60 @@ public class StudentFacade {
                 payments.stream()
                         .map(payment -> settledItem(payment, jobsById.get(payment.getJobId()), student,
                                 applicationsById, storeNamesByOwnerProfileId))
+                        .toList());
+    }
+
+    /**
+     * 사장님이 학생의 정보와 활동 이력을 조회한다. 학생과의 의뢰·지원·제안 관계와 작업 상태는 확인하지 않는다.
+     * 사장님 역할을 확인한 뒤에만 학생 정보를 조회하고, 격리 범위(demoSessionId)가 조회자와 다른 학생은 없는 학생과 같은 404로 거부한다.
+     * 응답 항목과 통계·정렬 기준은 지원자 프로필 조회와 같다. 리뷰의 의뢰·매장은 리뷰 수와 무관하게 한 번씩만 조회하고,
+     * 참조하는 데이터가 없으면 500으로 거부한다.
+     */
+    @Transactional(readOnly = true)
+    public JobApplicantProfileResult getStudentProfile(String username, Long studentProfileId) {
+        User viewer = userService.getActiveUser(username);
+        if (viewer.getRole() != UserRole.OWNER) {
+            throw new BusinessException(ErrorCode.STUDENT_PROFILE_OWNER_REQUIRED);
+        }
+        Student student = studentService.findStudentProfile(studentProfileId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.STUDENT_PROFILE_NOT_FOUND));
+        User studentUser = userService.getUser(student.getUserId());
+        if (!Objects.equals(studentUser.getDemoSessionId(), viewer.getDemoSessionId())) {
+            throw new BusinessException(ErrorCode.STUDENT_PROFILE_NOT_FOUND);
+        }
+
+        List<Long> specialtyIds = specialtyService.getSpecialtyIdsByStudentProfileIds(List.of(student.getId()))
+                .getOrDefault(student.getId(), List.of());
+        Map<Long, SpecialtyDetail> specialtiesById = specialtyCategoryService.getSpecialtyDetails(specialtyIds);
+
+        List<Review> reviews = reviewService.getStudentReviews(student.getId());
+        Map<Long, Job> jobsById = jobService.getJobsByIds(reviews.stream()
+                .map(Review::getJobId)
+                .toList());
+        Map<Long, String> storeNames = ownerService.getStoreNames(jobsById.values().stream()
+                .map(Job::getOwnerProfileId)
+                .collect(Collectors.toSet()));
+
+        return JobApplicantProfileResult.of(
+                student,
+                studentUser,
+                proposalService.countProposals(student.getId()),
+                jobService.countClosedJobs(student.getId()),
+                groupSpecialties(specialtyIds, specialtiesById).stream()
+                        .map(category -> SpecialtyCategoryResult.of(
+                                category.getId(),
+                                category.getName(),
+                                category.getSpecialties().stream()
+                                        .map(specialty -> SpecialtyResult.of(specialty.getId(), specialty.getName()))
+                                        .toList()))
+                        .toList(),
+                certificateService.getStudentCertificates(student.getId()),
+                reviews.stream()
+                        .map(review -> {
+                            Job job = jobsById.get(review.getJobId());
+                            return ApplicantReviewResult.of(
+                                    review, job.getTitle(), storeNames.get(job.getOwnerProfileId()));
+                        })
                         .toList());
     }
 

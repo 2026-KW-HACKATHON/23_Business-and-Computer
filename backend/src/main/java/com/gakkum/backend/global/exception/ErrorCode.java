@@ -93,6 +93,8 @@ public enum ErrorCode {
     ALREADY_REGISTERED(HttpStatus.CONFLICT, "USER_409_REGISTERED", "이미 회원가입이 완료된 사용자입니다."),
     STUDENT_ME_REQUIRED(HttpStatus.FORBIDDEN, "STUDENT_403_ME", "학생만 내 정보를 조회할 수 있습니다."),
     STUDENT_ME_UPDATE_REQUIRED(HttpStatus.FORBIDDEN, "STUDENT_403_ME_UPDATE", "학생만 내 정보를 수정할 수 있습니다."),
+    STUDENT_PROFILE_OWNER_REQUIRED(HttpStatus.FORBIDDEN, "STUDENT_PROFILE_403_OWNER", "사장님만 학생 프로필을 조회할 수 있습니다."),
+    STUDENT_PROFILE_NOT_FOUND(HttpStatus.NOT_FOUND, "STUDENT_PROFILE_404", "존재하지 않는 학생입니다."),
     DUPLICATE_STUDENT_NUMBER(HttpStatus.CONFLICT, "STUDENT_409_NUMBER", "이미 사용 중인 학번입니다."),
     DUPLICATE_BUSINESS_NUMBER(HttpStatus.CONFLICT, "OWNER_409_BUSINESS_NUMBER", "이미 사용 중인 사업자등록번호입니다."),
     DEMO_SESSION_LIMIT_EXCEEDED(HttpStatus.TOO_MANY_REQUESTS, "DEMO_429", "지금은 데모 계정을 더 만들 수 없습니다. 잠시 후 다시 시도해 주세요."),
