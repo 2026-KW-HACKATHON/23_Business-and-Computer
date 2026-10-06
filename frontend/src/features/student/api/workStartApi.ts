@@ -25,3 +25,25 @@ export async function startProposalJob(jobId: number): Promise<WorkStartResponse
   if (!data) throw new Error("Work start response has no data");
   return data;
 }
+
+/** POST /jobs/{jobId}/decline 의 답 (ProposalJobDeclineResponse). 금액은 원 */
+export interface WorkDeclineResponse {
+  jobId: number;
+  jobStatus: string;
+  proposalStatus: string;
+  paidAmount: number;
+  studentCompensationAmount: number;
+  refundAmount: number;
+  /** "2026-10-06T12:00:00" */
+  declinedAt?: string | null;
+}
+
+/**
+ * POST /jobs/{jobId}/decline — 수락돼 의뢰서가 온 제안을 작업 시작 전에 거절한다.
+ * 사장님이 맡긴 작업비는 모두 돌려준다 (학생 보상 0원). 이미 시작 · 거절된 의뢰는 409.
+ */
+export async function declineProposalJob(jobId: number): Promise<WorkDeclineResponse> {
+  const data = await apiData<WorkDeclineResponse | undefined>(`/jobs/${jobId}/decline`, { method: "POST" });
+  if (!data) throw new Error("Work decline response has no data");
+  return data;
+}

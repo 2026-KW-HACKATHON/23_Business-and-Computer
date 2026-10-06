@@ -22,6 +22,7 @@ import {
   StoreBox,
   StudentMissing,
   flowSteps,
+  sendWorkDecline,
   sendWorkStart,
   storeAddressText,
 } from "../features/student";
@@ -31,17 +32,19 @@ import { formatWon } from "../lib/money";
 import "./StudentDetailPage.css";
 import "./StudentWorkPage.css";
 
-type StartError = "notAvailable" | "retry";
+type StartError = "notAvailable" | "declineNotAvailable" | "retry";
 
 const START_ERROR_TEXT: Record<StartError, string> = {
   notAvailable: "지금은 작업을 시작할 수 없어요. 보낸 제안서에서 상태를 확인해 주세요",
+  declineNotAvailable: "지금은 의뢰서를 거절할 수 없어요. 보낸 제안서에서 상태를 확인해 주세요",
   retry: "잠시 후 다시 시도해 주세요",
 };
 
 /**
  * 피그마 「작업 시작 - 의뢰서 확인·약관 동의」. 내 제안이 수락돼 사장님이 결제한 의뢰서가 오면(AWAITING_START)
  * GET /proposals/{id} 의 확정 조건(agreement)을 확인하고 약관에 동의해 POST /jobs/{jobId}/start 로 시작한다
- * (ADR 0029). 의뢰서 거절 API 가 아직 없어서 「이 조건은 어려워요」 → 「거절하기」는 「곧 열려요」 안내를 띄운다.
+ * (ADR 0029). 「이 조건은 어려워요」 → 「거절하기」는 POST /jobs/{jobId}/decline 로 거절하고 내 활동 (보낸 제안)으로
+ * 간다 (ADR 0033). 맡겨 둔 작업비는 사장님께 모두 돌아간다.
  * 의뢰서가 온 상태가 아니면(시작 전 · 시작 뒤 · 취소) 보낸 제안서 상세로 바꾼다.
  */
 function StudentProposalStartPage() {
@@ -50,8 +53,9 @@ function StudentProposalStartPage() {
   const back = useBack(STUDENT_PATHS.home);
   const { load, reload } = useProposalDetail(proposalId);
   const [agreed, setAgreed] = useState(false);
-  const [popup, setPopup] = useState<"none" | "decline" | "declineSoon" | "started">("none");
+  const [popup, setPopup] = useState<"none" | "decline" | "started">("none");
   const [starting, setStarting] = useState(false);
+  const [declining, setDeclining] = useState(false);
   const [startError, setStartError] = useState<StartError | null>(null);
   const [startedDraft, setStartedDraft] = useState<string>();
   // 다시 그려지기 전에 두 번 눌러도 한 번만 보낸다
@@ -106,6 +110,38 @@ function StudentProposalStartPage() {
       case "notFound":
       case "notAvailable":
         setStartError("notAvailable");
+        break;
+      default:
+        setStartError("retry");
+    }
+  };
+
+  const decline = async () => {
+    if (jobId === undefined || inFlight.current) return;
+    inFlight.current = true;
+    const id = ++requestId.current;
+    setDeclining(true);
+    setStartError(null);
+    const result = await sendWorkDecline(jobId);
+    inFlight.current = false;
+    if (id !== requestId.current) return;
+    setDeclining(false);
+    setPopup("none");
+
+    switch (result.status) {
+      case "declined":
+        navigate(STUDENT_PATHS.activity("proposals"), { replace: true });
+        break;
+      case "unauthorized":
+        navigate("/login", { replace: true });
+        break;
+      case "forbidden":
+        window.alert("제안한 학생만 의뢰서를 거절할 수 있어요");
+        navigate(landingPath(), { replace: true });
+        break;
+      case "notFound":
+      case "notAvailable":
+        setStartError("declineNotAvailable");
         break;
       default:
         setStartError("retry");
@@ -251,25 +287,13 @@ function StudentProposalStartPage() {
         onClose={() => setPopup("none")}
         actions={
           <>
-            <Button tone="student" fullWidth onClick={() => setPopup("declineSoon")}>
-              거절하기
+            <Button tone="student" fullWidth disabled={declining} onClick={() => void decline()}>
+              {declining ? "거절하는 중..." : "거절하기"}
             </Button>
-            <Button variant="secondary" fullWidth onClick={() => setPopup("none")}>
+            <Button variant="secondary" fullWidth disabled={declining} onClick={() => setPopup("none")}>
               돌아가기
             </Button>
           </>
-        }
-      />
-      <Dialog
-        open={popup === "declineSoon"}
-        image="warningStudent"
-        title="의뢰서 거절은 곧 열려요"
-        description={"지금은 의뢰서를 거절할 수 없어요.\n준비되면 이 화면에서 바로 거절할 수 있어요."}
-        onClose={() => setPopup("none")}
-        actions={
-          <Button tone="student" fullWidth onClick={() => setPopup("none")}>
-            확인
-          </Button>
         }
       />
     </SubScreen>
