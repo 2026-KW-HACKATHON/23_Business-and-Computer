@@ -2,7 +2,7 @@ import { ApiError } from "../../../api/client";
 import type { FlowStep } from "../../../components";
 import { proposalMonthDay } from "../../proposal";
 import type { ProposalJobStatus, ProposalStatus } from "../../proposal";
-import { fetchMyProposals } from "../api/proposalApi";
+import { cancelMyProposal, fetchMyProposals } from "../api/proposalApi";
 import type { MyProposalResponse } from "../api/proposalApi";
 import { flowSteps } from "./flow";
 
@@ -78,6 +78,41 @@ export async function loadSentProposals(): Promise<SentProposalsResult> {
     if (error instanceof ApiError) {
       if (error.status === 401) return { status: "unauthorized" };
       if (error.code === "PROPOSAL_403_LIST_STUDENT") return { status: "forbidden" };
+    }
+    return { status: "error" };
+  }
+}
+
+/** 제안 취소 결과 */
+export type ProposalCancelResult =
+  | { status: "cancelled" }
+  | {
+      status:
+        | "unauthorized"
+        /** 403 PROPOSAL_403_CANCEL — 이 제안을 보낸 학생이 아님 */
+        | "forbidden"
+        /** 404 PROPOSAL_404 */
+        | "notFound"
+        /** 409 PROPOSAL_409_CANCEL — 수락 대기가 아님 (이미 수락 · 시작 · 거절) */
+        | "notAvailable"
+        /** 409 PROPOSAL_409_CANCEL_PAYMENT_PENDING — 사장님이 결제하는 중 */
+        | "paymentPending"
+        /** 5xx · 네트워크 */
+        | "error";
+    };
+
+/** 보낸 제안을 취소하고 결과를 화면이 쓰는 값으로 바꾼다 */
+export async function sendProposalCancel(proposalId: number): Promise<ProposalCancelResult> {
+  try {
+    await cancelMyProposal(proposalId);
+    return { status: "cancelled" };
+  } catch (error) {
+    if (error instanceof ApiError) {
+      if (error.status === 401) return { status: "unauthorized" };
+      if (error.code === "PROPOSAL_403_CANCEL") return { status: "forbidden" };
+      if (error.code === "PROPOSAL_404") return { status: "notFound" };
+      if (error.code === "PROPOSAL_409_CANCEL") return { status: "notAvailable" };
+      if (error.code === "PROPOSAL_409_CANCEL_PAYMENT_PENDING") return { status: "paymentPending" };
     }
     return { status: "error" };
   }

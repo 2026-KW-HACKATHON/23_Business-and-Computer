@@ -91,12 +91,13 @@ export type {
   ProposalSendResult,
 } from "./lib/newProposal";
 export {
+  sendProposalCancel,
   sentOnText,
   sentProposalFlowSteps,
   sentProposalStatusLabel,
   storeAddressText,
 } from "./lib/sentProposals";
-export type { SentProposal } from "./lib/sentProposals";
+export type { ProposalCancelResult, SentProposal } from "./lib/sentProposals";
 export { appliedStatusLabel } from "./lib/appliedJobs";
 export { sendWorkDecline, sendWorkStart } from "./lib/workStart";
 export type { WorkDeclineResult, WorkStartResult } from "./lib/workStart";
