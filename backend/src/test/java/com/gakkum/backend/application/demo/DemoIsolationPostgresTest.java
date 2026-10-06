@@ -39,6 +39,7 @@ import com.gakkum.backend.domain.proposal.dto.ProposalCommandDto.CreateProposalC
 import com.gakkum.backend.domain.proposal.dto.ProposalCommandDto.GetExploreProposalsCommand;
 import com.gakkum.backend.domain.proposal.dto.ProposalExploreOrder;
 import com.gakkum.backend.domain.proposal.entity.Proposal;
+import com.gakkum.backend.domain.proposal.repository.ProposalLikeRepository;
 import com.gakkum.backend.domain.proposal.repository.ProposalRepository;
 import com.gakkum.backend.domain.proposal.repository.ProposalSpecialtyRepository;
 import com.gakkum.backend.domain.proposal.service.ProposalService;
@@ -118,7 +119,8 @@ class DemoIsolationPostgresTest {
     void setUp() {
         jobService = new JobService(jobRepository, jobSpecialtyRepository, jobApplicationRepository,
                 jobSubmissionRepository, Clock.systemUTC());
-        proposalService = new ProposalService(proposalRepository, proposalSpecialtyRepository);
+        proposalService = new ProposalService(proposalRepository, proposalSpecialtyRepository,
+                mock(ProposalLikeRepository.class));
         ownerService = new OwnerService(ownerRepository);
         userService = new UserService(userRepository, mock(JwtService.class));
 

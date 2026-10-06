@@ -124,6 +124,34 @@ class ProposalRepositoryIntegrationTest {
     }
 
     @Test
+    @DisplayName("PostgreSQL은 학생과 제안 ID 목록으로 조회하면 그 학생이 그 제안들에 남긴 공감 기록만 반환한다")
+    void findsLikesByStudentAndProposalIds() {
+        Proposal likedByMe = proposalService.createProposal(command(List.of(1L), List.of()), 7L, null);
+        Proposal likedByBoth = proposalService.createProposal(command(List.of(1L), List.of()), 7L, null);
+        Proposal likedByOther = proposalService.createProposal(command(List.of(1L), List.of()), 7L, null);
+        Proposal notLiked = proposalService.createProposal(command(List.of(1L), List.of()), 7L, null);
+        Proposal outOfPage = proposalService.createProposal(command(List.of(1L), List.of()), 7L, null);
+        proposalLikeRepository.save(ProposalLike.create(likedByMe.getId(), 8L));
+        proposalLikeRepository.save(ProposalLike.create(likedByBoth.getId(), 8L));
+        proposalLikeRepository.save(ProposalLike.create(likedByBoth.getId(), 9L));
+        proposalLikeRepository.save(ProposalLike.create(likedByOther.getId(), 9L));
+        // 조회 목록에 없는 제안은 본인이 공감했어도 빠진다
+        proposalLikeRepository.save(ProposalLike.create(outOfPage.getId(), 8L));
+        proposalLikeRepository.flush();
+        entityManager.clear();
+        List<Long> proposalIds = List.of(
+                likedByMe.getId(), likedByBoth.getId(), likedByOther.getId(), notLiked.getId());
+
+        assertThat(proposalLikeRepository.findByStudentProfileIdAndProposalIdIn(8L, proposalIds))
+                .allMatch(like -> like.getStudentProfileId().equals(8L))
+                .extracting(ProposalLike::getProposalId)
+                .containsExactlyInAnyOrder(likedByMe.getId(), likedByBoth.getId());
+        assertThat(proposalService.getLikedProposalIds(9L, proposalIds))
+                .containsExactlyInAnyOrder(likedByBoth.getId(), likedByOther.getId());
+        assertThat(proposalService.getLikedProposalIds(10L, proposalIds)).isEmpty();
+    }
+
+    @Test
     @DisplayName("PostgreSQL은 음수 좋아요 수를 체크 제약으로 거부한다")
     void rejectsNegativeLikeCount() {
         Proposal saved = proposalService.createProposal(command(List.of(1L), List.of()), 7L, null);

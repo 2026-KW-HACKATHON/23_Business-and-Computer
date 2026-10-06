@@ -3,6 +3,7 @@ package com.gakkum.backend.application.proposal.controller;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -15,6 +16,7 @@ import com.gakkum.backend.application.proposal.dto.ProposalCreateResponse;
 import com.gakkum.backend.application.proposal.dto.ProposalDetailResponse;
 import com.gakkum.backend.application.proposal.dto.ProposalJobStartRequest;
 import com.gakkum.backend.application.proposal.dto.ProposalJobStartResponse;
+import com.gakkum.backend.application.proposal.dto.ProposalLikeResponse;
 import com.gakkum.backend.application.proposal.dto.ReceivedProposalListResponse;
 import com.gakkum.backend.application.proposal.facade.ProposalFacade;
 import com.gakkum.backend.global.response.ApiResponse;
@@ -44,6 +46,24 @@ public class ProposalController {
             Authentication authentication, @PathVariable Long proposalId) {
         ProposalDetailResponse response = ProposalDetailResponse.from(
                 proposalFacade.getProposalDetail(authentication.getName(), proposalId));
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    /** 로그인한 학생이 제안에 공감하는 API. 이미 공감한 제안의 재요청도 성공한다 */
+    @PostMapping("/proposals/{proposalId}/likes")
+    public ResponseEntity<ApiResponse<ProposalLikeResponse>> likeProposal(
+            Authentication authentication, @PathVariable @Positive Long proposalId) {
+        ProposalLikeResponse response = ProposalLikeResponse.from(
+                proposalFacade.likeProposal(authentication.getName(), proposalId));
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    /** 로그인한 학생이 제안의 공감을 취소하는 API. 공감하지 않은 제안의 재요청도 성공한다 */
+    @DeleteMapping("/proposals/{proposalId}/likes")
+    public ResponseEntity<ApiResponse<ProposalLikeResponse>> unlikeProposal(
+            Authentication authentication, @PathVariable @Positive Long proposalId) {
+        ProposalLikeResponse response = ProposalLikeResponse.from(
+                proposalFacade.unlikeProposal(authentication.getName(), proposalId));
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 

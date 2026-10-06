@@ -214,4 +214,13 @@ public class JobController {
 
         throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE);
     }
+
+    /** 학생이 지원한 의뢰 중 모집 중이고 선정 대기인 항목 전체를 최신 지원순으로 조회하는 API */
+    @GetMapping("/me/job-applications")
+    public ResponseEntity<ApiResponse<JobListResponse.StudentAppliedJobList>> getStudentAppliedJobs(
+            Authentication authentication) {
+        JobListResponse.StudentAppliedJobList response = JobListResponse.StudentAppliedJobList.from(
+                jobFacade.getStudentAppliedJobs(authentication.getName()));
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
 }

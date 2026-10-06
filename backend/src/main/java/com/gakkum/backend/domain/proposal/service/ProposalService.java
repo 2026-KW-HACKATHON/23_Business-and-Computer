@@ -2,8 +2,11 @@ package com.gakkum.backend.domain.proposal.service;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -18,8 +21,10 @@ import com.gakkum.backend.domain.proposal.dto.ProposalCommandDto.GetReceivedProp
 import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.ExploreProposalData;
 import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.ProposalDetailData;
 import com.gakkum.backend.domain.proposal.entity.Proposal;
+import com.gakkum.backend.domain.proposal.entity.ProposalLike;
 import com.gakkum.backend.domain.proposal.entity.ProposalSpecialty;
 import com.gakkum.backend.domain.proposal.entity.ProposalStatus;
+import com.gakkum.backend.domain.proposal.repository.ProposalLikeRepository;
 import com.gakkum.backend.domain.proposal.repository.ProposalRepository;
 import com.gakkum.backend.domain.proposal.repository.ProposalSpecialtyRepository;
 import com.gakkum.backend.global.exception.BusinessException;
@@ -33,6 +38,7 @@ public class ProposalService {
 
     private final ProposalRepository proposalRepository;
     private final ProposalSpecialtyRepository proposalSpecialtyRepository;
+    private final ProposalLikeRepository proposalLikeRepository;
 
     /** 참조 ID와 사진 검증을 마친 제안과 소분류를 한 트랜잭션으로 저장한다. demoSessionId는 제안한 학생의 격리 범위이고 실제 학생은 null이다. */
     @Transactional
@@ -147,6 +153,69 @@ public class ProposalService {
     public List<ExploreProposalData> getReceivedProposals(GetReceivedProposalsCommand command) {
         return withSpecialtyIds(proposalRepository
                 .findByOwnerProfileIdOrderByCreatedAtDescIdDesc(command.getOwnerProfileId()));
+    }
+
+    /**
+     * 주어진 제안 중 학생 본인이 공감한 제안 조회. 전체 공감 수가 아닌 본인의 공감 기록으로만 판단한다
+     * @param studentProfileId
+     * @param proposalIds
+     * @return 공감한 제안 ID, 없으면 빈 집합
+     */
+    @Transactional(readOnly = true)
+    public Set<Long> getLikedProposalIds(Long studentProfileId, Collection<Long> proposalIds) {
+        if (proposalIds.isEmpty()) {
+            return Set.of();
+        }
+        return proposalLikeRepository.findByStudentProfileIdAndProposalIdIn(studentProfileId, proposalIds).stream()
+                .map(ProposalLike::getProposalId)
+                .collect(Collectors.toSet());
+    }
+
+    /**
+     * 학생의 공감을 켠다. 제안 행을 잠가 같은 제안의 공감 변경을 순서대로 처리하고,
+     * 공감 기록이 없을 때만 저장하고 공감 수를 1 올린다. 이미 공감한 제안은 그대로 둔다.
+     * 본인 제안과 모든 상태의 제안에 허용하고, 없거나 격리 범위가 다른 제안은 404로 거부한다.
+     * @param proposalId
+     * @param studentProfileId
+     * @param demoSessionId 공감하는 학생의 격리 범위. 실제 학생은 null
+     * @return 공감 수가 반영된 제안
+     */
+    @Transactional
+    public Proposal likeProposal(Long proposalId, Long studentProfileId, String demoSessionId) {
+        Proposal proposal = getLikeableProposalForUpdate(proposalId, demoSessionId);
+        if (proposalLikeRepository.findByProposalIdAndStudentProfileId(proposalId, studentProfileId).isEmpty()) {
+            proposalLikeRepository.save(ProposalLike.create(proposalId, studentProfileId));
+            proposal.increaseLikeCount();
+        }
+        return proposal;
+    }
+
+    /**
+     * 학생의 공감을 끈다. 제안 행을 잠가 같은 제안의 공감 변경을 순서대로 처리하고,
+     * 공감 기록이 있을 때만 삭제하고 공감 수를 1 내린다. 공감하지 않은 제안은 그대로 둔다.
+     * 없거나 격리 범위가 다른 제안은 공감 기록과 무관하게 404로 거부한다.
+     * @param proposalId
+     * @param studentProfileId
+     * @param demoSessionId 공감을 취소하는 학생의 격리 범위. 실제 학생은 null
+     * @return 공감 수가 반영된 제안
+     */
+    @Transactional
+    public Proposal unlikeProposal(Long proposalId, Long studentProfileId, String demoSessionId) {
+        Proposal proposal = getLikeableProposalForUpdate(proposalId, demoSessionId);
+        proposalLikeRepository.findByProposalIdAndStudentProfileId(proposalId, studentProfileId)
+                .ifPresent(like -> {
+                    proposalLikeRepository.delete(like);
+                    proposal.decreaseLikeCount();
+                });
+        return proposal;
+    }
+
+    private Proposal getLikeableProposalForUpdate(Long proposalId, String demoSessionId) {
+        Proposal proposal = getProposalForUpdate(proposalId);
+        if (!Objects.equals(proposal.getDemoSessionId(), demoSessionId)) {
+            throw new BusinessException(ErrorCode.PROPOSAL_NOT_FOUND);
+        }
+        return proposal;
     }
 
     private List<ExploreProposalData> withSpecialtyIds(List<Proposal> proposals) {

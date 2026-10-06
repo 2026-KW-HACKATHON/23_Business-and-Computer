@@ -3,14 +3,17 @@ package com.gakkum.backend.application.explore.dto;
 import java.time.LocalDate;
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.gakkum.backend.application.explore.dto.ExploreQueryDto.ExploreItemResult;
 import com.gakkum.backend.application.explore.dto.ExploreQueryDto.ExploreResult;
 import com.gakkum.backend.application.explore.dto.ExploreQueryDto.JobCardResult;
 import com.gakkum.backend.application.explore.dto.ExploreQueryDto.ProposalCardResult;
 import com.gakkum.backend.application.explore.dto.ExploreQueryDto.SpecialtyCategoryResult;
 import com.gakkum.backend.application.explore.dto.ExploreQueryDto.SpecialtyResult;
+import com.gakkum.backend.domain.job.entity.JobApplicationStatus;
 import com.gakkum.backend.domain.job.entity.JobProgressStage;
 import com.gakkum.backend.domain.job.entity.JobStatus;
+import com.gakkum.backend.domain.proposal.entity.ProposalStatus;
 
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -57,7 +60,12 @@ public class ExploreResponse {
         private final Long proposalId;
         private final String title;
         private final String storeName;
+        private final String studentName;
+        private final ProposalStatus status;
+        private final String proposedSolution;
         private final Integer likeCount;
+        // 학생이 아닌 사용자에게도 false로 항상 내린다
+        private final boolean likedByMe;
         private final List<SpecialtyCategory> specialtyCategories;
 
         public static ProposalCard from(ProposalCardResult result) {
@@ -66,7 +74,11 @@ public class ExploreResponse {
                     .proposalId(result.getProposalId())
                     .title(result.getTitle())
                     .storeName(result.getStoreName())
+                    .studentName(result.getStudentName())
+                    .status(result.getStatus())
+                    .proposedSolution(result.getProposedSolution())
                     .likeCount(result.getLikeCount())
+                    .likedByMe(result.isLikedByMe())
                     .specialtyCategories(SpecialtyCategory.from(result.getSpecialtyCategories()))
                     .build();
         }
@@ -85,6 +97,10 @@ public class ExploreResponse {
         private final JobStatus status;
         private final LocalDate draftDeadline;
         private final LocalDate finalDeadline;
+        private final Long budget;
+        // 학생 본인의 지원서 상태. 지원 이력이 없거나 학생이 아닌 사용자에게는 필드를 내리지 않는다
+        @JsonInclude(JsonInclude.Include.NON_NULL)
+        private final JobApplicationStatus applied;
         private final List<SpecialtyCategory> specialtyCategories;
 
         public static JobCard from(JobCardResult result) {
@@ -97,6 +113,8 @@ public class ExploreResponse {
                     .status(result.getStatus())
                     .draftDeadline(result.getDraftDeadline())
                     .finalDeadline(result.getFinalDeadline())
+                    .budget(result.getBudget())
+                    .applied(result.getApplied())
                     .specialtyCategories(SpecialtyCategory.from(result.getSpecialtyCategories()))
                     .build();
         }
