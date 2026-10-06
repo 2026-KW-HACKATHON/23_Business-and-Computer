@@ -146,8 +146,6 @@ export interface MyProposal {
   sentOn: string;
   empathyCount: number;
   status: MyProposalStatus;
-  /** 사장님이 열어 봤는지 */
-  seenByOwner: boolean;
   /** 손님 눈으로 본 문제 */
   problem: string;
   /** 이렇게 바꿔 드릴게요 */

@@ -37,8 +37,7 @@ import "./StudentDetailPage.css";
  * 피그마 「보낸 제안서 상세 보기」. GET /proposals/{id} (ADR 0023).
  * 가게 주소(storeAddress) · 보낸 날짜(createdAt)가 없으면 그 줄만 숨긴다.
  * 수락된(AWAITING_START) · 작업 중(ACCEPTED) 제안은 확정된 작업 조건(agreement)을 보인다.
- * 가게 칸 아래 줄: 수락됐으면 「사장님이 제안을 받아들였어요」, 수락 대기면 서버가 seenByOwner 를 줄 때만
- * 「사장님이 제안을 확인했어요」 / 「사장님이 아직 확인하지 않았어요」.
+ * 수락됐으면 가게 칸 아래에 「사장님이 제안을 받아들였어요」.
  * 수락 대기인 제안은 아래에 「제안 취소」 · 「확인」. 제안 취소 API 가 아직 없어서 「제안 취소하기」를 누르면
  * 「곧 열려요」 안내를 띄운다 (취소 완료 팝업은 API 가 생기면 그 성공 뒤에 연다).
  */
@@ -65,13 +64,7 @@ function StudentProposalPage() {
   const sentOn = proposal && sentOnText(proposal.createdAt);
   const accepted = proposal?.status === "AWAITING_START" || proposal?.status === "ACCEPTED";
   const cancellable = pending && jobStatus !== "CANCELLED";
-  const storeNote = accepted
-    ? "사장님이 제안을 받아들였어요"
-    : pending && typeof proposal?.seenByOwner === "boolean"
-      ? proposal.seenByOwner
-        ? "사장님이 제안을 확인했어요"
-        : "사장님이 아직 확인하지 않았어요"
-      : undefined;
+  const storeNote = accepted ? "사장님이 제안을 받아들였어요" : undefined;
 
   return (
     <SubScreen
