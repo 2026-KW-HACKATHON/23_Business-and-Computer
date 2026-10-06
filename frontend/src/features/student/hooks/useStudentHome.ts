@@ -12,7 +12,8 @@ const PEER_COUNT = 2;
 
 /**
  * 학생 홈 한 화면 분량. 작업 · 제안 · 지원에서 만든다.
- * 확인할 일 = 동의를 기다리는 의뢰서 · 초안 · 수정안 차례 (마감이 빠른 것부터).
+ * 확인할 일 = 의뢰서가 온 내 제안(GET /me/proposals) → 동의를 기다리는 의뢰서 · 초안 · 수정안 차례
+ * (마감이 빠른 것부터).
  * 보낸 제안(GET /me/proposals) · 지원한 의뢰(GET /me/job-applications) · 다른 학생 제안
  * (GET /explore 공감 많은 순)은 API 이고, 작업은 아직 샘플 데이터다. 다른 학생 제안은 내 제안 목록과
  * 둘 다 불러온 뒤에만 채운다 (내 제안을 빼야 해서).
@@ -26,14 +27,23 @@ export function useStudentHome(): StudentHome {
   const popular = usePopularProposals(POPULAR_SIZE);
   const examples = useProposalExamples();
 
-  const todos: StudentTodo[] = works
+  // 의뢰서가 온 제안이 먼저, 그다음 작업 (마감이 빠른 것부터)
+  const proposalTodos: StudentTodo[] = proposals
+    .filter((p) => p.status === "AWAITING_START" && p.jobStatus !== "CANCELLED")
+    .map((proposal) => ({ type: "proposalAgreement", proposal }));
+  const workTodos: StudentTodo[] = works
     .flatMap((work): StudentTodo[] => {
       if (work.status === "awaitingAgreement") return [{ type: "agreement", work }];
       if (work.status === "drafting") return [{ type: "drafting", work }];
       if (work.status === "revising") return [{ type: "revising", work }];
       return [];
     })
-    .sort((a, b) => currentDeadline(a.work).due.localeCompare(currentDeadline(b.work).due));
+    .sort((a, b) =>
+      a.type === "proposalAgreement" || b.type === "proposalAgreement"
+        ? 0
+        : currentDeadline(a.work).due.localeCompare(currentDeadline(b.work).due),
+    );
+  const todos = [...proposalTodos, ...workTodos];
 
   const waiting: StudentWaitingItem[] = [
     ...proposals

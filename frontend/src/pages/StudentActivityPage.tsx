@@ -175,6 +175,19 @@ function StudentActivityPage() {
         </div>
         <div className="student-activity__divider" />
         <StoreLine name={proposal.store.storeName} address={storeAddressText(proposal.store.storeAddress)} />
+        {proposal.status === "AWAITING_START" && proposal.jobStatus !== "CANCELLED" && (
+          <>
+            <div className="student-activity__divider" />
+            <Button
+              tone="student"
+              size="medium"
+              fullWidth
+              onClick={() => navigate(STUDENT_PATHS.proposalStart(String(proposal.proposalId)))}
+            >
+              조건 확인하기
+            </Button>
+          </>
+        )}
       </li>
     );
   };

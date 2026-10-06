@@ -37,12 +37,20 @@ function StudentHomePage() {
   const exampleScroll = useDragScroll<HTMLUListElement>();
 
   // 상세보기: 지금 화면을 본다 / 아래 버튼: 바로 할 일로 간다
-  const openDetail = ({ type, work }: StudentTodo) => {
+  const openDetail = (todo: StudentTodo) => {
+    if (todo.type === "proposalAgreement") {
+      return navigate(STUDENT_PATHS.proposalStart(String(todo.proposal.proposalId)));
+    }
+    const { type, work } = todo;
     if (type === "drafting") return navigate(STUDENT_PATHS.workSubmit(work.id));
     if (type === "revising") return navigate(STUDENT_PATHS.workRevision(work.id));
     return navigate(STUDENT_PATHS.workStart(work.id));
   };
-  const openAction = ({ type, work }: StudentTodo) => {
+  const openAction = (todo: StudentTodo) => {
+    if (todo.type === "proposalAgreement") {
+      return navigate(STUDENT_PATHS.proposalStart(String(todo.proposal.proposalId)));
+    }
+    const { type, work } = todo;
     if (type === "drafting") return navigate(STUDENT_PATHS.workSubmit(work.id));
     if (type === "revising") return navigate(STUDENT_PATHS.workRevisionSubmit(work.id));
     return navigate(STUDENT_PATHS.workStart(work.id));

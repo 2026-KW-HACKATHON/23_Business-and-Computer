@@ -65,6 +65,7 @@ import StudentApplyPage from './pages/StudentApplyPage'
 import StudentProposalPage from './pages/StudentProposalPage'
 import StudentPeerProposalPage from './pages/StudentPeerProposalPage'
 import StudentWorkStartPage from './pages/StudentWorkStartPage'
+import StudentProposalStartPage from './pages/StudentProposalStartPage'
 import StudentWorkSubmitPage from './pages/StudentWorkSubmitPage'
 import StudentRevisionPage from './pages/StudentRevisionPage'
 import StudentRevisionSubmitPage from './pages/StudentRevisionSubmitPage'
@@ -145,6 +146,7 @@ function App() {
       <Route path="/student/proposals/new/4" element={<StudentProposalConfirmPage />} />
       <Route path="/student/proposals/new/done" element={<StudentProposalDonePage />} />
       <Route path="/student/proposals/:proposalId" element={<StudentProposalPage />} />
+      <Route path="/student/proposals/:proposalId/start" element={<StudentProposalStartPage />} />
       <Route path="/student/explore/proposals/:proposalId" element={<StudentPeerProposalPage />} />
       <Route path="/student/requests/:requestId/full" element={<StudentRequestFullPage />} />
       <Route path="/student/requests/:requestId/apply" element={<StudentApplyPage />} />

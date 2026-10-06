@@ -263,7 +263,9 @@ export interface SettlementSummary {
 export type StudentTodo =
   | { type: "drafting"; work: StudentWork }
   | { type: "revising"; work: StudentWork }
-  | { type: "agreement"; work: StudentWork };
+  | { type: "agreement"; work: StudentWork }
+  /** 사장님이 결제해 의뢰서가 온 내 제안 (GET /me/proposals 의 AWAITING_START) */
+  | { type: "proposalAgreement"; proposal: SentProposal };
 
 /** 기다리는 중 한 줄 */
 export type StudentWaitingItem =
