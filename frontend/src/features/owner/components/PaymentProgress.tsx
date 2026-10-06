@@ -29,7 +29,7 @@ function PaymentProgress({ phase, method, onCancel, onDone, onRetry }: PaymentPr
             {"결제 창이 열리면 결제를 마무리해 주세요.\n이 화면을 닫지 말고 잠시만 기다려 주세요."}
           </p>
         </div>
-        <p className="pay-progress__note">결제가 끝나면 가꿈으로 자동으로 돌아와요</p>
+        <p className="pay-progress__note">결제가 끝나면 골목인턴으로 자동으로 돌아와요</p>
       </div>,
       document.body,
     );
@@ -42,7 +42,7 @@ function PaymentProgress({ phase, method, onCancel, onDone, onRetry }: PaymentPr
         image="doneOwner"
         title="결제가 완료되었어요."
         description={
-          "작업비는 가꿈이 보관해요.\n학생과 채팅으로 자세한 내용을 나눠 보세요.\n(구현을 완료했으나, 실제 결제는 막아두었습니다)"
+          "작업비는 골목인턴이 보관해요.\n학생과 채팅으로 자세한 내용을 나눠 보세요.\n(구현을 완료했으나, 실제 결제는 막아두었습니다)"
         }
         actions={
           <Button fullWidth onClick={onDone}>

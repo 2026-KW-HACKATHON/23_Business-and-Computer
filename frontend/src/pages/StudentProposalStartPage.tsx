@@ -213,7 +213,7 @@ function StudentProposalStartPage() {
             <NumberedSteps
               variant="card"
               steps={[
-                { title: "마감일까지 결과물을 낼게요", description: "작업비는 가꿈이 보관하고, 완료되면 정산돼요" },
+                { title: "마감일까지 결과물을 낼게요", description: "작업비는 골목인턴이 보관하고, 완료되면 정산돼요" },
                 { title: `수정 요청은 정한 횟수(${agreement.revisionCount}회)만큼 반영할게요` },
                 { title: "연락 없이 마감을 넘기면 노쇼로 기록돼요" },
               ]}

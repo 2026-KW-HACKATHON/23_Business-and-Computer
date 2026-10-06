@@ -6,11 +6,11 @@ interface PaymentSummaryBoxProps {
   summary: PaymentSummary;
 }
 
-/** 결제 요약 3칸 (이번 달 결제 · 가꿈이 보관 중 · 정산 완료) */
+/** 결제 요약 3칸 (이번 달 결제 · 골목인턴이 보관 중 · 정산 완료) */
 function PaymentSummaryBox({ summary }: PaymentSummaryBoxProps) {
   const items = [
     { label: "이번 달 결제", amount: summary.thisMonth },
-    { label: "가꿈이 보관 중", amount: summary.escrowed },
+    { label: "골목인턴이 보관 중", amount: summary.escrowed },
     { label: "정산 완료", amount: summary.settled },
   ];
 
