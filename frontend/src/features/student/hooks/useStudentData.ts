@@ -3,11 +3,7 @@ import type { Field } from "../../../types/field";
 import { SPECIALTY_BADGES } from "../../../types/specialty";
 import { SAMPLE_MY_PROFILE } from "../lib/sampleMe";
 import { SAMPLE_NOTIFICATIONS } from "../lib/sampleNotifications";
-import {
-  SAMPLE_MY_PROPOSALS,
-  SAMPLE_PEER_PROPOSALS,
-  SAMPLE_PROPOSAL_EXAMPLES,
-} from "../lib/sampleProposals";
+import { SAMPLE_MY_PROPOSALS, SAMPLE_PROPOSAL_EXAMPLES } from "../lib/sampleProposals";
 import { SAMPLE_APPLICATIONS, SAMPLE_REQUESTS } from "../lib/sampleRequests";
 import { SAMPLE_STORES } from "../lib/sampleStores";
 import { SAMPLE_CHAT_THREADS, SAMPLE_WORKS } from "../lib/sampleWorks";
@@ -16,7 +12,6 @@ import type {
   MyProfile,
   MyProposal,
   OwnerReview,
-  PeerProposal,
   ProposalExample,
   SettlementSummary,
   Store,
@@ -70,70 +65,11 @@ function currentWork(work: StudentWork): StudentWork {
 const works = () =>
   SAMPLE_WORKS.filter((w) => !demo.declinedWorkIds.has(w.id)).map(currentWork);
 
-function currentApplications(): StudentApplication[] {
-  const added = [...demo.applications.entries()]
-    .filter(([requestId]) => !SAMPLE_APPLICATIONS.some((a) => a.requestId === requestId))
-    .map(([requestId, { plan, on }]) => ({
-      requestId,
-      appliedOn: on,
-      status: "reviewing" as const,
-      plan,
-    }));
-  return [...added, ...SAMPLE_APPLICATIONS];
-}
-
 function currentProposals(): MyProposal[] {
   // 의뢰서를 거절했거나 동의해 작업이 시작된 제안은 보낸 제안에서 빠진다
   const settled = (workId?: string) =>
     workId !== undefined && (demo.declinedWorkIds.has(workId) || demo.agreedWorkIds.has(workId));
   return SAMPLE_MY_PROPOSALS.filter((p) => !settled(p.workId));
-}
-
-/** 공개된 내 제안을 탐색 카드 모양으로 (공감은 할 수 없다) */
-function myPublicProposals(): PeerProposal[] {
-  const completed = works().filter((w) => w.status === "completed");
-  const ratings = completed.flatMap((w) => (w.review ? [w.review.rating] : []));
-  const student = {
-    id: SAMPLE_MY_PROFILE.id,
-    name: SAMPLE_MY_PROFILE.name,
-    department: SAMPLE_MY_PROFILE.department,
-    year: SAMPLE_MY_PROFILE.year,
-    rating:
-      ratings.length > 0
-        ? Math.round((ratings.reduce((a, b) => a + b, 0) / ratings.length) * 10) / 10
-        : undefined,
-    completedCount: completed.length,
-  };
-  return currentProposals()
-    .filter((p) => p.status === "waiting")
-    .map((p) => ({
-      id: p.id,
-      title: p.title,
-      field: p.field,
-      storeName: p.store.name,
-      student,
-      receivedOn: p.sentOn,
-      progress: "waitingAcceptance" as const,
-      createdAt: `${p.sentOn}T12:00:00`,
-      empathyCount: p.empathyCount,
-      empathized: false,
-      mine: true,
-      problem: p.problem,
-      solution: p.solution,
-      attachments: p.attachments,
-    }));
-}
-
-function currentPeers(): PeerProposal[] {
-  const others = SAMPLE_PEER_PROPOSALS.filter((p) => p.student.id !== SAMPLE_MY_PROFILE.id).map((p) => {
-    if (!demo.toggledEmpathyIds.has(p.id)) return p;
-    return {
-      ...p,
-      empathized: !p.empathized,
-      empathyCount: p.empathyCount + (p.empathized ? -1 : 1),
-    };
-  });
-  return [...others, ...myPublicProposals()];
 }
 
 // ---- 작업 ----
@@ -150,14 +86,9 @@ export function useStudentWork(workId: string | undefined): StudentWork | undefi
 
 // ---- 의뢰 · 지원 ----
 
-/** 지원한 의뢰까지 모든 의뢰 */
+/** 지원한 의뢰 */
 export function useStudentRequests(): StudentRequest[] {
   return SAMPLE_REQUESTS;
-}
-
-/** 탐색에 보이는 의뢰 (모집 중 · 완료). 다른 학생이 뽑힌 의뢰는 빠진다 */
-export function useExploreRequests(): StudentRequest[] {
-  return SAMPLE_REQUESTS.filter((r) => r.progress !== "closed");
 }
 
 export function useStudentRequest(requestId: string | undefined): StudentRequest | undefined {
@@ -165,13 +96,7 @@ export function useStudentRequest(requestId: string | undefined): StudentRequest
 }
 
 export function useStudentApplications(): StudentApplication[] {
-  useDemoVersion();
-  return currentApplications();
-}
-
-export function useStudentApplication(requestId: string | undefined): StudentApplication | undefined {
-  useDemoVersion();
-  return currentApplications().find((a) => a.requestId === requestId);
+  return SAMPLE_APPLICATIONS;
 }
 
 // ---- 제안 ----
@@ -179,16 +104,6 @@ export function useStudentApplication(requestId: string | undefined): StudentApp
 export function useMyProposal(proposalId: string | undefined): MyProposal | undefined {
   useDemoVersion();
   return currentProposals().find((p) => p.id === proposalId);
-}
-
-export function usePeerProposals(): PeerProposal[] {
-  useDemoVersion();
-  return currentPeers();
-}
-
-export function usePeerProposal(proposalId: string | undefined): PeerProposal | undefined {
-  useDemoVersion();
-  return currentPeers().find((p) => p.id === proposalId);
 }
 
 export function useProposalExample(exampleId: string | undefined): ProposalExample | undefined {

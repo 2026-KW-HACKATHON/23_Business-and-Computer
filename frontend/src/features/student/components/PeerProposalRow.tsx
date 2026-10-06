@@ -1,15 +1,18 @@
 import { EmpathyCount, WorkKindIcon } from "../../../components";
-import type { PeerProposal } from "../types";
+import type { ExploreProposalCard } from "../../explore";
 import "./PeerProposalRow.css";
+import { studentTitle } from "../../../lib/korean";
 
 interface PeerProposalRowProps {
-  proposal: PeerProposal;
+  proposal: ExploreProposalCard;
   onOpen: () => void;
-  onToggleEmpathy: () => void;
 }
 
-/** 홈 「다른 학생들의 제안 공감하기」 한 줄. 하트로 바로 공감한다 */
-function PeerProposalRow({ proposal, onOpen, onToggleEmpathy }: PeerProposalRowProps) {
+/**
+ * 홈 「다른 학생들의 제안 공감하기」 한 줄 (GET /explore 의 제안). 공감은 수만 보인다.
+ * 하트는 서버가 likedByMe 를 true 로 줄 때만 채워지고, 학생 이름은 studentName 을 줄 때만 보인다.
+ */
+function PeerProposalRow({ proposal, onOpen }: PeerProposalRowProps) {
   return (
     <div className="peer-row">
       <button type="button" className="peer-row__open" onClick={onOpen}>
@@ -17,15 +20,13 @@ function PeerProposalRow({ proposal, onOpen, onToggleEmpathy }: PeerProposalRowP
         <span className="peer-row__text">
           <span className="peer-row__title">{proposal.title}</span>
           <span className="peer-row__meta">
-            {proposal.student.name} 학생 → {proposal.storeName}
+            {proposal.studentName
+              ? `${studentTitle(proposal.studentName)} → ${proposal.storeName}`
+              : proposal.storeName}
           </span>
         </span>
       </button>
-      <EmpathyCount
-        count={proposal.empathyCount}
-        empathized={proposal.empathized}
-        onToggle={onToggleEmpathy}
-      />
+      <EmpathyCount count={proposal.likeCount} empathized={proposal.likedByMe === true} />
     </div>
   );
 }

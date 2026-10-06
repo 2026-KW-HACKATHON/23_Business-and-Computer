@@ -25,6 +25,7 @@ import type { ProposalDetail } from "../features/proposal";
 import { useBack } from "../hooks/useBack";
 import { formatWon } from "../lib/money";
 import "./OwnerPayPage.css";
+import { studentTitle } from "../lib/korean";
 
 /**
  * 피그마 「제안 수락 - 의뢰서작성·결제」. 학생 제안을 의뢰서로 바꾸면서 수정 횟수 · 학생에게
@@ -97,7 +98,7 @@ function AcceptForm({ proposal, onBack }: { proposal: ProposalDetail; onBack: ()
             ))}
           </div>
           <p className="owner-pay__terms">
-            {proposal.student.name} 학생 · 희망 작업비 {formatWon(proposal.proposedFee)} · 예상{" "}
+            {studentTitle(proposal.student.name)} · 희망 작업비 {formatWon(proposal.proposedFee)} · 예상{" "}
             {expectedDaysText(proposal.draftDays, proposal.finalDays)}
           </p>
         </section>

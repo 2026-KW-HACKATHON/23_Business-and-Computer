@@ -33,6 +33,7 @@ import { formatMonthDay } from "../lib/date";
 import { formatWon } from "../lib/money";
 import type { WorkKind } from "../types/workKind";
 import "./OwnerActivityPage.css";
+import { studentTitle } from "../lib/korean";
 
 const TABS: { tab: ActivityTab; label: string }[] = [
   { tab: "sent", label: "보낸 의뢰" },
@@ -58,7 +59,7 @@ function StudentLine({
       <RoleAvatar role="student" size={32} />
       <span className="owner-activity__student-info">
         <span className="owner-activity__student-name">
-          <strong>{name} 학생</strong>
+          <strong>{studentTitle(name)}</strong>
           {year && <span>{year}</span>}
         </span>
         {department && <span className="owner-activity__student-dept">{department}</span>}

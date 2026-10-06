@@ -15,26 +15,20 @@ export { default as StudentTodoCarousel } from "./components/StudentTodoCarousel
 export { default as WorkSummary } from "./components/WorkSummary";
 export {
   agreeToWork,
-  applyToRequest,
   declineWork,
   markNotificationsRead,
   saveMyProfile,
   setMyProfilePhoto,
   submitWork,
-  toggleEmpathy,
   useMyProfilePhoto,
 } from "./hooks/studentStore";
 export {
-  useExploreRequests,
   useMyProfile,
   useMyProposal,
-  usePeerProposal,
-  usePeerProposals,
   useProposalExample,
   useProposalExamples,
   useStore,
   useStores,
-  useStudentApplication,
   useStudentApplications,
   useStudentChatThread,
   useStudentChats,
@@ -54,7 +48,6 @@ export { useStudentHome } from "./hooks/useStudentHome";
 export { flowSteps, workFlowSteps } from "./lib/flow";
 export {
   APPLICATION_STATUS_LABEL,
-  PEER_PROGRESS_LABEL,
   chatStatusText,
   currentDeadline,
   deadlineText,
@@ -96,7 +89,6 @@ export type {
   ExploreStore,
   ChatMessage,
   MyProposal,
-  PeerProposal,
   ProposalExample,
   Store,
   StudentApplication,

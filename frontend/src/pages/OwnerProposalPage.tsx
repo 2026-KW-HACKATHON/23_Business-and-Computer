@@ -32,6 +32,7 @@ import { formatMonthDay } from "../lib/date";
 import { formatWon } from "../lib/money";
 import "./OwnerDetailPage.css";
 import "./OwnerProposalPage.css";
+import { studentTitle } from "../lib/korean";
 
 /**
  * 피그마 「받은 제안 상세」. GET /proposals/{id} (ADR 0025).
@@ -119,7 +120,7 @@ function OwnerProposalPage() {
           <div className="owner-proposal__student">
             <RoleAvatar role="student" />
             <div className="owner-proposal__student-info">
-              <strong className="owner-proposal__student-name">{student.name} 학생</strong>
+              <strong className="owner-proposal__student-name">{studentTitle(student.name)}</strong>
               <span className="owner-proposal__student-sub">
                 {[studentMeta, proposalStudentRecord(student)].filter(Boolean).join("\n")}
               </span>

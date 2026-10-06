@@ -46,6 +46,8 @@ export interface ProposalDetailResponse {
   /** 가게의 지금 프로필 주소. 등록하지 않았으면 없음 */
   storeAddress?: string | null;
   likeCount: number;
+  /** 내가 공감했는지. 서버가 주면 다른 학생 제안서의 하트가 채워진다 */
+  likedByMe?: boolean | null;
   specialtyCategories: ProposalSpecialtyCategory[];
   student: ProposalStudentResponse;
   customerProblem: string;
