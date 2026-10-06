@@ -335,6 +335,22 @@ public class JobService {
     }
 
     /**
+     * 의뢰별 연결된 소분류 ID를 한 번에 조회한다.
+     * @param jobIds
+     * @return 의뢰 ID별 소분류 ID 목록, 소분류가 없는 의뢰는 키가 없다
+     */
+    @Transactional(readOnly = true)
+    public Map<Long, List<Long>> getSpecialtyIdsByJobIds(Collection<Long> jobIds) {
+        if (jobIds.isEmpty()) {
+            return Map.of();
+        }
+        return jobSpecialtyRepository.findByJobIdIn(jobIds).stream()
+                .collect(Collectors.groupingBy(
+                        JobSpecialty::getJobId,
+                        Collectors.mapping(JobSpecialty::getSpecialtyId, Collectors.toList())));
+    }
+
+    /**
      * 지원서 ID 목록으로 지원서 일괄 조회
      * @param applicationIds
      * @return 지원서 ID별 지원서, 하나라도 없으면 참조 무결성 오류(500)

@@ -203,6 +203,12 @@ public class ProposalService {
         return proposalRepository.countByStudentProfileId(studentProfileId);
     }
 
+    /** 학생이 모든 사장님에게 보낸 제안 중 취소하지 않은 제안 수. 수락·거절 여부와 무관하게 센다. */
+    @Transactional(readOnly = true)
+    public long countProposalsExcludingCancelled(Long studentProfileId) {
+        return proposalRepository.countByStudentProfileIdAndStatusNot(studentProfileId, ProposalStatus.CANCELLED);
+    }
+
     /** 사장님이 받은 제안 중 취소되지 않은 제안을 최신순으로 읽고 제안별 소분류 ID를 한 번에 붙인다. */
     @Transactional(readOnly = true)
     public List<ExploreProposalData> getReceivedProposals(GetReceivedProposalsCommand command) {
