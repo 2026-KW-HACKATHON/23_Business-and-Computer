@@ -60,8 +60,12 @@ export {
   dueDatesReady,
   photoSizeText,
   readNewRequestState,
+  requestSpecialtyIds,
+  sendJobCreate,
   similarRequestState,
   taskSummary,
+  toJobCreateRequest,
+  uploadRequestPhoto,
 } from "./lib/newRequest";
 export type { NewRequestState } from "./lib/newRequest";
 export { NOTIFICATION_ICON, notificationPath } from "./lib/notifications";

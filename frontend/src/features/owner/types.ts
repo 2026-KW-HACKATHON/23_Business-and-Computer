@@ -91,7 +91,7 @@ export interface RequestContent {
   finalDue: string;
   /** 최소 1회 */
   revisions: number;
-  /** 참고 사진 (선택, 최대 5장). 등록할 때 올린다 */
+  /** 참고 사진 (선택, 최대 4장). 등록할 때 올린다 */
   photos: File[];
 }
 

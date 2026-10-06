@@ -88,7 +88,7 @@ function StudentRequestFullPage() {
               {categoryNames(job.specialtyCategories).map((name) => (
                 <CategoryBadge key={name} field={name} />
               ))}
-              {jobStatusLabel(job.status)}
+              {!recruiting && job.applied === "REJECTED" ? "다른 학생이 선택됐어요" : jobStatusLabel(job.status)}
             </div>
           </div>
 
