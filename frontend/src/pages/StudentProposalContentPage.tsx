@@ -21,6 +21,7 @@ import {
 } from "../features/student";
 import type { ProposalContent } from "../features/student";
 import { useBack } from "../hooks/useBack";
+import { useObjectUrls } from "../hooks/useObjectUrls";
 import "./StudentProposalNewPage.css";
 
 const PHOTO_ERROR_TEXT = {
@@ -84,6 +85,7 @@ function StudentProposalContentPage() {
     state?.content ?? { ...EMPTY_CONTENT, title: example?.proposalTitle ?? "" },
   );
   const fileInput = useRef<HTMLInputElement>(null);
+  const photoUrls = useObjectUrls(content.photos);
   const [photoError, setPhotoError] = useState<keyof typeof PHOTO_ERROR_TEXT | null>(null);
 
   if (!state?.store || state.picked.length === 0) {
@@ -211,7 +213,7 @@ function StudentProposalContentPage() {
             )}
             {content.photos.map((photo, i) => (
               <div key={`${photo.name}-${i}`} className="student-new__file">
-                <span aria-hidden="true">📄</span>
+                <img className="student-new__thumb" src={photoUrls[i]} alt="" />
                 <strong>{photo.name}</strong>
                 <small>{sizeText(photo.size)}</small>
                 <button
