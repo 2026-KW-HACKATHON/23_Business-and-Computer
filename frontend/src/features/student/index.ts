@@ -29,8 +29,6 @@ export {
   useProposalExamples,
   useStore,
   useStores,
-  useStudentChatThread,
-  useStudentChats,
   useStudentNotifications,
   useStudentSettlements,
   useStudentWork,
@@ -64,11 +62,9 @@ export type { SubmissionKind, SubmissionResult } from "./lib/submission";
 export type { ProgressJob, ProgressStage } from "./lib/progressJobs";
 export { flowSteps, workFlowSteps } from "./lib/flow";
 export {
-  chatStatusText,
   currentDeadline,
   deadlineText,
   peerRecord,
-  workChatSummary,
   workStatusText,
 } from "./lib/format";
 export {
@@ -108,7 +104,6 @@ export type { ProfileEditSection, StudentActivityTab } from "./lib/paths";
 export type {
   ApplicationPlan,
   ExploreStore,
-  ChatMessage,
   MyProposal,
   ProposalExample,
   Store,

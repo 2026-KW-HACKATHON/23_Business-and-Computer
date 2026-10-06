@@ -1,3 +1,4 @@
+import type { Role } from "../../types/role";
 import type { ImageName } from "../AppImage/images";
 import MaskIcon from "../MaskIcon/MaskIcon";
 import "./TabBar.css";
@@ -11,13 +12,17 @@ const TABS: { tab: MainTab; label: string; icon: ImageName }[] = [
 ];
 
 interface TabBarProps {
+  /** 점 색을 고른다 (사장님 노랑 · 학생 보라) */
+  role: Role;
   current: MainTab;
   onSelect: (tab: MainTab) => void;
+  /** 안 읽은 채팅 메시지가 있으면 「채팅」 아이콘에 점 */
+  hasUnreadChat?: boolean;
   className?: string;
 }
 
 /** 하단 탭바 (글래스 · 3칸). 홈(내 일) · 탐색(다른 사람의 일) · 채팅 */
-function TabBar({ current, onSelect, className = "" }: TabBarProps) {
+function TabBar({ role, current, onSelect, hasUnreadChat = false, className = "" }: TabBarProps) {
   return (
     <nav className={`tab-bar ${className}`.trim()} aria-label="주요 메뉴">
       {TABS.map(({ tab, label, icon }) => (
@@ -28,7 +33,12 @@ function TabBar({ current, onSelect, className = "" }: TabBarProps) {
           aria-current={tab === current ? "page" : undefined}
           onClick={() => onSelect(tab)}
         >
-          <MaskIcon name={icon} size={24} />
+          <span className="tab-bar__icon">
+            <MaskIcon name={icon} size={24} />
+            {tab === "chat" && hasUnreadChat && (
+              <span className={`tab-bar__dot tab-bar__dot--${role}`} aria-label="안 읽은 메시지 있음" />
+            )}
+          </span>
           {label}
         </button>
       ))}

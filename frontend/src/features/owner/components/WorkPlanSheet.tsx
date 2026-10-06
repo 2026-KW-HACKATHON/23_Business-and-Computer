@@ -4,9 +4,15 @@ import { formatWon } from "../../../lib/money";
 import type { OwnerWork } from "../types";
 import "./WorkPlanSheet.css";
 
+/** 시트에 보이는 작업. 채팅방은 보낸 날을 모른다 (planSentOn 없음) */
+type PlanSheetWork = Pick<OwnerWork, "title" | "plan" | "budget" | "draftDue" | "finalDue" | "revisionLimit"> & {
+  student: { name: string };
+  planSentOn?: string;
+};
+
 interface WorkPlanSheetProps {
   /** 없으면 닫힌 상태 */
-  work: OwnerWork | undefined;
+  work: PlanSheetWork | undefined;
   onClose: () => void;
   /** 넣으면 「닫기」 옆에 「채팅하기」 (홈에서 열 때) */
   onChat?: () => void;
@@ -25,7 +31,9 @@ function WorkPlanSheet({ work, onClose, onChat }: WorkPlanSheetProps) {
             <div className="work-plan-sheet__heading">
               <h2 className="work-plan-sheet__title">{work.student.name} 학생의 작업계획서</h2>
               <p className="work-plan-sheet__sub">
-                {work.title}, {formatMonthDay(work.planSentOn)} 지원할 때 보냄
+                {work.planSentOn
+                  ? `${work.title}, ${formatMonthDay(work.planSentOn)} 지원할 때 보냄`
+                  : work.title}
               </p>
             </div>
           </div>

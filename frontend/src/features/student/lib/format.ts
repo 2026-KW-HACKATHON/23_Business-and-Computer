@@ -30,39 +30,6 @@ export function workStatusText(work: StudentWork): string {
   }
 }
 
-/** 채팅 목록의 굵은 진행 상태 (사장님 채팅 목록과 같은 모양) */
-export function chatStatusText(work: StudentWork): string {
-  const stage = work.revisionCount > 0 ? "수정안" : "초안";
-  switch (work.status) {
-    case "drafting":
-      return `초안 만드는 중 (~${formatMonthDay(work.draftDue)})`;
-    case "revising":
-      return `수정안 만드는 중 (~${formatMonthDay(work.finalDue)})`;
-    case "submitted":
-      return `사장님이 ${stage} 확인 중`;
-    case "completed":
-      return "완료";
-    default:
-      return "";
-  }
-}
-
-/** 채팅방 위 작업 카드의 굵은 진행 상태 (사장님 채팅방과 같은 모양) */
-export function workChatSummary(work: StudentWork): string {
-  switch (work.status) {
-    case "drafting":
-      return `초안 만드는 중, ${formatMonthDay(work.draftDue)}까지 제출`;
-    case "revising":
-      return `수정안 만드는 중, ${formatMonthDay(work.finalDue)}까지 제출`;
-    case "submitted":
-      return `${work.revisionCount > 0 ? "수정안" : "초안"}을 보냈어요, 사장님 확인 중`;
-    case "completed":
-      return "완료된 작업이에요";
-    default:
-      return "";
-  }
-}
-
 /** 「★ 4.8 · 완료 3건」. 후기가 없으면(평균 0 · 없음) 「완료 3건」, 끝낸 작업이 없으면 「첫 작업이에요」 */
 export function peerRecord({
   rating,

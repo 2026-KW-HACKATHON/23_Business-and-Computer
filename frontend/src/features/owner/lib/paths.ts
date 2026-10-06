@@ -11,7 +11,7 @@ export const OWNER_PATHS = {
   home: "/owner",
   explore: "/owner/explore",
   chats: "/owner/chats",
-  chat: (workId: string) => `/owner/chats/${workId}`,
+  chat: (roomId: string) => `/owner/chats/${roomId}`,
   notifications: "/owner/notifications",
   me: "/owner/me",
   store: "/owner/me/store",

@@ -32,7 +32,7 @@ export function notificationPath({ type, targetId }: StudentNotification): strin
     case "REVISION_REQUESTED":
       return STUDENT_PATHS.workRevision(targetId);
     case "CHAT_MESSAGE":
-      return STUDENT_PATHS.chat(targetId);
+      return STUDENT_PATHS.chats;
     case "SETTLED":
       return STUDENT_PATHS.settlements;
     case "REVIEW_RECEIVED":

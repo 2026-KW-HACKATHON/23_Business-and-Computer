@@ -156,7 +156,7 @@ function OwnerHomePage() {
       <WorkPlanSheet
         work={planWork}
         onClose={() => setPlanWorkId(undefined)}
-        onChat={() => planWork && navigate(OWNER_PATHS.chat(planWork.id))}
+        onChat={() => navigate(OWNER_PATHS.chats)}
       />
     </OwnerTabScreen>
   );

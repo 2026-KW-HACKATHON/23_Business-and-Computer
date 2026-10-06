@@ -3,7 +3,8 @@ import { declineProposalJob, startProposalJob } from "../api/workStartApi";
 
 /** 작업 시작 결과 */
 export type WorkStartResult =
-  | { status: "started"; draftDeadline: string }
+  /** chatRoomId: 작업과 함께 열린 채팅방. 서버가 주지 않으면 없다 */
+  | { status: "started"; draftDeadline: string; chatRoomId: string | undefined }
   | {
       status:
         | "unauthorized"
@@ -21,7 +22,11 @@ export type WorkStartResult =
 export async function sendWorkStart(jobId: number): Promise<WorkStartResult> {
   try {
     const answer = await startProposalJob(jobId);
-    return { status: "started", draftDeadline: answer.draftDeadline };
+    return {
+      status: "started",
+      draftDeadline: answer.draftDeadline,
+      chatRoomId: answer.chatRoomId ?? undefined,
+    };
   } catch (error) {
     if (error instanceof ApiError) {
       if (error.status === 401) return { status: "unauthorized" };

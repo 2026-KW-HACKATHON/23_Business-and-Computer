@@ -247,7 +247,7 @@ function OwnerActivityPage() {
               <Button
                 variant="secondary"
                 size="medium"
-                onClick={() => navigate(OWNER_PATHS.chat(work.id))}
+                onClick={() => navigate(OWNER_PATHS.chats)}
               >
                 문의하기
               </Button>
@@ -381,7 +381,7 @@ function OwnerActivityPage() {
       <WorkPlanSheet
         work={planWork}
         onClose={() => setPlanWork(undefined)}
-        onChat={() => planWork && navigate(OWNER_PATHS.chat(planWork.id))}
+        onChat={() => navigate(OWNER_PATHS.chats)}
       />
       <ReportSheet
         open={reportWork !== undefined}

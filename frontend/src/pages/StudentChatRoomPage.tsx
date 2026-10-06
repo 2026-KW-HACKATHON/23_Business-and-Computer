@@ -1,16 +1,23 @@
 import { useEffect, useRef, useState } from "react";
-import type { ChangeEvent, FormEvent } from "react";
+import type { FormEvent, MouseEvent } from "react";
 import { useParams } from "react-router-dom";
-import { ReportSheet, RoleAvatar, SubScreen, TextButton, WorkKindIcon } from "../components";
 import {
-  MyPlanSheet,
-  STUDENT_PATHS,
-  StudentMissing,
-  workChatSummary,
-  useStudentChatThread,
-  useStudentWork,
-} from "../features/student";
-import type { ChatMessage } from "../features/student";
+  LoadNotice,
+  ReportSheet,
+  RoleAvatar,
+  SubScreen,
+  TextButton,
+  WorkKindIcon,
+} from "../components";
+import {
+  canReportChatWork,
+  chatPlanOf,
+  chatSummaryText,
+  isAttachmentExpired,
+  useChatRoom,
+} from "../features/chat";
+import type { ChatMessage } from "../features/chat";
+import { MyPlanSheet, STUDENT_PATHS } from "../features/student";
 import { useBack } from "../hooks/useBack";
 import { formatDayChip, formatMonthDay } from "../lib/date";
 import { formatWon } from "../lib/money";
@@ -23,58 +30,54 @@ const timeOf = (iso: string) => {
 
 const dayKey = (iso: string) => new Date(iso).toDateString();
 
-const fileSize = (bytes: number) => `${(bytes / 1024 / 1024).toFixed(1)}MB`;
-
-/** 보낸 메시지 (id · 시각은 보낼 때 붙인다) */
-type Outgoing =
-  | { type: "text"; from: "me"; text: string }
-  | { type: "file"; from: "me"; name: string; detail: string };
-
-/**
- * 피그마 「채팅방 (학생)」. 작업 하나에 채팅방 하나.
- * 백엔드 연동 전까지 보낸 메시지·파일은 이 화면 안에서만 보인다.
- */
+/** 피그마 「채팅방 (학생)」. 작업 하나에 채팅방 하나. 방이 바뀌면 새로 그린다 */
 function StudentChatRoomPage() {
-  const { workId = "" } = useParams();
+  const { roomId = "" } = useParams();
+  return <StudentChatRoom key={roomId} roomId={roomId} />;
+}
+
+function StudentChatRoom({ roomId }: { roomId: string }) {
   const back = useBack(STUDENT_PATHS.chats);
-  const work = useStudentWork(workId);
-  const thread = useStudentChatThread(workId);
-  const [sent, setSent] = useState<ChatMessage[]>([]);
+  const { load, messages, reload, send, resend, openExpiredAttachment } = useChatRoom(
+    roomId,
+    STUDENT_PATHS.chats,
+  );
   const [draft, setDraft] = useState("");
   const [planOpen, setPlanOpen] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
   const endRef = useRef<HTMLDivElement>(null);
-  const messages = [...(thread?.messages ?? []), ...sent];
 
-  // 처음 들어올 때와 메시지를 보낼 때 맨 아래로
+  // 처음 들어올 때와 메시지가 늘 때 맨 아래로
   useEffect(() => {
     endRef.current?.scrollIntoView({ block: "end" });
   }, [messages.length]);
 
-  if (!work) return <StudentMissing title="채팅" onBack={back} />;
+  if (load.status !== "loaded") {
+    return (
+      <SubScreen title="채팅" onBack={back}>
+        <LoadNotice
+          status={load.status}
+          loadingText="채팅방을 불러오는 중이에요"
+          errorText="채팅방을 불러오지 못했어요"
+          onRetry={reload}
+        />
+      </SubScreen>
+    );
+  }
 
-  const append = (message: Outgoing) => {
-    setSent((list) => [
-      ...list,
-      { ...message, id: `sent-${list.length}`, at: new Date().toISOString() },
-    ]);
-  };
+  const { room } = load;
+  const plan = chatPlanOf(room);
+  const summary = chatSummaryText(room, "student");
+  const canReport = canReportChatWork(room);
+  const partnerName = `${room.counterpartName} 사장님`;
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
     const text = draft.trim();
     if (!text) return;
-    append({ type: "text", from: "me", text });
+    send(text);
     setDraft("");
   };
-
-  const handleFile = (e: ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) append({ type: "file", from: "me", name: file.name, detail: fileSize(file.size) });
-    e.target.value = "";
-  };
-
-  const partnerName = `${work.store.name} 사장님`;
 
   return (
     <SubScreen
@@ -83,21 +86,18 @@ function StudentChatRoomPage() {
           <RoleAvatar role="owner" size={32} />
           <span className="student-chat__partner-text">
             <strong>{partnerName}</strong>
-            <small>{work.title}</small>
+            <small>{room.jobTitle}</small>
           </span>
         </span>
       }
       onBack={back}
       footer={
         <form className="student-chat__composer" onSubmit={handleSubmit}>
-          <label className="student-chat__attach" aria-label="파일 보내기">
-            +
-            <input type="file" aria-label="파일 보내기" onChange={handleFile} />
-          </label>
           <input
             className="student-chat__input"
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
+            maxLength={5000}
             placeholder="작업 질문이나 자료 요청을 적어 주세요"
             aria-label="메시지"
           />
@@ -110,16 +110,16 @@ function StudentChatRoomPage() {
       <div className="student-chat">
         <div className="student-chat__work">
           <div className="student-chat__work-head">
-            <WorkKindIcon kind={work.kind} size={20} />
-            <strong className="student-chat__work-title">{work.title}</strong>
-            <TextButton onClick={() => setPlanOpen(true)}>작업계획서 보기</TextButton>
+            <WorkKindIcon kind="request" size={20} />
+            <strong className="student-chat__work-title">{room.jobTitle}</strong>
+            {plan && <TextButton onClick={() => setPlanOpen(true)}>작업계획서 보기</TextButton>}
           </div>
-          <p className="student-chat__work-progress">{workChatSummary(work)}</p>
+          {summary && <p className="student-chat__work-progress">{summary}</p>}
           <p className="student-chat__work-terms">
-            {`${formatWon(work.budget)}, 수정 ${work.revisionLimit}회, 최종 마감 ${formatMonthDay(work.finalDue)}`}
+            {`${formatWon(room.budget)}, 수정 ${room.revisionCount}회, 최종 마감 ${formatMonthDay(room.finalDeadline)}`}
           </p>
-          {/* 신고는 끝나기 전까지만. 작업 취소는 사장님만 할 수 있다 */}
-          {work.status !== "completed" && work.status !== "canceled" && (
+          {/* 신고는 작업 상태를 알 때 작업 중에만. 작업 취소는 사장님만 할 수 있다 */}
+          {canReport && (
             <div className="student-chat__work-actions">
               <TextButton showChevron={false} onClick={() => setReportOpen(true)}>
                 문제 신고
@@ -135,27 +135,25 @@ function StudentChatRoomPage() {
 
         <ol className="student-chat__messages">
           {messages.map((message, i) => {
-            const newDay = i === 0 || dayKey(messages[i - 1].at) !== dayKey(message.at);
+            const newDay = i === 0 || dayKey(messages[i - 1].createdAt) !== dayKey(message.createdAt);
             return (
-              <li key={message.id} className="student-chat__item">
-                {newDay && <span className="student-chat__pill">{formatDayChip(message.at)}</span>}
-                {message.type === "system" ? (
-                  <span className="student-chat__pill">{message.text}</span>
-                ) : message.from === "partner" ? (
+              <li key={message.clientMessageId} className="student-chat__item">
+                {newDay && <span className="student-chat__pill">{formatDayChip(message.createdAt)}</span>}
+                {message.mine ? (
+                  <div className="student-chat__line student-chat__line--mine">
+                    <SendState message={message} onResend={resend} />
+                    <MessageBody message={message} mine onOpenExpired={openExpiredAttachment} />
+                  </div>
+                ) : (
                   <div className="student-chat__partner-message">
                     <RoleAvatar role="owner" size={28} />
                     <div className="student-chat__group">
                       <span className="student-chat__sender">{partnerName}</span>
                       <div className="student-chat__line">
-                        <MessageBody message={message} mine={false} />
-                        <time className="student-chat__time">{timeOf(message.at)}</time>
+                        <MessageBody message={message} mine={false} onOpenExpired={openExpiredAttachment} />
+                        <time className="student-chat__time">{timeOf(message.createdAt)}</time>
                       </div>
                     </div>
-                  </div>
-                ) : (
-                  <div className="student-chat__line student-chat__line--mine">
-                    <time className="student-chat__time">{timeOf(message.at)}</time>
-                    <MessageBody message={message} mine />
                   </div>
                 )}
               </li>
@@ -165,38 +163,123 @@ function StudentChatRoomPage() {
         <div ref={endRef} />
       </div>
 
-      <MyPlanSheet work={planOpen ? work : undefined} onClose={() => setPlanOpen(false)} />
+      <MyPlanSheet
+        work={
+          planOpen && plan
+            ? {
+                title: room.jobTitle,
+                plan,
+                budget: room.budget,
+                draftDue: room.draftDeadline,
+                finalDue: room.finalDeadline,
+                revisionLimit: room.revisionCount,
+              }
+            : undefined
+        }
+        onClose={() => setPlanOpen(false)}
+      />
       <ReportSheet
         tone="student"
         open={reportOpen}
-        workTitle={work.title}
+        workTitle={room.jobTitle}
         onClose={() => setReportOpen(false)}
       />
     </SubScreen>
   );
 }
 
-/** 글 말풍선 또는 파일 말풍선 */
-function MessageBody({ message, mine }: { message: ChatMessage; mine: boolean }) {
-  if (message.type === "file") {
+/** 내 말풍선 옆: 보낸 시각 · 보내는 중 · 보내지 못함과 「다시 보내기」 */
+function SendState({
+  message,
+  onResend,
+}: {
+  message: ChatMessage;
+  onResend: (clientMessageId: string) => void;
+}) {
+  if (message.status === "sending") {
+    return <span className="student-chat__time">보내는 중</span>;
+  }
+  if (message.status === "failed") {
+    return (
+      <span className="student-chat__failed">
+        <span>보내지 못했어요</span>
+        <button
+          type="button"
+          className="student-chat__resend"
+          onClick={() => onResend(message.clientMessageId)}
+        >
+          다시 보내기
+        </button>
+      </span>
+    );
+  }
+  return <time className="student-chat__time">{timeOf(message.createdAt)}</time>;
+}
+
+/** 글 · 사진 · 파일 말풍선. 열람 주소가 만료됐으면 새 주소를 받아 연다 */
+function MessageBody({
+  message,
+  mine,
+  onOpenExpired,
+}: {
+  message: ChatMessage;
+  mine: boolean;
+  onOpenExpired: (message: ChatMessage) => void;
+}) {
+  if (message.type === "TEXT") {
+    return (
+      <span className={`student-chat__bubble${mine ? " student-chat__bubble--mine" : ""}`}>
+        {message.content}
+      </span>
+    );
+  }
+
+  const name = message.attachmentName ?? (message.type === "IMAGE" ? "사진" : "파일");
+  if (!message.content) {
     return (
       <span className="student-chat__file">
-        <span aria-hidden="true">📄</span>
+        <span aria-hidden="true">{message.type === "IMAGE" ? "🖼️" : "📄"}</span>
         <span className="student-chat__file-info">
-          <strong>{message.name}</strong>
-          <small>{message.detail}</small>
+          <strong>{name}</strong>
+          <small>열 수 없는 파일이에요</small>
         </span>
       </span>
     );
   }
-  if (message.type === "text") {
+
+  const handleClick = (e: MouseEvent) => {
+    if (!isAttachmentExpired(message)) return;
+    e.preventDefault();
+    onOpenExpired(message);
+  };
+
+  if (message.type === "IMAGE") {
     return (
-      <span className={`student-chat__bubble${mine ? " student-chat__bubble--mine" : ""}`}>
-        {message.text}
-      </span>
+      <a
+        className="student-chat__image"
+        href={message.content}
+        target="_blank"
+        rel="noopener noreferrer"
+        onClick={handleClick}
+      >
+        <img src={message.content} alt={name} />
+      </a>
     );
   }
-  return null;
+  return (
+    <a
+      className="student-chat__file"
+      href={message.content}
+      target="_blank"
+      rel="noopener noreferrer"
+      onClick={handleClick}
+    >
+      <span aria-hidden="true">📄</span>
+      <span className="student-chat__file-info">
+        <strong>{name}</strong>
+      </span>
+    </a>
+  );
 }
 
 export default StudentChatRoomPage;

@@ -58,6 +58,7 @@ function StudentProposalStartPage() {
   const [declining, setDeclining] = useState(false);
   const [startError, setStartError] = useState<StartError | null>(null);
   const [startedDraft, setStartedDraft] = useState<string>();
+  const [startedRoomId, setStartedRoomId] = useState<string>();
   // 다시 그려지기 전에 두 번 눌러도 한 번만 보낸다
   const inFlight = useRef(false);
   // 화면을 떠나면 번호가 바뀌어 늦게 온 응답을 버린다
@@ -98,6 +99,7 @@ function StudentProposalStartPage() {
     switch (result.status) {
       case "started":
         setStartedDraft(result.draftDeadline);
+        setStartedRoomId(result.chatRoomId);
         setPopup("started");
         break;
       case "unauthorized":
@@ -282,13 +284,24 @@ function StudentProposalStartPage() {
         title="작업을 시작했어요"
         description={`초안은 ${formatMonthDay(startedDraft ?? agreement?.draftDeadline ?? todayIsoDate())}까지 제출해 주세요.\n채팅방이 열렸어요. 사장님께도 알릴게요.`}
         actions={
-          <Button
-            tone="student"
-            fullWidth
-            onClick={() => navigate(STUDENT_PATHS.activity("inProgress"), { replace: true })}
-          >
-            확인
-          </Button>
+          <>
+            <Button
+              tone="student"
+              fullWidth
+              onClick={() => navigate(STUDENT_PATHS.activity("inProgress"), { replace: true })}
+            >
+              확인
+            </Button>
+            {startedRoomId && (
+              <Button
+                variant="secondary"
+                fullWidth
+                onClick={() => navigate(STUDENT_PATHS.chat(startedRoomId), { replace: true })}
+              >
+                채팅방 가기
+              </Button>
+            )}
+          </>
         }
       />
       <Dialog
