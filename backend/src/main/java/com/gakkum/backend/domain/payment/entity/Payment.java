@@ -176,4 +176,15 @@ public class Payment {
         status = PaymentStatus.REFUNDED;
         this.refundedAt = refundedAt;
     }
+
+    /** 결제 완료(PAID) 주문을 학생의 의뢰서 거절로 전액 환불 처리한다. 학생 보상금은 0원이다. */
+    public void refundOnDecline(Instant refundedAt) {
+        if (status != PaymentStatus.PAID) {
+            throw new BusinessException(ErrorCode.PAYMENT_NOT_AVAILABLE);
+        }
+        studentCompensationAmount = 0L;
+        refundAmount = amount;
+        status = PaymentStatus.REFUNDED;
+        this.refundedAt = refundedAt;
+    }
 }

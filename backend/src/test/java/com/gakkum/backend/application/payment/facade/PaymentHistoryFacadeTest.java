@@ -460,4 +460,51 @@ class PaymentHistoryFacadeTest {
 
         assertError(ErrorCode.INTERNAL_SERVER_ERROR);
     }
+
+    @Test
+    @DisplayName("학생이 의뢰서를 거절해 전액 환불된 제안 결제는 FULLY_REFUNDED와 결제 금액 전액의 환불 금액으로 반환하고 보관·정산 금액에 넣지 않는다")
+    void returnsDeclinedProposalPaymentAsFullyRefunded() {
+        proposalPaid(51L, 5L, "2026-10-03T03:00:00Z", JobStatus.CANCELLED, 50_000L,
+                payment -> payment.refundOnDecline(Instant.parse("2026-10-04T03:00:00Z")));
+        // 사장님이 취소한 일반 결제는 그대로 부분 환불이다
+        refunded(41L, "2026-10-01T03:00:00Z", "2026-10-01T04:00:00Z", JobStatus.CANCELLED);
+
+        PaymentHistoryResult result = facade.getPaymentHistory(USERNAME);
+
+        List<PaymentHistoryItemResult> items = result.getMonths().get(0).getPayments();
+        assertThat(items).extracting(PaymentHistoryItemResult::getJobId, PaymentHistoryItemResult::getStatus,
+                        PaymentHistoryItemResult::getAmount, PaymentHistoryItemResult::getRefundAmount,
+                        PaymentHistoryItemResult::getStudentName)
+                .containsExactly(
+                        org.assertj.core.api.Assertions.tuple(
+                                51L, PaymentHistoryStatus.FULLY_REFUNDED, 50_000L, 50_000L, "김학생"),
+                        org.assertj.core.api.Assertions.tuple(
+                                41L, PaymentHistoryStatus.PARTIALLY_REFUNDED, 100_000L, 80_000L, "김학생"));
+        // 이번 달 결제액은 환불액을 빼지 않은 최초 결제액이다
+        assertThat(result.getSummary().getThisMonthPaymentAmount()).isEqualTo(150_000L);
+        assertThat(result.getSummary().getHeldAmount()).isZero();
+        assertThat(result.getSummary().getTotalSettledAmount()).isZero();
+    }
+
+    @Test
+    @DisplayName("전액 환불된 결제도 의뢰가 취소 상태가 아니면 서버 오류로 처리한다")
+    void rejectsFullyRefundedPaymentOfNotCancelledJob() {
+        proposalPaid(51L, 5L, "2026-10-03T03:00:00Z", JobStatus.AWAITING_START, 50_000L,
+                payment -> payment.refundOnDecline(Instant.parse("2026-10-04T03:00:00Z")));
+
+        assertError(ErrorCode.INTERNAL_SERVER_ERROR);
+    }
+
+    private void proposalPaid(Long jobId, Long proposalId, String approvedAt, JobStatus jobStatus, Long amount,
+            java.util.function.Consumer<Payment> afterApproval) {
+        Payment payment = Payment.pendingForProposal(proposalId, OWNER_ID, "order-" + jobId, amount, 2, null,
+                Instant.EPOCH);
+        payment.recordKakaoTid("T" + jobId);
+        payment.approve(Instant.parse(approvedAt));
+        payment.linkJob(jobId);
+        afterApproval.accept(payment);
+        payments.add(PaymentHistoryData.from(payment));
+        jobsById.put(jobId, Job.builder().id(jobId).title("의뢰 " + jobId).status(jobStatus)
+                .proposalId(proposalId).selectedStudentProfileId(STUDENT_PROFILE_ID).build());
+    }
 }

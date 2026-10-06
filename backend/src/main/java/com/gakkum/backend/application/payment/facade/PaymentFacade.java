@@ -183,7 +183,7 @@ public class PaymentFacade {
         for (PaymentHistoryData payment : payments) {
             Job job = jobsById.get(payment.getJobId());
             Student student = studentsById.get(studentProfileIdsByJobId.get(payment.getJobId()));
-            PaymentHistoryStatus status = historyStatus(payment.getStatus(), job.getStatus());
+            PaymentHistoryStatus status = historyStatus(payment, job.getStatus());
             YearMonth approvedMonth = YearMonth.from(payment.getApprovedAt().atZone(HISTORY_ZONE));
             itemsByMonth.computeIfAbsent(approvedMonth, month -> new ArrayList<>())
                     .add(PaymentHistoryItemResult.of(payment, job.getTitle(), refundAmount(payment),
@@ -262,7 +262,7 @@ public class PaymentFacade {
                     throw new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR);
                 }
             }
-            SettlementHistoryStatus status = settlementStatus(payment.getStatus(), job.getStatus());
+            SettlementHistoryStatus status = settlementStatus(payment, job.getStatus());
             Long amount = settlementAmount(payment, status);
             YearMonth approvedMonth = YearMonth.from(payment.getApprovedAt().atZone(HISTORY_ZONE));
             itemsByMonth.computeIfAbsent(approvedMonth, month -> new ArrayList<>())
@@ -273,7 +273,7 @@ public class PaymentFacade {
             if (approvedMonth.equals(thisMonth)) {
                 thisMonthWorkAmount += amount;
             }
-            // 착수 보상은 이미 지급이 확정된 금액이라 정산 완료 합계에 포함한다
+            // 착수 보상은 이미 지급이 확정된 금액이라 정산 완료 합계에 포함한다. 환불은 0원이라 어느 합계도 바꾸지 않는다
             if (status == SettlementHistoryStatus.SCHEDULED) {
                 scheduledAmount += amount;
             } else {
@@ -289,7 +289,8 @@ public class PaymentFacade {
     }
 
     // 결제 상태와 의뢰 상태가 맞지 않는 내역은 임의 상태로 보여주지 않고 데이터 오류(500)로 거부한다
-    private SettlementHistoryStatus settlementStatus(PaymentStatus paymentStatus, JobStatus jobStatus) {
+    private SettlementHistoryStatus settlementStatus(SettlementHistoryData payment, JobStatus jobStatus) {
+        PaymentStatus paymentStatus = payment.getStatus();
         // 제안 결제 후 학생의 작업 시작을 기다리는 의뢰도 정산 예정이다
         if (paymentStatus == PaymentStatus.PAID
                 && (jobStatus == JobStatus.MATCHED || jobStatus == JobStatus.AWAITING_START)) {
@@ -298,15 +299,18 @@ public class PaymentFacade {
         if (paymentStatus == PaymentStatus.PAID && jobStatus == JobStatus.CLOSED) {
             return SettlementHistoryStatus.SETTLED;
         }
+        // 학생이 의뢰서를 거절한 전액 환불은 보상금이 없어 착수 보상과 구분한다
         if (paymentStatus == PaymentStatus.REFUNDED && jobStatus == JobStatus.CANCELLED) {
-            return SettlementHistoryStatus.START_COMPENSATION;
+            return payment.isFullyRefunded()
+                    ? SettlementHistoryStatus.REFUNDED
+                    : SettlementHistoryStatus.START_COMPENSATION;
         }
         throw new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR);
     }
 
-    // 학생 수령액. 착수 보상은 취소 시점에 저장된 학생 보상금이며 다시 계산하지 않는다
+    // 학생 수령액. 착수 보상과 환불(0원)은 환불 시점에 저장된 학생 보상금이며 다시 계산하지 않는다
     private Long settlementAmount(SettlementHistoryData payment, SettlementHistoryStatus status) {
-        if (status != SettlementHistoryStatus.START_COMPENSATION) {
+        if (status != SettlementHistoryStatus.START_COMPENSATION && status != SettlementHistoryStatus.REFUNDED) {
             return payment.getAmount();
         }
         if (payment.getStudentCompensationAmount() == null) {
@@ -315,7 +319,7 @@ public class PaymentFacade {
         return payment.getStudentCompensationAmount();
     }
 
-    // 정산 예정은 날짜가 없다. 정산 완료는 의뢰 완료일, 착수 보상은 한국 시간 기준 환불 처리일이다
+    // 정산 예정은 날짜가 없다. 정산 완료는 의뢰 완료일, 착수 보상과 환불은 한국 시간 기준 환불 처리일이다
     private LocalDate settledDate(SettlementHistoryData payment, Job job, SettlementHistoryStatus status) {
         if (status == SettlementHistoryStatus.SCHEDULED) {
             return null;
@@ -333,7 +337,8 @@ public class PaymentFacade {
     }
 
     // 결제 상태와 의뢰 상태가 맞지 않는 내역은 임의 상태로 보여주지 않고 데이터 오류(500)로 거부한다
-    private PaymentHistoryStatus historyStatus(PaymentStatus paymentStatus, JobStatus jobStatus) {
+    private PaymentHistoryStatus historyStatus(PaymentHistoryData payment, JobStatus jobStatus) {
+        PaymentStatus paymentStatus = payment.getStatus();
         // 제안 결제 후 학생의 작업 시작을 기다리는 의뢰도 보관 중이다
         if (paymentStatus == PaymentStatus.PAID
                 && (jobStatus == JobStatus.MATCHED || jobStatus == JobStatus.AWAITING_START)) {
@@ -342,8 +347,11 @@ public class PaymentFacade {
         if (paymentStatus == PaymentStatus.PAID && jobStatus == JobStatus.CLOSED) {
             return PaymentHistoryStatus.SETTLED;
         }
+        // 학생이 의뢰서를 거절한 환불은 보상금 없이 전액을 돌려준다
         if (paymentStatus == PaymentStatus.REFUNDED && jobStatus == JobStatus.CANCELLED) {
-            return PaymentHistoryStatus.PARTIALLY_REFUNDED;
+            return payment.isFullyRefunded()
+                    ? PaymentHistoryStatus.FULLY_REFUNDED
+                    : PaymentHistoryStatus.PARTIALLY_REFUNDED;
         }
         throw new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR);
     }

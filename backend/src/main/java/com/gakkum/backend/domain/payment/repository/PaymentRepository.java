@@ -17,6 +17,10 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
 
     Optional<Payment> findByJobIdAndStatus(Long jobId, PaymentStatus status);
 
+    /** 의뢰서 거절의 환불이 한 번만 기록되도록 의뢰의 결제 행을 잠근다. */
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    Optional<Payment> findLockedByJobIdAndStatus(Long jobId, PaymentStatus status);
+
     boolean existsByProposalIdAndStatus(Long proposalId, PaymentStatus status);
 
     Optional<Payment> findByProposalIdAndStatus(Long proposalId, PaymentStatus status);

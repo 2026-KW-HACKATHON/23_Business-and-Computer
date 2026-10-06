@@ -621,4 +621,53 @@ class JobDetailFlowTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.id").value(42));
     }
+
+    @ParameterizedTest(name = "{0}")
+    @EnumSource(value = UserRole.class, names = { "OWNER", "STUDENT" })
+    @DisplayName("학생이 거절한 제안 의뢰의 상세는 의뢰한 사장님과 거절한 학생에게 cancelledBy STUDENT와 전액 환불·보상금 0원·거절 시각을 반환한다")
+    void returnsStudentAsCancellerOfDeclinedJob(UserRole viewerRole) throws Exception {
+        givenActiveUser(viewerRole);
+        if (viewerRole == UserRole.OWNER) {
+            givenOwnerProfileOfUser(JOB_OWNER_PROFILE_ID);
+        } else {
+            givenStudentProfileOfUser(SELECTED_STUDENT_PROFILE_ID);
+        }
+        Job declined = Job.createAwaitingStart(JOB_OWNER_PROFILE_ID, SELECTED_STUDENT_PROFILE_ID, 5L,
+                "메뉴판 개선 제안", "설명", 100_000L, LocalDate.of(2026, 10, 10), LocalDate.of(2026, 10, 20), 1,
+                "잘 부탁드립니다.", null);
+        declined.decline(CANCELLED_AT);
+        givenJob(declined);
+        givenRefundedPayment(100_000L, 0L);
+
+        mockMvc.perform(get("/jobs/42").principal(authentication))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.status").value("CANCELLED"))
+                .andExpect(jsonPath("$.data.progressStage").value("CANCELLED"))
+                .andExpect(jsonPath("$.data.cancelledBy").value("STUDENT"))
+                .andExpect(jsonPath("$.data.cancelReason").value("학생이 작업 시작 전에 의뢰서를 거절했습니다."))
+                .andExpect(jsonPath("$.data.messageToStudent").value(nullValue()))
+                .andExpect(jsonPath("$.data.refundAmount").value(100_000))
+                .andExpect(jsonPath("$.data.studentCompensationAmount").value(0))
+                .andExpect(jsonPath("$.data.cancelledAt").value("2026-10-04T12:00:00"))
+                // 작업 조건은 그대로 남는다
+                .andExpect(jsonPath("$.data.budget").value(100_000))
+                .andExpect(jsonPath("$.data.draftDeadline").value("2026-10-10"))
+                .andExpect(jsonPath("$.data.finalDeadline").value("2026-10-20"));
+    }
+
+    @Test
+    @DisplayName("작업을 시작한 뒤 사장님이 취소한 제안 의뢰의 상세는 cancelledBy OWNER를 유지한다")
+    void keepsOwnerAsCancellerOfStartedProposalJob() throws Exception {
+        givenActiveUser(UserRole.STUDENT);
+        givenStudentProfileOfUser(SELECTED_STUDENT_PROFILE_ID);
+        givenJob(jobBuilder(JobStatus.CANCELLED).proposalId(5L).selectedStudentProfileId(SELECTED_STUDENT_PROFILE_ID)
+                .startedAt(CANCELLED_AT.minusDays(1)).completedAt(CANCELLED_AT).cancelReason(CANCEL_REASON)
+                .messageToStudent(MESSAGE_TO_STUDENT).build());
+        givenRefundedPayment(70_000L, 30_000L);
+
+        mockMvc.perform(get("/jobs/42").principal(authentication))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.cancelledBy").value("OWNER"))
+                .andExpect(jsonPath("$.data.studentCompensationAmount").value(30_000));
+    }
 }

@@ -18,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 import jakarta.persistence.EntityManager;
 
 import com.gakkum.backend.domain.proposal.entity.Proposal;
+import com.gakkum.backend.domain.proposal.entity.ProposalStatus;
 import com.gakkum.backend.domain.proposal.entity.ProposalSpecialty;
 import com.gakkum.backend.domain.specialty.entity.Specialty;
 import com.gakkum.backend.domain.specialty.entity.SpecialtyCategory;
@@ -97,43 +98,91 @@ class ProposalExploreQueryIntegrationTest {
     @Test
     @DisplayName("대분류 없는 최신순·오래된순 구간 쿼리는 같은 시각 행을 경계 ID로 자르고 이전·이후 행을 시각·ID 순으로 읽는다")
     void readsCreatedAtSegments() {
-        assertThat(ids(proposalRepository.findByDemoSessionIdAndCreatedAtAndIdLessThanOrderByIdDesc(null, T2, second, Limit.of(10))))
+        assertThat(ids(proposalRepository.findByDemoSessionIdAndStatusNotAndCreatedAtAndIdLessThanOrderByIdDesc(null, ProposalStatus.CANCELLED, T2, second, Limit.of(10))))
                 .containsExactly(first);
-        assertThat(ids(proposalRepository.findByDemoSessionIdAndCreatedAtAndIdLessThanOrderByIdDesc(null, T2, Long.MAX_VALUE, Limit.of(10))))
+        assertThat(ids(proposalRepository.findByDemoSessionIdAndStatusNotAndCreatedAtAndIdLessThanOrderByIdDesc(null, ProposalStatus.CANCELLED, T2, Long.MAX_VALUE, Limit.of(10))))
                 .containsExactly(otherCategory, second, first);
-        assertThat(ids(proposalRepository.findByDemoSessionIdAndCreatedAtLessThanOrderByCreatedAtDescIdDesc(null, T2, Limit.of(1))))
+        assertThat(ids(proposalRepository.findByDemoSessionIdAndStatusNotAndCreatedAtLessThanOrderByCreatedAtDescIdDesc(null, ProposalStatus.CANCELLED, T2, Limit.of(1))))
                 .containsExactly(older);
 
-        assertThat(ids(proposalRepository.findByDemoSessionIdAndCreatedAtAndIdGreaterThanOrderByIdAsc(null, T2, first, Limit.of(10))))
+        assertThat(ids(proposalRepository.findByDemoSessionIdAndStatusNotAndCreatedAtAndIdGreaterThanOrderByIdAsc(null, ProposalStatus.CANCELLED, T2, first, Limit.of(10))))
                 .containsExactly(second, otherCategory);
-        assertThat(ids(proposalRepository.findByDemoSessionIdAndCreatedAtGreaterThanOrderByCreatedAtAscIdAsc(null, BEFORE_T1, Limit.of(4))))
+        assertThat(ids(proposalRepository.findByDemoSessionIdAndStatusNotAndCreatedAtGreaterThanOrderByCreatedAtAscIdAsc(null, ProposalStatus.CANCELLED, BEFORE_T1, Limit.of(4))))
                 .containsExactly(older, first, second, otherCategory);
     }
 
     @Test
     @DisplayName("대분류 없는 좋아요순 구간 쿼리는 같은 좋아요·같은 시각, 같은 좋아요·이전 시각, 더 적은 좋아요 순으로 나눠 읽는다")
     void readsLikeSegments() {
-        assertThat(ids(proposalRepository.findByDemoSessionIdAndLikeCountAndCreatedAtAndIdLessThanOrderByIdDesc(
-                null, LIKES + 3, T2, second, Limit.of(10)))).containsExactly(first);
-        assertThat(ids(proposalRepository.findByDemoSessionIdAndLikeCountAndCreatedAtLessThanOrderByCreatedAtDescIdDesc(
-                null, LIKES + 3, T2, Limit.of(10)))).containsExactly(older);
-        assertThat(ids(proposalRepository.findByDemoSessionIdAndLikeCountLessThanOrderByLikeCountDescCreatedAtDescIdDesc(
-                null, LIKES + 5, Limit.of(3)))).containsExactly(second, first, older);
+        assertThat(ids(proposalRepository.findByDemoSessionIdAndStatusNotAndLikeCountAndCreatedAtAndIdLessThanOrderByIdDesc(
+                null, ProposalStatus.CANCELLED, LIKES + 3, T2, second, Limit.of(10)))).containsExactly(first);
+        assertThat(ids(proposalRepository.findByDemoSessionIdAndStatusNotAndLikeCountAndCreatedAtLessThanOrderByCreatedAtDescIdDesc(
+                null, ProposalStatus.CANCELLED, LIKES + 3, T2, Limit.of(10)))).containsExactly(older);
+        assertThat(ids(proposalRepository.findByDemoSessionIdAndStatusNotAndLikeCountLessThanOrderByLikeCountDescCreatedAtDescIdDesc(
+                null, ProposalStatus.CANCELLED, LIKES + 5, Limit.of(3)))).containsExactly(second, first, older);
     }
 
     @Test
     @DisplayName("대분류 쿼리는 그 대분류 소분류가 연결된 제안만 튜플 경계 뒤부터 정렬 순서대로 읽는다")
     void readsCategoryQueries() {
         assertThat(ids(proposalRepository.findExploreLatestInCategory(
-                null, categoryA, AFTER_T2, Long.MAX_VALUE, Limit.of(10)))).containsExactly(second, first, older);
+                null, ProposalStatus.CANCELLED, categoryA, AFTER_T2, Long.MAX_VALUE, Limit.of(10)))).containsExactly(second, first, older);
         assertThat(ids(proposalRepository.findExploreLatestInCategory(
-                null, categoryA, T2, second, Limit.of(10)))).containsExactly(first, older);
+                null, ProposalStatus.CANCELLED, categoryA, T2, second, Limit.of(10)))).containsExactly(first, older);
         assertThat(ids(proposalRepository.findExploreOldestInCategory(
-                null, categoryA, T1, older, Limit.of(10)))).containsExactly(first, second);
+                null, ProposalStatus.CANCELLED, categoryA, T1, older, Limit.of(10)))).containsExactly(first, second);
         assertThat(ids(proposalRepository.findExploreByLikesInCategory(
-                null, categoryA, LIKES + 3, T2, second, Limit.of(10)))).containsExactly(first, older);
+                null, ProposalStatus.CANCELLED, categoryA, LIKES + 3, T2, second, Limit.of(10)))).containsExactly(first, older);
         assertThat(proposalRepository.findExploreLatestInCategory(
-                null, Long.MAX_VALUE, AFTER_T2, Long.MAX_VALUE, Limit.of(10))).isEmpty();
+                null, ProposalStatus.CANCELLED, Long.MAX_VALUE, AFTER_T2, Long.MAX_VALUE, Limit.of(10))).isEmpty();
+    }
+
+    @Test
+    @DisplayName("취소된 제안은 모든 정렬의 구간 쿼리와 대분류 쿼리에서 빠지고 남은 제안이 limit을 채운다")
+    void excludesCancelledProposalsFromEveryExploreQuery() {
+        // second를 취소하면 T2 구간에는 first·otherCategory만, 대분류 A에는 first·older만 남는다
+        entityManager.createNativeQuery("UPDATE proposals SET status = 'CANCELLED' WHERE id = :id")
+                .setParameter("id", second).executeUpdate();
+        entityManager.clear();
+        ProposalStatus cancelled = ProposalStatus.CANCELLED;
+
+        // 최신순
+        assertThat(ids(proposalRepository.findByDemoSessionIdAndStatusNotAndCreatedAtAndIdLessThanOrderByIdDesc(
+                null, cancelled, T2, Long.MAX_VALUE, Limit.of(10)))).containsExactly(otherCategory, first);
+        // 취소된 행이 limit 자리를 차지하지 않는다
+        assertThat(ids(proposalRepository.findByDemoSessionIdAndStatusNotAndCreatedAtAndIdLessThanOrderByIdDesc(
+                null, cancelled, T2, otherCategory, Limit.of(1)))).containsExactly(first);
+        // 오래된순
+        assertThat(ids(proposalRepository.findByDemoSessionIdAndStatusNotAndCreatedAtAndIdGreaterThanOrderByIdAsc(
+                null, cancelled, T2, first, Limit.of(10)))).containsExactly(otherCategory);
+        assertThat(ids(proposalRepository.findByDemoSessionIdAndStatusNotAndCreatedAtGreaterThanOrderByCreatedAtAscIdAsc(
+                null, cancelled, BEFORE_T1, Limit.of(3)))).containsExactly(older, first, otherCategory);
+        // 좋아요순의 세 구간
+        assertThat(ids(proposalRepository.findByDemoSessionIdAndStatusNotAndLikeCountAndCreatedAtAndIdLessThanOrderByIdDesc(
+                null, cancelled, LIKES + 3, T2, Long.MAX_VALUE, Limit.of(10)))).containsExactly(first);
+        assertThat(ids(proposalRepository.findByDemoSessionIdAndStatusNotAndLikeCountLessThanOrderByLikeCountDescCreatedAtDescIdDesc(
+                null, cancelled, LIKES + 5, Limit.of(2)))).containsExactly(first, older);
+        // 대분류 필터
+        assertThat(ids(proposalRepository.findExploreLatestInCategory(
+                null, cancelled, categoryA, AFTER_T2, Long.MAX_VALUE, Limit.of(2)))).containsExactly(first, older);
+        assertThat(ids(proposalRepository.findExploreOldestInCategory(
+                null, cancelled, categoryA, T1, older, Limit.of(10)))).containsExactly(first);
+        assertThat(ids(proposalRepository.findExploreByLikesInCategory(
+                null, cancelled, categoryA, LIKES + 3, AFTER_T2, Long.MAX_VALUE, Limit.of(2))))
+                .containsExactly(first, older);
+    }
+
+    @Test
+    @DisplayName("같은 좋아요·이전 시각 구간도 취소된 제안을 뺀다")
+    void excludesCancelledProposalFromSameLikeEarlierSegment() {
+        entityManager.createNativeQuery("UPDATE proposals SET status = 'CANCELLED' WHERE id = :id")
+                .setParameter("id", older).executeUpdate();
+        entityManager.clear();
+
+        assertThat(proposalRepository.findByDemoSessionIdAndStatusNotAndLikeCountAndCreatedAtLessThanOrderByCreatedAtDescIdDesc(
+                null, ProposalStatus.CANCELLED, LIKES + 3, T2, Limit.of(10))).isEmpty();
+        assertThat(proposalRepository.findByDemoSessionIdAndStatusNotAndCreatedAtLessThanOrderByCreatedAtDescIdDesc(
+                null, ProposalStatus.CANCELLED, T2, Limit.of(1))).extracting(Proposal::getId).doesNotContain(older);
     }
 
     private Long proposal(Long specialtyId) {

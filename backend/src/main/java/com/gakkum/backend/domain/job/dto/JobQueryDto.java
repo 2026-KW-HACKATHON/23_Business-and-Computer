@@ -80,14 +80,14 @@ public final class JobQueryDto {
         }
 
         /**
-         * 취소된 의뢰의 당사자에게 내리는 상세. 현재 취소는 사장님만 할 수 있어 취소한 사람은 항상 OWNER다.
+         * 취소된 의뢰의 당사자에게 내리는 상세. 취소한 사람은 사장님이 취소했으면 OWNER, 학생이 의뢰서를 거절했으면 STUDENT다.
          * @param refund 결제 전(모집 중) 취소면 null이고 금액은 0으로 내린다
          */
         public static JobDetailResult ofCancelled(JobDetailData data, List<SpecialtyCategoryResult> specialtyCategories,
                 Owner owner, JobApplicationStatus applied, RefundedPaymentData refund) {
             Job job = data.getJob();
             return base(data, specialtyCategories, owner, applied)
-                    .cancelledBy(UserRole.OWNER.name())
+                    .cancelledBy((job.isDeclinedByStudent() ? UserRole.STUDENT : UserRole.OWNER).name())
                     .cancelReason(job.getCancelReason())
                     .messageToStudent(job.getMessageToStudent())
                     .refundAmount(refund == null ? 0L : refund.refundAmount())

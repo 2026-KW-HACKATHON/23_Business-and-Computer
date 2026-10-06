@@ -177,8 +177,8 @@ class ProposalLikePersistenceIntegrationTest {
     }
 
     @ParameterizedTest
-    @EnumSource(ProposalStatus.class)
-    @DisplayName("PostgreSQL에서 모든 상태의 제안에 공감하고 취소할 수 있고 제안 상태는 바뀌지 않는다")
+    @EnumSource(value = ProposalStatus.class, names = "CANCELLED", mode = EnumSource.Mode.EXCLUDE)
+    @DisplayName("PostgreSQL에서 취소되지 않은 모든 상태의 제안에 공감하고 취소할 수 있고 제안 상태는 바뀌지 않는다")
     void likesProposalInEveryStatus(ProposalStatus status) {
         Long proposalId = saveProposal(null);
         jdbcTemplate.update("update proposals set status = ? where id = ?", status.name(), proposalId);
@@ -189,6 +189,19 @@ class ProposalLikePersistenceIntegrationTest {
         assertThat(proposalFacade.unlikeProposal(student, proposalId).getLikeCount()).isZero();
         assertLikes(proposalId, 0);
         assertThat(proposalRepository.findById(proposalId).orElseThrow().getStatus()).isEqualTo(status);
+    }
+
+    @Test
+    @DisplayName("PostgreSQL에서 취소된 제안의 공감 추가·취소는 PROPOSAL_404로 거부하고 공감 기록과 공감 수를 바꾸지 않는다")
+    void rejectsLikeForCancelledProposal() {
+        Long proposalId = saveProposal(null);
+        jdbcTemplate.update("update proposals set status = 'CANCELLED' where id = ?", proposalId);
+        String student = givenStudent(2, null);
+
+        assertNotFound(() -> proposalFacade.likeProposal(student, proposalId));
+        assertNotFound(() -> proposalFacade.unlikeProposal(student, proposalId));
+
+        assertLikes(proposalId, 0);
     }
 
     @Test

@@ -41,6 +41,17 @@ public interface JobRepository extends JpaRepository<Job, Long> {
         Long getSelectedStudentProfileId();
     }
 
+    /** 의뢰서 거절 전에 잠금 없이 읽는 의뢰의 격리 범위·제안·담당 학생. 작업 시작과 같은 이유로 프로젝션으로 읽는다. */
+    Optional<DeclineTargetProjection> findDeclineTargetById(Long jobId);
+
+    interface DeclineTargetProjection {
+        Long getProposalId();
+
+        Long getSelectedStudentProfileId();
+
+        String getDemoSessionId();
+    }
+
     List<Job> findByProposalIdIn(Collection<Long> proposalIds);
 
     /** demoSessionId가 조회자와 같은 의뢰만 고른다. 실제 사용자는 null이고 메서드 이름 쿼리는 null을 IS NULL로 비교한다. */
