@@ -1,16 +1,29 @@
 import { SAMPLE_FIRST_VISIT, SAMPLE_REQUEST_EXAMPLES } from "../lib/sampleHome";
-import type { OwnerHome, OwnerTodo } from "../types";
+import type { OwnerHome, OwnerTodo, StudentRef } from "../types";
 import { proposalBadgeNames } from "../../proposal";
 import { useOwnerWorks } from "./useOwnerData";
 import { useOpenJobs } from "./useOwnerJobs";
+import { useOwnerProgressJobs } from "./useOwnerProgressJobs";
 import { jobCategoryNames } from "../lib/ownerJobs";
+import { ownerProgressDeadline, progressWorkPlanContent } from "../lib/progressJobs";
+import type { OwnerProgressJob } from "../lib/progressJobs";
 import { useReceivedProposals } from "./useReceivedProposals";
+
+/** 지금 지킬 마감이 빠른 것부터 */
+const byDue = (a: OwnerProgressJob, b: OwnerProgressJob) =>
+  ownerProgressDeadline(a).due.localeCompare(ownerProgressDeadline(b).due);
+
+/** 홈 카드 · 줄의 학생 (이름을 모르면 「학생」) */
+const studentRef = (job: OwnerProgressJob): StudentRef => ({
+  name: job.student.name ?? "",
+  department: job.student.major,
+});
 
 /**
  * 사장님 홈에 그릴 데이터. 작업 · 의뢰 · 제안에서 만들어서, 홈 카드를 눌러 들어간
  * 상세와 내용이 같다. 백엔드를 연동할 때 홈 API 로 바꿔도 화면은 그대로 쓴다.
- * 받은 제안(GET /me/received-proposals, ADR 0025)과 모집 중인 의뢰(GET /me/jobs?status=OPEN, ADR 0030)는
- * API 이고, 작업은 아직 샘플 데이터다.
+ * 받은 제안(GET /me/received-proposals, ADR 0025), 모집 중인 의뢰(GET /me/jobs?status=OPEN, ADR 0030),
+ * 진행 중 작업(GET /me/jobs?status=MATCHED, ADR 0035)은 API 이고, 끝난 일은 아직 샘플 데이터다.
  */
 export function useOwnerHome(): OwnerHome {
   const works = useOwnerWorks();
@@ -21,19 +34,21 @@ export function useOwnerHome(): OwnerHome {
   );
   const { load: proposalsLoad, reload: reloadReceivedProposals } = useReceivedProposals();
   const proposals = proposalsLoad.status === "loaded" ? proposalsLoad.proposals : [];
+  const { load: progressLoad, reload: reloadProgress } = useOwnerProgressJobs();
+  const progress = progressLoad.status === "loaded" ? [...progressLoad.jobs].sort(byDue) : [];
 
   // 확인할 일: 도착한 결과물 → 새 제안 → 지원자가 생긴 의뢰
   const todos: OwnerTodo[] = [
-    ...works
-      .filter((w) => w.status === "submitted")
-      .map((w): OwnerTodo => ({
+    ...progress
+      .filter((job) => job.stage === "submitted")
+      .map((job): OwnerTodo => ({
         type: "draftArrived",
-        id: w.id,
-        kind: w.kind,
-        title: w.title,
-        field: w.field,
-        student: w.student,
-        autoCompleteOn: w.autoCompleteOn ?? w.finalDue,
+        id: String(job.jobId),
+        kind: job.kind,
+        title: job.title,
+        field: jobCategoryNames(job.specialtyCategories)[0] ?? "기타",
+        student: studentRef(job),
+        revision: job.revisionSubmitted,
       })),
     // 결정을 기다리는 제안만. 대분류가 여러 개면 첫 번째를 뱃지로
     ...proposals
@@ -65,16 +80,23 @@ export function useOwnerHome(): OwnerHome {
     todos,
     receivedProposals: proposalsLoad.status,
     reloadReceivedProposals,
-    working: works
-      .filter((w) => w.status === "inProgress")
-      .map((w) => ({
-        id: w.id,
-        kind: w.kind,
-        title: w.title,
-        student: w.student,
-        stage: w.revisionCount > 0 ? "final" : "draft",
-        due: w.revisionCount > 0 ? w.finalDue : w.draftDue,
-      })),
+    progress: progressLoad.status,
+    reloadProgress,
+    working: progress
+      .filter((job) => job.stage !== "submitted")
+      .map((job) => {
+        const deadline = ownerProgressDeadline(job);
+        return {
+          id: String(job.jobId),
+          kind: job.kind,
+          title: job.title,
+          student: studentRef(job),
+          stage: deadline.stage,
+          due: deadline.due,
+          plan: progressWorkPlanContent(job),
+          proposalId: job.proposalId !== undefined ? String(job.proposalId) : undefined,
+        };
+      }),
     waiting: requests
       .filter((r) => r.applicantCount === 0)
       .map((r) => ({
