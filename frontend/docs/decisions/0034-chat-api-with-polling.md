@@ -1,0 +1,158 @@
+# 0034. Owner and student chat read the chat API and poll for new messages
+
+## Status
+
+Accepted. The chat list and chat room for owners and students read and write
+the backend through `src/features/chat`. Sending photos and files is not part
+of this change.
+
+## Context
+
+The backend (dev) has these chat endpoints (all need login; only the job's
+owner and its selected student may use a room):
+
+- GET /me/chat-rooms → `{ count, rooms }`. Rooms are sorted by latest message,
+  and empty rooms by creation. A room has `roomId` (string), `jobId`,
+  `jobTitle`, `counterpartName` (store name for a student, student name for an
+  owner), `counterpartProfileImageUrl`, `deadlineType` (DRAFT · FINAL, only for
+  a MATCHED job) and `deadlineDate`, `submissionReviewStatus` of the latest
+  submission, `budget`, `revisionCount`, `draftDeadline`, `finalDeadline`,
+  `applicationSummary` · `applicationWorkPlan` · `applicationDeliveryMethod`
+  (the selected application; null for a job started from a proposal),
+  `lastMessage { type, preview, createdAt }`, and `unreadCount`.
+- GET /chat-rooms/{roomId} → one room.
+- GET /chat-rooms/{roomId}/messages → `{ viewerUserId, messages }`, the whole
+  history in id order with no paging. `viewerUserId` is the logged-in user's
+  id. A message has `id` (number), `roomId`, `clientMessageId`,
+  `senderUserId`, `type` (TEXT · IMAGE · FILE), `content` (the text, or a
+  view URL valid for 15 minutes), `attachmentName`, `contentExpiresAt`, and
+  `createdAt`.
+- GET /chat-rooms/{roomId}/messages/{messageId} → one message with a new view
+  URL.
+- PUT /chat-rooms/{roomId}/read `{ lastReadMessageId }`. The read position
+  only moves forward.
+- POST /chat-rooms/{roomId}/messages `{ clientMessageId (UUID), content
+  (≤ 5000) }`. Sending the same `clientMessageId` again returns the stored
+  message.
+- Attachment upload (POST …/attachments/uploads, then
+  POST …/messages/attachments) exists; this change does not use it.
+- Errors: 401, CHAT_403, CHAT_ROOM_404, CHAT_MESSAGE_404, CHAT_MESSAGE_409
+  (same `clientMessageId` with other content), COMMON_400.
+- A room is made per job: when the owner's KakaoPay payment for an applicant
+  is approved, or when the student starts a proposal job (POST
+  /jobs/{jobId}/start answers `chatRoomId`).
+- User ids (`viewerUserId`, `senderUserId`) are strings (`users.user_id`,
+  26-character ULID).
+- There is no WebSocket or SSE. Rooms have no `jobStatus`. There are no
+  system messages, file sizes, or work kinds.
+
+## Decision
+
+- **Shared feature** `src/features/chat`:
+  - `src/features/chat/api/chatApi.ts` calls through `apiData`;
+  - `src/features/chat/lib/chatRoom.ts` makes the status text, the plan, and
+    which work actions show;
+  - `src/features/chat/lib/messages.ts` turns responses into screen messages,
+    merges reloads, and maps failures;
+  - `src/features/chat/hooks/useChatRooms.ts` and
+    `src/features/chat/hooks/useChatRoom.ts` load, poll, read, and send.
+
+  The four screens
+  (`OwnerChatsPage`, `OwnerChatRoomPage`, `StudentChatsPage`,
+  `StudentChatRoomPage`) use it.
+- **Routes**: /owner/chats/:roomId and /student/chats/:roomId. The room screen
+  is keyed by `roomId`.
+- **Mine or partner**: when the history answer has `viewerUserId`, a stored
+  message is mine when `senderUserId === viewerUserId` (string comparison);
+  when it has none, only messages this screen sent are mine. The hook keeps
+  the last `viewerUserId` it received and also uses it for send answers and
+  refreshed attachments. A sending or failed bubble is always mine.
+- **Refresh**: the list loads on entry and again when the tab becomes visible
+  (a failed refresh keeps the current list). The room loads the room and the
+  history together, then reloads the history every 3 seconds while
+  `document.visibilityState` is visible. When the tab becomes visible again it
+  reloads the history at once and the room card too. A merge keeps a view URL
+  that is valid for more than one more minute, so photos are not downloaded on
+  every reload.
+- **Read**: whenever the last stored message id grows (entering the room or
+  receiving a message), PUT /read with that id. A failed read is sent again
+  with the next new message. `src/features/chat/lib/readSync.ts` tracks each
+  read request: the chat list and the tab dot load after the pending reads
+  settle and load again whenever one settles, so the unread counts and the
+  dot update right after reading. When loads overlap, only the last answer is used.
+- **Tab dot** (`useChatUnread`, owner and student): true when any room in
+  GET /me/chat-rooms has `unreadCount` above 0. `OwnerTabScreen` and
+  `StudentTabScreen` pass it to `MainTabScreen` → `TabBar`, which shows a
+  10px dot in the role color (owner yellow, student purple) with a 2px white
+  ring at the top right of the 「채팅」 icon, like the dot on the app bar's
+  알림 bell. It loads when a tab-bar screen opens, when the tab becomes
+  visible, after each read, and every 20 seconds while visible; it stops
+  while hidden. A failed load hides the dot.
+- **Send**: `crypto.randomUUID()` makes `clientMessageId`. The bubble shows at
+  once with 「보내는 중」; success swaps in the stored message; failure shows
+  「보내지 못했어요」 and 「다시 보내기」, which resends the same
+  `clientMessageId`. A pending or failed bubble that turns up in the reloaded
+  history is replaced by the stored one. The input takes up to 5000
+  characters. The attach button is removed.
+- **Photos and files**: a photo shows as a thumbnail and a file as its name,
+  both opening the view URL in a new tab. If `contentExpiresAt` has passed, a
+  blank tab opens first, GET of the one message fetches a new URL, and the tab
+  goes there; failure closes the tab and alerts 「파일을 열지 못했어요. 잠시 후
+  다시 시도해 주세요」. A message without `content` shows 「열 수 없는
+  파일이에요」.
+- **Room card**:
+  - The work icon is the request icon for every room.
+  - The status line comes from `jobStatus` (CLOSED → 완료, CANCELLED → 성사되지
+    않음) or, for a matched job, from the review status and deadline:
+    PENDING → owner 「결과물이 도착했어요, 확인해 주세요」, student
+    「결과물을 보냈어요, 사장님 확인 중」; otherwise 「초안 · 수정안 만드는 중,
+    M월 D일까지 도착 · 제출」 (수정안 when `deadlineType` is FINAL or a
+    revision was requested). Unknown → the line is hidden. The list uses the
+    short forms (「초안 만드는 중 (~M월 D일)」, 「결과물을 확인해 주세요」 ·
+    「사장님이 확인 중」).
+  - 「작업 취소」 (owner) shows only when `jobStatus` is MATCHED and no
+    submission waits for a check; 「문제 신고」 only when `jobStatus` is
+    MATCHED. Without `jobStatus` both are hidden.
+  - 「작업계획서 보기」 shows only when all three application fields are
+    present. `WorkPlanSheet` and `MyPlanSheet` take the fields they show, and
+    without a sent date the subtitle is the work title alone.
+- **List rows**: last message 「사진」, 「파일 · name」, or the text; an empty
+  room says 「아직 메시지가 없어요」 with no time.
+- **Errors**: 401 → /login. CHAT_403 → alert 「이 채팅방에는 들어갈 수
+  없어요」, CHAT_ROOM_404 → alert 「채팅방을 찾을 수 없어요」, then the chat
+  list. A failed first load shows `LoadNotice` 「채팅방을 불러오지 못했어요」 ·
+  「채팅 목록을 불러오지 못했어요」 with 「다시 시도」. Failed background reloads
+  are ignored.
+- **Work start**: the 「작업을 시작했어요」 popup on the proposal work-start
+  screen adds 「채팅방 가기」 when the answer has `chatRoomId`.
+- The sample chat threads, their hooks and types, and the student demo
+  `agreedAt` are removed.
+
+## Rationale
+
+- Polling every 3 seconds needs no package and matches a two-person room;
+  stopping while hidden avoids requests nobody sees.
+- Reusing `clientMessageId` makes a resend safe even when the first request
+  was stored but its answer was lost.
+- Hiding actions and lines that the API cannot decide avoids showing a cancel
+  button on a finished job.
+
+## Alternatives Considered
+
+- STOMP over WebSocket (the @stomp/stompjs package): rejected, the backend has no
+  WebSocket endpoint.
+- Telling sides apart by remembering `senderUserId` from a send answer:
+  rejected, it fails before the first send and after a reload.
+
+## Agent Guidance
+
+- `viewerUserId` and `jobStatus` are optional in
+  `src/features/chat/api/chatApi.ts`. The screens already read them:
+  `viewerUserId` sides a bubble, `jobStatus` shows the work actions and the
+  완료 · 성사되지 않음 lines.
+- 「작업 취소」 goes to `OWNER_PATHS.workCancel(jobId)`; that screen reads
+  sample works.
+- Chat links from screens that read sample works (owner home and 내 활동,
+  the 작업계획서 sheet's 「채팅하기」, `CHAT_MESSAGE` sample notifications, the
+  student 수정 요청 확인 「문의하기」) open the chat list, not a room.
+- The composer sends text only; the attachment upload endpoints are unused.

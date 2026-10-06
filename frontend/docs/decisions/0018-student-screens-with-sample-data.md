@@ -20,10 +20,10 @@ owner's applicant list).
   files, under /student (see Notion 「페이지 주소 정리」). Screens read data
   only through the hooks in `src/features/student/hooks/useStudentData.ts` and
   `useStudentHome.ts`.
-- Sample data has one source per kind: works and chat threads
+- Sample data has one source per kind: works
   (`src/features/student/lib/sampleWorks.ts`), my proposals and the home examples
   (`sampleProposals.ts`), stores, the profile, and notifications. The home,
-  내 활동 counts, settlements, the portfolio, chat rows, and the profile's
+  내 활동 counts, settlements, the portfolio, and the profile's
   completed count, rating, and reviews are derived from them.
 - Facts shared with the owner sample keep the same ids and values: work-103
   and work-090 (치킨플러스). Applications come from the API (ADR 0027).
