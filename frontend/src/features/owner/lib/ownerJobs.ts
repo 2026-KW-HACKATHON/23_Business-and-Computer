@@ -6,6 +6,7 @@ import {
   fetchJobApplications,
   fetchOpenJobs,
 } from "../api/jobApi";
+import { fetchPendingSubmission } from "../api/progressApi";
 import type {
   ApplicantProfileResponse,
   JobApplicantResponse,
@@ -51,6 +52,7 @@ export const loadJobApplications = (jobId: number, sort: JobApplicationSort) =>
   attempt(() => fetchJobApplications(jobId, sort));
 export const loadApplicantProfile = (jobId: number, applicationId: number) =>
   attempt(() => fetchApplicantProfile(jobId, applicationId));
+export const loadPendingSubmission = (jobId: number) => attempt(() => fetchPendingSubmission(jobId));
 
 /** 주소의 id 가 양의 정수인지. 아니면 undefined (요청하지 않는다) */
 export function parsePositiveId(id: string | undefined): number | undefined {
@@ -81,9 +83,9 @@ export function averageReviewRating(profile: ApplicantProfile): number | undefin
   return profile.reviews.reduce((sum, review) => sum + review.rating, 0) / profile.reviews.length;
 }
 
-/** 의뢰 취소 결과 */
+/** 의뢰 취소 결과. 진행 중 작업이면 돌려받는 금액과 학생 착수 보상 (서버가 주면) */
 export type JobCancelResult =
-  | { status: "canceled" }
+  | { status: "canceled"; refundAmount?: number; studentCompensationAmount?: number }
   | {
       status:
         | "unauthorized"
@@ -102,8 +104,15 @@ export async function sendJobCancel(
   messageToStudent: string,
 ): Promise<JobCancelResult> {
   try {
-    await cancelJob(jobId, { cancelReason: cancelReason.trim(), messageToStudent: messageToStudent.trim() });
-    return { status: "canceled" };
+    const data = await cancelJob(jobId, {
+      cancelReason: cancelReason.trim(),
+      messageToStudent: messageToStudent.trim(),
+    });
+    return {
+      status: "canceled",
+      refundAmount: data?.refundAmount ?? undefined,
+      studentCompensationAmount: data?.studentCompensationAmount ?? undefined,
+    };
   } catch (error) {
     if (error instanceof ApiError) {
       if (error.status === 401) return { status: "unauthorized" };
