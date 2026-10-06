@@ -26,15 +26,17 @@ The backend (dev) has:
   `{ submissionId, title, studentName, submissionType, fileUrls, message,
   revisionNumber }` (draft 0, revisions from 1), or JOB_SUBMISSION_404. File
   URLs end with the uploaded file name.
-- POST /jobs/{jobId}/submissions/{submissionId}/revision-request (no body)
+- POST /jobs/{jobId}/submissions/{submissionId}/revision-request with
+  `{ message (required, ≤ 500), referenceImageUrls (up to 4 JOB images) }`
   and .../complete. Errors: JOB_404, JOB_SUBMISSION_404,
   JOB_SUBMISSION_409_REVIEW_STATUS (the job is not in progress),
   JOB_SUBMISSION_409_REVIEWED, JOB_SUBMISSION_409_REVISION_LIMIT
-  (`revisionNumber` ≥ `revisionCount`).
+  (`revisionNumber` ≥ `revisionCount`), and JOB_400_IMAGE_URL ·
+  JOB_409_IMAGE_NOT_UPLOADED for the photos.
 - POST /jobs/{jobId}/cancel on a job in progress refunds the budget minus
   20% student compensation and returns `paidAmount`,
-  `studentCompensationAmount`, and `refundAmount`. It does not refuse a job
-  with a pending submission.
+  `studentCompensationAmount`, and `refundAmount`. A job with a submitted
+  result is refused (JOB_409_CANCEL_SUBMITTED).
 - Submissions have no date, and nothing completes a job automatically.
 
 ## Decision
@@ -51,8 +53,8 @@ The backend (dev) has:
   goes to /login.
 - **내 활동 › 진행 중**: cards sorted by that deadline, with category badges,
   the status (초안 제작 중 · 수정안 제작 중 · 초안/수정안이 도착했어요), the
-  student line (name · 학번 · 학과; no 프로필 보기, as there is no profile API
-  for a matched student), and either 초안/수정안 확인하기 · 문의하기 (채팅
+  student line (name · 학번 · 학과; 「프로필 보기」 opens 「학생 프로필은 곧 볼 수
+  있어요」), and either 초안/수정안 확인하기 · 문의하기 (채팅
   목록) or 작업 취소 · 문제 신고. 「상세보기」 opens the work check when
   something arrived, the application sheet for a request, or the received
   proposal for a proposal. The count shows 「-」 and `LoadNotice` replaces
@@ -69,14 +71,15 @@ The backend (dev) has:
   bar, 「7일 동안 답이 없으면 자동으로 완료돼요」 with the revisions left, the
   files with 「받기」 links (the name comes from the URL), and the student's
   message. 「수정 요청」 is hidden when no revision is left. 「완료 확인」
-  completes (「완료하는 중...」, one request per press) and opens 「작업을
-  완료했어요」 → 내 활동 › 완료.
-- **수정 요청** (/owner/works/:id/revision with a numeric id): the Figma
-  fields stay, but the request has no body, so the text and photos are not
-  sent; a note says so and the text is optional. 「보내는 중...」, then the
-  done popup → 내 활동 › 진행 중. Limit reached → 「남은 수정 요청이 없어요…」;
-  already reviewed or no longer in progress → 「이미 확인했거나 끝난
-  작업이에요…」.
+  completes (「완료하는 중...」, one request per press) and goes to 후기 작성
+  (ADR 0036).
+- **수정 요청** (/owner/works/:id/revision with a numeric id): the text is
+  required; up to 4 reference photos (JPG · PNG · WEBP, 10MB each; others
+  are dropped with a notice) are uploaded as JOB images first, then sent
+  with the text. 「보내는 중...」, then the done popup → 내 활동 › 진행 중.
+  Limit reached → 「남은 수정 요청이 없어요…」; already reviewed or no longer
+  in progress → 「이미 확인했거나 끝난 작업이에요…」; a photo that fails →
+  「참고 사진을 올리지 못했어요…」.
 - **작업 취소** (/owner/works/:id/cancel with a numeric id): reason, message,
   refund breakdown, and the check box as in Figma. A job with an arrived
   submission shows 「결과물을 받은 뒤에는 취소할 수 없어요…」 (the refund
@@ -95,18 +98,14 @@ The backend (dev) has:
 
 ## Alternatives Considered
 
-- Sending the revision text as a chat message: rejected, chat does not read
-  the backend yet, so the student would not see it.
-- Removing the revision text and photo fields until the API takes them:
-  rejected, the Figma screen is the target.
+- Waiting for the matched list to carry the student name: rejected, the
+  screens would show 「학생」 until then.
 
 ## Agent Guidance
 
-- When the revision request takes a message and photos, send them and drop
-  the note in `src/pages/OwnerRevisionPage.tsx`.
+- GET /students/{studentProfileId}/profile (owner) exists; 「프로필 보기」 can
+  open it with the matched list's `studentProfileId`.
 - When the matched list carries the student name, budget, and revision
   count, drop GET /me/chat-rooms from `loadOwnerProgressJobs`.
 - When submissions carry a date, show 「○월 ○일 도착」 and 「○월 ○일까지 확인해
   주세요」 instead of 「7일 동안」.
-- When the review screen reads the backend, 「완료 확인」 goes to 후기 남기기
-  (Figma) instead of the done popup.
