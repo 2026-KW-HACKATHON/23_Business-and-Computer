@@ -2,6 +2,7 @@
 export { default as ExploreSortSheet } from "./components/ExploreSortSheet";
 export { useExploreFeed, usePopularProposals } from "./hooks/useExplore";
 export { useJobDetail } from "./hooks/useJobDetail";
+export { fetchJobDetail } from "./api/jobApi";
 export { useLoadMoreSentinel } from "./hooks/useLoadMoreSentinel";
 export {
   SORT_LABEL,

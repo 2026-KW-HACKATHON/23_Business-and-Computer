@@ -44,6 +44,15 @@ export type { AppliedJobsLoad } from "./hooks/useAppliedJobs";
 export { useSentProposals } from "./hooks/useSentProposals";
 export type { SentProposalsLoad } from "./hooks/useSentProposals";
 export { useStudentHome } from "./hooks/useStudentHome";
+export { useProgressJobs } from "./hooks/useProgressJobs";
+export type { ProgressJobsLoad } from "./hooks/useProgressJobs";
+export {
+  progressDeadline,
+  progressFlowSteps,
+  progressMeta,
+  progressStatusText,
+} from "./lib/progressJobs";
+export type { ProgressJob, ProgressStage } from "./lib/progressJobs";
 export { flowSteps, workFlowSteps } from "./lib/flow";
 export {
   chatStatusText,
