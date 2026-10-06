@@ -53,6 +53,11 @@ export function markOwnerWorkReviewed(workId: string): void {
   reviewedWorkIds.add(workId);
 }
 
+/** 이 화면을 연 동안 후기를 남겼는지. 끝난 작업 목록이 후기 여부를 주기 전까지 서버 작업도 이것으로 본다 */
+export function isOwnerWorkReviewed(workId: string): boolean {
+  return reviewedWorkIds.has(workId);
+}
+
 // ---- 학생: 이름 · 학과 · 학번 · 평점은 프로필 한 곳에서 ----
 
 /** 후기 평균. 후기가 없으면 비운다 */
