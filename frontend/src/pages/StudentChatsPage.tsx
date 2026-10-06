@@ -13,7 +13,7 @@ function StudentChatsPage() {
     <StudentTabScreen tab="chat" title="채팅">
       <p className="student-chats__notice">
         <span aria-hidden="true">ⓘ</span>
-        의뢰에 선정되거나 제안이 수락되면 그 작업의 채팅방이 열려요
+        의뢰에 선정되거나, 수락된 제안에 동의해 작업을 시작하면 채팅방이 열려요
       </p>
       {rooms.length > 0 ? (
         <ul className="student-chats__list">
