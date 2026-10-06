@@ -1,5 +1,5 @@
 import { ApiError } from "../../../api/client";
-import { completeSubmission } from "../api/progressApi";
+import { completeSubmission, requestSubmissionRevision } from "../api/progressApi";
 import type { PendingSubmissionResponse } from "../api/progressApi";
 
 /** 도착해 사장님 확인을 기다리는 초안 · 수정안 (GET /jobs/{id}/submission) */
@@ -54,3 +54,7 @@ async function review(run: () => Promise<void>): Promise<SubmissionReviewResult>
 /** 도착한 결과물을 최종으로 받고 작업을 끝낸다 (POST /jobs/{id}/submissions/{submissionId}/complete) */
 export const sendSubmissionComplete = (jobId: number, submissionId: number) =>
   review(() => completeSubmission(jobId, submissionId));
+
+/** 도착한 결과물에 수정을 요청한다 (POST /jobs/{id}/submissions/{submissionId}/revision-request) */
+export const sendRevisionRequest = (jobId: number, submissionId: number) =>
+  review(() => requestSubmissionRevision(jobId, submissionId));

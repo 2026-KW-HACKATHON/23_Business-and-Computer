@@ -76,3 +76,11 @@ export async function fetchPendingSubmission(jobId: number): Promise<PendingSubm
 export async function completeSubmission(jobId: number, submissionId: number): Promise<void> {
   await apiData<unknown>(`/jobs/${jobId}/submissions/${submissionId}/complete`, { method: "POST" });
 }
+
+/**
+ * POST /jobs/{jobId}/submissions/{submissionId}/revision-request — 도착한 결과물에 수정을 요청한다.
+ * 본문이 없어서 고칠 곳 · 참고 사진은 아직 보낼 수 없다. 답에는 데이터가 없다
+ */
+export async function requestSubmissionRevision(jobId: number, submissionId: number): Promise<void> {
+  await apiData<unknown>(`/jobs/${jobId}/submissions/${submissionId}/revision-request`, { method: "POST" });
+}

@@ -52,7 +52,7 @@ export {
   progressWorkPlanContent,
 } from "./lib/progressJobs";
 export type { OwnerProgressJob, OwnerProgressStage } from "./lib/progressJobs";
-export { sendSubmissionComplete, submissionFileName } from "./lib/submissionReview";
+export { sendRevisionRequest, sendSubmissionComplete, submissionFileName } from "./lib/submissionReview";
 export type { PendingSubmission, SubmissionReviewResult } from "./lib/submissionReview";
 export {
   applicantPlan,
