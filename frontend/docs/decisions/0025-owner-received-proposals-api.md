@@ -34,10 +34,9 @@ The owner side read `SAMPLE_PROPOSALS`, so a proposal a student sent
   - Any active user in the same demo session can open any proposal. Another
     store's proposal comes without `agreement`, and nothing in the response
     says whose store it is. A different session gives 404 `PROPOSAL_404`.
-- `POST /proposals/{id}/payments` takes only `revisionCount`,
-  `messageToStudent`, and `refundPolicyAgreed`. The server sets the fee to
-  the proposal's `proposedFee`, and the deadlines to the payment date plus
-  `draftDays` / `finalDays`.
+- `POST /proposals/{id}/payments` takes `budget` (the fee the owner sets),
+  `revisionCount`, `messageToStudent`, and `refundPolicyAgreed`. The server
+  sets the deadlines to the payment date plus `draftDays` / `finalDays`.
 - The backend has no endpoint to reject a proposal or to read the proposing
   student's profile.
 
@@ -124,13 +123,13 @@ The owner side read `SAMPLE_PROPOSALS`, so a proposal a student sent
     - It reads the proposal with `useProposalDetail`.
     - It shows the title, category badges, student name, 희망 작업비, and
       「예상 초안 N일 · 최종 N일」.
-  - **Read-only fields**: these match what the payment API accepts.
-    - 작업비 shows `proposedFee` with 「학생이 제안한 금액이에요」.
-    - 마감일 shows 「초안 N일 · 최종 N일」 with 「학생이 제안한 기간 · 결제한
+  - **작업비**: a `BudgetField` filled with `proposedFee`, with 「학생 희망
+    작업비를 참고해 정해 주세요」. The owner can change it.
+  - **Read-only field**: 마감일 shows 「초안 N일 · 최종 N일」 with 「학생이 제안한 기간 · 결제한
       날부터 세요」.
   - **Inputs**: 수정 횟수, 학생에게 한마디, and the refund-policy agreement.
-    「안전결제하기」 needs only the agreement.
-  - **Payment**: the payment amount is `proposedFee`. 「안전결제하기」 pays
+    「안전결제하기」 needs the agreement and a 작업비 above 0.
+  - **Payment**: the payment amount is the 작업비 the owner set. 「안전결제하기」 pays
     through KakaoPay (ADR 0028).
   - **Errors**: loading and failure show `LoadNotice` with 「다시 시도」; 404
     shows `OwnerMissing`; 401 goes to /login. These are the same rules as

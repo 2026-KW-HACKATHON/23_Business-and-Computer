@@ -12,11 +12,11 @@ request pay screen (`OwnerPayPage`) keeps `useSafePayment`.
 The backend (dev) pays through the KakaoPay test merchant:
 
 - `POST /proposals/{id}/payments` takes the following body:
+  - `budget` (Long, required, > 0) — the fee the owner sets;
   - `revisionCount` (Integer, required, ≥ 0);
   - `messageToStudent` (≤ 5000; blank is stored as null);
   - `refundPolicyAgreed` (must be `true`).
-  - The fee is the proposal's `proposedFee`, and the order name is its
-    title.
+  - The fee is that `budget`, and the order name is the proposal title.
   - It returns `{ orderId, amount, orderName, nextRedirectPcUrl,
     nextRedirectMobileUrl }`.
   - Preparing again replaces the earlier pending order of that proposal,
