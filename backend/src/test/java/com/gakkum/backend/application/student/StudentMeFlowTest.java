@@ -157,7 +157,7 @@ class StudentMeFlowTest {
     }
 
     @Test
-    @DisplayName("학생 본인의 프로필·집계·특기·자격증·최신 리뷰·정산 완료 내역 15개 필드를 반환하고 학번은 입학연도 두 자리로 내린다")
+    @DisplayName("학생 본인의 프로필·집계·특기·자격증·최신 리뷰·정산 완료 내역 16개 필드를 반환하고 학번은 입학연도 두 자리로 내린다")
     void returnsOwnInformation() throws Exception {
         givenStudent(UserRole.STUDENT, "https://cdn.gakkum.test/profile.png", "포스터를 잘 만듭니다.");
         when(proposalRepository.countByStudentProfileIdAndStatusNot(STUDENT_PROFILE_ID, ProposalStatus.CANCELLED))
@@ -184,13 +184,14 @@ class StudentMeFlowTest {
         perform()
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.data.length()").value(15))
+                .andExpect(jsonPath("$.data.length()").value(16))
                 .andExpect(jsonPath("$.data.studentProfileId").value(7))
                 .andExpect(jsonPath("$.data.profileImageUrl").value("https://cdn.gakkum.test/profile.png"))
                 .andExpect(jsonPath("$.data.name").value("김광운"))
                 .andExpect(jsonPath("$.data.university").value("광운대학교"))
                 .andExpect(jsonPath("$.data.studentNumber").value("24"))
                 .andExpect(jsonPath("$.data.introduction").value("포스터를 잘 만듭니다."))
+                .andExpect(jsonPath("$.data.portfolioUrl").value("https://portfolio.gakkum.test/kim"))
                 .andExpect(jsonPath("$.data.proposalCount").value(2))
                 .andExpect(jsonPath("$.data.completedJobCount").value(4))
                 .andExpect(jsonPath("$.data.penaltyCount").value(1))
@@ -358,15 +359,16 @@ class StudentMeFlowTest {
     }
 
     @Test
-    @DisplayName("활동이 없는 학생은 개수 0, 평점 0.0, 빈 목록을 받고 사진 URL과 소개는 저장된 null 그대로 받는다")
+    @DisplayName("활동이 없는 학생은 개수 0, 평점 0.0, 빈 목록을 받고 사진 URL·소개·포트폴리오 URL은 저장된 null 그대로 받는다")
     void returnsEmptyDefaults() throws Exception {
         givenStudent(UserRole.STUDENT, null, null);
 
         perform()
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.length()").value(15))
+                .andExpect(jsonPath("$.data.length()").value(16))
                 .andExpect(jsonPath("$.data.profileImageUrl").value(nullValue()))
                 .andExpect(jsonPath("$.data.introduction").value(nullValue()))
+                .andExpect(jsonPath("$.data.portfolioUrl").value(nullValue()))
                 .andExpect(jsonPath("$.data.proposalCount").value(0))
                 .andExpect(jsonPath("$.data.completedJobCount").value(0))
                 .andExpect(jsonPath("$.data.reviewCount").value(0))
@@ -463,6 +465,8 @@ class StudentMeFlowTest {
                 .major("컴퓨터정보공학부")
                 .profileImageUrl(profileImageUrl)
                 .introduction(introduction)
+                // 소개가 있는 학생만 포트폴리오도 등록한 상태로 둔다
+                .portfolioUrl(introduction == null ? null : "https://portfolio.gakkum.test/kim")
                 .penaltyCount(1)
                 .build()));
     }

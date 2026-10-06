@@ -32,6 +32,7 @@ public final class StudentQueryDto {
         // 학번 전체가 아닌 입학연도 두 자리
         private final String studentNumber;
         private final String introduction;
+        private final String portfolioUrl;
         private final Long proposalCount;
         private final Long completedJobCount;
         private final Integer penaltyCount;
@@ -65,6 +66,7 @@ public final class StudentQueryDto {
                     .university(student.getUniversity())
                     .studentNumber(admissionYear)
                     .introduction(student.getIntroduction())
+                    .portfolioUrl(student.getPortfolioUrl())
                     .proposalCount(proposalCount)
                     .completedJobCount(completedJobCount)
                     .penaltyCount(student.getPenaltyCount())

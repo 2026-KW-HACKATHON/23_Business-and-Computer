@@ -27,6 +27,7 @@ public class StudentMeResponse {
     private final String university;
     private final String studentNumber;
     private final String introduction;
+    private final String portfolioUrl;
     private final Long proposalCount;
     private final Long completedJobCount;
     private final Integer penaltyCount;
@@ -46,6 +47,7 @@ public class StudentMeResponse {
                 .university(result.getUniversity())
                 .studentNumber(result.getStudentNumber())
                 .introduction(result.getIntroduction())
+                .portfolioUrl(result.getPortfolioUrl())
                 .proposalCount(result.getProposalCount())
                 .completedJobCount(result.getCompletedJobCount())
                 .penaltyCount(result.getPenaltyCount())

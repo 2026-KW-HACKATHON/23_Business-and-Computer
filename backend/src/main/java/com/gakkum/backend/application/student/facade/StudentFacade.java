@@ -35,6 +35,8 @@ import com.gakkum.backend.domain.specialty.dto.SpecialtyCommandDto.AddStudentSpe
 import com.gakkum.backend.domain.specialty.dto.SpecialtyQueryDto.SpecialtyDetail;
 import com.gakkum.backend.domain.specialty.service.SpecialtyCategoryService;
 import com.gakkum.backend.domain.specialty.service.SpecialtyService;
+import com.gakkum.backend.domain.student.dto.StudentCommandDto.UpdateStudentCertificateCommand;
+import com.gakkum.backend.domain.student.dto.StudentCommandDto.UpdateStudentMeCommand;
 import com.gakkum.backend.domain.student.dto.StudentQueryDto.StudentMeResult;
 import com.gakkum.backend.domain.student.dto.StudentQueryDto.StudentReceivedReviewResult;
 import com.gakkum.backend.domain.student.dto.StudentQueryDto.StudentSpecialtyCategoryResult;
@@ -161,6 +163,38 @@ public class StudentFacade {
                         .map(payment -> settledItem(payment, jobsById.get(payment.getJobId()), student,
                                 applicationsById, storeNamesByOwnerProfileId))
                         .toList());
+    }
+
+    /**
+     * 학생 본인의 프로필 사진·소개·포트폴리오와 특기·자격증 목록을 요청 값으로 전체 교체한다.
+     * 입력을 모두 검증한 뒤에 쓰기 시작하고, 도중에 실패하면 전부 롤백한다. 학생 프로필이 없으면 500으로 거부한다.
+     */
+    @Transactional
+    public void updateMe(UpdateStudentMeCommand command) {
+        User user = userService.getActiveUser(command.getUsername());
+        if (user.getRole() != UserRole.STUDENT) {
+            throw new BusinessException(ErrorCode.STUDENT_ME_UPDATE_REQUIRED);
+        }
+        Student student = studentService.findStudentProfileByUserId(user.getId())
+                .orElseThrow(() -> new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR));
+        specialtyService.validateSpecialtyIds(command.getSpecialtyIds());
+        command.getCertificates().forEach(
+                certificate -> certificateService.validateAcquiredYear(certificate.getAcquiredYear()));
+
+        studentService.updateStudentProfile(student, command);
+
+        specialtyService.deleteStudentSpecialties(student.getId());
+        for (Long specialtyId : command.getSpecialtyIds()) {
+            specialtyService.addStudentSpecialty(AddStudentSpecialtyCommand.of(student.getId(), specialtyId));
+        }
+
+        certificateService.deleteStudentCertificates(student.getId());
+        for (UpdateStudentCertificateCommand certificate : command.getCertificates()) {
+            certificateService.addStudentCertificate(AddStudentCertificateCommand.of(
+                    student.getId(),
+                    certificate.getCertificateName(),
+                    certificate.getAcquiredYear()));
+        }
     }
 
     // 정산 내역 조회와 같은 무결성 기준으로 확인한다. 금액은 저장된 결제 금액, 정산일은 의뢰 완료일이다
