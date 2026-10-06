@@ -37,7 +37,8 @@ import "./StudentDetailPage.css";
  * 피그마 「보낸 제안서 상세 보기」. GET /proposals/{id} (ADR 0023).
  * 가게 주소(storeAddress) · 보낸 날짜(createdAt)가 없으면 그 줄만 숨긴다.
  * 수락된(AWAITING_START) · 작업 중(ACCEPTED) 제안은 확정된 작업 조건(agreement)을 보인다.
- * 수락됐으면 가게 칸 아래에 「사장님이 제안을 받아들였어요」.
+ * 수락됐으면 가게 칸 아래에 「사장님이 제안을 받아들였어요」. 의뢰서가 왔으면(AWAITING_START) 아래 버튼은
+ * 「조건 확인하기」 → 작업 시작 (ADR 0029).
  * 수락 대기인 제안은 아래에 「제안 취소」 · 「확인」. 제안 취소 API 가 아직 없어서 「제안 취소하기」를 누르면
  * 「곧 열려요」 안내를 띄운다 (취소 완료 팝업은 API 가 생기면 그 성공 뒤에 연다).
  */
@@ -64,6 +65,8 @@ function StudentProposalPage() {
   const sentOn = proposal && sentOnText(proposal.createdAt);
   const accepted = proposal?.status === "AWAITING_START" || proposal?.status === "ACCEPTED";
   const cancellable = pending && jobStatus !== "CANCELLED";
+  // 사장님이 결제해 의뢰서가 왔으면 조건을 확인하고 작업을 시작한다
+  const startable = proposal?.status === "AWAITING_START" && jobStatus !== "CANCELLED";
   const storeNote = accepted ? "사장님이 제안을 받아들였어요" : undefined;
 
   return (
@@ -71,7 +74,15 @@ function StudentProposalPage() {
       title="보낸 제안"
       onBack={back}
       footer={
-        cancellable ? (
+        startable && proposal ? (
+          <Button
+            tone="student"
+            fullWidth
+            onClick={() => navigate(STUDENT_PATHS.proposalStart(String(proposal.proposalId)))}
+          >
+            조건 확인하기
+          </Button>
+        ) : cancellable ? (
           <div className="student-detail__actions">
             <Button variant="secondary" onClick={() => setCancelStep("confirm")}>
               제안 취소

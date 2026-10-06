@@ -87,8 +87,8 @@ student screen, which still read `sampleProposals.ts`. The backend (dev) has:
     excerpt, 「M월 D일 보냄」, and the store name and address.
   - The sent date or the address line is hidden when its value is missing
     (`sentOnText`, `storeAddressText`).
-  - 「조건 확인하기」 for an accepted proposal comes with the work-start
-    screen (POST /jobs/{jobId}/start) in the next step.
+  - AWAITING_START with the job not cancelled shows 「조건 확인하기」, which
+    opens the work-start screen (ADR 0029).
 - **Detail**:
   - Heading: the chip, all category badges, and 「M월 D일 보냄」. The date is
     read from the text of `createdAt` (already Korea time), so the browser
@@ -106,8 +106,9 @@ student screen, which still read `sampleProposals.ts`. The backend (dev) has:
     (`src/components/ReferencePhotos`). It draws square thumbnails that open
     the original image in a new tab. A photo that fails to load becomes a grey
     tile. `AttachmentTiles` is unchanged.
-  - Footer: 「제안 취소」 (gray) and 「확인」 while PENDING and the job is not
-    cancelled, otherwise 「확인」. 「제안 취소」 opens 「제안을 취소할까요?」
+  - Footer: 「조건 확인하기」 for AWAITING_START with the job not cancelled
+    (ADR 0029); 「제안 취소」 (gray) and 「확인」 while PENDING and the job is
+    not cancelled; otherwise 「확인」. 「제안 취소」 opens 「제안을 취소할까요?」
     (Figma 「제안 취소 확인」). There is no cancel API yet, so 「제안
     취소하기」 shows 「제안 취소는 곧 열려요」; the 「제안을 취소했어요」 popup
     opens after a successful cancel once the API exists.
@@ -147,8 +148,6 @@ student screen, which still read `sampleProposals.ts`. The backend (dev) has:
 - When a proposal cancel API exists, call it from 「제안 취소하기」 in
   `src/pages/StudentProposalPage.tsx` and open the 「제안을 취소했어요」 popup
   on success instead of 「곧 열려요」.
-- 「조건 확인하기」 (AWAITING_START) and the work-start screen
-  (`POST /jobs/{jobId}/start`) are wired in the next step.
 - `useMyProposal` (sample) is used by the work-start screen.
 - `GET /proposals/{id}` does not check that the viewer wrote the proposal
   (only the demo session); the screen trusts that it was reached from the

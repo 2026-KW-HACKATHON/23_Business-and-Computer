@@ -1,6 +1,7 @@
 import type { MouseEvent } from "react";
 import { Button, CategoryBadge, TextButton, WorkKindIcon } from "../../../components";
 import { useLoopCarousel, withLoopClones } from "../../../hooks/useLoopCarousel";
+import { proposalBadgeNames } from "../../proposal";
 import { deadlineText } from "../lib/format";
 import type { StudentTodo } from "../types";
 import "./StudentTodoCarousel.css";
@@ -19,8 +20,31 @@ function describe(todo: StudentTodo) {
     case "revising":
       return { status: "수정 요청이 도착했어요", action: "수정안 제출하기" };
     case "agreement":
+    case "proposalAgreement":
       return { status: "제안이 받아들여졌어요", action: "조건 확인" };
   }
+}
+
+/** 카드 머리 (종류 · 제목 · 분야 · 가게) */
+function heading(todo: StudentTodo) {
+  if (todo.type === "proposalAgreement") {
+    const { proposal } = todo;
+    return {
+      key: `proposal-${proposal.proposalId}`,
+      kind: "proposal" as const,
+      title: proposal.title,
+      fields: proposalBadgeNames(proposal.specialtyCategories),
+      store: proposal.store.storeName,
+    };
+  }
+  const { work } = todo;
+  return {
+    key: `${todo.type}-${work.id}`,
+    kind: work.kind,
+    title: work.title,
+    fields: [work.field],
+    store: work.store.name,
+  };
 }
 
 interface StudentTodoCarouselProps {
@@ -67,7 +91,7 @@ function StudentTodoCarousel({ todos, onDetail, onAction }: StudentTodoCarouselP
             {slides.map((todo, i) => {
               const hidden = i !== offset || isClone(i);
               const { status, action } = describe(todo);
-              const { work } = todo;
+              const head = heading(todo);
               return (
                 <article
                   key={i}
@@ -78,12 +102,14 @@ function StudentTodoCarousel({ todos, onDetail, onAction }: StudentTodoCarouselP
                 >
                   <div className="student-todo__heading">
                     <div className="student-todo__title-row">
-                      <WorkKindIcon kind={work.kind} />
-                      <h3 className="student-todo__title">{work.title}</h3>
+                      <WorkKindIcon kind={head.kind} />
+                      <h3 className="student-todo__title">{head.title}</h3>
                     </div>
                     <div className="student-todo__meta">
-                      <CategoryBadge field={work.field} />
-                      <span className="student-todo__meta-text">{work.store.name}</span>
+                      {head.fields.map((name) => (
+                        <CategoryBadge key={name} field={name} />
+                      ))}
+                      <span className="student-todo__meta-text">{head.store}</span>
                     </div>
                   </div>
                   <div className="student-todo__status">
@@ -133,7 +159,7 @@ function StudentTodoCarousel({ todos, onDetail, onAction }: StudentTodoCarouselP
         <div className="student-todo__dots" role="img" aria-label={`${todos.length}개 중 ${index + 1}번째`}>
           {todos.map((todo, i) => (
             <span
-              key={`${todo.type}-${todo.work.id}`}
+              key={heading(todo).key}
               className={`student-todo__dot${i === index ? " student-todo__dot--current" : ""}`}
             />
           ))}
