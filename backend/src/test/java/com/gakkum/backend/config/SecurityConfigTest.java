@@ -1,10 +1,14 @@
 package com.gakkum.backend.config;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.options;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
@@ -16,6 +20,7 @@ import java.util.List;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
@@ -37,6 +42,8 @@ import com.gakkum.backend.application.job.controller.JobController;
 import com.gakkum.backend.application.media.controller.MediaController;
 import com.gakkum.backend.application.media.facade.MediaFacade;
 import com.gakkum.backend.application.job.facade.JobFacade;
+import com.gakkum.backend.application.owner.controller.OwnerController;
+import com.gakkum.backend.application.owner.facade.OwnerFacade;
 import com.gakkum.backend.application.payment.controller.PaymentController;
 import com.gakkum.backend.application.payment.facade.PaymentFacade;
 import com.gakkum.backend.application.proposal.controller.ProposalController;
@@ -48,7 +55,10 @@ import com.gakkum.backend.application.student.facade.StudentFacade;
 import com.gakkum.backend.domain.category.dto.BusinessCategoryResponse;
 import com.gakkum.backend.domain.category.entity.BusinessCategory;
 import com.gakkum.backend.domain.category.service.BusinessCategoryService;
+import com.gakkum.backend.domain.owner.dto.OwnerQueryDto.OwnerMeResult;
+import com.gakkum.backend.domain.owner.entity.Owner;
 import com.gakkum.backend.domain.specialty.service.SpecialtyCategoryService;
+import com.gakkum.backend.domain.student.dto.StudentCommandDto.UpdateStudentMeCommand;
 import com.gakkum.backend.domain.student.dto.StudentQueryDto.StudentMeResult;
 import com.gakkum.backend.domain.student.entity.Student;
 import com.gakkum.backend.domain.user.entity.User;
@@ -62,7 +72,7 @@ import com.gakkum.backend.util.JWTUtil;
 @WebMvcTest(controllers = {SecurityConfigTest.TestController.class, SpecialtyController.class,
         JobController.class, PaymentController.class, MediaController.class, ReviewController.class,
         ProposalController.class, ExploreController.class, BusinessCategoryController.class,
-        StudentController.class})
+        StudentController.class, OwnerController.class})
 @Import({SecurityConfig.class, RestAuthenticationEntryPoint.class})
 @TestPropertySource(properties = "demo-login.enabled=false")
 class SecurityConfigTest {
@@ -111,6 +121,9 @@ class SecurityConfigTest {
 
     @MockitoBean
     private StudentFacade studentFacade;
+
+    @MockitoBean
+    private OwnerFacade ownerFacade;
 
     @Test
     @DisplayName("인증 없이 탐색 목록을 조회하면 401을 반환한다")
@@ -272,6 +285,71 @@ class SecurityConfigTest {
             .andExpect(jsonPath("$.data.studentProfileId").value(7))
             .andExpect(jsonPath("$.data.name").value("김광운"))
             .andExpect(jsonPath("$.data.studentNumber").value("24"));
+    }
+
+    @Test
+    @DisplayName("인증 없이 사장님 내 정보를 조회하면 401을 반환하고 컨트롤러에 도달하지 않는다")
+    void ownerMeRequiresAuthentication() throws Exception {
+        mockMvc.perform(get("/owners/me"))
+            .andExpect(status().isUnauthorized())
+            .andExpect(jsonPath("$.error.code").value("COMMON_401"));
+
+        verifyNoInteractions(ownerFacade);
+    }
+
+    @Test
+    @DisplayName("사장님의 Bearer 토큰으로 사장님 내 정보를 조회하면 인증된 사용자 이름으로 컨트롤러까지 도달한다")
+    void authenticatedOwnerCanReadOwnerMe() throws Exception {
+        String token = "owner-access-token";
+        when(jwtUtil.isValid(token, true)).thenReturn(true);
+        when(jwtUtil.getUsername(token)).thenReturn("KAKAO_123");
+        when(jwtUtil.getRole(token)).thenReturn("OWNER");
+        when(ownerFacade.getMe("KAKAO_123")).thenReturn(OwnerMeResult.of(
+                Owner.builder().id(5L).storeName("가꿈 베이커리").build(),
+                User.builder().name("김사장").build(),
+                3L, 2L, 1L, 1L));
+
+        mockMvc.perform(get("/owners/me")
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.success").value(true))
+            .andExpect(jsonPath("$.data.ownerProfileId").value(5))
+            .andExpect(jsonPath("$.data.name").value("김사장"))
+            .andExpect(jsonPath("$.data.sentJobCount").value(3));
+    }
+
+    @Test
+    @DisplayName("인증 없이 학생 내 정보를 수정하면 401을 반환하고 컨트롤러에 도달하지 않는다")
+    void studentMeUpdateRequiresAuthentication() throws Exception {
+        mockMvc.perform(put("/students/me")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"specialtyIds\": [], \"certificates\": []}"))
+            .andExpect(status().isUnauthorized())
+            .andExpect(jsonPath("$.error.code").value("COMMON_401"));
+
+        verifyNoInteractions(studentFacade);
+    }
+
+    @Test
+    @DisplayName("학생의 Bearer 토큰으로 학생 내 정보를 수정하면 인증된 사용자 이름으로 컨트롤러까지 도달하고 성공 여부만 반환한다")
+    void authenticatedStudentCanUpdateStudentMe() throws Exception {
+        String token = "student-access-token";
+        when(jwtUtil.isValid(token, true)).thenReturn(true);
+        when(jwtUtil.getUsername(token)).thenReturn("KAKAO_123");
+        when(jwtUtil.getRole(token)).thenReturn("STUDENT");
+
+        mockMvc.perform(put("/students/me")
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"specialtyIds\": [1], \"certificates\": []}"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.length()").value(1))
+            .andExpect(jsonPath("$.success").value(true));
+
+        ArgumentCaptor<UpdateStudentMeCommand> command = ArgumentCaptor.forClass(UpdateStudentMeCommand.class);
+        verify(studentFacade).updateMe(command.capture());
+        assertThat(command.getValue().getUsername()).isEqualTo("KAKAO_123");
+        assertThat(command.getValue().getSpecialtyIds()).containsExactly(1L);
     }
 
     @Test
