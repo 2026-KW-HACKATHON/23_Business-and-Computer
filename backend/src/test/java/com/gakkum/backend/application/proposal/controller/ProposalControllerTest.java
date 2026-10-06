@@ -251,7 +251,7 @@ class ProposalControllerTest {
         Proposal proposal = Proposal.builder().id(31L).title("메뉴판 개선 제안").proposedFee(50000L)
                 .draftDays(3).finalDays(7).referenceImageUrls(List.of()).likeCount(0)
                 .status(ProposalStatus.AWAITING_START).build();
-        Job job = Job.builder().id(42L).status(JobStatus.AWAITING_START).budget(50000L)
+        Job job = Job.builder().id(42L).status(JobStatus.AWAITING_START).budget(120000L)
                 .draftDeadline(LocalDate.of(2026, 10, 8)).finalDeadline(LocalDate.of(2026, 10, 12))
                 .revisionCount(2).acceptanceMessage("매장 분위기에 맞춰 작업 부탁드립니다.").build();
         when(proposalFacade.getProposalDetail(USERNAME, 31L))
@@ -273,7 +273,9 @@ class ProposalControllerTest {
                 .andExpect(jsonPath("$.data.estimatedDraftDeadline").doesNotExist())
                 .andExpect(jsonPath("$.data.estimatedFinalDeadline").doesNotExist())
                 .andExpect(jsonPath("$.data.agreement.jobStatus").value("AWAITING_START"))
-                .andExpect(jsonPath("$.data.agreement.budget").value(50000))
+                // 학생 희망 금액은 그대로 두고 확정 작업비는 실제 결제 금액으로 내린다
+                .andExpect(jsonPath("$.data.proposedFee").value(50000))
+                .andExpect(jsonPath("$.data.agreement.budget").value(120000))
                 .andExpect(jsonPath("$.data.agreement.draftDeadline").value("2026-10-08"))
                 .andExpect(jsonPath("$.data.agreement.finalDeadline").value("2026-10-12"))
                 .andExpect(jsonPath("$.data.agreement.revisionCount").value(2))
