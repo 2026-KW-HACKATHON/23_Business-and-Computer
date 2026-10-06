@@ -46,8 +46,8 @@ export type { OwnerJobLoad } from "./hooks/useOwnerJobs";
 export { useOwnerClosedJobs } from "./hooks/useOwnerClosedJobs";
 export type { OwnerClosedJobsLoad } from "./hooks/useOwnerClosedJobs";
 export { isOwnerWorkReviewed } from "./hooks/useOwnerData";
-export { workHistoryText } from "./lib/closedJobs";
-export type { JobResult, OwnerClosedJob, OwnerClosedOutcome } from "./lib/closedJobs";
+export { REVIEW_POINTS, sendJobReview, workHistoryText } from "./lib/closedJobs";
+export type { JobResult, JobReviewResult, OwnerClosedJob, OwnerClosedOutcome } from "./lib/closedJobs";
 export { useOwnerProgressJobs } from "./hooks/useOwnerProgressJobs";
 export type { OwnerProgressJobsLoad } from "./hooks/useOwnerProgressJobs";
 export {

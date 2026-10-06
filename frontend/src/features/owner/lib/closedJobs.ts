@@ -1,7 +1,12 @@
 import { ApiError } from "../../../api/client";
 import type { WorkKind } from "../../../types/workKind";
-import { fetchOwnerClosedJobs } from "../api/closedApi";
-import type { JobResultResponse, OwnerClosedJobResponse, WorkHistoryType } from "../api/closedApi";
+import { createJobReview, fetchOwnerClosedJobs } from "../api/closedApi";
+import type {
+  JobResultResponse,
+  OwnerClosedJobResponse,
+  ReviewPositivePoint,
+  WorkHistoryType,
+} from "../api/closedApi";
 import type { JobSpecialtyCategory } from "../api/jobApi";
 import { fetchOwnerPayments } from "../api/paymentHistoryApi";
 import type { PaymentHistoryItem } from "../api/paymentHistoryApi";
@@ -89,4 +94,60 @@ export async function loadOwnerClosedJobs(): Promise<OwnerClosedJobsResult> {
       };
     }),
   };
+}
+
+/** 후기 「좋았던 점」 칩 (피그마 순서)과 서버 값 */
+export const REVIEW_POINTS: { label: string; value: ReviewPositivePoint }[] = [
+  { label: "결과물이 좋아요", value: "QUALITY_OUTPUT" },
+  { label: "마감을 잘 지켜요", value: "ON_TIME_DELIVERY" },
+  { label: "소통이 빨라요", value: "FAST_COMMUNICATION" },
+  { label: "친절해요", value: "KINDNESS" },
+  { label: "수정을 잘 반영해요", value: "REVISION_FEEDBACK" },
+];
+
+/** 후기 결과 */
+export type JobReviewResult =
+  | { status: "done" }
+  | {
+      status:
+        | "unauthorized"
+        | "forbidden"
+        /** 409 REVIEW_409_DUPLICATE — 이미 후기를 남김 */
+        | "duplicate"
+        /** 404 JOB_404 · 409 REVIEW_409_STATUS — 내 작업이 아니거나 끝나지 않음 */
+        | "notAvailable"
+        /** 400 — 별점 · 글 확인 */
+        | "invalidInput"
+        | "error";
+    };
+
+/**
+ * 후기를 남긴다 (POST /jobs/{id}/reviews). 서버는 글을 꼭 받아서, 글을 비워 두면 고른 별점 말과
+ * 좋았던 점을 이어 글로 보낸다 (「최고예요 · 친절해요」).
+ */
+export async function sendJobReview(
+  jobId: number,
+  review: { rating: number; ratingLabel: string; pointLabels: string[]; text: string },
+): Promise<JobReviewResult> {
+  // 고른 순서와 관계없이 칩 순서대로
+  const points = REVIEW_POINTS.filter((point) => review.pointLabels.includes(point.label));
+  const content =
+    review.text.trim() || [review.ratingLabel, ...points.map((point) => point.label)].filter(Boolean).join(" · ");
+  try {
+    await createJobReview(jobId, {
+      rating: review.rating,
+      positivePoints: points.map((point) => point.value),
+      content,
+    });
+    return { status: "done" };
+  } catch (error) {
+    if (error instanceof ApiError) {
+      if (error.status === 401) return { status: "unauthorized" };
+      if (error.status === 403) return { status: "forbidden" };
+      if (error.code === "REVIEW_409_DUPLICATE") return { status: "duplicate" };
+      if (error.status === 404 || error.code === "REVIEW_409_STATUS") return { status: "notAvailable" };
+      if (error.status === 400) return { status: "invalidInput" };
+    }
+    return { status: "error" };
+  }
 }

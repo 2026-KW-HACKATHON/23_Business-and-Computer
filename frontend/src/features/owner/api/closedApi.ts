@@ -52,3 +52,26 @@ export async function fetchJobResult(jobId: number): Promise<JobResultResponse> 
   if (!data) throw new Error("Job result response has no data");
   return data;
 }
+
+/** 후기의 좋았던 점 */
+export type ReviewPositivePoint =
+  | "QUALITY_OUTPUT"
+  | "ON_TIME_DELIVERY"
+  | "FAST_COMMUNICATION"
+  | "KINDNESS"
+  | "REVISION_FEEDBACK";
+
+/** POST /jobs/{jobId}/reviews 본문 */
+export interface JobReviewRequest {
+  /** 1 ~ 5 */
+  rating: number;
+  /** 겹치지 않게 5개까지 */
+  positivePoints: ReviewPositivePoint[];
+  /** 꼭 적어야 함, 5000자까지 */
+  content: string;
+}
+
+/** POST /jobs/{jobId}/reviews — 완료된 내 작업의 학생에게 후기를 한 번 남긴다 */
+export async function createJobReview(jobId: number, request: JobReviewRequest): Promise<void> {
+  await apiData<unknown>(`/jobs/${jobId}/reviews`, { method: "POST", body: JSON.stringify(request) });
+}
