@@ -80,26 +80,26 @@ class PaymentPreparationServiceTest {
     }
 
     @Test
-    @DisplayName("제안을 받은 사장님의 제안을 잠가 확인하고 요청 값이 아닌 제안의 작업비와 타이틀로 결제 시도를 만든다")
+    @DisplayName("제안을 받은 사장님의 제안을 잠가 확인하고 학생 희망 금액이 아닌 사장님이 입력한 작업비와 제안 타이틀로 결제 시도를 만든다")
     void createsPendingProposalPayment() {
         User user = User.builder().id(USER_ID).role(UserRole.OWNER).build();
         Proposal proposal = Proposal.builder().id(5L).ownerProfileId(7L).studentProfileId(31L)
                 .title("메뉴판 개선 제안").proposedFee(50_000L).build();
-        Payment payment = Payment.pendingForProposal(5L, USER_ID, "order-123", 50_000L, 2, "잘 부탁드립니다.",
+        Payment payment = Payment.pendingForProposal(5L, USER_ID, "order-123", 120_000L, 2, "잘 부탁드립니다.",
                 Instant.EPOCH);
         when(userService.getActiveUser("KAKAO_123")).thenReturn(user);
         when(ownerService.getOwnerProfile(USER_ID)).thenReturn(Owner.builder().id(7L).build());
         when(proposalService.getPayableProposalForUpdate(5L, 7L)).thenReturn(proposal);
-        when(paymentService.prepareProposalPayment(5L, USER_ID, 50_000L, 2, "잘 부탁드립니다.")).thenReturn(payment);
+        when(paymentService.prepareProposalPayment(5L, USER_ID, 120_000L, 2, "잘 부탁드립니다.")).thenReturn(payment);
 
         PendingPaymentData result = service.createPendingForProposal(
-                PrepareProposalPaymentCommand.of("KAKAO_123", 5L, 2, "잘 부탁드립니다."));
+                PrepareProposalPaymentCommand.of("KAKAO_123", 5L, 120_000L, 2, "잘 부탁드립니다."));
 
         assertThat(result.orderId()).isEqualTo("order-123");
-        assertThat(result.amount()).isEqualTo(50_000L);
+        assertThat(result.amount()).isEqualTo(120_000L);
         assertThat(result.orderName()).isEqualTo("메뉴판 개선 제안");
         assertThat(result.ownerUserId()).isEqualTo(USER_ID);
-        verify(paymentService).prepareProposalPayment(5L, USER_ID, 50_000L, 2, "잘 부탁드립니다.");
+        verify(paymentService).prepareProposalPayment(5L, USER_ID, 120_000L, 2, "잘 부탁드립니다.");
         verifyNoInteractions(jobService);
     }
 
@@ -110,7 +110,7 @@ class PaymentPreparationServiceTest {
                 .thenReturn(User.builder().id(USER_ID).role(UserRole.STUDENT).build());
 
         assertThatThrownBy(() -> service.createPendingForProposal(
-                PrepareProposalPaymentCommand.of("KAKAO_123", 5L, 2, null)))
+                PrepareProposalPaymentCommand.of("KAKAO_123", 5L, 120_000L, 2, null)))
                 .isInstanceOfSatisfying(BusinessException.class, exception ->
                         assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.PAYMENT_OWNER_REQUIRED));
         verifyNoInteractions(ownerService, proposalService, paymentService);
@@ -126,7 +126,7 @@ class PaymentPreparationServiceTest {
                 .thenThrow(new BusinessException(ErrorCode.PROPOSAL_PAYMENT_FORBIDDEN));
 
         assertThatThrownBy(() -> service.createPendingForProposal(
-                PrepareProposalPaymentCommand.of("KAKAO_123", 5L, 2, null)))
+                PrepareProposalPaymentCommand.of("KAKAO_123", 5L, 120_000L, 2, null)))
                 .isInstanceOfSatisfying(BusinessException.class, exception ->
                         assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.PROPOSAL_PAYMENT_FORBIDDEN));
         verifyNoInteractions(paymentService);
@@ -161,8 +161,8 @@ class PaymentPreparationServiceTest {
         when(proposalService.getPayableProposalForUpdate(5L, 7L)).thenReturn(Proposal.builder()
                 .id(5L).ownerProfileId(7L).title("메뉴판 개선 제안").proposedFee(50_000L).build());
         when(paymentService.findPendingProposalPayment(5L)).thenReturn(Optional.ofNullable(previous));
-        when(paymentService.prepareProposalPayment(5L, USER_ID, 50_000L, 2, null)).thenReturn(
-                Payment.pendingForProposal(5L, USER_ID, "order-123", 50_000L, 2, null, Instant.EPOCH));
+        when(paymentService.prepareProposalPayment(5L, USER_ID, 120_000L, 2, null)).thenReturn(
+                Payment.pendingForProposal(5L, USER_ID, "order-123", 120_000L, 2, null, Instant.EPOCH));
     }
 
     private PaymentResult providerOrder(String status) {
@@ -176,7 +176,7 @@ class PaymentPreparationServiceTest {
         when(kakaoPayClient.order(PREVIOUS_TID)).thenReturn(providerOrder("SUCCESS_PAYMENT"));
 
         assertThatThrownBy(() -> service.createPendingForProposal(
-                PrepareProposalPaymentCommand.of("KAKAO_123", 5L, 2, null)))
+                PrepareProposalPaymentCommand.of("KAKAO_123", 5L, 120_000L, 2, null)))
                 .isInstanceOfSatisfying(BusinessException.class, exception ->
                         assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.PAYMENT_ALREADY_PAID));
         verify(paymentService, never()).prepareProposalPayment(any(), any(), any(), any(), any());
@@ -190,7 +190,7 @@ class PaymentPreparationServiceTest {
                 .thenThrow(new BusinessException(ErrorCode.PAYMENT_APPROVAL_UNAVAILABLE));
 
         assertThatThrownBy(() -> service.createPendingForProposal(
-                PrepareProposalPaymentCommand.of("KAKAO_123", 5L, 2, null)))
+                PrepareProposalPaymentCommand.of("KAKAO_123", 5L, 120_000L, 2, null)))
                 .isInstanceOfSatisfying(BusinessException.class, exception ->
                         assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.PAYMENT_APPROVAL_UNAVAILABLE));
         verify(paymentService, never()).prepareProposalPayment(any(), any(), any(), any(), any());
@@ -203,7 +203,7 @@ class PaymentPreparationServiceTest {
         when(kakaoPayClient.order(PREVIOUS_TID)).thenReturn(providerOrder("READY"));
 
         PendingPaymentData result = service.createPendingForProposal(
-                PrepareProposalPaymentCommand.of("KAKAO_123", 5L, 2, null));
+                PrepareProposalPaymentCommand.of("KAKAO_123", 5L, 120_000L, 2, null));
 
         assertThat(result.orderId()).isEqualTo("order-123");
     }
@@ -212,13 +212,13 @@ class PaymentPreparationServiceTest {
     @DisplayName("이전 대기 주문이 없거나 거래번호가 없으면 카카오페이를 조회하지 않고 새 주문을 만든다")
     void skipsProviderCheckWithoutPreviousTid() {
         givenPayableProposal(null);
-        service.createPendingForProposal(PrepareProposalPaymentCommand.of("KAKAO_123", 5L, 2, null));
+        service.createPendingForProposal(PrepareProposalPaymentCommand.of("KAKAO_123", 5L, 120_000L, 2, null));
 
         givenPayableProposal(previousProposalOrder(null));
-        service.createPendingForProposal(PrepareProposalPaymentCommand.of("KAKAO_123", 5L, 2, null));
+        service.createPendingForProposal(PrepareProposalPaymentCommand.of("KAKAO_123", 5L, 120_000L, 2, null));
 
         verifyNoInteractions(kakaoPayClient);
-        verify(paymentService, org.mockito.Mockito.times(2)).prepareProposalPayment(5L, USER_ID, 50_000L, 2, null);
+        verify(paymentService, org.mockito.Mockito.times(2)).prepareProposalPayment(5L, USER_ID, 120_000L, 2, null);
     }
 
     @Test

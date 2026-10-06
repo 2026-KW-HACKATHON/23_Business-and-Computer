@@ -137,21 +137,21 @@ class PaymentControllerTest {
     }
 
     @Test
-    @DisplayName("제안 결제 준비 요청은 인증 사용자·제안 ID·수정 횟수·한마디를 전달하고 기존 결제 준비 형식으로 주문 정보를 반환한다")
+    @DisplayName("제안 결제 준비 요청은 인증 사용자·제안 ID·작업비·수정 횟수·한마디를 전달하고 기존 결제 준비 형식으로 주문 정보를 반환한다")
     void preparesProposalPayment() throws Exception {
         when(paymentFacade.prepareProposalPayment(any(PrepareProposalPaymentCommand.class)))
-                .thenReturn(PreparePaymentResult.of("order-123", 50_000L, "메뉴판 개선 제안",
+                .thenReturn(PreparePaymentResult.of("order-123", 120_000L, "메뉴판 개선 제안",
                         "https://pay.example/pc", "https://pay.example/mobile"));
 
         mockMvc.perform(post("/proposals/31/payments")
                         .principal(authentication)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"revisionCount\":2,\"messageToStudent\":\"  매장 분위기에 맞춰 주세요.  \","
+                        .content("{\"budget\":120000,\"revisionCount\":2,\"messageToStudent\":\"  매장 분위기에 맞춰 주세요.  \","
                                 + "\"refundPolicyAgreed\":true}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.orderId").value("order-123"))
-                .andExpect(jsonPath("$.data.amount").value(50000))
+                .andExpect(jsonPath("$.data.amount").value(120000))
                 .andExpect(jsonPath("$.data.orderName").value("메뉴판 개선 제안"))
                 .andExpect(jsonPath("$.data.nextRedirectPcUrl").value("https://pay.example/pc"))
                 .andExpect(jsonPath("$.data.nextRedirectMobileUrl").value("https://pay.example/mobile"));
@@ -161,6 +161,7 @@ class PaymentControllerTest {
         verify(paymentFacade).prepareProposalPayment(command.capture());
         assertThat(command.getValue().getUsername()).isEqualTo(USERNAME);
         assertThat(command.getValue().getProposalId()).isEqualTo(31L);
+        assertThat(command.getValue().getBudget()).isEqualTo(120_000L);
         assertThat(command.getValue().getRevisionCount()).isEqualTo(2);
         assertThat(command.getValue().getMessageToStudent()).isEqualTo("매장 분위기에 맞춰 주세요.");
     }
@@ -172,9 +173,9 @@ class PaymentControllerTest {
                 .thenReturn(PreparePaymentResult.of("order-123", 50_000L, "메뉴판 개선 제안", "pc", "mobile"));
 
         for (String body : new String[] {
-                "{\"revisionCount\":0,\"refundPolicyAgreed\":true}",
-                "{\"revisionCount\":0,\"messageToStudent\":\"\",\"refundPolicyAgreed\":true}",
-                "{\"revisionCount\":0,\"messageToStudent\":\"   \",\"refundPolicyAgreed\":true}" }) {
+                "{\"budget\":120000,\"revisionCount\":0,\"refundPolicyAgreed\":true}",
+                "{\"budget\":120000,\"revisionCount\":0,\"messageToStudent\":\"\",\"refundPolicyAgreed\":true}",
+                "{\"budget\":120000,\"revisionCount\":0,\"messageToStudent\":\"   \",\"refundPolicyAgreed\":true}" }) {
             mockMvc.perform(post("/proposals/31/payments")
                             .principal(authentication)
                             .contentType(MediaType.APPLICATION_JSON)
@@ -192,13 +193,17 @@ class PaymentControllerTest {
     }
 
     @Test
-    @DisplayName("제안 결제의 수정 횟수가 없거나 음수이거나, 환불 정책에 동의하지 않았거나, 제안 ID가 양수가 아니면 400을 반환한다")
+    @DisplayName("제안 결제의 작업비가 없거나 null·0·음수이거나, 수정 횟수가 없거나 음수이거나, 환불 정책에 동의하지 않았거나, 제안 ID가 양수가 아니면 400을 반환한다")
     void rejectsInvalidProposalPaymentRequest() throws Exception {
         for (String body : new String[] {
-                "{\"refundPolicyAgreed\":true}",
-                "{\"revisionCount\":-1,\"refundPolicyAgreed\":true}",
-                "{\"revisionCount\":2}",
-                "{\"revisionCount\":2,\"refundPolicyAgreed\":false}" }) {
+                "{\"revisionCount\":2,\"refundPolicyAgreed\":true}",
+                "{\"budget\":null,\"revisionCount\":2,\"refundPolicyAgreed\":true}",
+                "{\"budget\":0,\"revisionCount\":2,\"refundPolicyAgreed\":true}",
+                "{\"budget\":-1,\"revisionCount\":2,\"refundPolicyAgreed\":true}",
+                "{\"budget\":120000,\"refundPolicyAgreed\":true}",
+                "{\"budget\":120000,\"revisionCount\":-1,\"refundPolicyAgreed\":true}",
+                "{\"budget\":120000,\"revisionCount\":2}",
+                "{\"budget\":120000,\"revisionCount\":2,\"refundPolicyAgreed\":false}" }) {
             mockMvc.perform(post("/proposals/31/payments")
                             .principal(authentication)
                             .contentType(MediaType.APPLICATION_JSON)
@@ -209,7 +214,7 @@ class PaymentControllerTest {
         mockMvc.perform(post("/proposals/0/payments")
                         .principal(authentication)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"revisionCount\":2,\"refundPolicyAgreed\":true}"))
+                        .content("{\"budget\":120000,\"revisionCount\":2,\"refundPolicyAgreed\":true}"))
                 .andExpect(status().isBadRequest());
         verifyNoInteractions(paymentFacade);
     }

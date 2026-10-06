@@ -221,11 +221,12 @@ public final class JobCommandDto {
         private final String demoSessionId;
 
         /**
+         * @param budget 승인된 주문의 결제 금액. 학생 희망 금액이 아니라 사장님이 결제한 작업비다
          * @param approvedDate 결제 승인 시각의 한국 날짜. 여기에 제안 기간을 더해 마감일을 확정한다
          * @param revisionCount 사장님이 결제 시 입력한 수정 횟수
          * @param acceptanceMessage 사장님이 결제 시 남긴 한마디, 없으면 null
          */
-        public static CreateProposalJobCommand of(Proposal proposal, List<Long> specialtyIds,
+        public static CreateProposalJobCommand of(Proposal proposal, List<Long> specialtyIds, Long budget,
                 LocalDate approvedDate, Integer revisionCount, String acceptanceMessage) {
             return CreateProposalJobCommand.builder()
                     .ownerProfileId(proposal.getOwnerProfileId())
@@ -234,7 +235,7 @@ public final class JobCommandDto {
                     .demoSessionId(proposal.getDemoSessionId())
                     .title(proposal.getTitle())
                     .description(proposal.toJobDescription())
-                    .budget(proposal.getProposedFee())
+                    .budget(budget)
                     .draftDeadline(proposal.draftDeadlineFrom(approvedDate))
                     .finalDeadline(proposal.finalDeadlineFrom(approvedDate))
                     .revisionCount(revisionCount)

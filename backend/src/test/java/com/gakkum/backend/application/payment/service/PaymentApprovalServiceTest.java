@@ -305,12 +305,16 @@ class PaymentApprovalServiceTest {
         assertUnmatched();
     }
 
-    // 제안 5번(학생 31, 사장님 프로필 7, 작업비 100,000원, 초안 3일·최종 7일)의 결제 주문
+    // 제안 5번(학생 31, 사장님 프로필 7, 희망 금액 100,000원, 초안 3일·최종 7일)을 사장님이 120,000원으로 결제하는 주문
     private Payment proposalPending() {
         Payment payment = Payment.pendingForProposal(
-                5L, OWNER_ID, "order-123", 100_000L, 2, "매장 분위기에 맞춰 주세요.", Instant.EPOCH);
+                5L, OWNER_ID, "order-123", 120_000L, 2, "매장 분위기에 맞춰 주세요.", Instant.EPOCH);
         payment.recordKakaoTid(TID);
         return payment;
+    }
+
+    private PaymentResult proposalProviderResult(String status) {
+        return new PaymentResult(TID, "TC0ONETIME", "order-123", OWNER_ID, 120_000L, status, APPROVED_AT);
     }
 
     private Proposal arrangeProposal(Payment payment, ProposalStatus status) {
@@ -351,14 +355,14 @@ class PaymentApprovalServiceTest {
     void approvesProposalPayment() {
         Payment payment = proposalPending();
         Proposal proposal = arrangeProposal(payment, ProposalStatus.PENDING);
-        when(kakaoPayClient.order(TID)).thenReturn(providerResult("READY"));
-        when(kakaoPayClient.approve(TID, "order-123", OWNER_ID, "pg-123")).thenReturn(providerResult(null));
+        when(kakaoPayClient.order(TID)).thenReturn(proposalProviderResult("READY"));
+        when(kakaoPayClient.approve(TID, "order-123", OWNER_ID, "pg-123")).thenReturn(proposalProviderResult(null));
 
         ApprovedOrderData result = service.approve("KAKAO_123", "order-123", "pg-123");
 
         assertThat(result.jobId()).isEqualTo(42L);
         assertThat(result.jobStatus()).isEqualTo(JobStatus.AWAITING_START);
-        assertThat(result.amount()).isEqualTo(100_000L);
+        assertThat(result.amount()).isEqualTo(120_000L);
         assertThat(result.approvedAt()).isEqualTo(APPROVED_AT);
         assertThat(payment.getStatus()).isEqualTo(PaymentStatus.PAID);
         assertThat(payment.getJobId()).isEqualTo(42L);
@@ -371,7 +375,9 @@ class PaymentApprovalServiceTest {
         assertThat(command.getProposalId()).isEqualTo(5L);
         assertThat(command.getTitle()).isEqualTo("메뉴판 개선 제안");
         assertThat(command.getDescription()).isEqualTo("[고객 문제]\n문제\n\n[해결 방안]\n해결\n\n[작업 계획]\n계획");
-        assertThat(command.getBudget()).isEqualTo(100_000L);
+        // 작업비는 학생 희망 금액이 아니라 주문에 저장된 결제 금액이다
+        assertThat(command.getBudget()).isEqualTo(120_000L);
+        assertThat(proposal.getProposedFee()).isEqualTo(100_000L);
         // 승인 시각 2026-09-26T03:00Z는 한국 날짜 9월 26일
         assertThat(command.getDraftDeadline()).isEqualTo(LocalDate.of(2026, 9, 29));
         assertThat(command.getFinalDeadline()).isEqualTo(LocalDate.of(2026, 10, 3));
@@ -385,7 +391,7 @@ class PaymentApprovalServiceTest {
     @DisplayName("제안 결제 승인은 제안 → 의뢰 → 결제 순서로 잠근다")
     void locksProposalThenJobThenPayment() {
         arrangeProposal(proposalPending(), ProposalStatus.PENDING);
-        when(kakaoPayClient.order(TID)).thenReturn(providerResult("SUCCESS_PAYMENT"));
+        when(kakaoPayClient.order(TID)).thenReturn(proposalProviderResult("SUCCESS_PAYMENT"));
 
         service.approve("KAKAO_123", "order-123", "pg-123");
 
@@ -403,7 +409,7 @@ class PaymentApprovalServiceTest {
         // UTC로는 9월 30일 15:30, 한국 시간으로는 10월 1일 00:30
         Instant approvedAt = Instant.parse("2026-09-30T15:30:00Z");
         when(kakaoPayClient.order(TID)).thenReturn(new PaymentResult(
-                TID, "TC0ONETIME", "order-123", OWNER_ID, 100_000L, "SUCCESS_PAYMENT", approvedAt));
+                TID, "TC0ONETIME", "order-123", OWNER_ID, 120_000L, "SUCCESS_PAYMENT", approvedAt));
 
         service.approve("KAKAO_123", "order-123", "pg-123");
 
@@ -417,14 +423,32 @@ class PaymentApprovalServiceTest {
     void recoversProposalPaymentFromProviderOrder() {
         Payment payment = proposalPending();
         Proposal proposal = arrangeProposal(payment, ProposalStatus.PENDING);
-        when(kakaoPayClient.order(TID)).thenReturn(providerResult("SUCCESS_PAYMENT"));
+        when(kakaoPayClient.order(TID)).thenReturn(proposalProviderResult("SUCCESS_PAYMENT"));
 
         ApprovedOrderData result = service.approve("KAKAO_123", "order-123", "pg-123");
 
         assertThat(result.jobStatus()).isEqualTo(JobStatus.AWAITING_START);
         assertThat(payment.getStatus()).isEqualTo(PaymentStatus.PAID);
         assertThat(proposal.getStatus()).isEqualTo(ProposalStatus.AWAITING_START);
+        assertThat(result.amount()).isEqualTo(120_000L);
+        assertThat(createdJobCommand().getBudget()).isEqualTo(120_000L);
         verify(kakaoPayClient, never()).approve(TID, "order-123", OWNER_ID, "pg-123");
+    }
+
+    @Test
+    @DisplayName("제안 결제의 외부 승인 금액이 주문 금액과 다르면 학생 희망 금액과 같더라도 거부하고 의뢰를 만들지 않는다")
+    void rejectsProposalApprovalAmountMismatch() {
+        Payment payment = proposalPending();
+        Proposal proposal = arrangeProposal(payment, ProposalStatus.PENDING);
+        when(kakaoPayClient.order(TID)).thenReturn(proposalProviderResult("READY"));
+        when(kakaoPayClient.approve(TID, "order-123", OWNER_ID, "pg-123"))
+                .thenReturn(new PaymentResult(TID, "TC0ONETIME", "order-123", OWNER_ID,
+                        100_000L, null, APPROVED_AT));
+
+        assertCode(ErrorCode.PAYMENT_RESULT_MISMATCH);
+        assertThat(payment.getStatus()).isEqualTo(PaymentStatus.PENDING);
+        assertThat(proposal.getStatus()).isEqualTo(ProposalStatus.PENDING);
+        verify(jobService, never()).createAwaitingStartJob(any());
     }
 
     @Test
@@ -443,6 +467,7 @@ class PaymentApprovalServiceTest {
         assertThat(result.jobId()).isEqualTo(42L);
         assertThat(result.jobStatus()).isEqualTo(JobStatus.MATCHED);
         assertThat(result.approvedAt()).isEqualTo(APPROVED_AT);
+        assertThat(result.amount()).isEqualTo(120_000L);
         assertThat(proposal.getStatus()).isEqualTo(ProposalStatus.ACCEPTED);
         assertThat(started.getDraftDeadline()).isEqualTo(LocalDate.of(2026, 9, 29));
         verify(jobService, never()).createAwaitingStartJob(any());
@@ -488,7 +513,7 @@ class PaymentApprovalServiceTest {
     void leavesProposalUntouchedWhenApprovalUnknown() {
         Payment payment = proposalPending();
         Proposal proposal = arrangeProposal(payment, ProposalStatus.PENDING);
-        when(kakaoPayClient.order(TID)).thenReturn(providerResult("READY"), providerResult("READY"));
+        when(kakaoPayClient.order(TID)).thenReturn(proposalProviderResult("READY"), proposalProviderResult("READY"));
         when(kakaoPayClient.approve(TID, "order-123", OWNER_ID, "pg-123"))
                 .thenThrow(new BusinessException(ErrorCode.PAYMENT_APPROVAL_UNAVAILABLE));
 
@@ -504,13 +529,14 @@ class PaymentApprovalServiceTest {
     void recoversPaidOrderWithoutApprovalRequest() {
         Payment payment = proposalPending();
         Proposal proposal = arrangeProposal(payment, ProposalStatus.PENDING);
-        when(kakaoPayClient.order(TID)).thenReturn(providerResult("SUCCESS_PAYMENT"));
+        when(kakaoPayClient.order(TID)).thenReturn(proposalProviderResult("SUCCESS_PAYMENT"));
 
         ApprovedOrderData result = service.recoverPaidOrder("KAKAO_123", "order-123");
 
         assertThat(result.jobStatus()).isEqualTo(JobStatus.AWAITING_START);
         assertThat(payment.getStatus()).isEqualTo(PaymentStatus.PAID);
         assertThat(proposal.getStatus()).isEqualTo(ProposalStatus.AWAITING_START);
+        assertThat(createdJobCommand().getBudget()).isEqualTo(120_000L);
         verify(kakaoPayClient, never()).approve(any(), any(), any(), any());
     }
 
@@ -519,7 +545,7 @@ class PaymentApprovalServiceTest {
     void doesNotApproveUnpaidOrderOnRecovery() {
         Payment payment = proposalPending();
         Proposal proposal = arrangeProposal(payment, ProposalStatus.PENDING);
-        when(kakaoPayClient.order(TID)).thenReturn(providerResult("READY"));
+        when(kakaoPayClient.order(TID)).thenReturn(proposalProviderResult("READY"));
 
         assertThatThrownBy(() -> service.recoverPaidOrder("KAKAO_123", "order-123"))
                 .isInstanceOfSatisfying(BusinessException.class, exception ->

@@ -142,7 +142,7 @@ public class PaymentApprovalService {
         // 마감일은 승인 시각의 한국 날짜에 제안 기간을 더해 확정하고 이후 바꾸지 않는다
         LocalDate approvedDate = confirmed.approvedAt().atZone(DEADLINE_ZONE).toLocalDate();
         Job job = jobService.createAwaitingStartJob(CreateProposalJobCommand.of(
-                proposal, proposalService.getSpecialtyIds(proposal.getId()), approvedDate,
+                proposal, proposalService.getSpecialtyIds(proposal.getId()), payment.getAmount(), approvedDate,
                 payment.getRevisionCount(), payment.getMessageToStudent()));
         proposal.awaitStart();
         payment.approve(confirmed.approvedAt());

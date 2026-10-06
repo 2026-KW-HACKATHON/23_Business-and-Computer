@@ -398,7 +398,7 @@ class ProposalCancelPersistenceIntegrationTest {
             assertError(() -> proposalFacade.unlikeProposal(username, proposalId), ErrorCode.PROPOSAL_NOT_FOUND);
         }
         assertError(() -> paymentFacade.prepareProposalPayment(
-                PrepareProposalPaymentCommand.of(OWNER_USERNAME, proposalId, 1, null)),
+                PrepareProposalPaymentCommand.of(OWNER_USERNAME, proposalId, 50_000L, 1, null)),
                 ErrorCode.PROPOSAL_PAYMENT_NOT_AVAILABLE);
 
         assertCancelled(proposalId);
@@ -474,7 +474,7 @@ class ProposalCancelPersistenceIntegrationTest {
         List<Outcome> outcomes = runConcurrently(List.of(
                 () -> proposalFacade.cancelProposal(author, proposalId),
                 () -> paymentFacade.prepareProposalPayment(
-                        PrepareProposalPaymentCommand.of(OWNER_USERNAME, proposalId, 1, null))));
+                        PrepareProposalPaymentCommand.of(OWNER_USERNAME, proposalId, 50_000L, 1, null))));
 
         Outcome cancel = outcomes.get(0);
         Outcome prepare = outcomes.get(1);
