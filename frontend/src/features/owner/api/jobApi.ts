@@ -40,8 +40,6 @@ export interface OpenJobResponse {
   revisionCount: number;
   applicantCount: number;
   progressStage?: string | null;
-  /** 작업비(원). 서버가 주면 홈 「지원자가 생긴 의뢰」 카드에 「예산」이 보인다 */
-  budget?: number | null;
 }
 
 /** GET /me/jobs?status=OPEN — 모집 중인 내 의뢰 */

@@ -55,7 +55,6 @@ export function useOwnerHome(): OwnerHome {
         kind: "request",
         title: r.title,
         field: jobCategoryNames(r.specialtyCategories)[0] ?? "기타",
-        budget: r.budget ?? undefined,
         applicantCount: r.applicantCount,
         draftDue: r.draftDeadline,
       })),

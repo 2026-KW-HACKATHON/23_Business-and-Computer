@@ -53,8 +53,8 @@ The backend (dev) has:
   「지원자 보기」 when anyone applied. The count shows 「-」 and `LoadNotice`
   replaces the list while loading or after a failure.
 - **Home** (`useOwnerHome`): an open request with applicants is a 「학생
-  고르기」 card (「예산」 only when the list sends `budget`), one without is a
-  「기다리는 중」 row. **내 정보** counts open requests, or 「-」.
+  고르기」 card with the category badge only (no budget line), one without is
+  a 「기다리는 중」 row. **내 정보** counts open requests, or 「-」.
 - **보낸 의뢰서 상세** (`src/pages/OwnerRequestPage.tsx`, GET /jobs/{id}): the
   title, category badges, 「모집 중, 지원자 N명」 (count from the applicant
   list) or the status label, the flow bar, the terms, 「의뢰 취소」 while OPEN,
