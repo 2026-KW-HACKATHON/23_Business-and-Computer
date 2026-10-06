@@ -168,17 +168,38 @@ public final class JobCommandDto {
     @Getter
     @Builder(access = AccessLevel.PRIVATE)
     @AllArgsConstructor(access = AccessLevel.PRIVATE)
-    public static class RequestJobSubmissionRevisionCommand {
+    public static class GetLatestJobSubmissionCommand {
 
         private final Long jobId;
-        private final Long submissionId;
-        private final Long ownerProfileId;
+        private final Long studentProfileId;
 
-        public static RequestJobSubmissionRevisionCommand of(Long jobId, Long submissionId, Long ownerProfileId) {
+        public static GetLatestJobSubmissionCommand of(Long jobId, Long studentProfileId) {
+            return GetLatestJobSubmissionCommand.builder()
+                    .jobId(jobId)
+                    .studentProfileId(studentProfileId)
+                    .build();
+        }
+    }
+
+    @Getter
+    @Builder(access = AccessLevel.PRIVATE)
+    @AllArgsConstructor(access = AccessLevel.PRIVATE)
+    public static class RequestJobSubmissionRevisionCommand {
+
+        private final String username;
+        private final Long jobId;
+        private final Long submissionId;
+        private final String message;
+        private final List<String> referenceImageUrls;
+
+        public static RequestJobSubmissionRevisionCommand of(
+                String username, Long jobId, Long submissionId, String message, List<String> referenceImageUrls) {
             return RequestJobSubmissionRevisionCommand.builder()
+                    .username(username)
                     .jobId(jobId)
                     .submissionId(submissionId)
-                    .ownerProfileId(ownerProfileId)
+                    .message(message)
+                    .referenceImageUrls(List.copyOf(referenceImageUrls))
                     .build();
         }
     }

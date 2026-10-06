@@ -126,10 +126,24 @@ export async function fetchApplicantProfile(
   return data;
 }
 
-/** POST /jobs/{id}/cancel — 모집 중이면 환불 없이 취소, 지원자에게 남길 말이 간다 */
+/** POST /jobs/{id}/cancel 의 답 (JobCancelResponse). 금액은 원, 모집 중 취소면 모두 0 */
+export interface JobCancelResponse {
+  jobId: number;
+  paidAmount?: number | null;
+  studentCompensationAmount?: number | null;
+  refundAmount?: number | null;
+}
+
+/**
+ * POST /jobs/{id}/cancel — 모집 중이면 환불 없이 취소, 지원자에게 남길 말이 간다.
+ * 진행 중이면 학생 착수 보상(20%)을 뺀 작업비를 돌려받는다.
+ */
 export async function cancelJob(
   jobId: number,
   request: { cancelReason: string; messageToStudent: string },
-): Promise<void> {
-  await apiData<unknown>(`/jobs/${jobId}/cancel`, { method: "POST", body: JSON.stringify(request) });
+): Promise<JobCancelResponse | undefined> {
+  return apiData<JobCancelResponse | undefined>(`/jobs/${jobId}/cancel`, {
+    method: "POST",
+    body: JSON.stringify(request),
+  });
 }

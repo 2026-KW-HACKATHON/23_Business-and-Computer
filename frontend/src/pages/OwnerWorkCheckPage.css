@@ -46,3 +46,22 @@
   line-height: 1.45;
   color: var(--color-black);
 }
+
+.owner-check__file-name {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+/* 「받기」 링크 (TextButton 모양) */
+.owner-check__download {
+  flex-shrink: 0;
+  text-decoration: none;
+}
+
+.owner-check__send-error {
+  margin: 0 0 8px;
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--color-danger);
+  text-align: center;
+}

@@ -71,8 +71,10 @@ class JobMappingTest {
             Table submissions = metadata.getEntityBinding(JobSubmission.class.getName()).getTable();
             assertThat(submissions.getName()).isEqualTo("job_submissions");
             assertNotNull(submissions, "job_id", "submission_type", "revision_number", "file_urls", "message",
-                    "review_status");
+                    "review_status", "revision_reference_image_urls");
             assertThat(submissions.getColumn(new Column("file_urls")).getSqlType(metadata)).isEqualTo("jsonb");
+            assertThat(submissions.getColumn(new Column("revision_reference_image_urls")).getSqlType(metadata))
+                    .isEqualTo("jsonb");
             assertThat(submissions.getColumn(new Column("message")).getSqlType(metadata)).isEqualTo("TEXT");
             assertThat(submissions.getColumn(new Column("review_comment")).getSqlType(metadata)).isEqualTo("TEXT");
             assertThat(submissions.getColumn(new Column("reviewed_at")).isNullable()).isTrue();

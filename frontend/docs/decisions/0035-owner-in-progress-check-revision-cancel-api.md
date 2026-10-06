@@ -1,0 +1,112 @@
+# 0035. Owner in-progress work, work check, revision request, and cancel call the job APIs
+
+## Status
+
+Accepted. 내 활동 › 진행 중, the home 「확인할 일」 초안 · 수정안 cards and
+「학생이 작업 중」 rows, 작업 확인, 수정 요청, and 작업 취소 read and write the
+backend for jobs a student is working on. Sample works (ids like
+`work-103`) still open the old sample screens, because sample notifications
+and chats link to them.
+
+## Context
+
+The backend (dev) has:
+
+- GET /me/jobs?status=MATCHED (owner) → `{ jobs: [{ jobId, title,
+  specialtyCategories, draftDeadline, finalDeadline, studentProfileId,
+  studentNumber, major, submissionType, pendingSubmissionId, progressStage
+  }] }`, newest first. `pendingSubmissionId` · `submissionType` describe a
+  submission waiting for the owner; `progressStage` is STARTED (nothing
+  submitted), DRAFT, or REVISION. It has no student name, budget, or
+  revision count.
+- GET /me/chat-rooms → one room per paid job with `jobId`,
+  `counterpartName` (the student, for an owner), `budget`, `revisionCount`,
+  and the application's summary · work plan · delivery method.
+- GET /jobs/{jobId}/submission (owner) → the pending submission
+  `{ submissionId, title, studentName, submissionType, fileUrls, message,
+  revisionNumber }` (draft 0, revisions from 1), or JOB_SUBMISSION_404. File
+  URLs end with the uploaded file name.
+- POST /jobs/{jobId}/submissions/{submissionId}/revision-request (no body)
+  and .../complete. Errors: JOB_404, JOB_SUBMISSION_404,
+  JOB_SUBMISSION_409_REVIEW_STATUS (the job is not in progress),
+  JOB_SUBMISSION_409_REVIEWED, JOB_SUBMISSION_409_REVISION_LIMIT
+  (`revisionNumber` ≥ `revisionCount`).
+- POST /jobs/{jobId}/cancel on a job in progress refunds the budget minus
+  20% student compensation and returns `paidAmount`,
+  `studentCompensationAmount`, and `refundAmount`. It does not refuse a job
+  with a pending submission.
+- Submissions have no date, and nothing completes a job automatically.
+
+## Decision
+
+- **Data** (`src/features/owner/lib/progressJobs.ts`,
+  `src/features/owner/hooks/useOwnerProgressJobs.ts`): `loadOwnerProgressJobs`
+  reads the matched list, then fills each job's student name, budget,
+  revision count, and application from GET /me/chat-rooms, and `kind`
+  (proposal when a received proposal has that `jobId`; its student name is
+  the fallback) from GET /me/received-proposals. Those two may fail; the list
+  still shows, with 「학생」 for a missing name. Stage: pending submission →
+  submitted, REVISION → revising, otherwise drafting. The deadline shown is
+  the draft deadline while drafting, the final deadline after that. 401
+  goes to /login.
+- **내 활동 › 진행 중**: cards sorted by that deadline, with category badges,
+  the status (초안 제작 중 · 수정안 제작 중 · 초안/수정안이 도착했어요), the
+  student line (name · 학번 · 학과; no 프로필 보기, as there is no profile API
+  for a matched student), and either 초안/수정안 확인하기 · 문의하기 (채팅
+  목록) or 작업 취소 · 문제 신고. 「상세보기」 opens the work check when
+  something arrived, the application sheet for a request, or the received
+  proposal for a proposal. The count shows 「-」 and `LoadNotice` replaces
+  the list while loading or after a failure.
+- **Home**: arrived submissions are 「확인할 일」 cards (「초안/수정안이
+  도착했어요」, 「7일 동안 확인하지 않으면 자동으로 완료돼요」); drafting ·
+  revising jobs are 「학생이 작업 중」 rows that open the application sheet or
+  the received proposal. A failed load shows one 「다시 시도」 line, and the
+  확인할 일 count waits for both lists.
+- **작업계획서 sheet** (`WorkPlanSheet`): takes `WorkPlanSheetContent` and
+  leaves out the date, fee, and revision rows it does not know.
+- **작업 확인** (`src/pages/OwnerJobCheckPage.tsx`, /owner/works/:id/check
+  with a numeric id): the summary (student · 초안/수정안 도착 · 수정 n/m), flow
+  bar, 「7일 동안 답이 없으면 자동으로 완료돼요」 with the revisions left, the
+  files with 「받기」 links (the name comes from the URL), and the student's
+  message. 「수정 요청」 is hidden when no revision is left. 「완료 확인」
+  completes (「완료하는 중...」, one request per press) and opens 「작업을
+  완료했어요」 → 내 활동 › 완료.
+- **수정 요청** (/owner/works/:id/revision with a numeric id): the Figma
+  fields stay, but the request has no body, so the text and photos are not
+  sent; a note says so and the text is optional. 「보내는 중...」, then the
+  done popup → 내 활동 › 진행 중. Limit reached → 「남은 수정 요청이 없어요…」;
+  already reviewed or no longer in progress → 「이미 확인했거나 끝난
+  작업이에요…」.
+- **작업 취소** (/owner/works/:id/cancel with a numeric id): reason, message,
+  refund breakdown, and the check box as in Figma. A job with an arrived
+  submission shows 「결과물을 받은 뒤에는 취소할 수 없어요…」 (the refund
+  policy). The done popup uses the refund and compensation from the response
+  → 내 활동 › 완료.
+- Every server screen shows 「진행 중인 작업이 아니에요」 when the job is not
+  in the matched list, and the check and revision screens show 「확인할
+  결과물이 아직 없어요」 when nothing is pending.
+
+## Rationale
+
+- One GET /me/chat-rooms fills the name, fee, and revision count for every
+  job instead of one request per job.
+- Keeping sample works for non-numeric ids leaves sample notifications and
+  chats working until those read the backend.
+
+## Alternatives Considered
+
+- Sending the revision text as a chat message: rejected, chat does not read
+  the backend yet, so the student would not see it.
+- Removing the revision text and photo fields until the API takes them:
+  rejected, the Figma screen is the target.
+
+## Agent Guidance
+
+- When the revision request takes a message and photos, send them and drop
+  the note in `src/pages/OwnerRevisionPage.tsx`.
+- When the matched list carries the student name, budget, and revision
+  count, drop GET /me/chat-rooms from `loadOwnerProgressJobs`.
+- When submissions carry a date, show 「○월 ○일 도착」 and 「○월 ○일까지 확인해
+  주세요」 instead of 「7일 동안」.
+- When the review screen reads the backend, 「완료 확인」 goes to 후기 남기기
+  (Figma) instead of the done popup.

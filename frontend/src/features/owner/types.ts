@@ -25,11 +25,14 @@ interface TodoBase {
   field: string;
 }
 
-/** 학생이 초안을 냈다 (id = 작업). 이날까지 확인하지 않으면 자동으로 완료된다 */
+/** 학생이 초안 · 수정안을 냈다 (id = 작업) */
 export interface DraftArrivedTodo extends TodoBase {
   type: "draftArrived";
   student: StudentRef;
-  autoCompleteOn: string;
+  /** 수정안이면 true */
+  revision?: boolean;
+  /** 이날까지 확인하지 않으면 자동으로 완료된다. 모르면 「7일 동안」 */
+  autoCompleteOn?: string;
 }
 
 /** 학생 제안이 새로 왔다 (id = 제안) */
@@ -49,7 +52,7 @@ export interface ApplicantsTodo extends TodoBase {
 /** 「확인할 일」 카드 한 장. 종류마다 문구와 버튼이 다르다 */
 export type OwnerTodo = DraftArrivedTodo | ProposalArrivedTodo | ApplicantsTodo;
 
-/** 「학생이 작업 중」 한 줄 (id = 작업, 채팅방도 이 id) */
+/** 「학생이 작업 중」 한 줄 (id = 작업). 누르면 지원서 바텀시트, 제안으로 시작했으면 받은 제안 */
 export interface OwnerWorkingItem {
   id: string;
   kind: WorkKind;
@@ -57,6 +60,8 @@ export interface OwnerWorkingItem {
   student: StudentRef;
   stage: DeadlineStage;
   due: string;
+  plan?: WorkPlanSheetContent;
+  proposalId?: string;
 }
 
 export type WaitingStatus = "recruiting";
@@ -106,6 +111,19 @@ export interface RequestExample {
   content: RequestContent;
 }
 
+/** 「작업계획서 보기」 바텀시트 내용. 모르는 칸은 빼고 보인다 */
+export interface WorkPlanSheetContent {
+  title: string;
+  studentName?: string;
+  /** 지원할 때 보낸 날 */
+  sentOn?: string;
+  plan: WorkPlanContent;
+  budget?: number;
+  draftDue: string;
+  finalDue: string;
+  revisionLimit?: number;
+}
+
 /** 「끝난 일」 한 줄 (id = 작업) */
 export interface OwnerDoneItem {
   id: string;
@@ -124,6 +142,9 @@ export interface OwnerHome {
   /** 받은 제안(GET /me/received-proposals)을 불러온 상태와 다시 시도 */
   receivedProposals: "loading" | "error" | "loaded";
   reloadReceivedProposals: () => void;
+  /** 진행 중 작업(GET /me/jobs?status=MATCHED)을 불러온 상태와 다시 시도 */
+  progress: "loading" | "error" | "loaded";
+  reloadProgress: () => void;
   working: OwnerWorkingItem[];
   waiting: OwnerWaitingItem[];
   examples: RequestExample[];
@@ -293,7 +314,6 @@ export interface OwnerStore {
   category: StoreCategory;
   address: string;
   addressDetail: string;
-  phone: string;
   intro: string;
   /** 사업자 정보는 인증된 값이라 바꿀 수 없다 */
   representative: string;

@@ -21,6 +21,7 @@ import com.gakkum.backend.application.job.dto.JobDetailResponse;
 import com.gakkum.backend.application.job.dto.JobListResponse;
 import com.gakkum.backend.application.job.dto.JobSubmissionCreateRequest;
 import com.gakkum.backend.application.job.dto.JobSubmissionResponse;
+import com.gakkum.backend.application.job.dto.JobSubmissionRevisionRequest;
 import com.gakkum.backend.application.job.dto.PrepareSubmissionFileUploadRequest;
 import com.gakkum.backend.application.job.facade.JobFacade;
 import com.gakkum.backend.domain.job.dto.JobApplicationSort;
@@ -106,6 +107,18 @@ public class JobController {
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
+    /** 담당 학생이 본인 의뢰의 최신 제출물과 그 제출물에 받은 수정 요청 내용을 조회하는 API(완료·취소 후에도 조회 가능) */
+    @GetMapping("/jobs/{jobId}/submissions/latest")
+    public ResponseEntity<ApiResponse<JobSubmissionResponse.Latest>> getLatestSubmission(
+            Authentication authentication, @PathVariable Long jobId) {
+        if (jobId <= 0) {
+            throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE);
+        }
+        JobSubmissionResponse.Latest response = JobSubmissionResponse.Latest.from(
+                jobFacade.getLatestSubmission(authentication.getName(), jobId));
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
     /** 완료된 의뢰의 최종 결과물과 작업 이력 조회 API(의뢰한 사장님과 담당 학생만 조회 가능) */
     @GetMapping("/jobs/{jobId}/result")
     public ResponseEntity<ApiResponse<JobDetailResponse.Result>> getJobResult(
@@ -156,14 +169,15 @@ public class JobController {
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(response));
     }
 
-    /** 사장님이 검토 대기 제출물에 수정을 요청하는 API */
+    /** 사장님이 검토 대기 제출물에 수정 요청 내용(필수)과 참고 사진(선택, 최대 4장)을 남겨 수정을 요청하는 API */
     @PostMapping("/jobs/{jobId}/submissions/{submissionId}/revision-request")
     public ResponseEntity<ApiResponse<Void>> requestRevision(
-            Authentication authentication, @PathVariable Long jobId, @PathVariable Long submissionId) {
+            Authentication authentication, @PathVariable Long jobId, @PathVariable Long submissionId,
+            @Valid @RequestBody JobSubmissionRevisionRequest request) {
         if (jobId <= 0 || submissionId <= 0) {
             throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE);
         }
-        jobFacade.requestRevision(authentication.getName(), jobId, submissionId);
+        jobFacade.requestRevision(request.toCommand(authentication.getName(), jobId, submissionId));
         return ResponseEntity.ok(ApiResponse.success());
     }
 

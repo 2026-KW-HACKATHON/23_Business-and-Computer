@@ -11,9 +11,8 @@ import {
   deadlineText,
   studentLabel,
   useOwnerHome,
-  useOwnerWork,
 } from "../features/owner";
-import type { OwnerTodo } from "../features/owner";
+import type { OwnerTodo, OwnerWorkingItem, WorkPlanSheetContent } from "../features/owner";
 import { formatMonthDay } from "../lib/date";
 import { useDragScroll } from "../hooks/useDragScroll";
 import "./OwnerHomePage.css";
@@ -23,8 +22,9 @@ import "./OwnerHomePage.css";
  * 확인할 일 → 학생이 작업 중 → 기다리는 중 → 이런 의뢰는 어때요? → 끝난 일.
  * 비어 있는 목록은 섹션째 숨기고, 「이런 의뢰는 어때요?」는 늘 보인다.
  * 첫 활동 계정(피그마 「사장님 홈 - 처음」)은 할 일 목록 대신 사용법 안내를 보여 준다.
- * 확인할 일의 「새 제안」은 GET /me/received-proposals 의 결정 대기 제안 (ADR 0025). 불러오는 중 ·
- * 실패면 확인할 일 아래에 안내 줄을 보이고, 개수는 불러온 뒤에만 보인다.
+ * 확인할 일의 「새 제안」은 GET /me/received-proposals 의 결정 대기 제안 (ADR 0025), 도착한 초안 · 수정안과
+ * 「학생이 작업 중」은 GET /me/jobs?status=MATCHED (ADR 0035). 불러오는 중 · 실패면 확인할 일 아래에 안내 줄을
+ * 보이고, 개수는 둘 다 불러온 뒤에만 보인다.
  */
 function OwnerHomePage() {
   const navigate = useNavigate();
@@ -33,9 +33,13 @@ function OwnerHomePage() {
   const [doneExpanded, setDoneExpanded] = useState(false);
   const exampleScroll = useDragScroll<HTMLUListElement>();
   const doneRows = doneExpanded ? home.done : home.done.slice(0, 1);
-  // 「학생이 작업 중」 줄을 누르면 작업계획서 바텀시트
-  const [planWorkId, setPlanWorkId] = useState<string>();
-  const planWork = useOwnerWork(planWorkId);
+  // 「학생이 작업 중」 줄을 누르면 작업계획서 바텀시트, 제안으로 시작했으면 받은 제안
+  const [planContent, setPlanContent] = useState<WorkPlanSheetContent>();
+  const openWorking = ({ plan, proposalId }: OwnerWorkingItem) => {
+    if (plan) setPlanContent(plan);
+    else if (proposalId) navigate(OWNER_PATHS.proposal(proposalId));
+  };
+  const todosLoaded = home.receivedProposals === "loaded" && home.progress === "loaded";
 
   const openTodo = (todo: OwnerTodo) => {
     switch (todo.type) {
@@ -52,13 +56,18 @@ function OwnerHomePage() {
     <OwnerTabScreen tab="home" showFab>
       {home.firstVisit && <FirstVisitGuide onStart={() => navigate(OWNER_PATHS.newRequest)} />}
 
-      {!home.firstVisit && (home.todos.length > 0 || home.receivedProposals !== "loaded") && (
+      {!home.firstVisit && (home.todos.length > 0 || !todosLoaded) && (
         <section className="owner-home__section">
-          <SectionHeader
-            title="확인할 일"
-            count={home.receivedProposals === "loaded" ? home.todos.length : undefined}
-          />
+          <SectionHeader title="확인할 일" count={todosLoaded ? home.todos.length : undefined} />
           {home.todos.length > 0 && <TodoCarousel todos={home.todos} onAction={openTodo} />}
+          {home.progress !== "loaded" && (
+            <LoadNotice
+              status={home.progress}
+              loadingText="진행 중인 작업을 불러오는 중이에요"
+              errorText="진행 중인 작업을 불러오지 못했어요"
+              onRetry={home.reloadProgress}
+            />
+          )}
           {home.receivedProposals !== "loaded" && (
             <LoadNotice
               status={home.receivedProposals}
@@ -79,8 +88,8 @@ function OwnerHomePage() {
                 key={work.id}
                 kind={work.kind}
                 title={work.title}
-                lines={[studentLabel(work.student), deadlineText(work.stage, work.due)]}
-                onClick={() => setPlanWorkId(work.id)}
+                lines={[studentLabel({ name: work.student.name }), deadlineText(work.stage, work.due)]}
+                onClick={work.plan || work.proposalId ? () => openWorking(work) : undefined}
               />
             ))}
           </div>
@@ -145,7 +154,7 @@ function OwnerHomePage() {
                 key={item.id}
                 kind={item.kind}
                 title={item.title}
-                lines={[studentLabel(item.student), `완료 : ${formatMonthDay(item.completedOn)}`]}
+                lines={[studentLabel({ name: item.student.name }), `완료 : ${formatMonthDay(item.completedOn)}`]}
                 onClick={() => navigate(OWNER_PATHS.workResult(item.id))}
               />
             ))}
@@ -154,9 +163,9 @@ function OwnerHomePage() {
       )}
 
       <WorkPlanSheet
-        work={planWork}
-        onClose={() => setPlanWorkId(undefined)}
-        onChat={() => planWork && navigate(OWNER_PATHS.chat(planWork.id))}
+        content={planContent}
+        onClose={() => setPlanContent(undefined)}
+        onChat={() => navigate(OWNER_PATHS.chats)}
       />
     </OwnerTabScreen>
   );
