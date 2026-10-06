@@ -8,6 +8,7 @@ import com.gakkum.backend.domain.chat.entity.ChatMessageType;
 import com.gakkum.backend.domain.chat.entity.ChatRoom;
 import com.gakkum.backend.domain.job.entity.Job;
 import com.gakkum.backend.domain.job.entity.JobApplication;
+import com.gakkum.backend.domain.job.entity.JobStatus;
 import com.gakkum.backend.domain.job.entity.JobSubmissionReviewStatus;
 
 import lombok.AccessLevel;
@@ -34,6 +35,7 @@ public class ChatRoomListResponse {
         private final String roomId;
         private final Long jobId;
         private final String jobTitle;
+        private final JobStatus jobStatus;
         private final String counterpartName;
         private final String counterpartProfileImageUrl;
         private final DeadlineType deadlineType;
@@ -56,6 +58,7 @@ public class ChatRoomListResponse {
                     .roomId(room.getId())
                     .jobId(job.getId())
                     .jobTitle(job.getTitle())
+                    .jobStatus(job.getStatus())
                     .counterpartName(counterpartName)
                     .counterpartProfileImageUrl(counterpartProfileImageUrl)
                     .deadlineType(deadlineType)
