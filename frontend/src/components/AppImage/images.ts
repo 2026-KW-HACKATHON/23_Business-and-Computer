@@ -1,4 +1,4 @@
-import logoGakkum from "../../assets/brand/logo-gakkum.svg";
+import logoGolmok from "../../assets/brand/logo-golmok.png";
 import appIcon from "../../assets/brand/app-icon.png";
 import taglineRole from "../../assets/brand/tagline-role.png";
 import characterOwner from "../../assets/characters/owner.svg";
@@ -61,7 +61,7 @@ export interface ImageInfo {
 /** 피그마 「0. 스타일 가이드」 › 공유 컴포넌트 › 일러스트 · 이미지 와 같은 이름을 쓴다. */
 export const IMAGES = {
   // 브랜드
-  logoGakkum: { src: logoGakkum, width: 180, height: 87, alt: "골목인턴" },
+  logoGolmok: { src: logoGolmok, width: 180, height: 53, alt: "골목인턴" },
   appIcon: { src: appIcon, width: 96, height: 96, alt: "골목인턴 앱 아이콘" },
   taglineRole: { src: taglineRole, width: 174, height: 58, alt: "가게에 필요한 작업을 학생이 전공을 살려 해드려요" },
 
