@@ -293,7 +293,6 @@ export interface OwnerStore {
   category: StoreCategory;
   address: string;
   addressDetail: string;
-  phone: string;
   intro: string;
   /** 사업자 정보는 인증된 값이라 바꿀 수 없다 */
   representative: string;
