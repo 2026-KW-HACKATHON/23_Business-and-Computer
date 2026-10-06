@@ -1,7 +1,7 @@
 import { ApiError } from "../../../api/client";
 import type { WorkKind } from "../../../types/workKind";
 import { fetchOwnerClosedJobs } from "../api/closedApi";
-import type { OwnerClosedJobResponse } from "../api/closedApi";
+import type { JobResultResponse, OwnerClosedJobResponse, WorkHistoryType } from "../api/closedApi";
 import type { JobSpecialtyCategory } from "../api/jobApi";
 import { fetchOwnerPayments } from "../api/paymentHistoryApi";
 import type { PaymentHistoryItem } from "../api/paymentHistoryApi";
@@ -25,6 +25,22 @@ export interface OwnerClosedJob {
   /** 결제한 작업비와 돌려받은 금액 (GET /payments). 결제가 없었거나 못 불러오면 없음 */
   paidAmount?: number;
   refundAmount?: number;
+}
+
+/** 완료된 작업의 결과물 (GET /jobs/{id}/result) */
+export type JobResult = JobResultResponse;
+
+const WORK_HISTORY_TEXT: Record<Exclude<WorkHistoryType, "COMPLETED">, string> = {
+  STARTED: "안전결제 · 작업 시작",
+  DRAFT_SUBMITTED: "초안 도착",
+  REVISION_REQUESTED: "수정 요청",
+  REVISION_SUBMITTED: "수정안 도착",
+};
+
+/** 결과물 보기의 작업 기록 한 줄. 완료는 사장님이 확인했는지 7일 지나 자동으로 됐는지 */
+export function workHistoryText(type: WorkHistoryType, normalCompleted: boolean): string {
+  if (type === "COMPLETED") return normalCompleted ? "사장님이 완료 확인" : "7일 지나 자동 완료";
+  return WORK_HISTORY_TEXT[type] ?? "";
 }
 
 export type OwnerClosedJobsResult =

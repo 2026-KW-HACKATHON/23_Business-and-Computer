@@ -38,6 +38,7 @@ export { useReceivedProposals } from "./hooks/useReceivedProposals";
 export {
   useApplicantProfile,
   useJobApplications,
+  useJobResult,
   useOpenJobs,
   usePendingSubmission,
 } from "./hooks/useOwnerJobs";
@@ -45,7 +46,8 @@ export type { OwnerJobLoad } from "./hooks/useOwnerJobs";
 export { useOwnerClosedJobs } from "./hooks/useOwnerClosedJobs";
 export type { OwnerClosedJobsLoad } from "./hooks/useOwnerClosedJobs";
 export { isOwnerWorkReviewed } from "./hooks/useOwnerData";
-export type { OwnerClosedJob, OwnerClosedOutcome } from "./lib/closedJobs";
+export { workHistoryText } from "./lib/closedJobs";
+export type { JobResult, OwnerClosedJob, OwnerClosedOutcome } from "./lib/closedJobs";
 export { useOwnerProgressJobs } from "./hooks/useOwnerProgressJobs";
 export type { OwnerProgressJobsLoad } from "./hooks/useOwnerProgressJobs";
 export {

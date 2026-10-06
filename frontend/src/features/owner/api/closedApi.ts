@@ -19,3 +19,36 @@ export async function fetchOwnerClosedJobs(): Promise<OwnerClosedJobResponse[]> 
   const data = await apiData<{ jobs?: OwnerClosedJobResponse[] } | undefined>("/me/jobs?status=CLOSED");
   return data?.jobs ?? [];
 }
+
+/** 작업 기록 한 줄의 종류 */
+export type WorkHistoryType =
+  | "STARTED"
+  | "DRAFT_SUBMITTED"
+  | "REVISION_REQUESTED"
+  | "REVISION_SUBMITTED"
+  | "COMPLETED";
+
+/** GET /jobs/{jobId}/result 의 답. 완료된 작업의 최종 결과물과 작업 기록 */
+export interface JobResultResponse {
+  jobId: number;
+  title: string;
+  studentName: string;
+  /** 완료한 날 "2026-10-06" */
+  completedAt: string;
+  /** 사장님이 직접 완료했으면 true, 7일 지나 자동 완료됐으면 false */
+  normalCompleted: boolean;
+  /** 작업비(원) */
+  workFee: number;
+  /** 파일 주소. 끝 경로가 학생이 올린 파일 이름 */
+  fileUrls: string[];
+  message: string;
+  /** 오래된 것부터 */
+  workHistory: { type: WorkHistoryType; date: string }[];
+}
+
+/** GET /jobs/{jobId}/result — 완료된 내 작업의 결과물. 끝나지 않았거나 내 작업이 아니면 404 JOB_RESULT_404 */
+export async function fetchJobResult(jobId: number): Promise<JobResultResponse> {
+  const data = await apiData<JobResultResponse | undefined>(`/jobs/${jobId}/result`);
+  if (!data) throw new Error("Job result response has no data");
+  return data;
+}
