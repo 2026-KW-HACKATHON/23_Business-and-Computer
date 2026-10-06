@@ -24,6 +24,12 @@ import com.gakkum.backend.domain.certificate.dto.CertificateCommandDto.AddStuden
 import com.gakkum.backend.domain.certificate.service.CertificateService;
 import com.gakkum.backend.domain.auth.service.AuthService;
 import com.gakkum.backend.domain.jwt.service.JwtService;
+import com.gakkum.backend.domain.job.service.JobService;
+import com.gakkum.backend.domain.owner.service.OwnerService;
+import com.gakkum.backend.domain.payment.service.PaymentService;
+import com.gakkum.backend.domain.proposal.service.ProposalService;
+import com.gakkum.backend.domain.review.service.ReviewService;
+import com.gakkum.backend.domain.specialty.service.SpecialtyCategoryService;
 import com.gakkum.backend.domain.specialty.dto.SpecialtyCommandDto.AddStudentSpecialtyCommand;
 import com.gakkum.backend.domain.specialty.service.SpecialtyService;
 import com.gakkum.backend.domain.student.dto.StudentCommandDto.CreateStudentProfileCommand;
@@ -49,7 +55,13 @@ class StudentFacadeTest {
             specialtyService,
             certificateService,
             jwtService,
-            authService);
+            authService,
+            mock(SpecialtyCategoryService.class),
+            mock(ProposalService.class),
+            mock(JobService.class),
+            mock(ReviewService.class),
+            mock(PaymentService.class),
+            mock(OwnerService.class));
 
     @Test
     void coordinatesStudentRegistrationWithGeneratedProfileId() {

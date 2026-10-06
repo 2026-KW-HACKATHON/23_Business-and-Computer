@@ -32,6 +32,8 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import com.gakkum.backend.application.owner.controller.OwnerController;
 import com.gakkum.backend.application.owner.facade.OwnerFacade;
+import com.gakkum.backend.domain.job.service.JobService;
+import com.gakkum.backend.domain.proposal.service.ProposalService;
 import com.gakkum.backend.domain.category.repository.BusinessCategoryRepository;
 import com.gakkum.backend.domain.category.service.BusinessCategoryService;
 import com.gakkum.backend.domain.jwt.entity.RefreshToken;
@@ -96,7 +98,9 @@ class OwnerRegistrationFlowTest {
                 userService,
                 ownerService,
                 businessCategoryService,
-                jwtService);
+                jwtService,
+                mock(JobService.class),
+                mock(ProposalService.class));
         OwnerController controller = new OwnerController(facade);
 
         mockMvc = MockMvcBuilders.standaloneSetup(controller)

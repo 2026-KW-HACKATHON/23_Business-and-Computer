@@ -259,6 +259,34 @@ class ChatFacadeTest {
     }
 
     @Test
+    @DisplayName("채팅방 목록과 단건은 작업 상태를 반환하고 완료와 취소를 구분한다")
+    void roomShowsJobStatus() {
+        owner();
+        Job matched = job(1L, "진행 의뢰", JobStatus.MATCHED);
+        Job closed = job(2L, "완료 의뢰", JobStatus.CLOSED);
+        Job cancelled = job(3L, "취소 의뢰", JobStatus.CANCELLED);
+        when(jobRepository.findByOwnerProfileId(10L)).thenReturn(List.of(matched, closed, cancelled));
+        ChatRoom cancelledRoom = room(3L, LocalDateTime.now());
+        when(roomRepository.findByJobIdIn(anyList())).thenReturn(List.of(
+                room(1L, LocalDateTime.now()), room(2L, LocalDateTime.now()), cancelledRoom));
+        when(roomRepository.findById(cancelledRoom.getId())).thenReturn(Optional.of(cancelledRoom));
+        when(jobRepository.findById(3L)).thenReturn(Optional.of(cancelled));
+        when(studentRepository.findAllById(anyList())).thenReturn(List.of(student()));
+        when(userService.getUsersByIds(anyList())).thenReturn(Map.of(STUDENT_ID,
+                User.builder().id(STUDENT_ID).name("학생 이름").build()));
+
+        Map<Long, JobStatus> statuses = service.getMyChatRooms("owner").getRooms().stream()
+                .collect(java.util.stream.Collectors.toMap(ChatRoomListResponse.Room::getJobId,
+                        ChatRoomListResponse.Room::getJobStatus));
+        ChatRoomListResponse.Room single = service.getChatRoom("owner", cancelledRoom.getId());
+
+        assertThat(statuses).containsEntry(1L, JobStatus.MATCHED)
+                .containsEntry(2L, JobStatus.CLOSED)
+                .containsEntry(3L, JobStatus.CANCELLED);
+        assertThat(single.getJobStatus()).isEqualTo(JobStatus.CANCELLED);
+    }
+
+    @Test
     @DisplayName("비참여자는 입장 정보와 메시지 내역을 조회할 수 없다")
     void nonParticipantCannotReadRoom() {
         when(userService.getActiveUser("owner")).thenReturn(User.builder()
@@ -298,6 +326,54 @@ class ChatFacadeTest {
         assertThat(result.getMessages().get(1).getContent()).isEqualTo("https://view.example");
         assertThat(result.getMessages().get(1).getContentExpiresAt())
                 .isEqualTo(LocalDateTime.ofInstant(viewExpiresAt, ZoneId.systemDefault()));
+    }
+
+    @Test
+    @DisplayName("사장님과 학생이 같은 대화를 조회하면 각자의 User.id를 조회자 식별자로 받아 내 메시지를 구분한다")
+    void viewerUserIdIdentifiesOwnMessages() {
+        owner();
+        studentViewer();
+        ChatRoom room = room(2L, LocalDateTime.now());
+        when(roomRepository.findById(room.getId())).thenReturn(Optional.of(room));
+        when(jobRepository.findById(2L)).thenReturn(Optional.of(job(2L, "의뢰", JobStatus.MATCHED)));
+        when(messageRepository.findByRoomIdOrderByIdAsc(room.getId())).thenReturn(List.of(
+                ChatMessage.builder().id(1L).roomId(room.getId()).senderUserId(OWNER_ID)
+                        .type(ChatMessageType.TEXT).content("사장님 메시지").build(),
+                ChatMessage.builder().id(2L).roomId(room.getId()).senderUserId(STUDENT_ID)
+                        .type(ChatMessageType.TEXT).content("학생 메시지").build()));
+
+        var ownerView = service.getMessages("owner", room.getId());
+        var studentView = service.getMessages("student", room.getId());
+
+        // 토큰의 식별 문자열(username)이 아니라 User.id를 내린다
+        assertThat(ownerView.getViewerUserId()).isEqualTo(OWNER_ID).isNotEqualTo("owner");
+        assertThat(studentView.getViewerUserId()).isEqualTo(STUDENT_ID).isNotEqualTo("student");
+        // 발신자는 조회자와 무관하게 같다
+        assertThat(ownerView.getMessages()).extracting(message -> message.getSenderUserId())
+                .containsExactly(OWNER_ID, STUDENT_ID);
+        assertThat(studentView.getMessages()).extracting(message -> message.getSenderUserId())
+                .containsExactly(OWNER_ID, STUDENT_ID);
+        assertThat(ownerView.getMessages())
+                .extracting(message -> message.getSenderUserId().equals(ownerView.getViewerUserId()))
+                .containsExactly(true, false);
+        assertThat(studentView.getMessages())
+                .extracting(message -> message.getSenderUserId().equals(studentView.getViewerUserId()))
+                .containsExactly(false, true);
+    }
+
+    @Test
+    @DisplayName("메시지가 없는 대화도 조회자 식별자와 빈 메시지 배열을 반환한다")
+    void emptyConversationReturnsViewerUserId() {
+        studentViewer();
+        ChatRoom room = room(2L, LocalDateTime.now());
+        when(roomRepository.findById(room.getId())).thenReturn(Optional.of(room));
+        when(jobRepository.findById(2L)).thenReturn(Optional.of(job(2L, "의뢰", JobStatus.MATCHED)));
+        when(messageRepository.findByRoomIdOrderByIdAsc(room.getId())).thenReturn(List.of());
+
+        var result = service.getMessages("student", room.getId());
+
+        assertThat(result.getViewerUserId()).isEqualTo(STUDENT_ID);
+        assertThat(result.getMessages()).isEmpty();
     }
 
     @Test
