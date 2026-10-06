@@ -35,7 +35,7 @@ import { studentTitle } from "../lib/korean";
  * 학생에게 한마디를 정하고 바로 안전결제한다. 작업비는 학생 희망 작업비를 채워 두고 사장님이
  * 고칠 수 있다. 마감일은 결제한 날부터 학생이 제안한 기간이라 보여 주기만 한다 (서버가 정한다).
  * 제안은 GET /proposals/{id} 로 읽는다 (ADR 0025). 결정 대기(PENDING)가 아니면 상세로 돌려보낸다.
- * 「안전결제하기」는 POST /proposals/{id}/payments 로 결제를 준비하고 카카오페이로 간다 (ADR 0028).
+ * 「안전결제하기」는 POST /proposals/{id}/payments 로 결제를 준비하고 카카오페이로 간다 (ADR 0031).
  * 카카오페이에서는 /payments/kakao/… (KakaoPayResultPage) 로 돌아온다.
  */
 function OwnerProposalAcceptPage() {

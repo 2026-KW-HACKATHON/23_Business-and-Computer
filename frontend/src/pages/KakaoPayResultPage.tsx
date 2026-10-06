@@ -133,7 +133,7 @@ function ApprovalResult({
 
 /**
  * 카카오페이에서 돌아오는 화면 /payments/kakao/approval · cancel · fail (?orderId=…, 성공이면 &pg_token=…).
- * 카카오페이로 가기 전에 남긴 결제 대기 정보(sessionStorage)로 무엇을 결제했는지 안다 (ADR 0028).
+ * 카카오페이로 가기 전에 남긴 결제 대기 정보(sessionStorage)로 무엇을 결제했는지 안다 (ADR 0031).
  * 그 정보가 없거나 주문이 다르면: 성공 주소는 orderId · pg_token 으로 승인한 뒤 사장님 내 활동으로,
  * 취소 · 실패 주소는 바로 사장님 내 활동으로 보낸다. 취소 · 실패는 결제 실패 팝업 → 「다시 결제하기」.
  * 결제 대기 정보는 화면을 떠날 때 지워서, 승인 화면을 새로고침해도 같은 주문을 다시 승인한다.

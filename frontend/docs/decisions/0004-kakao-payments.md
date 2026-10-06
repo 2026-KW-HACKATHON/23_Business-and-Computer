@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted. Implemented for proposal payments in ADR 0028, which keeps
+Accepted. Implemented for proposal payments in ADR 0031, which keeps
 `pg_token` in the approval URL instead of removing it.
 
 ## Context

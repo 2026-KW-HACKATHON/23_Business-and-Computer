@@ -161,7 +161,7 @@ function App() {
       <Route path="/student/*" element={<Navigate to="/student" replace />} />
       {/* Owner screens not built yet fall back to the owner home. */}
       <Route path="/owner/*" element={<Navigate to="/owner" replace />} />
-      {/* KakaoPay returns here: approval · cancel · fail (ADR 0028). */}
+      {/* KakaoPay returns here: approval · cancel · fail (ADR 0031). */}
       <Route path="/payments/kakao/:outcome" element={<KakaoPayResultPage />} />
       {/* Backend redirects here after a successful social login. */}
       <Route path="/cookie" element={<CookiePage />} />

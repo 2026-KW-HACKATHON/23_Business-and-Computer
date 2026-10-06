@@ -130,7 +130,7 @@ The owner side read `SAMPLE_PROPOSALS`, so a proposal a student sent
   - **Inputs**: 수정 횟수, 학생에게 한마디, and the refund-policy agreement.
     「안전결제하기」 needs the agreement and a 작업비 above 0.
   - **Payment**: the payment amount is the 작업비 the owner set. 「안전결제하기」 pays
-    through KakaoPay (ADR 0028).
+    through KakaoPay (ADR 0031).
   - **Errors**: loading and failure show `LoadNotice` with 「다시 시도」; 404
     shows `OwnerMissing`; 401 goes to /login. These are the same rules as
     the detail page.

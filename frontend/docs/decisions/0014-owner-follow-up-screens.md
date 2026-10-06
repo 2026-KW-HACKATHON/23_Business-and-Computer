@@ -34,10 +34,10 @@ read-only explore details. The backend has no API for them yet.
 - The request pay screen uses a mock (`useSafePayment`): the redirect
   screen succeeds after 1.5 seconds, and tapping it shows the failure popup,
   as in the Figma prototype. Proposal accept pays through KakaoPay
-  (ADR 0028).
+  (ADR 0031).
 - Popups follow Notion, not the Figma prototype, where they differ:
   revision sent → 내 의뢰 (진행 중), payment done → 내 의뢰 (진행 중) (the
-  proposal payment goes to the proposal detail, ADR 0028), request registered
+  proposal payment goes to the proposal detail, ADR 0031), request registered
   → 내 의뢰 (보낸 의뢰).
 - Cancelling keeps the 20% start reward from Notion 「취소·환불 정책」
   (`startReward`). Reporting a student opens the mail popup with a
@@ -73,7 +73,7 @@ read-only explore details. The backend has no API for them yet.
 
 - Backend integration: replace the hooks in `useOwnerData.ts`, create
   the work on 「네, 맡길게요」 and use its id for the pay route, pay through
-  `startKakaoPay` (ADR 0028) instead of `useSafePayment`, and save
+  `startKakaoPay` (ADR 0031) instead of `useSafePayment`, and save
   reviews, revisions, and cancellations on the server.
 - Still without an action: 거절하기 on proposals, rejecting from 내 활동,
   and 알림 설정 · 계정 정보 · 약관 in 내 정보.

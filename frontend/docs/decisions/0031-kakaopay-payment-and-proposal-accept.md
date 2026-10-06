@@ -1,4 +1,4 @@
-# 0028. KakaoPay payment flow and paying for an accepted proposal
+# 0031. KakaoPay payment flow and paying for an accepted proposal
 
 ## Status
 
