@@ -119,7 +119,7 @@ function AcceptForm({ proposal, onBack }: { proposal: ProposalDetail; onBack: ()
     const result = await startKakaoPay({ kind: "proposal", proposalId }, () =>
       prepareProposalPayment(proposalId, {
         revisionCount: revisions,
-        messageToStudent: message,
+        messageToStudent: message.trim(),
         budget,
         refundPolicyAgreed: agreed,
       }),
