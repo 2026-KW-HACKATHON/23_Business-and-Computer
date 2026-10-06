@@ -194,9 +194,9 @@ class DemoIsolationPostgresTest {
         assertThat(realProposal.getDemoSessionId()).isNull();
 
         Long demoJobId = jobService.createAwaitingStartJob(CreateProposalJobCommand.of(
-                proposalA, List.of(specialtyId), LocalDate.of(2031, 1, 1), 1, "잘 부탁드립니다")).getId();
+                proposalA, List.of(specialtyId), 120_000L, LocalDate.of(2031, 1, 1), 1, "잘 부탁드립니다")).getId();
         Long realJobId = jobService.createAwaitingStartJob(CreateProposalJobCommand.of(
-                realProposal, List.of(specialtyId), LocalDate.of(2031, 1, 1), 1, "잘 부탁드립니다")).getId();
+                realProposal, List.of(specialtyId), 120_000L, LocalDate.of(2031, 1, 1), 1, "잘 부탁드립니다")).getId();
         entityManager.flush();
         entityManager.clear();
 

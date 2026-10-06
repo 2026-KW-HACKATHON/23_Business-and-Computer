@@ -69,7 +69,7 @@ public class PaymentService {
      * 사장님이 입력한 수정 횟수와 한마디는 주문에 보존했다가 승인 시 의뢰로 옮긴다.
      * @param proposalId
      * @param ownerUserId
-     * @param amount 서버 기준 결제 금액(제안 작업비)
+     * @param amount 사장님이 입력한 결제 금액(확정 작업비)
      * @param revisionCount
      * @param messageToStudent 입력하지 않았으면 null
      * @return 저장된 PENDING 주문
@@ -77,7 +77,7 @@ public class PaymentService {
     public Payment prepareProposalPayment(
             Long proposalId, String ownerUserId, Long amount, Integer revisionCount, String messageToStudent) {
 
-        // 예외: 결제 금액(제안 작업비)이 없거나 0 이하인 경우
+        // 예외: 결제 금액(확정 작업비)이 없거나 0 이하인 경우
         if (amount == null || amount <= 0) {
             throw new BusinessException(ErrorCode.PAYMENT_NOT_AVAILABLE);
         }

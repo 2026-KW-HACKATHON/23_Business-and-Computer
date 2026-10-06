@@ -55,7 +55,7 @@ class JobProposalStartServiceTest {
             jobApplicationRepository, jobSubmissionRepository, Clock.fixed(NOW, ZoneId.of("UTC")));
 
     @Test
-    @DisplayName("제안으로 수락 대기 의뢰를 저장하고 제안의 소분류를 저장된 의뢰 ID로 복사하며 지원서는 만들지 않는다")
+    @DisplayName("제안으로 수락 대기 의뢰를 저장하되 작업비는 희망 금액이 아닌 결제 금액을 쓰고, 제안의 소분류를 저장된 의뢰 ID로 복사하며 지원서는 만들지 않는다")
     @SuppressWarnings("unchecked")
     void createsAwaitingStartJobWithSpecialties() {
         when(jobRepository.saveAndFlush(any(Job.class))).thenAnswer(invocation -> {
@@ -69,7 +69,7 @@ class JobProposalStartServiceTest {
                 .proposedFee(50_000L).draftDays(3).finalDays(7).build();
 
         Job saved = jobService.createAwaitingStartJob(CreateProposalJobCommand.of(
-                proposal, List.of(3L, 11L), LocalDate.of(2026, 10, 5), 2, "잘 부탁드립니다."));
+                proposal, List.of(3L, 11L), 120_000L, LocalDate.of(2026, 10, 5), 2, "잘 부탁드립니다."));
 
         assertThat(saved.getId()).isEqualTo(42L);
         ArgumentCaptor<Job> jobCaptor = ArgumentCaptor.forClass(Job.class);
@@ -81,7 +81,7 @@ class JobProposalStartServiceTest {
         assertThat(created.getProposalId()).isEqualTo(5L);
         assertThat(created.getTitle()).isEqualTo("메뉴판 개선 제안");
         assertThat(created.getDescription()).isEqualTo("[고객 문제]\n문제\n\n[해결 방안]\n해결\n\n[작업 계획]\n계획");
-        assertThat(created.getBudget()).isEqualTo(50_000L);
+        assertThat(created.getBudget()).isEqualTo(120_000L);
         assertThat(created.getDraftDeadline()).isEqualTo(DRAFT_DEADLINE);
         assertThat(created.getFinalDeadline()).isEqualTo(FINAL_DEADLINE);
         assertThat(created.getRevisionCount()).isEqualTo(2);
