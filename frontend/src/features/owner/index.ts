@@ -37,6 +37,15 @@ export { useOwnerHome } from "./hooks/useOwnerHome";
 export { useReceivedProposals } from "./hooks/useReceivedProposals";
 export { useApplicantProfile, useJobApplications, useOpenJobs } from "./hooks/useOwnerJobs";
 export type { OwnerJobLoad } from "./hooks/useOwnerJobs";
+export { useOwnerProgressJobs } from "./hooks/useOwnerProgressJobs";
+export type { OwnerProgressJobsLoad } from "./hooks/useOwnerProgressJobs";
+export {
+  ownerProgressDeadline,
+  ownerProgressFlowSteps,
+  ownerProgressNoun,
+  ownerProgressStatusText,
+} from "./lib/progressJobs";
+export type { OwnerProgressJob, OwnerProgressStage } from "./lib/progressJobs";
 export {
   applicantPlan,
   averageReviewRating,
