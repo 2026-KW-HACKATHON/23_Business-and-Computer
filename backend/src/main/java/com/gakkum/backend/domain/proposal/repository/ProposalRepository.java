@@ -34,6 +34,12 @@ public interface ProposalRepository extends JpaRepository<Proposal, Long> {
     /** 학생이 보낸 모든 상태의 제안 수. 취소한 제안도 센다. */
     long countByStudentProfileId(Long studentProfileId);
 
+    /** 학생이 보낸 제안 중 주어진 상태(취소)를 뺀 나머지의 수. */
+    long countByStudentProfileIdAndStatusNot(Long studentProfileId, ProposalStatus excludedStatus);
+
+    /** 사장님이 받은 제안 중 주어진 상태(취소)를 뺀 나머지의 수. */
+    long countByOwnerProfileIdAndStatusNot(Long ownerProfileId, ProposalStatus excludedStatus);
+
     /** 사장님이 받은 제안 중 주어진 상태(취소)를 뺀 나머지를 최신순으로 읽는다. */
     List<Proposal> findByOwnerProfileIdAndStatusNotOrderByCreatedAtDescIdDesc(
             Long ownerProfileId, ProposalStatus excludedStatus);

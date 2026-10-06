@@ -1,15 +1,18 @@
 import { formatMonthDay } from "../../../lib/date";
 import type {
   DeadlineStage,
+  OwnerWork,
   StudentProfileRef,
   StudentRef,
   WaitingStatus,
+  WorkPlanSheetContent,
 } from "../types";
 import { studentTitle } from "../../../lib/korean";
 
 /** 「시각디자인학과 박지은 학생」 · 학과가 없으면 「김광운 학생」 */
 export function studentLabel({ name, department }: StudentRef): string {
-  return department ? `${department} ${studentTitle(name)}` : studentTitle(name);
+  const who = name ? studentTitle(name) : "학생";
+  return department ? `${department} ${who}` : who;
 }
 
 /** 「초안 마감 : 9월 29일」 · 「최종 마감 : 10월 3일」 */
@@ -27,3 +30,16 @@ export function studentRecord({ rating, completedCount }: StudentProfileRef): st
   return `★ ${rating.toFixed(1)} · 완료 ${completedCount}건`;
 }
 
+/** 샘플 작업의 작업계획서 바텀시트 내용 */
+export function ownerWorkPlanContent(work: OwnerWork): WorkPlanSheetContent {
+  return {
+    title: work.title,
+    studentName: work.student.name,
+    sentOn: work.planSentOn,
+    plan: work.plan,
+    budget: work.budget,
+    draftDue: work.draftDue,
+    finalDue: work.finalDue,
+    revisionLimit: work.revisionLimit,
+  };
+}

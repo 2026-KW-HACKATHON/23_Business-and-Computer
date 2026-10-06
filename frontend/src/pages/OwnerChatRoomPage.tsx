@@ -177,11 +177,11 @@ function OwnerChatRoom({ roomId }: { roomId: string }) {
       </div>
 
       <WorkPlanSheet
-        work={
+        content={
           planOpen && plan
             ? {
                 title: room.jobTitle,
-                student: { name: room.counterpartName },
+                studentName: room.counterpartName,
                 plan,
                 budget: room.budget,
                 draftDue: room.draftDeadline,

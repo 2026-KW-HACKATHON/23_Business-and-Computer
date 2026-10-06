@@ -102,4 +102,17 @@ public class Owner {
                 .demoSessionId(demoSessionId)
                 .build();
     }
+
+    public void updateProfile(
+            String storeName,
+            Long categoryId,
+            String profileImageUrl,
+            String storeAddress,
+            String description) {
+        this.storeName = storeName;
+        this.categoryId = categoryId;
+        this.profileImageUrl = profileImageUrl;
+        this.storeAddress = storeAddress;
+        this.description = description;
+    }
 }

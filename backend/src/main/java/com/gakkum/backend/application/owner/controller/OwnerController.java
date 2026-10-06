@@ -6,10 +6,14 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.gakkum.backend.application.owner.dto.OwnerMeResponse;
+import com.gakkum.backend.application.owner.dto.OwnerMeUpdateRequest;
 import com.gakkum.backend.application.owner.dto.OwnerRegistrationRequest;
 import com.gakkum.backend.application.owner.dto.OwnerRegistrationResponse;
 import com.gakkum.backend.application.owner.facade.OwnerFacade;
@@ -46,5 +50,19 @@ public class OwnerController {
         httpServletResponse.addHeader(HttpHeaders.SET_COOKIE, refreshCookie.toString());
 
         return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    @GetMapping("/owners/me")
+    public ResponseEntity<ApiResponse<OwnerMeResponse>> getMe(Authentication authentication) {
+        return ResponseEntity.ok(ApiResponse.success(
+                OwnerMeResponse.from(ownerFacade.getMe(authentication.getName()))));
+    }
+
+    @PutMapping("/owners/me")
+    public ResponseEntity<ApiResponse<Void>> updateMe(
+            Authentication authentication,
+            @Valid @RequestBody OwnerMeUpdateRequest request) {
+        ownerFacade.updateMe(request.toCommand(authentication.getName()));
+        return ResponseEntity.ok(ApiResponse.success());
     }
 }

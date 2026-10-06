@@ -10,7 +10,6 @@ export const SAMPLE_STORE: OwnerStore = {
   category: "음식점",
   address: "서울 노원구 석계로 13길 35",
   addressDetail: "세영청마루아파트 상가동 1층 101호",
-  phone: "02-949-1234",
   intro: "광운대 앞 20년 된 치킨집이에요. 학생 손님이 많아요.",
   representative: "이새빛",
   businessNumber: "123-45-67890",

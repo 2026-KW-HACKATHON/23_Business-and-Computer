@@ -80,4 +80,11 @@ public class Student {
                 .profileImageUrl(profileImageUrl)
                 .build();
     }
+
+    /** 학생이 직접 고칠 수 있는 항목만 바꾼다. null은 값을 지운다는 뜻이다. */
+    public void updateProfile(String profileImageUrl, String introduction, String portfolioUrl) {
+        this.profileImageUrl = profileImageUrl;
+        this.introduction = introduction;
+        this.portfolioUrl = portfolioUrl;
+    }
 }

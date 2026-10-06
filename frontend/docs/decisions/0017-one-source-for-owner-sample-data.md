@@ -23,7 +23,8 @@ work never became completed.
 - Single sources: works and requests (and, until ADR 0025, proposals) in
   `src/features/owner/lib/sampleDetails.ts` and student profiles in
   `sampleStudents.ts` (탐색 reads the backend, ADR 0026; sent requests,
-  their applicants, and cancel read it too, ADR 0030). The home, 내 활동,
+  their applicants, and cancel read it too, ADR 0030; in-progress works,
+  ADR 0035). The home, 내 활동,
   결제 내역 and its summary, and the 내 정보 counts are built
   from them in
   `src/features/owner/hooks/useOwnerData.ts` and `useOwnerHome.ts`.

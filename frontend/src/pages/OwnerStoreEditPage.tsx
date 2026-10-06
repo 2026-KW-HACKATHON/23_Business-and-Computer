@@ -33,8 +33,7 @@ function OwnerStoreEditPage() {
     back();
   };
 
-  const filled =
-    form.storeName.trim() !== "" && form.address.trim() !== "" && form.phone.trim() !== "";
+  const filled = form.storeName.trim() !== "" && form.address.trim() !== "";
 
   return (
     <SubScreen
@@ -87,15 +86,6 @@ function OwnerStoreEditPage() {
             onChange={(e) => update({ addressDetail: e.target.value })}
           />
         </div>
-
-        <label className="owner-store__field">
-          <span className="owner-store__label">가게 전화번호</span>
-          <TextField
-            inputMode="tel"
-            value={form.phone}
-            onChange={(e) => update({ phone: e.target.value })}
-          />
-        </label>
 
         <label className="owner-store__field">
           <span className="owner-store__label">

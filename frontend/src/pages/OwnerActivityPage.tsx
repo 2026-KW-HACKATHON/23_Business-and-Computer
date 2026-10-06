@@ -4,6 +4,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   Button,
   CategoryBadge,
+  Dialog,
   EmpathyCount,
   LoadNotice,
   ReportSheet,
@@ -17,17 +18,30 @@ import {
   OWNER_PATHS,
   PaymentSummaryBox,
   WorkPlanSheet,
+  admissionYearText,
   deadlineText,
+  ownerProgressDeadline,
+  ownerProgressNoun,
+  ownerProgressStatusText,
+  progressWorkPlanContent,
   receivedOnText,
   receivedProposalStatusLabel,
   jobCategoryNames,
   studentMetaText,
   useOpenJobs,
   useOwnerPayments,
+  useOwnerProgressJobs,
   useOwnerWorks,
   useReceivedProposals,
 } from "../features/owner";
-import type { ActivityTab, OpenJob, OwnerWork, ReceivedProposal } from "../features/owner";
+import type {
+  ActivityTab,
+  OpenJob,
+  OwnerProgressJob,
+  OwnerWork,
+  ReceivedProposal,
+  WorkPlanSheetContent,
+} from "../features/owner";
 import { proposalBadgeNames } from "../features/proposal";
 import { useBack } from "../hooks/useBack";
 import { formatMonthDay } from "../lib/date";
@@ -43,14 +57,14 @@ const TABS: { tab: ActivityTab; label: string }[] = [
   { tab: "done", label: "완료" },
 ];
 
-/** 학생 사진 + 이름 · 학번 · 학과 + 「프로필 보기」 */
+/** 학생 사진 + 이름 · 학번 · 학과 + 「프로필 보기」. 이름을 모르면 「학생」 */
 function StudentLine({
   name,
   year,
   department,
   onProfile,
 }: {
-  name: string;
+  name?: string;
   year?: string;
   department?: string;
   onProfile?: () => void;
@@ -60,7 +74,7 @@ function StudentLine({
       <RoleAvatar role="student" size={32} />
       <span className="owner-activity__student-info">
         <span className="owner-activity__student-name">
-          <strong>{studentTitle(name)}</strong>
+          <strong>{name ? studentTitle(name) : "학생"}</strong>
           {year && <span>{year}</span>}
         </span>
         {department && <span className="owner-activity__student-dept">{department}</span>}
@@ -84,38 +98,39 @@ function CardHead({ kind, title, right }: { kind: WorkKind; title: string; right
 /**
  * 피그마 「내 활동 - 보낸 의뢰 · 받은 제안 · 진행 중 · 완료 (사장님)」.
  * 위 요약 카드 4칸이 탭이고, 고른 탭은 주소(?tab=)에 남아 돌아와도 그대로다.
- * 보낸 의뢰는 GET /me/jobs?status=OPEN (ADR 0030), 받은 제안은 GET /me/received-proposals (ADR 0025).
- * 진행 중 · 완료 탭은 아직 샘플 데이터다.
+ * 보낸 의뢰는 GET /me/jobs?status=OPEN (ADR 0030), 받은 제안은 GET /me/received-proposals (ADR 0025),
+ * 진행 중은 GET /me/jobs?status=MATCHED (ADR 0035). 완료 탭은 아직 샘플 데이터다.
  */
 function OwnerActivityPage() {
   const navigate = useNavigate();
   const back = useBack(OWNER_PATHS.me);
   const [params, setParams] = useSearchParams();
   const tab = TABS.find((t) => t.tab === params.get("tab"))?.tab ?? "sent";
-  // 보낸 의뢰 · 진행 중은 초안 마감이 빠른 것부터
-  const byDraftDue = <T extends { draftDue: string }>(list: T[]) =>
-    [...list].sort((a, b) => a.draftDue.localeCompare(b.draftDue));
+  // 보낸 의뢰는 초안 마감, 진행 중은 지금 지킬 마감이 빠른 것부터
   const { load: openLoad, reload: reloadOpen } = useOpenJobs();
   const requests = [...(openLoad.status === "loaded" ? openLoad.data : [])].sort((a, b) =>
     a.draftDeadline.localeCompare(b.draftDeadline),
   );
   const { load: proposalsLoad, reload: reloadProposals } = useReceivedProposals();
   const proposals = proposalsLoad.status === "loaded" ? proposalsLoad.proposals : [];
+  const { load: progressLoad, reload: reloadProgress } = useOwnerProgressJobs();
+  const inProgress = (progressLoad.status === "loaded" ? [...progressLoad.jobs] : []).sort((a, b) =>
+    ownerProgressDeadline(a).due.localeCompare(ownerProgressDeadline(b).due),
+  );
   const works = useOwnerWorks();
   const { summary } = useOwnerPayments();
-  const [planWork, setPlanWork] = useState<OwnerWork>();
-  const [reportWork, setReportWork] = useState<OwnerWork>();
+  const [planContent, setPlanContent] = useState<WorkPlanSheetContent>();
+  const [reportTitle, setReportTitle] = useState<string>();
+  // 맡은 학생의 프로필 API 가 없어서 「프로필 보기」는 곧 열린다는 안내
+  const [profileSoon, setProfileSoon] = useState(false);
 
-  const inProgress = byDraftDue(
-    works.filter((w) => w.status === "inProgress" || w.status === "submitted"),
-  );
   const done = works.filter((w) => w.status === "completed");
   const canceled = works.filter((w) => w.status === "canceled");
   // 받은 제안을 불러오는 중이거나 실패하면 개수 대신 「-」
   const counts: Record<ActivityTab, number | string> = {
     sent: openLoad.status === "loaded" ? requests.length : "-",
     proposals: proposalsLoad.status === "loaded" ? proposals.length : "-",
-    inProgress: inProgress.length,
+    inProgress: progressLoad.status === "loaded" ? inProgress.length : "-",
     done: done.length,
   };
   const selectedIndex = TABS.findIndex((t) => t.tab === tab);
@@ -200,55 +215,48 @@ function OwnerActivityPage() {
     );
   };
 
-  const inProgressCard = (work: OwnerWork) => {
-    const submitted = work.status === "submitted";
-    const revised = work.revisionCount > 0;
-    const stage = revised ? "수정안" : "초안";
-    const deadline =
-      submitted || revised
-        ? deadlineText("final", work.finalDue)
-        : deadlineText("draft", work.draftDue);
-    const { student } = work;
-    const studentId = student.id;
+  // 학생이 맡아 진행 중인 내 의뢰 (서버). 만드는 중이면 상세보기 = 지원서 바텀시트 또는 받은 제안
+  const inProgressCard = (job: OwnerProgressJob) => {
+    const id = String(job.jobId);
+    const submitted = job.stage === "submitted";
+    const noun = ownerProgressNoun(job);
+    const deadline = ownerProgressDeadline(job);
+    const plan = progressWorkPlanContent(job);
+    const proposalId = job.proposalId;
+    const openDetail = submitted
+      ? () => navigate(OWNER_PATHS.workCheck(id))
+      : plan
+        ? () => setPlanContent(plan)
+        : proposalId !== undefined
+          ? () => navigate(OWNER_PATHS.proposal(String(proposalId)))
+          : undefined;
     return (
-      <li key={work.id} className="owner-activity__card">
-        <CardHead kind={work.kind} title={work.title} />
+      <li key={job.jobId} className="owner-activity__card">
+        <CardHead kind={job.kind} title={job.title} />
         <div className="owner-activity__meta">
-          <CategoryBadge field={work.field} />
-          <span>{deadline}</span>
+          {jobCategoryNames(job.specialtyCategories).map((name) => (
+            <CategoryBadge key={name} field={name} />
+          ))}
+          <span>{deadlineText(deadline.stage, deadline.due)}</span>
         </div>
         <div className="owner-activity__box">
           <span className="owner-activity__dot" aria-hidden="true" />
-          <span className="owner-activity__status">
-            {submitted ? `${stage}이 도착했어요` : `${stage} 제작 중`}
-          </span>
-          <TextButton
-            onClick={() =>
-              submitted ? navigate(OWNER_PATHS.workCheck(work.id)) : setPlanWork(work)
-            }
-          >
-            상세보기
-          </TextButton>
+          <span className="owner-activity__status">{ownerProgressStatusText(job)}</span>
+          {openDetail && <TextButton onClick={openDetail}>상세보기</TextButton>}
         </div>
         <div className="owner-activity__divider" />
         <StudentLine
-          name={student.name}
-          year={student.year}
-          department={student.department}
-          onProfile={studentId ? () => navigate(OWNER_PATHS.student(studentId)) : undefined}
+          name={job.student.name}
+          year={admissionYearText(job.student.studentNumber)}
+          department={job.student.major}
+          onProfile={() => setProfileSoon(true)}
         />
         {submitted ? (
           <>
             <div className="owner-activity__divider" />
             <div className="owner-activity__actions">
-              <Button onClick={() => navigate(OWNER_PATHS.workCheck(work.id))}>
-                {stage} 확인하기
-              </Button>
-              <Button
-                variant="secondary"
-                size="medium"
-                onClick={() => navigate(OWNER_PATHS.chats)}
-              >
+              <Button onClick={() => navigate(OWNER_PATHS.workCheck(id))}>{noun} 확인하기</Button>
+              <Button variant="secondary" size="medium" onClick={() => navigate(OWNER_PATHS.chats)}>
                 문의하기
               </Button>
             </div>
@@ -256,8 +264,8 @@ function OwnerActivityPage() {
         ) : (
           <div className="owner-activity__trouble">
             <span>문제가 있나요?</span>
-            <TextButton onClick={() => navigate(OWNER_PATHS.workCancel(work.id))}>작업 취소</TextButton>
-            <TextButton onClick={() => setReportWork(work)}>문제 신고</TextButton>
+            <TextButton onClick={() => navigate(OWNER_PATHS.workCancel(id))}>작업 취소</TextButton>
+            <TextButton onClick={() => setReportTitle(job.title)}>문제 신고</TextButton>
           </div>
         )}
       </li>
@@ -369,6 +377,14 @@ function OwnerActivityPage() {
             onRetry={reloadProposals}
           />
         )}
+        {tab === "inProgress" && progressLoad.status !== "loaded" && (
+          <LoadNotice
+            status={progressLoad.status}
+            loadingText="진행 중인 작업을 불러오는 중이에요"
+            errorText="진행 중인 작업을 불러오지 못했어요"
+            onRetry={reloadProgress}
+          />
+        )}
 
         {tab === "done" && canceled.length > 0 && (
           <>
@@ -379,14 +395,26 @@ function OwnerActivityPage() {
       </div>
 
       <WorkPlanSheet
-        work={planWork}
-        onClose={() => setPlanWork(undefined)}
+        content={planContent}
+        onClose={() => setPlanContent(undefined)}
         onChat={() => navigate(OWNER_PATHS.chats)}
       />
+      <Dialog
+        open={profileSoon}
+        image="sorryOwner"
+        title="학생 프로필은 곧 볼 수 있어요"
+        description={"지금은 작업 중인 학생의 프로필을 열 수 없어요.\n준비되면 여기서 바로 볼 수 있어요."}
+        onClose={() => setProfileSoon(false)}
+        actions={
+          <Button fullWidth onClick={() => setProfileSoon(false)}>
+            확인
+          </Button>
+        }
+      />
       <ReportSheet
-        open={reportWork !== undefined}
-        workTitle={reportWork?.title ?? ""}
-        onClose={() => setReportWork(undefined)}
+        open={reportTitle !== undefined}
+        workTitle={reportTitle ?? ""}
+        onClose={() => setReportTitle(undefined)}
       />
     </SubScreen>
   );

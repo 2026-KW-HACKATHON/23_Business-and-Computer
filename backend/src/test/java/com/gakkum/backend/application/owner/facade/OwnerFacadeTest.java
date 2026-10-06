@@ -21,9 +21,11 @@ import org.mockito.InOrder;
 import com.gakkum.backend.application.owner.dto.OwnerRegistrationRequest;
 import com.gakkum.backend.application.owner.dto.OwnerRegistrationResponse;
 import com.gakkum.backend.domain.category.service.BusinessCategoryService;
+import com.gakkum.backend.domain.job.service.JobService;
 import com.gakkum.backend.domain.jwt.service.JwtService;
 import com.gakkum.backend.domain.owner.dto.OwnerCommandDto.CreateOwnerProfileCommand;
 import com.gakkum.backend.domain.owner.service.OwnerService;
+import com.gakkum.backend.domain.proposal.service.ProposalService;
 import com.gakkum.backend.domain.user.entity.User;
 import com.gakkum.backend.domain.user.entity.UserRole;
 import com.gakkum.backend.domain.user.service.UserService;
@@ -40,7 +42,9 @@ class OwnerFacadeTest {
             userService,
             ownerService,
             businessCategoryService,
-            jwtService);
+            jwtService,
+            mock(JobService.class),
+            mock(ProposalService.class));
 
     private final User user = User.builder()
             .id("01K58M6PJV8VAJMXHBHJ2PNB5C")

@@ -13,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.gakkum.backend.domain.owner.dto.OwnerCommandDto.CreateOwnerProfileCommand;
 import com.gakkum.backend.domain.owner.dto.OwnerCommandDto.GetExploreStoresCommand;
+import com.gakkum.backend.domain.owner.dto.OwnerCommandDto.UpdateOwnerMeCommand;
 import com.gakkum.backend.domain.owner.entity.Owner;
 import com.gakkum.backend.domain.owner.repository.OwnerRepository;
 import com.gakkum.backend.global.exception.BusinessException;
@@ -43,6 +44,17 @@ public class OwnerService {
                 demoSessionId);
 
         return ownerRepository.save(owner);
+    }
+
+    @Transactional
+    public void updateOwnerProfile(Owner owner, UpdateOwnerMeCommand command) {
+        owner.updateProfile(
+                command.getStoreName(),
+                command.getCategoryId(),
+                command.getProfileImageUrl(),
+                command.getStoreAddress(),
+                command.getDescription());
+        ownerRepository.save(owner);
     }
 
     @Transactional(readOnly = true)

@@ -20,13 +20,17 @@ function describe(todo: OwnerTodo): {
   action: string;
 } {
   switch (todo.type) {
-    case "draftArrived":
+    case "draftArrived": {
+      const noun = todo.revision ? "수정안" : "초안";
       return {
         meta: studentLabel(todo.student),
-        status: "초안이 도착했어요",
-        detail: `${formatMonthDay(todo.autoCompleteOn)}까지 확인하지 않으면 자동으로 완료돼요`,
-        action: "초안 확인하기",
+        status: `${noun}이 도착했어요`,
+        detail: todo.autoCompleteOn
+          ? `${formatMonthDay(todo.autoCompleteOn)}까지 확인하지 않으면 자동으로 완료돼요`
+          : "7일 동안 확인하지 않으면 자동으로 완료돼요",
+        action: `${noun} 확인하기`,
       };
+    }
     case "proposalArrived":
       return {
         meta: studentLabel(todo.student),

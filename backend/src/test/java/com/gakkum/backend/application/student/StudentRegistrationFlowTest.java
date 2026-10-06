@@ -34,6 +34,12 @@ import com.gakkum.backend.domain.auth.service.AuthService;
 import com.gakkum.backend.domain.jwt.entity.RefreshToken;
 import com.gakkum.backend.domain.jwt.repository.RefreshRepository;
 import com.gakkum.backend.domain.jwt.service.JwtService;
+import com.gakkum.backend.domain.job.service.JobService;
+import com.gakkum.backend.domain.owner.service.OwnerService;
+import com.gakkum.backend.domain.payment.service.PaymentService;
+import com.gakkum.backend.domain.proposal.service.ProposalService;
+import com.gakkum.backend.domain.review.service.ReviewService;
+import com.gakkum.backend.domain.specialty.service.SpecialtyCategoryService;
 import com.gakkum.backend.domain.specialty.entity.StudentSpecialty;
 import com.gakkum.backend.domain.specialty.repository.SpecialtyRepository;
 import com.gakkum.backend.domain.specialty.repository.StudentSpecialtyRepository;
@@ -75,7 +81,13 @@ class StudentRegistrationFlowTest {
                 specialtyService,
                 certificateService,
                 jwtService,
-                authService);
+                authService,
+                mock(SpecialtyCategoryService.class),
+                mock(ProposalService.class),
+                mock(JobService.class),
+                mock(ReviewService.class),
+                mock(PaymentService.class),
+                mock(OwnerService.class));
         StudentController controller = new StudentController(facade);
 
         mockMvc = MockMvcBuilders.standaloneSetup(controller)

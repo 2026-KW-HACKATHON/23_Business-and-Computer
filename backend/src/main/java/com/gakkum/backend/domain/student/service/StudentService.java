@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.gakkum.backend.domain.student.dto.StudentCommandDto.CreateStudentProfileCommand;
+import com.gakkum.backend.domain.student.dto.StudentCommandDto.UpdateStudentMeCommand;
 import com.gakkum.backend.domain.student.entity.Student;
 import com.gakkum.backend.domain.student.repository.StudentRepository;
 import com.gakkum.backend.global.exception.BusinessException;
@@ -34,6 +35,16 @@ public class StudentService {
                 command.getProfileImageUrl());
 
         return studentRepository.save(student);
+    }
+
+    /** 프로필 사진 URL·소개·포트폴리오 URL을 주어진 값으로 바꾼다. null이면 저장된 값을 지운다. */
+    @Transactional
+    public void updateStudentProfile(Student student, UpdateStudentMeCommand command) {
+        student.updateProfile(
+                command.getProfileImageUrl(),
+                command.getIntroduction(),
+                command.getPortfolioUrl());
+        studentRepository.save(student);
     }
 
     @Transactional(readOnly = true)

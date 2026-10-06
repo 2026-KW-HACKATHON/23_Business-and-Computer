@@ -46,6 +46,32 @@ public final class OwnerCommandDto {
         }
     }
 
+    /** 사장님 내 정보 전체 저장. 선택 항목의 null은 기존 값 삭제다. */
+    @Getter
+    @Builder(access = AccessLevel.PRIVATE)
+    @AllArgsConstructor(access = AccessLevel.PRIVATE)
+    public static class UpdateOwnerMeCommand {
+
+        private final String username;
+        private final String storeName;
+        private final Long categoryId;
+        private final String profileImageUrl;
+        private final String storeAddress;
+        private final String description;
+
+        public static UpdateOwnerMeCommand of(String username, String storeName, Long categoryId,
+                String profileImageUrl, String storeAddress, String description) {
+            return UpdateOwnerMeCommand.builder()
+                    .username(username)
+                    .storeName(storeName)
+                    .categoryId(categoryId)
+                    .profileImageUrl(profileImageUrl)
+                    .storeAddress(storeAddress)
+                    .description(description)
+                    .build();
+        }
+    }
+
     /** 탐색 목록용 매장 조회 조건. 경계는 정렬 키 (createdAt, id)이고 businessCategoryId가 null이면 전체 업종이다. */
     @Getter
     @Builder(access = AccessLevel.PRIVATE)
