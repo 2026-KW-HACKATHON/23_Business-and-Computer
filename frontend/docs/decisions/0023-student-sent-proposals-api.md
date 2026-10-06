@@ -68,8 +68,8 @@ student screen, which still read `sampleProposals.ts`. The backend (dev) has:
   - Home: 「기다리는 중」 lists PENDING proposals. While the list loads or
     after a failure, that section shows `LoadNotice` with no count.
   - First-visit check on the home: the screen is not a first visit when there
-    are works or applications. Otherwise it is decided only once the sent list
-    has loaded. Until then the home shows only the loading or retry line,
+    are works, applications, or sent proposals. Otherwise it is decided only
+    once the sent list and the application list (ADR 0027) have loaded. Until then the home shows only the loading or retry line,
     never the guide.
   - 탐색 marks 「내 제안」 by the ids in this list (ADR 0026).
 - **Status chip** (`sentProposalStatusLabel`):

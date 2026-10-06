@@ -15,4 +15,7 @@ export type {
   ExploreJobCard,
   ExploreProposalCard,
   ExploreSort,
+  ExploreSpecialtyCategory,
+  JobApplicationStatus,
+  JobStatus,
 } from "./api/exploreApi";

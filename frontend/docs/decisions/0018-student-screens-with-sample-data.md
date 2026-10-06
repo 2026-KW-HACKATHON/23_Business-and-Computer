@@ -21,13 +21,12 @@ owner's applicant list).
   only through the hooks in `src/features/student/hooks/useStudentData.ts` and
   `useStudentHome.ts`.
 - Sample data has one source per kind: works and chat threads
-  (`src/features/student/lib/sampleWorks.ts`), requests and applications
-  (`sampleRequests.ts`), my proposals and the home examples
+  (`src/features/student/lib/sampleWorks.ts`), my proposals and the home examples
   (`sampleProposals.ts`), stores, the profile, and notifications. The home,
   내 활동 counts, settlements, the portfolio, chat rows, and the profile's
   completed count, rating, and reviews are derived from them.
 - Facts shared with the owner sample keep the same ids and values: work-103
-  and work-090 (치킨플러스), and the applied requests req-502 · 507.
+  and work-090 (치킨플러스). Applications come from the API (ADR 0027).
   김광운's owner-side profile matches the student's own profile. Where the
   Figma student sample conflicted with the owner sample, the student sample
   changed (store or title) and Figma was updated to match.
@@ -42,8 +41,8 @@ owner's applicant list).
   line (「디자인 / 홍보」) is derived from the chosen badges, not stored.
 - The student home shows 「학생 홈 - 처음」 when the account has no works,
   applications, or proposals, derived from the lists (no backend flag). Sent
-  proposals now come from the API, so the check waits for that list
-  (ADR 0023).
+  proposals and applications now come from the API, so the check waits for
+  those lists (ADR 0023, ADR 0027).
 - Shared pieces moved out of the owner feature so both roles use them:
   `src/components/FormFields/FormFields.tsx` (title, text area, budget, due
   dates, revision stepper),

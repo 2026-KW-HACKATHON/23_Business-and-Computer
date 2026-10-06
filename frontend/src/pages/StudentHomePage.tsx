@@ -60,12 +60,15 @@ function StudentHomePage() {
       />
     ) : (
       <TaskRow
-        key={item.request.id}
+        key={`job-${item.job.jobApplicationId}`}
         kind="request"
-        title={item.request.title}
-        lines={[`${item.request.store.name} 의뢰에 지원`, deadlineText("draft", item.request.draftDue)]}
+        title={item.job.title}
+        lines={[
+          item.job.storeName ? `${item.job.storeName} 의뢰에 지원` : "의뢰에 지원",
+          deadlineText("draft", item.job.draftDeadline),
+        ]}
         status="사장님이 고르는 중"
-        onClick={() => navigate(STUDENT_PATHS.requestFull(item.request.id))}
+        onClick={() => navigate(STUDENT_PATHS.requestFull(String(item.job.jobId)))}
       />
     );
 
