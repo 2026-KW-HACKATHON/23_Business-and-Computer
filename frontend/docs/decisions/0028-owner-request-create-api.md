@@ -47,9 +47,8 @@ ADR 0017 and are wired in later steps.
   주세요」, other 409 「일시적인 문제가 생겼어요…」, anything else 「잠시 후
   다시 시도해 주세요」. 401 goes to /login; OWNER_403 shows 「사장님만 의뢰를
   등록할 수 있어요」 and then `landingPath()`.
-- **After success**: the done screen as before. Until the owner request list
-  reads GET /me/jobs, the request is also added to the sample list
-  (`registerOwnerRequest`) so 내 활동 and the home show it.
+- **After success**: the done screen as before; 내 활동 and the home read
+  the new request from GET /me/jobs?status=OPEN (ADR 0030).
 
 ## Rationale
 
@@ -65,5 +64,4 @@ ADR 0017 and are wired in later steps.
 
 ## Agent Guidance
 
-- When the owner request list reads GET /me/jobs, remove the
-  `registerOwnerRequest` call after a successful POST /jobs.
+- The sent-request list, detail, applicants, and cancel are in ADR 0030.

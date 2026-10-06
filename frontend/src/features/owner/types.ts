@@ -42,7 +42,8 @@ export interface ProposalArrivedTodo extends TodoBase {
 /** 의뢰에 학생들이 지원했다 (id = 의뢰) */
 export interface ApplicantsTodo extends TodoBase {
   type: "applicants";
-  budget: number;
+  /** 작업비(원). 목록이 주지 않으면 없음 (「예산」 줄을 숨긴다) */
+  budget?: number;
   applicantCount: number;
   draftDue: string;
 }
@@ -183,7 +184,8 @@ export interface OwnerProfile {
   address: string;
   businessVerified: boolean;
   /** 받은 제안 개수는 useReceivedProposals 로 센다 (ADR 0025) */
-  counts: { sent: number; inProgress: number; done: number };
+  /** 보낸 의뢰 수는 useOpenJobs 로 센다 */
+  counts: { inProgress: number; done: number };
 }
 
 export type WorkStatus = "inProgress" | "submitted" | "completed" | "canceled";

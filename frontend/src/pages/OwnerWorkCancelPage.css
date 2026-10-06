@@ -121,3 +121,12 @@
   color: var(--color-black);
   word-break: keep-all;
 }
+
+/* 취소 실패: 버튼 바로 위 가운데 */
+.owner-cancel__send-error {
+  margin: 0 0 8px;
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--color-danger);
+  text-align: center;
+}

@@ -31,7 +31,7 @@ function describe(todo: OwnerTodo) {
       };
     case "applicants":
       return {
-        meta: `예산 ${todo.budget.toLocaleString("ko-KR")}원`,
+        meta: todo.budget === undefined ? "" : `예산 ${todo.budget.toLocaleString("ko-KR")}원`,
         status: `학생 ${todo.applicantCount}명이 지원했어요`,
         detail: `초안 마감 : ${formatMonthDay(todo.draftDue)}`,
         action: "학생 고르기",

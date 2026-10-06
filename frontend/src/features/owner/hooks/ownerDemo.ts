@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from "react";
-import type { OwnerRequest, OwnerStore } from "../types";
+import type { OwnerStore } from "../types";
 
 /*
  * 사장님 화면에서 시연 중에 바뀐 상태. 백엔드 연동 전까지 새로고침하면 처음으로 돌아간다.
@@ -9,8 +9,6 @@ import type { OwnerRequest, OwnerStore } from "../types";
 export const ownerDemo = {
   /** 읽은 알림 (알림 화면 · 메인 탭 종 점이 같이 본다) */
   readNotificationIds: new Set<string>(),
-  /** 의뢰 등록으로 새로 올린 의뢰. 최근 것부터 */
-  registeredRequests: [] as OwnerRequest[],
   /** 가게 정보 수정에서 저장한 값 */
   store: null as OwnerStore | null,
   /** 가게 사진 (내 정보 · 가게 정보 수정이 같이 본다) */
@@ -42,12 +40,6 @@ export function useOwnerDemoVersion(): number {
 /** 알림을 읽음으로 (하나 누르기 · 「모두 읽음」) */
 export function markOwnerNotificationsRead(ids: string[]): void {
   ids.forEach((id) => ownerDemo.readNotificationIds.add(id));
-  changed();
-}
-
-/** 의뢰 등록 3/3 「의뢰 등록하기」 */
-export function registerOwnerRequest(request: OwnerRequest): void {
-  ownerDemo.registeredRequests = [request, ...ownerDemo.registeredRequests];
   changed();
 }
 

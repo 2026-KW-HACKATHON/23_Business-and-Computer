@@ -22,7 +22,8 @@ work never became completed.
 
 - Single sources: works and requests (and, until ADR 0025, proposals) in
   `src/features/owner/lib/sampleDetails.ts` and student profiles in
-  `sampleStudents.ts` (탐색 reads the backend, ADR 0026). The home, 내 활동,
+  `sampleStudents.ts` (탐색 reads the backend, ADR 0026; sent requests,
+  their applicants, and cancel read it too, ADR 0030). The home, 내 활동,
   결제 내역 and its summary, the chat list, and the 내 정보 counts are built
   from them in
   `src/features/owner/hooks/useOwnerData.ts` and `useOwnerHome.ts`.
@@ -33,8 +34,7 @@ work never became completed.
   in `src/lib/sampleTime.ts`. Plans say 「초안 마감일까지」
   instead of a date so they always agree with the request.
 - Each work has `paidOn`; 결제 내역 and 「이번 달 결제」 use it. Chat threads
-  carry `unreadCount`. Explore proposals and requests carry `progress`
-  (수락 대기, 수락됨, 완료) and `createdAt`.
+  carry `unreadCount`.
 - Demo state: `completeOwnerWork` (완료 확인) and `markOwnerWorkReviewed`
   (후기 남기기) mark a work in memory, so the result screen, 내 활동 완료, the
   home 끝난 일, and 결제 내역 follow the demo until the page reloads.

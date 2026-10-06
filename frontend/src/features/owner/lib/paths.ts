@@ -23,7 +23,11 @@ export const OWNER_PATHS = {
   request: (id: string) => `/owner/requests/${id}`,
   requestCancel: (id: string) => `/owner/requests/${id}/cancel`,
   requestApplicants: (id: string) => `/owner/requests/${id}/applicants`,
+  /** 지원자 한 명의 프로필 (의뢰 id · 지원서 id) */
+  applicantProfile: (requestId: string, applicationId: string) =>
+    `/owner/requests/${requestId}/applicants/${applicationId}`,
   proposal: (id: string) => `/owner/proposals/${id}`,
+  /** 이 학생에게 맡기기 (의뢰 id · 지원서 id). 결제 연동 화면 */
   assign: (requestId: string, studentId: string) =>
     `/owner/requests/${requestId}/assign/${studentId}`,
   student: (studentId: string) => `/owner/students/${studentId}`,
