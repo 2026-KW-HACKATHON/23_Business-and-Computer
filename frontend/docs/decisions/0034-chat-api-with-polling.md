@@ -14,7 +14,8 @@ owner and its selected student may use a room):
 - GET /me/chat-rooms → `{ count, rooms }`. Rooms are sorted by latest message,
   and empty rooms by creation. A room has `roomId` (string), `jobId`,
   `jobTitle`, `counterpartName` (store name for a student, student name for an
-  owner), `counterpartProfileImageUrl`, `deadlineType` (DRAFT · FINAL, only for
+  owner), `counterpartProfileImageUrl`, `jobStatus` (OPEN · AWAITING_START ·
+  MATCHED · CLOSED · CANCELLED), `deadlineType` (DRAFT · FINAL, only for
   a MATCHED job) and `deadlineDate`, `submissionReviewStatus` of the latest
   submission, `budget`, `revisionCount`, `draftDeadline`, `finalDeadline`,
   `applicationSummary` · `applicationWorkPlan` · `applicationDeliveryMethod`
@@ -23,7 +24,8 @@ owner and its selected student may use a room):
 - GET /chat-rooms/{roomId} → one room.
 - GET /chat-rooms/{roomId}/messages → `{ viewerUserId, messages }`, the whole
   history in id order with no paging. `viewerUserId` is the logged-in user's
-  id. A message has `id` (number), `roomId`, `clientMessageId`,
+  `User.id`, on every history answer; the one-message and send answers do not
+  carry it. A message has `id` (number), `roomId`, `clientMessageId`,
   `senderUserId`, `type` (TEXT · IMAGE · FILE), `content` (the text, or a
   view URL valid for 15 minutes), `attachmentName`, `contentExpiresAt`, and
   `createdAt`.
@@ -43,8 +45,8 @@ owner and its selected student may use a room):
   /jobs/{jobId}/start answers `chatRoomId`).
 - User ids (`viewerUserId`, `senderUserId`) are strings (`users.user_id`,
   26-character ULID).
-- There is no WebSocket or SSE. Rooms have no `jobStatus`. There are no
-  system messages, file sizes, or work kinds.
+- There is no WebSocket or SSE. There are no system messages, file sizes, or
+  work kinds.
 
 ## Decision
 
@@ -62,11 +64,12 @@ owner and its selected student may use a room):
   `StudentChatRoomPage`) use it.
 - **Routes**: /owner/chats/:roomId and /student/chats/:roomId. The room screen
   is keyed by `roomId`.
-- **Mine or partner**: when the history answer has `viewerUserId`, a stored
-  message is mine when `senderUserId === viewerUserId` (string comparison);
-  when it has none, only messages this screen sent are mine. The hook keeps
-  the last `viewerUserId` it received and also uses it for send answers and
-  refreshed attachments. A sending or failed bubble is always mine.
+- **Mine or partner**: a stored message is mine when `senderUserId ===
+  viewerUserId` (string comparison). The hook keeps the `viewerUserId` of the
+  last history answer and also uses it for send answers and refreshed
+  attachments, which do not carry it. A sending or failed bubble is always
+  mine. Until the first history answer arrives (or if one lacks
+  `viewerUserId`), only messages this screen sent are mine.
 - **Refresh**: the list loads on entry and again when the tab becomes visible
   (a failed refresh keeps the current list). The room loads the room and the
   history together, then reloads the history every 3 seconds while
@@ -110,12 +113,14 @@ owner and its selected student may use a room):
     revision was requested). Unknown → the line is hidden. The list uses the
     short forms (「초안 만드는 중 (~M월 D일)」, 「결과물을 확인해 주세요」 ·
     「사장님이 확인 중」).
-  - 「작업 취소」 (owner) shows only when `jobStatus` is MATCHED and no
-    submission waits for a check; 「문제 신고」 only when `jobStatus` is
-    MATCHED. Without `jobStatus` both are hidden.
+  - The room's `jobStatus` decides the work actions: 「작업 취소」 (owner)
+    shows only when it is MATCHED and no submission waits for a check, and
+    goes to `OWNER_PATHS.workCancel(jobId)`; 「문제 신고」 shows only when it
+    is MATCHED.
   - 「작업계획서 보기」 shows only when all three application fields are
-    present. `WorkPlanSheet` and `MyPlanSheet` take the fields they show, and
-    without a sent date the subtitle is the work title alone.
+    present. The room has no sent date: the owner `WorkPlanSheet` (its
+    `content`) reads 「{title}, 지원할 때 보냄」 and the student `MyPlanSheet`
+    shows the work title alone.
 - **List rows**: last message 「사진」, 「파일 · name」, or the text; an empty
   room says 「아직 메시지가 없어요」 with no time.
 - **Errors**: 401 → /login. CHAT_403 → alert 「이 채팅방에는 들어갈 수
@@ -134,8 +139,8 @@ owner and its selected student may use a room):
   stopping while hidden avoids requests nobody sees.
 - Reusing `clientMessageId` makes a resend safe even when the first request
   was stored but its answer was lost.
-- Hiding actions and lines that the API cannot decide avoids showing a cancel
-  button on a finished job.
+- Deciding the work actions from `jobStatus` keeps a cancel button off a
+  finished or cancelled job; status lines the room cannot decide are hidden.
 
 ## Alternatives Considered
 
@@ -146,13 +151,12 @@ owner and its selected student may use a room):
 
 ## Agent Guidance
 
-- `viewerUserId` and `jobStatus` are optional in
-  `src/features/chat/api/chatApi.ts`. The screens already read them:
-  `viewerUserId` sides a bubble, `jobStatus` shows the work actions and the
-  완료 · 성사되지 않음 lines.
-- 「작업 취소」 goes to `OWNER_PATHS.workCancel(jobId)`; that screen reads
-  sample works.
-- Chat links from screens that read sample works (owner home and 내 활동,
-  the 작업계획서 sheet's 「채팅하기」, `CHAT_MESSAGE` sample notifications, the
-  student 수정 요청 확인 「문의하기」) open the chat list, not a room.
+- `viewerUserId` and `jobStatus` are typed optional in
+  `src/features/chat/api/chatApi.ts`; `viewerUserId` sides a bubble, and
+  `jobStatus` shows the work actions and the 완료 · 성사되지 않음 lines.
+- 「작업 취소」 passes the room's numeric `jobId`, so `OwnerWorkCancelPage`
+  cancels through the API (ADR 0035); non-numeric ids there are sample works.
+- The owner home and 내 활동 「문의하기」 · 「채팅하기」, `CHAT_MESSAGE` sample
+  notifications, and the student 수정 요청 확인 「문의하기」 open the chat
+  list, not a room.
 - The composer sends text only; the attachment upload endpoints are unused.
