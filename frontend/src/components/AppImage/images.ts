@@ -1,6 +1,5 @@
 import logoGakkum from "../../assets/brand/logo-gakkum.svg";
 import appIcon from "../../assets/brand/app-icon.png";
-import splashTagline from "../../assets/brand/splash-tagline.png";
 import taglineRole from "../../assets/brand/tagline-role.png";
 import characterOwner from "../../assets/characters/owner.svg";
 import characterStudent from "../../assets/characters/student.svg";
@@ -64,7 +63,6 @@ export const IMAGES = {
   // 브랜드
   logoGakkum: { src: logoGakkum, width: 180, height: 87, alt: "골목인턴" },
   appIcon: { src: appIcon, width: 96, height: 96, alt: "골목인턴 앱 아이콘" },
-  splashTagline: { src: splashTagline, width: 180, height: 51, alt: "학생과 사장님이 함께 가게를 꿈꾼다." },
   taglineRole: { src: taglineRole, width: 174, height: 58, alt: "가게에 필요한 작업을 학생이 전공을 살려 해드려요" },
 
   // 캐릭터
