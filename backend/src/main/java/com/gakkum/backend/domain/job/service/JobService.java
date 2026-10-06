@@ -84,6 +84,24 @@ public class JobService {
         return jobRepository.countBySelectedStudentProfileIdAndStatus(studentProfileId, JobStatus.CLOSED);
     }
 
+    /** 사장님이 보낸 의뢰 수. 직접 등록한 의뢰와 제안 결제로 생긴 의뢰를 함께 세고 취소(CANCELLED)만 뺀다. */
+    @Transactional(readOnly = true)
+    public long countOwnerJobsExcludingCancelled(Long ownerProfileId) {
+        return jobRepository.countByOwnerProfileIdAndStatusNot(ownerProfileId, JobStatus.CANCELLED);
+    }
+
+    /** 사장님의 진행 중(MATCHED) 의뢰 수. 모집 중과 작업 시작 대기는 세지 않는다. */
+    @Transactional(readOnly = true)
+    public long countOwnerInProgressJobs(Long ownerProfileId) {
+        return jobRepository.countByOwnerProfileIdAndStatus(ownerProfileId, JobStatus.MATCHED);
+    }
+
+    /** 사장님의 완료(CLOSED) 의뢰 수. */
+    @Transactional(readOnly = true)
+    public long countOwnerClosedJobs(Long ownerProfileId) {
+        return jobRepository.countByOwnerProfileIdAndStatus(ownerProfileId, JobStatus.CLOSED);
+    }
+
     /**
      * 학생별 담당 완료(CLOSED) 의뢰 수를 한 번에 조회한다. 리뷰 유무와 무관하고 취소 건은 세지 않는다.
      * @param studentProfileIds 학생 프로필 ID 목록
@@ -332,6 +350,22 @@ public class JobService {
             throw new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR);
         }
         return jobsById;
+    }
+
+    /**
+     * 의뢰별 연결된 소분류 ID를 한 번에 조회한다.
+     * @param jobIds
+     * @return 의뢰 ID별 소분류 ID 목록, 소분류가 없는 의뢰는 키가 없다
+     */
+    @Transactional(readOnly = true)
+    public Map<Long, List<Long>> getSpecialtyIdsByJobIds(Collection<Long> jobIds) {
+        if (jobIds.isEmpty()) {
+            return Map.of();
+        }
+        return jobSpecialtyRepository.findByJobIdIn(jobIds).stream()
+                .collect(Collectors.groupingBy(
+                        JobSpecialty::getJobId,
+                        Collectors.mapping(JobSpecialty::getSpecialtyId, Collectors.toList())));
     }
 
     /**

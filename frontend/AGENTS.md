@@ -1,12 +1,12 @@
 # AGENTS.md
 
-Agent entry point for the **가꿈 frontend**. This harness is independent from
+Agent entry point for the **골목인턴 frontend**. This harness is independent from
 `../backend`, which has its own instructions in `../backend/AGENTS.md`. Do not
 apply backend rules here or frontend rules there.
 
 ## Project Overview
 
-- Name: 가꿈 frontend
+- Name: 골목인턴 frontend
 - Harness profile: `react`, from the harness-starter-kit repo
   (https://github.com/harnessworks/harness-starter-kit)
 - Stack: React 19, TypeScript (strict, bundler mode), Vite 8, ESLint 10 flat

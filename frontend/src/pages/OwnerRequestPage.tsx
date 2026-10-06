@@ -58,7 +58,7 @@ function OwnerRequestPage() {
     ? [
         {
           title: `작업비 ${formatWon(job.budget)}을 안전결제로 맡겨요`,
-          sub: "가꿈이 보관하다가 완료되면 학생에게 보내요",
+          sub: "골목인턴이 보관하다가 완료되면 학생에게 보내요",
         },
         { title: `${formatMonthDay(job.draftDeadline)}까지 초안이 도착해요` },
         {

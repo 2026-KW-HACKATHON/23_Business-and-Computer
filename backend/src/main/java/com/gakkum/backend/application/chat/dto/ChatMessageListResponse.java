@@ -17,10 +17,12 @@ import lombok.Getter;
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 public class ChatMessageListResponse {
 
+    /** 조회한 사용자의 User.id. 메시지의 senderUserId와 비교해 내 메시지를 구분한다 */
+    private final String viewerUserId;
     private final List<Message> messages;
 
-    public static ChatMessageListResponse from(List<MessageResult> messages) {
-        return new ChatMessageListResponse(messages.stream().map(Message::from).toList());
+    public static ChatMessageListResponse from(List<MessageResult> messages, String viewerUserId) {
+        return new ChatMessageListResponse(viewerUserId, messages.stream().map(Message::from).toList());
     }
 
     @Getter

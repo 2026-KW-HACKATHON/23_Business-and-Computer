@@ -49,6 +49,7 @@ import com.gakkum.backend.domain.chat.entity.ChatMessage;
 import com.gakkum.backend.domain.chat.entity.ChatRoom;
 import com.gakkum.backend.domain.job.entity.Job;
 import com.gakkum.backend.domain.job.entity.JobApplication;
+import com.gakkum.backend.domain.job.entity.JobStatus;
 import com.gakkum.backend.domain.job.entity.JobSubmissionReviewStatus;
 import com.gakkum.backend.global.exception.BusinessException;
 import com.gakkum.backend.global.exception.ErrorCode;
@@ -79,6 +80,7 @@ class ChatControllerTest {
                 .andExpect(jsonPath("$.data.count").value(1))
                 .andExpect(jsonPath("$.data.rooms[0].roomId").value("01K58M6PJV8VAJMXHBHJ2PNB5C"))
                 .andExpect(jsonPath("$.data.rooms[0].jobTitle").value("의뢰 제목"))
+                .andExpect(jsonPath("$.data.rooms[0].jobStatus").value("MATCHED"))
                 .andExpect(jsonPath("$.data.rooms[0].counterpartName").value("학생 이름"))
                 .andExpect(jsonPath("$.data.rooms[0].counterpartProfileImageUrl").value("student.png"))
                 .andExpect(jsonPath("$.data.rooms[0].deadlineType").value("DRAFT"))
@@ -106,6 +108,7 @@ class ChatControllerTest {
         mockMvc.perform(get("/chat-rooms/01K58M6PJV8VAJMXHBHJ2PNB5C").principal(authentication))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.jobTitle").value("의뢰 제목"))
+                .andExpect(jsonPath("$.data.jobStatus").value("MATCHED"))
                 .andExpect(jsonPath("$.data.deadlineType").value("DRAFT"))
                 .andExpect(jsonPath("$.data.applicationSummary").value("한 줄 요약"))
                 .andExpect(jsonPath("$.data.applicationWorkPlan").value("작업계획서"))
@@ -114,23 +117,56 @@ class ChatControllerTest {
     }
 
     @Test
-    @DisplayName("메시지 내역은 메시지 배열을 반환한다")
+    @DisplayName("채팅방 목록과 단건은 완료와 취소를 서로 다른 작업 상태 문자열로 반환한다")
+    void returnsClosedAndCancelledJobStatus() throws Exception {
+        when(service.getMyChatRooms("KAKAO_123")).thenReturn(ChatRoomListResponse.of(
+                List.of(roomResponse(JobStatus.CLOSED), roomResponse(JobStatus.CANCELLED))));
+        when(service.getChatRoom("KAKAO_123", "01K58M6PJV8VAJMXHBHJ2PNB5C"))
+                .thenReturn(roomResponse(JobStatus.CANCELLED));
+
+        mockMvc.perform(get("/me/chat-rooms").principal(authentication))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.rooms[0].jobStatus").value("CLOSED"))
+                .andExpect(jsonPath("$.data.rooms[1].jobStatus").value("CANCELLED"));
+        mockMvc.perform(get("/chat-rooms/01K58M6PJV8VAJMXHBHJ2PNB5C").principal(authentication))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.jobStatus").value("CANCELLED"));
+    }
+
+    @Test
+    @DisplayName("메시지 내역은 조회자 식별자와 메시지 배열을 반환한다")
     void returnsMessages() throws Exception {
         when(service.getMessages("KAKAO_123", "room-1"))
-                .thenReturn(ChatMessageListResponse.from(List.of(MessageResult.text(savedMessage(UUID.randomUUID())))));
+                .thenReturn(ChatMessageListResponse.from(
+                        List.of(MessageResult.text(savedMessage(UUID.randomUUID()))), "viewer-1"));
 
         mockMvc.perform(get("/chat-rooms/room-1/messages").principal(authentication))
                 .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.viewerUserId").value("viewer-1"))
                 .andExpect(jsonPath("$.data.messages[0].id").value(17))
                 .andExpect(jsonPath("$.data.messages[0].senderUserId").value("sender-1"))
                 .andExpect(jsonPath("$.data.messages[0].content").value("안녕하세요"));
     }
 
     @Test
+    @DisplayName("메시지가 없는 대화도 조회자 식별자와 빈 메시지 배열을 반환한다")
+    void returnsViewerUserIdForEmptyConversation() throws Exception {
+        when(service.getMessages("KAKAO_123", "room-1"))
+                .thenReturn(ChatMessageListResponse.from(List.of(), "viewer-1"));
+
+        mockMvc.perform(get("/chat-rooms/room-1/messages").principal(authentication))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.viewerUserId").value("viewer-1"))
+                .andExpect(jsonPath("$.data.messages").isArray())
+                .andExpect(jsonPath("$.data.messages").isEmpty());
+    }
+
+    @Test
     @DisplayName("메시지 내역의 TEXT 메시지는 열람 URL 만료 시각을 null로 반환한다")
     void returnsNullContentExpiresAtForTextMessage() throws Exception {
         when(service.getMessages("KAKAO_123", "room-1"))
-                .thenReturn(ChatMessageListResponse.from(List.of(MessageResult.text(savedMessage(UUID.randomUUID())))));
+                .thenReturn(ChatMessageListResponse.from(
+                        List.of(MessageResult.text(savedMessage(UUID.randomUUID()))), "viewer-1"));
 
         mockMvc.perform(get("/chat-rooms/room-1/messages").principal(authentication))
                 .andExpect(status().isOk())
@@ -473,7 +509,8 @@ class ChatControllerTest {
         ChatMessage attachment = savedAttachment(UUID.randomUUID());
         when(service.getMessages("KAKAO_123", "room-1")).thenReturn(ChatMessageListResponse.from(List.of(
                 MessageResult.text(savedMessage(UUID.randomUUID())),
-                MessageResult.attachment(attachment, "https://view.example", LocalDateTime.of(2026, 9, 26, 12, 45)))));
+                MessageResult.attachment(attachment, "https://view.example", LocalDateTime.of(2026, 9, 26, 12, 45))),
+                "viewer-1"));
 
         mockMvc.perform(get("/chat-rooms/room-1/messages").principal(authentication))
                 .andExpect(status().isOk())
@@ -538,9 +575,13 @@ class ChatControllerTest {
     }
 
     private Room roomResponse() {
+        return roomResponse(JobStatus.MATCHED);
+    }
+
+    private Room roomResponse(JobStatus status) {
         ChatRoom room = ChatRoom.create(11L);
         ReflectionTestUtils.setField(room, "id", "01K58M6PJV8VAJMXHBHJ2PNB5C");
-        Job job = Job.builder().id(11L).title("의뢰 제목").budget(300000L).revisionCount(2)
+        Job job = Job.builder().id(11L).title("의뢰 제목").status(status).budget(300000L).revisionCount(2)
                 .draftDeadline(LocalDate.of(2026, 10, 10))
                 .finalDeadline(LocalDate.of(2026, 10, 20)).build();
         return Room.of(room, job, "학생 이름", "student.png",

@@ -235,7 +235,7 @@ function OwnerRequestConfirmPage() {
         <div className="owner-confirm__notice">
           <strong>결제는 학생을 고른 뒤에 해요</strong>
           <p>
-            지원한 학생 중 한 명을 고르면 작업비를 가꿈에 맡겨 두고, 작업이 끝나면 학생에게
+            지원한 학생 중 한 명을 고르면 작업비를 골목인턴에 맡겨 두고, 작업이 끝나면 학생에게
             보내요. 의뢰는 월계1동 가게와 광운대 인증 학생에게만 보여요.
           </p>
         </div>

@@ -109,7 +109,7 @@ public class ChatFacade {
         requireParticipant(viewer, job);
         return ChatMessageListResponse.from(chatService.findMessages(roomId).stream()
                 .map(this::toMessageResult)
-                .toList());
+                .toList(), viewer.getId());
     }
 
     @Transactional(readOnly = true)

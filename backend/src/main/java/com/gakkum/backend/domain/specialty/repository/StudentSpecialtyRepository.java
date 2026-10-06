@@ -9,4 +9,6 @@ import com.gakkum.backend.domain.specialty.entity.StudentSpecialty;
 
 public interface StudentSpecialtyRepository extends JpaRepository<StudentSpecialty, Long> {
     List<StudentSpecialty> findByStudentProfileIdIn(Collection<Long> studentProfileIds);
+
+    void deleteByStudentProfileId(Long studentProfileId);
 }

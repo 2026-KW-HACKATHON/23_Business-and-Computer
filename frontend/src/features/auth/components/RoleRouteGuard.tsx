@@ -5,10 +5,14 @@ import { subscribeSession } from "../../../api/tokens";
 import { getUserRole, landingPath } from "../lib/session";
 import type { UserRole } from "../lib/session";
 
-/** 이 주소로 시작하는 화면은 그 역할만 연다 (/explore/… 는 사장님이 보는 다른 가게 글) */
+/**
+ * 이 주소로 시작하는 화면은 그 역할만 연다 (/explore/… 는 사장님이 보는 다른 가게 글,
+ * /payments/… 는 카카오페이에서 돌아오는 사장님 결제 화면)
+ */
 const ROLE_BY_PREFIX: [string, UserRole][] = [
   ["/owner", "owner"],
   ["/explore/", "owner"],
+  ["/payments/", "owner"],
   ["/student", "student"],
 ];
 

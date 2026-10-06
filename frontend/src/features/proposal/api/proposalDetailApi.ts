@@ -1,9 +1,10 @@
 import { apiData } from "../../../api/client";
 
 /** 제안 상태. REJECTED 는 백엔드 코드에서 아직 쓰지 않는다 */
-export type ProposalStatus = "PENDING" | "AWAITING_START" | "ACCEPTED" | "REJECTED";
+/** REJECTED = 학생이 의뢰서를 거절함, CANCELLED = 결제 전에 학생이 제안을 취소함 */
+export type ProposalStatus = "PENDING" | "AWAITING_START" | "ACCEPTED" | "REJECTED" | "CANCELLED";
 
-/** 제안에 묶인 의뢰(job) 상태. 사장님이 취소하면 CANCELLED */
+/** 제안에 묶인 의뢰(job) 상태. 취소 · 거절되면 CANCELLED */
 export type ProposalJobStatus = "OPEN" | "AWAITING_START" | "MATCHED" | "CLOSED" | "CANCELLED";
 
 /** 대분류 + 고른 특기 */

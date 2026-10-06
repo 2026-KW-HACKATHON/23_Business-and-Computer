@@ -47,7 +47,7 @@ export const SAMPLE_NOTIFICATIONS: OwnerNotification[] = [
     id: "noti-5",
     type: "PAYMENT_ESCROWED",
     title: "안전결제가 완료됐어요",
-    body: "메뉴판 디자인 변경, 김광운 학생, 60,000원을 가꿈이 보관해요",
+    body: "메뉴판 디자인 변경, 김광운 학생, 60,000원을 골목인턴이 보관해요",
     createdAt: dayAt(-2, 13, 50),
     read: true,
     targetId: "work-103",

@@ -15,8 +15,8 @@ export const SAMPLE_MY_PROFILE: MyProfile = {
   noShowCount: 0,
   badges: ["메뉴판·가격표 디자인", "로고 디자인", "SNS 게시물"],
   certificates: [
-    { name: "GTQ 1급", acquiredOn: "2023-08" },
-    { name: "ACP (Adobe 인증)", acquiredOn: "2024-02" },
+    { name: "GTQ 1급", acquiredYear: 2023 },
+    { name: "ACP (Adobe 인증)", acquiredYear: 2024 },
   ],
   portfolioUrl: "behance.net/kwangwoon",
 };

@@ -7,9 +7,11 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+import org.springframework.data.domain.Limit;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.gakkum.backend.domain.job.entity.JobStatus;
 import com.gakkum.backend.domain.payment.dto.PaymentCommandDto.PreparePaymentCommand;
 import com.gakkum.backend.domain.payment.dto.PaymentQueryDto.ApprovedPaymentData;
 import com.gakkum.backend.domain.payment.dto.PaymentQueryDto.PaymentHistoryData;
@@ -69,7 +71,7 @@ public class PaymentService {
      * 사장님이 입력한 수정 횟수와 한마디는 주문에 보존했다가 승인 시 의뢰로 옮긴다.
      * @param proposalId
      * @param ownerUserId
-     * @param amount 서버 기준 결제 금액(제안 작업비)
+     * @param amount 사장님이 입력한 결제 금액(확정 작업비)
      * @param revisionCount
      * @param messageToStudent 입력하지 않았으면 null
      * @return 저장된 PENDING 주문
@@ -77,7 +79,7 @@ public class PaymentService {
     public Payment prepareProposalPayment(
             Long proposalId, String ownerUserId, Long amount, Integer revisionCount, String messageToStudent) {
 
-        // 예외: 결제 금액(제안 작업비)이 없거나 0 이하인 경우
+        // 예외: 결제 금액(확정 작업비)이 없거나 0 이하인 경우
         if (amount == null || amount <= 0) {
             throw new BusinessException(ErrorCode.PAYMENT_NOT_AVAILABLE);
         }
@@ -238,6 +240,23 @@ public class PaymentService {
         }
         List<Payment> payments = paymentRepository.findByJobIdInAndStatusInOrderByApprovedAtDescIdDesc(
                 jobIds, List.of(PaymentStatus.PAID, PaymentStatus.REFUNDED));
+        if (payments.stream().anyMatch(payment -> payment.getApprovedAt() == null)) {
+            throw new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR);
+        }
+        return payments.stream().map(SettlementHistoryData::from).toList();
+    }
+
+    /**
+     * 학생이 담당한 완료(CLOSED) 의뢰의 결제 완료(PAID) 주문을 의뢰 완료 시각 최신순으로 limit개까지 조회한다.
+     * 일반 결제와 제안 결제를 함께 반환하고, 진행 중 의뢰의 결제와 환불된 결제는 빠진다.
+     * @param studentProfileId 학생 프로필 ID
+     * @param limit 최대 개수
+     * @return 정산 완료 내역, 없으면 빈 목록. 승인 시각이 없는 결제는 데이터 오류(500)
+     */
+    @Transactional(readOnly = true)
+    public List<SettlementHistoryData> getLatestSettledPayments(Long studentProfileId, int limit) {
+        List<Payment> payments = paymentRepository.findLatestCompletedByStudentProfileId(
+                studentProfileId, JobStatus.CLOSED, PaymentStatus.PAID, Limit.of(limit));
         if (payments.stream().anyMatch(payment -> payment.getApprovedAt() == null)) {
             throw new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR);
         }

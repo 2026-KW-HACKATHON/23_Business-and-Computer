@@ -65,6 +65,11 @@ public interface JobRepository extends JpaRepository<Job, Long> {
 
     long countBySelectedStudentProfileIdAndStatus(Long studentProfileId, JobStatus status);
 
+    /** 사장님의 의뢰 중 주어진 상태(취소)를 뺀 나머지의 수. */
+    long countByOwnerProfileIdAndStatusNot(Long ownerProfileId, JobStatus excludedStatus);
+
+    long countByOwnerProfileIdAndStatus(Long ownerProfileId, JobStatus status);
+
     /*
      * 학생별 의뢰 수는 GROUP BY 집계가 필요해 메서드 이름으로 표현할 수 없다.
      * 해당 상태의 의뢰가 없는 학생은 행이 없다.

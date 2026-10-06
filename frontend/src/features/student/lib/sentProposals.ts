@@ -2,7 +2,7 @@ import { ApiError } from "../../../api/client";
 import type { FlowStep } from "../../../components";
 import { proposalMonthDay } from "../../proposal";
 import type { ProposalJobStatus, ProposalStatus } from "../../proposal";
-import { fetchMyProposals } from "../api/proposalApi";
+import { cancelMyProposal, fetchMyProposals } from "../api/proposalApi";
 import type { MyProposalResponse } from "../api/proposalApi";
 import { flowSteps } from "./flow";
 
@@ -10,14 +10,14 @@ import { flowSteps } from "./flow";
 export type SentProposal = MyProposalResponse;
 
 /**
- * 상태 칩 글자. 사장님이 의뢰를 취소했으면(목록 jobStatus · 상세 agreement.jobStatus 가 CANCELLED)
- * 상태와 관계없이 「취소됨」.
+ * 상태 칩 글자. 거절 · 취소된 제안과 의뢰가 취소된 제안(목록 jobStatus · 상세 agreement.jobStatus 가
+ * CANCELLED)은 누가 했든 「성사되지 않음」.
  */
 export function sentProposalStatusLabel(
   status: ProposalStatus,
   jobStatus?: ProposalJobStatus | null,
 ): string {
-  if (jobStatus === "CANCELLED") return "취소됨";
+  if (jobStatus === "CANCELLED") return "성사되지 않음";
   switch (status) {
     case "PENDING":
       return "수락 대기 중";
@@ -26,13 +26,14 @@ export function sentProposalStatusLabel(
     case "ACCEPTED":
       return "작업 중";
     case "REJECTED":
-      return "거절됨";
+    case "CANCELLED":
+      return "성사되지 않음";
   }
 }
 
 /**
  * 흐름 막대 (제안 → 시작 → 초안 → 수정 → 완료). 수락 대기 = 제안, 수락됨(결제 완료) = 시작,
- * 작업 중 = 초안. 취소 · 거절된 제안은 막대를 보이지 않는다 (undefined).
+ * 작업 중 = 초안. 성사되지 않은 제안은 막대를 보이지 않는다 (undefined).
  */
 export function sentProposalFlowSteps(
   status: ProposalStatus,
@@ -47,6 +48,7 @@ export function sentProposalFlowSteps(
     case "ACCEPTED":
       return flowSteps("제안", 2, "작업 중");
     case "REJECTED":
+    case "CANCELLED":
       return undefined;
   }
 }
@@ -78,6 +80,41 @@ export async function loadSentProposals(): Promise<SentProposalsResult> {
     if (error instanceof ApiError) {
       if (error.status === 401) return { status: "unauthorized" };
       if (error.code === "PROPOSAL_403_LIST_STUDENT") return { status: "forbidden" };
+    }
+    return { status: "error" };
+  }
+}
+
+/** 제안 취소 결과 */
+export type ProposalCancelResult =
+  | { status: "cancelled" }
+  | {
+      status:
+        | "unauthorized"
+        /** 403 PROPOSAL_403_CANCEL — 이 제안을 보낸 학생이 아님 */
+        | "forbidden"
+        /** 404 PROPOSAL_404 */
+        | "notFound"
+        /** 409 PROPOSAL_409_CANCEL — 수락 대기가 아님 (이미 수락 · 시작 · 거절) */
+        | "notAvailable"
+        /** 409 PROPOSAL_409_CANCEL_PAYMENT_PENDING — 사장님이 결제하는 중 */
+        | "paymentPending"
+        /** 5xx · 네트워크 */
+        | "error";
+    };
+
+/** 보낸 제안을 취소하고 결과를 화면이 쓰는 값으로 바꾼다 */
+export async function sendProposalCancel(proposalId: number): Promise<ProposalCancelResult> {
+  try {
+    await cancelMyProposal(proposalId);
+    return { status: "cancelled" };
+  } catch (error) {
+    if (error instanceof ApiError) {
+      if (error.status === 401) return { status: "unauthorized" };
+      if (error.code === "PROPOSAL_403_CANCEL") return { status: "forbidden" };
+      if (error.code === "PROPOSAL_404") return { status: "notFound" };
+      if (error.code === "PROPOSAL_409_CANCEL") return { status: "notAvailable" };
+      if (error.code === "PROPOSAL_409_CANCEL_PAYMENT_PENDING") return { status: "paymentPending" };
     }
     return { status: "error" };
   }

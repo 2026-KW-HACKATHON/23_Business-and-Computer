@@ -624,8 +624,9 @@ class ProposalFacadeTest {
         when(specialtyCategoryService.getSpecialtyDetails(List.of())).thenReturn(Map.of());
     }
 
+    // 학생 희망 금액은 50,000원이고 사장님이 결제한 확정 작업비는 120,000원이다
     private Job givenPaidJob(JobStatus status, LocalDateTime startedAt) {
-        Job job = Job.builder().id(42L).proposalId(31L).status(status).budget(50000L)
+        Job job = Job.builder().id(42L).proposalId(31L).status(status).budget(120000L)
                 .draftDeadline(LocalDate.of(2026, 10, 8)).finalDeadline(LocalDate.of(2026, 10, 12))
                 .revisionCount(2).acceptanceMessage("매장 분위기에 맞춰 주세요.").startedAt(startedAt).build();
         when(jobService.findJobByProposalId(31L)).thenReturn(Optional.of(job));
@@ -668,7 +669,8 @@ class ProposalFacadeTest {
         assertThat(result.getEstimatedDraftDeadline()).isNull();
         assertThat(result.getEstimatedFinalDeadline()).isNull();
         assertThat(result.getAgreement().getJobStatus()).isEqualTo(JobStatus.AWAITING_START);
-        assertThat(result.getAgreement().getBudget()).isEqualTo(50000L);
+        assertThat(result.getProposedFee()).isEqualTo(50000L);
+        assertThat(result.getAgreement().getBudget()).isEqualTo(120000L);
         assertThat(result.getAgreement().getDraftDeadline()).isEqualTo(LocalDate.of(2026, 10, 8));
         assertThat(result.getAgreement().getFinalDeadline()).isEqualTo(LocalDate.of(2026, 10, 12));
         assertThat(result.getAgreement().getRevisionCount()).isEqualTo(2);
@@ -678,7 +680,7 @@ class ProposalFacadeTest {
     }
 
     @Test
-    @DisplayName("결제된 제안 상세는 제안한 학생에게도 확정 작업 조건과 작업 시작 시각을 반환한다")
+    @DisplayName("결제된 제안 상세는 제안한 학생에게도 확정 작업 조건과 작업 시작 시각을 반환하고 희망 금액과 실제 결제 금액을 따로 내린다")
     void returnsAgreementToProposingStudent() {
         givenProposalDetail(ProposalStatus.ACCEPTED, STUDENT_USER_ID, UserRole.STUDENT);
         LocalDateTime startedAt = LocalDateTime.of(2026, 10, 6, 9, 30);
@@ -687,6 +689,8 @@ class ProposalFacadeTest {
         ProposalDetailResult result = proposalFacade.getProposalDetail(USERNAME, 31L);
 
         assertThat(result.getJobId()).isEqualTo(42L);
+        assertThat(result.getProposedFee()).isEqualTo(50000L);
+        assertThat(result.getAgreement().getBudget()).isEqualTo(120000L);
         assertThat(result.getAgreement().getJobStatus()).isEqualTo(JobStatus.MATCHED);
         assertThat(result.getAgreement().getMessageToStudent()).isEqualTo("매장 분위기에 맞춰 주세요.");
         assertThat(result.getAgreement().getStartedAt()).isEqualTo(startedAt);
@@ -704,6 +708,7 @@ class ProposalFacadeTest {
         assertThat(result.getTitle()).isEqualTo("메뉴판 개선 제안");
         assertThat(result.getStatus()).isEqualTo(ProposalStatus.AWAITING_START);
         assertThat(result.getJobId()).isEqualTo(42L);
+        assertThat(result.getProposedFee()).isEqualTo(50000L);
         assertThat(result.getAgreement()).isNull();
         verifyNoInteractions(paymentService);
     }

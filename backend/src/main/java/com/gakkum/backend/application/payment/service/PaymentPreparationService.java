@@ -55,7 +55,7 @@ public class PaymentPreparationService {
 
     /**
      * 사장님이 받은 제안의 결제 대기 주문을 만든다. 제안 행을 잠가 같은 제안의 결제 준비·승인과 순서대로 처리한다.
-     * 결제 금액은 제안 작업비, 주문 이름은 제안 타이틀로 서버가 정한다.
+     * 결제 금액은 사장님이 입력한 작업비이고 학생 희망 금액과 달라도 된다. 주문 이름은 제안 타이틀로 서버가 정한다.
      */
     @Transactional
     public PendingPaymentData createPendingForProposal(PrepareProposalPaymentCommand command) {
@@ -67,7 +67,7 @@ public class PaymentPreparationService {
         Proposal proposal = proposalService.getPayableProposalForUpdate(command.getProposalId(), owner.getId());
         rejectIfPaidAtProvider(paymentService.findPendingProposalPayment(proposal.getId()));
         Payment payment = paymentService.prepareProposalPayment(
-                proposal.getId(), user.getId(), proposal.getProposedFee(),
+                proposal.getId(), user.getId(), command.getBudget(),
                 command.getRevisionCount(), command.getMessageToStudent());
         return new PendingPaymentData(payment.getOrderId(), payment.getAmount(), proposal.getTitle(), user.getId());
     }

@@ -33,9 +33,11 @@ student screen, which still read `sampleProposals.ts`. The backend (dev) has:
   `paidAt`, `startedAt`; only after payment and only for the owner and the
   student of that proposal). Errors: 401, 404 `PROPOSAL_404`.
 - Status: `PENDING` (before payment), `AWAITING_START` (owner paid, student
-  has not started), `ACCEPTED` (student started). `REJECTED` exists but no
-  code sets it. A job the owner cancels has `jobStatus` `CANCELLED`.
-- There is no API to cancel a proposal or to read empathy beyond `likeCount`.
+  has not started), `ACCEPTED` (student started), `REJECTED` (the student
+  declined the paid request), `CANCELLED` (the student cancelled before
+  payment). A cancelled or declined job has `jobStatus` `CANCELLED`.
+- POST /proposals/{id}/cancel cancels a PENDING proposal (ADR 0033). There is
+  no API to read empathy beyond `likeCount`.
 
 ## Decision
 
@@ -74,9 +76,9 @@ student screen, which still read `sampleProposals.ts`. The backend (dev) has:
   - 탐색 marks 「내 제안」 by the ids in this list (ADR 0026).
 - **Status chip** (`sentProposalStatusLabel`):
   - PENDING 「수락 대기 중」, AWAITING_START 「수락됨」, ACCEPTED 「작업 중」,
-    REJECTED 「거절됨」.
-  - A CANCELLED job status overrides all of them with 「취소됨」: the list's
-    `jobStatus` on cards, `agreement.jobStatus` on the detail.
+    REJECTED · CANCELLED 「성사되지 않음」.
+  - A CANCELLED job status overrides all of them with 「성사되지 않음」: the
+    list's `jobStatus` on cards, `agreement.jobStatus` on the detail.
   - Every status stays in the list. The detail has the same chip in its
     heading.
 - **Flow bar** (`sentProposalFlowSteps`): PENDING → 제안 「수락 대기」,
@@ -109,9 +111,8 @@ student screen, which still read `sampleProposals.ts`. The backend (dev) has:
   - Footer: 「조건 확인하기」 for AWAITING_START with the job not cancelled
     (ADR 0029); 「제안 취소」 (gray) and 「확인」 while PENDING and the job is
     not cancelled; otherwise 「확인」. 「제안 취소」 opens 「제안을 취소할까요?」
-    (Figma 「제안 취소 확인」). There is no cancel API yet, so 「제안
-    취소하기」 shows 「제안 취소는 곧 열려요」; the 「제안을 취소했어요」 popup
-    opens after a successful cancel once the API exists.
+    (Figma 「제안 취소 확인」); 「제안 취소하기」 cancels and opens 「제안을
+    취소했어요」 (ADR 0033).
   - Errors: load failure → `LoadNotice` 「다시 시도」, 404 → `StudentMissing`,
     401 → /login.
 - **Categories**: one badge per category, so a 「기타」 proposal shows a
@@ -145,9 +146,6 @@ student screen, which still read `sampleProposals.ts`. The backend (dev) has:
 
 ## Agent Guidance
 
-- When a proposal cancel API exists, call it from 「제안 취소하기」 in
-  `src/pages/StudentProposalPage.tsx` and open the 「제안을 취소했어요」 popup
-  on success instead of 「곧 열려요」.
 - `useMyProposal` (sample) is used by the work-start screen.
 - `GET /proposals/{id}` does not check that the viewer wrote the proposal
   (only the demo session); the screen trusts that it was reached from the

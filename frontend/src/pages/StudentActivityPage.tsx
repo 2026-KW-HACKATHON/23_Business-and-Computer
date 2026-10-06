@@ -16,22 +16,23 @@ import {
   ApplicationSheet,
   STUDENT_PATHS,
   SettlementSummaryBox,
-  currentDeadline,
   deadlineText,
+  progressDeadline,
+  progressStatusText,
   sentOnText,
   sentProposalStatusLabel,
   appliedStatusLabel,
   storeAddressText,
   useAppliedJobs,
+  useProgressJobs,
   useSentProposals,
-  useStores,
   useStudentSettlements,
   useStudentWorks,
-  workStatusText,
 } from "../features/student";
 import { proposalBadgeNames } from "../features/proposal";
 import type {
   AppliedJob,
+  ProgressJob,
   SentProposal,
   StudentActivityTab,
   StudentWork,
@@ -77,7 +78,7 @@ function StoreLine({ name, address }: { name: string; address?: string }) {
  * 피그마 「내 활동 - 지원한 의뢰 · 보낸 제안 · 진행 중 · 완료 (학생)」.
  * 위 요약 카드 4칸이 탭이고, 고른 탭은 주소(?tab=)에 남아 돌아와도 그대로다.
  * 지원한 의뢰는 GET /me/job-applications (ADR 0027), 보낸 제안은 GET /me/proposals (ADR 0023).
- * 진행 중 · 완료 탭은 아직 샘플 데이터다.
+ * 진행 중은 GET /me/jobs?status=MATCHED (ADR 0032). 완료 탭은 아직 샘플 데이터다.
  */
 function StudentActivityPage() {
   const navigate = useNavigate();
@@ -89,16 +90,15 @@ function StudentActivityPage() {
   const { load: proposalsLoad, reload: reloadProposals } = useSentProposals();
   const proposals = proposalsLoad.status === "loaded" ? proposalsLoad.proposals : [];
   const works = useStudentWorks();
-  const stores = useStores();
+  const { load: progressLoad, reload: reloadProgress } = useProgressJobs();
   const { summary } = useStudentSettlements();
   const [sheetJobId, setSheetJobId] = useState<number>();
   const sheetJob = applied.find((job) => job.jobId === sheetJobId);
 
-  const addressOf = (storeId: string) => stores.find((s) => s.id === storeId)?.address;
-  // 진행 중은 지금 지켜야 할 마감이 빠른 것부터
-  const inProgress = works
-    .filter((w) => ["drafting", "revising", "submitted"].includes(w.status))
-    .sort((a, b) => currentDeadline(a).due.localeCompare(currentDeadline(b).due));
+  // 진행 중(GET /me/jobs?status=MATCHED)은 지금 지켜야 할 마감이 빠른 것부터
+  const inProgress = (progressLoad.status === "loaded" ? progressLoad.jobs : [])
+    .slice()
+    .sort((a, b) => progressDeadline(a).due.localeCompare(progressDeadline(b).due));
   const done = works
     .filter((w) => w.status === "completed")
     .sort((a, b) => (b.completedOn ?? "").localeCompare(a.completedOn ?? ""));
@@ -107,7 +107,7 @@ function StudentActivityPage() {
   const counts: Record<StudentActivityTab, number | string> = {
     applied: appliedLoad.status === "loaded" ? applied.length : "-",
     proposals: proposalsLoad.status === "loaded" ? proposals.length : "-",
-    inProgress: inProgress.length,
+    inProgress: progressLoad.status === "loaded" ? inProgress.length : "-",
     done: done.length,
   };
   const selectedIndex = TABS.findIndex((t) => t.tab === tab);
@@ -192,46 +192,53 @@ function StudentActivityPage() {
     );
   };
 
-  const inProgressCard = (work: StudentWork) => {
-    const deadline = currentDeadline(work);
+  const inProgressCard = (job: ProgressJob) => {
+    const id = String(job.jobId);
+    const deadline = progressDeadline(job);
     const detailPath =
-      work.status === "drafting"
-        ? STUDENT_PATHS.workSubmit(work.id)
-        : work.status === "revising"
-          ? STUDENT_PATHS.workRevision(work.id)
-          : STUDENT_PATHS.workSubmitted(work.id);
+      job.stage === "drafting"
+        ? STUDENT_PATHS.workSubmit(id)
+        : job.stage === "revising"
+          ? STUDENT_PATHS.workRevision(id)
+          : STUDENT_PATHS.workSubmitted(id);
     return (
-      <li key={work.id} className="student-activity__card">
-        <CardHead kind={work.kind} title={work.title} />
+      <li key={job.jobId} className="student-activity__card">
+        <CardHead kind={job.kind} title={job.title} />
         <div className="student-activity__meta">
-          <CategoryBadge field={work.field} />
+          {proposalBadgeNames(job.specialtyCategories).map((name) => (
+            <CategoryBadge key={name} field={name} />
+          ))}
         </div>
         <p className="student-activity__line">{deadlineText(deadline.stage, deadline.due)}</p>
         <div className="student-activity__box">
           <span className="student-activity__dot" aria-hidden="true" />
-          <span className="student-activity__status">{workStatusText(work)}</span>
+          <span className="student-activity__status">{progressStatusText(job)}</span>
           <TextButton onClick={() => navigate(detailPath)}>상세보기</TextButton>
         </div>
+        {job.storeName && (
+          <>
+            <div className="student-activity__divider" />
+            <StoreLine name={job.storeName} address={job.storeAddress} />
+          </>
+        )}
         <div className="student-activity__divider" />
-        <StoreLine name={work.store.name} address={addressOf(work.store.id)} />
-        <div className="student-activity__divider" />
-        {work.status === "drafting" && (
-          <Button tone="student" size="medium" fullWidth onClick={() => navigate(STUDENT_PATHS.workSubmit(work.id))}>
+        {job.stage === "drafting" && (
+          <Button tone="student" size="medium" fullWidth onClick={() => navigate(STUDENT_PATHS.workSubmit(id))}>
             초안 제출하기
           </Button>
         )}
-        {work.status === "revising" && (
+        {job.stage === "revising" && (
           <Button
             tone="student"
             size="medium"
             fullWidth
-            onClick={() => navigate(STUDENT_PATHS.workRevisionSubmit(work.id))}
+            onClick={() => navigate(STUDENT_PATHS.workRevisionSubmit(id))}
           >
             수정안 제출하기
           </Button>
         )}
-        {work.status === "submitted" && (
-          <Button tone="student" size="medium" fullWidth onClick={() => navigate(STUDENT_PATHS.chat(work.id))}>
+        {job.stage === "submitted" && (
+          <Button tone="student" size="medium" fullWidth onClick={() => navigate(STUDENT_PATHS.chats)}>
             문의하기
           </Button>
         )}
@@ -273,12 +280,12 @@ function StudentActivityPage() {
       <CardHead
         kind={work.kind}
         title={work.title}
-        right={<span className="student-activity__chip">취소됨</span>}
+        right={<span className="student-activity__chip">성사되지 않음</span>}
       />
       <div className="student-activity__meta">
         <CategoryBadge field={work.field} />
         <span>
-          {work.store.name}, {work.cancel ? formatMonthDay(work.cancel.canceledOn) : ""} 사장님이 취소
+          {work.store.name}, {work.cancel ? formatMonthDay(work.cancel.canceledOn) : ""} 성사되지 않음
         </span>
       </div>
       {work.cancel && work.cancel.reward > 0 && (
@@ -286,7 +293,7 @@ function StudentActivityPage() {
       )}
       <div className="student-activity__divider" />
       <div className="student-activity__footer">
-        <TextButton onClick={() => navigate(STUDENT_PATHS.workCanceled(work.id))}>취소 상세보기</TextButton>
+        <TextButton onClick={() => navigate(STUDENT_PATHS.workCanceled(work.id))}>상세보기</TextButton>
       </div>
     </li>
   );
@@ -331,6 +338,14 @@ function StudentActivityPage() {
             onRetry={reloadApplied}
           />
         )}
+        {tab === "inProgress" && progressLoad.status !== "loaded" && (
+          <LoadNotice
+            status={progressLoad.status}
+            loadingText="진행 중인 작업을 불러오는 중이에요"
+            errorText="진행 중인 작업을 불러오지 못했어요"
+            onRetry={reloadProgress}
+          />
+        )}
         {tab === "proposals" && proposalsLoad.status !== "loaded" && (
           <LoadNotice
             status={proposalsLoad.status}
@@ -343,7 +358,7 @@ function StudentActivityPage() {
 
         {tab === "done" && canceled.length > 0 && (
           <>
-            {listTitle("취소된 일", canceled.length)}
+            {listTitle("성사되지 않은 일", canceled.length)}
             <ul className="student-activity__list">{canceled.map(canceledCard)}</ul>
           </>
         )}

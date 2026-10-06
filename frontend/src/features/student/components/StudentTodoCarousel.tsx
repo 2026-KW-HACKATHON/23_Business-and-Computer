@@ -16,7 +16,7 @@ const SLIDE_GAP_PX = 12;
 function describe(todo: StudentTodo) {
   switch (todo.type) {
     case "drafting":
-      return { status: deadlineText("draft", todo.work.draftDue), action: "초안 제출하기" };
+      return { status: deadlineText("draft", todo.job.draftDeadline), action: "초안 제출하기" };
     case "revising":
       return { status: "수정 요청이 도착했어요", action: "수정안 제출하기" };
     case "agreement":
@@ -37,13 +37,23 @@ function heading(todo: StudentTodo) {
       store: proposal.store.storeName,
     };
   }
-  const { work } = todo;
+  if (todo.type === "agreement") {
+    const { work } = todo;
+    return {
+      key: `agreement-${work.id}`,
+      kind: work.kind,
+      title: work.title,
+      fields: [work.field],
+      store: work.store.name,
+    };
+  }
+  const { job } = todo;
   return {
-    key: `${todo.type}-${work.id}`,
-    kind: work.kind,
-    title: work.title,
-    fields: [work.field],
-    store: work.store.name,
+    key: `${todo.type}-${job.jobId}`,
+    kind: job.kind,
+    title: job.title,
+    fields: proposalBadgeNames(job.specialtyCategories),
+    store: job.storeName ?? "",
   };
 }
 

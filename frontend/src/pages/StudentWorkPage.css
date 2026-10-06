@@ -322,3 +322,17 @@
   font-size: 17px;
   color: var(--color-student);
 }
+
+/* 올릴 수 없어 뺀 파일 안내 (결과물 파일 칸 아래) */
+.student-work__file-notice {
+  margin: -8px 0 0;
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--color-danger);
+}
+
+/* 작업 시작: 사장님이 정한 작업비 앞의 희망 작업비 */
+.student-work__wish {
+  font-weight: 400;
+  color: var(--role-secondary);
+}

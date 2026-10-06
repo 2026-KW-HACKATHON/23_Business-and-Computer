@@ -7,7 +7,7 @@ spring:
     name: backend
   output:
     ansi:
-      enabled: always # docker logs처럼 TTY가 아닌 환경에서도 색상을 출력한다
+      enabled: never # docker logs처럼 TTY가 아닌 환경에서도 색상을 출력한다
   datasource:
     url: ${DATABASE_URL}
     driver-class-name: org.postgresql.Driver

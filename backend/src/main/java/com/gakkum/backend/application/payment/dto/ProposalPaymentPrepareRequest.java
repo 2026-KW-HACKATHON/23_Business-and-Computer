@@ -4,6 +4,7 @@ import com.gakkum.backend.domain.payment.dto.PaymentCommandDto.PrepareProposalPa
 
 import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.PositiveOrZero;
 import jakarta.validation.constraints.Size;
 import lombok.AccessLevel;
@@ -19,6 +20,10 @@ import lombok.NoArgsConstructor;
 public class ProposalPaymentPrepareRequest {
 
     @NotNull
+    @Positive
+    private Long budget;
+
+    @NotNull
     @PositiveOrZero
     private Integer revisionCount;
 
@@ -30,8 +35,9 @@ public class ProposalPaymentPrepareRequest {
     private Boolean refundPolicyAgreed;
 
     public static ProposalPaymentPrepareRequest of(
-            Integer revisionCount, String messageToStudent, Boolean refundPolicyAgreed) {
+            Long budget, Integer revisionCount, String messageToStudent, Boolean refundPolicyAgreed) {
         return ProposalPaymentPrepareRequest.builder()
+                .budget(budget)
                 .revisionCount(revisionCount)
                 .messageToStudent(messageToStudent)
                 .refundPolicyAgreed(refundPolicyAgreed)
@@ -41,6 +47,6 @@ public class ProposalPaymentPrepareRequest {
     /** 빈 한마디는 입력하지 않은 것으로 본다. */
     public PrepareProposalPaymentCommand toCommand(String username, Long proposalId) {
         String message = messageToStudent == null || messageToStudent.isBlank() ? null : messageToStudent.trim();
-        return PrepareProposalPaymentCommand.of(username, proposalId, revisionCount, message);
+        return PrepareProposalPaymentCommand.of(username, proposalId, budget, revisionCount, message);
     }
 }

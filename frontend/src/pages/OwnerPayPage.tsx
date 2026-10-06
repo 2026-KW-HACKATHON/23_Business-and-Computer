@@ -17,7 +17,7 @@ import { formatMonthDay } from "../lib/date";
 import { formatWon } from "../lib/money";
 import "./OwnerPayPage.css";
 
-/** 피그마 「안전결제」. 고른 학생에게 맡길 작업비를 가꿈에 맡긴다 */
+/** 피그마 「안전결제」. 고른 학생에게 맡길 작업비를 골목인턴에 맡긴다 */
 function OwnerPayPage() {
   const { workId = "" } = useParams();
   const navigate = useNavigate();

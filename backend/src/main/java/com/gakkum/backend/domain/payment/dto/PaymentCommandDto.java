@@ -30,7 +30,7 @@ public final class PaymentCommandDto {
         }
     }
 
-    /** 사장님이 받은 제안을 결제하려는 요청. 결제 금액과 학생은 서버가 제안에서 정한다. */
+    /** 사장님이 받은 제안을 결제하려는 요청. 결제 금액은 사장님이 입력한 작업비이고 학생은 서버가 제안에서 정한다. */
     @Getter
     @Builder(access = AccessLevel.PRIVATE)
     @AllArgsConstructor(access = AccessLevel.PRIVATE)
@@ -38,14 +38,16 @@ public final class PaymentCommandDto {
 
         private final String username;
         private final Long proposalId;
+        private final Long budget;
         private final Integer revisionCount;
         private final String messageToStudent;
 
         public static PrepareProposalPaymentCommand of(
-                String username, Long proposalId, Integer revisionCount, String messageToStudent) {
+                String username, Long proposalId, Long budget, Integer revisionCount, String messageToStudent) {
             return PrepareProposalPaymentCommand.builder()
                     .username(username)
                     .proposalId(proposalId)
+                    .budget(budget)
                     .revisionCount(revisionCount)
                     .messageToStudent(messageToStudent)
                     .build();

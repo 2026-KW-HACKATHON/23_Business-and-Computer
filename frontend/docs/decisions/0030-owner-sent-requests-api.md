@@ -28,7 +28,7 @@ The backend (dev) has:
   [{ certificateName, acquiredYear }], portfolioUrl, penaltyCount,
   reviewCount, reviews: [{ storeName, jobTitle, content, rating,
   createdAt }] }` (409 JOB_APPLICATION_409_PROFILE_STATUS for a cancelled
-  request). It has no one-line intro and no on-time rate.
+  request). It has no one-line intro.
 - POST /jobs/{jobId}/cancel with `{ cancelReason, messageToStudent }` (both
   required, ≤ 5000) for an open or in-progress request (409 JOB_409_CANCEL
   otherwise).
@@ -53,8 +53,8 @@ The backend (dev) has:
   「지원자 보기」 when anyone applied. The count shows 「-」 and `LoadNotice`
   replaces the list while loading or after a failure.
 - **Home** (`useOwnerHome`): an open request with applicants is a 「학생
-  고르기」 card (「예산」 only when the list sends `budget`), one without is a
-  「기다리는 중」 row. **내 정보** counts open requests, or 「-」.
+  고르기」 card with the category badge only (no budget line), one without is
+  a 「기다리는 중」 row. **내 정보** counts open requests, or 「-」.
 - **보낸 의뢰서 상세** (`src/pages/OwnerRequestPage.tsx`, GET /jobs/{id}): the
   title, category badges, 「모집 중, 지원자 N명」 (count from the applicant
   list) or the status label, the flow bar, the terms, 「의뢰 취소」 while OPEN,
@@ -73,11 +73,10 @@ The backend (dev) has:
   맡기기」 opens /owner/requests/:requestId/assign/:applicationId. A closed
   request shows 「모집이 끝나 지원자를 볼 수 없어요」.
 - **지원자 프로필** (`src/pages/OwnerApplicantProfilePage.tsx`): name, school ·
-  major · 「NN학번」, trust chips (제안 N회 · 패널티 N회), 완료한 작업, 마감
-  지킴, 사장님 평점 (the review average), 전공역량·특기, 자격증 (year) ·
-  포트폴리오, and 사장님 후기, with 「이 학생에게 맡기기」 below. The one-line
-  intro and 마감 지킴 show only when the server sends `intro` · `onTimeRate`
-  (「-」 until then).
+  major · 「NN학번」, trust chips (제안 N회 · 패널티 N회), 완료한 작업,
+  사장님 평점 (the review average), 전공역량·특기, 자격증 (year) · 포트폴리오,
+  and 사장님 후기, with 「이 학생에게 맡기기」 below. The one-line intro shows
+  only when the server sends `intro`.
 - 의뢰 등록 (ADR 0028) no longer adds the new request to the sample list.
 
 ## Rationale

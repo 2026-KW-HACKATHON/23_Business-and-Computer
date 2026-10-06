@@ -21,7 +21,8 @@ POST /jobs/{jobId}/start. The sample work-start screen for sample works
   draftDeadline, finalDeadline }`. A repeat answers with the first start.
   Errors: 403 JOB_START_403 (not the proposal's student), 404 JOB_404,
   409 JOB_START_409 (not startable).
-- There is no API to decline the request (「이 조건은 어려워요」).
+- POST /jobs/{jobId}/decline declines the request (「이 조건은 어려워요」,
+  ADR 0033).
 
 ## Decision
 
@@ -48,8 +49,7 @@ POST /jobs/{jobId}/start. The sample work-start screen for sample works
     수 있어요」 then `landingPath()`; JOB_START_409 or JOB_404 → 「지금은 작업을
     시작할 수 없어요…」 above the buttons; anything else → 「잠시 후 다시 시도해
     주세요」.
-  - Decline: 「의뢰서를 거절할까요?」, then 「거절하기」 shows 「의뢰서 거절은 곧
-    열려요」 until a decline API exists.
+  - Decline: 「의뢰서를 거절할까요?」, then 「거절하기」 declines (ADR 0033).
 - **Entries**: the sent-proposal detail footer and the 내 활동 보낸 제안 card
   show 「조건 확인하기」 for AWAITING_START with the job not cancelled; the home
   「확인할 일」 puts those proposals first as `proposalAgreement` cards
@@ -59,8 +59,6 @@ POST /jobs/{jobId}/start. The sample work-start screen for sample works
 
 - Keying the screen by proposal id reuses the proposal the student already
   opens and carries the `jobId` the start call needs.
-- Keeping the decline button and popup with a 「곧 열려요」 notice keeps the
-  Figma screen whole while the API is missing.
 
 ## Alternatives Considered
 
@@ -69,7 +67,5 @@ POST /jobs/{jobId}/start. The sample work-start screen for sample works
 
 ## Agent Guidance
 
-- When a decline API exists, call it from 「거절하기」 and go to 내 활동 ›
-  보낸 제안 on success.
-- 내 활동 › 진행 중 still reads sample works; a started job shows there once
-  student works read the backend.
+- A started job shows in 내 활동 › 진행 중 (GET /me/jobs?status=MATCHED,
+  ADR 0032).

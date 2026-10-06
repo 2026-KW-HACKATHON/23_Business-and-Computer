@@ -39,6 +39,16 @@ public class SpecialtyService {
         return studentSpecialtyRepository.save(studentSpecialty);
     }
 
+    /**
+     * 학생이 등록한 특기를 모두 지운다.
+     * 같은 특기를 곧바로 다시 등록해도 (학생, 특기) 고유 제약에 걸리지 않도록 삭제를 바로 DB에 반영한다.
+     */
+    @Transactional
+    public void deleteStudentSpecialties(Long studentProfileId) {
+        studentSpecialtyRepository.deleteByStudentProfileId(studentProfileId);
+        studentSpecialtyRepository.flush();
+    }
+
     @Transactional(readOnly = true)
     public void validateSpecialtyIds(List<Long> specialtyIds) {
         if (new HashSet<>(specialtyIds).size() != specialtyIds.size()) {
