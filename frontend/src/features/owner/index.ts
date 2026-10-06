@@ -32,6 +32,7 @@ export {
   useOwnerStorePhoto,
 } from "./hooks/ownerDemo";
 export { useSafePayment } from "./hooks/useSafePayment";
+export type { PaymentPhase } from "./hooks/useSafePayment";
 export { useOwnerHome } from "./hooks/useOwnerHome";
 export { useReceivedProposals } from "./hooks/useReceivedProposals";
 export { useApplicantProfile, useJobApplications, useOpenJobs } from "./hooks/useOwnerJobs";

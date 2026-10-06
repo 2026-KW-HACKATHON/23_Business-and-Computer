@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Navigate, useNavigate, useParams } from "react-router-dom";
 import {
   AppImage,
+  BudgetField,
   Button,
   CategoryBadge,
   FlowBar,
@@ -17,9 +18,11 @@ import {
   PaymentProgress,
   PaymentSection,
   flowSteps,
-  useSafePayment,
 } from "../features/owner";
-import type { PaymentMethod } from "../features/owner";
+import type { PaymentPhase } from "../features/owner";
+import { landingPath } from "../features/auth";
+import { prepareProposalPayment, startKakaoPay } from "../features/payment";
+import type { PaymentFailure } from "../features/payment";
 import { expectedDaysText, proposalBadgeNames, useProposalDetail } from "../features/proposal";
 import type { ProposalDetail } from "../features/proposal";
 import { useBack } from "../hooks/useBack";
@@ -28,11 +31,12 @@ import "./OwnerPayPage.css";
 import { studentTitle } from "../lib/korean";
 
 /**
- * 피그마 「제안 수락 - 의뢰서작성·결제」. 학생 제안을 의뢰서로 바꾸면서 수정 횟수 · 학생에게
- * 한마디를 정하고 바로 안전결제한다. 작업비는 학생이 제안한 금액, 마감일은 결제한 날부터 학생이
- * 제안한 기간이라 보여 주기만 한다 (서버가 제안에서 정한다).
+ * 피그마 「제안 수락 - 의뢰서작성·결제」. 학생 제안을 의뢰서로 바꾸면서 작업비 · 수정 횟수 ·
+ * 학생에게 한마디를 정하고 바로 안전결제한다. 작업비는 학생 희망 작업비를 채워 두고 사장님이
+ * 고칠 수 있다. 마감일은 결제한 날부터 학생이 제안한 기간이라 보여 주기만 한다 (서버가 정한다).
  * 제안은 GET /proposals/{id} 로 읽는다 (ADR 0025). 결정 대기(PENDING)가 아니면 상세로 돌려보낸다.
- * 결제 진행은 useSafePayment 다.
+ * 「안전결제하기」는 POST /proposals/{id}/payments 로 결제를 준비하고 카카오페이로 간다 (ADR 0031).
+ * 카카오페이에서는 /payments/kakao/… (KakaoPayResultPage) 로 돌아온다.
  */
 function OwnerProposalAcceptPage() {
   const { proposalId = "" } = useParams();
@@ -59,22 +63,88 @@ function OwnerProposalAcceptPage() {
   return <AcceptForm key={load.proposal.proposalId} proposal={load.proposal} onBack={back} />;
 }
 
+/** 결제 준비가 실패했을 때: 알림을 띄우고 갈 곳. 없으면 결제 실패 팝업 */
+function prepareFailureExit(
+  reason: PaymentFailure,
+  proposalId: number,
+): { message?: string; to: string } | undefined {
+  const detail = OWNER_PATHS.proposal(String(proposalId));
+  switch (reason) {
+    case "unauthorized":
+      return { to: "/login" };
+    case "otherStore":
+      return { message: "우리 가게가 받은 제안만 결제할 수 있어요", to: OWNER_PATHS.activity("proposals") };
+    case "targetNotPayable":
+      return { message: "이미 결정한 제안이에요", to: detail };
+    case "alreadyPaid":
+      return { message: "이미 결제된 제안이에요", to: detail };
+    case "notOwner":
+      return { message: "사장님만 결제할 수 있어요", to: landingPath() };
+    case "targetNotFound":
+      return { message: "제안을 찾을 수 없어요", to: OWNER_PATHS.activity("proposals") };
+    default:
+      return undefined;
+  }
+}
+
 function AcceptForm({ proposal, onBack }: { proposal: ProposalDetail; onBack: () => void }) {
   const navigate = useNavigate();
+  // 학생 희망 작업비를 채워 두고 사장님이 고친다
+  const [budget, setBudget] = useState(proposal.proposedFee);
   const [revisions, setRevisions] = useState(1);
   const [message, setMessage] = useState("");
-  const [method, setMethod] = useState<PaymentMethod>("kakaoPay");
   const [agreed, setAgreed] = useState(false);
-  const payment = useSafePayment();
+  const [phase, setPhase] = useState<PaymentPhase>("idle");
+  // 빠른 두 번 누름에도 결제 준비를 한 번만 보낸다
+  const inFlight = useRef(false);
 
-  const canPay = agreed;
+  const canPay = agreed && budget > 0 && phase === "idle";
+
+  // 카카오페이에서 브라우저 「뒤로」로 돌아와 이 화면이 그대로 되살아나면 이동 화면을 걷는다
+  useEffect(() => {
+    const onPageShow = (event: PageTransitionEvent) => {
+      if (!event.persisted) return;
+      inFlight.current = false;
+      setPhase("idle");
+    };
+    window.addEventListener("pageshow", onPageShow);
+    return () => window.removeEventListener("pageshow", onPageShow);
+  }, []);
+
+  const pay = async () => {
+    if (inFlight.current) return;
+    inFlight.current = true;
+    setPhase("redirecting");
+    const { proposalId } = proposal;
+    const result = await startKakaoPay({ kind: "proposal", proposalId }, () =>
+      prepareProposalPayment(proposalId, {
+        revisionCount: revisions,
+        messageToStudent: message.trim(),
+        budget,
+        refundPolicyAgreed: agreed,
+      }),
+    );
+    if (result.status === "redirect") {
+      // 카카오페이 결제창으로 간다. 이동 화면은 페이지가 바뀔 때까지 그대로 둔다
+      window.location.assign(result.url);
+      return;
+    }
+    inFlight.current = false;
+    const exit = prepareFailureExit(result.reason, proposalId);
+    if (!exit) {
+      setPhase("failed");
+      return;
+    }
+    if (exit.message) window.alert(exit.message);
+    navigate(exit.to, { replace: true });
+  };
 
   return (
     <SubScreen
       title="제안 수락"
       onBack={onBack}
       footer={
-        <Button fullWidth disabled={!canPay} onClick={payment.start}>
+        <Button fullWidth disabled={!canPay} onClick={() => void pay()}>
           안전결제하기
         </Button>
       }
@@ -83,7 +153,7 @@ function AcceptForm({ proposal, onBack }: { proposal: ProposalDetail; onBack: ()
         <div className="owner-pay__intro">
           <h2 className="owner-pay__title">학생의 제안을 받아들일까요?</h2>
           <p className="owner-pay__description">
-            {"제안을 바탕으로 의뢰서를 만들어요.\n수정 횟수를 정해 주세요."}
+            {"제안을 바탕으로 의뢰서를 만들어요.\n희망 작업비를 보고 작업비와 수정 횟수를 정해 주세요."}
           </p>
         </div>
 
@@ -103,8 +173,8 @@ function AcceptForm({ proposal, onBack }: { proposal: ProposalDetail; onBack: ()
           </p>
         </section>
 
-        <FormField label="작업비" hint="학생이 제안한 금액이에요">
-          <p className="owner-pay__fixed">{formatWon(proposal.proposedFee)}</p>
+        <FormField label="작업비" hint="학생 희망 작업비를 참고해 정해 주세요" wrapsInput>
+          <BudgetField value={budget} onChange={setBudget} />
         </FormField>
 
         <FormField label="마감일" hint="학생이 제안한 기간 · 결제한 날부터 세요">
@@ -125,20 +195,21 @@ function AcceptForm({ proposal, onBack }: { proposal: ProposalDetail; onBack: ()
         </FormField>
 
         <PaymentSection
-          amount={proposal.proposedFee}
-          method={method}
-          onMethodChange={setMethod}
+          amount={budget}
+          method="kakaoPay"
+          methods={["kakaoPay"]}
+          onMethodChange={() => undefined}
           agreed={agreed}
           onAgreeChange={setAgreed}
         />
       </div>
 
+      {/* 이동 화면과 결제 실패 팝업만 쓴다. 결제 완료는 카카오페이에서 돌아온 화면이 띄운다 */}
       <PaymentProgress
-        phase={payment.phase}
-        method={method}
-        onCancel={payment.cancel}
-        onRetry={payment.reset}
-        onDone={() => navigate(OWNER_PATHS.home, { replace: true })}
+        phase={phase}
+        method="kakaoPay"
+        onRetry={() => setPhase("idle")}
+        onDone={() => setPhase("idle")}
       />
     </SubScreen>
   );

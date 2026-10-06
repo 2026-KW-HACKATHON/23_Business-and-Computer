@@ -44,6 +44,7 @@ import OwnerExploreProposalPage from './pages/OwnerExploreProposalPage'
 import OwnerExploreRequestPage from './pages/OwnerExploreRequestPage'
 import OwnerStoreEditPage from './pages/OwnerStoreEditPage'
 import OwnerPaymentsPage from './pages/OwnerPaymentsPage'
+import KakaoPayResultPage from './pages/KakaoPayResultPage'
 import OwnerActivityPage from './pages/OwnerActivityPage'
 import StudentHomePage from './pages/StudentHomePage'
 import StudentExplorePage from './pages/StudentExplorePage'
@@ -167,6 +168,8 @@ function App() {
       <Route path="/student/*" element={<Navigate to="/student" replace />} />
       {/* Owner screens not built yet fall back to the owner home. */}
       <Route path="/owner/*" element={<Navigate to="/owner" replace />} />
+      {/* KakaoPay returns here: approval · cancel · fail (ADR 0031). */}
+      <Route path="/payments/kakao/:outcome" element={<KakaoPayResultPage />} />
       {/* Backend redirects here after a successful social login. */}
       <Route path="/cookie" element={<CookiePage />} />
       {/* Unknown paths land by login state and role (ADR 0015). */}
