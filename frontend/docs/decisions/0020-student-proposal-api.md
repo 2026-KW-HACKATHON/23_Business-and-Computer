@@ -72,6 +72,8 @@ The shared API layer (ADR 0021) provides `apiData` in `src/api/client.ts`
   hint. A home example preselects its task only if a category and task with
   the same names exist on the server.
 - **3/4** keeps photos as `File` objects in router state (structured clone).
+  Each picked photo shows a 40 px thumbnail, and 4/4 shows the photos in its
+  tiles (`AttachmentTiles` `srcs`, object URLs from `useObjectUrls`).
   Only jpeg/png/webp up to 10 MB, at most 5 photos; a refused file shows
   「JPG, PNG, WEBP 사진만 올릴 수 있어요」 or 「10MB 이하 사진만 올릴 수
   있어요」. The draft days still need at least 1 (the server allows 0).
