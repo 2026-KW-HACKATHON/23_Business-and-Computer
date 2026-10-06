@@ -83,9 +83,9 @@ export function averageReviewRating(profile: ApplicantProfile): number | undefin
   return profile.reviews.reduce((sum, review) => sum + review.rating, 0) / profile.reviews.length;
 }
 
-/** 의뢰 취소 결과 */
+/** 의뢰 취소 결과. 진행 중 작업이면 돌려받는 금액과 학생 착수 보상 (서버가 주면) */
 export type JobCancelResult =
-  | { status: "canceled" }
+  | { status: "canceled"; refundAmount?: number; studentCompensationAmount?: number }
   | {
       status:
         | "unauthorized"
@@ -104,8 +104,15 @@ export async function sendJobCancel(
   messageToStudent: string,
 ): Promise<JobCancelResult> {
   try {
-    await cancelJob(jobId, { cancelReason: cancelReason.trim(), messageToStudent: messageToStudent.trim() });
-    return { status: "canceled" };
+    const data = await cancelJob(jobId, {
+      cancelReason: cancelReason.trim(),
+      messageToStudent: messageToStudent.trim(),
+    });
+    return {
+      status: "canceled",
+      refundAmount: data?.refundAmount ?? undefined,
+      studentCompensationAmount: data?.studentCompensationAmount ?? undefined,
+    };
   } catch (error) {
     if (error instanceof ApiError) {
       if (error.status === 401) return { status: "unauthorized" };
