@@ -102,7 +102,7 @@ function currentWork(work: OwnerWork): OwnerWork {
 const works = () => SAMPLE_WORKS.map(currentWork);
 
 const requests = () =>
-  [...ownerDemo.registeredRequests, ...SAMPLE_REQUESTS].map((request) => ({
+  SAMPLE_REQUESTS.map((request) => ({
     ...request,
     applicants: request.applicants.map((a) => ({ ...a, student: withStudent(a.student) })),
   }));
@@ -162,7 +162,6 @@ export function useOwnerProfile(): OwnerProfile {
     address: `${store.address}\n${store.addressDetail}`,
     businessVerified: true,
     counts: {
-      sent: requests().length,
       inProgress: all.filter((w) => w.status === "inProgress" || w.status === "submitted").length,
       done: all.filter((w) => w.status === "completed").length,
     },

@@ -27,7 +27,6 @@ export {
 } from "./hooks/useOwnerData";
 export {
   markOwnerNotificationsRead,
-  registerOwnerRequest,
   saveOwnerStore,
   setOwnerStorePhoto,
   useOwnerStorePhoto,
@@ -35,7 +34,25 @@ export {
 export { useSafePayment } from "./hooks/useSafePayment";
 export { useOwnerHome } from "./hooks/useOwnerHome";
 export { useReceivedProposals } from "./hooks/useReceivedProposals";
+export { useApplicantProfile, useJobApplications, useOpenJobs } from "./hooks/useOwnerJobs";
+export type { OwnerJobLoad } from "./hooks/useOwnerJobs";
 export {
+  applicantPlan,
+  averageReviewRating,
+  jobCategoryNames,
+  jobSpecialtyNames,
+  parsePositiveId,
+  sendJobCancel,
+} from "./lib/ownerJobs";
+export type {
+  ApplicantProfile,
+  JobApplicant,
+  JobApplicationSort,
+  JobApplications,
+  OpenJob,
+} from "./lib/ownerJobs";
+export {
+  admissionYearText,
   proposalStudentRecord,
   receivedOnText,
   receivedProposalFlowSteps,

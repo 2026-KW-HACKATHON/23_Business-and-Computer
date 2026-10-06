@@ -14,7 +14,6 @@ import { landingPath } from "../features/auth";
 import {
   OWNER_PATHS,
   readNewRequestState,
-  registerOwnerRequest,
   requestSpecialtyIds,
   sendJobCreate,
   taskSummary,
@@ -130,20 +129,6 @@ function OwnerRequestConfirmPage() {
 
     switch (result.status) {
       case "created":
-        // 보낸 의뢰 목록(GET /me/jobs)을 연동하기 전까지 내 활동 · 홈에도 보이게 넣어 둔다
-        registerOwnerRequest({
-          id: `req-new-${Date.now()}`,
-          title: content.title.trim(),
-          field: state.fields[0] ?? state.picked[0]?.field ?? "기타",
-          budget: content.budget,
-          draftDue: content.draftDue,
-          finalDue: content.finalDue,
-          revisionLimit: content.revisions,
-          tasks: state.picked.map((p) => p.task),
-          description: content.description.trim(),
-          attachments: content.photos.map((photo) => photo.name),
-          applicants: [],
-        });
         navigate(OWNER_PATHS.newRequestDone, { replace: true });
         break;
       case "unauthorized":
