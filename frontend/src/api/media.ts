@@ -1,7 +1,7 @@
 import { apiData } from "./client";
 
 /** 백엔드 ImagePurpose. 프로필 사진 · 가게 사진 · 제안 참고 사진 */
-export type ImagePurpose = "PROFILE" | "STORE" | "PROPOSAL";
+export type ImagePurpose = "PROFILE" | "STORE" | "PROPOSAL" | "JOB";
 
 /** 백엔드 이미지 업로드(MediaService)가 받는 형식과 확장자 짝 */
 export const IMAGE_UPLOAD_EXTENSIONS: Record<string, string> = {

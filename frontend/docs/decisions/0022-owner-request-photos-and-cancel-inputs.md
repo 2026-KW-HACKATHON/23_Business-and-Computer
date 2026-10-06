@@ -21,14 +21,15 @@ The owner request screens are about to call the backend job API
 ## Decision
 
 - 의뢰 등록 2/3 (`src/pages/OwnerRequestContentPage.tsx`) has a 「참고 사진」
-  field under 수정 횟수: optional, up to 5 photos, JPG / PNG / WEBP up to
+  field under 수정 횟수: optional, up to 4 photos, JPG / PNG / WEBP up to
   10 MB (the shared upload limits in `src/api/media.ts`). A photo that does
   not fit is left out and a red line under the field says why
   (`addRequestPhotos` in `src/features/owner/lib/newRequest.ts`).
 - The picked files stay in `RequestContent.photos` (`File[]`) in the router
   state, so 「내용 고치기」 keeps them. 3/3 shows them as 「참고 사진」 tiles in
   the request card, and the registered request keeps their names as
-  `attachments`. Uploading waits for the backend field.
+  `attachments`. 「의뢰 등록하기」 uploads them and sends the URLs to POST
+  /jobs (ADR 0028).
 - Picked photos show a preview right away: a 40 px thumbnail on each 2/3
   row and the photo inside each 3/3 tile (`AttachmentTiles` `srcs`), from
   object URLs made by `src/hooks/useObjectUrls.ts`. 수정 요청
@@ -61,7 +62,4 @@ The owner request screens are about to call the backend job API
 
 ## Agent Guidance
 
-- When `POST /jobs` accepts photos, upload `RequestContent.photos` with
-  `uploadImage` before creating the request, as student signup does with its
-  photo (ADR 0019), and send the returned URLs.
 - Send the cancel texts trimmed; the backend trims them too.

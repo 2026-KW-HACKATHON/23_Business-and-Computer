@@ -20,13 +20,14 @@ import {
   deadlineText,
   receivedOnText,
   receivedProposalStatusLabel,
+  jobCategoryNames,
   studentMetaText,
+  useOpenJobs,
   useOwnerPayments,
-  useOwnerRequests,
   useOwnerWorks,
   useReceivedProposals,
 } from "../features/owner";
-import type { ActivityTab, OwnerRequest, OwnerWork, ReceivedProposal } from "../features/owner";
+import type { ActivityTab, OpenJob, OwnerWork, ReceivedProposal } from "../features/owner";
 import { proposalBadgeNames } from "../features/proposal";
 import { useBack } from "../hooks/useBack";
 import { formatMonthDay } from "../lib/date";
@@ -83,7 +84,8 @@ function CardHead({ kind, title, right }: { kind: WorkKind; title: string; right
 /**
  * 피그마 「내 활동 - 보낸 의뢰 · 받은 제안 · 진행 중 · 완료 (사장님)」.
  * 위 요약 카드 4칸이 탭이고, 고른 탭은 주소(?tab=)에 남아 돌아와도 그대로다.
- * 받은 제안은 GET /me/received-proposals (ADR 0025). 나머지 탭은 아직 샘플 데이터다.
+ * 보낸 의뢰는 GET /me/jobs?status=OPEN (ADR 0030), 받은 제안은 GET /me/received-proposals (ADR 0025).
+ * 진행 중 · 완료 탭은 아직 샘플 데이터다.
  */
 function OwnerActivityPage() {
   const navigate = useNavigate();
@@ -93,7 +95,10 @@ function OwnerActivityPage() {
   // 보낸 의뢰 · 진행 중은 초안 마감이 빠른 것부터
   const byDraftDue = <T extends { draftDue: string }>(list: T[]) =>
     [...list].sort((a, b) => a.draftDue.localeCompare(b.draftDue));
-  const requests = byDraftDue(useOwnerRequests());
+  const { load: openLoad, reload: reloadOpen } = useOpenJobs();
+  const requests = [...(openLoad.status === "loaded" ? openLoad.data : [])].sort((a, b) =>
+    a.draftDeadline.localeCompare(b.draftDeadline),
+  );
   const { load: proposalsLoad, reload: reloadProposals } = useReceivedProposals();
   const proposals = proposalsLoad.status === "loaded" ? proposalsLoad.proposals : [];
   const works = useOwnerWorks();
@@ -108,36 +113,39 @@ function OwnerActivityPage() {
   const canceled = works.filter((w) => w.status === "canceled");
   // 받은 제안을 불러오는 중이거나 실패하면 개수 대신 「-」
   const counts: Record<ActivityTab, number | string> = {
-    sent: requests.length,
+    sent: openLoad.status === "loaded" ? requests.length : "-",
     proposals: proposalsLoad.status === "loaded" ? proposals.length : "-",
     inProgress: inProgress.length,
     done: done.length,
   };
   const selectedIndex = TABS.findIndex((t) => t.tab === tab);
 
-  const sentCard = (request: OwnerRequest) => {
-    const applicants = request.applicants.length;
+  const sentCard = (request: OpenJob) => {
+    const applicants = request.applicantCount;
+    const id = String(request.jobId);
     return (
-      <li key={request.id} className="owner-activity__card">
+      <li key={request.jobId} className="owner-activity__card">
         <CardHead kind="request" title={request.title} />
         <div className="owner-activity__meta">
-          <CategoryBadge field={request.field} />
+          {jobCategoryNames(request.specialtyCategories).map((name) => (
+            <CategoryBadge key={name} field={name} />
+          ))}
           <span>{applicants > 0 ? `지원자 ${applicants}명` : "아직 지원자가 없어요"}</span>
           <TextButton
             className="owner-activity__push"
-            onClick={() => navigate(OWNER_PATHS.request(request.id))}
+            onClick={() => navigate(OWNER_PATHS.request(id))}
           >
             상세 보기
           </TextButton>
         </div>
-        <p className="owner-activity__line">{deadlineText("draft", request.draftDue)}</p>
+        <p className="owner-activity__line">{deadlineText("draft", request.draftDeadline)}</p>
         {applicants > 0 && (
           <>
             <div className="owner-activity__divider" />
             <Button
               size="medium"
               fullWidth
-              onClick={() => navigate(OWNER_PATHS.requestApplicants(request.id))}
+              onClick={() => navigate(OWNER_PATHS.requestApplicants(id))}
             >
               지원자 보기
             </Button>
@@ -346,6 +354,14 @@ function OwnerActivityPage() {
           {tab === "inProgress" && inProgress.map(inProgressCard)}
           {tab === "done" && done.map(doneCard)}
         </ul>
+        {tab === "sent" && openLoad.status !== "loaded" && (
+          <LoadNotice
+            status={openLoad.status === "loading" ? "loading" : "error"}
+            loadingText="보낸 의뢰를 불러오는 중이에요"
+            errorText="보낸 의뢰를 불러오지 못했어요"
+            onRetry={reloadOpen}
+          />
+        )}
         {tab === "proposals" && proposalsLoad.status !== "loaded" && (
           <LoadNotice
             status={proposalsLoad.status}

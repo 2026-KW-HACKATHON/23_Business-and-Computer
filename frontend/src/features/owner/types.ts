@@ -42,7 +42,6 @@ export interface ProposalArrivedTodo extends TodoBase {
 /** 의뢰에 학생들이 지원했다 (id = 의뢰) */
 export interface ApplicantsTodo extends TodoBase {
   type: "applicants";
-  budget: number;
   applicantCount: number;
   draftDue: string;
 }
@@ -91,7 +90,7 @@ export interface RequestContent {
   finalDue: string;
   /** 최소 1회 */
   revisions: number;
-  /** 참고 사진 (선택, 최대 5장). 등록할 때 올린다 */
+  /** 참고 사진 (선택, 최대 4장). 등록할 때 올린다 */
   photos: File[];
 }
 
@@ -183,7 +182,8 @@ export interface OwnerProfile {
   address: string;
   businessVerified: boolean;
   /** 받은 제안 개수는 useReceivedProposals 로 센다 (ADR 0025) */
-  counts: { sent: number; inProgress: number; done: number };
+  /** 보낸 의뢰 수는 useOpenJobs 로 센다 */
+  counts: { inProgress: number; done: number };
 }
 
 export type WorkStatus = "inProgress" | "submitted" | "completed" | "canceled";
@@ -334,8 +334,8 @@ export interface OwnerCheckout {
 
 export interface StudentCertificate {
   name: string;
-  /** "2025-03" */
-  acquiredOn: string;
+  /** 취득 연도. 서버도 연도만 둔다 (acquiredYear) */
+  acquiredYear: number;
 }
 
 /** 학생이 받은 사장님 후기 */
@@ -353,8 +353,6 @@ export interface StudentProfile extends StudentProfileRef {
   intro: string;
   proposalCount: number;
   noShowCount: number;
-  /** 마감을 지킨 비율 (%). 완료한 작업이 없으면 비운다 */
-  onTimeRate?: number;
   badges: string[];
   certificates: StudentCertificate[];
   /** 「notion.so/…」처럼 https:// 없이 */

@@ -87,13 +87,16 @@ student screen, which still read `sampleProposals.ts`. The backend (dev) has:
     excerpt, 「M월 D일 보냄」, and the store name and address.
   - The sent date or the address line is hidden when its value is missing
     (`sentOnText`, `storeAddressText`).
-  - No 「조건 확인하기」 button.
+  - AWAITING_START with the job not cancelled shows 「조건 확인하기」, which
+    opens the work-start screen (ADR 0029).
 - **Detail**:
   - Heading: the chip, all category badges, and 「M월 D일 보냄」. The date is
     read from the text of `createdAt` (already Korea time), so the browser
     time zone cannot shift it. No `createdAt` hides the date.
-  - Empathy: only 「학생 손님 N명이 공감했어요」 from `likeCount`.
+  - Empathy: 「학생 손님 N명이 공감했어요」 from `likeCount` and the Figma line
+    「공감이 많이 모이면 사장님께 한 번 더 알려 드려요」.
   - Store box: name and `storeAddress`; with no address the line is hidden.
+    AWAITING_START or ACCEPTED adds 「사장님이 제안을 받아들였어요」 under it.
   - AWAITING_START or ACCEPTED with an `agreement` shows 「사장님이 정한 작업
     조건」: 작업비, 초안 마감, 최종 마감, 수정 횟수, and 「사장님 메시지」 when
     it is not blank.
@@ -103,7 +106,12 @@ student screen, which still read `sampleProposals.ts`. The backend (dev) has:
     (`src/components/ReferencePhotos`). It draws square thumbnails that open
     the original image in a new tab. A photo that fails to load becomes a grey
     tile. `AttachmentTiles` is unchanged.
-  - Footer: 「확인」 only.
+  - Footer: 「조건 확인하기」 for AWAITING_START with the job not cancelled
+    (ADR 0029); 「제안 취소」 (gray) and 「확인」 while PENDING and the job is
+    not cancelled; otherwise 「확인」. 「제안 취소」 opens 「제안을 취소할까요?」
+    (Figma 「제안 취소 확인」). There is no cancel API yet, so 「제안
+    취소하기」 shows 「제안 취소는 곧 열려요」; the 「제안을 취소했어요」 popup
+    opens after a successful cancel once the API exists.
   - Errors: load failure → `LoadNotice` 「다시 시도」, 404 → `StudentMissing`,
     401 → /login.
 - **Categories**: one badge per category, so a 「기타」 proposal shows a
@@ -137,8 +145,9 @@ student screen, which still read `sampleProposals.ts`. The backend (dev) has:
 
 ## Agent Guidance
 
-- The sent-proposal screens do not start work; `POST /jobs/{jobId}/start`
-  is not called from them.
+- When a proposal cancel API exists, call it from 「제안 취소하기」 in
+  `src/pages/StudentProposalPage.tsx` and open the 「제안을 취소했어요」 popup
+  on success instead of 「곧 열려요」.
 - `useMyProposal` (sample) is used by the work-start screen.
 - `GET /proposals/{id}` does not check that the viewer wrote the proposal
   (only the demo session); the screen trusts that it was reached from the

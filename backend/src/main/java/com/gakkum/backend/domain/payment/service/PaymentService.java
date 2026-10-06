@@ -69,7 +69,7 @@ public class PaymentService {
      * 사장님이 입력한 수정 횟수와 한마디는 주문에 보존했다가 승인 시 의뢰로 옮긴다.
      * @param proposalId
      * @param ownerUserId
-     * @param amount 서버 기준 결제 금액(제안 작업비)
+     * @param amount 사장님이 입력한 결제 금액(확정 작업비)
      * @param revisionCount
      * @param messageToStudent 입력하지 않았으면 null
      * @return 저장된 PENDING 주문
@@ -77,7 +77,7 @@ public class PaymentService {
     public Payment prepareProposalPayment(
             Long proposalId, String ownerUserId, Long amount, Integer revisionCount, String messageToStudent) {
 
-        // 예외: 결제 금액(제안 작업비)이 없거나 0 이하인 경우
+        // 예외: 결제 금액(확정 작업비)이 없거나 0 이하인 경우
         if (amount == null || amount <= 0) {
             throw new BusinessException(ErrorCode.PAYMENT_NOT_AVAILABLE);
         }
@@ -159,7 +159,29 @@ public class PaymentService {
     }
 
     /**
-     * 결제 후 취소된 의뢰의 환불(REFUNDED) 주문 조회. 금액은 취소 시 저장한 값을 그대로 읽고 다시 계산하지 않는다.
+     * 학생이 거절한 제안 의뢰의 결제 완료(PAID) 주문을 잠가 전액 환불 처리한다. 학생 보상금은 0원이다.
+     * 해커톤 범위에서는 카카오페이 결제 취소 API를 호출하지 않고 환불 금액만 기록한다.
+     * 제안과 의뢰 행을 잠근 뒤 호출한다. 결제 완료 주문이 없거나 주문이 가리키는 제안·결제한 사장님이 다르면 데이터 오류(500)다.
+     * @param jobId
+     * @param proposalId 의뢰를 만든 제안 ID
+     * @param ownerUserId 의뢰한 사장님의 사용자 ID
+     * @return 결제 금액, 학생 보상금(0원), 환불 금액(결제 금액 전액), 환불 처리 시각
+     */
+    @Transactional
+    public RefundedPaymentData refundOnDecline(Long jobId, Long proposalId, String ownerUserId) {
+        Payment payment = paymentRepository.findLockedByJobIdAndStatus(jobId, PaymentStatus.PAID)
+                .orElseThrow(() -> new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR));
+        if (!proposalId.equals(payment.getProposalId()) || ownerUserId == null
+                || !ownerUserId.equals(payment.getOwnerUserId()) || payment.getAmount() == null) {
+            throw new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR);
+        }
+        payment.refundOnDecline(Instant.now(clock));
+        return new RefundedPaymentData(payment.getAmount(), payment.getStudentCompensationAmount(),
+                payment.getRefundAmount(), payment.getRefundedAt());
+    }
+
+    /**
+     * 결제 후 취소되거나 학생이 거절한 의뢰의 환불(REFUNDED) 주문 조회. 금액은 환불 시 저장한 값을 그대로 읽고 다시 계산하지 않는다.
      * @param jobId
      * @return 결제 금액, 학생 보상금, 환불 금액, 환불 처리 시각. 환불 주문이나 저장된 금액이 없으면 데이터 오류(500)
      */

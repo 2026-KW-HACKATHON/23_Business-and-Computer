@@ -1,17 +1,24 @@
 import { SAMPLE_FIRST_VISIT, SAMPLE_REQUEST_EXAMPLES } from "../lib/sampleHome";
 import type { OwnerHome, OwnerTodo } from "../types";
 import { proposalBadgeNames } from "../../proposal";
-import { useOwnerRequests, useOwnerWorks } from "./useOwnerData";
+import { useOwnerWorks } from "./useOwnerData";
+import { useOpenJobs } from "./useOwnerJobs";
+import { jobCategoryNames } from "../lib/ownerJobs";
 import { useReceivedProposals } from "./useReceivedProposals";
 
 /**
  * 사장님 홈에 그릴 데이터. 작업 · 의뢰 · 제안에서 만들어서, 홈 카드를 눌러 들어간
  * 상세와 내용이 같다. 백엔드를 연동할 때 홈 API 로 바꿔도 화면은 그대로 쓴다.
- * 받은 제안만 API(GET /me/received-proposals, ADR 0025)이고, 나머지는 아직 샘플 데이터다.
+ * 받은 제안(GET /me/received-proposals, ADR 0025)과 모집 중인 의뢰(GET /me/jobs?status=OPEN, ADR 0030)는
+ * API 이고, 작업은 아직 샘플 데이터다.
  */
 export function useOwnerHome(): OwnerHome {
   const works = useOwnerWorks();
-  const requests = [...useOwnerRequests()].sort((a, b) => a.draftDue.localeCompare(b.draftDue));
+  // 모집 중인 내 의뢰 (GET /me/jobs?status=OPEN), 초안 마감이 빠른 것부터
+  const { load: openLoad } = useOpenJobs();
+  const requests = (openLoad.status === "loaded" ? [...openLoad.data] : []).sort((a, b) =>
+    a.draftDeadline.localeCompare(b.draftDeadline),
+  );
   const { load: proposalsLoad, reload: reloadReceivedProposals } = useReceivedProposals();
   const proposals = proposalsLoad.status === "loaded" ? proposalsLoad.proposals : [];
 
@@ -41,16 +48,15 @@ export function useOwnerHome(): OwnerHome {
         empathyCount: p.likeCount,
       })),
     ...requests
-      .filter((r) => r.applicants.length > 0)
+      .filter((r) => r.applicantCount > 0)
       .map((r): OwnerTodo => ({
         type: "applicants",
-        id: r.id,
+        id: String(r.jobId),
         kind: "request",
         title: r.title,
-        field: r.field,
-        budget: r.budget,
-        applicantCount: r.applicants.length,
-        draftDue: r.draftDue,
+        field: jobCategoryNames(r.specialtyCategories)[0] ?? "기타",
+        applicantCount: r.applicantCount,
+        draftDue: r.draftDeadline,
       })),
   ];
 
@@ -70,13 +76,13 @@ export function useOwnerHome(): OwnerHome {
         due: w.revisionCount > 0 ? w.finalDue : w.draftDue,
       })),
     waiting: requests
-      .filter((r) => r.applicants.length === 0)
+      .filter((r) => r.applicantCount === 0)
       .map((r) => ({
-        id: r.id,
+        id: String(r.jobId),
         kind: "request",
         title: r.title,
         stage: "draft",
-        due: r.draftDue,
+        due: r.draftDeadline,
         status: "recruiting",
       })),
     examples: SAMPLE_REQUEST_EXAMPLES,

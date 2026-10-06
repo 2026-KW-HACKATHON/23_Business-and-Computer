@@ -4,6 +4,7 @@ import type { WorkKind } from "../../types/workKind";
 import type { ApplicationPlan, WorkPlanContent } from "../../types/workPlan";
 import type { ExploreProposalCard } from "../explore";
 import type { AppliedJob } from "./lib/appliedJobs";
+import type { ProgressJob } from "./lib/progressJobs";
 import type { SentProposal } from "./lib/sentProposals";
 
 /** 마감 단계. draft = 초안, final = 최종 */
@@ -39,6 +40,8 @@ export interface WorkFile {
   name: string;
   /** 「24.1MB」 */
   size: string;
+  /** 제출 화면에서 고른 파일 (올릴 때 쓴다) */
+  file?: File;
 }
 
 /** 작업 기록 한 줄 */
@@ -146,8 +149,6 @@ export interface MyProposal {
   sentOn: string;
   empathyCount: number;
   status: MyProposalStatus;
-  /** 사장님이 열어 봤는지 */
-  seenByOwner: boolean;
   /** 손님 눈으로 본 문제 */
   problem: string;
   /** 이렇게 바꿔 드릴게요 */
@@ -174,8 +175,8 @@ export interface ProposalExample {
 
 export interface StudentCertificate {
   name: string;
-  /** "2025-03" */
-  acquiredOn: string;
+  /** 취득 연도. 서버도 연도만 둔다 (acquiredYear) */
+  acquiredYear: number;
 }
 
 /** 내 프로필. 완료 건수 · 평점 · 후기는 작업에서 센다 */
@@ -263,9 +264,12 @@ export interface SettlementSummary {
 
 /** 확인할 일 카드 */
 export type StudentTodo =
-  | { type: "drafting"; work: StudentWork }
-  | { type: "revising"; work: StudentWork }
-  | { type: "agreement"; work: StudentWork };
+  /** 나와 매칭된 진행 중 작업 (GET /me/jobs?status=MATCHED) */
+  | { type: "drafting"; job: ProgressJob }
+  | { type: "revising"; job: ProgressJob }
+  | { type: "agreement"; work: StudentWork }
+  /** 사장님이 결제해 의뢰서가 온 내 제안 (GET /me/proposals 의 AWAITING_START) */
+  | { type: "proposalAgreement"; proposal: SentProposal };
 
 /** 기다리는 중 한 줄 */
 export type StudentWaitingItem =
@@ -281,8 +285,11 @@ export interface StudentHome {
   todos: StudentTodo[];
   /** 공감 많은 다른 학생 제안 (GET /explore). 불러오는 중 · 실패 · 내 제안 목록을 모를 때는 빈 목록 */
   peerProposals: ExploreProposalCard[];
-  /** 사장님이 확인 중 (낸 결과물) */
-  checking: StudentWork[];
+  /** 사장님이 확인 중 (낸 결과물, GET /me/jobs?status=MATCHED) */
+  checking: ProgressJob[];
+  /** 진행 중 작업을 불러온 상태와 다시 시도 */
+  progress: "loading" | "error" | "loaded";
+  reloadProgress: () => void;
   /** 수락 대기 중인 보낸 제안 + 고르는 중인 지원. 보낸 제안은 불러온 뒤에만 들어간다 */
   waiting: StudentWaitingItem[];
   /** 보낸 제안(GET /me/proposals)을 불러온 상태와 다시 시도 */

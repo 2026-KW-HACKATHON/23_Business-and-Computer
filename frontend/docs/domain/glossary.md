@@ -7,5 +7,5 @@ here whenever a product flow lands in the UI.
 
 | Term | Meaning | Notes |
 | --- | --- | --- |
-| 가꿈 | The product this repository builds a frontend for. | Backend defines its domain model. |
+| 골목인턴 | The product this repository builds a frontend for. | Backend defines its domain model. |
 | (add terms as flows land) | | |

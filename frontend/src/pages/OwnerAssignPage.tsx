@@ -99,7 +99,7 @@ function OwnerAssignPage() {
             steps={[
               {
                 title: `작업비 ${formatWon(request.budget)}을 안전결제로 맡겨요`,
-                description: "가꿈이 보관하고, 완료를 확인하면 학생에게 보내요",
+                description: "골목인턴이 보관하고, 완료를 확인하면 학생에게 보내요",
               },
               { title: "사장님과 학생이 책임 약관에 동의하면 작업이 시작돼요" },
               { title: "채팅으로 자세한 내용을 이야기할 수 있어요" },

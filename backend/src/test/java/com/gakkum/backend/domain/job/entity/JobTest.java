@@ -109,4 +109,56 @@ class JobTest {
                 .isInstanceOfSatisfying(BusinessException.class, exception ->
                         assertThat(exception.getErrorCode()).isEqualTo(errorCode));
     }
+
+    @Test
+    @DisplayName("수락 대기 제안 의뢰를 거절하면 취소로 넘기고 거절 시각과 고정 취소 이유를 기록하며 작업 조건과 담당 학생은 보존한다")
+    void declinesAwaitingStartJob() {
+        Job job = awaitingStart();
+
+        job.decline(STARTED_AT);
+
+        assertThat(job.getStatus()).isEqualTo(JobStatus.CANCELLED);
+        assertThat(job.getCompletedAt()).isEqualTo(STARTED_AT);
+        assertThat(job.getCancelReason()).isEqualTo("학생이 작업 시작 전에 의뢰서를 거절했습니다.");
+        assertThat(job.getMessageToStudent()).isNull();
+        assertThat(job.getStartedAt()).isNull();
+        assertThat(job.getSelectedStudentProfileId()).isEqualTo(31L);
+        assertThat(job.getProposalId()).isEqualTo(5L);
+        assertThat(job.getBudget()).isEqualTo(50_000L);
+        assertThat(job.getDraftDeadline()).isEqualTo(DRAFT_DEADLINE);
+        assertThat(job.getFinalDeadline()).isEqualTo(FINAL_DEADLINE);
+        assertThat(job.getRevisionCount()).isEqualTo(2);
+        assertThat(job.getAcceptanceMessage()).isEqualTo("잘 부탁드립니다.");
+    }
+
+    @ParameterizedTest
+    @EnumSource(value = JobStatus.class, names = "AWAITING_START", mode = EnumSource.Mode.EXCLUDE)
+    @DisplayName("수락 대기가 아닌(모집 중·시작·완료·이미 거절된) 의뢰의 거절은 JOB_DECLINE_409로 거부하고 아무것도 바꾸지 않는다")
+    void rejectsDeclineOfJobNotAwaiting(JobStatus status) {
+        Job job = Job.builder().id(42L).proposalId(5L).status(status).build();
+
+        assertCode(() -> job.decline(STARTED_AT), ErrorCode.JOB_DECLINE_NOT_AVAILABLE);
+        assertThat(job.getStatus()).isEqualTo(status);
+        assertThat(job.getCompletedAt()).isNull();
+        assertThat(job.getCancelReason()).isNull();
+    }
+
+    @Test
+    @DisplayName("시작한 적 없이 취소된 제안 의뢰만 학생의 거절로 보고, 일반 의뢰의 취소와 시작 후 취소는 사장님의 취소로 본다")
+    void distinguishesStudentDeclineFromOwnerCancel() {
+        Job declined = awaitingStart();
+        declined.decline(STARTED_AT);
+        assertThat(declined.isDeclinedByStudent()).isTrue();
+
+        Job cancelledAfterStart = awaitingStart();
+        cancelledAfterStart.start(STARTED_AT);
+        cancelledAfterStart.cancel(STARTED_AT.plusDays(1), "이유", "남길 말");
+        assertThat(cancelledAfterStart.isDeclinedByStudent()).isFalse();
+
+        // 일반 의뢰는 결제 전·후 취소 모두 사장님의 취소다
+        assertThat(Job.builder().id(42L).status(JobStatus.CANCELLED).build().isDeclinedByStudent()).isFalse();
+        assertThat(Job.builder().id(42L).status(JobStatus.CANCELLED).selectedStudentProfileId(31L).build()
+                .isDeclinedByStudent()).isFalse();
+        assertThat(awaitingStart().isDeclinedByStudent()).isFalse();
+    }
 }

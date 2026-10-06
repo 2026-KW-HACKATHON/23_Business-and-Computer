@@ -1,6 +1,6 @@
 # Frontend Coding Conventions
 
-Conventions for the 가꿈 React 19 + TypeScript + Vite app that are **not** fully
+Conventions for the 골목인턴 React 19 + TypeScript + Vite app that are **not** fully
 enforced by ESLint or `tsc`. Agents should follow these and add an automated
 check when a convention is repeatedly missed.
 

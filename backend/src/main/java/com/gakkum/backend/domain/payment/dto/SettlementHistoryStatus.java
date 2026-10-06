@@ -4,5 +4,6 @@ package com.gakkum.backend.domain.payment.dto;
 public enum SettlementHistoryStatus {
     SCHEDULED,  // 정산 예정: 결제 완료, 의뢰 진행 중
     SETTLED,  // 정산 완료: 결제 완료, 의뢰 완료
-    START_COMPENSATION  // 착수 보상: 의뢰 취소로 학생 보상금만 지급함
+    START_COMPENSATION,  // 착수 보상: 의뢰 취소로 학생 보상금만 지급함
+    REFUNDED  // 환불: 작업 시작 전에 의뢰서를 거절해 결제 금액 전액이 환불됨. 학생 수령액은 0원
 }

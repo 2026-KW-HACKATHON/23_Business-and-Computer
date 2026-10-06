@@ -23,8 +23,8 @@ function LoginPage() {
   return (
     <div className="login">
       <main className="login__body">
-        <AppImage name="logoGakkum" width={120} priority />
-        <h1 className="login__title">가꿈은 이렇게 돌아가요</h1>
+        <AppImage name="logoGolmok" width={160} priority />
+        <h1 className="login__title">골목인턴은 이렇게 돌아가요</h1>
         <UsageCardCarousel className="login__usage" />
       </main>
 

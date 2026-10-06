@@ -4,8 +4,8 @@ import "./StoreBox.css";
 
 interface StoreBoxProps {
   name: string;
-  /** 주소 아래 작은 회색 줄 (예: 사장님이 아직 확인하지 않았어요) */
   address?: string;
+  /** 주소 아래 작은 회색 줄 (예: 사장님이 제안을 받아들였어요) */
   note?: string;
   /** 오른쪽 (예: 인증 칩) */
   right?: ReactNode;

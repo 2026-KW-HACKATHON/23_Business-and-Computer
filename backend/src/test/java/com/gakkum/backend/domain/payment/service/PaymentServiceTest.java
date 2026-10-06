@@ -354,4 +354,66 @@ class PaymentServiceTest {
                 .isInstanceOfSatisfying(BusinessException.class, exception ->
                         assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.INTERNAL_SERVER_ERROR));
     }
+
+    @Test
+    @DisplayName("의뢰서 거절은 의뢰의 결제 완료 주문을 잠가 전액 환불로 기록하고 결제 금액·보상금 0원·환불 금액·환불 시각을 반환한다")
+    void refundsPaidPaymentFullyOnDecline() {
+        Payment paid = paidProposalPayment(5L, 42L);
+        when(repository.findLockedByJobIdAndStatus(42L, PaymentStatus.PAID)).thenReturn(Optional.of(paid));
+
+        RefundedPaymentData result = service.refundOnDecline(42L, 5L, USER_ID);
+
+        assertThat(result).isEqualTo(new RefundedPaymentData(50_000L, 0L, 50_000L, NOW));
+        assertThat(paid.getStatus()).isEqualTo(PaymentStatus.REFUNDED);
+        // 잠금 없는 조회로 환불하지 않는다
+        verify(repository, never()).findByJobIdAndStatus(any(), any());
+    }
+
+    @Test
+    @DisplayName("거절할 의뢰에 결제 완료 주문이 없거나 주문이 가리키는 제안이 다르면 환불하지 않고 데이터 무결성 오류로 처리한다")
+    void rejectsDeclineRefundWithoutMatchingPaidPayment() {
+        when(repository.findLockedByJobIdAndStatus(42L, PaymentStatus.PAID)).thenReturn(Optional.empty());
+        assertThatThrownBy(() -> service.refundOnDecline(42L, 5L, USER_ID))
+                .isInstanceOfSatisfying(BusinessException.class, exception ->
+                        assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.INTERNAL_SERVER_ERROR));
+
+        Payment otherProposal = paidProposalPayment(6L, 42L);
+        Payment general = Payment.pending(42L, 21L, USER_ID, "order-general", 100_000L, NOW);
+        general.recordKakaoTid("T1234567890123456788");
+        general.approve(NOW);
+        for (Payment mismatched : List.of(otherProposal, general)) {
+            when(repository.findLockedByJobIdAndStatus(42L, PaymentStatus.PAID)).thenReturn(Optional.of(mismatched));
+            assertThatThrownBy(() -> service.refundOnDecline(42L, 5L, USER_ID))
+                    .isInstanceOfSatisfying(BusinessException.class, exception ->
+                            assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.INTERNAL_SERVER_ERROR));
+            assertThat(mismatched.getStatus()).isEqualTo(PaymentStatus.PAID);
+            assertThat(mismatched.getRefundAmount()).isNull();
+        }
+    }
+
+    @Test
+    @DisplayName("거절할 의뢰의 결제 완료 주문을 결제한 사장님이 의뢰한 사장님과 다르거나 확인할 수 없으면 환불하지 않고 데이터 무결성 오류로 처리한다")
+    void rejectsDeclineRefundOfPaymentByOtherOwner() {
+        Payment paid = paidProposalPayment(5L, 42L);
+        when(repository.findLockedByJobIdAndStatus(42L, PaymentStatus.PAID)).thenReturn(Optional.of(paid));
+
+        for (String ownerUserId : new String[] { "01K58M6PJV8VAJMXHBHJ2OTHER", null }) {
+            assertThatThrownBy(() -> service.refundOnDecline(42L, 5L, ownerUserId))
+                    .isInstanceOfSatisfying(BusinessException.class, exception ->
+                            assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.INTERNAL_SERVER_ERROR));
+        }
+        assertThat(paid.getStatus()).isEqualTo(PaymentStatus.PAID);
+        assertThat(paid.getRefundAmount()).isNull();
+        assertThat(paid.getStudentCompensationAmount()).isNull();
+        assertThat(paid.getRefundedAt()).isNull();
+    }
+
+    private Payment paidProposalPayment(Long proposalId, Long jobId) {
+        Payment payment = Payment.pendingForProposal(proposalId, USER_ID, "order-proposal-" + proposalId, 50_000L,
+                1, null, NOW);
+        payment.recordKakaoTid("T1234567890123456789");
+        payment.approve(NOW);
+        payment.linkJob(jobId);
+        return payment;
+    }
 }

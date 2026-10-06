@@ -17,6 +17,12 @@ public final class PaymentQueryDto {
     private PaymentQueryDto() {
     }
 
+    // 전액·부분 환불은 환불 시 저장한 금액으로만 구분한다. 금액이 저장되지 않은 결제는 전액 환불로 보지 않는다
+    private static boolean isFullyRefunded(Long amount, Long refundAmount, Long studentCompensationAmount) {
+        return refundAmount != null && refundAmount.equals(amount)
+                && studentCompensationAmount != null && studentCompensationAmount == 0L;
+    }
+
     public record PendingPaymentData(String orderId, Long amount, String orderName, String ownerUserId) {
     }
 
@@ -57,12 +63,19 @@ public final class PaymentQueryDto {
         private final Long proposalId;
         private final Long amount;
         private final Long refundAmount;
+        private final Long studentCompensationAmount;
         private final PaymentStatus status;
         private final Instant approvedAt;
 
         public static PaymentHistoryData from(Payment payment) {
             return new PaymentHistoryData(payment.getJobId(), payment.getJobApplicationId(), payment.getProposalId(),
-                    payment.getAmount(), payment.getRefundAmount(), payment.getStatus(), payment.getApprovedAt());
+                    payment.getAmount(), payment.getRefundAmount(), payment.getStudentCompensationAmount(),
+                    payment.getStatus(), payment.getApprovedAt());
+        }
+
+        /** 저장된 환불액이 결제 금액 전액이고 학생 보상금이 0원인 환불인지. 환불되지 않은 결제는 false다. */
+        public boolean isFullyRefunded() {
+            return PaymentQueryDto.isFullyRefunded(amount, refundAmount, studentCompensationAmount);
         }
     }
 
@@ -134,6 +147,7 @@ public final class PaymentQueryDto {
         // 일반 결제는 null
         private final Long proposalId;
         private final Long amount;
+        private final Long refundAmount;
         private final Long studentCompensationAmount;
         private final PaymentStatus status;
         private final Instant approvedAt;
@@ -141,8 +155,14 @@ public final class PaymentQueryDto {
 
         public static SettlementHistoryData from(Payment payment) {
             return new SettlementHistoryData(payment.getJobId(), payment.getJobApplicationId(),
-                    payment.getProposalId(), payment.getAmount(), payment.getStudentCompensationAmount(),
-                    payment.getStatus(), payment.getApprovedAt(), payment.getRefundedAt());
+                    payment.getProposalId(), payment.getAmount(), payment.getRefundAmount(),
+                    payment.getStudentCompensationAmount(), payment.getStatus(), payment.getApprovedAt(),
+                    payment.getRefundedAt());
+        }
+
+        /** 저장된 환불액이 결제 금액 전액이고 학생 보상금이 0원인 환불인지. 환불되지 않은 결제는 false다. */
+        public boolean isFullyRefunded() {
+            return PaymentQueryDto.isFullyRefunded(amount, refundAmount, studentCompensationAmount);
         }
     }
 

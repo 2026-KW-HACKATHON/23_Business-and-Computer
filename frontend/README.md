@@ -1,6 +1,6 @@
-# 가꿈 frontend
+# 골목인턴 frontend
 
-React 19, TypeScript, and Vite frontend for 가꿈. The current screen is the Vite starter UI; product flows and backend API calls have not been added yet. The Spring Boot backend is in `../backend` and has separate instructions in `../backend/AGENTS.md`.
+React 19, TypeScript, and Vite frontend for 골목인턴. The current screen is the Vite starter UI; product flows and backend API calls have not been added yet. The Spring Boot backend is in `../backend` and has separate instructions in `../backend/AGENTS.md`.
 
 ## Local commands
 

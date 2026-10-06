@@ -22,7 +22,7 @@ function FirstVisitGuide({ onStart }: FirstVisitGuideProps) {
       <AppImage name="roleOwner" width={96} priority alt="" />
       <h2 className="first-visit__title">학생 제안을 기다리고 있어요</h2>
       <div className="first-visit__card">
-        <h3 className="first-visit__card-title">가꿈은 이렇게 써요</h3>
+        <h3 className="first-visit__card-title">골목인턴은 이렇게 써요</h3>
         <ol className="first-visit__steps">
           {STEPS.map((step, i) => (
             <li key={step} className="first-visit__step">

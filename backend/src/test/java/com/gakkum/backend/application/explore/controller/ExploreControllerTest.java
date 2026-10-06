@@ -181,9 +181,11 @@ class ExploreControllerTest {
     }
 
     @Test
-    @DisplayName("제안 카드는 공감하지 않았어도 likedByMe 키를 false로 내리고 네 가지 상태를 문자열 그대로 담는다")
+    @DisplayName("제안 카드는 공감하지 않았어도 likedByMe 키를 false로 내리고 탐색에 나오는 네 가지 상태를 문자열 그대로 담는다")
     void returnsLikedByMeFalseAndEveryProposalStatus() throws Exception {
+        // 취소된 제안은 탐색에서 빠지므로 카드 상태로 내려가지 않는다
         when(exploreFacade.explore(any())).thenReturn(ExploreResult.of(Stream.of(ProposalStatus.values())
+                .filter(status -> status != ProposalStatus.CANCELLED)
                 .map(status -> (ExploreItemResult) ProposalCardResult.of(
                         Proposal.builder().id(31L).title("메뉴판 개선 제안").likeCount(7).status(status)
                                 .proposedSolution("해결 방안").build(),

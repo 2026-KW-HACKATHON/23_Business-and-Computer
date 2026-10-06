@@ -37,15 +37,23 @@ function StudentHomePage() {
   const exampleScroll = useDragScroll<HTMLUListElement>();
 
   // 상세보기: 지금 화면을 본다 / 아래 버튼: 바로 할 일로 간다
-  const openDetail = ({ type, work }: StudentTodo) => {
-    if (type === "drafting") return navigate(STUDENT_PATHS.workSubmit(work.id));
-    if (type === "revising") return navigate(STUDENT_PATHS.workRevision(work.id));
-    return navigate(STUDENT_PATHS.workStart(work.id));
+  const openDetail = (todo: StudentTodo) => {
+    if (todo.type === "proposalAgreement") {
+      return navigate(STUDENT_PATHS.proposalStart(String(todo.proposal.proposalId)));
+    }
+    if (todo.type === "agreement") return navigate(STUDENT_PATHS.workStart(todo.work.id));
+    const id = String(todo.job.jobId);
+    if (todo.type === "drafting") return navigate(STUDENT_PATHS.workSubmit(id));
+    return navigate(STUDENT_PATHS.workRevision(id));
   };
-  const openAction = ({ type, work }: StudentTodo) => {
-    if (type === "drafting") return navigate(STUDENT_PATHS.workSubmit(work.id));
-    if (type === "revising") return navigate(STUDENT_PATHS.workRevisionSubmit(work.id));
-    return navigate(STUDENT_PATHS.workStart(work.id));
+  const openAction = (todo: StudentTodo) => {
+    if (todo.type === "proposalAgreement") {
+      return navigate(STUDENT_PATHS.proposalStart(String(todo.proposal.proposalId)));
+    }
+    if (todo.type === "agreement") return navigate(STUDENT_PATHS.workStart(todo.work.id));
+    const id = String(todo.job.jobId);
+    if (todo.type === "drafting") return navigate(STUDENT_PATHS.workSubmit(id));
+    return navigate(STUDENT_PATHS.workRevisionSubmit(id));
   };
 
   const waitingRow = (item: StudentWaitingItem) =>
@@ -158,6 +166,17 @@ function StudentHomePage() {
 
   return (
     <StudentTabScreen tab="home" showFab>
+      {home.progress === "error" && (
+        <section className="student-home__section">
+          <LoadNotice
+            status="error"
+            loadingText="진행 중인 작업을 불러오는 중이에요"
+            errorText="진행 중인 작업을 불러오지 못했어요"
+            onRetry={home.reloadProgress}
+          />
+        </section>
+      )}
+
       {home.todos.length > 0 && (
         <section className="student-home__section">
           <SectionHeader title="확인할 일" count={home.todos.length} />
@@ -171,16 +190,16 @@ function StudentHomePage() {
         <section className="student-home__section">
           <SectionHeader title="사장님이 확인 중" count={home.checking.length} />
           <div className="student-home__list">
-            {home.checking.map((work) => (
+            {home.checking.map((job) => (
               <TaskRow
-                key={work.id}
-                kind={work.kind}
-                title={work.title}
+                key={job.jobId}
+                kind={job.kind}
+                title={job.title}
                 lines={[
-                  `${work.store.name} 사장님`,
-                  `${work.revisionCount > 0 ? "수정안" : "초안"} 제출 : ${formatMonthDay(work.submittedOn ?? "")}`,
+                  ...(job.storeName ? [`${job.storeName} 사장님`] : []),
+                  `${job.revisionSubmitted ? "수정안" : "초안"} 제출, 사장님 확인 중`,
                 ]}
-                onClick={() => navigate(STUDENT_PATHS.workSubmitted(work.id))}
+                onClick={() => navigate(STUDENT_PATHS.workSubmitted(String(job.jobId)))}
               />
             ))}
           </div>

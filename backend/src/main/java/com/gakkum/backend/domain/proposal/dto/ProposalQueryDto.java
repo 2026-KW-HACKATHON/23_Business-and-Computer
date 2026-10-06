@@ -9,6 +9,7 @@ import java.util.List;
 import com.gakkum.backend.domain.job.entity.Job;
 import com.gakkum.backend.domain.job.entity.JobStatus;
 import com.gakkum.backend.domain.owner.entity.Owner;
+import com.gakkum.backend.domain.payment.dto.PaymentQueryDto.RefundedPaymentData;
 import com.gakkum.backend.domain.proposal.entity.Proposal;
 import com.gakkum.backend.domain.proposal.entity.ProposalStatus;
 import com.gakkum.backend.domain.student.entity.Student;
@@ -53,6 +54,23 @@ public final class ProposalQueryDto {
                     .proposalId(proposal.getId())
                     .likeCount(proposal.getLikeCount())
                     .likedByMe(likedByMe)
+                    .build();
+        }
+    }
+
+    /** 제안 취소 결과. 반복 요청에도 같은 값을 내린다. */
+    @Getter
+    @Builder(access = AccessLevel.PRIVATE)
+    @AllArgsConstructor(access = AccessLevel.PRIVATE)
+    public static class ProposalCancelResult {
+
+        private final Long proposalId;
+        private final ProposalStatus status;
+
+        public static ProposalCancelResult from(Proposal proposal) {
+            return ProposalCancelResult.builder()
+                    .proposalId(proposal.getId())
+                    .status(proposal.getStatus())
                     .build();
         }
     }
@@ -328,6 +346,33 @@ public final class ProposalQueryDto {
                     .chatRoomId(chatRoomId)
                     .draftDeadline(job.getDraftDeadline())
                     .finalDeadline(job.getFinalDeadline())
+                    .build();
+        }
+    }
+
+    /** 제안 의뢰서의 거절 결과. 금액은 환불 처리 시 저장한 값 그대로다. */
+    @Getter
+    @Builder(access = AccessLevel.PRIVATE)
+    @AllArgsConstructor(access = AccessLevel.PRIVATE)
+    public static class ProposalJobDeclineResult {
+
+        private final Long jobId;
+        private final JobStatus jobStatus;
+        private final ProposalStatus proposalStatus;
+        private final Long paidAmount;
+        private final Long studentCompensationAmount;
+        private final Long refundAmount;
+        private final LocalDateTime declinedAt;
+
+        public static ProposalJobDeclineResult of(Job job, Proposal proposal, RefundedPaymentData refund) {
+            return ProposalJobDeclineResult.builder()
+                    .jobId(job.getId())
+                    .jobStatus(job.getStatus())
+                    .proposalStatus(proposal.getStatus())
+                    .paidAmount(refund.amount())
+                    .studentCompensationAmount(refund.studentCompensationAmount())
+                    .refundAmount(refund.refundAmount())
+                    .declinedAt(job.getCompletedAt())
                     .build();
         }
     }

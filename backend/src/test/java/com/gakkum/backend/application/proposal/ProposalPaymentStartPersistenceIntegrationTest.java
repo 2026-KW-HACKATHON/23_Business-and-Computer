@@ -15,6 +15,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.Callable;
@@ -29,6 +30,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
+import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
 import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabase;
@@ -59,11 +61,13 @@ import com.gakkum.backend.domain.owner.service.OwnerService;
 import com.gakkum.backend.domain.payment.client.KakaoPayClient;
 import com.gakkum.backend.domain.payment.client.KakaoPayClient.PaymentResult;
 import com.gakkum.backend.domain.payment.dto.PaymentQueryDto.ApprovedOrderData;
+import com.gakkum.backend.domain.payment.dto.PaymentQueryDto.PendingPaymentData;
 import com.gakkum.backend.domain.payment.entity.Payment;
 import com.gakkum.backend.domain.payment.entity.PaymentStatus;
 import com.gakkum.backend.domain.payment.repository.PaymentRepository;
 import com.gakkum.backend.domain.payment.service.PaymentService;
 import com.gakkum.backend.domain.proposal.dto.ProposalCommandDto.StartProposalJobCommand;
+import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.ProposalDetailResult;
 import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.ProposalJobStartResult;
 import com.gakkum.backend.domain.proposal.entity.Proposal;
 import com.gakkum.backend.domain.proposal.entity.ProposalSpecialty;
@@ -72,6 +76,7 @@ import com.gakkum.backend.domain.proposal.repository.ProposalRepository;
 import com.gakkum.backend.domain.proposal.repository.ProposalSpecialtyRepository;
 import com.gakkum.backend.domain.proposal.service.ProposalService;
 import com.gakkum.backend.domain.review.service.ReviewService;
+import com.gakkum.backend.domain.specialty.dto.SpecialtyQueryDto.SpecialtyDetail;
 import com.gakkum.backend.domain.specialty.service.SpecialtyCategoryService;
 import com.gakkum.backend.domain.specialty.service.SpecialtyService;
 import com.gakkum.backend.domain.student.entity.Student;
@@ -101,9 +106,14 @@ class ProposalPaymentStartPersistenceIntegrationTest {
     private static final String STUDENT_USER_ID = "01K58M6PJV8VAJMXHBHJ2V37ST";
     private static final String OWNER_USERNAME = "TEST_V37_OWNER";
     private static final String STUDENT_USERNAME = "TEST_V37_STUDENT";
+    private static final String OTHER_USER_ID = "01K58M6PJV8VAJMXHBHJ2V37OT";
+    private static final String OTHER_USERNAME = "TEST_V37_OTHER";
     private static final String TID = "TV37000000000000001";
     // UTC로는 8월 31일 15:30, 한국 시간으로는 9월 1일 00:30
     private static final Instant APPROVED_AT = Instant.parse("2026-08-31T15:30:00Z");
+    // 학생 희망 금액과 다르게 사장님이 정한 결제 금액
+    private static final long PROPOSED_FEE = 50_000L;
+    private static final long PAID_AMOUNT = 120_000L;
 
     @Autowired
     private PaymentApprovalService approvalService;
@@ -208,7 +218,8 @@ class ProposalPaymentStartPersistenceIntegrationTest {
         assertThat(job.getSelectedStudentProfileId()).isEqualTo(STUDENT_PROFILE_ID);
         assertThat(job.getTitle()).isEqualTo("메뉴판 개선 제안");
         assertThat(job.getDescription()).isEqualTo("[고객 문제]\n문제\n\n[해결 방안]\n해결\n\n[작업 계획]\n계획");
-        assertThat(job.getBudget()).isEqualTo(50_000L);
+        // 작업비는 학생 희망 금액이 아니라 주문에 저장된 결제 금액이다
+        assertThat(job.getBudget()).isEqualTo(PAID_AMOUNT);
         // 마감일은 UTC 날짜(8월 31일)가 아니라 승인 시각의 한국 날짜(9월 1일)에 3일·7일을 더한다
         assertThat(job.getDraftDeadline()).isEqualTo(LocalDate.of(2026, 9, 4));
         assertThat(job.getFinalDeadline()).isEqualTo(LocalDate.of(2026, 9, 8));
@@ -226,8 +237,66 @@ class ProposalPaymentStartPersistenceIntegrationTest {
         assertThat(payment.getJobId()).isEqualTo(job.getId());
         assertThat(payment.getJobApplicationId()).isNull();
         assertThat(payment.getApprovedAt()).isEqualTo(APPROVED_AT);
-        assertThat(proposalRepository.findById(proposal.getId()).orElseThrow().getStatus())
-                .isEqualTo(ProposalStatus.AWAITING_START);
+        assertThat(payment.getAmount()).isEqualTo(PAID_AMOUNT);
+        assertThat(result.amount()).isEqualTo(PAID_AMOUNT);
+        Proposal saved = proposalRepository.findById(proposal.getId()).orElseThrow();
+        assertThat(saved.getStatus()).isEqualTo(ProposalStatus.AWAITING_START);
+        assertThat(saved.getProposedFee()).isEqualTo(PROPOSED_FEE);
+    }
+
+    @Test
+    @DisplayName("PostgreSQL에서 사장님이 희망 금액과 다른 작업비로 결제를 준비·승인하면 주문·의뢰에 그 금액이 저장되고 "
+            + "학생 조회는 희망 금액과 확정 작업비를 따로 내린다")
+    void usesOwnerBudgetFromPrepareToStudentDetail() {
+        Proposal proposal = saveProposal();
+        givenDetailViewers();
+        when(kakaoPayClient.ready(any())).thenReturn(new ReadyResult(TID, "pc", "mobile"));
+
+        // 승인 전에는 당사자인 학생에게도 확정 조건이 없다
+        assertThat(proposalFacade.getProposalDetail(STUDENT_USERNAME, proposal.getId()).getAgreement()).isNull();
+
+        PreparePaymentResult prepared = paymentFacade.prepareProposalPayment(
+                PrepareProposalPaymentCommand.of(OWNER_USERNAME, proposal.getId(), PAID_AMOUNT, 2, "잘 부탁드립니다."));
+
+        assertThat(prepared.getAmount()).isEqualTo(PAID_AMOUNT);
+        ArgumentCaptor<PendingPaymentData> readyRequest = ArgumentCaptor.forClass(PendingPaymentData.class);
+        verify(kakaoPayClient).ready(readyRequest.capture());
+        assertThat(readyRequest.getValue().amount()).isEqualTo(PAID_AMOUNT);
+        Payment pending = paymentRepository.findByProposalIdAndStatus(proposal.getId(), PaymentStatus.PENDING)
+                .orElseThrow();
+        assertThat(pending.getOrderId()).isEqualTo(prepared.getOrderId());
+        assertThat(pending.getAmount()).isEqualTo(PAID_AMOUNT);
+        assertThat(proposalFacade.getProposalDetail(STUDENT_USERNAME, proposal.getId()).getAgreement()).isNull();
+
+        // 카카오페이가 학생 희망 금액으로 승인했다고 응답하면 주문 금액과 달라 거부한다
+        when(kakaoPayClient.order(TID)).thenReturn(new PaymentResult(
+                TID, "TC0ONETIME", prepared.getOrderId(), OWNER_USER_ID, PROPOSED_FEE, "SUCCESS_PAYMENT",
+                APPROVED_AT));
+        assertThatThrownBy(() -> approvalService.approve(OWNER_USERNAME, prepared.getOrderId(), "pg-token"))
+                .isInstanceOfSatisfying(BusinessException.class, exception ->
+                        assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.PAYMENT_RESULT_MISMATCH));
+        assertThat(count("select count(*) from jobs where proposal_id = ?", proposal.getId())).isZero();
+
+        when(kakaoPayClient.order(TID)).thenReturn(new PaymentResult(
+                TID, "TC0ONETIME", prepared.getOrderId(), OWNER_USER_ID, PAID_AMOUNT, "SUCCESS_PAYMENT",
+                APPROVED_AT));
+        ApprovedOrderData approved = approvalService.approve(OWNER_USERNAME, prepared.getOrderId(), "pg-token");
+
+        assertThat(approved.amount()).isEqualTo(PAID_AMOUNT);
+        Job job = jobRepository.findByProposalId(proposal.getId()).orElseThrow();
+        assertThat(job.getBudget()).isEqualTo(PAID_AMOUNT);
+        assertThat(proposalRepository.findById(proposal.getId()).orElseThrow().getProposedFee())
+                .isEqualTo(PROPOSED_FEE);
+
+        ProposalDetailResult studentView = proposalFacade.getProposalDetail(STUDENT_USERNAME, proposal.getId());
+        assertThat(studentView.getProposedFee()).isEqualTo(PROPOSED_FEE);
+        assertThat(studentView.getAgreement().getBudget()).isEqualTo(PAID_AMOUNT);
+        assertThat(studentView.getAgreement().getRevisionCount()).isEqualTo(2);
+
+        // 당사자가 아닌 사용자는 희망 금액만 보고 확정 조건은 받지 못한다
+        ProposalDetailResult otherView = proposalFacade.getProposalDetail(OTHER_USERNAME, proposal.getId());
+        assertThat(otherView.getProposedFee()).isEqualTo(PROPOSED_FEE);
+        assertThat(otherView.getAgreement()).isNull();
     }
 
     @Test
@@ -274,6 +343,10 @@ class ProposalPaymentStartPersistenceIntegrationTest {
 
         assertThat(recovered.jobStatus()).isEqualTo(JobStatus.AWAITING_START);
         assertThat(repeated.jobId()).isEqualTo(recovered.jobId());
+        assertThat(recovered.amount()).isEqualTo(PAID_AMOUNT);
+        assertThat(repeated.amount()).isEqualTo(PAID_AMOUNT);
+        assertThat(jobRepository.findByProposalId(proposal.getId()).orElseThrow().getBudget())
+                .isEqualTo(PAID_AMOUNT);
         assertThat(count("select count(*) from jobs where proposal_id = ?", proposal.getId())).isEqualTo(1);
         // 이미 승인된 주문이므로 카카오페이에 승인을 다시 요청하지 않는다
         verify(kakaoPayClient, never()).approve(any(), any(), any(), any());
@@ -294,9 +367,9 @@ class ProposalPaymentStartPersistenceIntegrationTest {
                 .isInstanceOf(IllegalStateException.class);
         reset(jobService);
 
-        // 사장님이 결제를 다시 준비한다
+        // 사장님이 금액을 바꿔 결제를 다시 준비한다
         assertThatThrownBy(() -> paymentFacade.prepareProposalPayment(
-                PrepareProposalPaymentCommand.of(OWNER_USERNAME, proposal.getId(), 0, null)))
+                PrepareProposalPaymentCommand.of(OWNER_USERNAME, proposal.getId(), 90_000L, 0, null)))
                 .isInstanceOfSatisfying(BusinessException.class, exception ->
                         assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.PAYMENT_ALREADY_PAID));
 
@@ -305,8 +378,11 @@ class ProposalPaymentStartPersistenceIntegrationTest {
         Payment payment = paymentRepository.findByProposalIdAndStatus(proposal.getId(), PaymentStatus.PAID)
                 .orElseThrow();
         assertThat(payment.getOrderId()).isEqualTo(orderId);
+        assertThat(payment.getAmount()).isEqualTo(PAID_AMOUNT);
         Job job = jobRepository.findByProposalId(proposal.getId()).orElseThrow();
         assertThat(job.getStatus()).isEqualTo(JobStatus.AWAITING_START);
+        // 다시 준비하며 보낸 금액이 아니라 이미 결제된 주문의 금액으로 복구한다
+        assertThat(job.getBudget()).isEqualTo(PAID_AMOUNT);
         assertThat(job.getRevisionCount()).isEqualTo(2);
         assertThat(job.getAcceptanceMessage()).isEqualTo("매장 분위기에 맞춰 주세요.");
         assertThat(payment.getJobId()).isEqualTo(job.getId());
@@ -319,22 +395,23 @@ class ProposalPaymentStartPersistenceIntegrationTest {
     }
 
     @Test
-    @DisplayName("PostgreSQL에서 아직 결제되지 않은 이전 대기 주문은 결제를 다시 준비하면 새 주문으로 대체된다")
+    @DisplayName("PostgreSQL에서 아직 결제되지 않은 이전 대기 주문은 금액을 바꿔 결제를 다시 준비하면 새 금액의 주문으로 대체된다")
     void supersedesUnpaidOrderOnReprepare() {
         Proposal proposal = saveProposal();
         savePendingPayment(proposal, 2, null);
         when(kakaoPayClient.order(TID)).thenReturn(new PaymentResult(
-                TID, "TC0ONETIME", orderId, OWNER_USER_ID, 50_000L, "READY", null));
+                TID, "TC0ONETIME", orderId, OWNER_USER_ID, PAID_AMOUNT, "READY", null));
         when(kakaoPayClient.ready(any())).thenReturn(new ReadyResult("TV37000000000000002", "pc", "mobile"));
 
         PreparePaymentResult result = paymentFacade.prepareProposalPayment(
-                PrepareProposalPaymentCommand.of(OWNER_USERNAME, proposal.getId(), 1, null));
+                PrepareProposalPaymentCommand.of(OWNER_USERNAME, proposal.getId(), 90_000L, 1, null));
 
         assertThat(result.getOrderId()).isNotEqualTo(orderId);
+        assertThat(result.getAmount()).isEqualTo(90_000L);
         assertThat(count("select count(*) from payments where proposal_id = ? and status = 'SUPERSEDED' "
                 + "and order_id = ?", proposal.getId(), orderId)).isEqualTo(1);
         assertThat(count("select count(*) from payments where proposal_id = ? and status = 'PENDING' "
-                + "and order_id = ?", proposal.getId(), result.getOrderId())).isEqualTo(1);
+                + "and order_id = ? and amount = 90000", proposal.getId(), result.getOrderId())).isEqualTo(1);
         assertThat(count("select count(*) from jobs where proposal_id = ?", proposal.getId())).isZero();
     }
 
@@ -507,13 +584,13 @@ class ProposalPaymentStartPersistenceIntegrationTest {
     // 카카오페이에서는 이미 승인된 주문으로 조회된다
     private void givenProviderApproved() {
         when(kakaoPayClient.order(TID)).thenReturn(new PaymentResult(
-                TID, "TC0ONETIME", orderId, OWNER_USER_ID, 50_000L, "SUCCESS_PAYMENT", APPROVED_AT));
+                TID, "TC0ONETIME", orderId, OWNER_USER_ID, PAID_AMOUNT, "SUCCESS_PAYMENT", APPROVED_AT));
     }
 
     private Proposal saveProposal() {
         Proposal proposal = proposalRepository.saveAndFlush(Proposal.create(
                 STUDENT_PROFILE_ID, OWNER_PROFILE_ID, "메뉴판 개선 제안", "문제", "해결", "계획",
-                50_000L, 3, 7, List.of(), null));
+                PROPOSED_FEE, 3, 7, List.of(), null));
         proposalIds.add(proposal.getId());
         proposalSpecialtyRepository.saveAllAndFlush(List.of(
                 ProposalSpecialty.create(proposal.getId(), 3L), ProposalSpecialty.create(proposal.getId(), 11L)));
@@ -522,9 +599,24 @@ class ProposalPaymentStartPersistenceIntegrationTest {
 
     private void savePendingPayment(Proposal proposal, int revisionCount, String messageToStudent) {
         Payment payment = Payment.pendingForProposal(proposal.getId(), OWNER_USER_ID, orderId,
-                proposal.getProposedFee(), revisionCount, messageToStudent, Instant.parse("2026-08-31T15:00:00Z"));
+                PAID_AMOUNT, revisionCount, messageToStudent, Instant.parse("2026-08-31T15:00:00Z"));
         payment.recordKakaoTid(TID);
         paymentRepository.saveAndFlush(payment);
+    }
+
+    // 제안 상세 조회에 필요한 당사자·제3자 정보
+    private void givenDetailViewers() {
+        when(userService.getActiveUser(OTHER_USERNAME))
+                .thenReturn(User.builder().id(OTHER_USER_ID).role(UserRole.STUDENT).build());
+        when(userService.getUser(STUDENT_USER_ID))
+                .thenReturn(User.builder().id(STUDENT_USER_ID).role(UserRole.STUDENT).build());
+        when(studentService.getStudentProfile(STUDENT_PROFILE_ID))
+                .thenReturn(Student.builder().id(STUDENT_PROFILE_ID).userId(STUDENT_USER_ID).build());
+        when(ownerService.getOwnerProfileById(OWNER_PROFILE_ID))
+                .thenReturn(Owner.builder().id(OWNER_PROFILE_ID).userId(OWNER_USER_ID).storeName("가게 이름").build());
+        when(specialtyCategoryService.getSpecialtyDetails(any())).thenReturn(Map.of(
+                3L, SpecialtyDetail.of(3L, "로고 디자인", 1L, "디자인"),
+                11L, SpecialtyDetail.of(11L, "숏폼 촬영", 2L, "영상")));
     }
 
     private void insertJob(Long proposalId) {

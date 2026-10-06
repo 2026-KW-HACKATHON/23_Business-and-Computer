@@ -44,6 +44,24 @@ export type { AppliedJobsLoad } from "./hooks/useAppliedJobs";
 export { useSentProposals } from "./hooks/useSentProposals";
 export type { SentProposalsLoad } from "./hooks/useSentProposals";
 export { useStudentHome } from "./hooks/useStudentHome";
+export { useProgressJobs } from "./hooks/useProgressJobs";
+export type { ProgressJobsLoad } from "./hooks/useProgressJobs";
+export {
+  progressDeadline,
+  progressFlowSteps,
+  progressMeta,
+  progressStagePath,
+  progressStatusText,
+} from "./lib/progressJobs";
+export {
+  MAX_SUBMISSION_FILES,
+  SUBMISSION_FILE_ACCEPT,
+  SUBMISSION_FILE_HINT,
+  isSubmittableFile,
+  sendSubmission,
+} from "./lib/submission";
+export type { SubmissionKind, SubmissionResult } from "./lib/submission";
+export type { ProgressJob, ProgressStage } from "./lib/progressJobs";
 export { flowSteps, workFlowSteps } from "./lib/flow";
 export {
   chatStatusText,
@@ -80,6 +98,8 @@ export {
 } from "./lib/sentProposals";
 export type { SentProposal } from "./lib/sentProposals";
 export { appliedStatusLabel } from "./lib/appliedJobs";
+export { sendWorkStart } from "./lib/workStart";
+export type { WorkStartResult } from "./lib/workStart";
 export type { AppliedJob } from "./lib/appliedJobs";
 export { NOTIFICATION_ICON, notificationPath, notificationState } from "./lib/notifications";
 export { STUDENT_PATHS } from "./lib/paths";

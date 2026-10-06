@@ -16,7 +16,6 @@ export const SAMPLE_MY_PROPOSALS: MyProposal[] = [
     sentOn: day(-3),
     empathyCount: 21,
     status: "waiting",
-    seenByOwner: true,
     problem: "리뷰를 쓰면 음료를 주는데 안내가 없어서 아무도 몰라요.",
     solution: "테이블마다 놓을 리뷰 안내문을 만들고, 계산대 옆 작은 포스터도 함께 만들어 드릴게요.",
     plan: "· 방법: 손님 눈에 잘 띄는 크기로 안내문 2가지를 만들어요.\n· 일정: 수락되면 이틀 안에 초안, 수정 요청이 오면 나흘 안에 최종본을 드려요.",
@@ -34,7 +33,6 @@ export const SAMPLE_MY_PROPOSALS: MyProposal[] = [
     sentOn: day(-4),
     empathyCount: 12,
     status: "waiting",
-    seenByOwner: false,
     problem:
       "시험 기간에 밤늦게까지 공부할 카페를 찾는데, 학생 할인이 없어서 다른 카페로 가게 돼요.",
     solution:
@@ -54,7 +52,6 @@ export const SAMPLE_MY_PROPOSALS: MyProposal[] = [
     sentOn: day(-5),
     empathyCount: 12,
     status: "accepted",
-    seenByOwner: true,
     problem: "유학생 친구랑 오면 메뉴 설명이 어려워요. 사진 없이 한글로만 적혀 있어요.",
     solution: "메뉴 32개를 영어·중국어로 옮기고, 사진을 넣은 메뉴판으로 다시 만들어 드릴게요.",
     plan: "· 방법: 메뉴 이름은 소리 나는 대로 적고, 재료와 맛을 한 줄로 설명해요.\n· 일정: 초안 2일, 수정 뒤 최종본까지 4일 걸려요.\n· 결과물: 사진을 넣은 인쇄용 메뉴판 PDF",
@@ -73,7 +70,6 @@ export const SAMPLE_MY_PROPOSALS: MyProposal[] = [
     sentOn: day(-8),
     empathyCount: 8,
     status: "waiting",
-    seenByOwner: false,
     problem: "배달앱 사진이 어두워서 맛이 잘 안 보여요.",
     solution: "인기 메뉴 5개를 밝은 곳에서 다시 찍어 배달앱 대표 사진으로 바꿔 드릴게요.",
     plan: "· 방법: 점심 장사 전에 자연광으로 찍고, 색을 맛있어 보이게 보정해요.\n· 일정: 수락되면 이틀 안에 사진 초안을 드려요.",

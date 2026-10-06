@@ -6,7 +6,7 @@ Accepted
 
 ## Context
 
-The 가꿈 monorepo hosts a Spring Boot backend (`../backend`) and this React 19 +
+The 골목인턴 monorepo hosts a Spring Boot backend (`../backend`) and this React 19 +
 TypeScript + Vite frontend. The backend already runs its own gate-based harness
 under `../backend/harness/`. The frontend had no agent-facing rules, no knowledge store,
 and no local drift checks, so agent work had no documented completion gate.

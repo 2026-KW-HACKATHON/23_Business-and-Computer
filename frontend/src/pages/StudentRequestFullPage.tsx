@@ -37,7 +37,7 @@ function StudentRequestFullPage() {
   const steps = job && [
     {
       title: "사장님이 작업비를 안전결제로 맡겨요",
-      sub: "가꿈이 보관하다가 완료되면 보내 드려요",
+      sub: "골목인턴이 보관하다가 완료되면 보내 드려요",
     },
     { title: `${formatMonthDay(job.draftDeadline)}까지 초안을 보내요` },
     {
@@ -88,7 +88,7 @@ function StudentRequestFullPage() {
               {categoryNames(job.specialtyCategories).map((name) => (
                 <CategoryBadge key={name} field={name} />
               ))}
-              {jobStatusLabel(job.status)}
+              {!recruiting && job.applied === "REJECTED" ? "다른 학생이 선택됐어요" : jobStatusLabel(job.status)}
             </div>
           </div>
 

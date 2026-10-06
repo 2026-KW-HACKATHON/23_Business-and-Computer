@@ -119,7 +119,7 @@ function OwnerStoreEditPage() {
             <span aria-hidden="true">🔒</span>
           </div>
           <p className="owner-store__note">
-            대표자나 사업자번호가 바뀌었으면 가꿈 운영진에게 알려 주세요. 다시 인증한 뒤에 바꿀 수
+            대표자나 사업자번호가 바뀌었으면 골목인턴 운영진에게 알려 주세요. 다시 인증한 뒤에 바꿀 수
             있어요.
           </p>
         </div>

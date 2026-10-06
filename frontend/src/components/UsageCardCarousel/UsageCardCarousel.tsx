@@ -44,7 +44,7 @@ function UsageCardCarousel({ className = "" }: UsageCardCarouselProps) {
     <section
       className={`usage-carousel ${className}`.trim()}
       aria-roledescription="carousel"
-      aria-label="가꿈 사용법"
+      aria-label="골목인턴 사용법"
     >
       <button
         type="button"

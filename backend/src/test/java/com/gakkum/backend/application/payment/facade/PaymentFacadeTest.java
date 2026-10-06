@@ -16,6 +16,7 @@ import java.util.Optional;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InOrder;
 
 import com.gakkum.backend.application.payment.dto.PaymentPrepareRequest;
@@ -95,7 +96,26 @@ class PaymentFacadeTest {
     }
 
     private final PrepareProposalPaymentCommand proposalCommand =
-            PrepareProposalPaymentCommand.of("KAKAO_123", 5L, 2, null);
+            PrepareProposalPaymentCommand.of("KAKAO_123", 5L, 120_000L, 2, null);
+
+    @Test
+    @DisplayName("제안 결제 준비는 사장님이 입력해 주문에 저장된 금액으로 카카오페이 결제창을 만들고 같은 금액을 반환한다")
+    void preparesProposalPaymentWithOrderAmount() {
+        PendingPaymentData proposalPending =
+                new PendingPaymentData("order-456", 120_000L, "메뉴판 개선 제안", "owner-123");
+        when(preparationService.createPendingForProposal(proposalCommand)).thenReturn(proposalPending);
+        when(kakaoPayClient.ready(proposalPending)).thenReturn(
+                new ReadyResult("T1234567890123456789", "https://pay.example/pc", "https://pay.example/mobile"));
+
+        PreparePaymentResult result = facade.prepareProposalPayment(proposalCommand);
+
+        assertThat(result.getOrderId()).isEqualTo("order-456");
+        assertThat(result.getAmount()).isEqualTo(120_000L);
+        ArgumentCaptor<PendingPaymentData> readyRequest = ArgumentCaptor.forClass(PendingPaymentData.class);
+        verify(kakaoPayClient).ready(readyRequest.capture());
+        assertThat(readyRequest.getValue().amount()).isEqualTo(120_000L);
+        verify(paymentService).recordKakaoTid("order-456", "T1234567890123456789");
+    }
 
     private Payment stuckOrder() {
         Payment payment = Payment.pendingForProposal(5L, "owner-123", "old-order", 50_000L, 1, null, Instant.EPOCH);
