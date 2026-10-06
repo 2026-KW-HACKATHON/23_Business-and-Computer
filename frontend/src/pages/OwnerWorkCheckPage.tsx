@@ -15,19 +15,27 @@ import {
   OwnerMissing,
   completeOwnerWork,
   flowSteps,
+  parsePositiveId,
   useOwnerWork,
 } from "../features/owner";
 import { useBack } from "../hooks/useBack";
 import { formatMonthDay } from "../lib/date";
+import OwnerJobCheckPage from "./OwnerJobCheckPage";
 import "./OwnerDetailPage.css";
 import "./OwnerWorkCheckPage.css";
 
 /**
  * 피그마 「작업 확인 · 초안」 · 「작업 확인 · 수정안」.
- * 남은 수정이 없으면 「수정 요청」 버튼이 없고 완료 확인만 할 수 있다.
+ * 주소의 id 가 숫자면 서버 작업(OwnerJobCheckPage, ADR 0035), 아니면 샘플 작업(알림 · 채팅의 예시).
  */
 function OwnerWorkCheckPage() {
   const { workId = "" } = useParams();
+  const jobId = parsePositiveId(workId);
+  return jobId !== undefined ? <OwnerJobCheckPage jobId={jobId} /> : <SampleWorkCheck workId={workId} />;
+}
+
+/** 샘플 작업의 작업 확인. 남은 수정이 없으면 「수정 요청」 버튼이 없고 완료 확인만 할 수 있다 */
+function SampleWorkCheck({ workId }: { workId: string }) {
   const navigate = useNavigate();
   const back = useBack(OWNER_PATHS.home);
   const work = useOwnerWork(workId);

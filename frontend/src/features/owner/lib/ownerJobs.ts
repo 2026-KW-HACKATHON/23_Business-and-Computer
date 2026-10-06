@@ -6,6 +6,7 @@ import {
   fetchJobApplications,
   fetchOpenJobs,
 } from "../api/jobApi";
+import { fetchPendingSubmission } from "../api/progressApi";
 import type {
   ApplicantProfileResponse,
   JobApplicantResponse,
@@ -51,6 +52,7 @@ export const loadJobApplications = (jobId: number, sort: JobApplicationSort) =>
   attempt(() => fetchJobApplications(jobId, sort));
 export const loadApplicantProfile = (jobId: number, applicationId: number) =>
   attempt(() => fetchApplicantProfile(jobId, applicationId));
+export const loadPendingSubmission = (jobId: number) => attempt(() => fetchPendingSubmission(jobId));
 
 /** 주소의 id 가 양의 정수인지. 아니면 undefined (요청하지 않는다) */
 export function parsePositiveId(id: string | undefined): number | undefined {

@@ -51,3 +51,28 @@ export async function fetchMyChatRooms(): Promise<ChatRoomResponse[]> {
   const data = await apiData<{ rooms?: ChatRoomResponse[] } | undefined>("/me/chat-rooms");
   return data?.rooms ?? [];
 }
+
+/** GET /jobs/{jobId}/submission 의 답. 도착해 사장님 확인을 기다리는 초안 · 수정안 */
+export interface PendingSubmissionResponse {
+  submissionId: number;
+  title: string;
+  studentName: string;
+  submissionType: SubmissionType;
+  /** 파일 주소. 끝 경로가 학생이 올린 파일 이름 */
+  fileUrls: string[];
+  message: string;
+  /** 초안 0, 수정안은 1부터 */
+  revisionNumber: number;
+}
+
+/** GET /jobs/{jobId}/submission — 내 의뢰에 도착한 결과물. 없으면 404 JOB_SUBMISSION_404 */
+export async function fetchPendingSubmission(jobId: number): Promise<PendingSubmissionResponse> {
+  const data = await apiData<PendingSubmissionResponse | undefined>(`/jobs/${jobId}/submission`);
+  if (!data) throw new Error("Pending submission response has no data");
+  return data;
+}
+
+/** POST /jobs/{jobId}/submissions/{submissionId}/complete — 받은 결과물로 작업을 끝낸다. 답에는 데이터가 없다 */
+export async function completeSubmission(jobId: number, submissionId: number): Promise<void> {
+  await apiData<unknown>(`/jobs/${jobId}/submissions/${submissionId}/complete`, { method: "POST" });
+}

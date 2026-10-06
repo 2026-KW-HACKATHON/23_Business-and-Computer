@@ -5,6 +5,7 @@ import {
   loadApplicantProfile,
   loadJobApplications,
   loadOpenJobs,
+  loadPendingSubmission,
 } from "../lib/ownerJobs";
 import type {
   ApplicantProfile,
@@ -13,6 +14,7 @@ import type {
   OpenJob,
   OwnerJobResult,
 } from "../lib/ownerJobs";
+import type { PendingSubmission } from "../lib/submissionReview";
 
 export type OwnerJobLoad<T> =
   | { status: "loading" }
@@ -95,5 +97,16 @@ export function useApplicantProfile(
     jobId === undefined || applicationId === undefined ? undefined : `${jobId}:${applicationId}`,
     () => loadApplicantProfile(jobId ?? 0, applicationId ?? 0),
     "내 의뢰의 지원자만 볼 수 있어요",
+  );
+}
+
+/** 내 의뢰에 도착한 초안 · 수정안 (GET /jobs/{id}/submission). 확인할 결과물이 없으면 notFound */
+export function usePendingSubmission(
+  jobId: number | undefined,
+): { load: OwnerJobLoad<PendingSubmission>; reload: () => void } {
+  return useOwnerJobLoad(
+    jobId === undefined ? undefined : String(jobId),
+    () => loadPendingSubmission(jobId ?? 0),
+    "내 의뢰의 결과물만 볼 수 있어요",
   );
 }
