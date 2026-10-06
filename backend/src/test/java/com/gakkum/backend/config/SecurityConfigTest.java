@@ -148,6 +148,14 @@ class SecurityConfigTest {
     }
 
     @Test
+    @DisplayName("인증 없이 제안을 취소하면 401을 반환한다")
+    void rejectsUnauthenticatedProposalCancel() throws Exception {
+        mockMvc.perform(post("/proposals/31/cancel"))
+            .andExpect(status().isUnauthorized())
+            .andExpect(jsonPath("$.error.code").value("COMMON_401"));
+    }
+
+    @Test
     @DisplayName("인증 없이 받은 제안 목록을 조회하면 401을 반환한다")
     void receivedProposalsRequireAuthentication() throws Exception {
         mockMvc.perform(get("/me/received-proposals"))

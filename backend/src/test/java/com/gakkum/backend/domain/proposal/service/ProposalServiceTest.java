@@ -124,7 +124,7 @@ class ProposalServiceTest {
         LocalDateTime bound = LocalDateTime.of(2026, 9, 30, 10, 0);
         Proposal first = Proposal.builder().id(32L).build();
         Proposal second = Proposal.builder().id(31L).build();
-        when(proposalRepository.findExploreByLikesInCategory(null, 3L, 5, bound, 40L, Limit.of(21)))
+        when(proposalRepository.findExploreByLikesInCategory(null, ProposalStatus.CANCELLED, 3L, 5, bound, 40L, Limit.of(21)))
                 .thenReturn(List.of(first, second));
         when(proposalSpecialtyRepository.findByProposalIdIn(List.of(32L, 31L))).thenReturn(List.of(
                 ProposalSpecialty.create(31L, 2L),
@@ -149,9 +149,9 @@ class ProposalServiceTest {
                     GetExploreProposalsCommand.of(null, 4L, order, 5, bound, 9L, 3))).isEmpty();
         }
 
-        verify(proposalRepository).findExploreLatestInCategory(null, 4L, bound, 9L, Limit.of(3));
-        verify(proposalRepository).findExploreOldestInCategory(null, 4L, bound, 9L, Limit.of(3));
-        verify(proposalRepository).findExploreByLikesInCategory(null, 4L, 5, bound, 9L, Limit.of(3));
+        verify(proposalRepository).findExploreLatestInCategory(null, ProposalStatus.CANCELLED, 4L, bound, 9L, Limit.of(3));
+        verify(proposalRepository).findExploreOldestInCategory(null, ProposalStatus.CANCELLED, 4L, bound, 9L, Limit.of(3));
+        verify(proposalRepository).findExploreByLikesInCategory(null, ProposalStatus.CANCELLED, 4L, 5, bound, 9L, Limit.of(3));
         verify(proposalSpecialtyRepository, never()).findByProposalIdIn(any());
     }
 
@@ -161,9 +161,9 @@ class ProposalServiceTest {
         LocalDateTime bound = LocalDateTime.of(2026, 9, 30, 10, 0);
         Proposal sameTime = Proposal.builder().id(8L).build();
         Proposal earlier = Proposal.builder().id(20L).build();
-        when(proposalRepository.findByDemoSessionIdAndCreatedAtAndIdLessThanOrderByIdDesc(null, bound, 9L, Limit.of(3)))
+        when(proposalRepository.findByDemoSessionIdAndStatusNotAndCreatedAtAndIdLessThanOrderByIdDesc(null, ProposalStatus.CANCELLED, bound, 9L, Limit.of(3)))
                 .thenReturn(List.of(sameTime));
-        when(proposalRepository.findByDemoSessionIdAndCreatedAtLessThanOrderByCreatedAtDescIdDesc(null, bound, Limit.of(2)))
+        when(proposalRepository.findByDemoSessionIdAndStatusNotAndCreatedAtLessThanOrderByCreatedAtDescIdDesc(null, ProposalStatus.CANCELLED, bound, Limit.of(2)))
                 .thenReturn(List.of(earlier));
 
         List<ExploreProposalData> data = proposalService.getExploreProposals(
@@ -176,12 +176,12 @@ class ProposalServiceTest {
     @DisplayName("대분류 없는 오래된순은 경계 시각과 같은 행으로 개수가 차면 경계 이후 구간을 조회하지 않는다")
     void skipsLaterSegmentWhenFilled() {
         LocalDateTime bound = LocalDateTime.of(2026, 9, 30, 10, 0);
-        when(proposalRepository.findByDemoSessionIdAndCreatedAtAndIdGreaterThanOrderByIdAsc(null, bound, 9L, Limit.of(2)))
+        when(proposalRepository.findByDemoSessionIdAndStatusNotAndCreatedAtAndIdGreaterThanOrderByIdAsc(null, ProposalStatus.CANCELLED, bound, 9L, Limit.of(2)))
                 .thenReturn(List.of(Proposal.builder().id(10L).build(), Proposal.builder().id(11L).build()));
 
         assertThat(proposalService.getExploreProposals(
                 GetExploreProposalsCommand.of(null, null, ProposalExploreOrder.OLDEST, null, bound, 9L, 2))).hasSize(2);
-        verify(proposalRepository, never()).findByDemoSessionIdAndCreatedAtGreaterThanOrderByCreatedAtAscIdAsc(any(), any(), any());
+        verify(proposalRepository, never()).findByDemoSessionIdAndStatusNotAndCreatedAtGreaterThanOrderByCreatedAtAscIdAsc(any(), any(), any(), any());
     }
 
     @Test
@@ -191,11 +191,11 @@ class ProposalServiceTest {
         Proposal first = Proposal.builder().id(1L).build();
         Proposal second = Proposal.builder().id(2L).build();
         Proposal third = Proposal.builder().id(3L).build();
-        when(proposalRepository.findByDemoSessionIdAndLikeCountAndCreatedAtAndIdLessThanOrderByIdDesc(null, 5, bound, 9L, Limit.of(4)))
+        when(proposalRepository.findByDemoSessionIdAndStatusNotAndLikeCountAndCreatedAtAndIdLessThanOrderByIdDesc(null, ProposalStatus.CANCELLED, 5, bound, 9L, Limit.of(4)))
                 .thenReturn(List.of(first));
-        when(proposalRepository.findByDemoSessionIdAndLikeCountAndCreatedAtLessThanOrderByCreatedAtDescIdDesc(null, 5, bound, Limit.of(3)))
+        when(proposalRepository.findByDemoSessionIdAndStatusNotAndLikeCountAndCreatedAtLessThanOrderByCreatedAtDescIdDesc(null, ProposalStatus.CANCELLED, 5, bound, Limit.of(3)))
                 .thenReturn(List.of(second));
-        when(proposalRepository.findByDemoSessionIdAndLikeCountLessThanOrderByLikeCountDescCreatedAtDescIdDesc(null, 5, Limit.of(2)))
+        when(proposalRepository.findByDemoSessionIdAndStatusNotAndLikeCountLessThanOrderByLikeCountDescCreatedAtDescIdDesc(null, ProposalStatus.CANCELLED, 5, Limit.of(2)))
                 .thenReturn(List.of(third));
 
         List<ExploreProposalData> data = proposalService.getExploreProposals(
@@ -207,7 +207,7 @@ class ProposalServiceTest {
     @Test
     @DisplayName("내가 보낸 제안은 본인 학생 ID로 조회하고 소분류 연결을 한 번에 붙인다")
     void readsMyProposalsWithBatchedSpecialties() {
-        when(proposalRepository.findByStudentProfileIdOrderByCreatedAtDescIdDesc(7L)).thenReturn(List.of(
+        when(proposalRepository.findByStudentProfileIdAndStatusNotOrderByCreatedAtDescIdDesc(7L, ProposalStatus.CANCELLED)).thenReturn(List.of(
                 Proposal.builder().id(32L).build(), Proposal.builder().id(31L).build()));
         when(proposalSpecialtyRepository.findByProposalIdIn(List.of(32L, 31L))).thenReturn(List.of(
                 ProposalSpecialty.builder().proposalId(32L).specialtyId(3L).build(),
@@ -224,7 +224,7 @@ class ProposalServiceTest {
     @Test
     @DisplayName("내가 보낸 제안이 없으면 소분류를 조회하지 않는다")
     void skipsSpecialtiesForEmptyMyProposals() {
-        when(proposalRepository.findByStudentProfileIdOrderByCreatedAtDescIdDesc(7L)).thenReturn(List.of());
+        when(proposalRepository.findByStudentProfileIdAndStatusNotOrderByCreatedAtDescIdDesc(7L, ProposalStatus.CANCELLED)).thenReturn(List.of());
 
         assertThat(proposalService.getMyProposals(GetMyProposalsCommand.of(7L))).isEmpty();
         verify(proposalSpecialtyRepository, never()).findByProposalIdIn(any());
@@ -233,7 +233,7 @@ class ProposalServiceTest {
     @Test
     @DisplayName("받은 제안은 사장님 프로필 ID로 조회하고 소분류 연결을 한 번에 붙인다")
     void readsReceivedProposalsWithBatchedSpecialties() {
-        when(proposalRepository.findByOwnerProfileIdOrderByCreatedAtDescIdDesc(5L)).thenReturn(List.of(
+        when(proposalRepository.findByOwnerProfileIdAndStatusNotOrderByCreatedAtDescIdDesc(5L, ProposalStatus.CANCELLED)).thenReturn(List.of(
                 Proposal.builder().id(32L).build(), Proposal.builder().id(31L).build()));
         when(proposalSpecialtyRepository.findByProposalIdIn(List.of(32L, 31L))).thenReturn(List.of(
                 ProposalSpecialty.builder().proposalId(32L).specialtyId(3L).build(),
@@ -250,7 +250,7 @@ class ProposalServiceTest {
     @Test
     @DisplayName("받은 제안이 없으면 소분류를 조회하지 않는다")
     void skipsSpecialtiesForEmptyReceivedProposals() {
-        when(proposalRepository.findByOwnerProfileIdOrderByCreatedAtDescIdDesc(5L)).thenReturn(List.of());
+        when(proposalRepository.findByOwnerProfileIdAndStatusNotOrderByCreatedAtDescIdDesc(5L, ProposalStatus.CANCELLED)).thenReturn(List.of());
 
         assertThat(proposalService.getReceivedProposals(GetReceivedProposalsCommand.of(5L))).isEmpty();
         verify(proposalSpecialtyRepository, never()).findByProposalIdIn(any());
@@ -391,8 +391,8 @@ class ProposalServiceTest {
     }
 
     @ParameterizedTest
-    @EnumSource(ProposalStatus.class)
-    @DisplayName("모든 상태의 제안과 본인이 작성한 제안에 공감하고 취소할 수 있다")
+    @EnumSource(value = ProposalStatus.class, names = "CANCELLED", mode = EnumSource.Mode.EXCLUDE)
+    @DisplayName("취소되지 않은 모든 상태의 제안과 본인이 작성한 제안에 공감하고 취소할 수 있다")
     void likesAndUnlikesOwnProposalInEveryStatus(ProposalStatus status) {
         // 공감하는 학생 77번이 제안의 작성자다
         Proposal proposal = likeableProposal(status, 0, null);
@@ -404,6 +404,99 @@ class ProposalServiceTest {
         assertThat(proposalService.likeProposal(31L, 77L, null).getLikeCount()).isEqualTo(1);
         assertThat(proposalService.unlikeProposal(31L, 77L, null).getLikeCount()).isZero();
         assertThat(proposal.getStatus()).isEqualTo(status);
+    }
+
+    @Test
+    @DisplayName("취소된 제안의 공감 추가·취소는 PROPOSAL_404로 거부하고 공감 기록과 공감 수를 바꾸지 않는다")
+    void rejectsLikeForCancelledProposal() {
+        Proposal proposal = likeableProposal(ProposalStatus.CANCELLED, 0, null);
+        when(proposalRepository.findLockedById(31L)).thenReturn(Optional.of(proposal));
+
+        assertProposalError(() -> proposalService.likeProposal(31L, 77L, null), ErrorCode.PROPOSAL_NOT_FOUND);
+        assertProposalError(() -> proposalService.unlikeProposal(31L, 77L, null), ErrorCode.PROPOSAL_NOT_FOUND);
+        assertThat(proposal.getLikeCount()).isZero();
+        verifyNoInteractions(proposalLikeRepository);
+    }
+
+    @ParameterizedTest
+    @EnumSource(value = ProposalStatus.class, names = { "PENDING", "CANCELLED" })
+    @DisplayName("취소할 제안은 행을 잠가 읽고 결제 전이거나 이미 취소된 본인 제안을 그대로 반환한다")
+    void returnsCancellableProposalForUpdate(ProposalStatus status) {
+        Proposal proposal = likeableProposal(status, 2, null);
+        when(proposalRepository.findLockedById(31L)).thenReturn(Optional.of(proposal));
+
+        assertThat(proposalService.getCancellableProposalForUpdate(31L, 77L, null)).isSameAs(proposal);
+        assertThat(proposal.getStatus()).isEqualTo(status);
+        verify(proposalRepository, never()).findById(anyLong());
+        verifyNoInteractions(proposalLikeRepository);
+    }
+
+    @ParameterizedTest
+    @EnumSource(value = ProposalStatus.class, names = { "AWAITING_START", "ACCEPTED", "REJECTED" })
+    @DisplayName("결제됐거나 거절된 제안의 취소는 PROPOSAL_409_CANCEL로 거부한다")
+    void rejectsCancelOfUnavailableStatus(ProposalStatus status) {
+        when(proposalRepository.findLockedById(31L)).thenReturn(Optional.of(likeableProposal(status, 2, null)));
+
+        assertProposalError(() -> proposalService.getCancellableProposalForUpdate(31L, 77L, null),
+                ErrorCode.PROPOSAL_CANCEL_NOT_AVAILABLE);
+    }
+
+    @Test
+    @DisplayName("없는 제안의 취소는 PROPOSAL_404, 다른 학생의 제안은 상태와 무관하게 PROPOSAL_403_CANCEL로 거부한다")
+    void rejectsCancelOfMissingOrOthersProposal() {
+        when(proposalRepository.findLockedById(99L)).thenReturn(Optional.empty());
+        when(proposalRepository.findLockedById(31L))
+                .thenReturn(Optional.of(likeableProposal(ProposalStatus.PENDING, 2, null)))
+                .thenReturn(Optional.of(likeableProposal(ProposalStatus.ACCEPTED, 2, null)))
+                .thenReturn(Optional.of(likeableProposal(ProposalStatus.CANCELLED, 0, null)));
+
+        assertProposalError(() -> proposalService.getCancellableProposalForUpdate(99L, 77L, null),
+                ErrorCode.PROPOSAL_NOT_FOUND);
+        // 작성자 검증이 상태 검증보다 먼저라 다른 학생은 결제된 제안·취소된 제안에도 403을 받는다
+        for (int i = 0; i < 3; i++) {
+            assertProposalError(() -> proposalService.getCancellableProposalForUpdate(31L, 78L, null),
+                    ErrorCode.PROPOSAL_CANCEL_FORBIDDEN);
+        }
+    }
+
+    @ParameterizedTest(name = "학생 {0}, 제안 {1}")
+    @CsvSource(value = {
+            "null, 01K6DEMO00000000000000000A",
+            "01K6DEMO00000000000000000A, null",
+            "01K6DEMO00000000000000000A, 01K6DEMO00000000000000000B"}, nullValues = "null")
+    @DisplayName("격리 범위가 다른 제안의 취소는 작성자 검증보다 먼저 PROPOSAL_404로 거부한다")
+    void rejectsCancelOutsideDemoSession(String studentSession, String proposalSession) {
+        when(proposalRepository.findLockedById(31L))
+                .thenReturn(Optional.of(likeableProposal(ProposalStatus.PENDING, 2, proposalSession)));
+
+        // 작성자 본인(77번)과 다른 학생(78번) 모두 404다
+        assertProposalError(() -> proposalService.getCancellableProposalForUpdate(31L, 77L, studentSession),
+                ErrorCode.PROPOSAL_NOT_FOUND);
+        assertProposalError(() -> proposalService.getCancellableProposalForUpdate(31L, 78L, studentSession),
+                ErrorCode.PROPOSAL_NOT_FOUND);
+    }
+
+    @Test
+    @DisplayName("제안을 취소하면 상태를 바꾸고 공감 수를 0으로 되돌리며 그 제안의 공감 기록을 모두 지운다")
+    void cancelsProposalAndDeletesAllLikes() {
+        Proposal proposal = likeableProposal(ProposalStatus.PENDING, 4, null);
+
+        proposalService.cancelProposal(proposal);
+
+        assertThat(proposal.getStatus()).isEqualTo(ProposalStatus.CANCELLED);
+        assertThat(proposal.getLikeCount()).isZero();
+        verify(proposalLikeRepository).deleteAllByProposalId(31L);
+        verifyNoInteractions(proposalSpecialtyRepository);
+    }
+
+    @Test
+    @DisplayName("취소할 수 없는 상태의 제안은 공감 기록을 지우지 않고 409로 거부한다")
+    void keepsLikesWhenCancelIsRejected() {
+        Proposal proposal = likeableProposal(ProposalStatus.AWAITING_START, 4, null);
+
+        assertProposalError(() -> proposalService.cancelProposal(proposal), ErrorCode.PROPOSAL_CANCEL_NOT_AVAILABLE);
+        assertThat(proposal.getLikeCount()).isEqualTo(4);
+        verifyNoInteractions(proposalLikeRepository);
     }
 
     @Test

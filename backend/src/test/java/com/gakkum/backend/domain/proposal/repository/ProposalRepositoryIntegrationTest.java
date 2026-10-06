@@ -230,7 +230,7 @@ class ProposalRepositoryIntegrationTest {
         Proposal other = proposalService.createProposal(command(List.of(1L), List.of()), 8L, null);
         proposalRepository.flush();
 
-        assertThat(proposalRepository.findByStudentProfileIdOrderByCreatedAtDescIdDesc(7L))
+        assertThat(proposalRepository.findByStudentProfileIdAndStatusNotOrderByCreatedAtDescIdDesc(7L, ProposalStatus.CANCELLED))
                 .extracting(Proposal::getId)
                 .startsWith(second.getId()).contains(first.getId()).doesNotContain(other.getId());
     }
@@ -261,7 +261,7 @@ class ProposalRepositoryIntegrationTest {
                 .setParameter("id", older.getId()).executeUpdate();
         entityManager.clear();
 
-        List<Proposal> received = proposalRepository.findByOwnerProfileIdOrderByCreatedAtDescIdDesc(5L);
+        List<Proposal> received = proposalRepository.findByOwnerProfileIdAndStatusNotOrderByCreatedAtDescIdDesc(5L, ProposalStatus.CANCELLED);
 
         assertThat(received).extracting(Proposal::getId)
                 .contains(newest.getId(), sameTimeHighId.getId(), sameTimeLowId.getId(), older.getId())
@@ -270,5 +270,45 @@ class ProposalRepositoryIntegrationTest {
                 newest.getId(), sameTimeHighId.getId(), sameTimeLowId.getId(), older.getId());
         assertThat(received).extracting(Proposal::getStatus)
                 .contains(ProposalStatus.PENDING, ProposalStatus.ACCEPTED, ProposalStatus.REJECTED);
+    }
+
+    @Test
+    @DisplayName("보낸 제안과 받은 제안 목록은 취소된 제안을 빼고, 누적 제안 수는 취소된 제안도 센다")
+    void excludesCancelledProposalsFromListsButCountsThem() {
+        long countBefore = proposalRepository.countByStudentProfileId(7L);
+        Proposal kept = proposalService.createProposal(command(List.of(1L), List.of()), 7L, null);
+        Proposal cancelled = proposalService.createProposal(command(List.of(1L), List.of()), 7L, null);
+        proposalRepository.flush();
+        entityManager.createNativeQuery("update proposals set status = 'CANCELLED' where id = :id")
+                .setParameter("id", cancelled.getId()).executeUpdate();
+        entityManager.clear();
+
+        assertThat(proposalRepository.findByStudentProfileIdAndStatusNotOrderByCreatedAtDescIdDesc(
+                7L, ProposalStatus.CANCELLED))
+                .extracting(Proposal::getId).contains(kept.getId()).doesNotContain(cancelled.getId());
+        assertThat(proposalRepository.findByOwnerProfileIdAndStatusNotOrderByCreatedAtDescIdDesc(
+                5L, ProposalStatus.CANCELLED))
+                .extracting(Proposal::getId).contains(kept.getId()).doesNotContain(cancelled.getId());
+        assertThat(proposalRepository.countByStudentProfileId(7L)).isEqualTo(countBefore + 2);
+        assertThat(proposalRepository.findById(cancelled.getId()).orElseThrow().getStatus())
+                .isEqualTo(ProposalStatus.CANCELLED);
+    }
+
+    @Test
+    @DisplayName("제안의 공감 기록 일괄 삭제는 그 제안의 모든 학생 기록만 지우고 다른 제안의 기록은 남긴다")
+    void deletesAllLikesOfOneProposal() {
+        Proposal target = proposalService.createProposal(command(List.of(1L), List.of()), 7L, null);
+        Proposal other = proposalService.createProposal(command(List.of(1L), List.of()), 7L, null);
+        proposalLikeRepository.save(ProposalLike.create(target.getId(), 900_001L));
+        proposalLikeRepository.save(ProposalLike.create(target.getId(), 900_002L));
+        proposalLikeRepository.save(ProposalLike.create(other.getId(), 900_001L));
+        proposalLikeRepository.flush();
+
+        proposalLikeRepository.deleteAllByProposalId(target.getId());
+        entityManager.clear();
+
+        assertThat(proposalLikeRepository.findByProposalIdAndStudentProfileId(target.getId(), 900_001L)).isEmpty();
+        assertThat(proposalLikeRepository.findByProposalIdAndStudentProfileId(target.getId(), 900_002L)).isEmpty();
+        assertThat(proposalLikeRepository.findByProposalIdAndStudentProfileId(other.getId(), 900_001L)).isPresent();
     }
 }

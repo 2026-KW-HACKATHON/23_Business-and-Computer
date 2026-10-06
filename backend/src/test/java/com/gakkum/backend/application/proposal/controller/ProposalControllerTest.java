@@ -57,6 +57,7 @@ import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.ProposalDetailRes
 import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.SpecialtyCategoryResult;
 import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.SpecialtyResult;
 import com.gakkum.backend.domain.proposal.entity.Proposal;
+import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.ProposalCancelResult;
 import com.gakkum.backend.domain.student.entity.Student;
 import com.gakkum.backend.domain.user.entity.User;
 import com.gakkum.backend.global.exception.BusinessException;
@@ -439,6 +440,57 @@ class ProposalControllerTest {
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.error.code").value(code));
         mockMvc.perform(delete("/proposals/31/likes").principal(authentication))
+                .andExpect(status().is(status))
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.error.code").value(code));
+    }
+
+    @Test
+    @DisplayName("제안 취소는 본문 없이 인증 사용자와 제안 ID를 전달하고 200과 제안 ID·취소 상태만 반환한다")
+    void cancelsProposal() throws Exception {
+        when(proposalFacade.cancelProposal(USERNAME, 31L)).thenReturn(ProposalCancelResult.from(
+                Proposal.builder().id(31L).status(ProposalStatus.CANCELLED).build()));
+
+        // 이미 취소한 본인 제안의 반복 요청도 같은 200 응답이다
+        for (int i = 0; i < 2; i++) {
+            mockMvc.perform(post("/proposals/31/cancel").principal(authentication))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.success").value(true))
+                    .andExpect(jsonPath("$.data.length()").value(2))
+                    .andExpect(jsonPath("$.data.proposalId").value(31))
+                    .andExpect(jsonPath("$.data.status").value("CANCELLED"));
+        }
+
+        verify(proposalFacade, org.mockito.Mockito.times(2)).cancelProposal(USERNAME, 31L);
+    }
+
+    @ParameterizedTest(name = "제안 ID {0}")
+    @ValueSource(strings = { "abc", "0", "-1", "1.5" })
+    @DisplayName("제안 취소는 숫자가 아니거나 0 이하인 제안 ID를 COMMON_400으로 거부하고 파사드를 호출하지 않는다")
+    void rejectsInvalidProposalIdForCancel(String proposalId) throws Exception {
+        mockMvc.perform(post("/proposals/" + proposalId + "/cancel").principal(authentication))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.error.code").value("COMMON_400"));
+        verifyNoInteractions(proposalFacade);
+    }
+
+    static Stream<Arguments> cancelErrors() {
+        return Stream.of(
+                Arguments.of(ErrorCode.UNAUTHORIZED, 401, "COMMON_401"),
+                Arguments.of(ErrorCode.PROPOSAL_CANCEL_FORBIDDEN, 403, "PROPOSAL_403_CANCEL"),
+                Arguments.of(ErrorCode.PROPOSAL_NOT_FOUND, 404, "PROPOSAL_404"),
+                Arguments.of(ErrorCode.PROPOSAL_CANCEL_NOT_AVAILABLE, 409, "PROPOSAL_409_CANCEL"),
+                Arguments.of(ErrorCode.PROPOSAL_CANCEL_PAYMENT_PENDING, 409, "PROPOSAL_409_CANCEL_PAYMENT_PENDING"));
+    }
+
+    @ParameterizedTest(name = "{2}")
+    @MethodSource("cancelErrors")
+    @DisplayName("제안 취소의 잠긴 사용자·작성자 아님·없는 제안·취소 불가 상태·결제 대기 오류는 각 오류 코드의 상태로 반환한다")
+    void returnsCancelErrors(ErrorCode errorCode, int status, String code) throws Exception {
+        when(proposalFacade.cancelProposal(USERNAME, 31L)).thenThrow(new BusinessException(errorCode));
+
+        mockMvc.perform(post("/proposals/31/cancel").principal(authentication))
                 .andExpect(status().is(status))
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.error.code").value(code));

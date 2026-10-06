@@ -57,6 +57,23 @@ public final class ProposalQueryDto {
         }
     }
 
+    /** 제안 취소 결과. 반복 요청에도 같은 값을 내린다. */
+    @Getter
+    @Builder(access = AccessLevel.PRIVATE)
+    @AllArgsConstructor(access = AccessLevel.PRIVATE)
+    public static class ProposalCancelResult {
+
+        private final Long proposalId;
+        private final ProposalStatus status;
+
+        public static ProposalCancelResult from(Proposal proposal) {
+            return ProposalCancelResult.builder()
+                    .proposalId(proposal.getId())
+                    .status(proposal.getStatus())
+                    .build();
+        }
+    }
+
     /** 제안과 제안에 선택된 소분류 ID */
     @Getter
     @AllArgsConstructor(access = AccessLevel.PRIVATE)

@@ -29,6 +29,7 @@ import com.gakkum.backend.domain.proposal.dto.ProposalCommandDto.GetReceivedProp
 import com.gakkum.backend.domain.proposal.dto.ProposalCommandDto.StartProposalJobCommand;
 import com.gakkum.backend.domain.payment.service.PaymentService;
 import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.ProposalAgreementResult;
+import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.ProposalCancelResult;
 import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.ProposalJobStartResult;
 import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.ProposalLikeResult;
 import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.ExploreProposalData;
@@ -42,6 +43,7 @@ import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.ReceivedProposalR
 import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.SpecialtyCategoryResult;
 import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.SpecialtyResult;
 import com.gakkum.backend.domain.proposal.entity.Proposal;
+import com.gakkum.backend.domain.proposal.entity.ProposalStatus;
 import com.gakkum.backend.domain.proposal.service.ProposalService;
 import com.gakkum.backend.domain.review.service.ReviewService;
 import com.gakkum.backend.domain.specialty.dto.SpecialtyQueryDto.SpecialtyDetail;
@@ -93,8 +95,9 @@ public class ProposalFacade {
     }
 
     /**
-     * 제안 상세. 활성 사용자라면 역할과 무관하게 모든 제안을 볼 수 있고 없는 제안은 404다.
+     * 제안 상세. 활성 사용자라면 역할과 무관하게 취소되지 않은 모든 제안을 볼 수 있고 없는 제안은 404다.
      * 격리 범위(demoSessionId)가 조회자와 다른 제안도 없는 제안과 같은 404로 거부한다.
+     * 취소된 제안은 제안한 학생 본인에게만 내리고, 받은 사장님을 포함한 다른 사용자에게는 404로 거부한다.
      * 결제 전에는 한국 날짜 기준 오늘에 제안 기간을 더한 예상 마감일을 함께 내린다.
      * 제안을 찾은 뒤에만 매장(현재 이름·주소)·학생 정보·학생 통계(평균 별점·완료 의뢰 수)·특기·본인 공감 여부를 조회한다.
      */
@@ -106,8 +109,12 @@ public class ProposalFacade {
             throw new BusinessException(ErrorCode.PROPOSAL_NOT_FOUND);
         }
 
-        Owner owner = ownerService.getOwnerProfileById(data.getProposal().getOwnerProfileId());
         Student student = studentService.getStudentProfile(data.getProposal().getStudentProfileId());
+        if (data.getProposal().getStatus() == ProposalStatus.CANCELLED
+                && !viewer.getId().equals(student.getUserId())) {
+            throw new BusinessException(ErrorCode.PROPOSAL_NOT_FOUND);
+        }
+        Owner owner = ownerService.getOwnerProfileById(data.getProposal().getOwnerProfileId());
         User studentUser = userService.getUser(student.getUserId());
         Map<Long, SpecialtyDetail> specialtiesById = specialtyCategoryService.getSpecialtyDetails(data.getSpecialtyIds());
         BigDecimal averageRating = reviewService.getAverageRating(student.getId());
@@ -126,7 +133,7 @@ public class ProposalFacade {
     }
 
     /**
-     * 학생이 제안에 공감한다. 본인 제안과 모든 상태의 제안에 공감할 수 있다.
+     * 학생이 제안에 공감한다. 본인 제안과 취소되지 않은 모든 상태의 제안에 공감할 수 있다.
      * 학생 검증과 공감 기록·공감 수 변경을 한 트랜잭션으로 처리하고, 이미 공감한 제안의 재요청은 공감 수를 바꾸지 않는다.
      */
     @Transactional
@@ -147,6 +154,27 @@ public class ProposalFacade {
         Student student = getLikingStudent(user);
         Proposal proposal = proposalService.unlikeProposal(proposalId, student.getId(), user.getDemoSessionId());
         return ProposalLikeResult.of(proposal, false);
+    }
+
+    /**
+     * 제안한 학생이 결제 전(PENDING) 제안을 취소한다. 이미 취소한 본인 제안의 재요청은 아무것도 바꾸지 않고 성공한다.
+     * 제안 행을 잠근 채 격리 범위 → 작성자 → 상태 → 결제 대기 주문 순서로 확인하고,
+     * 상태 전환·공감 기록 삭제·공감 수 초기화를 한 트랜잭션으로 처리한다. 결제·의뢰 데이터는 바꾸지 않는다.
+     * 결제 준비도 같은 제안 행을 잠그므로 취소와 결제 준비는 순서대로 처리되고, 결제 대기 주문이 남아 있으면 409다.
+     */
+    @Transactional
+    public ProposalCancelResult cancelProposal(String username, Long proposalId) {
+        User user = userService.getActiveUser(username);
+        Student student = getCancellingStudent(user);
+        Proposal proposal = proposalService.getCancellableProposalForUpdate(
+                proposalId, student.getId(), user.getDemoSessionId());
+        if (proposal.getStatus() != ProposalStatus.CANCELLED) {
+            if (paymentService.findPendingProposalPayment(proposalId).isPresent()) {
+                throw new BusinessException(ErrorCode.PROPOSAL_CANCEL_PAYMENT_PENDING);
+            }
+            proposalService.cancelProposal(proposal);
+        }
+        return ProposalCancelResult.from(proposal);
     }
 
     /**
@@ -271,6 +299,15 @@ public class ProposalFacade {
         }
         return studentService.findStudentProfileByUserId(user.getId())
                 .orElseThrow(() -> new BusinessException(ErrorCode.PROPOSAL_LIKE_STUDENT_REQUIRED));
+    }
+
+    /** 학생 프로필이 없는 사용자(사장님·가입 대기 사용자 포함)는 제안을 취소할 수 없다. */
+    private Student getCancellingStudent(User user) {
+        if (user.getRole() != UserRole.STUDENT) {
+            throw new BusinessException(ErrorCode.PROPOSAL_CANCEL_FORBIDDEN);
+        }
+        return studentService.findStudentProfileByUserId(user.getId())
+                .orElseThrow(() -> new BusinessException(ErrorCode.PROPOSAL_CANCEL_FORBIDDEN));
     }
 
     // 학생이 아니거나 학생 프로필이 없는 조회자는 공감 기록이 없는 것으로 본다

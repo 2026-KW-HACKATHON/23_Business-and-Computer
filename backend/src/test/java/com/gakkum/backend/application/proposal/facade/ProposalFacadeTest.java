@@ -39,7 +39,9 @@ import com.gakkum.backend.domain.chat.service.ChatRoomService;
 import com.gakkum.backend.domain.job.entity.Job;
 import com.gakkum.backend.domain.job.entity.JobStatus;
 import com.gakkum.backend.domain.job.service.JobService;
+import com.gakkum.backend.domain.payment.entity.Payment;
 import com.gakkum.backend.domain.payment.service.PaymentService;
+import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.ProposalCancelResult;
 import com.gakkum.backend.domain.proposal.dto.ProposalCommandDto.StartProposalJobCommand;
 import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.ProposalJobStartResult;
 import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.ProposalLikeResult;
@@ -988,5 +990,151 @@ class ProposalFacadeTest {
         givenStore();
 
         assertThat(proposalFacade.getProposalDetail(USERNAME, 31L).getProposalId()).isEqualTo(31L);
+    }
+
+    @Test
+    @DisplayName("제안한 학생이 결제 대기 주문이 없는 결제 전 제안을 취소하면 제안을 잠근 뒤 취소하고 취소 상태를 반환한다")
+    void cancelsPendingProposal() {
+        givenStartingStudent();
+        Proposal proposal = Proposal.builder().id(31L).studentProfileId(7L).status(ProposalStatus.PENDING)
+                .likeCount(2).build();
+        when(proposalService.getCancellableProposalForUpdate(31L, 7L, null)).thenReturn(proposal);
+        when(paymentService.findPendingProposalPayment(31L)).thenReturn(Optional.empty());
+        org.mockito.Mockito.doAnswer(invocation -> {
+            proposal.cancel();
+            return null;
+        }).when(proposalService).cancelProposal(proposal);
+
+        ProposalCancelResult result = proposalFacade.cancelProposal(USERNAME, 31L);
+
+        assertThat(result.getProposalId()).isEqualTo(31L);
+        assertThat(result.getStatus()).isEqualTo(ProposalStatus.CANCELLED);
+        // 결제 대기 주문은 제안 행을 잠근 뒤에 확인하고, 그 뒤에 취소한다
+        InOrder order = inOrder(proposalService, paymentService);
+        order.verify(proposalService).getCancellableProposalForUpdate(31L, 7L, null);
+        order.verify(paymentService).findPendingProposalPayment(31L);
+        order.verify(proposalService).cancelProposal(proposal);
+        verifyNoInteractions(jobService, chatRoomService, ownerService);
+    }
+
+    @Test
+    @DisplayName("이미 취소한 본인 제안의 취소 재요청은 결제 주문을 확인하지 않고 아무것도 바꾸지 않은 채 취소 상태를 반환한다")
+    void cancelIsIdempotentForAuthor() {
+        givenStartingStudent();
+        Proposal proposal = Proposal.builder().id(31L).studentProfileId(7L).status(ProposalStatus.CANCELLED)
+                .likeCount(0).build();
+        when(proposalService.getCancellableProposalForUpdate(31L, 7L, null)).thenReturn(proposal);
+
+        ProposalCancelResult result = proposalFacade.cancelProposal(USERNAME, 31L);
+
+        assertThat(result.getProposalId()).isEqualTo(31L);
+        assertThat(result.getStatus()).isEqualTo(ProposalStatus.CANCELLED);
+        verify(proposalService, never()).cancelProposal(any());
+        verifyNoInteractions(paymentService);
+    }
+
+    @Test
+    @DisplayName("결제 대기 주문이 있는 결제 전 제안의 취소는 PROPOSAL_409_CANCEL_PAYMENT_PENDING으로 거부하고 제안을 바꾸지 않는다")
+    void rejectsCancelWithPendingPayment() {
+        givenStartingStudent();
+        Proposal proposal = Proposal.builder().id(31L).studentProfileId(7L).status(ProposalStatus.PENDING)
+                .likeCount(2).build();
+        when(proposalService.getCancellableProposalForUpdate(31L, 7L, null)).thenReturn(proposal);
+        when(paymentService.findPendingProposalPayment(31L)).thenReturn(Optional.of(mock(Payment.class)));
+
+        assertError(() -> proposalFacade.cancelProposal(USERNAME, 31L), ErrorCode.PROPOSAL_CANCEL_PAYMENT_PENDING);
+        assertThat(proposal.getStatus()).isEqualTo(ProposalStatus.PENDING);
+        assertThat(proposal.getLikeCount()).isEqualTo(2);
+        verify(proposalService, never()).cancelProposal(any());
+    }
+
+    @Test
+    @DisplayName("데모 학생의 제안 취소는 자기 데모 세션 ID를 격리 범위로 전달한다")
+    void passesDemoSessionForCancel() {
+        when(userService.getActiveUser(USERNAME)).thenReturn(User.builder()
+                .id(USER_ID).username(USERNAME).role(UserRole.STUDENT).demoSessionId(DEMO_SESSION_A).build());
+        givenStudentProfile();
+        Proposal proposal = Proposal.builder().id(31L).studentProfileId(7L).status(ProposalStatus.PENDING)
+                .likeCount(0).demoSessionId(DEMO_SESSION_A).build();
+        when(proposalService.getCancellableProposalForUpdate(31L, 7L, DEMO_SESSION_A)).thenReturn(proposal);
+        when(paymentService.findPendingProposalPayment(31L)).thenReturn(Optional.empty());
+
+        proposalFacade.cancelProposal(USERNAME, 31L);
+
+        verify(proposalService).getCancellableProposalForUpdate(31L, 7L, DEMO_SESSION_A);
+        verify(proposalService).cancelProposal(proposal);
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @EnumSource(value = UserRole.class, names = { "OWNER", "PENDING" })
+    @DisplayName("사장님과 가입 대기 사용자의 제안 취소는 PROPOSAL_403_CANCEL로 거부하고 학생 프로필과 제안을 조회하지 않는다")
+    void rejectsNonStudentForCancel(UserRole role) {
+        givenUser(role);
+
+        assertError(() -> proposalFacade.cancelProposal(USERNAME, 31L), ErrorCode.PROPOSAL_CANCEL_FORBIDDEN);
+        verifyNoInteractions(studentService, proposalService, paymentService);
+    }
+
+    @Test
+    @DisplayName("학생 프로필이 없는 학생 역할 사용자의 제안 취소는 PROPOSAL_403_CANCEL로 거부하고 제안을 잠그지 않는다")
+    void rejectsStudentWithoutProfileForCancel() {
+        givenUser(UserRole.STUDENT);
+        when(studentService.findStudentProfileByUserId(USER_ID)).thenReturn(Optional.empty());
+
+        assertError(() -> proposalFacade.cancelProposal(USERNAME, 31L), ErrorCode.PROPOSAL_CANCEL_FORBIDDEN);
+        verifyNoInteractions(proposalService, paymentService);
+    }
+
+    @Test
+    @DisplayName("잠긴 사용자의 제안 취소는 UNAUTHORIZED로 거부하고 학생 프로필과 제안을 조회하지 않는다")
+    void rejectsInactiveUserForCancel() {
+        when(userService.getActiveUser(USERNAME)).thenThrow(new BusinessException(ErrorCode.UNAUTHORIZED));
+
+        assertError(() -> proposalFacade.cancelProposal(USERNAME, 31L), ErrorCode.UNAUTHORIZED);
+        verifyNoInteractions(studentService, proposalService, paymentService);
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @EnumSource(value = ErrorCode.class,
+            names = { "PROPOSAL_NOT_FOUND", "PROPOSAL_CANCEL_FORBIDDEN", "PROPOSAL_CANCEL_NOT_AVAILABLE" })
+    @DisplayName("제안을 잠가 확인한 404·403·409는 그대로 전달하고 결제 주문을 확인하거나 취소하지 않는다")
+    void propagatesCancelValidationErrors(ErrorCode errorCode) {
+        givenStartingStudent();
+        when(proposalService.getCancellableProposalForUpdate(31L, 7L, null))
+                .thenThrow(new BusinessException(errorCode));
+
+        assertError(() -> proposalFacade.cancelProposal(USERNAME, 31L), errorCode);
+        verify(proposalService, never()).cancelProposal(any());
+        verifyNoInteractions(paymentService);
+    }
+
+    @Test
+    @DisplayName("취소된 제안 상세는 제안한 학생 본인에게 취소 상태로 반환하고 예상 마감일과 의뢰·확정 조건은 내리지 않는다")
+    void returnsCancelledProposalDetailToAuthor() {
+        givenProposalDetail(ProposalStatus.CANCELLED, STUDENT_USER_ID, UserRole.STUDENT);
+
+        ProposalDetailResult result = proposalFacade.getProposalDetail(USERNAME, 31L);
+
+        assertThat(result.getProposalId()).isEqualTo(31L);
+        assertThat(result.getStatus()).isEqualTo(ProposalStatus.CANCELLED);
+        assertThat(result.getEstimatedDraftDeadline()).isNull();
+        assertThat(result.getEstimatedFinalDeadline()).isNull();
+        assertThat(result.getJobId()).isNull();
+        assertThat(result.getAgreement()).isNull();
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @org.junit.jupiter.params.provider.CsvSource({
+            "01K58M6PJV8VAJMXHBHJ2PNB5F, OWNER",
+            "01K58M6PJV8VAJMXHBHJ2PNB5E, STUDENT",
+            "01K58M6PJV8VAJMXHBHJ2PNB5C, PENDING" })
+    @DisplayName("취소된 제안 상세는 받은 사장님을 포함한 작성자 아닌 사용자에게 PROPOSAL_404로 거부하고 매장·통계·공감 기록을 조회하지 않는다")
+    void hidesCancelledProposalDetailFromOthers(String viewerId, UserRole role) {
+        givenProposalDetail(ProposalStatus.CANCELLED, viewerId, role);
+
+        assertError(() -> proposalFacade.getProposalDetail(USERNAME, 31L), ErrorCode.PROPOSAL_NOT_FOUND);
+        verifyNoInteractions(ownerService, reviewService, jobService, paymentService, specialtyCategoryService);
+        verify(userService, never()).getUser(anyString());
+        verify(proposalService, never()).getLikedProposalIds(anyLong(), any());
     }
 }
