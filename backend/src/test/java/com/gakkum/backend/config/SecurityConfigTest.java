@@ -286,6 +286,16 @@ class SecurityConfigTest {
     }
 
     @Test
+    @DisplayName("인증 없이 학생 프로필을 조회하면 401을 반환하고 컨트롤러에 도달하지 않는다")
+    void studentProfileRequiresAuthentication() throws Exception {
+        mockMvc.perform(get("/students/7/profile"))
+            .andExpect(status().isUnauthorized())
+            .andExpect(jsonPath("$.error.code").value("COMMON_401"));
+
+        verifyNoInteractions(studentFacade);
+    }
+
+    @Test
     @DisplayName("학생의 Bearer 토큰으로 학생 내 정보를 조회하면 인증된 사용자 이름으로 컨트롤러까지 도달한다")
     void authenticatedStudentCanReadStudentMe() throws Exception {
         String token = "student-access-token";
