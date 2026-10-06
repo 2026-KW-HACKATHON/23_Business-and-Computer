@@ -57,6 +57,7 @@ import com.gakkum.backend.application.student.facade.StudentFacade;
 import com.gakkum.backend.domain.category.dto.BusinessCategoryResponse;
 import com.gakkum.backend.domain.category.entity.BusinessCategory;
 import com.gakkum.backend.domain.category.service.BusinessCategoryService;
+import com.gakkum.backend.domain.owner.dto.OwnerCommandDto.UpdateOwnerMeCommand;
 import com.gakkum.backend.domain.owner.dto.OwnerQueryDto.OwnerMeResult;
 import com.gakkum.backend.domain.owner.entity.Owner;
 import com.gakkum.backend.domain.specialty.service.SpecialtyCategoryService;
@@ -367,6 +368,41 @@ class SecurityConfigTest {
         verify(studentFacade).updateMe(command.capture());
         assertThat(command.getValue().getUsername()).isEqualTo("KAKAO_123");
         assertThat(command.getValue().getSpecialtyIds()).containsExactly(1L);
+    }
+
+    @Test
+    @DisplayName("인증 없이 사장님 내 정보를 수정하면 401을 반환하고 컨트롤러에 도달하지 않는다")
+    void ownerMeUpdateRequiresAuthentication() throws Exception {
+        mockMvc.perform(put("/owners/me")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"storeName\": \"가꿈 베이커리\", \"categoryId\": 1}"))
+            .andExpect(status().isUnauthorized())
+            .andExpect(jsonPath("$.error.code").value("COMMON_401"));
+
+        verifyNoInteractions(ownerFacade);
+    }
+
+    @Test
+    @DisplayName("사장님의 Bearer 토큰으로 사장님 내 정보를 수정하면 인증된 사용자 이름으로 컨트롤러까지 도달하고 성공 여부만 반환한다")
+    void authenticatedOwnerCanUpdateOwnerMe() throws Exception {
+        String token = "owner-access-token";
+        when(jwtUtil.isValid(token, true)).thenReturn(true);
+        when(jwtUtil.getUsername(token)).thenReturn("KAKAO_123");
+        when(jwtUtil.getRole(token)).thenReturn("OWNER");
+
+        mockMvc.perform(put("/owners/me")
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"storeName\": \"가꿈 베이커리\", \"categoryId\": 1}"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.length()").value(1))
+            .andExpect(jsonPath("$.success").value(true));
+
+        ArgumentCaptor<UpdateOwnerMeCommand> command = ArgumentCaptor.forClass(UpdateOwnerMeCommand.class);
+        verify(ownerFacade).updateMe(command.capture());
+        assertThat(command.getValue().getUsername()).isEqualTo("KAKAO_123");
+        assertThat(command.getValue().getStoreName()).isEqualTo("가꿈 베이커리");
+        assertThat(command.getValue().getCategoryId()).isEqualTo(1L);
     }
 
     @Test

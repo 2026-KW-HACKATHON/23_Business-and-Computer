@@ -80,6 +80,7 @@ public enum ErrorCode {
     OWNER_NOT_FOUND(HttpStatus.NOT_FOUND, "OWNER_404", "존재하지 않는 사장님입니다."),
     OWNER_PROFILE_NOT_FOUND(HttpStatus.FORBIDDEN, "OWNER_403", "사장님 프로필이 존재하지 않습니다."),
     OWNER_ME_REQUIRED(HttpStatus.FORBIDDEN, "OWNER_403_ME", "사장님만 내 정보를 조회할 수 있습니다."),
+    OWNER_ME_UPDATE_REQUIRED(HttpStatus.FORBIDDEN, "OWNER_403_ME_UPDATE", "사장님만 내 정보를 수정할 수 있습니다."),
     UNAUTHORIZED(HttpStatus.UNAUTHORIZED, "COMMON_401", "인증이 필요합니다."),
     DUPLICATE_EMAIL(HttpStatus.CONFLICT, "USER_409_EMAIL", "이미 사용 중인 이메일입니다."),
     STUDENT_EMAIL_VERIFICATION_INVALID(HttpStatus.BAD_REQUEST, "STUDENT_EMAIL_400", "이메일 인증번호가 올바르지 않거나 만료되었습니다."),

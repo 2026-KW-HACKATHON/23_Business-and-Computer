@@ -8,6 +8,7 @@ import com.gakkum.backend.application.owner.dto.OwnerRegistrationResponse;
 import com.gakkum.backend.domain.category.service.BusinessCategoryService;
 import com.gakkum.backend.domain.job.service.JobService;
 import com.gakkum.backend.domain.jwt.service.JwtService;
+import com.gakkum.backend.domain.owner.dto.OwnerCommandDto.UpdateOwnerMeCommand;
 import com.gakkum.backend.domain.owner.dto.OwnerQueryDto.OwnerMeResult;
 import com.gakkum.backend.domain.owner.entity.Owner;
 import com.gakkum.backend.domain.owner.service.OwnerService;
@@ -65,5 +66,22 @@ public class OwnerFacade {
                 proposalService.countReceivedProposalsExcludingCancelled(owner.getId()),
                 jobService.countOwnerInProgressJobs(owner.getId()),
                 jobService.countOwnerClosedJobs(owner.getId()));
+    }
+
+    /**
+     * 사장님 본인의 상호명·업종·프로필 사진·매장 주소·소개를 전체 저장한다. 선택 항목을 비워 보내면 기존 값을 지운다.
+     * 입력을 모두 검증한 뒤에 쓰기 시작하고, 사장님 프로필이 없으면 500으로 거부한다.
+     */
+    @Transactional
+    public void updateMe(UpdateOwnerMeCommand command) {
+        User user = userService.getActiveUser(command.getUsername());
+        if (user.getRole() != UserRole.OWNER) {
+            throw new BusinessException(ErrorCode.OWNER_ME_UPDATE_REQUIRED);
+        }
+        Owner owner = ownerService.findOwnerProfileByUserId(user.getId())
+                .orElseThrow(() -> new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR));
+        businessCategoryService.validateCategoryExists(command.getCategoryId());
+
+        ownerService.updateOwnerProfile(owner, command);
     }
 }
