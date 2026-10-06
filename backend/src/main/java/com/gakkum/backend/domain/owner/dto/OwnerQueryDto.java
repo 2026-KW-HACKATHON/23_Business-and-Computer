@@ -24,6 +24,8 @@ public final class OwnerQueryDto {
         private final String name;
         private final String storeName;
         private final String storeAddress;
+        private final Long categoryId;
+        private final String description;
         private final Long sentJobCount;
         private final Long receivedProposalCount;
         private final Long inProgressJobCount;
@@ -43,6 +45,8 @@ public final class OwnerQueryDto {
                     .name(user.getName())
                     .storeName(owner.getStoreName())
                     .storeAddress(owner.getStoreAddress())
+                    .categoryId(owner.getCategoryId())
+                    .description(owner.getDescription())
                     .sentJobCount(sentJobCount)
                     .receivedProposalCount(receivedProposalCount)
                     .inProgressJobCount(inProgressJobCount)

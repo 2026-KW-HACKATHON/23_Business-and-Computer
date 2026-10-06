@@ -83,9 +83,9 @@ class OwnerMeFlowTest {
     }
 
     @Test
-    @DisplayName("사장님 본인의 프로필과 활동 개수 9개 필드를 반환하고 이름은 대표자명이 아닌 가입자 이름이다")
+    @DisplayName("사장님 본인의 프로필과 활동 개수 11개 필드를 반환하고 이름은 대표자명이 아닌 가입자 이름이다")
     void returnsOwnInformation() throws Exception {
-        givenOwner(UserRole.OWNER, "https://cdn.gakkum.test/owner.png", "서울시 노원구 광운로 20");
+        givenOwner(UserRole.OWNER, "https://cdn.gakkum.test/owner.png", "서울시 노원구 광운로 20", "매일 굽는 빵집입니다.");
         when(jobRepository.countByOwnerProfileIdAndStatusNot(OWNER_PROFILE_ID, JobStatus.CANCELLED)).thenReturn(7L);
         when(proposalRepository.countByOwnerProfileIdAndStatusNot(OWNER_PROFILE_ID, ProposalStatus.CANCELLED))
                 .thenReturn(4L);
@@ -96,12 +96,14 @@ class OwnerMeFlowTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(2))
                 .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.data.length()").value(9))
+                .andExpect(jsonPath("$.data.length()").value(11))
                 .andExpect(jsonPath("$.data.ownerProfileId").value(5))
                 .andExpect(jsonPath("$.data.profileImageUrl").value("https://cdn.gakkum.test/owner.png"))
                 .andExpect(jsonPath("$.data.name").value("김가입"))
                 .andExpect(jsonPath("$.data.storeName").value("가꿈 베이커리"))
                 .andExpect(jsonPath("$.data.storeAddress").value("서울시 노원구 광운로 20"))
+                .andExpect(jsonPath("$.data.categoryId").value(2))
+                .andExpect(jsonPath("$.data.description").value("매일 굽는 빵집입니다."))
                 .andExpect(jsonPath("$.data.sentJobCount").value(7))
                 .andExpect(jsonPath("$.data.receivedProposalCount").value(4))
                 .andExpect(jsonPath("$.data.inProgressJobCount").value(2))
@@ -111,7 +113,7 @@ class OwnerMeFlowTest {
     @Test
     @DisplayName("활동 개수는 본인 사장님 프로필 ID로만 집계하고 받은 제안은 지원서가 아닌 제안 기준이다")
     void countsByOwnOwnerProfileId() throws Exception {
-        givenOwner(UserRole.OWNER, null, null);
+        givenOwner(UserRole.OWNER, null, null, null);
 
         perform().andExpect(status().isOk());
 
@@ -124,15 +126,17 @@ class OwnerMeFlowTest {
     }
 
     @Test
-    @DisplayName("활동이 없는 사장님은 개수 0을 받고 사진 URL과 매장 주소는 저장된 null 그대로 받는다")
+    @DisplayName("활동이 없는 사장님은 개수 0을 받고 사진 URL·매장 주소·소개는 저장된 null 그대로 받는다")
     void returnsEmptyDefaults() throws Exception {
-        givenOwner(UserRole.OWNER, null, null);
+        givenOwner(UserRole.OWNER, null, null, null);
 
         perform()
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.length()").value(9))
+                .andExpect(jsonPath("$.data.length()").value(11))
                 .andExpect(jsonPath("$.data.profileImageUrl").value(nullValue()))
                 .andExpect(jsonPath("$.data.storeAddress").value(nullValue()))
+                .andExpect(jsonPath("$.data.categoryId").value(2))
+                .andExpect(jsonPath("$.data.description").value(nullValue()))
                 .andExpect(jsonPath("$.data.sentJobCount").value(0))
                 .andExpect(jsonPath("$.data.receivedProposalCount").value(0))
                 .andExpect(jsonPath("$.data.inProgressJobCount").value(0))
@@ -143,7 +147,7 @@ class OwnerMeFlowTest {
     @EnumSource(value = UserRole.class, names = {"STUDENT", "PENDING"})
     @DisplayName("학생이나 가입 미완료 사용자가 조회하면 403 OWNER_403_ME를 반환하고 사장님 데이터를 조회하지 않는다")
     void rejectsNonOwner(UserRole role) throws Exception {
-        givenOwner(role, null, null);
+        givenOwner(role, null, null, null);
 
         perform()
                 .andExpect(status().isForbidden())
@@ -180,7 +184,7 @@ class OwnerMeFlowTest {
         return mockMvc.perform(get(URL).principal(authentication));
     }
 
-    private void givenOwner(UserRole role, String profileImageUrl, String storeAddress) {
+    private void givenOwner(UserRole role, String profileImageUrl, String storeAddress, String description) {
         when(userRepository.findByUsernameAndIsLock(USERNAME, false)).thenReturn(Optional.of(
                 User.builder().id(OWNER_USER_ID).role(role).name("김가입").build()));
         when(ownerRepository.findByUserId(OWNER_USER_ID)).thenReturn(Optional.of(Owner.builder()
@@ -188,7 +192,9 @@ class OwnerMeFlowTest {
                 .userId(OWNER_USER_ID)
                 .representativeName("김대표")
                 .storeName("가꿈 베이커리")
+                .categoryId(2L)
                 .storeAddress(storeAddress)
+                .description(description)
                 .profileImageUrl(profileImageUrl)
                 .build()));
     }

@@ -17,6 +17,8 @@ public class OwnerMeResponse {
     private final String name;
     private final String storeName;
     private final String storeAddress;
+    private final Long categoryId;
+    private final String description;
     private final Long sentJobCount;
     private final Long receivedProposalCount;
     private final Long inProgressJobCount;
@@ -29,6 +31,8 @@ public class OwnerMeResponse {
                 .name(result.getName())
                 .storeName(result.getStoreName())
                 .storeAddress(result.getStoreAddress())
+                .categoryId(result.getCategoryId())
+                .description(result.getDescription())
                 .sentJobCount(result.getSentJobCount())
                 .receivedProposalCount(result.getReceivedProposalCount())
                 .inProgressJobCount(result.getInProgressJobCount())
