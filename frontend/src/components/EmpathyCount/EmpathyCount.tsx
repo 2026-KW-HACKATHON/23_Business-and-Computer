@@ -5,7 +5,7 @@ interface EmpathyCountProps {
   count: number;
   /** 내가 공감했으면 빨간 하트 + 검정 숫자 */
   empathized?: boolean;
-  /** 넣으면 눌러서 공감을 켜고 끄는 버튼이 된다 */
+  /** 넣으면 누를 수 있다 (공감하기 · 다시 누르면 취소) */
   onToggle?: () => void;
 }
 
@@ -26,14 +26,13 @@ function EmpathyCount({ count, empathized = false, onToggle }: EmpathyCountProps
       </span>
     );
   }
-
   return (
     <button
       type="button"
-      className={className}
-      onClick={onToggle}
-      aria-pressed={empathized}
+      className={`${className} empathy-count--button`}
       aria-label={`공감 ${count}`}
+      aria-pressed={empathized}
+      onClick={onToggle}
     >
       {content}
     </button>

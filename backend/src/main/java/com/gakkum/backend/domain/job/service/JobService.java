@@ -58,6 +58,7 @@ import com.gakkum.backend.domain.job.entity.JobSubmissionType;
 import com.gakkum.backend.domain.job.entity.JobStatus;
 import com.gakkum.backend.domain.job.repository.JobApplicationRepository;
 import com.gakkum.backend.domain.job.repository.JobRepository;
+import com.gakkum.backend.domain.job.repository.JobRepository.DeclineTargetProjection;
 import com.gakkum.backend.domain.job.repository.JobRepository.StartTargetProjection;
 import com.gakkum.backend.domain.job.repository.JobRepository.StudentJobCount;
 import com.gakkum.backend.domain.job.repository.JobSpecialtyRepository;
@@ -226,6 +227,51 @@ public class JobService {
             throw new BusinessException(ErrorCode.JOB_START_FORBIDDEN);
         }
         job.start(now());
+        return job;
+    }
+
+    /**
+     * 학생이 거절하려는 의뢰의 제안 ID. 제안 행을 먼저 잠그기 위해 잠금 없이 읽고, 의뢰를 엔티티로 올리지 않는다.
+     * 없거나 격리 범위가 다른 의뢰는 404, 제안으로 만들지 않은 일반 의뢰는 409, 담당 학생이 아니면 403으로 거부한다.
+     * @param jobId
+     * @param studentProfileId
+     * @param demoSessionId 거절하는 학생의 격리 범위. 실제 학생은 null
+     * @return 의뢰를 만든 제안 ID
+     */
+    @Transactional(readOnly = true)
+    public Long getDeclinableProposalId(Long jobId, Long studentProfileId, String demoSessionId) {
+        DeclineTargetProjection job = jobRepository.findDeclineTargetById(jobId)
+                .filter(found -> Objects.equals(found.getDemoSessionId(), demoSessionId))
+                .orElseThrow(() -> new BusinessException(ErrorCode.JOB_NOT_FOUND));
+        if (job.getProposalId() == null) {
+            throw new BusinessException(ErrorCode.JOB_DECLINE_NOT_AVAILABLE);
+        }
+        if (!studentProfileId.equals(job.getSelectedStudentProfileId())) {
+            throw new BusinessException(ErrorCode.JOB_DECLINE_FORBIDDEN);
+        }
+        return job.getProposalId();
+    }
+
+    /**
+     * 담당 학생이 수락 대기(AWAITING_START) 제안 의뢰를 거절해 취소한다. 작업 조건과 담당 학생은 그대로 둔다.
+     * 제안 행을 잠근 뒤 호출하며, 의뢰 행을 잠근 상태에서 제안 연결과 담당 학생을 다시 확인한다.
+     * 이미 시작·거절·종료된 의뢰는 409로 거부한다.
+     * @param jobId
+     * @param proposalId 잠금 전에 읽은 제안 ID
+     * @param studentProfileId
+     * @return 취소된(CANCELLED) 의뢰
+     */
+    @Transactional
+    public Job declineJob(Long jobId, Long proposalId, Long studentProfileId) {
+        Job job = jobRepository.findLockedById(jobId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.JOB_NOT_FOUND));
+        if (!proposalId.equals(job.getProposalId())) {
+            throw new BusinessException(ErrorCode.JOB_DECLINE_NOT_AVAILABLE);
+        }
+        if (!studentProfileId.equals(job.getSelectedStudentProfileId())) {
+            throw new BusinessException(ErrorCode.JOB_DECLINE_FORBIDDEN);
+        }
+        job.decline(now());
         return job;
     }
 

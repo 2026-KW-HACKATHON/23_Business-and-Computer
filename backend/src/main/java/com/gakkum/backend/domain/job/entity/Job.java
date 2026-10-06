@@ -34,6 +34,9 @@ import lombok.NoArgsConstructor;
 @Table(name = "jobs")
 public class Job {
 
+    // 학생이 의뢰서를 거절해 취소된 의뢰에 남기는 취소 이유. 거절 사유는 입력받지 않는다
+    public static final String DECLINE_CANCEL_REASON = "학생이 작업 시작 전에 의뢰서를 거절했습니다.";
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -75,11 +78,11 @@ public class Job {
     @Column(name = "completed_at")
     private LocalDateTime completedAt;
 
-    // 사장님이 취소 시 입력한 취소 이유. 취소되지 않았거나 입력 도입 전 취소 건은 null
+    // 사장님이 취소 시 입력한 취소 이유. 학생이 거절한 의뢰는 고정 문구다. 취소되지 않았거나 입력 도입 전 취소 건은 null
     @Column(name = "cancel_reason", columnDefinition = "TEXT")
     private String cancelReason;
 
-    // 사장님이 취소 시 학생에게 남긴 말. 취소되지 않았거나 입력 도입 전 취소 건은 null
+    // 사장님이 취소 시 학생에게 남긴 말. 취소되지 않았거나 학생이 거절했거나 입력 도입 전 취소 건은 null
     @Column(name = "message_to_student", columnDefinition = "TEXT")
     private String messageToStudent;
 
@@ -218,5 +221,27 @@ public class Job {
         this.completedAt = cancelledAt;
         this.cancelReason = cancelReason;
         this.messageToStudent = messageToStudent;
+    }
+
+    /**
+     * 학생이 작업 시작 전에 거절해 취소된 제안 의뢰인지. 사장님은 수락 대기 의뢰를 취소할 수 없으므로
+     * 시작한 적 없이 취소된 제안 의뢰는 학생의 거절뿐이다. 일반 의뢰와 시작 후 취소된 제안 의뢰는 사장님의 취소다.
+     */
+    public boolean isDeclinedByStudent() {
+        return status == JobStatus.CANCELLED && proposalId != null && startedAt == null;
+    }
+
+    /**
+     * 수락 대기(AWAITING_START) 제안 의뢰를 학생의 거절로 취소(CANCELLED)하고 거절 시각을 종료 시각으로 기록한다.
+     * 작업 조건과 담당 학생은 그대로 두고, 취소 이유는 고정 문구로, 학생에게 남길 말은 비워 둔다.
+     */
+    public void decline(LocalDateTime declinedAt) {
+        if (status != JobStatus.AWAITING_START || proposalId == null) {
+            throw new BusinessException(ErrorCode.JOB_DECLINE_NOT_AVAILABLE);
+        }
+        status = JobStatus.CANCELLED;
+        this.completedAt = declinedAt;
+        this.cancelReason = DECLINE_CANCEL_REASON;
+        this.messageToStudent = null;
     }
 }

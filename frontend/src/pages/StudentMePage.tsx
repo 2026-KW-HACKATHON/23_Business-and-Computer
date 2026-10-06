@@ -8,7 +8,7 @@ import {
   useMyProfile,
   useMyProfilePhoto,
   useSentProposals,
-  useStudentApplications,
+  useAppliedJobs,
   useStudentWorks,
 } from "../features/student";
 import type { StudentActivityTab } from "../features/student";
@@ -27,7 +27,7 @@ function StudentMePage() {
   const navigate = useNavigate();
   const back = useBack(STUDENT_PATHS.home);
   const profile = useMyProfile();
-  const applications = useStudentApplications();
+  const { load: appliedLoad } = useAppliedJobs();
   const { load: proposalsLoad } = useSentProposals();
   const works = useStudentWorks();
   // 사진 업로드는 백엔드 연동 전까지 미리보기만 한다 (프로필 수정 · 편집과 같은 사진)
@@ -38,7 +38,7 @@ function StudentMePage() {
 
   const inProgress = works.filter((w) => ["drafting", "revising", "submitted"].includes(w.status));
   const counts = [
-    applications.length,
+    appliedLoad.status === "loaded" ? appliedLoad.jobs.length : "-",
     proposalsLoad.status === "loaded" ? proposalsLoad.proposals.length : "-",
     inProgress.length,
     profile.completedCount,

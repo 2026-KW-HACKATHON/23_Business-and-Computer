@@ -299,3 +299,42 @@
 .student-detail__notice b {
   flex-shrink: 0;
 }
+
+/* 다른 학생 제안서 맨 아래 공감 안내 */
+.student-proposal__like-note {
+  margin: 0;
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--role-secondary);
+}
+
+.student-proposal__like-note--error {
+  color: var(--color-danger);
+}
+
+/* 아래 버튼 바로 위 실패 안내 */
+.student-detail__send-error {
+  margin: 0 0 8px;
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--color-danger);
+  text-align: center;
+}
+
+/* 작업 시작 맨 위 큰 제목 */
+.student-detail__headline {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 30px;
+  letter-spacing: normal;
+  color: var(--color-black);
+}
+
+/* 8px 회색 띠를 화면 폭 끝까지 (탐색과 같은 구분) */
+.student-detail__band {
+  height: 8px;
+  margin: 0 -16px;
+  background: var(--role-muted);
+}

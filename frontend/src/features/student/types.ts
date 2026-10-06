@@ -2,6 +2,8 @@ import type { Field } from "../../types/field";
 import type { StoreCategory } from "../../types/storeCategory";
 import type { WorkKind } from "../../types/workKind";
 import type { ApplicationPlan, WorkPlanContent } from "../../types/workPlan";
+import type { ExploreProposalCard } from "../explore";
+import type { AppliedJob } from "./lib/appliedJobs";
 import type { SentProposal } from "./lib/sentProposals";
 
 /** 마감 단계. draft = 초안, final = 최종 */
@@ -128,41 +130,8 @@ export interface StudentWork {
   };
 }
 
-/** 의뢰 진행. closed = 다른 학생이 뽑혀 모집이 끝남 */
-export type RequestProgress = "recruiting" | "closed" | "completed";
-
-/** 가게가 올린 의뢰 (탐색 · 의뢰서 전체 보기 · 지원하기) */
-export interface StudentRequest {
-  id: string;
-  title: string;
-  field: Field;
-  store: StoreRef;
-  budget: number;
-  draftDue: string;
-  finalDue: string;
-  revisionLimit: number;
-  /** 할 일 칩 */
-  tasks: string[];
-  /** 맡기고 싶은 일 */
-  description: string;
-  attachments: string[];
-  progress: RequestProgress;
-  /** 탐색 최신순 기준 (ISO 시각) */
-  createdAt: string;
-}
-
 /** 지원하기에서 쓰는 작업계획서 */
 export type { ApplicationPlan };
-
-export type ApplicationStatus = "reviewing" | "notSelected";
-
-/** 내가 지원한 의뢰 */
-export interface StudentApplication {
-  requestId: string;
-  appliedOn: string;
-  status: ApplicationStatus;
-  plan: ApplicationPlan;
-}
 
 /** 내가 보낸 제안. accepted = 사장님이 의뢰서를 보내 작업(workId)이 생김 */
 export type MyProposalStatus = "waiting" | "accepted";
@@ -177,8 +146,6 @@ export interface MyProposal {
   sentOn: string;
   empathyCount: number;
   status: MyProposalStatus;
-  /** 사장님이 열어 봤는지 */
-  seenByOwner: boolean;
   /** 손님 눈으로 본 문제 */
   problem: string;
   /** 이렇게 바꿔 드릴게요 */
@@ -190,40 +157,6 @@ export interface MyProposal {
   finalDays: number;
   attachments: string[];
   workId?: string;
-}
-
-/** 다른 학생 */
-export interface PeerStudent {
-  id: string;
-  name: string;
-  department: string;
-  year: string;
-  rating?: number;
-  completedCount: number;
-}
-
-export type PeerProposalProgress = "waitingAcceptance" | "accepted" | "completed";
-
-/** 다른 학생이 보낸 제안 (탐색 · 공감) */
-export interface PeerProposal {
-  id: string;
-  title: string;
-  field: Field;
-  storeName: string;
-  student: PeerStudent;
-  receivedOn: string;
-  progress: PeerProposalProgress;
-  /** 탐색 최신순 기준 (ISO 시각) */
-  createdAt: string;
-  /** 공감 수 (내 공감 포함) */
-  empathyCount: number;
-  /** 내가 공감했는지 */
-  empathized: boolean;
-  /** 내가 보낸 제안 (탐색에도 공개된다). 내 제안에는 공감할 수 없다 */
-  mine?: boolean;
-  problem: string;
-  solution: string;
-  attachments: string[];
 }
 
 /** 홈 「이런 제안은 어때요?」 예시. 누르면 제안 보내기를 이 내용으로 채워 시작한다 */
@@ -330,22 +263,24 @@ export interface SettlementSummary {
 export type StudentTodo =
   | { type: "drafting"; work: StudentWork }
   | { type: "revising"; work: StudentWork }
-  | { type: "agreement"; work: StudentWork };
+  | { type: "agreement"; work: StudentWork }
+  /** 사장님이 결제해 의뢰서가 온 내 제안 (GET /me/proposals 의 AWAITING_START) */
+  | { type: "proposalAgreement"; proposal: SentProposal };
 
 /** 기다리는 중 한 줄 */
 export type StudentWaitingItem =
   | { type: "proposal"; proposal: SentProposal }
-  | { type: "application"; application: StudentApplication; request: StudentRequest };
+  | { type: "application"; job: AppliedJob };
 
 export interface StudentHome {
   /**
    * 이력(작업 · 지원 · 제안)이 하나도 없으면 할 일 대신 사용법 안내.
-   * 작업 · 지원이 없고 보낸 제안을 아직 못 불러왔으면(불러오는 중 · 실패) undefined (모름)
+   * 작업 · 지원 · 제안이 없고 지원한 의뢰나 보낸 제안을 아직 못 불러왔으면(불러오는 중 · 실패) undefined (모름)
    */
   firstVisit: boolean | undefined;
   todos: StudentTodo[];
-  /** 공감을 기다리는 다른 학생 제안 (공감 많은 순) */
-  peerProposals: PeerProposal[];
+  /** 공감 많은 다른 학생 제안 (GET /explore). 불러오는 중 · 실패 · 내 제안 목록을 모를 때는 빈 목록 */
+  peerProposals: ExploreProposalCard[];
   /** 사장님이 확인 중 (낸 결과물) */
   checking: StudentWork[];
   /** 수락 대기 중인 보낸 제안 + 고르는 중인 지원. 보낸 제안은 불러온 뒤에만 들어간다 */

@@ -16,11 +16,23 @@
   min-width: 0;
   box-sizing: border-box;
   padding: 0 0 10px 10px;
+  position: relative;
+  overflow: hidden;
   border-radius: 12px;
   background: var(--role-muted);
 }
 
+/* 사진은 칸을 채우고, 파일 이름은 그 위에 */
+.attachment-tiles__image {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
 .attachment-tiles__name {
+  position: relative;
   display: inline-flex;
   align-items: center;
   max-width: calc(100% - 10px);

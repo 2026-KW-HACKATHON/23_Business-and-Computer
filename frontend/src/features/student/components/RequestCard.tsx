@@ -7,66 +7,64 @@ import {
 } from "../../../components";
 import { formatMonthDay } from "../../../lib/date";
 import { formatWon } from "../../../lib/money";
-import type { StudentRequest } from "../types";
+import { categoryNames, jobStatusLabel } from "../../explore";
+import type { ExploreJobCard } from "../../explore";
 import "./ExploreCards.css";
 
 interface RequestCardProps {
-  request: StudentRequest;
-  /** 이미 지원했으면 「지원하기」 대신 「지원했어요」 */
-  applied: boolean;
-  /** 제목 · 「의뢰서 전체 보기」 · 「의뢰서 상세 보기」: 의뢰서 전체 보기로 */
+  job: ExploreJobCard;
+  /** 제목 · 「의뢰서 전체 보기」: 의뢰서 전체 보기로 */
   onOpen: () => void;
   onApply: () => void;
 }
 
 /**
- * 학생 탐색의 의뢰 카드. 모집 중이면 예산 · 「의뢰서 전체 보기」 · 「지원하기」,
- * 끝났으면 「의뢰서 상세 보기」
+ * 학생 탐색의 의뢰 카드 (GET /explore 의 JOB). 모집 중이면 초안 마감 뱃지와 「지원하기」.
+ * 예산은 서버가 budget 을 줄 때만, 「지원했어요」는 applied(내 지원서 상태)가 올 때만 보인다.
  */
-function RequestCard({ request, applied, onOpen, onApply }: RequestCardProps) {
-  const recruiting = request.progress === "recruiting";
+function RequestCard({ job, onOpen, onApply }: RequestCardProps) {
+  const recruiting = job.status === "OPEN";
+  const applied = job.applied != null;
 
   return (
     <article className="student-card">
       <div className="student-card__head">
         <WorkKindIcon kind="request" size={22} />
         <button type="button" className="student-card__title" onClick={onOpen}>
-          {request.title}
+          {job.title}
         </button>
         {recruiting && (
-          <DeadlineBadge stage="draft" due={`${formatMonthDay(request.draftDue)}까지`} />
+          <DeadlineBadge stage="draft" due={`${formatMonthDay(job.draftDeadline)}까지`} />
         )}
       </div>
       <div className="student-card__meta">
-        <CategoryBadge field={request.field} />
-        <span className="student-card__sub">{request.store.name}</span>
+        {categoryNames(job.specialtyCategories).map((name) => (
+          <CategoryBadge key={name} field={name} />
+        ))}
+        <span className="student-card__sub">{job.storeName}</span>
       </div>
-      <p className="student-card__status">{recruiting ? "모집 중" : "완료"}</p>
+      <p className="student-card__status">{jobStatusLabel(job.status)}</p>
       <div className="student-card__divider" />
-      {recruiting ? (
-        <>
-          <div className="student-card__footer">
-            <p className="student-card__budget">
-              <span>예산</span>
-              <strong>{formatWon(request.budget)}</strong>
-            </p>
-            <TextButton onClick={onOpen}>의뢰서 전체 보기</TextButton>
-          </div>
-          <Button
-            tone="student"
-            size="medium"
-            fullWidth
-            variant={applied ? "secondary" : "primary"}
-            disabled={applied}
-            onClick={onApply}
-          >
-            {applied ? "지원했어요" : "지원하기"}
-          </Button>
-        </>
-      ) : (
-        <TextButton className="student-card__open" onClick={onOpen}>
-          의뢰서 상세 보기
-        </TextButton>
+      <div className="student-card__footer">
+        {job.budget != null && (
+          <p className="student-card__budget">
+            <span>예산</span>
+            <strong>{formatWon(job.budget)}</strong>
+          </p>
+        )}
+        <TextButton onClick={onOpen}>의뢰서 전체 보기</TextButton>
+      </div>
+      {recruiting && (
+        <Button
+          tone="student"
+          size="medium"
+          fullWidth
+          variant={applied ? "secondary" : "primary"}
+          disabled={applied}
+          onClick={onApply}
+        >
+          {applied ? "지원했어요" : "지원하기"}
+        </Button>
       )}
     </article>
   );

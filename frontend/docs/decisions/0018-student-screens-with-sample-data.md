@@ -21,19 +21,17 @@ owner's applicant list).
   only through the hooks in `src/features/student/hooks/useStudentData.ts` and
   `useStudentHome.ts`.
 - Sample data has one source per kind: works and chat threads
-  (`src/features/student/lib/sampleWorks.ts`), requests and applications
-  (`sampleRequests.ts`), my and other students' proposals
+  (`src/features/student/lib/sampleWorks.ts`), my proposals and the home examples
   (`sampleProposals.ts`), stores, the profile, and notifications. The home,
   내 활동 counts, settlements, the portfolio, chat rows, and the profile's
   completed count, rating, and reviews are derived from them.
 - Facts shared with the owner sample keep the same ids and values: work-103
-  and work-090 (치킨플러스), the requests req-102 · 104 · 105 and the other
-  stores' req-502 · 504 · 506 · 507, and the proposals prop-501 · 503 · 505.
+  and work-090 (치킨플러스). Applications come from the API (ADR 0027).
   김광운's owner-side profile matches the student's own profile. Where the
   Figma student sample conflicted with the owner sample, the student sample
   changed (store or title) and Figma was updated to match.
-- Demo state (agree to a request, submit a draft or revision, empathy, cancel
-  a proposal, send a proposal, apply, decline a request, edit the profile and
+- Demo state (agree to a request, submit a draft or revision, cancel
+  a proposal, send a proposal, decline a request, edit the profile and
   photo) lives in
   `src/features/student/hooks/studentStore.ts` and re-renders readers through
   `useSyncExternalStore`. A reload resets it.
@@ -43,8 +41,8 @@ owner's applicant list).
   line (「디자인 / 홍보」) is derived from the chosen badges, not stored.
 - The student home shows 「학생 홈 - 처음」 when the account has no works,
   applications, or proposals, derived from the lists (no backend flag). Sent
-  proposals now come from the API, so the check waits for that list
-  (ADR 0023).
+  proposals and applications now come from the API, so the check waits for
+  those lists (ADR 0023, ADR 0027).
 - Shared pieces moved out of the owner feature so both roles use them:
   `src/components/FormFields/FormFields.tsx` (title, text area, budget, due
   dates, revision stepper),
@@ -59,9 +57,9 @@ owner's applicant list).
   「내 제안이에요」 with the empathy count only; they open my sent proposal and
   never appear under 「다른 학생들의 제안 공감하기」. A student cannot empathize
   with their own proposal.
-- Explore cards show the store name only, as on the owner side. Request
-  details, the store list, and my own proposals keep the store address, since
-  a student visits the store.
+- Explore cards show the store name only, as on the owner side. The store
+  list and my own proposals keep the store address, since a student visits
+  the store; request details show it when the server sends it (ADR 0026).
 - Popups added in code and Figma: 내 지원서 보기 · 지원 결과 보기, 의뢰서 거절
   확인, 사장님 문제 신고 - 메일 문의 안내.
 
@@ -88,5 +86,6 @@ owner's applicant list).
   the backend (ADR 0020); its sample stores and the demo `sendProposal` are no
   longer used there. Sent proposals (내 활동 › 보낸 제안, their detail, the
   home 「기다리는 중」, the 내 정보 count) call the backend too (ADR 0023);
-  Other student screens, including 탐색
-  「내 제안」 and the work-start screen, still read the sample data.
+  탐색 (the list, the job detail, apply, and the peer-proposal detail) and
+  the home 「다른 학생들의 제안 공감하기」 call the backend too (ADR 0026). Other student screens,
+  including the work-start screen, still read the sample data.

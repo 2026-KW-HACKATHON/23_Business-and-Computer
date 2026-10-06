@@ -7,6 +7,7 @@ import {
   setOwnerStorePhoto,
   useOwnerProfile,
   useOwnerStorePhoto,
+  useOpenJobs,
   useReceivedProposals,
 } from "../features/owner";
 import type { ActivityTab } from "../features/owner";
@@ -32,6 +33,7 @@ function OwnerMePage() {
   const [termsOpen, setTermsOpen] = useState(false);
   const { counts } = profile;
   const { load: proposalsLoad } = useReceivedProposals();
+  const { load: openLoad } = useOpenJobs();
 
   const openActivity = (tab: ActivityTab) => navigate(OWNER_PATHS.activity(tab));
 
@@ -78,7 +80,7 @@ function OwnerMePage() {
         </div>
         <SummaryCard
           items={[
-            { label: "보낸 의뢰", count: counts.sent },
+            { label: "보낸 의뢰", count: openLoad.status === "loaded" ? openLoad.data.length : "-" },
             {
               label: "받은 제안",
               count: proposalsLoad.status === "loaded" ? proposalsLoad.proposals.length : "-",

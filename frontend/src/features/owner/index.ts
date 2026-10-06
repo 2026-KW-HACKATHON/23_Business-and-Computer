@@ -11,11 +11,9 @@ export { default as WorkPlanSheet } from "./components/WorkPlanSheet";
 export {
   completeOwnerWork,
   markOwnerWorkReviewed,
-  useExploreDetail,
   useOwnerChatThread,
   useOwnerChats,
   useOwnerCheckout,
-  useOwnerExplore,
   useOwnerNotifications,
   useOwnerPayments,
   useOwnerProfile,
@@ -29,7 +27,6 @@ export {
 } from "./hooks/useOwnerData";
 export {
   markOwnerNotificationsRead,
-  registerOwnerRequest,
   saveOwnerStore,
   setOwnerStorePhoto,
   useOwnerStorePhoto,
@@ -37,7 +34,25 @@ export {
 export { useSafePayment } from "./hooks/useSafePayment";
 export { useOwnerHome } from "./hooks/useOwnerHome";
 export { useReceivedProposals } from "./hooks/useReceivedProposals";
+export { useApplicantProfile, useJobApplications, useOpenJobs } from "./hooks/useOwnerJobs";
+export type { OwnerJobLoad } from "./hooks/useOwnerJobs";
 export {
+  applicantPlan,
+  averageReviewRating,
+  jobCategoryNames,
+  jobSpecialtyNames,
+  parsePositiveId,
+  sendJobCancel,
+} from "./lib/ownerJobs";
+export type {
+  ApplicantProfile,
+  JobApplicant,
+  JobApplicationSort,
+  JobApplications,
+  OpenJob,
+} from "./lib/ownerJobs";
+export {
+  admissionYearText,
   proposalStudentRecord,
   receivedOnText,
   receivedProposalFlowSteps,
@@ -47,7 +62,6 @@ export {
 export type { ReceivedProposal } from "./lib/receivedProposals";
 export { flowSteps } from "./lib/flow";
 export {
-  EXPLORE_PROGRESS_LABEL,
   WAITING_STATUS_LABEL,
   chatProgressText,
   deadlineText,
@@ -63,8 +77,12 @@ export {
   dueDatesReady,
   photoSizeText,
   readNewRequestState,
+  requestSpecialtyIds,
+  sendJobCreate,
   similarRequestState,
   taskSummary,
+  toJobCreateRequest,
+  uploadRequestPhoto,
 } from "./lib/newRequest";
 export type { NewRequestState } from "./lib/newRequest";
 export { NOTIFICATION_ICON, notificationPath } from "./lib/notifications";
@@ -74,8 +92,6 @@ export type { ActivityTab } from "./lib/paths";
 export type {
   ChatMessage,
   DueDates,
-  ExploreDetail,
-  ExploreItem,
   OwnerChatRoom,
   OwnerDoneItem,
   OwnerHome,

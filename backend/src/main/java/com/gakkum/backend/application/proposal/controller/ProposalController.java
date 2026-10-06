@@ -11,9 +11,11 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.gakkum.backend.application.proposal.dto.MyProposalListResponse;
+import com.gakkum.backend.application.proposal.dto.ProposalCancelResponse;
 import com.gakkum.backend.application.proposal.dto.ProposalCreateRequest;
 import com.gakkum.backend.application.proposal.dto.ProposalCreateResponse;
 import com.gakkum.backend.application.proposal.dto.ProposalDetailResponse;
+import com.gakkum.backend.application.proposal.dto.ProposalJobDeclineResponse;
 import com.gakkum.backend.application.proposal.dto.ProposalJobStartRequest;
 import com.gakkum.backend.application.proposal.dto.ProposalJobStartResponse;
 import com.gakkum.backend.application.proposal.dto.ProposalLikeResponse;
@@ -67,6 +69,15 @@ public class ProposalController {
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
+    /** 제안한 학생이 결제 전 제안을 취소하는 API. 이미 취소한 본인 제안의 재요청도 성공한다 */
+    @PostMapping("/proposals/{proposalId}/cancel")
+    public ResponseEntity<ApiResponse<ProposalCancelResponse>> cancelProposal(
+            Authentication authentication, @PathVariable @Positive Long proposalId) {
+        ProposalCancelResponse response = ProposalCancelResponse.from(
+                proposalFacade.cancelProposal(authentication.getName(), proposalId));
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
     /** 제안한 학생이 확정 작업 조건에 동의하고 결제된 제안 의뢰의 작업을 시작하는 API */
     @PostMapping("/jobs/{jobId}/start")
     public ResponseEntity<ApiResponse<ProposalJobStartResponse>> startProposalJob(
@@ -78,7 +89,16 @@ public class ProposalController {
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
-    /** 로그인한 학생이 보낸 모든 제안을 최신순으로 조회하는 API */
+    /** 제안한 학생이 결제된 제안 의뢰서를 작업 시작 전에 거절하는 API. 사장님 작업비는 전액 환불 처리한다 */
+    @PostMapping("/jobs/{jobId}/decline")
+    public ResponseEntity<ApiResponse<ProposalJobDeclineResponse>> declineProposalJob(
+            Authentication authentication, @PathVariable @Positive Long jobId) {
+        ProposalJobDeclineResponse response = ProposalJobDeclineResponse.from(
+                proposalFacade.declineProposalJob(authentication.getName(), jobId));
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    /** 로그인한 학생이 보낸 제안 중 취소하지 않은 제안을 최신순으로 조회하는 API */
     @GetMapping("/me/proposals")
     public ResponseEntity<ApiResponse<MyProposalListResponse>> getMyProposals(Authentication authentication) {
         MyProposalListResponse response = MyProposalListResponse.from(
@@ -86,7 +106,7 @@ public class ProposalController {
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
-    /** 로그인한 사장님이 받은 모든 제안을 최신순으로 조회하는 API */
+    /** 로그인한 사장님이 받은 제안 중 취소되지 않은 제안을 최신순으로 조회하는 API */
     @GetMapping("/me/received-proposals")
     public ResponseEntity<ApiResponse<ReceivedProposalListResponse>> getReceivedProposals(
             Authentication authentication) {

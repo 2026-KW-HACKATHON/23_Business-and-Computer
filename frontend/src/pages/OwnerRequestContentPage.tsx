@@ -24,6 +24,7 @@ import {
 } from "../features/owner";
 import type { RequestContent } from "../features/owner";
 import { useBack } from "../hooks/useBack";
+import { useObjectUrls } from "../hooks/useObjectUrls";
 import "./OwnerRequestNewPage.css";
 
 const EMPTY_CONTENT: RequestContent = {
@@ -52,6 +53,7 @@ function OwnerRequestContentPage() {
   );
   const [photoNotice, setPhotoNotice] = useState("");
   const fileInput = useRef<HTMLInputElement>(null);
+  const photoUrls = useObjectUrls(content.photos);
 
   if (!state) return <Navigate to={OWNER_PATHS.newRequest} replace />;
 
@@ -159,7 +161,7 @@ function OwnerRequestContentPage() {
             )}
             {content.photos.map((photo, i) => (
               <div key={`${photo.name}-${i}`} className="owner-new__file">
-                <span aria-hidden="true">📄</span>
+                <img className="owner-new__thumb" src={photoUrls[i]} alt="" />
                 <strong>{photo.name}</strong>
                 <small>{photoSizeText(photo.size)}</small>
                 <button type="button" aria-label={`${photo.name} 빼기`} onClick={() => removePhoto(i)}>

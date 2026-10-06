@@ -126,7 +126,7 @@ class ExploreFlowTest {
     @DisplayName("제안과 취소되지 않은 의뢰를 최신순으로 섞어 카드마다 매장·분류·진행 단계를 채우고 다음 커서를 응답한다")
     void returnsMixedCardsThroughAllLayers() throws Exception {
         givenActiveUser();
-        when(proposalRepository.findByDemoSessionIdAndCreatedAtLessThanOrderByCreatedAtDescIdDesc(any(), any(), eq(Limit.of(3))))
+        when(proposalRepository.findByDemoSessionIdAndStatusNotAndCreatedAtLessThanOrderByCreatedAtDescIdDesc(any(), eq(ProposalStatus.CANCELLED), any(), eq(Limit.of(3))))
                 .thenReturn(List.of(proposal(31L, T2, 4, 50L), proposal(30L, T1, 0, 50L, 71L)));
         when(jobRepository.findByDemoSessionIdAndStatusNotAndCreatedAtLessThanOrderByCreatedAtDescIdDesc(
                 any(), eq(JobStatus.CANCELLED), any(), eq(Limit.of(3))))
@@ -345,8 +345,8 @@ class ExploreFlowTest {
                 .andExpect(jsonPath("$.data.hasNext").value(false));
 
         // 같은 시각 제안은 커서 ID 앞만, 같은 시각 의뢰는 제안 뒤라 모두 읽는다
-        verify(proposalRepository).findByDemoSessionIdAndCreatedAtAndIdLessThanOrderByIdDesc(null, T2, 31L, Limit.of(3));
-        verify(proposalRepository).findByDemoSessionIdAndCreatedAtLessThanOrderByCreatedAtDescIdDesc(null, T2, Limit.of(3));
+        verify(proposalRepository).findByDemoSessionIdAndStatusNotAndCreatedAtAndIdLessThanOrderByIdDesc(null, ProposalStatus.CANCELLED, T2, 31L, Limit.of(3));
+        verify(proposalRepository).findByDemoSessionIdAndStatusNotAndCreatedAtLessThanOrderByCreatedAtDescIdDesc(null, ProposalStatus.CANCELLED, T2, Limit.of(3));
         verify(jobRepository).findByDemoSessionIdAndStatusNotAndCreatedAtAndIdLessThanOrderByIdDesc(
                 null, JobStatus.CANCELLED, T2, Long.MAX_VALUE, Limit.of(3));
         verifyNoInteractions(ownerRepository, specialtyRepository, studentRepository, proposalLikeRepository);
@@ -362,7 +362,7 @@ class ExploreFlowTest {
                 .andExpect(jsonPath("$.data.items").isEmpty());
 
         verify(proposalRepository).findExploreByLikesInCategory(
-                any(), eq(3L), eq(Integer.MAX_VALUE), any(), eq(Long.MAX_VALUE), eq(Limit.of(21)));
+                any(), eq(ProposalStatus.CANCELLED), eq(3L), eq(Integer.MAX_VALUE), any(), eq(Long.MAX_VALUE), eq(Limit.of(21)));
         verifyNoInteractions(jobRepository);
     }
 
@@ -412,7 +412,7 @@ class ExploreFlowTest {
     }
 
     private void givenProposals(Proposal... proposals) {
-        when(proposalRepository.findByDemoSessionIdAndCreatedAtLessThanOrderByCreatedAtDescIdDesc(any(), any(), any()))
+        when(proposalRepository.findByDemoSessionIdAndStatusNotAndCreatedAtLessThanOrderByCreatedAtDescIdDesc(any(), eq(ProposalStatus.CANCELLED), any(), any()))
                 .thenReturn(List.of(proposals));
         when(ownerRepository.findAllById(any())).thenReturn(List.of(
                 Owner.builder().id(50L).storeName("가꿈 분식").build()));

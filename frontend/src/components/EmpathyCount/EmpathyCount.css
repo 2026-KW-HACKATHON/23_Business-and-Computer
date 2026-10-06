@@ -6,7 +6,6 @@
   box-sizing: border-box;
   height: 24px;
   padding: 4px 10px;
-  border: none;
   border-radius: 999px;
   background: var(--role-muted);
   font-family: var(--font-sans);
@@ -20,11 +19,9 @@
   color: var(--color-black);
 }
 
-button.empathy-count {
+/* 누를 수 있는 공감 (탐색 카드 · 홈) */
+.empathy-count--button {
+  border: 0;
   cursor: pointer;
-}
-
-button.empathy-count:focus-visible {
-  outline: 2px solid var(--color-black);
-  outline-offset: 2px;
+  -webkit-tap-highlight-color: transparent;
 }

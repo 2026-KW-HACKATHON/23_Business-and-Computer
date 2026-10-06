@@ -59,6 +59,14 @@
   background: var(--role-muted);
 }
 
-.explore-card__open {
-  align-self: flex-start;
+.explore-card__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.explore-card__hint {
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--role-secondary);
 }

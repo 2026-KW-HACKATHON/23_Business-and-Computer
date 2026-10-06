@@ -15,32 +15,23 @@ export { default as StudentTodoCarousel } from "./components/StudentTodoCarousel
 export { default as WorkSummary } from "./components/WorkSummary";
 export {
   agreeToWork,
-  applyToRequest,
   declineWork,
   markNotificationsRead,
   saveMyProfile,
   setMyProfilePhoto,
   submitWork,
-  toggleEmpathy,
   useMyProfilePhoto,
 } from "./hooks/studentStore";
 export {
-  useExploreRequests,
   useMyProfile,
   useMyProposal,
-  usePeerProposal,
-  usePeerProposals,
   useProposalExample,
   useProposalExamples,
   useStore,
   useStores,
-  useStudentApplication,
-  useStudentApplications,
   useStudentChatThread,
   useStudentChats,
   useStudentNotifications,
-  useStudentRequest,
-  useStudentRequests,
   useStudentSettlements,
   useStudentWork,
   useStudentWorks,
@@ -48,13 +39,13 @@ export {
 export type { MyProfileView, ReceivedReview } from "./hooks/useStudentData";
 export { useExploreStores } from "./hooks/useExploreStores";
 export type { ExploreStoresLoad } from "./hooks/useExploreStores";
+export { useAppliedJobs } from "./hooks/useAppliedJobs";
+export type { AppliedJobsLoad } from "./hooks/useAppliedJobs";
 export { useSentProposals } from "./hooks/useSentProposals";
 export type { SentProposalsLoad } from "./hooks/useSentProposals";
 export { useStudentHome } from "./hooks/useStudentHome";
 export { flowSteps, workFlowSteps } from "./lib/flow";
 export {
-  APPLICATION_STATUS_LABEL,
-  PEER_PROGRESS_LABEL,
   chatStatusText,
   currentDeadline,
   deadlineText,
@@ -88,6 +79,10 @@ export {
   storeAddressText,
 } from "./lib/sentProposals";
 export type { SentProposal } from "./lib/sentProposals";
+export { appliedStatusLabel } from "./lib/appliedJobs";
+export { sendWorkStart } from "./lib/workStart";
+export type { WorkStartResult } from "./lib/workStart";
+export type { AppliedJob } from "./lib/appliedJobs";
 export { NOTIFICATION_ICON, notificationPath, notificationState } from "./lib/notifications";
 export { STUDENT_PATHS } from "./lib/paths";
 export type { ProfileEditSection, StudentActivityTab } from "./lib/paths";
@@ -96,12 +91,9 @@ export type {
   ExploreStore,
   ChatMessage,
   MyProposal,
-  PeerProposal,
   ProposalExample,
   Store,
-  StudentApplication,
   StudentNotification,
-  StudentRequest,
   StudentSettlement,
   StudentTodo,
   StudentWaitingItem,

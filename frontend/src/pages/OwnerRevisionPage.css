@@ -151,3 +151,12 @@
   line-height: 17px;
   color: #8b95a1;
 }
+
+/* 고른 사진 미리보기 */
+.owner-revision__thumb {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+  object-fit: cover;
+}

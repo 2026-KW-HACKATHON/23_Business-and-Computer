@@ -1,29 +1,38 @@
 import { CategoryBadge, EmpathyCount, TextButton, WorkKindIcon } from "../../../components";
-import { PEER_PROGRESS_LABEL } from "../lib/format";
-import type { PeerProposal } from "../types";
+import { categoryNames } from "../../explore";
+import type { ExploreProposalCard } from "../../explore";
+import type { ProposalLike } from "../../proposal";
+import { sentProposalStatusLabel } from "../lib/sentProposals";
 import "./ExploreCards.css";
+import { studentTitle } from "../../../lib/korean";
 
 interface PeerProposalCardProps {
-  proposal: PeerProposal;
+  proposal: ExploreProposalCard;
+  /** 내가 보낸 제안 (GET /me/proposals 에 있음) */
+  mine: boolean;
+  /** 지금 보이는 공감 수 · 공감 여부 (누른 결과 포함) */
+  like: ProposalLike;
+  /** 하트를 눌렀을 때. 내 제안에는 없다 */
+  onToggleLike?: () => void;
   onOpen: () => void;
-  onToggleEmpathy: () => void;
 }
 
 /**
- * 학생 탐색의 제안 카드. 수락을 기다리는 다른 학생 제안은 하트로 공감하고,
- * 수락된 제안과 내 제안은 공감 수만 보인다.
+ * 학생 탐색의 제안 카드 (GET /explore 의 PROPOSAL). 하트를 누르면 공감하고, 다시 누르면 취소한다.
+ * 수락 대기가 아닌 제안은 하트를 누를 수 없다.
+ * 내 제안은 하트를 누를 수 없고 「내 제안이에요」. 학생 이름 · 상태 · 해결 미리보기는
+ * 서버가 studentName · status · proposedSolution 을 줄 때만 보인다.
  */
-function PeerProposalCard({ proposal, onOpen, onToggleEmpathy }: PeerProposalCardProps) {
-  // 내 제안에는 공감할 수 없다 (공감 수만 보인다)
-  const open = proposal.progress === "waitingAcceptance" && !proposal.mine;
-  const hint = proposal.mine
+function PeerProposalCard({ proposal, mine, like, onToggleLike, onOpen }: PeerProposalCardProps) {
+  // 공감은 수락 대기 제안만 (상태를 모르면 누를 수 있게 둔다)
+  const open = !proposal.status || proposal.status === "PENDING";
+  const hint = mine
     ? "내 제안이에요"
-    : proposal.empathized
+    : like.likedByMe
       ? "공감했어요"
       : open
         ? "하트를 눌러 공감"
-        : "";
-
+        : undefined;
   return (
     <article className="student-card">
       <div className="student-card__head">
@@ -32,19 +41,27 @@ function PeerProposalCard({ proposal, onOpen, onToggleEmpathy }: PeerProposalCar
           {proposal.title}
         </button>
         <EmpathyCount
-          count={proposal.empathyCount}
-          empathized={proposal.empathized}
-          onToggle={open ? onToggleEmpathy : undefined}
+          count={like.likeCount}
+          empathized={like.likedByMe}
+          onToggle={mine || !open ? undefined : onToggleLike}
         />
       </div>
       <div className="student-card__meta">
-        <CategoryBadge field={proposal.field} />
+        {categoryNames(proposal.specialtyCategories).map((name) => (
+          <CategoryBadge key={name} field={name} />
+        ))}
         <span className="student-card__sub">
-          {proposal.student.name} 학생 → {proposal.storeName}
+          {proposal.studentName
+            ? `${studentTitle(proposal.studentName)} → ${proposal.storeName}`
+            : proposal.storeName}
         </span>
       </div>
-      <p className="student-card__status">{PEER_PROGRESS_LABEL[proposal.progress]}</p>
-      <p className="student-card__excerpt">{proposal.solution}</p>
+      {proposal.status && (
+        <p className="student-card__status">{sentProposalStatusLabel(proposal.status)}</p>
+      )}
+      {proposal.proposedSolution && (
+        <p className="student-card__excerpt">{proposal.proposedSolution}</p>
+      )}
       <div className="student-card__divider" />
       <div className="student-card__footer">
         <TextButton onClick={onOpen}>제안서 상세 보기</TextButton>

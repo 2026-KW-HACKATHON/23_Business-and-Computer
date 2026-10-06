@@ -42,7 +42,8 @@ export interface ProposalArrivedTodo extends TodoBase {
 /** 의뢰에 학생들이 지원했다 (id = 의뢰) */
 export interface ApplicantsTodo extends TodoBase {
   type: "applicants";
-  budget: number;
+  /** 작업비(원). 목록이 주지 않으면 없음 (「예산」 줄을 숨긴다) */
+  budget?: number;
   applicantCount: number;
   draftDue: string;
 }
@@ -91,7 +92,7 @@ export interface RequestContent {
   finalDue: string;
   /** 최소 1회 */
   revisions: number;
-  /** 참고 사진 (선택, 최대 5장). 등록할 때 올린다 */
+  /** 참고 사진 (선택, 최대 4장). 등록할 때 올린다 */
   photos: File[];
 }
 
@@ -130,24 +131,6 @@ export interface OwnerHome {
   examples: RequestExample[];
   /** 최근 끝난 것부터 */
   done: OwnerDoneItem[];
-}
-
-export type ExploreProgress = "waitingAcceptance" | "accepted" | "completed";
-
-/** 탐색 목록 카드 하나 (다른 가게의 제안·의뢰) */
-export interface ExploreItem {
-  id: string;
-  kind: WorkKind;
-  title: string;
-  field: Field;
-  storeName: string;
-  /** 제안만 */
-  empathyCount?: number;
-  /** 의뢰만: 아직 모집 중이면 마감 (YYYY-MM-DD) */
-  deadline?: { stage: DeadlineStage; due: string };
-  progress?: ExploreProgress;
-  /** 최신순 정렬 기준 (ISO 시각) */
-  createdAt: string;
 }
 
 /** 채팅 목록의 진행 상태 */
@@ -201,7 +184,8 @@ export interface OwnerProfile {
   address: string;
   businessVerified: boolean;
   /** 받은 제안 개수는 useReceivedProposals 로 센다 (ADR 0025) */
-  counts: { sent: number; inProgress: number; done: number };
+  /** 보낸 의뢰 수는 useOpenJobs 로 센다 */
+  counts: { inProgress: number; done: number };
 }
 
 export type WorkStatus = "inProgress" | "submitted" | "completed" | "canceled";
@@ -381,40 +365,3 @@ export interface StudentProfile extends StudentProfileRef {
   reviews: StudentReview[];
 }
 
-/** 탐색 상세: 다른 가게가 받은 제안 (읽기 전용, 희망 작업비 · 예상 기간은 숨김) */
-export interface ExploreProposalDetail {
-  id: string;
-  kind: "proposal";
-  title: string;
-  field: Field;
-  storeName: string;
-  receivedOn: string;
-  /** 탐색 카드와 같은 상태 (수락 대기 · 수락됨 · 완료) */
-  progress: ExploreProgress;
-  /** 탐색 목록 최신순 기준 (ISO 시각) */
-  createdAt: string;
-  empathyCount: number;
-  student: StudentProfileRef;
-  problem: string;
-  solution: string;
-  attachments: string[];
-}
-
-/** 탐색 상세: 다른 가게가 올린 의뢰 (읽기 전용, 작업비 · 마감일은 숨김) */
-export interface ExploreRequestDetail {
-  id: string;
-  kind: "request";
-  title: string;
-  field: Field;
-  storeName: string;
-  /** 모집 중이면 마감. 끝난 의뢰는 progress = completed */
-  deadline?: { stage: DeadlineStage; due: string };
-  progress?: ExploreProgress;
-  /** 탐색 목록 최신순 기준 (ISO 시각) */
-  createdAt: string;
-  tasks: string[];
-  description: string;
-  attachments: string[];
-}
-
-export type ExploreDetail = ExploreProposalDetail | ExploreRequestDetail;

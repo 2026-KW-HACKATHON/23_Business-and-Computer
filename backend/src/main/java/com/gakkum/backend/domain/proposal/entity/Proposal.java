@@ -151,6 +151,29 @@ public class Proposal {
         status = ProposalStatus.ACCEPTED;
     }
 
+    /** 제안한 학생이 결제된 의뢰서를 작업 시작 전에 거절한다. 수락 대기(AWAITING_START) 제안만 거절할 수 있다. */
+    public void reject() {
+        if (status != ProposalStatus.AWAITING_START) {
+            throw new BusinessException(ErrorCode.JOB_DECLINE_NOT_AVAILABLE);
+        }
+        status = ProposalStatus.REJECTED;
+    }
+
+    /**
+     * 제안한 학생이 결제 전(PENDING) 제안을 취소한다. 공감 기록을 함께 지우므로 공감 수도 0으로 되돌린다.
+     * 이미 취소된 제안의 재요청은 그대로 둔다.
+     */
+    public void cancel() {
+        if (status == ProposalStatus.CANCELLED) {
+            return;
+        }
+        if (status != ProposalStatus.PENDING) {
+            throw new BusinessException(ErrorCode.PROPOSAL_CANCEL_NOT_AVAILABLE);
+        }
+        status = ProposalStatus.CANCELLED;
+        likeCount = 0;
+    }
+
     /** 공감 기록이 새로 저장될 때 공감 수를 1 올린다. */
     public void increaseLikeCount() {
         likeCount++;

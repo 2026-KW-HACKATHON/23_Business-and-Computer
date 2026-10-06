@@ -23,10 +23,14 @@ import {
 import type { NewProposalState, ProposalDoneState } from "../features/student";
 import { expectedDaysText } from "../features/proposal";
 import { useBack } from "../hooks/useBack";
+import { useObjectUrls } from "../hooks/useObjectUrls";
 import { formatWon } from "../lib/money";
 import { FIELDS } from "../types/field";
 import type { Field } from "../types/field";
 import "./StudentProposalNewPage.css";
+
+/** 사진이 없을 때 미리보기 훅에 넘기는 빈 목록 (매번 새 배열이면 주소를 다시 만든다) */
+const NO_PHOTOS: File[] = [];
 
 type SendError = "photo" | "invalidInput" | "dataConflict" | "retry";
 
@@ -55,6 +59,7 @@ function StudentProposalConfirmPage() {
   const requestId = useRef(0);
   // 다시 시도할 때 이미 올린 사진은 또 올리지 않는다
   const uploaded = useRef(new Map<File, string>());
+  const photoUrls = useObjectUrls(state?.content?.photos ?? NO_PHOTOS);
 
   useEffect(() => {
     const latest = requestId;
@@ -213,7 +218,7 @@ function StudentProposalConfirmPage() {
             <p className="student-confirm__text-body">{content.plan}</p>
           </div>
           {content.photos.length > 0 && (
-            <AttachmentTiles names={content.photos.map((p) => p.name)} height={90} />
+            <AttachmentTiles names={content.photos.map((p) => p.name)} srcs={photoUrls} height={90} />
           )}
           <hr className="student-confirm__divider" />
           <TextButton className="student-confirm__edit" onClick={back}>
