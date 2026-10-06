@@ -35,6 +35,8 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.gakkum.backend.application.category.controller.BusinessCategoryController;
+import com.gakkum.backend.application.chat.controller.ChatController;
+import com.gakkum.backend.application.chat.facade.ChatFacade;
 import com.gakkum.backend.application.specialty.controller.SpecialtyController;
 import com.gakkum.backend.application.explore.controller.ExploreController;
 import com.gakkum.backend.application.explore.facade.ExploreFacade;
@@ -72,7 +74,7 @@ import com.gakkum.backend.util.JWTUtil;
 @WebMvcTest(controllers = {SecurityConfigTest.TestController.class, SpecialtyController.class,
         JobController.class, PaymentController.class, MediaController.class, ReviewController.class,
         ProposalController.class, ExploreController.class, BusinessCategoryController.class,
-        StudentController.class, OwnerController.class})
+        StudentController.class, OwnerController.class, ChatController.class})
 @Import({SecurityConfig.class, RestAuthenticationEntryPoint.class})
 @TestPropertySource(properties = "demo-login.enabled=false")
 class SecurityConfigTest {
@@ -124,6 +126,9 @@ class SecurityConfigTest {
 
     @MockitoBean
     private OwnerFacade ownerFacade;
+
+    @MockitoBean
+    private ChatFacade chatFacade;
 
     @Test
     @DisplayName("인증 없이 탐색 목록을 조회하면 401을 반환한다")
@@ -316,6 +321,18 @@ class SecurityConfigTest {
             .andExpect(jsonPath("$.data.ownerProfileId").value(5))
             .andExpect(jsonPath("$.data.name").value("김사장"))
             .andExpect(jsonPath("$.data.sentJobCount").value(3));
+    }
+
+    @Test
+    @DisplayName("인증 없이 채팅방 목록, 채팅방 단건, 대화 내역을 조회하면 401을 반환하고 컨트롤러에 도달하지 않는다")
+    void chatReadsRequireAuthentication() throws Exception {
+        for (String path : List.of("/me/chat-rooms", "/chat-rooms/room-1", "/chat-rooms/room-1/messages")) {
+            mockMvc.perform(get(path))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.error.code").value("COMMON_401"));
+        }
+
+        verifyNoInteractions(chatFacade);
     }
 
     @Test
