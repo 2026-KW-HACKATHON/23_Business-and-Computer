@@ -17,7 +17,6 @@ export const SAMPLE_STUDENT_PROFILES: StudentProfile[] = [
     intro: "외국어 메뉴판 번역과 소개 글을 주로 해요",
     proposalCount: 6,
     noShowCount: 0,
-    onTimeRate: 100,
     badges: ["영어 번역", "중국어 번역", "소개·공지 글쓰기"],
     certificates: [
       { name: "TOEIC 950점", acquiredYear: 2025 },
@@ -58,7 +57,6 @@ export const SAMPLE_STUDENT_PROFILES: StudentProfile[] = [
     intro: "중국어가 모국어예요. 중국 손님 눈높이로 옮겨 드려요",
     proposalCount: 3,
     noShowCount: 0,
-    onTimeRate: 100,
     badges: ["중국어 번역", "영어 번역"],
     certificates: [{ name: "TOPIK 6급", acquiredYear: 2024 }],
     reviews: [
@@ -101,7 +99,6 @@ export const SAMPLE_STUDENT_PROFILES: StudentProfile[] = [
     intro: "번역한 메뉴를 메뉴판 디자인까지 맞춰 드려요",
     proposalCount: 2,
     noShowCount: 0,
-    onTimeRate: 100,
     badges: ["영어 번역", "메뉴판·가격표 디자인"],
     certificates: [{ name: "TOEIC 900점", acquiredYear: 2025 }],
     portfolioUrl: "behance.net/seoyun-choi",
@@ -138,7 +135,6 @@ export const SAMPLE_STUDENT_PROFILES: StudentProfile[] = [
     intro: "작은 가게에 맞는 홈페이지와 예약 페이지를 만들어요",
     proposalCount: 4,
     noShowCount: 0,
-    onTimeRate: 67,
     badges: ["가게 홈페이지", "메뉴판(QR,웹,모바일)", "온라인 예약·주문서"],
     certificates: [{ name: "정보처리기사", acquiredYear: 2025 }],
     portfolioUrl: "github.com/minjun-oh",
@@ -182,7 +178,6 @@ export const SAMPLE_STUDENT_PROFILES: StudentProfile[] = [
     intro: "지도·SNS에 보이는 가게 모습을 정리해 드려요",
     proposalCount: 8,
     noShowCount: 0,
-    onTimeRate: 100,
     badges: ["음식·매장 사진", "SNS 게시물", "리뷰 분석"],
     certificates: [],
     portfolioUrl: "instagram.com/nuri.shot",
@@ -220,7 +215,6 @@ export const SAMPLE_STUDENT_PROFILES: StudentProfile[] = [
     intro: "인스타 게시물과 짧은 영상을 만들어요",
     proposalCount: 2,
     noShowCount: 0,
-    onTimeRate: 100,
     badges: ["SNS 게시물", "영상 제작 및 편집"],
     certificates: [],
     reviews: [
@@ -243,7 +237,6 @@ export const SAMPLE_STUDENT_PROFILES: StudentProfile[] = [
     intro: "메뉴판·로고 디자인을 주로 해요",
     proposalCount: 6,
     noShowCount: 0,
-    onTimeRate: 100,
     badges: ["메뉴판·가격표 디자인", "로고 디자인", "SNS 게시물"],
     certificates: [
       { name: "GTQ 1급", acquiredYear: 2023 },
@@ -284,7 +277,6 @@ export const SAMPLE_STUDENT_PROFILES: StudentProfile[] = [
     intro: "메뉴판·간판처럼 가게 얼굴이 되는 디자인을 해요",
     proposalCount: 9,
     noShowCount: 0,
-    onTimeRate: 100,
     badges: ["메뉴판·가격표 디자인", "간판·현수막 시안", "로고 디자인"],
     certificates: [{ name: "GTQ 1급", acquiredYear: 2024 }],
     portfolioUrl: "behance.net/eunseo-lee",

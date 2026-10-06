@@ -108,8 +108,6 @@ export interface ApplicantProfileResponse {
   specialtyCategories: JobSpecialtyCategory[];
   /** 한 줄 소개. 서버가 주면 프로필 이름 아래에 보인다 */
   intro?: string | null;
-  /** 마감을 지킨 비율(%). 서버가 주면 「마감 지킴」에 보인다 */
-  onTimeRate?: number | null;
   certificates: { certificateName: string; acquiredYear?: number | null }[];
   portfolioUrl?: string | null;
   penaltyCount: number;

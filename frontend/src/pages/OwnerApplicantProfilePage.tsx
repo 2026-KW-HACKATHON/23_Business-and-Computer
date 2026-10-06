@@ -25,7 +25,7 @@ import "./OwnerStudentPage.css";
 /**
  * 피그마 「지원자 학생 프로필 보기」. GET /jobs/{id}/applications/{applicationId}/profile (ADR 0030).
  * 전공역량 · 자격증 · 포트폴리오 · 후기, 아래에 「이 학생에게 맡기기」(결제 화면).
- * 한 줄 소개 · 마감 지킴은 서버가 intro · onTimeRate 를 줄 때만 보이고, 자격증은 취득 연도만 온다.
+ * 한 줄 소개는 서버가 intro 를 줄 때만 보이고, 자격증은 취득 연도만 온다.
  */
 function OwnerApplicantProfilePage() {
   const { requestId, applicationId } = useParams();
@@ -95,10 +95,6 @@ function OwnerApplicantProfilePage() {
             <div className="owner-student__stat">
               <dt>완료한 작업</dt>
               <dd>{profile.completedJobCount}건</dd>
-            </div>
-            <div className="owner-student__stat">
-              <dt>마감 지킴</dt>
-              <dd>{typeof profile.onTimeRate === "number" ? `${profile.onTimeRate}%` : "-"}</dd>
             </div>
             <div className="owner-student__stat">
               <dt>사장님 평점</dt>

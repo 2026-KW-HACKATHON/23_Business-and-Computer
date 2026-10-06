@@ -353,8 +353,6 @@ export interface StudentProfile extends StudentProfileRef {
   intro: string;
   proposalCount: number;
   noShowCount: number;
-  /** 마감을 지킨 비율 (%). 완료한 작업이 없으면 비운다 */
-  onTimeRate?: number;
   badges: string[];
   certificates: StudentCertificate[];
   /** 「notion.so/…」처럼 https:// 없이 */

@@ -55,10 +55,6 @@ function OwnerStudentPage() {
             <dd>{profile.completedCount}건</dd>
           </div>
           <div className="owner-student__stat">
-            <dt>마감 지킴</dt>
-            <dd>{profile.onTimeRate === undefined ? "-" : `${profile.onTimeRate}%`}</dd>
-          </div>
-          <div className="owner-student__stat">
             <dt>사장님 평점</dt>
             <dd>{profile.rating === undefined ? "-" : `★ ${profile.rating.toFixed(1)}`}</dd>
           </div>
