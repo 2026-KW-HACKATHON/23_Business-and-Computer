@@ -13,6 +13,8 @@ import { landingPath } from "../features/auth";
 import {
   OWNER_PATHS,
   OwnerMissing,
+  REQUEST_PHOTO_ACCEPT,
+  addRequestPhotos,
   parsePositiveId,
   sendRevisionRequest,
   useOwnerProgressJobs,
@@ -49,7 +51,7 @@ function RevisionWork({ kind, title, meta }: { kind: WorkKind; title: string; me
   );
 }
 
-/** 고칠 곳 · 참고 사진 칸 */
+/** 고칠 곳 · 참고 사진 칸. 사진은 JPG · PNG · WEBP, 10MB 이하, 4장까지 (맞지 않는 사진은 빼고 안내) */
 function RevisionForm({
   detail,
   onDetail,
@@ -62,6 +64,7 @@ function RevisionForm({
   onPhotos: (photos: File[]) => void;
 }) {
   const photoUrls = useObjectUrls(photos);
+  const [photoNotice, setPhotoNotice] = useState<string>();
   return (
     <>
       <FormField label="자세히 적어 주세요" wrapsInput>
@@ -77,19 +80,26 @@ function RevisionForm({
         <label className="owner-revision__photo-button">
           <input
             type="file"
-            accept="image/*"
+            accept={REQUEST_PHOTO_ACCEPT}
             multiple
             className="owner-revision__photo-input"
             onChange={(e) => {
               const picked = Array.from(e.target.files ?? []).filter(
                 (file) => !photos.some((photo) => photo.name === file.name),
               );
-              onPhotos([...photos, ...picked]);
+              const next = addRequestPhotos(photos, picked);
+              onPhotos(next.photos);
+              setPhotoNotice(next.notice);
               e.target.value = "";
             }}
           />
           + 참고 사진 올리기 (선택)
         </label>
+        {photoNotice && (
+          <p className="owner-revision__note" role="status">
+            {photoNotice}
+          </p>
+        )}
         {photos.length > 0 && (
           <ul className="owner-revision__photo-list">
             {photos.map((photo, i) => (
@@ -190,8 +200,7 @@ function SampleRevision({ workId }: { workId: string }) {
 
 /**
  * 서버 작업의 수정 요청 (ADR 0035). 작업은 진행 중 목록에서, 도착한 결과물은 GET /jobs/{id}/submission 에서
- * 불러와 POST .../revision-request 로 보낸다. 그 요청은 아직 본문을 받지 않아 적은 내용과 참고 사진은 학생에게
- * 가지 않는다. 피그마 칸은 그대로 두고 안내를 붙이며, 적지 않아도 보낼 수 있다.
+ * 불러온다. 참고 사진을 먼저 올리고 적은 내용과 함께 POST .../revision-request 로 보낸다. 고칠 곳은 꼭 적어야 한다.
  */
 function JobRevision({ jobId }: { jobId: number }) {
   const navigate = useNavigate();
@@ -253,7 +262,7 @@ function JobRevision({ jobId }: { jobId: number }) {
     const id = ++requestRef.current;
     setSending(true);
     setSendError(null);
-    const result = await sendRevisionRequest(jobId, submission.submissionId);
+    const result = await sendRevisionRequest(jobId, submission.submissionId, detail, photos);
     inFlight.current = false;
     if (id !== requestRef.current) return;
     setSending(false);
@@ -270,6 +279,12 @@ function JobRevision({ jobId }: { jobId: number }) {
         break;
       case "limitReached":
         setSendError("남은 수정 요청이 없어요. 작업 확인에서 완료를 눌러 주세요");
+        break;
+      case "photoFailed":
+        setSendError("참고 사진을 올리지 못했어요. 다시 시도해 주세요");
+        break;
+      case "invalidInput":
+        setSendError("입력한 내용을 다시 확인해 주세요");
         break;
       case "notFound":
       case "notAvailable":
@@ -292,7 +307,11 @@ function JobRevision({ jobId }: { jobId: number }) {
               {sendError}
             </p>
           )}
-          <Button fullWidth disabled={remaining === 0 || sending || sent} onClick={() => void send()}>
+          <Button
+            fullWidth
+            disabled={remaining === 0 || detail.trim() === "" || sending || sent}
+            onClick={() => void send()}
+          >
             {sending ? "보내는 중..." : "수정 요청 보내기"}
           </Button>
         </>
@@ -308,9 +327,6 @@ function JobRevision({ jobId }: { jobId: number }) {
 
         <RevisionForm detail={detail} onDetail={setDetail} photos={photos} onPhotos={setPhotos} />
 
-        <p className="owner-revision__note">
-          지금은 수정 요청만 전해져요. 적은 내용과 참고 사진은 곧 함께 보낼 수 있어요
-        </p>
         <p className="owner-revision__note">학생은 최종 마감({finalDue})까지 수정본을 보내요</p>
       </div>
 
