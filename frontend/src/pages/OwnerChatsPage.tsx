@@ -18,7 +18,7 @@ function OwnerChatsPage() {
     <OwnerTabScreen tab="chat" title="채팅">
       <p className="owner-chats__notice">
         <span aria-hidden="true">ⓘ</span>
-        학생을 고르고 결제하면 그 작업의 채팅방이 열려요
+        의뢰는 학생을 골라 결제하면, 제안은 학생이 작업을 시작하면 채팅방이 열려요
       </p>
       {rooms.length > 0 ? (
         <ul className="owner-chats__list">
