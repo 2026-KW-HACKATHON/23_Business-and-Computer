@@ -345,12 +345,8 @@ export interface PaymentSummary {
 
 export type PaymentMethod = "kakaoPay" | "card" | "transfer";
 
-/** 안전결제할 의뢰와 고른 학생 */
-export interface OwnerCheckout {
-  workId: string;
-  request: OwnerRequest;
-  applicant: Applicant;
-}
+/** 결제 진행: idle = 결제 전, redirecting = 결제 창으로 가는 중, success / failed = 결과 팝업 */
+export type PaymentPhase = "idle" | "redirecting" | "success" | "failed";
 
 export interface StudentCertificate {
   name: string;

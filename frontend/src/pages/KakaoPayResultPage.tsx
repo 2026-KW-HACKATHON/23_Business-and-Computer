@@ -43,7 +43,7 @@ function targetScreens(target: PaymentTarget | undefined): TargetScreens {
   return {
     alreadyPaid: "이미 결제된 의뢰예요",
     done: OWNER_PATHS.activity("inProgress"),
-    retry: OWNER_PATHS.workPay(String(target.jobId)),
+    retry: OWNER_PATHS.assignPay(String(target.jobId), String(target.jobApplicationId)),
     list: OWNER_PATHS.activity("inProgress"),
     successDescription: "작업비는 골목인턴이 보관해요.\n학생과 채팅으로 자세한 내용을 나눠 보세요.",
   };

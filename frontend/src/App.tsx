@@ -123,9 +123,9 @@ function App() {
         path="/owner/requests/:requestId/applicants/:applicationId"
         element={<OwnerApplicantProfilePage />}
       />
-      <Route path="/owner/requests/:requestId/assign/:studentId" element={<OwnerAssignPage />} />
+      <Route path="/owner/requests/:requestId/assign/:applicationId" element={<OwnerAssignPage />} />
+      <Route path="/owner/requests/:requestId/assign/:applicationId/pay" element={<OwnerPayPage />} />
       <Route path="/owner/students/:studentId" element={<OwnerStudentPage />} />
-      <Route path="/owner/works/:workId/pay" element={<OwnerPayPage />} />
       <Route path="/owner/works/:workId/revision" element={<OwnerRevisionPage />} />
       <Route path="/owner/works/:workId/review" element={<OwnerReviewPage />} />
       <Route path="/owner/works/:workId/review/done" element={<OwnerReviewDonePage />} />

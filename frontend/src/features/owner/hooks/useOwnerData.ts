@@ -1,5 +1,4 @@
 import { todayIsoDate } from "../../../lib/date";
-import { parseCheckoutWorkId } from "../lib/checkout";
 import {
   SAMPLE_CHAT_THREADS,
   SAMPLE_REQUESTS,
@@ -14,7 +13,6 @@ import type {
   ChatProgress,
   OwnerChatRoom,
   OwnerChatThread,
-  OwnerCheckout,
   OwnerNotification,
   OwnerPayment,
   OwnerProfile,
@@ -262,11 +260,4 @@ export function useStudentProfile(studentId: string): StudentProfile | undefined
   return profileOf(studentId);
 }
 
-/** 안전결제할 의뢰와 고른 학생. 작업 id 는 lib/checkout.ts 참고 */
-export function useOwnerCheckout(workId: string): OwnerCheckout | undefined {
-  const ids = parseCheckoutWorkId(workId);
-  const request = requests().find((r) => r.id === ids?.requestId);
-  const applicant = request?.applicants.find((a) => a.student.id === ids?.studentId);
-  return request && applicant ? { workId, request, applicant } : undefined;
-}
 
