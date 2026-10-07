@@ -22,23 +22,22 @@ owner's applicant list).
   `useStudentHome.ts`.
 - Sample data has one source per kind: works
   (`src/features/student/lib/sampleWorks.ts`), my proposals and the home examples
-  (`sampleProposals.ts`), stores, the profile, and notifications. The home,
-  내 활동 counts, settlements, the portfolio, and the profile's
-  completed count, rating, and reviews are derived from them.
+  (`sampleProposals.ts`), stores, and notifications. The home, 내 활동 ›
+  완료, and the portfolio are derived from them; 내 정보, the profile, and
+  정산 내역 read the backend (ADR 0041).
 - Facts shared with the owner sample keep the same ids and values: work-103
   and work-090 (치킨플러스). Applications come from the API (ADR 0027).
-  김광운's owner-side profile matches the student's own profile. Where the
+  Where the
   Figma student sample conflicted with the owner sample, the student sample
   changed (store or title) and Figma was updated to match.
 - Demo state (agree to a request, submit a draft or revision, cancel
-  a proposal, send a proposal, decline a request, edit the profile and
-  photo) lives in
+  a proposal, send a proposal, decline a request) lives in
   `src/features/student/hooks/studentStore.ts` and re-renders readers through
   `useSyncExternalStore`. A reload resets it.
 - 프로필 편집 (`src/pages/StudentProfileEditPage.tsx`) opens from every 「수정」 on the
   profile screen; the section 「수정」 buttons start at their section. Name,
-  school, and department are verified and stay read-only. The 내 정보 fields
-  line (「디자인 / 홍보」) is derived from the chosen badges, not stored.
+  school, and student number are verified and stay read-only. The 내 정보
+  fields line (「디자인 / 홍보」) lists the categories of the chosen specialties.
 - The student home shows 「학생 홈 - 처음」 when the account has no works,
   applications, or proposals, derived from the lists (no backend flag). Sent
   proposals and applications now come from the API, so the check waits for
@@ -87,5 +86,6 @@ owner's applicant list).
   longer used there. Sent proposals (내 활동 › 보낸 제안, their detail, the
   home 「기다리는 중」, the 내 정보 count) call the backend too (ADR 0023);
   탐색 (the list, the job detail, apply, and the peer-proposal detail) and
-  the home 「다른 학생들의 제안 공감하기」 call the backend too (ADR 0026). Other student screens,
+  the home 「다른 학생들의 제안 공감하기」 call the backend too (ADR 0026);
+  내 정보, 프로필 수정 · 편집, and 정산 내역 call the backend too (ADR 0041). Other student screens,
   including the work-start screen, still read the sample data.

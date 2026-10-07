@@ -1,47 +1,45 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { MenuList, ProfilePhoto, SubScreen, SummaryCard } from "../components";
+import { LoadNotice, MenuList, ProfilePhoto, SubScreen, SummaryCard } from "../components";
 import { clearTokens } from "../features/auth";
 import {
   STUDENT_PATHS,
-  setMyProfilePhoto,
-  useMyProfile,
-  useMyProfilePhoto,
-  useSentProposals,
+  studentYearText,
   useAppliedJobs,
-  useStudentWorks,
+  useProgressJobs,
+  useSentProposals,
+  useStudentMe,
+  useStudentPhotoChange,
 } from "../features/student";
-import type { StudentActivityTab } from "../features/student";
-import { TermsSheet } from "../features/signup";
+import type { StudentActivityTab, StudentMe } from "../features/student";
+import { PROFILE_PHOTO_ACCEPT, TermsSheet } from "../features/signup";
 import { useBack } from "../hooks/useBack";
-import { useObjectUrls } from "../hooks/useObjectUrls";
+import { studentTitle } from "../lib/korean";
 import "./StudentMePage.css";
 
 const ACTIVITY_TABS: StudentActivityTab[] = ["applied", "proposals", "inProgress", "done"];
 
 /**
  * 피그마 「내 정보 · 설정 (학생)」. 프로필 · 요약 · 내 활동 · 설정 · 로그아웃.
- * 보낸 제안 개수는 GET /me/proposals (ADR 0023). 불러오는 중이거나 실패하면 「-」.
+ * 프로필과 완료 수는 GET /students/me (ADR 0041), 지원한 의뢰 · 보낸 제안 · 진행 중 수는 각 목록
+ * (ADR 0027 · 0023 · 0032). 불러오는 중이거나 실패하면 프로필 자리에 안내, 개수는 「-」.
+ * 사진을 고르면 바로 올리고(PROFILE) PUT /students/me 로 저장한다.
  */
 function StudentMePage() {
   const navigate = useNavigate();
   const back = useBack(STUDENT_PATHS.home);
-  const profile = useMyProfile();
+  const { load, reload } = useStudentMe();
+  const me = load.status === "loaded" ? load.data : undefined;
   const { load: appliedLoad } = useAppliedJobs();
   const { load: proposalsLoad } = useSentProposals();
-  const works = useStudentWorks();
-  // 사진 업로드는 백엔드 연동 전까지 미리보기만 한다 (프로필 수정 · 편집과 같은 사진)
-  const photo = useMyProfilePhoto();
-  const photoFiles = useMemo(() => (photo ? [photo] : []), [photo]);
-  const [photoUrl] = useObjectUrls(photoFiles);
+  const { load: progressLoad } = useProgressJobs();
   const [termsOpen, setTermsOpen] = useState(false);
 
-  const inProgress = works.filter((w) => ["drafting", "revising", "submitted"].includes(w.status));
   const counts = [
     appliedLoad.status === "loaded" ? appliedLoad.jobs.length : "-",
     proposalsLoad.status === "loaded" ? proposalsLoad.proposals.length : "-",
-    inProgress.length,
-    profile.completedCount,
+    progressLoad.status === "loaded" ? progressLoad.jobs.length : "-",
+    me ? me.completedJobCount : "-",
   ];
   const openActivity = (tab: StudentActivityTab) => navigate(STUDENT_PATHS.activity(tab));
 
@@ -53,39 +51,16 @@ function StudentMePage() {
   return (
     <SubScreen title="내 정보" onBack={back}>
       <section className="student-me__profile">
-        <div className="student-me__head">
-          <ProfilePhoto size="small" src={photoUrl} onSelect={setMyProfilePhoto} />
-          <div className="student-me__info">
-            <h2 className="student-me__name">{profile.name} 학생</h2>
-            <p className="student-me__school">
-              광운대학교 {profile.department} {profile.year}
-            </p>
-            <p className="student-me__fields">{profile.fields.join(" / ")}</p>
-          </div>
-        </div>
-        <div className="student-me__badges">
-          <span className="student-me__verified">
-            <span className="student-me__verified-check" aria-hidden="true">
-              <svg viewBox="0 0 10 10" fill="none">
-                <path
-                  d="m2 5.2 2 2L8 3"
-                  stroke="currentColor"
-                  strokeWidth="1.6"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-            </span>
-            광운대 인증 완료
-          </span>
-          <button
-            type="button"
-            className="student-me__edit"
-            onClick={() => navigate(STUDENT_PATHS.profile)}
-          >
-            프로필 수정
-          </button>
-        </div>
+        {me ? (
+          <MeHead me={me} />
+        ) : (
+          <LoadNotice
+            status={load.status === "loading" ? "loading" : "error"}
+            loadingText="내 정보를 불러오는 중이에요"
+            errorText="내 정보를 불러오지 못했어요"
+            onRetry={reload}
+          />
+        )}
         <SummaryCard
           items={["지원한 의뢰", "보낸 제안", "진행 중", "완료"].map((label, i) => ({
             label,
@@ -123,6 +98,53 @@ function StudentMePage() {
 
       <TermsSheet open={termsOpen} onClose={() => setTermsOpen(false)} tone="student" />
     </SubScreen>
+  );
+}
+
+/**
+ * 사진 · 이름 · 학교와 학번 · 특기 대분류, 「광운대 인증 완료」 · 「프로필 수정」.
+ * 서버에 학과가 없어 학교 줄은 「광운대학교 24학번」이다.
+ */
+function MeHead({ me }: { me: StudentMe }) {
+  const navigate = useNavigate();
+  const { photoUrl, changePhoto } = useStudentPhotoChange(me);
+  const school = [me.university, studentYearText(me.studentNumber)].filter(Boolean).join(" ");
+  const fields = me.specialtyCategories.map((category) => category.name).join(" / ");
+
+  return (
+    <>
+      <div className="student-me__head">
+        <ProfilePhoto size="small" src={photoUrl} accept={PROFILE_PHOTO_ACCEPT} onSelect={changePhoto} />
+        <div className="student-me__info">
+          <h2 className="student-me__name">{studentTitle(me.name)}</h2>
+          <p className="student-me__school">{school}</p>
+          {fields && <p className="student-me__fields">{fields}</p>}
+        </div>
+      </div>
+      <div className="student-me__badges">
+        <span className="student-me__verified">
+          <span className="student-me__verified-check" aria-hidden="true">
+            <svg viewBox="0 0 10 10" fill="none">
+              <path
+                d="m2 5.2 2 2L8 3"
+                stroke="currentColor"
+                strokeWidth="1.6"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </span>
+          광운대 인증 완료
+        </span>
+        <button
+          type="button"
+          className="student-me__edit"
+          onClick={() => navigate(STUDENT_PATHS.profile)}
+        >
+          프로필 수정
+        </button>
+      </div>
+    </>
   );
 }
 
