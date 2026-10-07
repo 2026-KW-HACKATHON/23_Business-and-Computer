@@ -49,7 +49,7 @@ The owner side read `SAMPLE_PROPOSALS`, so a proposal a student sent
     `ProposalStatus`, `ProposalJobStatus`, `ProposalSpecialtyCategory`,
     `ProposalStudentResponse`).
   - Exports the display helpers `proposalBadgeNames`,
-    `estimatedDeadlineText`, `expectedDaysText` (「초안 N일 · 최종 N일」), and
+    `estimatedDeadlineText`, `expectedDaysText` (「수락 후 초안 N일 · 최종 N일」), and
     `proposalMonthDay`, which turns the text of `createdAt` into 「M월 D일」.
   - The request, error mapping, and id parsing (`fetchProposalDetail`,
     `loadProposalDetail`, `parseProposalId`) stay inside the feature.

@@ -78,6 +78,9 @@ The shared API layer (ADR 0021) provides `apiData` in `src/api/client.ts`
   Only jpeg/png/webp up to 10 MB, at most 5 photos; a refused file shows
   「JPG, PNG, WEBP 사진만 올릴 수 있어요」 or 「10MB 이하 사진만 올릴 수
   있어요」. The draft days still need at least 1 (the server allows 0).
+  The server counts both days from acceptance, so 3/4 asks 「초안까지」 and
+  「초안 뒤 최종까지」 (days after the draft deadline, at least 1) and sends
+  `finalDays` = 초안 + that; screens show 「수락 후 초안 N일 · 최종 M일」.
 - **4/4** 「제안 보내기」 uploads the photos one by one, then sends
   `POST /proposals`. The button reads 「보내는 중...」; an `inFlight` ref
   blocks double sends and a `requestId` ref drops responses after leaving.

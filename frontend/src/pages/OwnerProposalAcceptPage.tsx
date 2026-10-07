@@ -26,6 +26,7 @@ import type { PaymentFailure } from "../features/payment";
 import { expectedDaysText, proposalBadgeNames, useProposalDetail } from "../features/proposal";
 import type { ProposalDetail } from "../features/proposal";
 import { useBack } from "../hooks/useBack";
+import { addDays, formatMonthDayWeekday, todayIsoDate } from "../lib/date";
 import { formatWon } from "../lib/money";
 import "./OwnerPayPage.css";
 import { studentTitle } from "../lib/korean";
@@ -168,7 +169,7 @@ function AcceptForm({ proposal, onBack }: { proposal: ProposalDetail; onBack: ()
             ))}
           </div>
           <p className="owner-pay__terms">
-            {studentTitle(proposal.student.name)} · 희망 작업비 {formatWon(proposal.proposedFee)} · 예상{" "}
+            {studentTitle(proposal.student.name)} · 희망 작업비 {formatWon(proposal.proposedFee)} ·{" "}
             {expectedDaysText(proposal.draftDays, proposal.finalDays)}
           </p>
         </section>
@@ -177,8 +178,12 @@ function AcceptForm({ proposal, onBack }: { proposal: ProposalDetail; onBack: ()
           <BudgetField value={budget} onChange={setBudget} />
         </FormField>
 
-        <FormField label="마감일" hint="학생이 제안한 기간 · 결제한 날부터 세요">
-          <p className="owner-pay__fixed">{expectedDaysText(proposal.draftDays, proposal.finalDays)}</p>
+        {/* 학생이 제안한 기간을 오늘(결제한 날)에 더한 실제 날짜로 보여 준다 */}
+        <FormField label="마감일" hint="학생이 제안한 기간 · 오늘 결제하면">
+          <p className="owner-pay__fixed">
+            초안 {formatMonthDayWeekday(addDays(todayIsoDate(), proposal.draftDays))} · 최종{" "}
+            {formatMonthDayWeekday(addDays(todayIsoDate(), proposal.finalDays))}
+          </p>
         </FormField>
 
         <FormField label="수정 횟수" hint="최소 1회 · 등록한 뒤에는 바꿀 수 없어요">
