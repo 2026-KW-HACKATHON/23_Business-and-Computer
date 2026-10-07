@@ -42,3 +42,18 @@
   text-align: center;
   word-break: keep-all;
 }
+
+/* 화면이 낮으면(사파리 아래 바가 보일 때 등) 카드까지 한 화면에 들어오도록 여백을 줄인다. 700px 보다 높으면 피그마 그대로 */
+@media (max-height: 700px) {
+  .role-select__content {
+    padding-bottom: calc(24px + env(safe-area-inset-bottom));
+  }
+
+  .role-select__brand {
+    margin-top: 24px;
+  }
+
+  .role-select__cards {
+    margin-top: 28px;
+  }
+}
