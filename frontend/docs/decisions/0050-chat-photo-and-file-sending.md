@@ -48,7 +48,8 @@ The backend (dev) has:
 - **「+」 button**: a 40px `--role-muted` circle with 「+」 in
   `--role-secondary`, left of the input, wrapping a hidden file input with
   `accept={ATTACHMENT_ACCEPT}`. One file per pick; the input is cleared after
-  each pick.
+  each pick. The input carries the name 「사진·파일 보내기」, and the circle
+  darkens on hover and press like other buttons (ADR 0046).
 - **Check before sending** (`checkAttachment`): another format →
   「보낼 수 없는 형식이에요. 사진은 JPG·PNG·WEBP·GIF, 파일은 PDF·ZIP·워드·엑셀·
   파워포인트만 보낼 수 있어요」; an empty file → 「빈 파일은 보낼 수 없어요」; over

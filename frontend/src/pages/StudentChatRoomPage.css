@@ -274,6 +274,25 @@
   font-weight: 700;
   color: var(--role-secondary);
   cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: box-shadow 0.15s ease;
+}
+
+/* 다른 버튼과 같은 반응 (ADR 0046): 올리면 살짝, 누르면 조금 더 어둡게 */
+@media (hover: hover) {
+  .student-chat__attach:hover {
+    box-shadow: inset 0 0 0 100vmax rgba(12, 12, 12, 0.04);
+  }
+}
+
+.student-chat__attach:active {
+  box-shadow: inset 0 0 0 100vmax rgba(12, 12, 12, 0.08);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .student-chat__attach {
+    transition: none;
+  }
 }
 
 .student-chat__attach > input {

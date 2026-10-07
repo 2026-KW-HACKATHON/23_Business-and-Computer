@@ -105,9 +105,9 @@ function OwnerChatRoom({ roomId }: { roomId: string }) {
       onBack={back}
       footer={
         <form className="owner-chat__composer" onSubmit={handleSubmit}>
-          <label className="owner-chat__attach" aria-label="사진·파일 보내기">
-            +
-            <input type="file" accept={ATTACHMENT_ACCEPT} onChange={handleFile} />
+          <label className="owner-chat__attach">
+            <span aria-hidden="true">+</span>
+            <input type="file" accept={ATTACHMENT_ACCEPT} aria-label="사진·파일 보내기" onChange={handleFile} />
           </label>
           <input
             className="owner-chat__input"

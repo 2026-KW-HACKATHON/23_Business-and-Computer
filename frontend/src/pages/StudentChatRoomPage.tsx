@@ -101,9 +101,9 @@ function StudentChatRoom({ roomId }: { roomId: string }) {
       onBack={back}
       footer={
         <form className="student-chat__composer" onSubmit={handleSubmit}>
-          <label className="student-chat__attach" aria-label="사진·파일 보내기">
-            +
-            <input type="file" accept={ATTACHMENT_ACCEPT} onChange={handleFile} />
+          <label className="student-chat__attach">
+            <span aria-hidden="true">+</span>
+            <input type="file" accept={ATTACHMENT_ACCEPT} aria-label="사진·파일 보내기" onChange={handleFile} />
           </label>
           <input
             className="student-chat__input"
