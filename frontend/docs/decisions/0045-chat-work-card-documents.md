@@ -40,6 +40,13 @@ sheet.
   API exists: start → 초안 → 수정 요청 → 수정안, start → 결과물 (→ 후기 for
   the student), or start → 취소 내역. Both roles use the same labels: 의뢰서
   (제안서 for a proposal job), 초안, 수정 요청, 수정안, 결과물, 후기, 취소 내역.
+- **Rounds** (`chatWorkEntries`): when the revision number is known, 수정 요청
+  and 수정안 get one row per round, 「수정 요청 1」「수정안 1」「수정 요청 2」…;
+  only the newest round opens and earlier rounds are grey. With one round, or
+  an unknown number, the rows have no number. The number comes from the
+  arrived revision (owner matched list `revisionNumber`), the owner's GET
+  /jobs/{id}/submissions/latest while revising (once opened to owners), and
+  the student's GET /jobs/{id}/submissions/latest.
 - **Card** (`ChatWorkCard`, both chat rooms):
   - the title row: the work icon, the title, and 「이력 상세보기 ›」 (작업
     이력);
