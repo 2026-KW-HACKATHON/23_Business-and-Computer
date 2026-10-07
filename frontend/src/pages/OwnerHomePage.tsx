@@ -6,12 +6,10 @@ import {
   OWNER_PATHS,
   OwnerTabScreen,
   TodoCarousel,
-  WorkPlanSheet,
   WAITING_STATUS_LABEL,
   deadlineText,
   studentLabel,
   useOwnerHome,
-  useProgressPlanSheet,
 } from "../features/owner";
 import type { OwnerTodo, OwnerWorkingItem } from "../features/owner";
 import { formatMonthDay } from "../lib/date";
@@ -34,12 +32,9 @@ function OwnerHomePage() {
   const [doneExpanded, setDoneExpanded] = useState(false);
   const exampleScroll = useDragScroll<HTMLUListElement>();
   const doneRows = doneExpanded ? home.done : home.done.slice(0, 1);
-  // 「학생이 작업 중」 줄을 누르면 작업계획서 바텀시트, 제안으로 시작했으면 받은 제안
-  const planSheet = useProgressPlanSheet();
-  const openWorking = ({ planJob, proposalId }: OwnerWorkingItem) => {
-    if (planJob) planSheet.open(planJob);
-    else if (proposalId) navigate(OWNER_PATHS.proposal(proposalId));
-  };
+  // 「학생이 작업 중」 줄은 「기다리는 중」처럼 상세 화면으로: 보낸 의뢰, 제안으로 시작했으면 받은 제안
+  const openWorking = ({ id, proposalId }: OwnerWorkingItem) =>
+    navigate(proposalId ? OWNER_PATHS.proposal(proposalId) : OWNER_PATHS.request(id));
   const todosLoaded = home.receivedProposals === "loaded" && home.progress === "loaded";
 
   const openTodo = (todo: OwnerTodo) => {
@@ -90,7 +85,7 @@ function OwnerHomePage() {
                 kind={work.kind}
                 title={work.title}
                 lines={[studentLabel({ name: work.student.name }), deadlineText(work.stage, work.due)]}
-                onClick={work.planJob || work.proposalId ? () => openWorking(work) : undefined}
+                onClick={() => openWorking(work)}
               />
             ))}
           </div>
@@ -162,12 +157,6 @@ function OwnerHomePage() {
           </div>
         </section>
       )}
-
-      <WorkPlanSheet
-        content={planSheet.content}
-        onClose={planSheet.close}
-        onChat={() => navigate(OWNER_PATHS.chats)}
-      />
     </OwnerTabScreen>
   );
 }

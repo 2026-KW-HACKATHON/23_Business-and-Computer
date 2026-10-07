@@ -40,12 +40,3 @@
   border: 1px solid var(--role-border);
   border-radius: 14px;
 }
-
-.work-plan-sheet__actions {
-  display: flex;
-  gap: 8px;
-}
-
-.work-plan-sheet__actions > .button {
-  flex: 1;
-}

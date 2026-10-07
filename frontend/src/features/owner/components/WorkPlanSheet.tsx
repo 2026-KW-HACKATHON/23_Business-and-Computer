@@ -9,12 +9,10 @@ interface WorkPlanSheetProps {
   /** 없으면 닫힌 상태 */
   content: WorkPlanSheetContent | undefined;
   onClose: () => void;
-  /** 넣으면 「닫기」 옆에 「채팅하기」 (홈에서 열 때) */
-  onChat?: () => void;
 }
 
-/** 「작업계획서 보기」 바텀시트. 학생이 지원할 때 보낸 계획서와 작업 조건 (모르는 조건은 뺀다) */
-function WorkPlanSheet({ content, onClose, onChat }: WorkPlanSheetProps) {
+/** 채팅방 「작업계획서 보기」 바텀시트. 학생이 지원할 때 보낸 계획서와 작업 조건 (모르는 조건은 뺀다) */
+function WorkPlanSheet({ content, onClose }: WorkPlanSheetProps) {
   const rows = content
     ? [
         ...(content.budget !== undefined ? [{ label: "작업비", value: formatWon(content.budget) }] : []),
@@ -43,12 +41,9 @@ function WorkPlanSheet({ content, onClose, onChat }: WorkPlanSheetProps) {
         )
       }
       footer={
-        <div className="work-plan-sheet__actions">
-          <Button variant="secondary" onClick={onClose}>
-            닫기
-          </Button>
-          {onChat && <Button onClick={onChat}>채팅하기</Button>}
-        </div>
+        <Button variant="secondary" fullWidth onClick={onClose}>
+          닫기
+        </Button>
       }
     >
       {content && (
