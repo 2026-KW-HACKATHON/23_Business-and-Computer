@@ -1,7 +1,9 @@
 package com.gakkum.backend.domain.job.entity;
 
 import java.time.LocalDateTime;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.JdbcTypeCode;
@@ -54,6 +56,12 @@ public class JobSubmission {
     @Column(name = "file_urls", nullable = false, columnDefinition = "jsonb")
     private List<String> fileUrls;
 
+    // 제출 시점의 파일 URL별 바이트 크기. 크기를 기록하기 전의 제출물은 빈 맵이다
+    @Builder.Default
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "file_sizes", nullable = false, columnDefinition = "jsonb")
+    private Map<String, Long> fileSizes = Map.of();
+
     @Column(nullable = false, columnDefinition = "TEXT")
     private String message;
 
@@ -87,11 +95,22 @@ public class JobSubmission {
             Integer revisionNumber,
             List<String> fileUrls,
             String message) {
+        return create(jobId, submissionType, revisionNumber, fileUrls, Map.of(), message);
+    }
+
+    public static JobSubmission create(
+            Long jobId,
+            JobSubmissionType submissionType,
+            Integer revisionNumber,
+            List<String> fileUrls,
+            Map<String, Long> fileSizes,
+            String message) {
         return JobSubmission.builder()
                 .jobId(jobId)
                 .submissionType(submissionType)
                 .revisionNumber(revisionNumber)
                 .fileUrls(List.copyOf(fileUrls))
+                .fileSizes(new LinkedHashMap<>(fileSizes))
                 .message(message)
                 .reviewStatus(JobSubmissionReviewStatus.PENDING)
                 .build();

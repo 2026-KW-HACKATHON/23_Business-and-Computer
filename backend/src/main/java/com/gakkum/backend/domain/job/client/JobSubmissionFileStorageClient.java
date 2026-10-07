@@ -112,14 +112,14 @@ public class JobSubmissionFileStorageClient {
         }
     }
 
-    /** 객체가 업로드되어 있는지 확인한다. */
-    public boolean exists(String key) {
+    /** 업로드된 객체의 바이트 크기를 반환한다. 객체가 없으면 빈 값이다. */
+    public Optional<Long> findSize(String key) {
         try {
-            s3Client.headObject(HeadObjectRequest.builder().bucket(bucket).key(key).build());
-            return true;
+            return Optional.of(s3Client.headObject(HeadObjectRequest.builder().bucket(bucket).key(key).build())
+                    .contentLength());
         } catch (S3Exception exception) {
             if (exception.statusCode() == 404) {
-                return false;
+                return Optional.empty();
             }
             throw unavailable("head", key, exception);
         } catch (SdkException exception) {

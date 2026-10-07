@@ -92,6 +92,7 @@ public final class JobDetailResponse {
         private final boolean normalCompleted;
         private final Long workFee;
         private final List<String> fileUrls;
+        private final List<JobSubmissionResponse.File> files;
         private final String message;
         private final List<WorkHistory> workHistory;
 
@@ -104,6 +105,7 @@ public final class JobDetailResponse {
                     .normalCompleted(result.isNormalCompleted())
                     .workFee(result.getWorkFee())
                     .fileUrls(result.getFileUrls())
+                    .files(JobSubmissionResponse.File.listFrom(result.getFiles()))
                     .message(result.getMessage())
                     .workHistory(result.getWorkHistory().stream()
                             .map(WorkHistory::from)

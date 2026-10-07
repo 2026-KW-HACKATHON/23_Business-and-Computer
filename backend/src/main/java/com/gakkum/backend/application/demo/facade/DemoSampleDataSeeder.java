@@ -373,10 +373,11 @@ public class DemoSampleDataSeeder {
             backdateByJob("chat_rooms", "created_at", job.getId(), approvedAt);
         }
 
+        // 샘플 파일은 저장소에 올린 것이 아니라 크기를 기록하지 않는다
         private JobSubmission submitDraft(Job job, Student student, Instant submittedAt, String message,
                                           String... files) {
             JobSubmission submission = jobService.submitDraft(CreateJobSubmissionCommand.of(
-                    null, job.getId(), sampleFiles(files), message), student.getId());
+                    null, job.getId(), sampleFiles(files), message), student.getId(), Map.of());
             backdate("job_submissions", "created_at", submission.getId(), submittedAt);
             return submission;
         }
@@ -384,7 +385,7 @@ public class DemoSampleDataSeeder {
         private JobSubmission submitRevision(Job job, Student student, Instant submittedAt, String message,
                                              String... files) {
             JobSubmission submission = jobService.submitRevision(CreateJobSubmissionCommand.of(
-                    null, job.getId(), sampleFiles(files), message), student.getId());
+                    null, job.getId(), sampleFiles(files), message), student.getId(), Map.of());
             backdate("job_submissions", "created_at", submission.getId(), submittedAt);
             return submission;
         }

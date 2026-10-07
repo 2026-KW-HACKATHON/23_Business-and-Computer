@@ -575,10 +575,12 @@ public class JobService {
      * 의뢰 행을 잠가 같은 의뢰의 동시 제출을 순서대로 처리하고, 유니크 제약 충돌도 중복 제출로 본다.
      * @param command
      * @param studentProfileId
+     * @param fileSizes 파일 URL별 바이트 크기
      * @return 저장된 초안(revisionNumber 0, PENDING)
      */
     @Transactional
-    public JobSubmission submitDraft(CreateJobSubmissionCommand command, Long studentProfileId) {
+    public JobSubmission submitDraft(
+            CreateJobSubmissionCommand command, Long studentProfileId, Map<String, Long> fileSizes) {
         Job job = jobRepository.findLockedById(command.getJobId())
                 .orElseThrow(() -> new BusinessException(ErrorCode.JOB_NOT_FOUND));
         validateSubmittable(job, studentProfileId);
@@ -588,7 +590,7 @@ public class JobService {
 
         try {
             return jobSubmissionRepository.saveAndFlush(JobSubmission.create(
-                    job.getId(), JobSubmissionType.DRAFT, 0, command.getFileUrls(), command.getMessage()));
+                    job.getId(), JobSubmissionType.DRAFT, 0, command.getFileUrls(), fileSizes, command.getMessage()));
         } catch (DataIntegrityViolationException exception) {
             throw new BusinessException(ErrorCode.JOB_SUBMISSION_ALREADY_EXISTS);
         }
@@ -610,10 +612,12 @@ public class JobService {
      * 의뢰 행을 잠가 같은 의뢰의 동시 제출을 순서대로 처리하고, 유니크 제약 충돌도 수정 요청 없음으로 본다.
      * @param command
      * @param studentProfileId
+     * @param fileSizes 파일 URL별 바이트 크기
      * @return 저장된 수정안(revisionNumber = 최신 번호 + 1, PENDING)
      */
     @Transactional
-    public JobSubmission submitRevision(CreateJobSubmissionCommand command, Long studentProfileId) {
+    public JobSubmission submitRevision(
+            CreateJobSubmissionCommand command, Long studentProfileId, Map<String, Long> fileSizes) {
         Job job = jobRepository.findLockedById(command.getJobId())
                 .orElseThrow(() -> new BusinessException(ErrorCode.JOB_NOT_FOUND));
         validateSubmittable(job, studentProfileId);
@@ -622,7 +626,7 @@ public class JobService {
         try {
             return jobSubmissionRepository.saveAndFlush(JobSubmission.create(
                     job.getId(), JobSubmissionType.REVISION, revisionNumber, command.getFileUrls(),
-                    command.getMessage()));
+                    fileSizes, command.getMessage()));
         } catch (DataIntegrityViolationException exception) {
             throw new BusinessException(ErrorCode.JOB_SUBMISSION_REVISION_NOT_REQUESTED);
         }

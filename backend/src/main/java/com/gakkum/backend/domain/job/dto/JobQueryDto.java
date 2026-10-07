@@ -139,6 +139,23 @@ public final class JobQueryDto {
         }
     }
 
+    /** 제출물 파일 하나. 크기를 기록하기 전에 제출된 파일은 size가 null이다. */
+    @Getter
+    @AllArgsConstructor(access = AccessLevel.PRIVATE)
+    public static class SubmissionFileResult {
+
+        private final String fileUrl;
+        private final Long size;
+
+        /** fileUrls 순서대로 제출 시점에 저장한 바이트 크기를 연결한다. */
+        public static List<SubmissionFileResult> listOf(JobSubmission submission) {
+            Map<String, Long> fileSizes = submission.getFileSizes();
+            return submission.getFileUrls().stream()
+                    .map(fileUrl -> new SubmissionFileResult(fileUrl, fileSizes.get(fileUrl)))
+                    .toList();
+        }
+    }
+
     @Getter
     @AllArgsConstructor(access = AccessLevel.PRIVATE)
     public static class JobSubmissionDetailData {
@@ -161,6 +178,7 @@ public final class JobQueryDto {
         private final String studentName;
         private final String submissionType;
         private final List<String> fileUrls;
+        private final List<SubmissionFileResult> files;
         private final String message;
         private final Integer revisionNumber;
 
@@ -172,6 +190,7 @@ public final class JobQueryDto {
                     .studentName(student.getName())
                     .submissionType(submission.getSubmissionType().name())
                     .fileUrls(List.copyOf(submission.getFileUrls()))
+                    .files(SubmissionFileResult.listOf(submission))
                     .message(submission.getMessage())
                     .revisionNumber(submission.getRevisionNumber())
                     .build();
@@ -188,6 +207,7 @@ public final class JobQueryDto {
         private final String submissionType;
         private final Integer revisionNumber;
         private final List<String> fileUrls;
+        private final List<SubmissionFileResult> files;
         private final String message;
         private final String reviewStatus;
         private final LocalDateTime submittedAt;
@@ -200,6 +220,7 @@ public final class JobQueryDto {
                     .submissionType(submission.getSubmissionType().name())
                     .revisionNumber(submission.getRevisionNumber())
                     .fileUrls(List.copyOf(submission.getFileUrls()))
+                    .files(SubmissionFileResult.listOf(submission))
                     .message(submission.getMessage())
                     .reviewStatus(submission.getReviewStatus().name())
                     .submittedAt(submission.getCreatedAt())
@@ -255,6 +276,7 @@ public final class JobQueryDto {
         private final boolean normalCompleted;
         private final Long workFee;
         private final List<String> fileUrls;
+        private final List<SubmissionFileResult> files;
         private final String message;
         private final List<WorkHistoryResult> workHistory;
 
@@ -290,6 +312,7 @@ public final class JobQueryDto {
                     .normalCompleted(true)
                     .workFee(job.getBudget())
                     .fileUrls(List.copyOf(approved.getFileUrls()))
+                    .files(SubmissionFileResult.listOf(approved))
                     .message(approved.getMessage())
                     .workHistory(List.copyOf(workHistory))
                     .build();

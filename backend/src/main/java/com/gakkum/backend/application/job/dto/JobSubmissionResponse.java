@@ -9,6 +9,7 @@ import com.gakkum.backend.domain.job.dto.JobQueryDto.JobSubmissionCreateResult;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.JobSubmissionDetailResult;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.PrepareSubmissionFileUploadResult;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.RevisionRequestResult;
+import com.gakkum.backend.domain.job.dto.JobQueryDto.SubmissionFileResult;
 
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -52,6 +53,7 @@ public final class JobSubmissionResponse {
         private final String studentName;
         private final String submissionType;
         private final List<String> fileUrls;
+        private final List<File> files;
         private final String message;
         private final Integer revisionNumber;
 
@@ -62,6 +64,7 @@ public final class JobSubmissionResponse {
                     .studentName(result.getStudentName())
                     .submissionType(result.getSubmissionType())
                     .fileUrls(result.getFileUrls())
+                    .files(File.listFrom(result.getFiles()))
                     .message(result.getMessage())
                     .revisionNumber(result.getRevisionNumber())
                     .build();
@@ -78,6 +81,7 @@ public final class JobSubmissionResponse {
         private final String submissionType;
         private final Integer revisionNumber;
         private final List<String> fileUrls;
+        private final List<File> files;
         private final String message;
         private final String reviewStatus;
         private final LocalDateTime submittedAt;
@@ -89,6 +93,7 @@ public final class JobSubmissionResponse {
                     .submissionType(result.getSubmissionType())
                     .revisionNumber(result.getRevisionNumber())
                     .fileUrls(result.getFileUrls())
+                    .files(File.listFrom(result.getFiles()))
                     .message(result.getMessage())
                     .reviewStatus(result.getReviewStatus())
                     .submittedAt(result.getSubmittedAt())
@@ -96,6 +101,21 @@ public final class JobSubmissionResponse {
                             ? null
                             : RevisionRequest.from(result.getRevisionRequest()))
                     .build();
+        }
+    }
+
+    /** 크기를 기록하기 전에 제출된 파일은 size를 생략하지 않고 null로 내린다. */
+    @Getter
+    @AllArgsConstructor(access = AccessLevel.PRIVATE)
+    public static class File {
+
+        private final String fileUrl;
+        private final Long size;
+
+        public static List<File> listFrom(List<SubmissionFileResult> results) {
+            return results.stream()
+                    .map(result -> new File(result.getFileUrl(), result.getSize()))
+                    .toList();
         }
     }
 
