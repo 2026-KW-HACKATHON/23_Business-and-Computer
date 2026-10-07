@@ -1,5 +1,8 @@
 import { ApiError } from "../../../api/client";
-import { uploadSignupPhoto } from "../../signup";
+import { STORE_CATEGORIES } from "../../../types/storeCategory";
+import type { StoreCategory } from "../../../types/storeCategory";
+import { fetchBusinessCategories, uploadSignupPhoto } from "../../signup";
+import type { BusinessCategory } from "../../signup";
 import { fetchOwnerMe, updateOwnerMe } from "../api/meApi";
 import type { OwnerMeResponse } from "../api/meApi";
 
@@ -24,6 +27,52 @@ export async function loadOwnerMe(): Promise<OwnerMeResult> {
     }
     return { status: "error" };
   }
+}
+
+export type StoreCategoriesResult =
+  | { status: "loaded"; data: BusinessCategory[] }
+  | { status: "unauthorized" }
+  | { status: "error" };
+
+/** 업종 목록 (GET /business-categories). 업종 칩 이름과 서버 id 를 잇는다 */
+export async function loadStoreCategories(): Promise<StoreCategoriesResult> {
+  try {
+    return { status: "loaded", data: await fetchBusinessCategories() };
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 401) return { status: "unauthorized" };
+    return { status: "error" };
+  }
+}
+
+/** 업종 칩의 서버 id. 목록에 없으면 undefined */
+export function storeCategoryId(categories: BusinessCategory[], category: StoreCategory): number | undefined {
+  return categories.find((c) => c.name === category)?.id;
+}
+
+/** 가게 정보 수정 칸. 주소는 서버에 한 칸이라 불러올 때는 「가게 주소」에 다 넣는다 */
+export interface OwnerStoreForm {
+  storeName: string;
+  /** 업종 칩 11개 중 하나. 서버 업종이 칩에 없으면 비어 있다 */
+  category?: StoreCategory;
+  address: string;
+  addressDetail: string;
+  intro: string;
+}
+
+export function ownerStoreForm(me: OwnerMe, categories: BusinessCategory[]): OwnerStoreForm {
+  const name = categories.find((c) => c.id === me.categoryId)?.name;
+  return {
+    storeName: me.storeName,
+    category: STORE_CATEGORIES.find((category) => category === name),
+    address: me.storeAddress ?? "",
+    addressDetail: "",
+    intro: me.description ?? "",
+  };
+}
+
+/** 「가게 주소」와 「상세 주소」를 한 줄로 (서버 storeAddress) */
+export function storeAddressOf(form: OwnerStoreForm): string {
+  return [form.address.trim(), form.addressDetail.trim()].filter(Boolean).join(" ");
 }
 
 /** 저장할 가게 정보. PUT /owners/me 는 보낸 값으로 모두 바뀌어서 바꾸지 않는 칸도 지금 값을 넣는다 */

@@ -13,26 +13,19 @@ export {
   markOwnerWorkReviewed,
   useOwnerNotifications,
   useOwnerPayments,
-  useOwnerProfile,
   useOwnerRequests,
-  useOwnerStore,
   useOwnerWork,
   useOwnerWorks,
   useRequestExample,
 } from "./hooks/useOwnerData";
-export {
-  markOwnerNotificationsRead,
-  saveOwnerStore,
-  setOwnerStorePhoto,
-  useOwnerStorePhoto,
-} from "./hooks/ownerDemo";
+export { markOwnerNotificationsRead } from "./hooks/ownerDemo";
 export { useJobAssignment } from "./hooks/useJobAssignment";
 export type { JobAssignment } from "./hooks/useJobAssignment";
 export { useOwnerHome } from "./hooks/useOwnerHome";
-export { useOwnerMe } from "./hooks/useOwnerMe";
-export type { OwnerMeLoad } from "./hooks/useOwnerMe";
-export { ownerMeChanges, saveOwnerMe } from "./lib/ownerMe";
-export type { OwnerMe, OwnerMeChanges, OwnerMeSaveResult } from "./lib/ownerMe";
+export { useOwnerMe, useStoreCategories } from "./hooks/useOwnerMe";
+export type { OwnerMeLoad, StoreCategoriesLoad } from "./hooks/useOwnerMe";
+export { ownerMeChanges, ownerStoreForm, saveOwnerMe, storeAddressOf, storeCategoryId } from "./lib/ownerMe";
+export type { OwnerMe, OwnerMeChanges, OwnerMeSaveResult, OwnerStoreForm } from "./lib/ownerMe";
 export { useProposalJobIds } from "./hooks/useProposalJobIds";
 export { useReceivedProposals } from "./hooks/useReceivedProposals";
 export {
@@ -119,9 +112,7 @@ export type {
   OwnerHome,
   OwnerNotification,
   OwnerPayment,
-  OwnerProfile,
   OwnerRequest,
-  OwnerStore,
   OwnerTodo,
   OwnerWaitingItem,
   OwnerWork,

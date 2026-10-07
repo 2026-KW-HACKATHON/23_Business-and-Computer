@@ -14,6 +14,7 @@ export {
   registerOwnerSignup,
   uploadStorePhoto,
 } from "./lib/ownerRegistration";
+export { fetchBusinessCategories } from "./api/signupApi";
 export { PROFILE_PHOTO_ACCEPT, checkProfilePhoto } from "./lib/profilePhoto";
 export {
   MAX_CODE_ATTEMPTS,
@@ -34,6 +35,7 @@ export {
 } from "./lib/studentInfo";
 export { EMPTY_CERTIFICATE } from "./types";
 export type {
+  BusinessCategory,
   BusinessCheck,
   BusinessCheckResult,
   BusinessInfo,
