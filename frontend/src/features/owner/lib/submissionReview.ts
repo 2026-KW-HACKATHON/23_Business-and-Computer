@@ -7,14 +7,7 @@ import { uploadRequestPhoto } from "./newRequest";
 export type PendingSubmission = PendingSubmissionResponse;
 
 /** 결과물 파일 주소의 끝 경로가 학생이 올린 파일 이름이다 */
-export function submissionFileName(url: string): string {
-  const last = url.split("?")[0].split("/").pop() ?? "";
-  try {
-    return decodeURIComponent(last) || "파일";
-  } catch {
-    return last || "파일";
-  }
-}
+export { fileNameFromUrl as submissionFileName } from "../../../lib/fileUrl";
 
 /** 완료 확인 · 수정 요청 결과 */
 export type SubmissionReviewResult =

@@ -23,6 +23,8 @@ import {
   progressMeta,
   progressStagePath,
   sendSubmission,
+  submissionDay,
+  useLatestSubmission,
   useProgressJobs,
 } from "../features/student";
 import type { ProgressJob, SubmissionKind, WorkFile } from "../features/student";
@@ -65,6 +67,30 @@ function StudentJobSubmitPage({ jobId, kind }: { jobId: number; kind: Submission
   const job = load.jobs.find((j) => j.jobId === jobId);
   if (!job) return <StudentMissing title={title} onBack={back} message="진행 중인 작업이 아니에요" />;
   return <SubmitForm job={job} kind={kind} title={title} onBack={back} />;
+}
+
+/** 수정안 제출 위에 보이는 사장님 수정 요청 (GET /jobs/{id}/submissions/latest, ADR 0038) */
+function RevisionRequestQuote({ job }: { job: ProgressJob }) {
+  const { load, reload } = useLatestSubmission(job.jobId);
+  const request = load.status === "loaded" ? load.submission.revisionRequest : undefined;
+  return (
+    <div className="student-work__quote">
+      <strong>{job.storeName ? `${job.storeName} 사장님의 수정 요청` : "사장님의 수정 요청"}</strong>
+      {load.status === "loaded" ? (
+        <>
+          {request && <small>{formatMonthDay(submissionDay(request.requestedAt))}</small>}
+          <p>{request?.message?.trim() || "사장님이 적은 내용이 없어요"}</p>
+        </>
+      ) : (
+        <LoadNotice
+          status={load.status === "loading" ? "loading" : "error"}
+          loadingText="수정 요청을 불러오는 중이에요"
+          errorText="수정 요청을 불러오지 못했어요"
+          onRetry={reload}
+        />
+      )}
+    </div>
+  );
 }
 
 function SubmitForm({
@@ -173,12 +199,7 @@ function SubmitForm({
 
         <TurnNotice tone="student" title={`${due}까지 ${draft ? "초안" : "수정안"}을 올려 주세요`} />
 
-        {!draft && (
-          <div className="student-work__quote">
-            <strong>{job.storeName ? `${job.storeName} 사장님의 수정 요청` : "사장님의 수정 요청"}</strong>
-            <p>수정 요청 내용은 곧 여기서 볼 수 있어요</p>
-          </div>
-        )}
+        {!draft && <RevisionRequestQuote job={job} />}
 
         <FormField label={draft ? "결과물 파일" : "최종본 파일"}>
           <FilePicker
