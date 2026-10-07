@@ -5,6 +5,10 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 
 import java.nio.charset.StandardCharsets;
+import java.sql.Timestamp;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -74,6 +78,7 @@ class DemoSampleDataIntegrationTest {
     @Autowired
     private OwnerRepository ownerRepository;
 
+    private String sessionId;
     private String ownerToken;
     private String studentToken;
     private Long myStoreId;
@@ -90,7 +95,7 @@ class DemoSampleDataIntegrationTest {
         }
 
         JsonNode owner = login("{\"role\":\"OWNER\"}");
-        String sessionId = owner.get("demoSessionId").asString();
+        sessionId = owner.get("demoSessionId").asString();
         ownerToken = owner.get("accessToken").asString();
         studentToken = login("{\"role\":\"STUDENT\",\"demoSessionId\":\"" + sessionId + "\"}")
                 .get("accessToken").asString();
@@ -131,6 +136,79 @@ class DemoSampleDataIntegrationTest {
         List<Long> proposalIds = proposals.values().stream().map(Proposal::getId).toList();
         assertThat(countDistinct("job_specialties", "job_id", jobIds)).isEqualTo(jobIds.size());
         assertThat(countDistinct("proposal_specialties", "proposal_id", proposalIds)).isEqualTo(proposalIds.size());
+    }
+
+    @Test
+    @DisplayName("지난 작업의 작성 · 결제 · 제출 · 완료 · 후기 · 취소 시각이 마감과 순서에 맞는다")
+    void seedsConsistentTimeline() {
+        Instant now = Instant.now();
+        // 완료: 작성 → 결제 → 초안(초안 마감 안) → 완료(최종 마감 안) → 후기
+        for (String title : List.of("인스타 게시물 5개 제작", "가게 앞 입간판 시안", "여름 음료 포스터")) {
+            Job job = jobs.get(title);
+            Instant created = instant("select created_at from jobs where id = ?", job.getId());
+            Instant approved = instant("select approved_at from payments where job_id = ?", job.getId());
+            Instant firstSubmission = instant("select min(created_at) from job_submissions where job_id = ?", job.getId());
+            Instant lastSubmission = instant("select max(created_at) from job_submissions where job_id = ?", job.getId());
+            Instant completed = instant("select completed_at from jobs where id = ?", job.getId());
+            assertThat(created).as(title).isBefore(approved);
+            assertThat(approved).as(title).isBefore(firstSubmission);
+            assertThat(koreanDate(firstSubmission)).as(title).isBeforeOrEqualTo(job.getDraftDeadline());
+            assertThat(lastSubmission).as(title).isBefore(completed);
+            assertThat(koreanDate(completed)).as(title).isBeforeOrEqualTo(job.getFinalDeadline());
+            assertThat(completed).as(title).isBefore(now);
+        }
+        for (String title : List.of("인스타 게시물 5개 제작", "여름 음료 포스터")) {
+            Job job = jobs.get(title);
+            assertThat(instant("select created_at from reviews where job_id = ?", job.getId())).as(title)
+                    .isAfter(instant("select completed_at from jobs where id = ?", job.getId()))
+                    .isBefore(now);
+        }
+
+        // 진행 중: 결제 뒤 초안을 초안 마감 안에 냈다
+        for (String title : List.of("단골 쿠폰·도장카드 디자인", "가게 소개 릴스 영상 편집", "배달앱 리뷰 분석 리포트",
+                "쿠폰·스티커 디자인")) {
+            Job job = jobs.get(title);
+            Instant firstSubmission = instant("select min(created_at) from job_submissions where job_id = ?", job.getId());
+            assertThat(instant("select approved_at from payments where job_id = ?", job.getId())).as(title)
+                    .isBefore(firstSubmission);
+            assertThat(koreanDate(firstSubmission)).as(title).isBeforeOrEqualTo(job.getDraftDeadline());
+            assertThat(firstSubmission).as(title).isBefore(now);
+        }
+
+        // 취소 · 거절: 결제 뒤 끝났고 환불 시각이 끝난 시각과 같다
+        for (String title : List.of("포장 스티커 디자인", "단체 주문 안내문 디자인")) {
+            Job job = jobs.get(title);
+            Instant closed = instant("select completed_at from jobs where id = ?", job.getId());
+            assertThat(instant("select approved_at from payments where job_id = ?", job.getId())).as(title)
+                    .isBefore(closed);
+            assertThat(instant("select refunded_at from payments where job_id = ?", job.getId())).as(title)
+                    .isEqualTo(closed);
+            assertThat(closed).as(title).isBefore(now);
+        }
+
+        // 받은 제안은 결제보다 먼저 왔다
+        Job lunch = jobs.get("점심 세트 메뉴판 정리");
+        assertThat(instant("select created_at from proposals where id = ?", proposals.get("점심 세트 메뉴판 정리").getId()))
+                .isBefore(instant("select approved_at from payments where job_id = ?", lunch.getId()));
+    }
+
+    @Test
+    @DisplayName("데모 학생 학번은 20 + 입학 연도 두 자리(21~25) + 0 으로 시작해 화면에 「24학번」처럼 보인다")
+    void seedsAdmissionYearStudentNumbers() {
+        List<String> numbers = jdbcTemplate.queryForList("""
+                select s.student_number from student_profiles s join users u on u.user_id = s.user_id
+                where u.demo_session_id = ?""", String.class, sessionId);
+
+        assertThat(numbers).hasSize(6).allMatch(number -> number.matches("^20(2[1-5])0\\d{5}$"));
+        assertThat(numbers).anyMatch(number -> number.startsWith("20240"));
+    }
+
+    private Instant instant(String sql, Long id) {
+        return jdbcTemplate.queryForObject(sql, Timestamp.class, id).toInstant();
+    }
+
+    private static LocalDate koreanDate(Instant instant) {
+        return LocalDate.ofInstant(instant, ZoneId.of("Asia/Seoul"));
     }
 
     private long countDistinct(String table, String column, List<Long> ids) {

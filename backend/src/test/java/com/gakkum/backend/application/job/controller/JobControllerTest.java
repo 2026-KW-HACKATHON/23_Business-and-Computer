@@ -213,7 +213,8 @@ class JobControllerTest {
                 ClosedJobData.of(job, List.of(11L), JobProgressStage.COMPLETED),
                 Student.builder().id(21L).build(),
                 User.builder().name("김람가").build(),
-                List.of(SpecialtyCategoryResult.of(3L, "디자인", List.of())));
+                List.of(SpecialtyCategoryResult.of(3L, "디자인", List.of())),
+                true);
         when(jobFacade.getClosedJobs(USERNAME)).thenReturn(ClosedJobListResult.of(List.of(result)));
 
         mockMvc.perform(get("/me/jobs").param("status", "CLOSED").principal(authentication))
@@ -228,7 +229,8 @@ class JobControllerTest {
                 .andExpect(jsonPath("$.data[0].specialtyCategories[0].specialties").doesNotExist())
                 .andExpect(jsonPath("$.data[0].matchedWorker.studentProfileId").value(21))
                 .andExpect(jsonPath("$.data[0].matchedWorker.name").value("김람가"))
-                .andExpect(jsonPath("$.data[0].completedAt").value("2026-09-25"));
+                .andExpect(jsonPath("$.data[0].completedAt").value("2026-09-25"))
+                .andExpect(jsonPath("$.data[0].reviewed").value(true));
         verify(jobFacade).getClosedJobs(USERNAME);
     }
 

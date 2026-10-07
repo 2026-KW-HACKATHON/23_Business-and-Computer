@@ -18,6 +18,8 @@ public interface ReviewRepository extends JpaRepository<Review, Long> {
 
     List<Review> findByStudentProfileId(Long studentProfileId);
 
+    List<Review> findByJobIdIn(Collection<Long> jobIds);
+
     long countByStudentProfileId(Long studentProfileId);
 
     /*

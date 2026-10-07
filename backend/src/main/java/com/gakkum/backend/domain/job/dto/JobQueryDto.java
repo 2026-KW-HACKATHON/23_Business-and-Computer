@@ -464,9 +464,12 @@ public final class JobQueryDto {
         private final MatchedWorkerResult matchedWorker;
         private final LocalDate completedAt;
         private final JobProgressStage progressStage;
+        // 사장님이 이 의뢰에 후기를 남겼는지
+        private final boolean reviewed;
 
         public static ClosedJobResult of(
-                ClosedJobData data, Student student, User worker, List<SpecialtyCategoryResult> specialtyCategories) {
+                ClosedJobData data, Student student, User worker, List<SpecialtyCategoryResult> specialtyCategories,
+                boolean reviewed) {
             Job job = data.getJob();
             return ClosedJobResult.builder()
                     .jobId(job.getId())
@@ -475,6 +478,7 @@ public final class JobQueryDto {
                     .matchedWorker(student == null ? null : MatchedWorkerResult.of(student.getId(), worker.getName()))
                     .completedAt(job.getCompletedAt().toLocalDate())
                     .progressStage(data.getProgressStage())
+                    .reviewed(reviewed)
                     .build();
         }
     }

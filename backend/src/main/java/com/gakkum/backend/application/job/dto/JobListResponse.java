@@ -103,6 +103,8 @@ public final class JobListResponse {
         private final MatchedWorker matchedWorker;
         private final LocalDate completedAt;
         private final JobProgressStage progressStage;
+        // 사장님이 후기를 남겼으면 true. 「후기 남기기」 · 「후기 작성 완료」를 가른다
+        private final boolean reviewed;
 
         public static ClosedJob from(ClosedJobResult result) {
             return ClosedJob.builder()
@@ -114,6 +116,7 @@ public final class JobListResponse {
                     .matchedWorker(result.getMatchedWorker() == null ? null : MatchedWorker.from(result.getMatchedWorker()))
                     .completedAt(result.getCompletedAt())
                     .progressStage(result.getProgressStage())
+                    .reviewed(result.isReviewed())
                     .build();
         }
     }
