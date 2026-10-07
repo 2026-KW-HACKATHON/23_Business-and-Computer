@@ -14,12 +14,16 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.time.ZoneOffset;
+import java.util.TimeZone;
 import java.util.Optional;
 import java.util.stream.Stream;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -99,6 +103,27 @@ class JobCancelFlowTest {
                 .build();
     }
 
+    @ParameterizedTest
+    @ValueSource(strings = { "UTC", "Asia/Seoul", "America/New_York" })
+    @DisplayName("JVM 기본 시간대가 달라도 취소 시각은 UTC로 남기고 응답은 같은 순간의 한국 시각과 +09:00으로 내린다")
+    void cancelledAtIgnoresDefaultTimeZone(String defaultZone) throws Exception {
+        TimeZone original = TimeZone.getDefault();
+        TimeZone.setDefault(TimeZone.getTimeZone(defaultZone));
+        try {
+            givenActiveOwner();
+            Job job = givenOwnedJob(JobStatus.MATCHED);
+            givenPaidPayment(100_000L);
+
+            // 시계 UTC 03:15:30 → 한국 12:15:30
+            mockMvc.perform(cancelRequest(VALID_BODY))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.data.cancelledAt").value("2026-09-29T12:15:30+09:00"));
+            assertThat(job.getCompletedAt()).isEqualTo(LocalDateTime.of(2026, 9, 29, 3, 15, 30));
+        } finally {
+            TimeZone.setDefault(original);
+        }
+    }
+
     @Test
     @DisplayName("진행 중 의뢰를 취소하면 의뢰는 CANCELLED, 결제는 REFUNDED가 되고 학생 보상금 20%를 뺀 금액을 환불 금액으로 반환한다")
     void cancelsMatchedJobAndRefunds() throws Exception {
@@ -114,13 +139,13 @@ class JobCancelFlowTest {
                 .andExpect(jsonPath("$.data.paidAmount").value(100_000))
                 .andExpect(jsonPath("$.data.studentCompensationAmount").value(20_000))
                 .andExpect(jsonPath("$.data.refundAmount").value(80_000))
-                .andExpect(jsonPath("$.data.cancelledAt").exists())
+                .andExpect(jsonPath("$.data.cancelledAt").value("2026-09-29T12:15:30+09:00"))
                 .andExpect(jsonPath("$.data.cancelReason").value(CANCEL_REASON))
                 .andExpect(jsonPath("$.data.messageToStudent").value(MESSAGE_TO_STUDENT));
         assertThat(job.getStatus()).isEqualTo(JobStatus.CANCELLED);
         assertThat(job.getCancelReason()).isEqualTo(CANCEL_REASON);
         assertThat(job.getMessageToStudent()).isEqualTo(MESSAGE_TO_STUDENT);
-        assertThat(job.getCompletedAt()).isEqualTo(LocalDateTime.ofInstant(NOW, ZoneId.systemDefault()));
+        assertThat(job.getCompletedAt()).isEqualTo(LocalDateTime.ofInstant(NOW, ZoneOffset.UTC));
         assertThat(payment.getStatus()).isEqualTo(PaymentStatus.REFUNDED);
         assertThat(payment.getRefundedAt()).isEqualTo(NOW);
     }

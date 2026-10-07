@@ -9,6 +9,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
 
@@ -98,7 +99,7 @@ class JobSubmissionRevisionRequestPostgresTest {
         assertThat(found.getReviewStatus()).isEqualTo(JobSubmissionReviewStatus.REVISION_REQUESTED);
         assertThat(found.getReviewComment()).isEqualTo(MESSAGE);
         assertThat(found.getRevisionReferenceImageUrls()).containsExactlyElementsOf(IMAGES);
-        assertThat(found.getReviewedAt()).isEqualTo(LocalDateTime.ofInstant(NOW, ZoneId.systemDefault()));
+        assertThat(found.getReviewedAt()).isEqualTo(LocalDateTime.ofInstant(NOW, ZoneOffset.UTC));
         assertThat(found.getMessage()).isEqualTo("제출 메시지");
         assertThat(found.getFileUrls()).containsExactly("https://example.com/b.png", "https://example.com/a.pdf");
     }

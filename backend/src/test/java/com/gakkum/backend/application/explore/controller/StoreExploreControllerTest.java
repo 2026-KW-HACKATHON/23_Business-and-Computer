@@ -133,7 +133,7 @@ class StoreExploreControllerTest {
                 .andExpect(jsonPath("$.data.items[0].businessCategory.name").value("카페"))
                 .andExpect(jsonPath("$.data.items[0].storeAddress").value("서울특별시 노원구 광운로 20"))
                 .andExpect(jsonPath("$.data.items[0].ownerProfileId").value(42))
-                .andExpect(jsonPath("$.data.items[0].createdAt").value("2026-10-01T10:30:00"))
+                .andExpect(jsonPath("$.data.items[0].createdAt").value("2026-10-01T19:30:00+09:00"))
                 .andExpect(jsonPath("$.data.items[0].length()").value(6))
                 .andExpect(jsonPath("$.data.items[1].storeName").value("가꿈 분식"))
                 .andExpect(jsonPath("$.data.items[1].profileImageUrl").value((Object) null))

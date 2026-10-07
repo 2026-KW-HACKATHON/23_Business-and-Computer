@@ -113,7 +113,7 @@ class JobLatestSubmissionFlowTest {
                 .andExpect(jsonPath("$.data.fileUrls[1]").value("https://example.com/a.pdf"))
                 .andExpect(jsonPath("$.data.message").value("제출합니다."))
                 .andExpect(jsonPath("$.data.reviewStatus").value("PENDING"))
-                .andExpect(jsonPath("$.data.submittedAt").value("2026-10-01T09:30:00"))
+                .andExpect(jsonPath("$.data.submittedAt").value("2026-10-01T18:30:00+09:00"))
                 .andExpect(jsonPath("$.data", hasKey("revisionRequest")))
                 .andExpect(jsonPath("$.data.revisionRequest").value(nullValue()));
     }
@@ -178,7 +178,7 @@ class JobLatestSubmissionFlowTest {
                         .value("https://images.example.com/b.png"))
                 .andExpect(jsonPath("$.data.revisionRequest.referenceImageUrls[1]")
                         .value("https://images.example.com/a.png"))
-                .andExpect(jsonPath("$.data.revisionRequest.requestedAt").value("2026-10-02T14:05:30"));
+                .andExpect(jsonPath("$.data.revisionRequest.requestedAt").value("2026-10-02T23:05:30+09:00"));
     }
 
     @Test

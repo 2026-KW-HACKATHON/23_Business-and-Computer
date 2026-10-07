@@ -10,6 +10,7 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.util.Optional;
 
 import org.junit.jupiter.api.DisplayName;
@@ -31,7 +32,7 @@ import com.gakkum.backend.global.exception.ErrorCode;
 class JobCancelServiceTest {
 
     private static final Instant NOW = Instant.parse("2026-09-29T03:15:30Z");
-    private static final LocalDateTime EXPECTED_CANCELLED_AT = LocalDateTime.ofInstant(NOW, ZoneId.systemDefault());
+    private static final LocalDateTime EXPECTED_CANCELLED_AT = LocalDateTime.ofInstant(NOW, ZoneOffset.UTC);
     private static final CancelJobCommand COMMAND =
             CancelJobCommand.of("KAKAO_12345", 42L, "매장 일정이 변경되었습니다.", "진행해 주셔서 감사합니다.");
 

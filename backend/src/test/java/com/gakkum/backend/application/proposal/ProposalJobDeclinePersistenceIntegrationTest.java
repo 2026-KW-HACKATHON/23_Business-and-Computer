@@ -10,6 +10,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -291,7 +292,8 @@ class ProposalJobDeclinePersistenceIntegrationTest {
             assertThat(detail.getMessageToStudent()).isNull();
             assertThat(detail.getRefundAmount()).isEqualTo(50_000L);
             assertThat(detail.getStudentCompensationAmount()).isZero();
-            assertThat(detail.getCancelledAt()).isEqualTo(declinedJob.getCompletedAt());
+            assertThat(detail.getCancelledAt()).isEqualTo(declinedJob.getCompletedAt().atOffset(ZoneOffset.UTC));
+            assertThat(detail.getCancelledAt().getOffset()).isEqualTo(ZoneOffset.ofHours(9));
             assertThat(detail.getBudget()).isEqualTo(50_000L);
         }
 

@@ -155,7 +155,7 @@ class JobControllerTest {
                 .andExpect(jsonPath("$.data.jobs[0].budget").value(300000))
                 .andExpect(jsonPath("$.data.jobs[0].revisionCount").value(2))
                 .andExpect(jsonPath("$.data.jobs[0].revisionNumber").value(0))
-                .andExpect(jsonPath("$.data.jobs[0].submittedAt").value("2026-10-09T14:05:30"));
+                .andExpect(jsonPath("$.data.jobs[0].submittedAt").value("2026-10-09T23:05:30+09:00"));
         verify(jobFacade).getMatchedJobs(USERNAME);
     }
 

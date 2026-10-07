@@ -13,13 +13,18 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.TimeZone;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
+import com.gakkum.backend.application.job.dto.JobSubmissionResponse;
 import com.gakkum.backend.domain.media.service.MediaService;
 import com.gakkum.backend.domain.chat.entity.ChatMessageType;
 import com.gakkum.backend.domain.certificate.service.CertificateService;
@@ -90,6 +95,33 @@ class JobFacadeSubmissionTest {
         assertThat(result.getUploadHeaders()).containsEntry("content-type", "application/pdf");
         assertThat(result.getUploadUrlExpiresAt()).isNotNull();
         assertThat(result.getFileUrl()).isEqualTo(FILE_URL);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = { "UTC", "Asia/Seoul" })
+    @DisplayName("업로드 URL 만료 시각은 JVM 기본 시간대와 무관하게 UTC 시각으로 넘기고 응답은 한국 시각으로 내린다")
+    void expiresAtIgnoresDefaultTimeZone(String defaultZone) {
+        TimeZone original = TimeZone.getDefault();
+        TimeZone.setDefault(TimeZone.getTimeZone(defaultZone));
+        try {
+            givenStudent(UserRole.STUDENT);
+            when(chatAttachmentPolicy.validate(ChatMessageType.FILE, "draft.pdf", "application/pdf", 1048576L))
+                    .thenReturn("application/pdf");
+            when(storageClient.newKey(42L, 7L, "draft.pdf")).thenReturn(KEY);
+            when(storageClient.presignUpload(KEY, "application/pdf", 1048576L)).thenReturn(new PresignedFileUpload(
+                    "https://upload", Map.of("content-type", "application/pdf"),
+                    Instant.parse("2026-09-27T12:10:00Z"), FILE_URL));
+
+            PrepareSubmissionFileUploadResult result = jobFacade.prepareSubmissionFileUpload(
+                    PrepareSubmissionFileUploadCommand.of(USERNAME, 42L, JobSubmissionFileType.FILE, "draft.pdf",
+                            "application/pdf", 1048576L));
+
+            assertThat(result.getUploadUrlExpiresAt()).isEqualTo(LocalDateTime.of(2026, 9, 27, 12, 10));
+            assertThat(JobSubmissionResponse.PrepareFileUpload.from(result).getUploadUrlExpiresAt())
+                    .hasToString("2026-09-27T21:10+09:00");
+        } finally {
+            TimeZone.setDefault(original);
+        }
     }
 
     @Test

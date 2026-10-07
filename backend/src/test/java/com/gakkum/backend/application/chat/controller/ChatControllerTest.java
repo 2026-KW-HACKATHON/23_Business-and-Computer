@@ -95,7 +95,7 @@ class ChatControllerTest {
                 .andExpect(jsonPath("$.data.rooms[0].applicationDeliveryMethod").value("결과물 전달 방법"))
                 .andExpect(jsonPath("$.data.rooms[0].applicationContent").doesNotExist())
                 .andExpect(jsonPath("$.data.rooms[0].lastMessage.preview").value("안녕하세요"))
-                .andExpect(jsonPath("$.data.rooms[0].lastMessage.createdAt").value("2026-09-26T12:30:00"))
+                .andExpect(jsonPath("$.data.rooms[0].lastMessage.createdAt").value("2026-09-26T21:30:00+09:00"))
                 .andExpect(jsonPath("$.data.rooms[0].unreadCount").value(3));
     }
 
@@ -264,7 +264,7 @@ class ChatControllerTest {
                 .andExpect(jsonPath("$.data.senderUserId").value("sender-1"))
                 .andExpect(jsonPath("$.data.type").value("TEXT"))
                 .andExpect(jsonPath("$.data.content").value("안녕하세요"))
-                .andExpect(jsonPath("$.data.createdAt").value("2026-09-26T12:30:00"));
+                .andExpect(jsonPath("$.data.createdAt").value("2026-09-26T21:30:00+09:00"));
 
         ArgumentCaptor<SendTextMessageCommand> command = ArgumentCaptor.forClass(SendTextMessageCommand.class);
         verify(service).sendTextMessage(command.capture());
@@ -341,7 +341,7 @@ class ChatControllerTest {
                 .andExpect(jsonPath("$.data.uploadUrl").value("https://upload.example"))
                 .andExpect(jsonPath("$.data.uploadHeaders['content-type']").value("image/png"))
                 .andExpect(jsonPath("$.data.uploadHeaders['x-amz-tagging']").value("chat-upload=pending"))
-                .andExpect(jsonPath("$.data.uploadUrlExpiresAt").value("2026-09-27T14:10:00"));
+                .andExpect(jsonPath("$.data.uploadUrlExpiresAt").value("2026-09-27T23:10:00+09:00"));
 
         ArgumentCaptor<PrepareAttachmentUploadCommand> command =
                 ArgumentCaptor.forClass(PrepareAttachmentUploadCommand.class);
@@ -422,8 +422,8 @@ class ChatControllerTest {
                 .andExpect(jsonPath("$.data.type").value("FILE"))
                 .andExpect(jsonPath("$.data.content").value("https://view.example"))
                 .andExpect(jsonPath("$.data.attachmentName").value("견적서.pdf"))
-                .andExpect(jsonPath("$.data.contentExpiresAt").value("2026-09-26T12:45:00"))
-                .andExpect(jsonPath("$.data.createdAt").value("2026-09-26T12:30:00"));
+                .andExpect(jsonPath("$.data.contentExpiresAt").value("2026-09-26T21:45:00+09:00"))
+                .andExpect(jsonPath("$.data.createdAt").value("2026-09-26T21:30:00+09:00"));
 
         ArgumentCaptor<SendAttachmentMessageCommand> command =
                 ArgumentCaptor.forClass(SendAttachmentMessageCommand.class);
@@ -519,7 +519,7 @@ class ChatControllerTest {
                 .andExpect(jsonPath("$.data.messages[1].type").value("FILE"))
                 .andExpect(jsonPath("$.data.messages[1].content").value("https://view.example"))
                 .andExpect(jsonPath("$.data.messages[1].attachmentName").value("견적서.pdf"))
-                .andExpect(jsonPath("$.data.messages[1].contentExpiresAt").value("2026-09-26T12:45:00"));
+                .andExpect(jsonPath("$.data.messages[1].contentExpiresAt").value("2026-09-26T21:45:00+09:00"));
     }
 
     @Test
@@ -536,8 +536,8 @@ class ChatControllerTest {
                 .andExpect(jsonPath("$.data.type").value("FILE"))
                 .andExpect(jsonPath("$.data.content").value("https://view.example/new"))
                 .andExpect(jsonPath("$.data.attachmentName").value("견적서.pdf"))
-                .andExpect(jsonPath("$.data.contentExpiresAt").value("2026-09-26T13:00:00"))
-                .andExpect(jsonPath("$.data.createdAt").value("2026-09-26T12:30:00"));
+                .andExpect(jsonPath("$.data.contentExpiresAt").value("2026-09-26T22:00:00+09:00"))
+                .andExpect(jsonPath("$.data.createdAt").value("2026-09-26T21:30:00+09:00"));
     }
 
     @Test

@@ -252,7 +252,7 @@ class PaymentControllerTest {
                 .andExpect(jsonPath("$.data.orderId").value("order-123"))
                 .andExpect(jsonPath("$.data.status").value("PAID"))
                 .andExpect(jsonPath("$.data.amount").value(100000))
-                .andExpect(jsonPath("$.data.approvedAt").value("2026-09-26T00:00:00Z"))
+                .andExpect(jsonPath("$.data.approvedAt").value("2026-09-26T09:00:00+09:00"))
                 .andExpect(jsonPath("$.data.jobId").value(42))
                 .andExpect(jsonPath("$.data.jobStatus").value("MATCHED"));
         verify(paymentFacade).approvePayment(USERNAME, "order-123", "pg-123");
@@ -314,7 +314,7 @@ class PaymentControllerTest {
                 .andExpect(jsonPath("$.data.months[0].payments[0].title").value("매장 홍보 포스터 제작"))
                 .andExpect(jsonPath("$.data.months[0].payments[0].amount").value(100000))
                 .andExpect(jsonPath("$.data.months[0].payments[0].refundAmount").value(0))
-                .andExpect(jsonPath("$.data.months[0].payments[0].approvedAt").value("2026-10-02T03:00:00Z"))
+                .andExpect(jsonPath("$.data.months[0].payments[0].approvedAt").value("2026-10-02T12:00:00+09:00"))
                 .andExpect(jsonPath("$.data.months[0].payments[0].studentName").value("김학생"))
                 .andExpect(jsonPath("$.data.months[0].payments[0].status").value("HELD"))
                 // 해당하지 않는 날짜는 필드를 생략하지 않고 null로 내려준다

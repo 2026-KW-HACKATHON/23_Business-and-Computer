@@ -12,7 +12,6 @@ import static org.mockito.Mockito.when;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
@@ -39,7 +38,7 @@ class NotificationServiceTest {
     // 나노초까지 있는 시각. 저장 정밀도인 마이크로초로 잘라 기록해야 한다
     private static final Instant NOW = Instant.parse("2026-10-07T02:03:04.123456789Z");
     private static final LocalDateTime NOW_LOCAL =
-            LocalDateTime.ofInstant(Instant.parse("2026-10-07T02:03:04.123456Z"), ZoneId.systemDefault());
+            LocalDateTime.ofInstant(Instant.parse("2026-10-07T02:03:04.123456Z"), ZoneOffset.UTC);
     private static final LocalDateTime CURSOR_CREATED_AT = LocalDateTime.of(2026, 10, 7, 10, 30);
 
     private final NotificationRepository notificationRepository = mock(NotificationRepository.class);

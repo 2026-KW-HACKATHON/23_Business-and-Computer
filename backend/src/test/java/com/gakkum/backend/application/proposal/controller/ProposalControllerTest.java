@@ -244,8 +244,8 @@ class ProposalControllerTest {
                 .andExpect(jsonPath("$.data.jobId").doesNotExist())
                 .andExpect(jsonPath("$.data.agreement").doesNotExist())
                 .andExpect(jsonPath("$.data.referenceImageUrls[0]").value(IMAGE_URL))
-                // UTC 10:00 → 한국 19:00. 오프셋은 붙이지 않는다
-                .andExpect(jsonPath("$.data.createdAt").value("2026-09-30T19:00:00"));
+                // UTC 10:00 → 한국 19:00. 한 번만 변환하고 +09:00을 붙인다
+                .andExpect(jsonPath("$.data.createdAt").value("2026-09-30T19:00:00+09:00"));
     }
 
     @Test
@@ -283,7 +283,7 @@ class ProposalControllerTest {
                 .andExpect(jsonPath("$.data.agreement.finalDeadline").value("2026-10-12"))
                 .andExpect(jsonPath("$.data.agreement.revisionCount").value(2))
                 .andExpect(jsonPath("$.data.agreement.messageToStudent").value("매장 분위기에 맞춰 작업 부탁드립니다."))
-                .andExpect(jsonPath("$.data.agreement.paidAt").value("2026-10-05T03:00:00Z"))
+                .andExpect(jsonPath("$.data.agreement.paidAt").value("2026-10-05T12:00:00+09:00"))
                 .andExpect(jsonPath("$.data.agreement.startedAt").doesNotExist());
     }
 
@@ -305,7 +305,7 @@ class ProposalControllerTest {
                 .andExpect(jsonPath("$.data.jobId").value(42))
                 .andExpect(jsonPath("$.data.jobStatus").value("MATCHED"))
                 .andExpect(jsonPath("$.data.proposalStatus").value("ACCEPTED"))
-                .andExpect(jsonPath("$.data.startedAt").exists())
+                .andExpect(jsonPath("$.data.startedAt").value("2026-10-06T18:30:00+09:00"))
                 .andExpect(jsonPath("$.data.chatRoomId").value("01K58M6PJV8VAJMXHBHJ2ROOM1"))
                 .andExpect(jsonPath("$.data.draftDeadline").value("2026-10-08"))
                 .andExpect(jsonPath("$.data.finalDeadline").value("2026-10-12"));
@@ -571,13 +571,13 @@ class ProposalControllerTest {
                     .andExpect(jsonPath("$.data.proposals[0].status").value("REJECTED"))
                     .andExpect(jsonPath("$.data.proposals[0].likeCount").value(4))
                     .andExpect(jsonPath("$.data.proposals[0].rejectedBy").value("OWNER"))
-                    .andExpect(jsonPath("$.data.proposals[0].rejectedAt").value("2026-10-06T00:30:00"));
+                    .andExpect(jsonPath("$.data.proposals[0].rejectedAt").value("2026-10-06T00:30:00+09:00"));
         }
         mockMvc.perform(get("/proposals/31").principal(authentication))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.status").value("REJECTED"))
                 .andExpect(jsonPath("$.data.rejectedBy").value("OWNER"))
-                .andExpect(jsonPath("$.data.rejectedAt").value("2026-10-06T00:30:00"))
+                .andExpect(jsonPath("$.data.rejectedAt").value("2026-10-06T00:30:00+09:00"))
                 .andExpect(jsonPath("$.data.estimatedDraftDeadline").value(nullValue()));
     }
 
@@ -697,10 +697,10 @@ class ProposalControllerTest {
 
         mockMvc.perform(get("/me/proposals").principal(authentication))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.proposals[0].createdAt").value("2026-10-06T00:30:00"));
+                .andExpect(jsonPath("$.data.proposals[0].createdAt").value("2026-10-06T00:30:00+09:00"));
         mockMvc.perform(get("/proposals/31").principal(authentication))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.createdAt").value("2026-10-06T00:30:00"));
+                .andExpect(jsonPath("$.data.createdAt").value("2026-10-06T00:30:00+09:00"));
     }
 
     @Test
@@ -743,7 +743,7 @@ class ProposalControllerTest {
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.proposals[0].jobId").value(42))
                 .andExpect(jsonPath("$.data.proposals[0].jobStatus").value("AWAITING_START"))
-                .andExpect(jsonPath("$.data.proposals[0].createdAt").value("2026-10-06T00:30:00"))
+                .andExpect(jsonPath("$.data.proposals[0].createdAt").value("2026-10-06T00:30:00+09:00"))
                 .andExpect(jsonPath("$.data.proposals[0].proposalId").value(101))
                 .andExpect(jsonPath("$.data.proposals[0].title").value("메뉴판 개선 제안"))
                 .andExpect(jsonPath("$.data.proposals[0].status").value("PENDING"))
@@ -775,7 +775,7 @@ class ProposalControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.proposals[0].jobId").value(nullValue()))
                 .andExpect(jsonPath("$.data.proposals[0].jobStatus").value(nullValue()))
-                .andExpect(jsonPath("$.data.proposals[0].createdAt").value("2026-10-05T23:59:00"));
+                .andExpect(jsonPath("$.data.proposals[0].createdAt").value("2026-10-05T23:59:00+09:00"));
     }
 
     @ParameterizedTest
@@ -839,7 +839,7 @@ class ProposalControllerTest {
                 .andExpect(jsonPath("$.data.paidAmount").value(100000))
                 .andExpect(jsonPath("$.data.studentCompensationAmount").value(0))
                 .andExpect(jsonPath("$.data.refundAmount").value(100000))
-                .andExpect(jsonPath("$.data.declinedAt").exists());
+                .andExpect(jsonPath("$.data.declinedAt").value("2026-10-06T21:00:00+09:00"));
 
         verify(proposalFacade).declineProposalJob(USERNAME, 42L);
     }
