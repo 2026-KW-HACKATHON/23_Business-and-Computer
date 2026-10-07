@@ -10,6 +10,7 @@ export { default as ChatButton } from "./ChatButton/ChatButton";
 export { default as ChatRow } from "./ChatRow/ChatRow";
 export { default as Checkbox } from "./Checkbox/Checkbox";
 export { default as Chip } from "./Chip/Chip";
+export { default as DateWheel } from "./DateWheel/DateWheel";
 export { default as DeadlineBadge } from "./DeadlineBadge/DeadlineBadge";
 export { default as Dialog } from "./Dialog/Dialog";
 export { default as DemoButton } from "./DemoButton/DemoButton";
