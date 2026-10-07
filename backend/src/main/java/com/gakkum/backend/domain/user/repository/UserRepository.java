@@ -20,5 +20,6 @@ public interface UserRepository extends JpaRepository<User, String> {
     Optional<User> findByIdAndIsLockFalse(String id);
     boolean existsByEmailIgnoreCase(String email);
     Optional<User> findByDemoSessionIdAndRoleAndIsLock(String demoSessionId, UserRole role, Boolean isLock);
-    long countByDemoSessionIdIsNotNullAndRoleAndCreatedAtAfter(UserRole role, LocalDateTime createdAt);
+    long countByDemoSessionIdIsNotNullAndRoleAndIsLockAndCreatedAtAfter(
+            UserRole role, Boolean isLock, LocalDateTime createdAt);
 }

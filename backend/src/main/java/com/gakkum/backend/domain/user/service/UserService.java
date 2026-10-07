@@ -179,6 +179,23 @@ public class UserService extends DefaultOAuth2UserService {
                 .build());
     }
 
+    /**
+     * 데모 세션의 예시 데이터에 등장하는 다른 사장님·학생을 만든다. 방문자 계정과 같은 demoSessionId를 쓰지만
+     * 잠긴 계정(isLock)이라 로그인할 수 없고, getDemoUser는 방문자 계정 한 쌍만 찾는다.
+     * @param number 같은 세션·역할 안에서 겹치지 않는 번호. username은 DEMO_<세션>_<역할>_<번호>다
+     */
+    @Transactional
+    public User createDemoSampleUser(String demoSessionId, UserRole role, int number, String name) {
+        return userRepository.save(User.builder()
+                .id(UlidGenerator.generate())
+                .username("DEMO_" + demoSessionId + "_" + role.name() + "_" + number)
+                .name(name)
+                .isLock(true)
+                .role(role)
+                .demoSessionId(demoSessionId)
+                .build());
+    }
+
     /** 데모 세션에 속한 해당 역할의 사용자를 조회한다. 모르는 세션이거나 계정이 지워졌으면 인증 오류다. */
     @Transactional(readOnly = true)
     public User getDemoUser(String demoSessionId, UserRole role) {
@@ -186,10 +203,14 @@ public class UserService extends DefaultOAuth2UserService {
                 .orElseThrow(() -> new BusinessException(ErrorCode.UNAUTHORIZED));
     }
 
-    /** 기준 시각 이후에 만들어진 데모 세션 수. 세션마다 사장님이 한 명이라 데모 사장님 수로 센다. */
+    /**
+     * 기준 시각 이후에 만들어진 데모 세션 수. 세션마다 방문자 사장님이 한 명이라 잠기지 않은 데모 사장님 수로 센다.
+     * 예시 데이터의 다른 사장님(잠긴 계정)은 세지 않는다.
+     */
     @Transactional(readOnly = true)
     public long countDemoSessionsCreatedAfter(LocalDateTime createdAt) {
-        return userRepository.countByDemoSessionIdIsNotNullAndRoleAndCreatedAtAfter(UserRole.OWNER, createdAt);
+        return userRepository.countByDemoSessionIdIsNotNullAndRoleAndIsLockAndCreatedAtAfter(
+                UserRole.OWNER, false, createdAt);
     }
 
     private User findPendingUser(String username) {
