@@ -47,7 +47,8 @@ public class Review {
     @Column(name = "positive_points", nullable = false, columnDefinition = "jsonb")
     private List<ReviewPositivePoint> positivePoints;
 
-    @Column(nullable = false, columnDefinition = "TEXT")
+    // 별점과 좋은 점만 남긴 리뷰는 null이다
+    @Column(columnDefinition = "TEXT")
     private String content;
 
     @Column(nullable = false)
