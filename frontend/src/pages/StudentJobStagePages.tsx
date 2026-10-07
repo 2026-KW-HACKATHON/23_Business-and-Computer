@@ -26,7 +26,7 @@ import {
 } from "../features/student";
 import type { LatestSubmissionLoad, ProgressJob, ProgressStage } from "../features/student";
 import { useBack } from "../hooks/useBack";
-import { formatMonthDay } from "../lib/date";
+import { addDays, formatMonthDay } from "../lib/date";
 import { fileNameFromUrl } from "../lib/fileUrl";
 import "./StudentDetailPage.css";
 import "./StudentWorkPage.css";
@@ -198,14 +198,15 @@ function SubmittedScreen({ job, back }: { job: ProgressJob; back: () => void }) 
   const { load, reload } = useLatestSubmission(job.jobId);
   const latest = load.status === "loaded" ? load.submission : undefined;
   const stage = (latest ? latest.submissionType === "REVISION" : job.revisionSubmitted) ? "수정안" : "초안";
-  // 「가게 · 10월 7일 제출 · 수정 1/2」. 불러오기 전에는 「가게 · 초안 제출 · 수정 2회」
-  const meta = latest
-    ? progressMeta(
-        job,
-        `${formatMonthDay(submissionDay(latest.submittedAt))} 제출`,
-        `수정 ${latest.revisionNumber}/${job.revisionLimit}`,
-      )
-    : progressMeta(job, `${stage} 제출`, `수정 ${job.revisionLimit}회`);
+  const submittedOn = latest ? submissionDay(latest.submittedAt) : job.submittedOn;
+  // 「가게 · 10월 7일 제출 · 수정 1/2」. 불러오기 전에는 「가게 · 10월 7일 제출 · 수정 2회」
+  const meta = progressMeta(
+    job,
+    submittedOn ? `${formatMonthDay(submittedOn)} 제출` : `${stage} 제출`,
+    latest ? `수정 ${latest.revisionNumber}/${job.revisionLimit}` : `수정 ${job.revisionLimit}회`,
+  );
+  // 낸 날 + 7일까지 답이 없으면 자동으로 완료된다. 낸 날을 모르면 「7일 동안」
+  const autoComplete = submittedOn ? `${formatMonthDay(addDays(submittedOn, 7))}까지` : "7일 동안";
   const note = latest?.message?.trim();
 
   return (
@@ -231,7 +232,7 @@ function SubmittedScreen({ job, back }: { job: ProgressJob; back: () => void }) 
         <div className="student-work__info">
           <strong>사장님이 확인하고 있어요</strong>
           <p>
-            사장님이 수정 요청이나 완료 확인을 누르면 알려 드려요. 7일 동안 답이 없으면 자동으로
+            사장님이 수정 요청이나 완료 확인을 누르면 알려 드려요. {autoComplete} 답이 없으면 자동으로
             완료돼요.
           </p>
         </div>

@@ -1,7 +1,7 @@
 import { ApiError } from "../../../api/client";
+import { formatMonthDay, koreaDateOfUtc } from "../../../lib/date";
 import type { ApplicationPlan } from "../../../types/workPlan";
 import type { JobApplicationStatus } from "../../explore";
-import { proposalMonthDay } from "../../proposal";
 import { fetchMyJobApplications } from "../api/applicationApi";
 import type { AppliedJobResponse } from "../api/applicationApi";
 
@@ -45,8 +45,7 @@ export function appliedPlan(job: AppliedJob): ApplicationPlan | undefined {
   return { summary: job.summary, method: job.workPlan, deliverable: job.deliveryMethod };
 }
 
-/** 「10월 6일 지원할 때 보냄」. 지원 시각이 없으면 undefined */
+/** 「10월 6일 지원할 때 보냄」 (지원 시각은 UTC 라 한국 날짜로). 지원 시각이 없으면 undefined */
 export function appliedOnText(job: AppliedJob): string | undefined {
-  const monthDay = proposalMonthDay(job.appliedAt);
-  return monthDay && `${monthDay} 지원할 때 보냄`;
+  return job.appliedAt ? `${formatMonthDay(koreaDateOfUtc(job.appliedAt))} 지원할 때 보냄` : undefined;
 }
