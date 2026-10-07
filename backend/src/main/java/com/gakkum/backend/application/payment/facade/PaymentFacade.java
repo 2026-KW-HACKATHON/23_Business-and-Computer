@@ -4,6 +4,7 @@ import java.time.Clock;
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -61,7 +62,7 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 public class PaymentFacade {
 
-    // 결제·정산 내역을 묶는 월의 기준 시간대
+    // 결제·정산 내역을 묶는 월과 정산 날짜의 기준 시간대
     private static final ZoneId HISTORY_ZONE = ZoneId.of("Asia/Seoul");
 
     private final PaymentPreparationService preparationService;
@@ -319,7 +320,7 @@ public class PaymentFacade {
         return payment.getStudentCompensationAmount();
     }
 
-    // 정산 예정은 날짜가 없다. 정산 완료는 의뢰 완료일, 착수 보상과 환불은 한국 시간 기준 환불 처리일이다
+    // 정산 예정은 날짜가 없다. 정산 완료는 UTC로 저장된 의뢰 완료 시각의 한국 날짜, 착수 보상과 환불은 한국 시간 기준 환불 처리일이다
     private LocalDate settledDate(SettlementHistoryData payment, Job job, SettlementHistoryStatus status) {
         if (status == SettlementHistoryStatus.SCHEDULED) {
             return null;
@@ -328,7 +329,7 @@ public class PaymentFacade {
             if (job.getCompletedAt() == null) {
                 throw new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR);
             }
-            return job.getCompletedAt().toLocalDate();
+            return job.getCompletedAt().atOffset(ZoneOffset.UTC).atZoneSameInstant(HISTORY_ZONE).toLocalDate();
         }
         if (payment.getRefundedAt() == null) {
             throw new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR);

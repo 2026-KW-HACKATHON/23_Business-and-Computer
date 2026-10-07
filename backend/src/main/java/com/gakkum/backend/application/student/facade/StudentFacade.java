@@ -1,5 +1,7 @@
 package com.gakkum.backend.application.student.facade;
 
+import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.LinkedHashSet;
@@ -61,6 +63,8 @@ public class StudentFacade {
 
     // 내 정보에 함께 내리는 최신 리뷰·정산 완료 내역의 최대 개수
     private static final int ME_PREVIEW_SIZE = 3;
+    // 정산 날짜의 기준 시간대
+    private static final ZoneId SETTLED_DATE_ZONE = ZoneId.of("Asia/Seoul");
 
     private final UserService userService;
     private final StudentService studentService;
@@ -255,7 +259,7 @@ public class StudentFacade {
         }
     }
 
-    // 정산 내역 조회와 같은 무결성 기준으로 확인한다. 금액은 저장된 결제 금액, 정산일은 의뢰 완료일이다
+    // 정산 내역 조회와 같은 무결성 기준으로 확인한다. 금액은 저장된 결제 금액, 정산일은 UTC로 저장된 의뢰 완료 시각의 한국 날짜다
     private SettlementHistoryItemResult settledItem(
             SettlementHistoryData payment, Job job, Student student, Map<Long, JobApplication> applicationsById,
             Map<Long, String> storeNamesByOwnerProfileId) {
@@ -280,7 +284,8 @@ public class StudentFacade {
             throw new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR);
         }
         return SettlementHistoryItemResult.of(job.getId(), job.getTitle(), payment.getAmount(),
-                job.getCompletedAt().toLocalDate(), storeNamesByOwnerProfileId.get(job.getOwnerProfileId()),
+                job.getCompletedAt().atOffset(ZoneOffset.UTC).atZoneSameInstant(SETTLED_DATE_ZONE).toLocalDate(),
+                storeNamesByOwnerProfileId.get(job.getOwnerProfileId()),
                 SettlementHistoryStatus.SETTLED);
     }
 
