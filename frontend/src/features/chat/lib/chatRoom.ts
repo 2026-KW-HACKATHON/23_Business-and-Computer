@@ -5,7 +5,8 @@ import type { ChatProgress, ChatRoom } from "../types";
 
 /**
  * 진행 상태. 작업 상태(jobStatus)가 오면 완료 · 성사되지 않음도 알고, 매칭된 작업은
- * 마감 종류 · 마지막 결과물 검토 상태로 정한다. 알 수 없으면 undefined (그 줄을 숨긴다)
+ * 마감 종류 · 마지막 결과물 검토 상태로 정한다. 알 수 없으면 undefined (그 줄을 숨긴다).
+ * 마감 종류는 초안이 승인돼야 FINAL 이 되므로, 수정 요청을 받은 수정 단계는 최종 마감을 쓴다
  */
 export function chatProgressOf(room: ChatRoom): ChatProgress | undefined {
   if (room.jobStatus === "CLOSED") return { type: "completed" };
@@ -13,7 +14,9 @@ export function chatProgressOf(room: ChatRoom): ChatProgress | undefined {
   if (!room.deadlineType || !room.deadlineDate) return undefined;
   if (room.submissionReviewStatus === "PENDING") return { type: "submitted" };
   const revising = room.deadlineType === "FINAL" || room.submissionReviewStatus === "REVISION_REQUESTED";
-  return { type: "making", stage: revising ? "수정안" : "초안", due: room.deadlineDate };
+  return revising
+    ? { type: "making", stage: "수정안", due: room.finalDeadline }
+    : { type: "making", stage: "초안", due: room.deadlineDate };
 }
 
 /** 채팅 목록의 굵은 진행 상태. 모르면 빈 글자 */

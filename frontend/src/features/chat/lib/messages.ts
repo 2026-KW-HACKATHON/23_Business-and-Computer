@@ -2,6 +2,19 @@ import { ApiError } from "../../../api/client";
 import type { ChatMessageResponse } from "../api/chatApi";
 import type { ChatFailure, ChatMessage } from "../types";
 
+/**
+ * 보낼 글의 clientMessageId (UUID v4). crypto.randomUUID 는 https · localhost 에서만 있어서,
+ * 없으면(http://192.168… 등) crypto.getRandomValues 로 같은 모양을 만든다
+ */
+export function newClientMessageId(): string {
+  if (typeof crypto.randomUUID === "function") return crypto.randomUUID();
+  const bytes = crypto.getRandomValues(new Uint8Array(16));
+  bytes[6] = (bytes[6] & 0x0f) | 0x40; // 버전 4
+  bytes[8] = (bytes[8] & 0x3f) | 0x80; // RFC 4122 변형
+  const hex = Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+}
+
 /** 열람 주소가 이만큼 안에 만료되면 새 주소로 바꾼다 */
 const URL_REFRESH_MARGIN_MS = 60_000;
 

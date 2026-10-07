@@ -12,6 +12,7 @@ import {
   chatFailureOf,
   isAttachmentExpired,
   mergeMessages,
+  newClientMessageId,
   toChatMessage,
   upsertMessage,
 } from "../lib/messages";
@@ -204,7 +205,7 @@ export function useChatRoom(roomId: string, listPath: string): ChatRoomState {
 
   const send = useCallback(
     (text: string) => {
-      const clientMessageId = crypto.randomUUID();
+      const clientMessageId = newClientMessageId();
       mineIds.current.add(clientMessageId);
       setOutgoing((current) => [
         ...current,

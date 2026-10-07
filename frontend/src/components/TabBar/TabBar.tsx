@@ -36,10 +36,12 @@ function TabBar({ role, current, onSelect, hasUnreadChat = false, className = ""
           <span className="tab-bar__icon">
             <MaskIcon name={icon} size={24} />
             {tab === "chat" && hasUnreadChat && (
-              <span className={`tab-bar__dot tab-bar__dot--${role}`} aria-label="안 읽은 메시지 있음" />
+              <span className={`tab-bar__dot tab-bar__dot--${role}`} aria-hidden="true" />
             )}
           </span>
           {label}
+          {/* 점은 눈으로만 보이니 화면 낭독기에는 「채팅, 안 읽은 메시지 있음」으로 읽힌다 */}
+          {tab === "chat" && hasUnreadChat && <span className="tab-bar__sr-only">, 안 읽은 메시지 있음</span>}
         </button>
       ))}
     </nav>

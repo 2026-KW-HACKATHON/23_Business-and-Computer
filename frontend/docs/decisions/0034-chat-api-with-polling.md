@@ -42,7 +42,7 @@ owner and its selected student may use a room):
   (same `clientMessageId` with other content), COMMON_400.
 - A room is made per job: when the owner's KakaoPay payment for an applicant
   is approved, or when the student starts a proposal job (POST
-  /jobs/{jobId}/start answers `chatRoomId`).
+  /jobs/{jobId}/start).
 - User ids (`viewerUserId`, `senderUserId`) are strings (`users.user_id`,
   26-character ULID).
 - There is no WebSocket or SSE. There are no system messages, file sizes, or
@@ -57,7 +57,9 @@ owner and its selected student may use a room):
   - `src/features/chat/lib/messages.ts` turns responses into screen messages,
     merges reloads, and maps failures;
   - `src/features/chat/hooks/useChatRooms.ts` and
-    `src/features/chat/hooks/useChatRoom.ts` load, poll, read, and send.
+    `src/features/chat/hooks/useChatRoom.ts` load, poll, read, and send;
+  - `src/features/chat/hooks/useScrollToLatest.ts` keeps the room scrolled to
+    the latest message.
 
   The four screens
   (`OwnerChatsPage`, `OwnerChatRoomPage`, `StudentChatsPage`,
@@ -90,13 +92,24 @@ owner and its selected student may use a room):
   ring at the top right of the 「채팅」 icon, like the dot on the app bar's
   알림 bell. It loads when a tab-bar screen opens, when the tab becomes
   visible, after each read, and every 20 seconds while visible; it stops
-  while hidden. A failed load hides the dot.
-- **Send**: `crypto.randomUUID()` makes `clientMessageId`. The bubble shows at
+  while hidden. A failed load hides the dot. The dot is `aria-hidden`; the tab
+  button carries visually hidden text, so a screen reader reads 「채팅, 안 읽은
+  메시지 있음」.
+- **Send**: `newClientMessageId()` makes `clientMessageId` as a UUID v4 with
+  `crypto.randomUUID()`, or with `crypto.getRandomValues` where `randomUUID`
+  is missing (pages not on https or localhost). The bubble shows at
   once with 「보내는 중」; success swaps in the stored message; failure shows
   「보내지 못했어요」 and 「다시 보내기」, which resends the same
   `clientMessageId`. A pending or failed bubble that turns up in the reloaded
   history is replaced by the stored one. The input takes up to 5000
   characters. The attach button is removed.
+- **Scroll**: the room opens at the latest message. When messages are added
+  it scrolls to the bottom only if the view was within 80px of the bottom or
+  the newest message is one being sent from this screen; while reading older
+  messages further up it stays put. There is no jump-to-latest button.
+- **Names**: owner screens show the student with `studentTitle` (「김광운
+  학생」; a name already ending in 학생, like 「데모 학생」, is left as is).
+  Student screens show 「{store name} 사장님」.
 - **Photos and files**: a photo shows as a thumbnail and a file as its name,
   both opening the view URL in a new tab. If `contentExpiresAt` has passed, a
   blank tab opens first, GET of the one message fetches a new URL, and the tab
@@ -104,13 +117,19 @@ owner and its selected student may use a room):
   다시 시도해 주세요」. A message without `content` shows 「열 수 없는
   파일이에요」.
 - **Room card**:
-  - The work icon is the request icon for every room.
+  - The work icon is the proposal icon when the room's `jobId` is the `jobId`
+    of a received proposal (owner, GET /me/received-proposals) or a sent
+    proposal (student, GET /me/proposals), and the request icon otherwise or
+    when that list fails to load (`useProposalJobIds` in each feature).
   - The status line comes from `jobStatus` (CLOSED → 완료, CANCELLED → 성사되지
     않음) or, for a matched job, from the review status and deadline:
     PENDING → owner 「결과물이 도착했어요, 확인해 주세요」, student
     「결과물을 보냈어요, 사장님 확인 중」; otherwise 「초안 · 수정안 만드는 중,
-    M월 D일까지 도착 · 제출」 (수정안 when `deadlineType` is FINAL or a
-    revision was requested). Unknown → the line is hidden. The list uses the
+    M월 D일까지 도착 · 제출」. 수정안 is when `deadlineType` is FINAL or a
+    revision was requested, and its date is `finalDeadline`, because
+    `deadlineType` turns FINAL only once a draft is approved and a revising
+    job still has DRAFT with the draft deadline; 초안 uses `deadlineDate`.
+    Unknown → the line is hidden. The list uses the
     short forms (「초안 만드는 중 (~M월 D일)」, 「결과물을 확인해 주세요」 ·
     「사장님이 확인 중」).
   - The room's `jobStatus` decides the work actions: 「작업 취소」 (owner)
@@ -128,8 +147,6 @@ owner and its selected student may use a room):
   list. A failed first load shows `LoadNotice` 「채팅방을 불러오지 못했어요」 ·
   「채팅 목록을 불러오지 못했어요」 with 「다시 시도」. Failed background reloads
   are ignored.
-- **Work start**: the 「작업을 시작했어요」 popup on the proposal work-start
-  screen adds 「채팅방 가기」 when the answer has `chatRoomId`.
 - The sample chat threads, their hooks and types, and the student demo
   `agreedAt` are removed.
 

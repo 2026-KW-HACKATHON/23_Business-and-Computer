@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import type { FormEvent, MouseEvent } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
@@ -16,11 +16,13 @@ import {
   chatSummaryText,
   isAttachmentExpired,
   useChatRoom,
+  useScrollToLatest,
 } from "../features/chat";
 import type { ChatMessage } from "../features/chat";
-import { OWNER_PATHS, WorkPlanSheet } from "../features/owner";
+import { OWNER_PATHS, WorkPlanSheet, useProposalJobIds } from "../features/owner";
 import { useBack } from "../hooks/useBack";
 import { formatDayChip, formatMonthDay } from "../lib/date";
+import { studentTitle } from "../lib/korean";
 import { formatWon } from "../lib/money";
 import "./OwnerChatRoomPage.css";
 
@@ -47,12 +49,10 @@ function OwnerChatRoom({ roomId }: { roomId: string }) {
   const [draft, setDraft] = useState("");
   const [planOpen, setPlanOpen] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
-  const endRef = useRef<HTMLDivElement>(null);
-
-  // 처음 들어올 때와 메시지가 늘 때 맨 아래로
-  useEffect(() => {
-    endRef.current?.scrollIntoView({ block: "end" });
-  }, [messages.length]);
+  // 처음 들어올 때, 맨 아래 근처에서 새 메시지를 받을 때, 내가 보낼 때 맨 아래로
+  const endRef = useScrollToLatest(messages);
+  // 받은 · 보낸 제안의 의뢰면 제안에서 시작한 작업
+  const proposalJobIds = useProposalJobIds();
 
   if (load.status !== "loaded") {
     return (
@@ -72,7 +72,7 @@ function OwnerChatRoom({ roomId }: { roomId: string }) {
   const summary = chatSummaryText(room, "owner");
   const canCancel = canCancelChatWork(room);
   const canReport = canReportChatWork(room);
-  const partnerName = `${room.counterpartName} 학생`;
+  const partnerName = studentTitle(room.counterpartName);
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
@@ -113,7 +113,7 @@ function OwnerChatRoom({ roomId }: { roomId: string }) {
       <div className="owner-chat">
         <div className="owner-chat__work">
           <div className="owner-chat__work-head">
-            <WorkKindIcon kind="request" size={20} />
+            <WorkKindIcon kind={proposalJobIds.has(room.jobId) ? "proposal" : "request"} size={20} />
             <strong className="owner-chat__work-title">{room.jobTitle}</strong>
             {plan && <TextButton onClick={() => setPlanOpen(true)}>작업계획서 보기</TextButton>}
           </div>

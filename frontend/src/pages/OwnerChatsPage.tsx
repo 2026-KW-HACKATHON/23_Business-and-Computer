@@ -3,6 +3,7 @@ import { ChatRow, LoadNotice } from "../components";
 import { chatLastMessageText, chatListStatusText, useChatRooms } from "../features/chat";
 import { OWNER_PATHS, OwnerTabScreen } from "../features/owner";
 import { formatChatTime } from "../lib/date";
+import { studentTitle } from "../lib/korean";
 import "./OwnerChatsPage.css";
 
 /** 피그마 「채팅 목록 (사장님)」. 작업 하나에 채팅방 하나 (GET /me/chat-rooms) */
@@ -30,7 +31,7 @@ function OwnerChatsPage() {
               <ChatRow
                 tone="owner"
                 partnerRole="student"
-                name={`${room.counterpartName} 학생`}
+                name={studentTitle(room.counterpartName)}
                 workTitle={room.jobTitle}
                 status={chatListStatusText(room, "owner")}
                 lastMessage={chatLastMessageText(room)}

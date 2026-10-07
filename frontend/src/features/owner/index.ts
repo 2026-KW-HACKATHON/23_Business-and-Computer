@@ -32,6 +32,7 @@ export {
 export { useSafePayment } from "./hooks/useSafePayment";
 export type { PaymentPhase } from "./hooks/useSafePayment";
 export { useOwnerHome } from "./hooks/useOwnerHome";
+export { useProposalJobIds } from "./hooks/useProposalJobIds";
 export { useReceivedProposals } from "./hooks/useReceivedProposals";
 export {
   useApplicantProfile,

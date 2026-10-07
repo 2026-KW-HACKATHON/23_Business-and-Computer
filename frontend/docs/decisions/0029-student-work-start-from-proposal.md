@@ -45,8 +45,7 @@ POST /jobs/{jobId}/start. The sample work-start screen for sample works
   request per press).
   - Start: `sendWorkStart` (`src/features/student/lib/workStart.ts`). Success
     opens 「작업을 시작했어요」 with the answer's draft deadline; 「확인」 goes to
-    내 활동 › 진행 중, and 「채팅방 가기」 (when the answer has `chatRoomId`)
-    opens that chat room (ADR 0034). 401 → /login; JOB_START_403 → 「제안한 학생만 작업을 시작할
+    내 활동 › 진행 중. 401 → /login; JOB_START_403 → 「제안한 학생만 작업을 시작할
     수 있어요」 then `landingPath()`; JOB_START_409 or JOB_404 → 「지금은 작업을
     시작할 수 없어요…」 above the buttons; anything else → 「잠시 후 다시 시도해
     주세요」.

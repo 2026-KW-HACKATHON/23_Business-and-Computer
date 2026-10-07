@@ -5,6 +5,7 @@ export type { ChatRoomLoad, ChatRoomState } from "./hooks/useChatRoom";
 export { useChatRooms } from "./hooks/useChatRooms";
 export type { ChatRoomsLoad } from "./hooks/useChatRooms";
 export { useChatUnread } from "./hooks/useChatUnread";
+export { useScrollToLatest } from "./hooks/useScrollToLatest";
 
 export {
   canCancelChatWork,

@@ -39,6 +39,7 @@ export { useExploreStores } from "./hooks/useExploreStores";
 export type { ExploreStoresLoad } from "./hooks/useExploreStores";
 export { useAppliedJobs } from "./hooks/useAppliedJobs";
 export type { AppliedJobsLoad } from "./hooks/useAppliedJobs";
+export { useProposalJobIds } from "./hooks/useProposalJobIds";
 export { useSentProposals } from "./hooks/useSentProposals";
 export type { SentProposalsLoad } from "./hooks/useSentProposals";
 export { useStudentHome } from "./hooks/useStudentHome";
