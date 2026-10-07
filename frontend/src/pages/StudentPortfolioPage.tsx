@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button, Dialog, SubScreen } from "../components";
-import { STUDENT_PATHS, useMyProfile, useStudentWorks } from "../features/student";
+import { STUDENT_PATHS, useStudentWorks } from "../features/student";
 import type { StudentWork } from "../features/student";
 import { useBack } from "../hooks/useBack";
 import { formatMonthDay } from "../lib/date";
@@ -23,10 +23,16 @@ function fileBadge(work: StudentWork): string {
 function StudentPortfolioPage() {
   const navigate = useNavigate();
   const back = useBack(STUDENT_PATHS.me);
-  const profile = useMyProfile();
   const works = useStudentWorks()
     .filter((w) => w.status === "completed")
     .sort((a, b) => (b.completedOn ?? "").localeCompare(a.completedOn ?? ""));
+  // 완료한 작업 · 함께한 가게 · 받은 평점은 아래 목록과 같은 작업에서 센다
+  const storeCount = new Set(works.map((w) => w.store.id)).size;
+  const ratings = works.flatMap((w) => (w.review ? [w.review.rating] : []));
+  const rating =
+    ratings.length > 0
+      ? Math.round((ratings.reduce((sum, r) => sum + r, 0) / ratings.length) * 10) / 10
+      : undefined;
   const [exportOpen, setExportOpen] = useState(false);
   const months = [...new Set(works.map((w) => (w.completedOn ?? "").slice(0, 7)))];
 
@@ -46,15 +52,15 @@ function StudentPortfolioPage() {
         <dl className="student-portfolio__stats">
           <div>
             <dt>완료한 작업</dt>
-            <dd>{profile.completedCount}건</dd>
+            <dd>{works.length}건</dd>
           </div>
           <div>
             <dt>함께한 가게</dt>
-            <dd>{profile.storeCount}곳</dd>
+            <dd>{storeCount}곳</dd>
           </div>
           <div>
             <dt>받은 평점</dt>
-            <dd>{profile.rating === undefined ? "-" : `★ ${profile.rating.toFixed(1)}`}</dd>
+            <dd>{rating === undefined ? "-" : `★ ${rating.toFixed(1)}`}</dd>
           </div>
         </dl>
         <p className="student-portfolio__note">

@@ -78,7 +78,7 @@ The backend (dev) has:
 ## Alternatives Considered
 
 - Removing the sample in-progress works: rejected, sample notifications
-  and settlements still point at them.
+  still point at them.
 
 ## Agent Guidance
 

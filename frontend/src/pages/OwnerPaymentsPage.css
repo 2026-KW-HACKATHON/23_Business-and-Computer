@@ -12,6 +12,14 @@
   color: var(--text-placeholder);
 }
 
+.owner-payments__empty {
+  padding: 24px 0;
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--role-secondary);
+  text-align: center;
+}
+
 .owner-payments__month {
   display: flex;
   flex-direction: column;

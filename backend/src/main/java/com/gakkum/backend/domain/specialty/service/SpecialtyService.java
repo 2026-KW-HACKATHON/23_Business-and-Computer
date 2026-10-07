@@ -3,6 +3,7 @@ package com.gakkum.backend.domain.specialty.service;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -67,6 +68,19 @@ public class SpecialtyService {
                 .limit(limit)
                 .map(Specialty::getId)
                 .toList();
+    }
+
+    /**
+     * 데모 예시 데이터에 쓸 소분류 이름별 특기 ID. 이름이 겹치면 ID가 작은 특기를 쓴다.
+     * @return 이름별 특기 ID, 기준 데이터에 없는 이름은 키가 없다
+     */
+    @Transactional(readOnly = true)
+    public Map<String, Long> getSpecialtyIdsByName() {
+        Map<String, Long> idsByName = new HashMap<>();
+        for (Specialty specialty : specialtyRepository.findAllByOrderByIdAsc()) {
+            idsByName.putIfAbsent(specialty.getName(), specialty.getId());
+        }
+        return idsByName;
     }
 
     /**

@@ -2,11 +2,13 @@ import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { loadOwnerClosedJobs } from "../lib/closedJobs";
 import type { OwnerClosedJob } from "../lib/closedJobs";
+import type { PaymentSummary } from "../types";
 
 export type OwnerClosedJobsLoad =
   | { status: "loading" }
   | { status: "error" }
-  | { status: "loaded"; jobs: OwnerClosedJob[] };
+  /** paymentSummary 는 완료 탭 위 결제 요약 (GET /payments). 못 불러오면 없음 */
+  | { status: "loaded"; jobs: OwnerClosedJob[]; paymentSummary?: PaymentSummary };
 
 /**
  * 끝난 내 의뢰 (GET /me/jobs?status=CLOSED). 내 활동 완료 탭 · 홈 끝난 일 · 성사되지 않은 작업 상세가 쓴다.

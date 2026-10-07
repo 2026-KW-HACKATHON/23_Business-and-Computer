@@ -17,24 +17,35 @@ export {
   agreeToWork,
   declineWork,
   markNotificationsRead,
-  saveMyProfile,
-  setMyProfilePhoto,
   submitWork,
-  useMyProfilePhoto,
 } from "./hooks/studentStore";
 export {
-  useMyProfile,
   useMyProposal,
   useProposalExample,
   useProposalExamples,
   useStore,
   useStores,
   useStudentNotifications,
-  useStudentSettlements,
   useStudentWork,
   useStudentWorks,
 } from "./hooks/useStudentData";
-export type { MyProfileView, ReceivedReview } from "./hooks/useStudentData";
+export { useStudentMe, useStudentPhotoChange } from "./hooks/useStudentMe";
+export type { StudentMeLoad } from "./hooks/useStudentMe";
+export { useSettlementHistory } from "./hooks/useSettlementHistory";
+export type { SettlementHistoryLoad } from "./hooks/useSettlementHistory";
+export {
+  portfolioHref,
+  portfolioLabel,
+  reviewWorkText,
+  saveStudentMe,
+  specialtyIdsOf,
+  specialtyNamesOf,
+  studentMeChanges,
+  studentYearText,
+} from "./lib/studentMe";
+export type { StudentMe, StudentMeChanges, StudentMeReview, StudentMeSaveResult } from "./lib/studentMe";
+export { SETTLEMENT_STATUS_LABEL, settlementDetailText, settlementSummaryOf } from "./lib/settlements";
+export type { SettlementHistory, SettlementItem, SettlementStatus } from "./lib/settlements";
 export { useExploreStores } from "./hooks/useExploreStores";
 export type { ExploreStoresLoad } from "./hooks/useExploreStores";
 export { useAppliedJobs } from "./hooks/useAppliedJobs";
@@ -113,7 +124,6 @@ export type {
   ProposalExample,
   Store,
   StudentNotification,
-  StudentSettlement,
   StudentTodo,
   StudentWaitingItem,
   StudentWork,

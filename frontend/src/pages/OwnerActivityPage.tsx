@@ -29,7 +29,6 @@ import {
   studentMetaText,
   useOpenJobs,
   useOwnerClosedJobs,
-  useOwnerPayments,
   useOwnerProgressJobs,
   useProgressPlanSheet,
   useReceivedProposals,
@@ -99,7 +98,7 @@ function CardHead({ kind, title, right }: { kind: WorkKind; title: string; right
  * 위 요약 카드 4칸이 탭이고, 고른 탭은 주소(?tab=)에 남아 돌아와도 그대로다.
  * 보낸 의뢰는 GET /me/jobs?status=OPEN (ADR 0030), 받은 제안은 GET /me/received-proposals (ADR 0025),
  * 진행 중은 GET /me/jobs?status=MATCHED (ADR 0035), 완료는 GET /me/jobs?status=CLOSED (ADR 0036).
- * 완료 탭 위 결제 요약은 아직 샘플 데이터다.
+ * 완료 탭 위 결제 요약은 끝난 목록과 함께 불러온 GET /payments 요약이다 (ADR 0040).
  */
 function OwnerActivityPage() {
   const navigate = useNavigate();
@@ -120,7 +119,7 @@ function OwnerActivityPage() {
   // 끝난 작업은 끝난 날 최신순 (서버 순서)
   const { load: closedLoad, reload: reloadClosed } = useOwnerClosedJobs();
   const closedJobs = closedLoad.status === "loaded" ? closedLoad.jobs : [];
-  const { summary } = useOwnerPayments();
+  const paymentSummary = closedLoad.status === "loaded" ? closedLoad.paymentSummary : undefined;
   // 진행 중 카드의 「상세보기」 = 지원서 바텀시트 (누를 때 불러옴)
   const planSheet = useProgressPlanSheet();
   const [reportTitle, setReportTitle] = useState<string>();
@@ -357,7 +356,7 @@ function OwnerActivityPage() {
               <h2 className="owner-activity__list-title">결제 내역</h2>
               <TextButton onClick={() => navigate(OWNER_PATHS.payments)}>전체 보기</TextButton>
             </div>
-            <PaymentSummaryBox summary={summary} />
+            {paymentSummary && <PaymentSummaryBox summary={paymentSummary} />}
           </section>
         )}
 

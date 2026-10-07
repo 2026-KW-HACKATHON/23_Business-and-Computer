@@ -11,7 +11,7 @@ function SettlementSummaryBox({ summary }: SettlementSummaryBoxProps) {
   const items = [
     { label: "이번 달 작업비", amount: summary.thisMonth },
     { label: "정산 예정", amount: summary.expected },
-    { label: "정산 완료", amount: summary.settledThisMonth },
+    { label: "정산 완료", amount: summary.settled },
   ];
 
   return (

@@ -24,21 +24,19 @@ work never became completed.
   `src/features/owner/lib/sampleDetails.ts` and student profiles in
   `sampleStudents.ts` (탐색 reads the backend, ADR 0026; sent requests,
   their applicants, and cancel read it too, ADR 0030; in-progress works,
-  ADR 0035). The home, 내 활동,
-  결제 내역 and its summary, and the 내 정보 counts are built
-  from them in
-  `src/features/owner/hooks/useOwnerData.ts` and `useOwnerHome.ts`.
+  ADR 0035). The home and 내 활동 are built from them in
+  `src/features/owner/hooks/useOwnerData.ts` and `useOwnerHome.ts`;
+  결제 내역, its summary, and 내 정보 read the backend (ADR 0040).
 - A work, request, or proposal refers to a student by id. Name, department,
   year, rating (the average of the profile's reviews), and completed count
   always come from the profile.
 - Sample dates count from today with `day(offset)` and `dayAt(offset, h, m)`
   in `src/lib/sampleTime.ts`. Plans say 「초안 마감일까지」
   instead of a date so they always agree with the request.
-- Each work has `paidOn`; 결제 내역 and 「이번 달 결제」 use it. Chat reads
-  the backend (ADR 0034).
+- Chat reads the backend (ADR 0034).
 - Demo state: `completeOwnerWork` (완료 확인) and `markOwnerWorkReviewed`
-  (후기 남기기) mark a work in memory, so the result screen, 내 활동 완료, the
-  home 끝난 일, and 결제 내역 follow the demo until the page reloads.
+  (후기 남기기) mark a work in memory, so the result screen, 내 활동 완료, and
+  the home 끝난 일 follow the demo until the page reloads.
 - `OwnerHome.firstVisit` comes from `SAMPLE_FIRST_VISIT`. When true, the home shows `FirstVisitGuide` (피그마 「사장님 홈 -
   처음」) instead of 확인할 일, 학생이 작업 중, 기다리는 중, and 끝난 일.
 - 보낸 의뢰 and 진행 중 in 내 활동 are sorted by 초안 마감, earliest first.

@@ -1,14 +1,11 @@
 import { useSyncExternalStore } from "react";
 import { todayIsoDate } from "../../../lib/date";
-import type { MyProfile, WorkFile } from "../types";
+import type { WorkFile } from "../types";
 
 /*
  * 시연 중에 바뀐 상태. 백엔드 연동 전까지 새로고침하면 처음으로 돌아간다.
  * 바뀔 때마다 version 이 올라가 이 상태를 읽는 화면이 다시 그려진다.
  */
-
-/** 프로필 편집에서 고칠 수 있는 값 (이름 · 학교 · 학과는 인증 정보라 못 고친다) */
-export type ProfileEdit = Pick<MyProfile, "intro" | "badges" | "certificates" | "portfolioUrl">;
 
 interface Submission {
   files: WorkFile[];
@@ -21,10 +18,6 @@ export const demo = {
   readNotificationIds: new Set<string>(),
   declinedWorkIds: new Set<string>(),
   submissions: new Map<string, Submission>(),
-  /** 프로필 편집에서 저장한 값 */
-  profile: null as ProfileEdit | null,
-  /** 내 사진 (내 정보 · 프로필 수정 · 프로필 편집이 같이 본다) */
-  profilePhoto: null as File | null,
 };
 
 let version = 0;
@@ -71,22 +64,4 @@ export function declineWork(workId: string): void {
 export function submitWork(workId: string, files: WorkFile[], message: string): void {
   demo.submissions.set(workId, { files, message, on: todayIsoDate() });
   changed();
-}
-
-/** 프로필 편집 「저장하기」 */
-export function saveMyProfile(edit: ProfileEdit): void {
-  demo.profile = edit;
-  changed();
-}
-
-/** 내 사진 바꾸기 */
-export function setMyProfilePhoto(file: File | null): void {
-  demo.profilePhoto = file;
-  changed();
-}
-
-/** 내 사진. 백엔드 연동 전까지 고른 파일을 그대로 미리 보여 준다 */
-export function useMyProfilePhoto(): File | null {
-  useDemoVersion();
-  return demo.profilePhoto;
 }

@@ -173,27 +173,6 @@ export interface ProposalExample {
   proposalTitle: string;
 }
 
-export interface StudentCertificate {
-  name: string;
-  /** 취득 연도. 서버도 연도만 둔다 (acquiredYear) */
-  acquiredYear: number;
-}
-
-/** 내 프로필. 완료 건수 · 평점 · 후기는 작업에서 센다 */
-export interface MyProfile {
-  id: string;
-  name: string;
-  department: string;
-  /** 「24학번」 */
-  year: string;
-  intro: string;
-  noShowCount: number;
-  badges: string[];
-  certificates: StudentCertificate[];
-  /** 「behance.net/…」처럼 https:// 없이 */
-  portfolioUrl?: string;
-}
-
 export type StudentNotificationType =
   | "SELECTED"
   | "NOT_SELECTED"
@@ -218,25 +197,14 @@ export interface StudentNotification {
   targetId: string;
 }
 
-/** 정산 내역 한 줄 (작업 하나) */
-export type SettlementStatus = "expected" | "settled" | "reward";
-
-export interface StudentSettlement {
-  workId: string;
-  title: string;
-  storeName: string;
-  amount: number;
-  status: SettlementStatus;
-  /** 정산된 날 (expected 면 작업이 시작된 날) */
-  date: string;
-  autoCompleted?: boolean;
-}
-
+/** 정산 요약 3칸 (GET /settlements 의 summary) */
 export interface SettlementSummary {
-  /** 이번 달 = 정산 예정 + 이번 달에 정산된 금액 */
+  /** 이번 달에 결제된 작업의 금액 합 */
   thisMonth: number;
+  /** 정산 예정 (작업 중) */
   expected: number;
-  settledThisMonth: number;
+  /** 지금까지 정산된 금액 (착수 보상 포함) */
+  settled: number;
 }
 
 /** 확인할 일 카드 */
