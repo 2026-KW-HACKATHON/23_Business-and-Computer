@@ -155,3 +155,18 @@
   color: var(--text-body);
   cursor: pointer;
 }
+
+.student-profile-edit__photo-error {
+  margin: 0;
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--color-danger);
+}
+
+.student-profile-edit__send-error {
+  margin: 0 0 8px;
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--color-danger);
+  text-align: center;
+}

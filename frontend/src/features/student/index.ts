@@ -17,13 +17,9 @@ export {
   agreeToWork,
   declineWork,
   markNotificationsRead,
-  saveMyProfile,
-  setMyProfilePhoto,
   submitWork,
-  useMyProfilePhoto,
 } from "./hooks/studentStore";
 export {
-  useMyProfile,
   useMyProposal,
   useProposalExample,
   useProposalExamples,
@@ -34,7 +30,19 @@ export {
   useStudentWork,
   useStudentWorks,
 } from "./hooks/useStudentData";
-export type { MyProfileView, ReceivedReview } from "./hooks/useStudentData";
+export { useStudentMe, useStudentPhotoChange } from "./hooks/useStudentMe";
+export type { StudentMeLoad } from "./hooks/useStudentMe";
+export {
+  portfolioHref,
+  portfolioLabel,
+  reviewWorkText,
+  saveStudentMe,
+  specialtyIdsOf,
+  specialtyNamesOf,
+  studentMeChanges,
+  studentYearText,
+} from "./lib/studentMe";
+export type { StudentMe, StudentMeChanges, StudentMeReview, StudentMeSaveResult } from "./lib/studentMe";
 export { useExploreStores } from "./hooks/useExploreStores";
 export type { ExploreStoresLoad } from "./hooks/useExploreStores";
 export { useAppliedJobs } from "./hooks/useAppliedJobs";

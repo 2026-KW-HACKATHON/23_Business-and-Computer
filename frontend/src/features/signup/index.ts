@@ -28,6 +28,7 @@ export {
   isSchoolEmail,
   isStudentInfoComplete,
   isStudentNumber,
+  normalizePortfolioUrl,
   registerStudentSignup,
   sendVerificationCode,
   uploadSignupPhoto,

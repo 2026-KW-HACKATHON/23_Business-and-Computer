@@ -173,27 +173,6 @@ export interface ProposalExample {
   proposalTitle: string;
 }
 
-export interface StudentCertificate {
-  name: string;
-  /** 취득 연도. 서버도 연도만 둔다 (acquiredYear) */
-  acquiredYear: number;
-}
-
-/** 내 프로필. 완료 건수 · 평점 · 후기는 작업에서 센다 */
-export interface MyProfile {
-  id: string;
-  name: string;
-  department: string;
-  /** 「24학번」 */
-  year: string;
-  intro: string;
-  noShowCount: number;
-  badges: string[];
-  certificates: StudentCertificate[];
-  /** 「behance.net/…」처럼 https:// 없이 */
-  portfolioUrl?: string;
-}
-
 export type StudentNotificationType =
   | "SELECTED"
   | "NOT_SELECTED"
