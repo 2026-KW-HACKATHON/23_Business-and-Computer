@@ -17,7 +17,7 @@ read-only explore details. The backend has no API for them yet.
 
 - Routes follow Notion: /owner/me/store, /owner/me/payments,
   /owner/requests?tab=, /owner/students/:studentId,
-  /owner/requests/:requestId/assign/:studentId, /owner/works/:workId/pay,
+  /owner/requests/:requestId/assign/:applicationId and its /pay (ADR 0037),
   /owner/proposals/:proposalId/accept, /owner/works/:workId/revision,
   /owner/works/:workId/review, /owner/works/:workId/cancel,
   /explore/proposals/:proposalId, and /explore/requests/:requestId.
@@ -28,13 +28,9 @@ read-only explore details. The backend has no API for them yet.
   (`src/features/owner/lib/newRequest.ts`). Before moving on, each step
   saves its values into its own history entry, so ← and 「내용 고치기」
   keep what was typed. An example card fills step 2 from the example.
-- Until the backend creates a work when a student is chosen, the pay
-  route uses 「request id~student id」 as the work id
-  (`src/features/owner/lib/checkout.ts`).
-- The request pay screen uses a mock (`useSafePayment`): the redirect
-  screen succeeds after 1.5 seconds, and tapping it shows the failure popup,
-  as in the Figma prototype. Proposal accept pays through KakaoPay
-  (ADR 0031).
+- 이 학생에게 맡기기 and the request pay screen read the job and the chosen
+  application from the backend and pay through KakaoPay (ADR 0037);
+  proposal accept pays through KakaoPay too (ADR 0031).
 - Popups follow Notion, not the Figma prototype, where they differ:
   revision sent → 내 의뢰 (진행 중), payment done → 내 의뢰 (진행 중) (the
   proposal payment goes to the proposal detail, ADR 0031), request registered
@@ -71,9 +67,8 @@ read-only explore details. The backend has no API for them yet.
 
 ## Agent Guidance
 
-- Backend integration: replace the hooks in `useOwnerData.ts`, create
-  the work on 「네, 맡길게요」 and use its id for the pay route, pay through
-  `startKakaoPay` (ADR 0031) instead of `useSafePayment`, and save
-  reviews, revisions, and cancellations on the server.
+- Backend integration: replace the hooks in `useOwnerData.ts`, and save
+  reviews, revisions, and cancellations on the server. Choosing and paying
+  for an applicant read and write the backend (ADR 0037).
 - Still without an action: 거절하기 on proposals, rejecting from 내 활동,
   and 알림 설정 · 계정 정보 · 약관 in 내 정보.
