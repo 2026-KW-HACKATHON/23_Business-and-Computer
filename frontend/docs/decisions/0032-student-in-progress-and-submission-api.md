@@ -82,5 +82,5 @@ The backend (dev) has:
 
 ## Agent Guidance
 
-- When the matched list carries the store name or the latest submission
-  date, drop the per-job GET /jobs/{id} and show 「초안 제출 : M월 D일」.
+- The matched list carries the store name and submission time (ADR 0039);
+  only 내 활동 still calls GET /jobs/{id}, for the store address.

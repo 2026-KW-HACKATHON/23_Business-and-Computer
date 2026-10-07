@@ -44,8 +44,8 @@ The backend (dev) has:
   (date and text) above the file picker, as on the sample screen.
 - **제출한 초안 · 수정안**: the meta reads 「가게 · M월 D일 제출 · 수정 n/m」
   (n = `revisionNumber`), 원본 파일 has 「받기」 links, and 「내가 남긴
-  한마디」 (`NoteBox`) shows the message. 「7일 동안 답이 없으면 자동으로
-  완료돼요」 stays, as the backend has no automatic completion yet.
+  한마디」 (`NoteBox`) shows the message. The automatic completion line
+  reads 「M월 D일까지 답이 없으면 자동으로 완료돼요」 (ADR 0039).
 - `fileNameFromUrl` (`src/lib/fileUrl.ts`) names submitted files for both
   roles; the owner's `submissionFileName` re-exports it.
 - **학생 프로필** (`src/pages/OwnerStudentPage.tsx`, `useOwnerStudentProfile`
@@ -72,8 +72,6 @@ The backend (dev) has:
 
 ## Agent Guidance
 
-- When the backend completes jobs automatically and sends the date, show it
-  on 제출한 초안 · 수정안 instead of 「7일 동안」.
 - When sample works and sample students are removed, drop the non-numeric
   branches in `src/pages/StudentRevisionPage.tsx`,
   `src/pages/StudentSubmittedPage.tsx`, and `src/pages/OwnerStudentPage.tsx`.

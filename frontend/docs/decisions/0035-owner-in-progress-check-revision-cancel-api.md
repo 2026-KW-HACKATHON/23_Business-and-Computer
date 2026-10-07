@@ -43,11 +43,12 @@ The backend (dev) has:
 
 - **Data** (`src/features/owner/lib/progressJobs.ts`,
   `src/features/owner/hooks/useOwnerProgressJobs.ts`): `loadOwnerProgressJobs`
-  reads the matched list, then fills each job's student name, budget,
-  revision count, and application from GET /me/chat-rooms, and `kind`
-  (proposal when a received proposal has that `jobId`; its student name is
-  the fallback) from GET /me/received-proposals. Those two may fail; the list
-  still shows, with 「학생」 for a missing name. Stage: pending submission →
+  reads the matched list (student name, budget, and revision count come
+  from it since ADR 0039), and `kind` (proposal when a received proposal has
+  that `jobId`; its student name is the fallback) from GET
+  /me/received-proposals. That may fail; the list still shows, with 「학생」
+  for a missing name. The application loads when its sheet opens (ADR
+  0039). Stage: pending submission →
   submitted, REVISION → revising, otherwise drafting. The deadline shown is
   the draft deadline while drafting, the final deadline after that. 401
   goes to /login.
@@ -60,15 +61,16 @@ The backend (dev) has:
   proposal for a proposal. The count shows 「-」 and `LoadNotice` replaces
   the list while loading or after a failure.
 - **Home**: arrived submissions are 「확인할 일」 cards (「초안/수정안이
-  도착했어요」, 「7일 동안 확인하지 않으면 자동으로 완료돼요」); drafting ·
+  도착했어요」, 「M월 D일까지 확인하지 않으면 자동으로 완료돼요」, ADR 0039); drafting ·
   revising jobs are 「학생이 작업 중」 rows that open the application sheet or
   the received proposal. A failed load shows one 「다시 시도」 line, and the
   확인할 일 count waits for both lists.
 - **작업계획서 sheet** (`WorkPlanSheet`): takes `WorkPlanSheetContent` and
   leaves out the date, fee, and revision rows it does not know.
 - **작업 확인** (`src/pages/OwnerJobCheckPage.tsx`, /owner/works/:id/check
-  with a numeric id): the summary (student · 초안/수정안 도착 · 수정 n/m), flow
-  bar, 「7일 동안 답이 없으면 자동으로 완료돼요」 with the revisions left, the
+  with a numeric id): the summary (student · 초안/수정안 도착 M월 D일 · 수정
+  n/m), flow bar, 「M월 D일까지 확인해 주세요」 with the revisions left (ADR
+  0039), the
   files with 「받기」 links (the name comes from the URL), and the student's
   message. 「수정 요청」 is hidden when no revision is left. 「완료 확인」
   completes (「완료하는 중...」, one request per press) and goes to 후기 작성
@@ -91,8 +93,6 @@ The backend (dev) has:
 
 ## Rationale
 
-- One GET /me/chat-rooms fills the name, fee, and revision count for every
-  job instead of one request per job.
 - Keeping sample works for non-numeric ids leaves sample notifications and
   chats working until those read the backend.
 
@@ -103,7 +103,5 @@ The backend (dev) has:
 
 ## Agent Guidance
 
-- When the matched list carries the student name, budget, and revision
-  count, drop GET /me/chat-rooms from `loadOwnerProgressJobs`.
-- When submissions carry a date, show 「○월 ○일 도착」 and 「○월 ○일까지 확인해
-  주세요」 instead of 「7일 동안」.
+- The matched list carries the name, fee, revision count, and arrival time
+  (ADR 0039); GET /me/chat-rooms is only for the application sheet.
