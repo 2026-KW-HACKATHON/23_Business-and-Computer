@@ -64,6 +64,14 @@ The backend (dev) has:
   `useObjectUrls`; a file shows the file icon, its name, and 「PDF · 2.1MB」
   (`attachmentDetailText`). Files sent from this screen keep the size line
   after they are stored; other files show the name only.
+- **Viewing photos** (`ChatPhotoViewer`): tapping a stored photo opens it
+  large inside the app with the shared `PhotoViewer` used for 참고 사진: the
+  file name (「사진」 when there is none), 「n / 전체」, ✕, and ‹ › through the
+  room's photos in sent order. Tapping the photo or outside, ✕, or Esc closes
+  it. An expired view URL is fetched again (`refreshAttachment`, GET
+  /chat-rooms/{roomId}/messages/{messageId}) and swapped in. Files still open
+  in a new tab. Figma: 「채팅방 (사장님) - 사진 크게 보기」 (node 3498-5313) and
+  「채팅방 (학생) - 사진 크게 보기」 (node 3498-8896).
 - **Failures** (`attachmentFailureOf`):
   - CHAT_UPLOAD_400_TYPE → alert 「보낼 수 없는 형식이에요」, CHAT_UPLOAD_400_SIZE
     → 「사진은 10MB, 파일은 50MB까지 보낼 수 있어요」, CHAT_UPLOAD_409_USED →

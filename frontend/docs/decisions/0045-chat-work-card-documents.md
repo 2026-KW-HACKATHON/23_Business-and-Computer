@@ -78,8 +78,9 @@ sheet.
   「추가 자료나 질문은 채팅으로 보내 주세요.」, 「요청 내용」 in an input-like box, 참고 사진,
   and while revising 「학생은 최종 마감(M월 D일)까지 수정안을 보내요」; 「확인」
   goes back. It reads GET /jobs/{id}/submissions/latest (`useLatestJobSubmission`).
-  Until the server opens it to owners, the 404 shows 「보낸 수정 요청은 곧
-  여기서 볼 수 있어요」.
+  Until the server opens it to owners (an owner gets 403 today, read as not
+  found instead of the forbidden alert), the page keeps this layout and the
+  「요청 내용」 box shows 「보낸 수정 요청은 곧 여기서 볼 수 있어요」 in grey.
 - **의뢰서 전체 보기 · 작업 중** (student, `applied` ACCEPTED): the room's
   status line, a flow bar at the current stage (작업 중 · 확인 중), the store,
   the terms, 「내 작업계획서」 from the room's application, then 할 일 ·
