@@ -32,6 +32,8 @@ export interface OwnerClosedJob {
   /** 결제한 작업비와 돌려받은 금액 (GET /payments). 결제가 없었거나 못 불러오면 없음 */
   paidAmount?: number;
   refundAmount?: number;
+  /** 후기를 남겼는지 (목록의 reviewed) */
+  reviewed: boolean;
 }
 
 /** 완료된 작업의 결과물 (GET /jobs/{id}/result) */
@@ -100,6 +102,7 @@ export async function loadOwnerClosedJobs(): Promise<OwnerClosedJobsResult> {
         studentName: job.matchedWorker?.name.trim() || undefined,
         paidAmount: payment?.amount,
         refundAmount: payment?.refundAmount ?? undefined,
+        reviewed: job.reviewed === true,
       };
     }),
   };

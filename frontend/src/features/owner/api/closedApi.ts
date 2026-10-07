@@ -12,6 +12,8 @@ export interface OwnerClosedJobResponse {
   completedAt: string;
   /** COMPLETED = 완료, CANCELLED = 취소 · 거절 */
   progressStage?: string | null;
+  /** 사장님이 후기를 남겼으면 true */
+  reviewed?: boolean | null;
 }
 
 /**
