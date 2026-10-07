@@ -39,6 +39,7 @@ export {
   useJobApplications,
   useJobResult,
   useOpenJobs,
+  useOwnerStudentProfile,
   usePendingSubmission,
 } from "./hooks/useOwnerJobs";
 export type { OwnerJobLoad } from "./hooks/useOwnerJobs";

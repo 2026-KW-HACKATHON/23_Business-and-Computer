@@ -5,6 +5,7 @@ import {
   fetchApplicantProfile,
   fetchJobApplications,
   fetchOpenJobs,
+  fetchStudentProfile,
 } from "../api/jobApi";
 import { fetchJobResult } from "../api/closedApi";
 import { fetchPendingSubmission } from "../api/progressApi";
@@ -53,6 +54,8 @@ export const loadJobApplications = (jobId: number, sort: JobApplicationSort) =>
   attempt(() => fetchJobApplications(jobId, sort));
 export const loadApplicantProfile = (jobId: number, applicationId: number) =>
   attempt(() => fetchApplicantProfile(jobId, applicationId));
+export const loadStudentProfile = (studentProfileId: number) =>
+  attempt(() => fetchStudentProfile(studentProfileId));
 export const loadPendingSubmission = (jobId: number) => attempt(() => fetchPendingSubmission(jobId));
 export const loadJobResult = (jobId: number) => attempt(() => fetchJobResult(jobId));
 
