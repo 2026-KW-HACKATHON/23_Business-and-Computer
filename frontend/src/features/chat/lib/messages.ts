@@ -1,6 +1,13 @@
 import { ApiError } from "../../../api/client";
 import type { ChatMessageResponse } from "../api/chatApi";
 import type { ChatFailure, ChatMessage } from "../types";
+import {
+  ATTACHMENT_MAX_BYTES,
+  attachmentFormatOf,
+  extensionOf,
+  fileSizeText,
+} from "../../../lib/attachmentFormats";
+import type { AttachmentType } from "../../../lib/attachmentFormats";
 
 /**
  * 보낼 글의 clientMessageId (UUID v4). crypto.randomUUID 는 https · localhost 에서만 있어서,
@@ -97,3 +104,66 @@ export const CHAT_LEAVE_MESSAGE: Record<"forbidden" | "notFound", string> = {
   forbidden: "이 채팅방에는 들어갈 수 없어요",
   notFound: "채팅방을 찾을 수 없어요",
 };
+
+/** 보내기 전에 확인한 첨부. 안 되면 알림 문구 */
+export type AttachmentCheck =
+  | { ok: true; type: AttachmentType; contentType: string }
+  | { ok: false; message: string };
+
+/** 고른 파일을 보내기 전에 형식 · 크기를 확인한다 (HEIC 사진 · 한글 문서는 받지 않는 형식) */
+export function checkAttachment(file: File): AttachmentCheck {
+  const format = attachmentFormatOf(file);
+  if (!format) {
+    return {
+      ok: false,
+      message:
+        "보낼 수 없는 형식이에요.\n사진은 JPG·PNG·WEBP·GIF, 파일은 PDF·ZIP·워드·엑셀·파워포인트만 보낼 수 있어요",
+    };
+  }
+  if (file.size === 0) return { ok: false, message: "빈 파일은 보낼 수 없어요" };
+  if (file.size > ATTACHMENT_MAX_BYTES[format.type]) {
+    return {
+      ok: false,
+      message: format.type === "IMAGE" ? "사진은 10MB까지 보낼 수 있어요" : "파일은 50MB까지 보낼 수 있어요",
+    };
+  }
+  return { ok: true, ...format };
+}
+
+/**
+ * 첨부 보내기 실패를 화면이 할 일로. drop = 알림 뒤 말풍선을 지움 (다시 보내도 안 됨),
+ * retry = 「보내지 못했어요 · 다시 보내기」 말풍선. restart 면 다시 보낼 때 새 clientMessageId 로
+ * 준비부터 한다. 401 · CHAT_403 · CHAT_ROOM_404 는 chatFailureOf 가 먼저 받는다
+ */
+export type AttachmentFailure =
+  | { action: "drop"; message: string }
+  | { action: "retry"; reason: string | undefined; restart: boolean };
+
+export function attachmentFailureOf(error: unknown): AttachmentFailure {
+  const code = error instanceof ApiError ? error.code : undefined;
+  switch (code) {
+    case "CHAT_UPLOAD_400_TYPE":
+      return { action: "drop", message: "보낼 수 없는 형식이에요" };
+    case "CHAT_UPLOAD_400_SIZE":
+      return { action: "drop", message: "사진은 10MB, 파일은 50MB까지 보낼 수 있어요" };
+    case "CHAT_UPLOAD_409_USED":
+      return { action: "drop", message: "이미 다른 메시지로 보낸 파일이에요" };
+    case "CHAT_UPLOAD_404":
+      return { action: "retry", reason: "올린 파일을 찾지 못했어요", restart: true };
+    case "CHAT_UPLOAD_409_NOT_READY":
+      return { action: "retry", reason: "올리기가 끝나지 않았거나 시간이 지났어요", restart: true };
+    case "CHAT_MESSAGE_409":
+      return { action: "retry", reason: "같은 메시지로 다시 보낼 수 없어요", restart: true };
+    case "CHAT_UPLOAD_502":
+      return { action: "retry", reason: "파일 저장소에 연결하지 못했어요", restart: false };
+    default:
+      return { action: "retry", reason: undefined, restart: false };
+  }
+}
+
+/** 파일 말풍선 아래 줄 「PDF · 2.1MB」. 크기를 모르면 (다른 사람이 보낸 · 예전 첨부) undefined */
+export function attachmentDetailText(message: ChatMessage): string | undefined {
+  if (message.fileSize === undefined) return undefined;
+  const extension = message.attachmentName ? extensionOf(message.attachmentName).toUpperCase() : "";
+  return [extension, fileSizeText(message.fileSize)].filter(Boolean).join(" · ");
+}
