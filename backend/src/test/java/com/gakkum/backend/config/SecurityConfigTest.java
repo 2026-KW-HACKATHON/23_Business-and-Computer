@@ -625,13 +625,24 @@ class SecurityConfigTest {
     }
 
     @Test
-    @DisplayName("허용하지 않은 Origin의 preflight는 차단된다")
-    void rejectsUnknownOrigin() throws Exception {
+    @DisplayName("LAN 프론트 Origin의 preflight는 credentials와 함께 허용된다")
+    void allowsLanOriginWithCredentials() throws Exception {
         mockMvc.perform(options("/refresh")
-                .header(HttpHeaders.ORIGIN, "https://evil.example.com")
+                .header(HttpHeaders.ORIGIN, "http://192.168.0.10:5173")
                 .header(HttpHeaders.ACCESS_CONTROL_REQUEST_METHOD, "POST"))
-            .andExpect(status().isForbidden())
-            .andExpect(header().doesNotExist(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN));
+            .andExpect(status().isOk())
+            .andExpect(header().string(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, "http://192.168.0.10:5173"))
+            .andExpect(header().string(HttpHeaders.ACCESS_CONTROL_ALLOW_CREDENTIALS, "true"));
+    }
+
+    @Test
+    @DisplayName("임의 Origin도 CORS는 허용하지만 보호된 API는 여전히 인증이 필요하다")
+    void allowsAnyOriginWithoutBypassingAuthentication() throws Exception {
+        mockMvc.perform(get("/api/protected")
+                .header(HttpHeaders.ORIGIN, "https://other.example.com"))
+            .andExpect(status().isUnauthorized())
+            .andExpect(header().string(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, "https://other.example.com"))
+            .andExpect(header().string(HttpHeaders.ACCESS_CONTROL_ALLOW_CREDENTIALS, "true"));
     }
 
     @RestController
