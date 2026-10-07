@@ -6,7 +6,8 @@ Accepted. 내 활동 › 완료 (완료 · 성사되지 않은 일), the home �
 결과물 보기, 후기 작성 · 후기 완료, and 성사되지 않은 작업 상세 read and write
 the backend for the owner's finished jobs. 「완료 확인」 on 작업 확인 now goes
 to 후기 작성. Sample works (ids like `work-090`) still open the sample screens.
-The payment summary above the 완료 list and 결제 내역 still use sample data.
+The payment summary above the 완료 list and 결제 내역 read GET /payments
+(ADR 0040).
 
 ## Context
 
@@ -89,5 +90,3 @@ The backend (dev) has:
 - When the closed list says whether the owner reviewed, use it instead of
   `isOwnerWorkReviewed` for server jobs.
 - When the review `content` becomes optional, send the text as written.
-- When GET /payments reaches the 완료 summary and 결제 내역, replace
-  `useOwnerPayments` there.
