@@ -25,3 +25,7 @@
   outline: 2px solid var(--color-black);
   outline-offset: 2px;
 }
+
+a.download-button {
+  text-decoration: none;
+}

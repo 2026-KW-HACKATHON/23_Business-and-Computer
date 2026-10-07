@@ -4,7 +4,9 @@ import static org.hamcrest.Matchers.nullValue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -12,6 +14,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import java.time.Clock;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -94,15 +97,17 @@ class JobStudentMatchedListFlowTest {
     }
 
     @Test
-    @DisplayName("학생에게 본인과 매칭된 MATCHED 의뢰를 최신 제출물 유형·검토 상태와 함께 반환한다")
+    @DisplayName("학생에게 본인과 매칭된 MATCHED 의뢰를 매장 이름, 최신 제출물 유형·검토 상태·제출 시각과 함께 반환한다")
     void returnsStudentMatchedJobs() throws Exception {
         givenStudent();
         when(jobRepository.findBySelectedStudentProfileIdAndStatusOrderByCreatedAtDescIdDesc(7L, JobStatus.MATCHED))
-                .thenReturn(List.of(job(43L), job(42L)));
+                .thenReturn(List.of(job(43L, 5L), job(42L, 5L)));
         when(jobSpecialtyRepository.findByJobIdIn(List.of(43L, 42L)))
                 .thenReturn(List.of(JobSpecialty.create(42L, 12L)));
         when(jobSubmissionRepository.findByJobIdIn(List.of(43L, 42L))).thenReturn(List.of(
-                submission(42L, 0, JobSubmissionReviewStatus.REVISION_REQUESTED)));
+                submission(42L, 0, JobSubmissionReviewStatus.REVISION_REQUESTED,
+                        LocalDateTime.of(2026, 10, 9, 14, 5, 30))));
+        when(ownerRepository.findAllById(Set.of(5L))).thenReturn(List.of(owner(5L, "가꿈 카페")));
         when(specialtyCategoryService.getSpecialtyDetails(Set.of(12L)))
                 .thenReturn(Map.of(12L, SpecialtyDetail.of(12L, "프론트엔드", 1L, "개발")));
 
@@ -113,7 +118,11 @@ class JobStudentMatchedListFlowTest {
                 .andExpect(jsonPath("$.data.jobs[0].jobId").value(43))
                 .andExpect(jsonPath("$.data.jobs[0].submissionType").value(nullValue()))
                 .andExpect(jsonPath("$.data.jobs[0].reviewStatus").value(nullValue()))
+                .andExpect(jsonPath("$.data.jobs[0].submittedAt").value(nullValue()))
+                .andExpect(jsonPath("$.data.jobs[0].storeName").value("가꿈 카페"))
                 .andExpect(jsonPath("$.data.jobs[1].jobId").value(42))
+                .andExpect(jsonPath("$.data.jobs[1].storeName").value("가꿈 카페"))
+                .andExpect(jsonPath("$.data.jobs[1].submittedAt").value("2026-10-09T14:05:30"))
                 .andExpect(jsonPath("$.data.jobs[1].title").value("의뢰 42"))
                 .andExpect(jsonPath("$.data.jobs[1].budget").value(300000))
                 .andExpect(jsonPath("$.data.jobs[1].draftDeadline").value("2026-10-10"))
@@ -128,7 +137,68 @@ class JobStudentMatchedListFlowTest {
     }
 
     @Test
-    @DisplayName("매칭된 진행 중 의뢰가 없는 학생에게 jobs 빈 배열을 반환한다")
+    @DisplayName("제출물이 여러 개면 수정 번호가 가장 큰 최신 제출물의 유형·검토 상태·제출 시각을 반환한다")
+    void returnsLatestSubmissionAmongMany() throws Exception {
+        givenStudent();
+        when(jobRepository.findBySelectedStudentProfileIdAndStatusOrderByCreatedAtDescIdDesc(7L, JobStatus.MATCHED))
+                .thenReturn(List.of(job(42L, 5L)));
+        when(jobSpecialtyRepository.findByJobIdIn(List.of(42L))).thenReturn(List.of());
+        // 조회 결과 순서는 제출 순서와 다르다
+        when(jobSubmissionRepository.findByJobIdIn(List.of(42L))).thenReturn(List.of(
+                submission(42L, 1, JobSubmissionReviewStatus.REVISION_REQUESTED,
+                        LocalDateTime.of(2026, 10, 11, 10, 0)),
+                submission(42L, 2, JobSubmissionReviewStatus.PENDING, LocalDateTime.of(2026, 10, 13, 18, 45, 10)),
+                submission(42L, 0, JobSubmissionReviewStatus.REVISION_REQUESTED,
+                        LocalDateTime.of(2026, 10, 9, 14, 5, 30))));
+        when(ownerRepository.findAllById(Set.of(5L))).thenReturn(List.of(owner(5L, "가꿈 카페")));
+        when(specialtyCategoryService.getSpecialtyDetails(Set.of())).thenReturn(Map.of());
+
+        mockMvc.perform(get("/me/jobs").param("status", "MATCHED").principal(authentication))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.jobs[0].submissionType").value("REVISION"))
+                .andExpect(jsonPath("$.data.jobs[0].reviewStatus").value("PENDING"))
+                .andExpect(jsonPath("$.data.jobs[0].submittedAt").value("2026-10-13T18:45:10"));
+    }
+
+    @Test
+    @DisplayName("의뢰 수가 늘어도 매장 이름과 제출물은 사장님 중복 없이 한 번씩만 조회한다")
+    void readsStoreNamesOnce() throws Exception {
+        givenStudent();
+        when(jobRepository.findBySelectedStudentProfileIdAndStatusOrderByCreatedAtDescIdDesc(7L, JobStatus.MATCHED))
+                .thenReturn(List.of(job(44L, 5L), job(43L, 6L), job(42L, 5L)));
+        when(jobSpecialtyRepository.findByJobIdIn(List.of(44L, 43L, 42L))).thenReturn(List.of());
+        when(jobSubmissionRepository.findByJobIdIn(List.of(44L, 43L, 42L))).thenReturn(List.of());
+        when(ownerRepository.findAllById(Set.of(5L, 6L)))
+                .thenReturn(List.of(owner(6L, "동네 빵집"), owner(5L, "가꿈 카페")));
+        when(specialtyCategoryService.getSpecialtyDetails(Set.of())).thenReturn(Map.of());
+
+        mockMvc.perform(get("/me/jobs").param("status", "MATCHED").principal(authentication))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.jobs[0].storeName").value("가꿈 카페"))
+                .andExpect(jsonPath("$.data.jobs[1].storeName").value("동네 빵집"))
+                .andExpect(jsonPath("$.data.jobs[2].storeName").value("가꿈 카페"));
+        verify(ownerRepository, times(1)).findAllById(any());
+        verify(jobSubmissionRepository, times(1)).findByJobIdIn(any());
+    }
+
+    @Test
+    @DisplayName("의뢰한 사장님 프로필이 없으면 500 COMMON_500으로 거부한다")
+    void rejectsMissingOwnerProfile() throws Exception {
+        givenStudent();
+        when(jobRepository.findBySelectedStudentProfileIdAndStatusOrderByCreatedAtDescIdDesc(7L, JobStatus.MATCHED))
+                .thenReturn(List.of(job(42L, 5L)));
+        when(jobSpecialtyRepository.findByJobIdIn(List.of(42L))).thenReturn(List.of());
+        when(jobSubmissionRepository.findByJobIdIn(List.of(42L))).thenReturn(List.of());
+        when(ownerRepository.findAllById(Set.of(5L))).thenReturn(List.of());
+        when(specialtyCategoryService.getSpecialtyDetails(Set.of())).thenReturn(Map.of());
+
+        mockMvc.perform(get("/me/jobs").param("status", "MATCHED").principal(authentication))
+                .andExpect(status().isInternalServerError())
+                .andExpect(jsonPath("$.error.code").value("COMMON_500"));
+    }
+
+    @Test
+    @DisplayName("매칭된 진행 중 의뢰가 없는 학생에게 jobs 빈 배열을 반환하고 매장을 조회하지 않는다")
     void returnsEmptyJobsForStudent() throws Exception {
         givenStudent();
         when(jobRepository.findBySelectedStudentProfileIdAndStatusOrderByCreatedAtDescIdDesc(7L, JobStatus.MATCHED))
@@ -138,6 +208,7 @@ class JobStudentMatchedListFlowTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.jobs").isArray())
                 .andExpect(jsonPath("$.data.jobs").isEmpty());
+        verifyNoInteractions(ownerRepository);
     }
 
     @Test
@@ -163,9 +234,10 @@ class JobStudentMatchedListFlowTest {
                 Student.builder().id(7L).userId(STUDENT_USER_ID).build()));
     }
 
-    private Job job(Long id) {
+    private Job job(Long id, Long ownerProfileId) {
         return Job.builder()
                 .id(id)
+                .ownerProfileId(ownerProfileId)
                 .title("의뢰 " + id)
                 .budget(300000L)
                 .draftDeadline(LocalDate.of(2026, 10, 10))
@@ -176,12 +248,18 @@ class JobStudentMatchedListFlowTest {
                 .build();
     }
 
-    private JobSubmission submission(Long jobId, int revisionNumber, JobSubmissionReviewStatus reviewStatus) {
+    private Owner owner(Long id, String storeName) {
+        return Owner.builder().id(id).storeName(storeName).build();
+    }
+
+    private JobSubmission submission(
+            Long jobId, int revisionNumber, JobSubmissionReviewStatus reviewStatus, LocalDateTime createdAt) {
         return JobSubmission.builder()
                 .jobId(jobId)
                 .submissionType(revisionNumber == 0 ? JobSubmissionType.DRAFT : JobSubmissionType.REVISION)
                 .revisionNumber(revisionNumber)
                 .reviewStatus(reviewStatus)
+                .createdAt(createdAt)
                 .build();
     }
 }

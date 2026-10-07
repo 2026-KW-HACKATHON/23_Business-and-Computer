@@ -1,7 +1,7 @@
 import { SAMPLE_FIRST_VISIT, SAMPLE_REQUEST_EXAMPLES } from "../lib/sampleHome";
 import type { OwnerHome, OwnerTodo, StudentRef } from "../types";
 import { proposalBadgeNames } from "../../proposal";
-import { useOwnerWorks } from "./useOwnerData";
+import { useOwnerClosedJobs } from "./useOwnerClosedJobs";
 import { useOpenJobs } from "./useOwnerJobs";
 import { useOwnerProgressJobs } from "./useOwnerProgressJobs";
 import { jobCategoryNames } from "../lib/ownerJobs";
@@ -23,10 +23,13 @@ const studentRef = (job: OwnerProgressJob): StudentRef => ({
  * 사장님 홈에 그릴 데이터. 작업 · 의뢰 · 제안에서 만들어서, 홈 카드를 눌러 들어간
  * 상세와 내용이 같다. 백엔드를 연동할 때 홈 API 로 바꿔도 화면은 그대로 쓴다.
  * 받은 제안(GET /me/received-proposals, ADR 0025), 모집 중인 의뢰(GET /me/jobs?status=OPEN, ADR 0030),
- * 진행 중 작업(GET /me/jobs?status=MATCHED, ADR 0035)은 API 이고, 끝난 일은 아직 샘플 데이터다.
+ * 진행 중 작업(GET /me/jobs?status=MATCHED, ADR 0035), 끝난 일(GET /me/jobs?status=CLOSED, ADR 0036)은 API 다.
+ * 끝난 일은 불러오지 못하면 섹션째 숨는다.
  */
 export function useOwnerHome(): OwnerHome {
-  const works = useOwnerWorks();
+  // 끝난 내 의뢰 (완료한 것만, 끝난 날 최신순)
+  const { load: closedLoad } = useOwnerClosedJobs();
+  const completed = closedLoad.status === "loaded" ? closedLoad.jobs.filter((job) => job.outcome === "completed") : [];
   // 모집 중인 내 의뢰 (GET /me/jobs?status=OPEN), 초안 마감이 빠른 것부터
   const { load: openLoad } = useOpenJobs();
   const requests = (openLoad.status === "loaded" ? [...openLoad.data] : []).sort((a, b) =>
@@ -108,15 +111,12 @@ export function useOwnerHome(): OwnerHome {
         status: "recruiting",
       })),
     examples: SAMPLE_REQUEST_EXAMPLES,
-    done: works
-      .filter((w) => w.status === "completed" && w.completedOn)
-      .sort((a, b) => (b.completedOn ?? "").localeCompare(a.completedOn ?? ""))
-      .map((w) => ({
-        id: w.id,
-        kind: w.kind,
-        title: w.title,
-        student: w.student,
-        completedOn: w.completedOn ?? "",
-      })),
+    done: completed.map((job) => ({
+      id: String(job.jobId),
+      kind: job.kind,
+      title: job.title,
+      student: { name: job.studentName ?? "" },
+      completedOn: job.closedOn,
+    })),
   };
 }

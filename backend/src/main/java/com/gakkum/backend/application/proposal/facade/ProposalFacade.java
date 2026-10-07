@@ -265,7 +265,7 @@ public class ProposalFacade {
 
     /**
      * 받은 제안 목록. 활성 사장님만 본인 프로필로 조회할 수 있다.
-     * 제안이 있으면 학생 프로필·사용자·소분류를 중복 없이 모아 한 번씩만 조회한다. 참조 누락은 각 일괄 조회가 500으로 거부한다.
+     * 제안이 있으면 학생 프로필·사용자·소분류·연결 의뢰를 중복 없이 모아 한 번씩만 조회한다. 참조 누락은 각 일괄 조회가 500으로 거부한다.
      */
     @Transactional(readOnly = true)
     public ReceivedProposalListResult getReceivedProposals(String username) {
@@ -292,7 +292,10 @@ public class ProposalFacade {
                 .flatMap(data -> data.getSpecialtyIds().stream())
                 .collect(Collectors.toSet());
         Map<Long, SpecialtyDetail> specialtiesById = specialtyCategoryService.getSpecialtyDetails(specialtyIds);
-        Map<Long, Long> jobIdsByProposalId = getJobIdsByProposalId(proposals);
+        // 결제로 만들어진 의뢰. 결제 전 제안은 키가 없다
+        Map<Long, Job> jobsByProposalId = jobService.getJobsByProposalIds(proposals.stream()
+                .map(data -> data.getProposal().getId())
+                .toList());
 
         return ReceivedProposalListResult.of(proposals.stream()
                 .map(data -> {
@@ -300,15 +303,8 @@ public class ProposalFacade {
                     return ReceivedProposalResult.of(
                             data.getProposal(), student, studentUsersById.get(student.getUserId()),
                             groupSpecialties(data.getSpecialtyIds(), specialtiesById),
-                            jobIdsByProposalId.get(data.getProposal().getId()));
+                            jobsByProposalId.get(data.getProposal().getId()));
                 })
-                .toList());
-    }
-
-    // 결제로 만들어진 의뢰를 제안 수와 무관하게 한 번에 조회한다. 결제 전 제안은 키가 없다
-    private Map<Long, Long> getJobIdsByProposalId(List<ExploreProposalData> proposals) {
-        return jobService.getJobIdsByProposalIds(proposals.stream()
-                .map(data -> data.getProposal().getId())
                 .toList());
     }
 

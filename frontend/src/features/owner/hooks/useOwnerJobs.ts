@@ -4,6 +4,7 @@ import { landingPath } from "../../auth";
 import {
   loadApplicantProfile,
   loadJobApplications,
+  loadJobResult,
   loadOpenJobs,
   loadPendingSubmission,
 } from "../lib/ownerJobs";
@@ -14,6 +15,7 @@ import type {
   OpenJob,
   OwnerJobResult,
 } from "../lib/ownerJobs";
+import type { JobResult } from "../lib/closedJobs";
 import type { PendingSubmission } from "../lib/submissionReview";
 
 export type OwnerJobLoad<T> =
@@ -107,6 +109,15 @@ export function usePendingSubmission(
   return useOwnerJobLoad(
     jobId === undefined ? undefined : String(jobId),
     () => loadPendingSubmission(jobId ?? 0),
+    "내 의뢰의 결과물만 볼 수 있어요",
+  );
+}
+
+/** 완료된 내 작업의 결과물 (GET /jobs/{id}/result). 끝나지 않았으면 notFound */
+export function useJobResult(jobId: number | undefined): { load: OwnerJobLoad<JobResult>; reload: () => void } {
+  return useOwnerJobLoad(
+    jobId === undefined ? undefined : String(jobId),
+    () => loadJobResult(jobId ?? 0),
     "내 의뢰의 결과물만 볼 수 있어요",
   );
 }

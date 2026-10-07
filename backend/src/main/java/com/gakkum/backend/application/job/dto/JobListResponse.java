@@ -147,6 +147,11 @@ public final class JobListResponse {
         private final String submissionType;
         private final Long pendingSubmissionId;
         private final JobProgressStage progressStage;
+        private final String studentName;
+        private final Long budget;
+        private final Integer revisionCount;
+        private final Integer revisionNumber;
+        private final LocalDateTime submittedAt;
 
         public static MatchedJob from(MatchedJobResult result) {
             return MatchedJob.builder()
@@ -163,6 +168,11 @@ public final class JobListResponse {
                     .submissionType(result.getSubmissionType())
                     .pendingSubmissionId(result.getPendingSubmissionId())
                     .progressStage(result.getProgressStage())
+                    .studentName(result.getStudentName())
+                    .budget(result.getBudget())
+                    .revisionCount(result.getRevisionCount())
+                    .revisionNumber(result.getRevisionNumber())
+                    .submittedAt(result.getSubmittedAt())
                     .build();
         }
     }
@@ -195,6 +205,8 @@ public final class JobListResponse {
         private final String submissionType;
         private final String reviewStatus;
         private final JobProgressStage progressStage;
+        private final String storeName;
+        private final LocalDateTime submittedAt;
 
         public static StudentMatchedJob from(StudentMatchedJobResult result) {
             return StudentMatchedJob.builder()
@@ -210,6 +222,8 @@ public final class JobListResponse {
                     .submissionType(result.getSubmissionType())
                     .reviewStatus(result.getReviewStatus())
                     .progressStage(result.getProgressStage())
+                    .storeName(result.getStoreName())
+                    .submittedAt(result.getSubmittedAt())
                     .build();
         }
     }
@@ -242,6 +256,10 @@ public final class JobListResponse {
         private final JobStatus jobStatus;
         private final JobApplicationStatus applicationStatus;
         private final LocalDateTime appliedAt;
+        private final String storeName;
+        private final String summary;
+        private final String workPlan;
+        private final String deliveryMethod;
 
         public static StudentAppliedJob from(StudentAppliedJobResult result) {
             return StudentAppliedJob.builder()
@@ -257,6 +275,10 @@ public final class JobListResponse {
                     .jobStatus(result.getJobStatus())
                     .applicationStatus(result.getApplicationStatus())
                     .appliedAt(result.getAppliedAt())
+                    .storeName(result.getStoreName())
+                    .summary(result.getSummary())
+                    .workPlan(result.getWorkPlan())
+                    .deliveryMethod(result.getDeliveryMethod())
                     .build();
         }
     }

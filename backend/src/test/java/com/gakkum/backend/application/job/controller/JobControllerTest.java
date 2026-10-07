@@ -105,11 +105,13 @@ class JobControllerTest {
     }
 
     @Test
-    @DisplayName("MATCHED 상태이면 학생 정보와 대기 중 제출물을 응답한다")
+    @DisplayName("MATCHED 상태이면 학생 정보·계약 조건과 대기 중 제출물을 응답한다")
     void returnsMatchedJobList() throws Exception {
         Job job = Job.builder()
                 .id(42L)
                 .title("가게 홍보 웹사이트 제작")
+                .budget(300000L)
+                .revisionCount(2)
                 .draftDeadline(LocalDate.of(2026, 10, 10))
                 .finalDeadline(LocalDate.of(2026, 10, 20))
                 .selectedStudentProfileId(7L)
@@ -120,6 +122,8 @@ class JobControllerTest {
                         JobSubmission.builder()
                                 .id(81L)
                                 .submissionType(JobSubmissionType.DRAFT)
+                                .revisionNumber(0)
+                                .createdAt(LocalDateTime.of(2026, 10, 9, 14, 5, 30))
                                 .build(),
                         JobProgressStage.DRAFT),
                 Student.builder()
@@ -127,6 +131,7 @@ class JobControllerTest {
                         .studentNumber("2023123456")
                         .major("컴퓨터정보공학부")
                         .build(),
+                User.builder().name("홍길동").build(),
                 List.of(SpecialtyCategoryResult.of(1L, "개발", List.of(
                         SpecialtyResult.of(12L, "프론트엔드")))));
         when(jobFacade.getMatchedJobs(USERNAME)).thenReturn(MatchedJobListResult.of(List.of(result)));
@@ -145,7 +150,12 @@ class JobControllerTest {
                 .andExpect(jsonPath("$.data.jobs[0].major").value("컴퓨터정보공학부"))
                 .andExpect(jsonPath("$.data.jobs[0].submissionType").value("DRAFT"))
                 .andExpect(jsonPath("$.data.jobs[0].pendingSubmissionId").value(81))
-                .andExpect(jsonPath("$.data.jobs[0].progressStage").value("DRAFT"));
+                .andExpect(jsonPath("$.data.jobs[0].progressStage").value("DRAFT"))
+                .andExpect(jsonPath("$.data.jobs[0].studentName").value("홍길동"))
+                .andExpect(jsonPath("$.data.jobs[0].budget").value(300000))
+                .andExpect(jsonPath("$.data.jobs[0].revisionCount").value(2))
+                .andExpect(jsonPath("$.data.jobs[0].revisionNumber").value(0))
+                .andExpect(jsonPath("$.data.jobs[0].submittedAt").value("2026-10-09T14:05:30"));
         verify(jobFacade).getMatchedJobs(USERNAME);
     }
 
@@ -176,13 +186,17 @@ class JobControllerTest {
                 .major("미디어학부")
                 .build();
         MatchedJobResult result = MatchedJobResult.of(
-                MatchedJobData.of(job, List.of(), null, JobProgressStage.STARTED), student, List.of());
+                MatchedJobData.of(job, List.of(), null, JobProgressStage.STARTED), student,
+                User.builder().name("김철수").build(), List.of());
         when(jobFacade.getMatchedJobs(USERNAME)).thenReturn(MatchedJobListResult.of(List.of(result)));
 
         mockMvc.perform(get("/me/jobs").param("status", "MATCHED").principal(authentication))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.jobs[0].submissionType").value(nullValue()))
                 .andExpect(jsonPath("$.data.jobs[0].pendingSubmissionId").value(nullValue()))
+                .andExpect(jsonPath("$.data.jobs[0].revisionNumber").value(nullValue()))
+                .andExpect(jsonPath("$.data.jobs[0].submittedAt").value(nullValue()))
+                .andExpect(jsonPath("$.data.jobs[0].studentName").value("김철수"))
                 .andExpect(jsonPath("$.data.jobs[0].progressStage").value("STARTED"));
     }
 

@@ -20,6 +20,7 @@ import {
   WorkPlanSheet,
   admissionYearText,
   deadlineText,
+  isOwnerWorkReviewed,
   ownerProgressDeadline,
   ownerProgressNoun,
   ownerProgressStatusText,
@@ -29,16 +30,16 @@ import {
   jobCategoryNames,
   studentMetaText,
   useOpenJobs,
+  useOwnerClosedJobs,
   useOwnerPayments,
   useOwnerProgressJobs,
-  useOwnerWorks,
   useReceivedProposals,
 } from "../features/owner";
 import type {
   ActivityTab,
   OpenJob,
+  OwnerClosedJob,
   OwnerProgressJob,
-  OwnerWork,
   ReceivedProposal,
   WorkPlanSheetContent,
 } from "../features/owner";
@@ -99,7 +100,8 @@ function CardHead({ kind, title, right }: { kind: WorkKind; title: string; right
  * 피그마 「내 활동 - 보낸 의뢰 · 받은 제안 · 진행 중 · 완료 (사장님)」.
  * 위 요약 카드 4칸이 탭이고, 고른 탭은 주소(?tab=)에 남아 돌아와도 그대로다.
  * 보낸 의뢰는 GET /me/jobs?status=OPEN (ADR 0030), 받은 제안은 GET /me/received-proposals (ADR 0025),
- * 진행 중은 GET /me/jobs?status=MATCHED (ADR 0035). 완료 탭은 아직 샘플 데이터다.
+ * 진행 중은 GET /me/jobs?status=MATCHED (ADR 0035), 완료는 GET /me/jobs?status=CLOSED (ADR 0036).
+ * 완료 탭 위 결제 요약은 아직 샘플 데이터다.
  */
 function OwnerActivityPage() {
   const navigate = useNavigate();
@@ -117,21 +119,23 @@ function OwnerActivityPage() {
   const inProgress = (progressLoad.status === "loaded" ? [...progressLoad.jobs] : []).sort((a, b) =>
     ownerProgressDeadline(a).due.localeCompare(ownerProgressDeadline(b).due),
   );
-  const works = useOwnerWorks();
+  // 끝난 작업은 끝난 날 최신순 (서버 순서)
+  const { load: closedLoad, reload: reloadClosed } = useOwnerClosedJobs();
+  const closedJobs = closedLoad.status === "loaded" ? closedLoad.jobs : [];
   const { summary } = useOwnerPayments();
   const [planContent, setPlanContent] = useState<WorkPlanSheetContent>();
   const [reportTitle, setReportTitle] = useState<string>();
   // 맡은 학생의 프로필 API 가 없어서 「프로필 보기」는 곧 열린다는 안내
   const [profileSoon, setProfileSoon] = useState(false);
 
-  const done = works.filter((w) => w.status === "completed");
-  const canceled = works.filter((w) => w.status === "canceled");
+  const done = closedJobs.filter((job) => job.outcome === "completed");
+  const canceled = closedJobs.filter((job) => job.outcome === "canceled");
   // 받은 제안을 불러오는 중이거나 실패하면 개수 대신 「-」
   const counts: Record<ActivityTab, number | string> = {
     sent: openLoad.status === "loaded" ? requests.length : "-",
     proposals: proposalsLoad.status === "loaded" ? proposals.length : "-",
     inProgress: progressLoad.status === "loaded" ? inProgress.length : "-",
-    done: done.length,
+    done: closedLoad.status === "loaded" ? done.length : "-",
   };
   const selectedIndex = TABS.findIndex((t) => t.tab === tab);
 
@@ -272,57 +276,62 @@ function OwnerActivityPage() {
     );
   };
 
-  const doneCard = (work: OwnerWork) => {
-    const auto = work.completedBy === "auto";
-    const completedOn = work.completedOn ? formatMonthDay(work.completedOn) : "";
+  // 「김광운 학생, 10월 6일 완료」. 모집 중에 취소한 의뢰는 학생 없이 날짜만
+  const closedLine = (job: OwnerClosedJob, outcome: string) =>
+    `${job.studentName ? `${studentTitle(job.studentName)}, ` : ""}${formatMonthDay(job.closedOn)} ${outcome}`;
+
+  const doneCard = (job: OwnerClosedJob) => {
+    const id = String(job.jobId);
     return (
-      <li key={work.id} className="owner-activity__card">
+      <li key={job.jobId} className="owner-activity__card">
         <CardHead
-          kind={work.kind}
-          title={work.title}
-          right={<span className="owner-activity__chip">{auto ? "자동 완료" : "완료"}</span>}
+          kind={job.kind}
+          title={job.title}
+          right={<span className="owner-activity__chip">완료</span>}
         />
         <div className="owner-activity__meta">
-          <CategoryBadge field={work.field} />
-          <span>
-            {work.student.name} 학생, {completedOn} {auto ? "자동 완료" : "완료"}
-          </span>
+          {jobCategoryNames(job.specialtyCategories).map((name) => (
+            <CategoryBadge key={name} field={name} />
+          ))}
+          <span>{closedLine(job, "완료")}</span>
         </div>
-        <p className="owner-activity__line">작업비 {formatWon(work.budget)} 정산 완료</p>
+        {job.paidAmount !== undefined && (
+          <p className="owner-activity__line">작업비 {formatWon(job.paidAmount)} 정산 완료</p>
+        )}
         <div className="owner-activity__divider" />
         <div className="owner-activity__footer">
-          <TextButton onClick={() => navigate(OWNER_PATHS.workResult(work.id))}>결과물 보기</TextButton>
-          {work.reviewed ? (
+          <TextButton onClick={() => navigate(OWNER_PATHS.workResult(id))}>결과물 보기</TextButton>
+          {isOwnerWorkReviewed(id) ? (
             <span className="owner-activity__reviewed">후기 작성 완료</span>
           ) : (
-            <TextButton onClick={() => navigate(OWNER_PATHS.workReview(work.id))}>후기 남기기</TextButton>
+            <TextButton onClick={() => navigate(OWNER_PATHS.workReview(id))}>후기 남기기</TextButton>
           )}
         </div>
       </li>
     );
   };
 
-  const canceledCard = (work: OwnerWork) => (
-    <li key={work.id} className="owner-activity__card">
+  const canceledCard = (job: OwnerClosedJob) => (
+    <li key={job.jobId} className="owner-activity__card">
       <CardHead
-        kind={work.kind}
-        title={work.title}
+        kind={job.kind}
+        title={job.title}
         right={<span className="owner-activity__chip">성사되지 않음</span>}
       />
       <div className="owner-activity__meta">
-        <CategoryBadge field={work.field} />
-        <span>
-          {work.student.name} 학생, {work.cancel ? formatMonthDay(work.cancel.canceledOn) : ""} 성사되지 않음
-        </span>
+        {jobCategoryNames(job.specialtyCategories).map((name) => (
+          <CategoryBadge key={name} field={name} />
+        ))}
+        <span>{closedLine(job, "성사되지 않음")}</span>
       </div>
-      {work.cancel && (
+      {job.paidAmount !== undefined && job.refundAmount !== undefined && (
         <p className="owner-activity__line">
-          작업비 {formatWon(work.budget)} 중 {formatWon(work.cancel.refund)} 환불
+          작업비 {formatWon(job.paidAmount)} 중 {formatWon(job.refundAmount)} 환불
         </p>
       )}
       <div className="owner-activity__divider" />
       <div className="owner-activity__footer">
-        <TextButton onClick={() => navigate(OWNER_PATHS.workCanceled(work.id))}>
+        <TextButton onClick={() => navigate(OWNER_PATHS.workCanceled(String(job.jobId)))}>
           상세보기
         </TextButton>
       </div>
@@ -383,6 +392,15 @@ function OwnerActivityPage() {
             loadingText="진행 중인 작업을 불러오는 중이에요"
             errorText="진행 중인 작업을 불러오지 못했어요"
             onRetry={reloadProgress}
+          />
+        )}
+
+        {tab === "done" && closedLoad.status !== "loaded" && (
+          <LoadNotice
+            status={closedLoad.status}
+            loadingText="끝난 작업을 불러오는 중이에요"
+            errorText="끝난 작업을 불러오지 못했어요"
+            onRetry={reloadClosed}
           />
         )}
 

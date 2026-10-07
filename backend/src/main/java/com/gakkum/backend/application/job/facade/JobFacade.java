@@ -501,16 +501,24 @@ public class JobFacade {
                 .map(job -> job.getJob().getSelectedStudentProfileId())
                 .distinct()
                 .toList());
+        Map<String, User> studentUsersById = userService.getUsersByIds(studentsById.values().stream()
+                .map(Student::getUserId)
+                .distinct()
+                .toList());
         Set<Long> specialtyIds = jobs.stream()
                 .flatMap(job -> job.getSpecialtyIds().stream())
                 .collect(Collectors.toSet());
         Map<Long, SpecialtyDetail> specialtiesById = specialtyCategoryService.getSpecialtyDetails(specialtyIds);
 
         return MatchedJobListResult.of(jobs.stream()
-                .map(job -> MatchedJobResult.of(
-                        job,
-                        studentsById.get(job.getJob().getSelectedStudentProfileId()),
-                        groupSpecialties(job.getSpecialtyIds(), specialtiesById)))
+                .map(job -> {
+                    Student student = studentsById.get(job.getJob().getSelectedStudentProfileId());
+                    return MatchedJobResult.of(
+                            job,
+                            student,
+                            studentUsersById.get(student.getUserId()),
+                            groupSpecialties(job.getSpecialtyIds(), specialtiesById));
+                })
                 .toList());
     }
 
@@ -520,7 +528,7 @@ public class JobFacade {
         return userService.getActiveUser(username).getRole() == UserRole.STUDENT;
     }
 
-    /** 학생 본인과 매칭된 진행 중 의뢰를 최신 제출물 상태와 함께 조회한다. */
+    /** 학생 본인과 매칭된 진행 중 의뢰를 최신 제출물 상태, 의뢰한 사장님의 현재 매장 이름과 함께 조회한다. */
     @Transactional(readOnly = true)
     public StudentMatchedJobListResult getStudentMatchedJobs(String username) {
         User user = userService.getActiveUser(username);
@@ -540,14 +548,20 @@ public class JobFacade {
                 .flatMap(job -> job.getSpecialtyIds().stream())
                 .collect(Collectors.toSet());
         Map<Long, SpecialtyDetail> specialtiesById = specialtyCategoryService.getSpecialtyDetails(specialtyIds);
+        Map<Long, String> storeNames = ownerService.getStoreNames(jobs.stream()
+                .map(job -> job.getJob().getOwnerProfileId())
+                .collect(Collectors.toSet()));
 
         return StudentMatchedJobListResult.of(jobs.stream()
-                .map(job -> StudentMatchedJobResult.of(job, groupSpecialties(job.getSpecialtyIds(), specialtiesById)))
+                .map(job -> StudentMatchedJobResult.of(
+                        job,
+                        storeNames.get(job.getJob().getOwnerProfileId()),
+                        groupSpecialties(job.getSpecialtyIds(), specialtiesById)))
                 .toList());
     }
 
     /**
-     * 학생 본인이 지원한 의뢰 중 모집 중이고 선정 대기인 항목을 최신 지원순으로 조회한다.
+     * 학생 본인의 모집 중 대기 지원과 미선정 지원 이력을 본인 지원서 원문, 현재 매장 이름과 함께 최신 지원순으로 조회한다.
      * 학생이 아니면 지원서를 조회하기 전에 거부하고, 학생 계정에 학생 프로필이 없으면 500으로 거부한다.
      */
     @Transactional(readOnly = true)
@@ -569,9 +583,15 @@ public class JobFacade {
                 .flatMap(job -> job.getSpecialtyIds().stream())
                 .collect(Collectors.toSet());
         Map<Long, SpecialtyDetail> specialtiesById = specialtyCategoryService.getSpecialtyDetails(specialtyIds);
+        Map<Long, String> storeNames = ownerService.getStoreNames(jobs.stream()
+                .map(job -> job.getJob().getOwnerProfileId())
+                .collect(Collectors.toSet()));
 
         return StudentAppliedJobListResult.of(jobs.stream()
-                .map(job -> StudentAppliedJobResult.of(job, groupSpecialties(job.getSpecialtyIds(), specialtiesById)))
+                .map(job -> StudentAppliedJobResult.of(
+                        job,
+                        storeNames.get(job.getJob().getOwnerProfileId()),
+                        groupSpecialties(job.getSpecialtyIds(), specialtiesById)))
                 .toList());
     }
 

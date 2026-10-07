@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Button,
-  Dialog,
   FlowBar,
   LoadNotice,
   NoteBox,
@@ -29,7 +28,7 @@ import "./OwnerWorkCheckPage.css";
 /**
  * 피그마 「작업 확인 · 초안」 · 「작업 확인 · 수정안」 (서버 작업, ADR 0035).
  * 작업은 진행 중 목록(GET /me/jobs?status=MATCHED)에서, 도착한 결과물은 GET /jobs/{id}/submission 에서 불러온다.
- * 「수정 요청」 → 수정 요청 화면, 「완료 확인」 → POST .../complete 뒤 「작업을 완료했어요」 → 내 활동 (완료).
+ * 「수정 요청」 → 수정 요청 화면, 「완료 확인」 → POST .../complete 뒤 후기 작성 (ADR 0036).
  * 남은 수정이 없으면 「수정 요청」 버튼이 없다. 자동 완료 날짜는 서버가 주지 않아 「7일 동안」으로 적는다.
  */
 function OwnerJobCheckPage({ jobId }: { jobId: number }) {
@@ -39,7 +38,6 @@ function OwnerJobCheckPage({ jobId }: { jobId: number }) {
   const { load: submissionLoad, reload: reloadSubmission } = usePendingSubmission(jobId);
   const [reportOpen, setReportOpen] = useState(false);
   const [completing, setCompleting] = useState(false);
-  const [completed, setCompleted] = useState(false);
   const [completeError, setCompleteError] = useState<string | null>(null);
   // 다시 그려지기 전에 두 번 눌러도 한 번만 보낸다
   const inFlight = useRef(false);
@@ -103,7 +101,7 @@ function OwnerJobCheckPage({ jobId }: { jobId: number }) {
     setCompleting(false);
     switch (result.status) {
       case "done":
-        setCompleted(true);
+        navigate(OWNER_PATHS.workReview(String(jobId)), { replace: true });
         break;
       case "unauthorized":
         navigate("/login", { replace: true });
@@ -142,13 +140,13 @@ function OwnerJobCheckPage({ jobId }: { jobId: number }) {
             {remaining !== 0 && (
               <Button
                 variant="secondary"
-                disabled={completing || completed}
+                disabled={completing}
                 onClick={() => navigate(OWNER_PATHS.workRevision(String(jobId)))}
               >
                 수정 요청
               </Button>
             )}
-            <Button disabled={completing || completed} onClick={() => void complete()}>
+            <Button disabled={completing} onClick={() => void complete()}>
               {completing ? "완료하는 중..." : "완료 확인"}
             </Button>
           </div>
@@ -191,17 +189,6 @@ function OwnerJobCheckPage({ jobId }: { jobId: number }) {
       </div>
 
       <ReportSheet open={reportOpen} workTitle={job.title} onClose={() => setReportOpen(false)} />
-      <Dialog
-        open={completed}
-        image="doneOwner"
-        title="작업을 완료했어요"
-        description={`${who}에게 작업비가 정산돼요.`}
-        actions={
-          <Button fullWidth onClick={() => navigate(OWNER_PATHS.activity("done"), { replace: true })}>
-            확인
-          </Button>
-        }
-      />
     </SubScreen>
   );
 }

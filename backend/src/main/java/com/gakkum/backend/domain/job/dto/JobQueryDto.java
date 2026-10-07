@@ -398,17 +398,20 @@ public final class JobQueryDto {
         }
     }
 
-    /** 학생이 지원한 모집 중 의뢰와 본인의 대기 중 지원서. */
+    /** 학생이 지원한 의뢰와 본인의 대기 중·미선정 지원서. */
     @Getter
     @AllArgsConstructor(access = AccessLevel.PRIVATE)
     public static class StudentAppliedJobData {
 
         private final Job job;
         private final JobApplication application;
+        // 목록에 내리는 지원 상태. 다른 학생이 선정된 대기 중 지원서는 저장 상태와 달리 REJECTED다
+        private final JobApplicationStatus applicationStatus;
         private final List<Long> specialtyIds;
 
-        public static StudentAppliedJobData of(Job job, JobApplication application, List<Long> specialtyIds) {
-            return new StudentAppliedJobData(job, application, specialtyIds);
+        public static StudentAppliedJobData of(Job job, JobApplication application,
+                JobApplicationStatus applicationStatus, List<Long> specialtyIds) {
+            return new StudentAppliedJobData(job, application, applicationStatus, specialtyIds);
         }
     }
 
@@ -556,9 +559,15 @@ public final class JobQueryDto {
         private final String submissionType;
         private final Long pendingSubmissionId;
         private final JobProgressStage progressStage;
+        private final String studentName;
+        private final Long budget;
+        private final Integer revisionCount;
+        // 아래 둘은 pendingSubmissionId와 같은 검토 대기 제출물의 값이고 없으면 null이다
+        private final Integer revisionNumber;
+        private final LocalDateTime submittedAt;
 
-        public static MatchedJobResult of(
-                MatchedJobData data, Student student, List<SpecialtyCategoryResult> specialtyCategories) {
+        public static MatchedJobResult of(MatchedJobData data, Student student, User studentUser,
+                List<SpecialtyCategoryResult> specialtyCategories) {
             Job job = data.getJob();
             JobSubmission pendingSubmission = data.getPendingSubmission();
             return MatchedJobResult.builder()
@@ -573,6 +582,11 @@ public final class JobQueryDto {
                     .submissionType(pendingSubmission == null ? null : pendingSubmission.getSubmissionType().name())
                     .pendingSubmissionId(pendingSubmission == null ? null : pendingSubmission.getId())
                     .progressStage(data.getProgressStage())
+                    .studentName(studentUser.getName())
+                    .budget(job.getBudget())
+                    .revisionCount(job.getRevisionCount())
+                    .revisionNumber(pendingSubmission == null ? null : pendingSubmission.getRevisionNumber())
+                    .submittedAt(pendingSubmission == null ? null : pendingSubmission.getCreatedAt())
                     .build();
         }
     }
@@ -603,9 +617,12 @@ public final class JobQueryDto {
         private final String submissionType;
         private final String reviewStatus;
         private final JobProgressStage progressStage;
+        private final String storeName;
+        // submissionType·reviewStatus와 같은 최신 제출물의 제출 시각. 제출물이 없으면 null이다
+        private final LocalDateTime submittedAt;
 
-        public static StudentMatchedJobResult of(
-                StudentMatchedJobData data, List<SpecialtyCategoryResult> specialtyCategories) {
+        public static StudentMatchedJobResult of(StudentMatchedJobData data, String storeName,
+                List<SpecialtyCategoryResult> specialtyCategories) {
             Job job = data.getJob();
             JobSubmission latest = data.getLatestSubmission();
             return StudentMatchedJobResult.builder()
@@ -619,6 +636,8 @@ public final class JobQueryDto {
                     .submissionType(latest == null ? null : latest.getSubmissionType().name())
                     .reviewStatus(latest == null ? null : latest.getReviewStatus().name())
                     .progressStage(data.getProgressStage())
+                    .storeName(storeName)
+                    .submittedAt(latest == null ? null : latest.getCreatedAt())
                     .build();
         }
     }
@@ -649,9 +668,13 @@ public final class JobQueryDto {
         private final JobStatus jobStatus;
         private final JobApplicationStatus applicationStatus;
         private final LocalDateTime appliedAt;
+        private final String storeName;
+        private final String summary;
+        private final String workPlan;
+        private final String deliveryMethod;
 
-        public static StudentAppliedJobResult of(
-                StudentAppliedJobData data, List<SpecialtyCategoryResult> specialtyCategories) {
+        public static StudentAppliedJobResult of(StudentAppliedJobData data, String storeName,
+                List<SpecialtyCategoryResult> specialtyCategories) {
             Job job = data.getJob();
             JobApplication application = data.getApplication();
             return StudentAppliedJobResult.builder()
@@ -663,8 +686,12 @@ public final class JobQueryDto {
                     .draftDeadline(job.getDraftDeadline())
                     .finalDeadline(job.getFinalDeadline())
                     .jobStatus(job.getStatus())
-                    .applicationStatus(application.getStatus())
+                    .applicationStatus(data.getApplicationStatus())
                     .appliedAt(application.getCreatedAt())
+                    .storeName(storeName)
+                    .summary(application.getSummary())
+                    .workPlan(application.getWorkPlan())
+                    .deliveryMethod(application.getDeliveryMethod())
                     .build();
         }
     }

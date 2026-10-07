@@ -229,7 +229,7 @@ public class JobController {
         throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE);
     }
 
-    /** 학생이 지원한 의뢰 중 모집 중이고 선정 대기인 항목 전체를 최신 지원순으로 조회하는 API */
+    /** 학생의 모집 중 대기 지원과 미선정 지원 이력 전체를 최신 지원순으로 조회하는 API. 선정된 지원은 제외한다 */
     @GetMapping("/me/job-applications")
     public ResponseEntity<ApiResponse<JobListResponse.StudentAppliedJobList>> getStudentAppliedJobs(
             Authentication authentication) {
