@@ -10,13 +10,19 @@ import {
   SubScreen,
   TextButton,
   WorkKindIcon,
+  WorkPlan,
 } from "../components";
 import { categoryNames, jobStatusLabel, jobTaskNames, useJobDetail } from "../features/explore";
 import {
   OWNER_PATHS,
   OwnerMissing,
+  StudentBox,
   flowSteps,
+  ownerProgressFlowSteps,
+  ownerProgressStatusText,
   parsePositiveId,
+  studentMetaText,
+  useAssignedWork,
   useJobApplications,
 } from "../features/owner";
 import { useBack } from "../hooks/useBack";
@@ -26,8 +32,9 @@ import "./OwnerDetailPage.css";
 import "./OwnerRequestPage.css";
 
 /**
- * 피그마 「보낸 의뢰>상세보기」. GET /jobs/{id} 의 의뢰서와 학생을 고른 뒤의 진행 안내 (ADR 0030).
- * 모집 중이면 지원자 수(GET /jobs/{id}/applications)와 「의뢰 취소」가 보인다.
+ * 피그마 「보낸 의뢰>상세보기」. GET /jobs/{id} 의 의뢰서 (ADR 0030).
+ * 모집 중이면 지원자 수(GET /jobs/{id}/applications), 「의뢰 취소」, 학생을 고른 뒤의 진행 안내가 보인다.
+ * 학생이 작업 중(MATCHED)이면 지금 단계, 맡은 학생, 학생이 보낸 작업계획서(지원서)가 보인다 (ADR 0049).
  */
 function OwnerRequestPage() {
   const { requestId } = useParams();
@@ -40,6 +47,10 @@ function OwnerRequestPage() {
     open ? parsePositiveId(requestId) : undefined,
     "LATEST",
   );
+  const working = job?.status === "MATCHED";
+  const { load: assigned, reload: reloadAssigned } = useAssignedWork(working ? job.id : undefined);
+  const work = assigned.status === "loaded" ? assigned.work : undefined;
+  const plan = assigned.status === "loaded" ? assigned.plan : undefined;
 
   if (load.status === "notFound") return <OwnerMissing title="보낸 의뢰" onBack={back} />;
 
@@ -47,12 +58,18 @@ function OwnerRequestPage() {
   const meta = !job
     ? ""
     : !open
-      ? jobStatusLabel(job.status)
+      ? work
+        ? ownerProgressStatusText(work)
+        : jobStatusLabel(job.status)
       : applicantCount === undefined
         ? "모집 중"
         : applicantCount === 0
           ? "모집 중, 아직 지원자가 없어요"
           : `모집 중, 지원자 ${applicantCount}명`;
+  // 학생이 작업 중이면 진행 중 목록의 단계로, 목록에 없으면 「작업 중」
+  const workingSteps = work
+    ? ownerProgressFlowSteps(work, work.stage === "submitted" ? "확인할 차례" : "작업 중")
+    : flowSteps("의뢰", 2, "작업 중");
   const photos = job?.referenceImageUrls ?? [];
   const steps = job
     ? [
@@ -107,6 +124,23 @@ function OwnerRequestPage() {
           </div>
 
           {open && <FlowBar steps={flowSteps("의뢰", 0, "모집 중")} />}
+          {working && <FlowBar steps={workingSteps} />}
+
+          {(assigned.status === "loading" || assigned.status === "error") && (
+            <LoadNotice
+              status={assigned.status}
+              loadingText="맡은 학생을 불러오는 중이에요"
+              errorText="맡은 학생을 불러오지 못했어요"
+              onRetry={reloadAssigned}
+            />
+          )}
+          {work && (
+            <StudentBox
+              name={work.student.name}
+              lines={[studentMetaText(work.student.studentNumber, work.student.major)]}
+              onProfile={() => navigate(OWNER_PATHS.student(String(work.student.profileId)))}
+            />
+          )}
 
           <div className="owner-request__terms">
             <InfoRows
@@ -126,6 +160,13 @@ function OwnerRequestPage() {
               </TextButton>
             )}
           </div>
+
+          {plan && (
+            <section className="owner-detail__section">
+              <h2 className="owner-detail__section-title">작업계획서</h2>
+              <WorkPlan plan={plan} />
+            </section>
+          )}
 
           <section className="owner-detail__section">
             <h2 className="owner-detail__section-title">할 일</h2>
@@ -148,20 +189,22 @@ function OwnerRequestPage() {
             </section>
           )}
 
-          <div className="owner-request__guide">
-            <h2 className="owner-request__guide-title">학생을 고르면 이렇게 진행돼요</h2>
-            <ol className="owner-request__guide-list">
-              {steps.map((step, i) => (
-                <li key={step.title} className="owner-request__guide-step">
-                  <span className="owner-request__guide-number">{i + 1}</span>
-                  <span className="owner-request__guide-text">
-                    <span>{step.title}</span>
-                    {step.sub && <small>{step.sub}</small>}
-                  </span>
-                </li>
-              ))}
-            </ol>
-          </div>
+          {open && (
+            <div className="owner-request__guide">
+              <h2 className="owner-request__guide-title">학생을 고르면 이렇게 진행돼요</h2>
+              <ol className="owner-request__guide-list">
+                {steps.map((step, i) => (
+                  <li key={step.title} className="owner-request__guide-step">
+                    <span className="owner-request__guide-number">{i + 1}</span>
+                    <span className="owner-request__guide-text">
+                      <span>{step.title}</span>
+                      {step.sub && <small>{step.sub}</small>}
+                    </span>
+                  </li>
+                ))}
+              </ol>
+            </div>
+          )}
         </div>
       )}
     </SubScreen>

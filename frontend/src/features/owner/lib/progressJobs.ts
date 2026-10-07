@@ -7,6 +7,7 @@ import type { JobSpecialtyCategory } from "../api/jobApi";
 import { fetchMyChatRooms, fetchOwnerMatchedJobs } from "../api/progressApi";
 import type { OwnerMatchedJobResponse } from "../api/progressApi";
 import { fetchReceivedProposals } from "../api/receivedProposalApi";
+import type { ReceivedProposalResponse } from "../api/receivedProposalApi";
 import type { DeadlineStage, WorkPlanSheetContent } from "../types";
 import { flowSteps } from "./flow";
 
@@ -138,6 +139,58 @@ export async function loadProgressPlan(jobId: number): Promise<ProgressPlanResul
   }
 }
 
+/** 진행 중 목록의 의뢰 하나. 받은 제안이 있으면 제안에서 시작한 작업이다 */
+function toProgressJob(job: OwnerMatchedJobResponse, proposal?: ReceivedProposalResponse): OwnerProgressJob {
+  const name = job.studentName?.trim() || proposal?.student.name.trim() || undefined;
+  return {
+    jobId: job.jobId,
+    kind: proposal ? "proposal" : "request",
+    proposalId: proposal?.proposalId,
+    title: job.title,
+    specialtyCategories: job.specialtyCategories,
+    draftDeadline: job.draftDeadline,
+    finalDeadline: job.finalDeadline,
+    stage: ownerProgressStageOf(job),
+    revisionSubmitted: job.submissionType === "REVISION",
+    pendingSubmissionId: job.pendingSubmissionId ?? undefined,
+    arrivedOn: job.pendingSubmissionId && job.submittedAt ? koreaDateOfUtc(job.submittedAt) : undefined,
+    student: {
+      profileId: job.studentProfileId,
+      name,
+      studentNumber: job.studentNumber ?? undefined,
+      major: job.major?.trim() || undefined,
+    },
+    budget: job.budget ?? undefined,
+    revisionLimit: job.revisionCount ?? undefined,
+  };
+}
+
+export type AssignedWorkResult =
+  /** work 는 진행 중 목록에 없으면, plan 은 채팅방에 지원서가 없으면 undefined */
+  | { status: "loaded"; work?: OwnerProgressJob; plan?: ApplicationPlan }
+  | { status: "unauthorized" }
+  | { status: "error" };
+
+/**
+ * 의뢰로 맡긴 작업의 맡은 학생 · 단계(GET /me/jobs?status=MATCHED)와 학생이 지원할 때 보낸 지원서
+ * (GET /me/chat-rooms, 결제한 의뢰마다 하나). 채팅방은 실패해도 지원서만 빼고 보인다.
+ */
+export async function loadAssignedWork(jobId: number): Promise<AssignedWorkResult> {
+  try {
+    const [matched, rooms] = await Promise.all([fetchOwnerMatchedJobs(), fetchMyChatRooms().catch(() => [])]);
+    const job = matched.find((j) => j.jobId === jobId);
+    const room = rooms.find((r) => r.jobId === jobId);
+    return {
+      status: "loaded",
+      work: job && toProgressJob(job),
+      plan: room && applicationPlan(room.applicationSummary, room.applicationWorkPlan, room.applicationDeliveryMethod),
+    };
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 401) return { status: "unauthorized" };
+    return { status: "error" };
+  }
+}
+
 /**
  * 학생이 맡아 진행 중인 내 의뢰를 불러온다. 학생 이름 · 작업비 · 수정 횟수 · 도착 시각은 목록에서,
  * 제안에서 시작했는지는 받은 제안(GET /me/received-proposals)의 jobId 로 채운다. 받은 제안은
@@ -160,30 +213,6 @@ export async function loadOwnerProgressJobs(): Promise<OwnerProgressJobsResult> 
 
   return {
     status: "loaded",
-    jobs: matched.map((job) => {
-      const proposal = proposalByJob.get(job.jobId);
-      const name = job.studentName?.trim() || proposal?.student.name.trim() || undefined;
-      return {
-        jobId: job.jobId,
-        kind: proposal ? "proposal" : "request",
-        proposalId: proposal?.proposalId,
-        title: job.title,
-        specialtyCategories: job.specialtyCategories,
-        draftDeadline: job.draftDeadline,
-        finalDeadline: job.finalDeadline,
-        stage: ownerProgressStageOf(job),
-        revisionSubmitted: job.submissionType === "REVISION",
-        pendingSubmissionId: job.pendingSubmissionId ?? undefined,
-        arrivedOn: job.pendingSubmissionId && job.submittedAt ? koreaDateOfUtc(job.submittedAt) : undefined,
-        student: {
-          profileId: job.studentProfileId,
-          name,
-          studentNumber: job.studentNumber ?? undefined,
-          major: job.major?.trim() || undefined,
-        },
-        budget: job.budget ?? undefined,
-        revisionLimit: job.revisionCount ?? undefined,
-      };
-    }),
+    jobs: matched.map((job) => toProgressJob(job, proposalByJob.get(job.jobId))),
   };
 }

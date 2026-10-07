@@ -5,6 +5,7 @@ export { default as PaymentProgress } from "./components/PaymentProgress";
 export { default as PaymentSection } from "./components/PaymentSection";
 export { default as PaymentSummaryBox } from "./components/PaymentSummaryBox";
 export { default as RefundBreakdown } from "./components/RefundBreakdown";
+export { default as StudentBox } from "./components/StudentBox";
 export { default as OwnerTabScreen } from "./components/OwnerTabScreen";
 export { default as TodoCarousel } from "./components/TodoCarousel";
 export { default as WorkPlanSheet } from "./components/WorkPlanSheet";
@@ -48,6 +49,8 @@ export type { JobResult, JobReviewResult, OwnerClosedJob, OwnerClosedOutcome } f
 export { useOwnerProgressJobs } from "./hooks/useOwnerProgressJobs";
 export type { OwnerProgressJobsLoad } from "./hooks/useOwnerProgressJobs";
 export { useProgressPlanSheet } from "./hooks/useProgressPlanSheet";
+export { useAssignedWork } from "./hooks/useAssignedWork";
+export type { AssignedWorkLoad } from "./hooks/useAssignedWork";
 export {
   ownerAutoCompleteOn,
   ownerProgressDeadline,
