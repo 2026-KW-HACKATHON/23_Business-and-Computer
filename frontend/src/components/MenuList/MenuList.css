@@ -37,7 +37,7 @@ button.menu-list__item {
 }
 
 button.menu-list__item:focus-visible {
-  outline: 2px solid var(--color-black);
+  outline: 2px solid var(--role-focus);
   outline-offset: -2px;
   border-radius: 8px;
 }

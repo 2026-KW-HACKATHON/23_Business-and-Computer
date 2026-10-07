@@ -264,8 +264,9 @@
   pointer-events: none;
 }
 
-.student-chat__attach:focus-within {
-  outline: 2px solid var(--color-black);
+/* 키보드로 왔을 때만 (누를 때는 안 보인다) */
+.student-chat__attach:has(> input:focus-visible) {
+  outline: 2px solid var(--role-focus);
   outline-offset: 2px;
 }
 

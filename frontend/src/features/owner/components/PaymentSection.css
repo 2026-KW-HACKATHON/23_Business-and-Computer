@@ -123,7 +123,7 @@
 }
 
 .pay-methods__input:focus-visible + .pay-methods__radio {
-  outline: 2px solid var(--color-black);
+  outline: 2px solid var(--role-focus);
   outline-offset: 2px;
 }
 
