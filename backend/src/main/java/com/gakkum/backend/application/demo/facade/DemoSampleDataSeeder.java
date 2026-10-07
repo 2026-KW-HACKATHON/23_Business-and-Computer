@@ -19,6 +19,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.gakkum.backend.domain.category.dto.BusinessCategoryResponse;
 import com.gakkum.backend.domain.category.service.BusinessCategoryService;
+import com.gakkum.backend.domain.certificate.dto.CertificateCommandDto.AddStudentCertificateCommand;
+import com.gakkum.backend.domain.certificate.service.CertificateService;
 import com.gakkum.backend.domain.chat.entity.ChatRoom;
 import com.gakkum.backend.domain.chat.service.ChatRoomService;
 import com.gakkum.backend.domain.chat.service.ChatService;
@@ -83,6 +85,7 @@ public class DemoSampleDataSeeder {
     private final ProposalService proposalService;
     private final PaymentService paymentService;
     private final ReviewService reviewService;
+    private final CertificateService certificateService;
     private final ChatRoomService chatRoomService;
     private final ChatService chatService;
     private final Clock clock;
@@ -96,6 +99,10 @@ public class DemoSampleDataSeeder {
 
     /** 예시 데이터를 다 만든 뒤 바꿀 시각 한 칸. at 은 칼럼 타입에 맞춘 값이다 */
     private record TimelineUpdate(String sql, Object at, Long id) {
+    }
+
+    /** 채팅방 대화 한 줄. fromOwner 면 사장님이, 아니면 학생이 보낸 메시지다 */
+    private record ChatLine(boolean fromOwner, Instant at, String text) {
     }
 
     @Transactional
@@ -152,6 +159,62 @@ public class DemoSampleDataSeeder {
             seedMyStoreJobs(kim, park, lee, nuri, choi);
             seedMyStoreProposals(kim, park, lee, nuri, choi);
             seedOtherStores(dino, kwCafe, banjeom, chicken, kim, park, lee, nuri, choi);
+            seedStudentHistories(dino, kwCafe, banjeom, chicken, kim, park, lee, nuri, choi);
+        }
+
+        /**
+         * 학생들이 다른 가게에서 끝낸 지난 작업·후기와 자격증. 사장님이 보는 지원자 프로필(완료한 작업 · 평점 · 후기 ·
+         * 자격증)과 방문자 학생의 내 정보 · 받은 후기 · 정산 내역이 비어 보이지 않게 한다.
+         */
+        private void seedStudentHistories(Owner dino, Owner kwCafe, Owner banjeom, Owner chicken,
+                                          Student kim, Student park, Student lee, Student nuri, Student choi) {
+            pastWork(banjeom, kim, 15, "중식 메뉴판 가격표 정리", "메뉴가 많은 가격표를 보기 쉽게 다시 만들어 주세요.",
+                    50_000L, "Menu+Board", 5, "메뉴가 한눈에 들어와서 주문이 빨라졌어요.",
+                    List.of(ReviewPositivePoint.QUALITY_OUTPUT, ReviewPositivePoint.ON_TIME_DELIVERY),
+                    "메뉴판·가격표 디자인");
+            pastWork(dino, kim, 52, "카페 신메뉴 포스터", "신메뉴 음료 2가지를 알리는 포스터를 만들어 주세요.",
+                    40_000L, "Cafe+Poster", 4, "포스터 색감이 가게 분위기랑 잘 어울렸어요.",
+                    List.of(ReviewPositivePoint.QUALITY_OUTPUT, ReviewPositivePoint.KINDNESS), "전단지·포스터 디자인");
+            certify(kim, "GTQ 포토샵 1급", 2024);
+            certify(kim, "컬러리스트기사", 2025);
+
+            pastWork(chicken, park, 20, "치킨 단골 쿠폰 디자인", "주문 10번에 한 마리를 드리는 쿠폰을 만들어 주세요.",
+                    35_000L, "Chicken+Coupon", 5, "쿠폰 받은 손님들이 귀엽다고 좋아했어요.",
+                    List.of(ReviewPositivePoint.QUALITY_OUTPUT, ReviewPositivePoint.FAST_COMMUNICATION),
+                    "쿠폰·스티커·명함 디자인");
+            pastWork(kwCafe, park, 44, "스터디룸 안내 스티커", "스터디룸 이용 규칙을 알리는 스티커를 만들어 주세요.",
+                    30_000L, "Study+Sticker", 5, "고쳐 달라는 부분을 바로바로 반영해 주셨어요.",
+                    List.of(ReviewPositivePoint.REVISION_FEEDBACK, ReviewPositivePoint.KINDNESS),
+                    "쿠폰·스티커·명함 디자인");
+            certify(park, "GTQ 일러스트 1급", 2023);
+
+            pastWork(kwCafe, lee, 27, "카페 방문 후기 분석", "지도 앱 방문 후기를 모아 손님 반응을 정리해 주세요.",
+                    55_000L, "Review+Report", 5, "손님들이 아쉬워한 점을 콕 집어 주셔서 바로 고칠 수 있었어요.",
+                    List.of(ReviewPositivePoint.QUALITY_OUTPUT, ReviewPositivePoint.ON_TIME_DELIVERY), "리뷰 분석");
+            certify(lee, "사회조사분석사 2급", 2025);
+            certify(lee, "컴퓨터활용능력 1급", 2023);
+
+            pastWork(chicken, nuri, 24, "치킨 신메뉴 릴스", "신메뉴 치킨을 소개하는 15초 릴스를 만들어 주세요.",
+                    60_000L, "Chicken+Reels", 4, "영상 템포가 좋아서 조회수가 많이 나왔어요.",
+                    List.of(ReviewPositivePoint.QUALITY_OUTPUT, ReviewPositivePoint.FAST_COMMUNICATION),
+                    "영상 제작 및 편집");
+            pastWork(dino, nuri, 58, "공룡카페 인스타 게시물 3장", "가게 계정에 올릴 게시물 3장을 만들어 주세요.",
+                    45_000L, "Dino+Posts", 5, "사진 보정이 깔끔해서 계정이 확 살아났어요.",
+                    List.of(ReviewPositivePoint.QUALITY_OUTPUT), "SNS 게시물");
+            certify(nuri, "GTQ 포토샵 2급", 2025);
+
+            pastWork(banjeom, choi, 34, "중국집 영어 메뉴판", "외국인 손님을 위한 영어 메뉴판을 만들어 주세요.",
+                    45_000L, "English+Menu", 5, "외국인 손님이 메뉴를 쉽게 고르게 됐어요.",
+                    List.of(ReviewPositivePoint.QUALITY_OUTPUT, ReviewPositivePoint.ON_TIME_DELIVERY), "영어 번역");
+            certify(choi, "토익 스피킹 IH", 2024);
+
+            Job cardNews = pastWork(chicken, me, 26, "치킨 세트 메뉴 카드뉴스", "세트 메뉴 3가지를 소개하는 카드뉴스를 만들어 주세요.",
+                    50_000L, "Set+Card+News", 4, "카드뉴스 덕분에 세트 주문이 늘었어요.",
+                    List.of(ReviewPositivePoint.QUALITY_OUTPUT, ReviewPositivePoint.KINDNESS), "SNS 게시물");
+            conversation(cardNews, me, false,
+                    owner(at(25, 12), "카드뉴스 잘 받았어요. 바로 올렸어요!"),
+                    student(at(25, 13), "감사합니다! 반응 좋았으면 좋겠어요."));
+            certify(me, "GTQ 포토샵 1급", 2025);
         }
 
         /** 방문자 가게의 의뢰: 모집 중 · 지원자 있음 · 작업 중 · 초안 도착 · 수정 중 · 수정안 도착 · 완료 · 취소. */
@@ -173,6 +236,10 @@ public class DemoSampleDataSeeder {
                     80_000L, 4, 11, 1, "메뉴판·가격표 디자인");
             match(myStore, menu, apply(menu, kim, at(4, 13), "인기 메뉴가 먼저 보이는 메뉴판으로 바꿔 드릴게요",
                     "가격대별로 묶고 대표 메뉴 사진을 크게 넣어요.", "인쇄용 PDF와 원본 파일"), at(2, 15));
+            conversation(menu, kim, true,
+                    student(at(2, 16), "맡겨 주셔서 감사해요! 오늘부터 메뉴 정리 시작할게요."),
+                    owner(at(2, 17), "잘 부탁드려요. 대표 메뉴는 떡볶이랑 김밥이에요."),
+                    student(at(1, 10), "네, 두 메뉴 사진을 크게 넣어 볼게요."));
 
             Job coupon = openJob(myStore, at(9, 10), "단골 쿠폰·도장카드 디자인",
                     "도장 10개를 모으면 음료 한 잔을 드리는 쿠폰을 만들고 싶어요.",
@@ -181,6 +248,10 @@ public class DemoSampleDataSeeder {
                     "시안 2가지를 먼저 보여 드리고 고르신 쪽으로 다듬어요.", "명함 크기 인쇄용 PDF"), at(6, 14));
             submitDraft(coupon, park, at(1, 20), "도장카드 시안 2가지예요. 마음에 드는 쪽을 알려 주세요.",
                     "1080x1080.png?text=Coupon+A", "1080x1350.png?text=Coupon+B");
+            conversation(coupon, park, true,
+                    student(at(6, 15), "도장카드 시안은 두 가지로 준비할게요."),
+                    owner(at(6, 16), "좋아요. 가게 색인 주황색을 꼭 써 주세요."),
+                    student(at(1, 20), "초안 올렸어요. 두 시안 중에 골라 주세요!"));
 
             Job reels = openJob(myStore, at(8, 11), "가게 소개 릴스 영상 편집",
                     "가게 분위기를 보여 주는 30초 릴스 영상을 편집해 주세요. 찍어 둔 영상을 드릴게요.",
@@ -190,8 +261,11 @@ public class DemoSampleDataSeeder {
             JobSubmission reelsDraft = submitDraft(reels, me, at(2, 19), "초안 영상이에요. 음악은 바꿀 수 있어요.",
                     "1080x1920.png?text=Reels+Draft");
             requestRevision(reels, reelsDraft, at(1, 11), "자막을 조금 키우고 마지막 장면에 가게 위치를 넣어 주세요.");
-            chat(reels, me, at(2, 20), "초안 올렸어요! 확인 부탁드려요.",
-                    at(1, 12), "수정 요청 남겼어요. 자막만 조금 키워 주시면 될 것 같아요.");
+            conversation(reels, me, true,
+                    student(at(5, 17), "맡겨 주셔서 감사해요! 찍어 두신 영상 받으면 바로 시작할게요."),
+                    owner(at(5, 18), "영상 폴더 링크 보내 드렸어요. 잘 부탁드려요."),
+                    student(at(2, 20), "초안 올렸어요! 확인 부탁드려요."),
+                    owner(at(1, 12), "수정 요청 남겼어요. 자막만 조금 키워 주시면 될 것 같아요."));
 
             Job reviews = openJob(myStore, at(12, 10), "배달앱 리뷰 분석 리포트",
                     "배달앱 리뷰 3개월치를 모아 손님이 아쉬워한 점을 정리해 주세요.",
@@ -202,6 +276,10 @@ public class DemoSampleDataSeeder {
                     "1240x1754.png?text=Report+Draft");
             requestRevision(reviews, reviewsDraft, at(3, 10), "포장 관련 의견을 따로 한 장으로 모아 주세요.");
             submitRevision(reviews, lee, at(1, 22), "포장 의견을 따로 모은 수정안이에요.", "1240x1754.png?text=Report+v2");
+            conversation(reviews, lee, true,
+                    student(at(4, 21), "리포트 초안 올렸어요. 아쉬운 점은 맛·양·포장으로 나눴어요."),
+                    owner(at(3, 10), "포장 의견만 따로 모아 주실 수 있을까요?"),
+                    student(at(1, 22), "포장 의견을 한 장으로 정리해서 다시 올렸어요."));
 
             Job posts = openJob(myStore, at(48, 10), "인스타 게시물 5개 제작",
                     "가게 계정에 올릴 게시물 5개를 만들어 주세요.", 75_000L, -40, -33, 1, "SNS 게시물");
@@ -212,6 +290,10 @@ public class DemoSampleDataSeeder {
             review(posts, me, at(38, 12), 5, "사진 보정이 깔끔하고 일정도 딱 맞춰 주셨어요.",
                     ReviewPositivePoint.QUALITY_OUTPUT, ReviewPositivePoint.ON_TIME_DELIVERY,
                     ReviewPositivePoint.FAST_COMMUNICATION);
+            conversation(posts, me, false,
+                    student(at(41, 20), "게시물 5개 올렸어요."),
+                    owner(at(38, 11), "결과물 정말 마음에 들어요. 감사합니다!"),
+                    student(at(38, 12), "저도 감사합니다! 또 불러 주세요."));
 
             Job signboard = openJob(myStore, at(33, 10), "가게 앞 입간판 시안",
                     "가게 앞에 세울 입간판 시안을 만들어 주세요.", 55_000L, -25, -18, 1, "간판·현수막 시안");
@@ -222,12 +304,18 @@ public class DemoSampleDataSeeder {
             requestRevision(signboard, signDraft, at(24, 10), "가게 이름을 조금 더 크게 해 주세요.");
             complete(signboard, submitRevision(signboard, kim, at(20, 21), "가게 이름을 키웠어요.",
                     "1200x1800.png?text=Sign+Final"), at(19, 11));
+            conversation(signboard, kim, false,
+                    owner(at(19, 11), "입간판 잘 받았어요. 멀리서도 잘 보인대요!"),
+                    student(at(19, 12), "다행이에요. 감사합니다!"));
 
             Job sticker = openJob(myStore, at(13, 10), "포장 스티커 디자인",
                     "포장 용기에 붙일 원형 스티커를 만들어 주세요.", 35_000L, 3, 9, 1, "쿠폰·스티커·명함 디자인");
             match(myStore, sticker, apply(sticker, choi, at(12, 14), "가게 로고를 살린 원형 스티커를 만들게요",
                     "로고 정리 후 시안 2가지를 드려요.", "인쇄용 PDF"), at(10, 16));
             cancel(sticker, at(2, 10), "가게 사정으로 디자인을 잠시 미루게 됐어요.", "그동안 고민해 주셔서 감사해요.");
+            conversation(sticker, choi, false,
+                    owner(at(2, 10), "가게 사정으로 작업을 잠시 미루게 됐어요. 죄송해요."),
+                    student(at(2, 11), "괜찮아요. 다음에 또 불러 주세요!"));
         }
 
         /** 방문자 가게가 받은 제안: 결정 대기 · 결제 완료(학생 시작 전) · 작업 중 · 학생 거절. */
@@ -254,7 +342,12 @@ public class DemoSampleDataSeeder {
                     "지도 앱의 가게 소개글이 오래돼서 지금 메뉴와 맞지 않아요.",
                     "지금 메뉴와 분위기가 드러나는 소개글을 새로 써 드려요.",
                     "가게 인터뷰, 초안, 다듬기 순서로 진행해요.", 30_000L, 4, 8, "소개·공지 글쓰기");
-            start(intro, pay(intro, myStore, 30_000L, 1, "편하게 써 주세요.", at(3, 14)), at(2, 10));
+            Job introJob = pay(intro, myStore, 30_000L, 1, "편하게 써 주세요.", at(3, 14));
+            start(intro, introJob, at(2, 10));
+            conversation(introJob, me, true,
+                    student(at(2, 10), "의뢰서 확인했어요! 가게 소개글 작업 시작할게요."),
+                    owner(at(2, 11), "감사해요. 이번 주에 짧게 통화 가능할까요?"),
+                    student(at(1, 15), "네! 내일 오후 3시 괜찮으세요?"));
 
             Proposal groupOrder = propose(park, myStore, at(11, 15), "단체 주문 안내문 디자인",
                     "단체 주문 방법을 묻는 전화가 많아요.",
@@ -273,7 +366,10 @@ public class DemoSampleDataSeeder {
                     "캐릭터 정리, 쿠폰 시안, 스티커 시안 순서로 진행해요.", "인쇄용 PDF 2개"), at(5, 13));
             submitDraft(stickers, me, at(1, 16), "쿠폰과 스티커 초안이에요.",
                     "1080x1080.png?text=Dino+Coupon", "1080x1350.png?text=Dino+Sticker");
-            chat(stickers, me, at(1, 17), "초안 올렸어요. 확인 부탁드려요!", null, null);
+            conversation(stickers, me, true,
+                    owner(at(5, 14), "공룡 캐릭터 잘 부탁드려요!"),
+                    student(at(5, 15), "네! 캐릭터부터 정리해서 보여 드릴게요."),
+                    student(at(1, 17), "초안 올렸어요. 확인 부탁드려요!"));
 
             Job menuTranslation = openJob(kwCafe, at(3, 11), "영어·중국어 메뉴판 번역",
                     "외국인 학생 손님을 위해 메뉴판을 영어와 중국어로 옮겨 주세요.",
@@ -420,20 +516,53 @@ public class DemoSampleDataSeeder {
             backdateRefund(job.getId(), cancelledAt);
         }
 
-        /** 학생이 먼저 보낸 메시지를 사장님이 읽었고, 사장님 답장은 학생이 아직 읽지 않은 채팅방. */
-        private void chat(Job job, Student student, Instant studentAt, String studentMessage, Instant replyAt,
-                          String ownerReply) {
+        /**
+         * 의뢰 채팅방의 대화. 줄은 시간 순서로 받는다. 보낸 쪽은 자기 메시지까지 읽은 것으로 두고, 받는 쪽도 읽은 것으로 두되
+         * lastUnread 면 마지막 메시지만 받는 쪽이 아직 읽지 않은 채로 둔다 (채팅 탭의 안 읽은 표시).
+         */
+        private void conversation(Job job, Student student, boolean lastUnread, ChatLine... lines) {
             ChatRoom room = chatRoomService.getOrCreate(job.getId());
-            Long studentMessageId = chatService.sendTextMessage(
-                    room, student.getUserId(), UUID.randomUUID(), studentMessage).getMessage().getId();
-            backdate("chat_messages", "created_at", studentMessageId, studentAt);
-            if (ownerReply != null) {
-                Owner store = ownerService.getOwnerProfileById(job.getOwnerProfileId());
-                chatService.markRead(room, true, studentMessageId);
-                Long replyId = chatService.sendTextMessage(
-                        room, store.getUserId(), UUID.randomUUID(), ownerReply).getMessage().getId();
-                backdate("chat_messages", "created_at", replyId, replyAt);
+            String ownerUserId = ownerService.getOwnerProfileById(job.getOwnerProfileId()).getUserId();
+            for (int i = 0; i < lines.length; i++) {
+                ChatLine line = lines[i];
+                Long messageId = chatService.sendTextMessage(room, line.fromOwner() ? ownerUserId : student.getUserId(),
+                        UUID.randomUUID(), line.text()).getMessage().getId();
+                backdate("chat_messages", "created_at", messageId, line.at());
+                chatService.markRead(room, line.fromOwner(), messageId);
+                if (!lastUnread || i < lines.length - 1) {
+                    chatService.markRead(room, !line.fromOwner(), messageId);
+                }
             }
+        }
+
+        private ChatLine owner(Instant at, String text) {
+            return new ChatLine(true, at, text);
+        }
+
+        private ChatLine student(Instant at, String text) {
+            return new ChatLine(false, at, text);
+        }
+
+        /**
+         * 지난 작업 한 건: 모집 → 지원 → 결제 → 초안 → 완료 → 후기. daysAgo 일 전에 끝났고 마감도 그 전에 지났다.
+         * @return 끝난 의뢰
+         */
+        private Job pastWork(Owner store, Student student, int daysAgo, String title, String description, long budget,
+                             String fileLabel, int rating, String reviewContent, List<ReviewPositivePoint> points,
+                             String... specialties) {
+            Job job = openJob(store, at(daysAgo + 10, 10), title, description, budget, -(daysAgo + 2), -daysAgo, 1,
+                    specialties);
+            match(store, job, apply(job, student, at(daysAgo + 9, 14), "말씀하신 내용대로 깔끔하게 만들어 드릴게요",
+                    "자료 받기, 시안, 다듬기 순서로 진행해요.", "인쇄용·온라인용 파일"), at(daysAgo + 8, 15));
+            complete(job, submitDraft(job, student, at(daysAgo + 3, 19), "결과물이에요. 확인 부탁드려요.",
+                    "1080x1080.png?text=" + fileLabel), at(daysAgo + 1, 11));
+            review(job, student, at(daysAgo + 1, 12), rating, reviewContent, points.toArray(ReviewPositivePoint[]::new));
+            return job;
+        }
+
+        private void certify(Student student, String certificateName, int acquiredYear) {
+            certificateService.addStudentCertificate(
+                    AddStudentCertificateCommand.of(student.getId(), certificateName, acquiredYear));
         }
 
         private Proposal propose(Student student, Owner store, Instant createdAt, String title, String customerProblem,
