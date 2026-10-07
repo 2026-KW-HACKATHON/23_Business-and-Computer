@@ -42,3 +42,8 @@
   outline-offset: 2px;
   border-radius: 4px;
 }
+
+/* 누를 때 반응: 어두워지는 칸이 글자를 둥글게 감싼다 */
+.section-header__action {
+  border-radius: 6px;
+}

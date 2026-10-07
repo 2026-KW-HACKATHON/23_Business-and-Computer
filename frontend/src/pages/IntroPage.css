@@ -141,3 +141,101 @@
     transition: none;
   }
 }
+
+/*
+ * 화면이 낮으면(사파리 아래 바가 보일 때 등) 안내 문구까지 한 화면에 들어오도록 여백 · 크기를 줄인다.
+ * 700px 보다 높은 화면은 피그마 그대로다. 단계 사이 선은 단계 간격과 같은 길이로 맞춘다
+ */
+@media (max-height: 700px) {
+  .intro {
+    gap: 32px;
+    padding-top: calc(40px + env(safe-area-inset-top));
+    padding-bottom: calc(64px + env(safe-area-inset-bottom));
+  }
+
+  .intro__hero {
+    gap: 20px;
+  }
+
+  .intro__app-icon {
+    width: 80px;
+    height: 80px;
+    border-radius: 18px;
+  }
+
+  .intro__flow {
+    gap: 16px;
+    padding: 20px;
+  }
+
+  .intro__steps {
+    gap: 12px;
+  }
+
+  .intro__step + .intro__step::before {
+    top: -12px;
+    height: 12px;
+  }
+
+  .intro__note {
+    bottom: calc(24px + env(safe-area-inset-bottom));
+  }
+}
+
+@media (max-height: 600px) {
+  .intro {
+    gap: 24px;
+    padding-top: calc(24px + env(safe-area-inset-top));
+    padding-bottom: calc(52px + env(safe-area-inset-bottom));
+  }
+
+  .intro__hero {
+    gap: 16px;
+  }
+
+  .intro__app-icon {
+    width: 64px;
+    height: 64px;
+    border-radius: 15px;
+  }
+
+  .intro__title {
+    font-size: 22px;
+  }
+
+  .intro__flow {
+    gap: 14px;
+    padding: 18px;
+  }
+
+  .intro__steps {
+    gap: 8px;
+  }
+
+  .intro__step {
+    height: 28px;
+    font-size: 16px;
+  }
+
+  .intro__step-number {
+    width: 28px;
+    height: 28px;
+    font-size: 14px;
+  }
+
+  .intro__step + .intro__step::before {
+    top: -8px;
+    left: 13px;
+    height: 8px;
+  }
+
+  .intro__note {
+    bottom: calc(20px + env(safe-area-inset-bottom));
+  }
+}
+
+/* 누를 때 반응: 화면 전체가 버튼이라 바탕 덧칠을 하지 않는다 */
+.intro:hover,
+.intro:active {
+  box-shadow: none;
+}

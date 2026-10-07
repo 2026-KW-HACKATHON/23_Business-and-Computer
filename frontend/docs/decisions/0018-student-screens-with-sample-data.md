@@ -22,9 +22,10 @@ owner's applicant list).
   `useStudentHome.ts`.
 - Sample data has one source per kind: works
   (`src/features/student/lib/sampleWorks.ts`), my proposals and the home examples
-  (`sampleProposals.ts`), stores, and notifications. The home, 내 활동 ›
-  완료, and the portfolio are derived from them; 내 정보, the profile, and
-  정산 내역 read the backend (ADR 0041).
+  (`sampleProposals.ts`), stores, and notifications; works serve the sample
+  ids that notification and chat examples open. 내 정보, the profile, and
+  정산 내역 read the backend (ADR 0041), and so do the finished work lists
+  and screens (ADR 0042).
 - Facts shared with the owner sample keep the same ids and values: work-103
   and work-090 (치킨플러스). Applications come from the API (ADR 0027).
   Where the
@@ -87,5 +88,7 @@ owner's applicant list).
   home 「기다리는 중」, the 내 정보 count) call the backend too (ADR 0023);
   탐색 (the list, the job detail, apply, and the peer-proposal detail) and
   the home 「다른 학생들의 제안 공감하기」 call the backend too (ADR 0026);
-  내 정보, 프로필 수정 · 편집, and 정산 내역 call the backend too (ADR 0041). Other student screens,
+  내 정보, 프로필 수정 · 편집, and 정산 내역 call the backend too (ADR 0041);
+  내 활동 › 완료, the home 끝난 일, 내 작업물, 내 결과물, 받은 후기, and 성사되지 않은
+  작업 call the backend too (ADR 0042). Other student screens,
   including the work-start screen, still read the sample data.

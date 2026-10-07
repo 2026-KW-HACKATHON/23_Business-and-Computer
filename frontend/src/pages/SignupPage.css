@@ -64,3 +64,14 @@
   text-decoration: underline;
   cursor: pointer;
 }
+
+/* 화면이 낮으면(사파리 아래 바가 보일 때 등) 위아래 여백을 줄여 아래 버튼이 덜 밀려나게 한다. 700px 보다 높으면 피그마 그대로 */
+@media (max-height: 700px) {
+  .signup__body {
+    padding-top: 20px;
+  }
+
+  .signup__footer {
+    padding-bottom: calc(24px + env(safe-area-inset-bottom));
+  }
+}

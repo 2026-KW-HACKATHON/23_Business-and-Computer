@@ -19,7 +19,7 @@ interface StudentTabScreenProps {
 /** 학생 메인 탭 틀. 탭 · 알림 · MY · 새 제안 버튼을 학생 화면 주소로 잇는다 */
 function StudentTabScreen({ tab, title, showFab = false, children }: StudentTabScreenProps) {
   const navigate = useNavigate();
-  // 둘러보기 중이면 홈 앱바에 「둘러보기 중 · 사장님으로 보기 ⇄」
+  // 둘러보기 중이면 홈 앱바에 「사장님으로 보기 ⇄」
   const switchDemoRole = useDemoRoleSwitch("student");
   // 홈 · 탐색 · 채팅 어느 탭에서든 안 읽은 알림이 있으면 종에 점
   // 탭바 「채팅」 점: 안 읽은 채팅 메시지가 있는지

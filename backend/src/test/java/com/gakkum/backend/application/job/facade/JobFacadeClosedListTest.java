@@ -59,11 +59,12 @@ class JobFacadeClosedListTest {
     private final JobService jobService = mock(JobService.class);
     private final SpecialtyCategoryService specialtyCategoryService = mock(SpecialtyCategoryService.class);
     private final StudentService studentService = mock(StudentService.class);
+    private final ReviewService reviewService = mock(ReviewService.class);
     private final JobFacade jobFacade = new JobFacade(
             userService, ownerService, jobService, specialtyCategoryService,
             mock(SpecialtyService.class), studentService,
             mock(JobSubmissionFileStorageClient.class), mock(ChatAttachmentPolicy.class), mock(PaymentService.class),
-                mock(ReviewService.class), mock(CertificateService.class), mock(ProposalService.class), mock(MediaService.class));
+                reviewService, mock(CertificateService.class), mock(ProposalService.class), mock(MediaService.class));
 
     @Test
     @DisplayName("CLOSED 의뢰를 작업자 이름과 카테고리, 완료 날짜가 있는 배열 응답으로 조립한다")
@@ -99,6 +100,26 @@ class JobFacadeClosedListTest {
         verify(jobService).getClosedJobs(command.capture());
         assertThat(command.getValue().getOwnerProfileId()).isEqualTo(5L);
         verify(userService).getUsersByIds(any());
+    }
+
+    @Test
+    @DisplayName("사장님이 후기를 남긴 끝난 의뢰만 reviewed 가 true 다")
+    void marksReviewedJobs() {
+        givenOwner();
+        when(jobService.getClosedJobs(any(GetClosedJobsCommand.class))).thenReturn(List.of(
+                ClosedJobData.of(job(44L, 21L, LocalDateTime.of(2026, 9, 27, 9, 30)), List.of(), JobProgressStage.COMPLETED),
+                ClosedJobData.of(job(42L, 21L, LocalDateTime.of(2026, 9, 25, 18, 0)), List.of(), JobProgressStage.COMPLETED)));
+        when(studentService.getStudentProfilesByIds(List.of(21L))).thenReturn(Map.of(
+                21L, Student.builder().id(21L).userId(WORKER_USER_ID_1).build()));
+        when(userService.getUsersByIds(any())).thenReturn(Map.of(
+                WORKER_USER_ID_1, User.builder().id(WORKER_USER_ID_1).name("김람가").build()));
+        when(reviewService.getReviewedJobIds(List.of(44L, 42L))).thenReturn(Set.of(42L));
+
+        JobListResponse.ClosedJobList response = JobListResponse.ClosedJobList.from(jobFacade.getClosedJobs(USERNAME));
+
+        assertThat(response.getJobs()).extracting(item -> item.isReviewed()).containsExactly(false, true);
+        assertThat(new ObjectMapper().writeValueAsString(ApiResponse.success(response)))
+                .contains("\"reviewed\":true", "\"reviewed\":false");
     }
 
     @Test

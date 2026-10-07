@@ -209,7 +209,7 @@ function OwnerActivityPage() {
           <>
             <div className="owner-activity__divider" />
             <Button size="medium" fullWidth onClick={openDetail}>
-              제안 받기
+              자세히 보고 수락하기
             </Button>
           </>
         )}
@@ -298,7 +298,8 @@ function OwnerActivityPage() {
         <div className="owner-activity__divider" />
         <div className="owner-activity__footer">
           <TextButton onClick={() => navigate(OWNER_PATHS.workResult(id))}>결과물 보기</TextButton>
-          {isOwnerWorkReviewed(id) ? (
+          {/* 방금 남긴 후기는 목록을 다시 불러오기 전에도 보이게 한다 */}
+          {job.reviewed || isOwnerWorkReviewed(id) ? (
             <span className="owner-activity__reviewed">후기 작성 완료</span>
           ) : (
             <TextButton onClick={() => navigate(OWNER_PATHS.workReview(id))}>후기 남기기</TextButton>

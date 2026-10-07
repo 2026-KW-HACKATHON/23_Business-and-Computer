@@ -148,7 +148,7 @@ class JobSubmissionDetailFlowTest {
     @DisplayName("선택된 학생 프로필이 없으면 공통 500을 반환한다")
     void failsWhenStudentProfileMissing() throws Exception {
         givenActiveOwner();
-        when(jobRepository.findByIdAndOwnerProfileId(42L, 5L)).thenReturn(Optional.of(job()));
+        when(jobRepository.findJobByIdAndOwnerProfileId(42L, 5L)).thenReturn(Optional.of(job()));
         givenPendingSubmission(JobSubmission.create(42L, JobSubmissionType.DRAFT, 0,
                 List.of("https://example.com/draft.pdf"), "초안입니다."));
         when(studentRepository.findById(7L)).thenReturn(Optional.empty());
@@ -176,7 +176,7 @@ class JobSubmissionDetailFlowTest {
     @DisplayName("존재하지 않거나 다른 사장님의 의뢰는 JOB_404를 반환한다")
     void rejectsJobNotOwned() throws Exception {
         givenActiveOwner();
-        when(jobRepository.findByIdAndOwnerProfileId(42L, 5L)).thenReturn(Optional.empty());
+        when(jobRepository.findJobByIdAndOwnerProfileId(42L, 5L)).thenReturn(Optional.empty());
 
         mockMvc.perform(get("/jobs/42/submission").principal(authentication))
                 .andExpect(status().isNotFound())
@@ -189,7 +189,7 @@ class JobSubmissionDetailFlowTest {
     @DisplayName("본인 의뢰에 검토 대기 제출물이 없으면 JOB_SUBMISSION_404를 반환한다")
     void rejectsMissingPendingSubmission() throws Exception {
         givenActiveOwner();
-        when(jobRepository.findByIdAndOwnerProfileId(42L, 5L)).thenReturn(Optional.of(job()));
+        when(jobRepository.findJobByIdAndOwnerProfileId(42L, 5L)).thenReturn(Optional.of(job()));
         when(jobSubmissionRepository.findByJobIdAndReviewStatus(42L, JobSubmissionReviewStatus.PENDING))
                 .thenReturn(Optional.empty());
 
@@ -245,7 +245,7 @@ class JobSubmissionDetailFlowTest {
 
     private void givenOwnerWithStudent() {
         givenActiveOwner();
-        when(jobRepository.findByIdAndOwnerProfileId(42L, 5L)).thenReturn(Optional.of(job()));
+        when(jobRepository.findJobByIdAndOwnerProfileId(42L, 5L)).thenReturn(Optional.of(job()));
         when(studentRepository.findById(7L))
                 .thenReturn(Optional.of(Student.builder().id(7L).userId(STUDENT_USER_ID).build()));
         when(userRepository.findById(STUDENT_USER_ID))

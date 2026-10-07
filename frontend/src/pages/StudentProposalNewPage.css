@@ -47,13 +47,23 @@
   font-family: var(--font-sans);
   text-align: left;
   cursor: pointer;
+  transition:
+    transform 0.2s cubic-bezier(0.2, 0, 0, 1),
+    box-shadow 0.2s cubic-bezier(0.2, 0, 0, 1),
+    background-color 0.2s ease,
+    border-color 0.2s ease;
 }
 
 /* 고르면 흰 바탕 + 2px 검정 테두리. 크기가 변하지 않게 안쪽 여백을 1px 줄인다 */
+/* 고른 분야는 테두리 없이 흰 바탕으로 2px 떠오르고 아래로 그림자가 진다 (탐색 분야 칸과 같은 모양) */
 .student-new__field--selected {
-  padding: 13px;
-  border: 2px solid var(--color-black);
+  border-color: transparent;
   background: var(--color-white);
+  box-shadow:
+    0 6px 16px rgba(0, 0, 0, 0.1),
+    0 1px 3px rgba(0, 0, 0, 0.08),
+    inset 0 -2px 0 rgba(0, 0, 0, 0.05);
+  transform: translateY(-2px);
 }
 
 .student-new__field:focus-visible {
@@ -63,8 +73,8 @@
 
 .student-new__field-check {
   position: absolute;
-  top: 13px;
-  right: 13px;
+  top: 14px;
+  right: 14px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -97,6 +107,12 @@
 .student-new__field--selected .student-new__field-sub {
   font-weight: 700;
   color: var(--color-black);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .student-new__field {
+    transition: none;
+  }
 }
 
 .student-new__tasks {
@@ -496,4 +512,9 @@
   border-radius: 8px;
   background: var(--color-white);
   object-fit: cover;
+}
+
+/* 누를 때 반응: 분야 카드가 살짝 작아진다 (고른 카드도) */
+.student-new__field:active {
+  transform: scale(0.98);
 }

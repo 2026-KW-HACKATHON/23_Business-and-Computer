@@ -13,12 +13,12 @@ The payment summary above the 완료 list and 결제 내역 read GET /payments
 
 The backend (dev) has:
 
-- GET /me/jobs?status=CLOSED (owner) → `{ jobs: [{ jobId, title,
+- GET /me/jobs?status=CLOSED (owner) → `[{ jobId, title,
   specialtyCategories, matchedWorker { studentProfileId, name }, completedAt,
-  progressStage }] }`, newest first. It lists completed jobs (progressStage
+  progressStage, reviewed }]` (`data` is the array itself, ADR 0042), newest first. It lists completed jobs (progressStage
   COMPLETED) and cancelled or declined ones (CANCELLED); `matchedWorker` is
-  null for a request cancelled while recruiting. It has no fee, refund, or
-  whether the owner reviewed.
+  null for a request cancelled while recruiting. It has no fee or refund; `reviewed`
+  says whether the owner reviewed.
 - GET /payments (owner) → months of `{ jobId, amount, refundAmount, status }`
   (HELD, SETTLED, PARTIALLY_REFUNDED, FULLY_REFUNDED).
 - GET /jobs/{jobId}/result → `{ title, studentName, completedAt,
@@ -49,8 +49,8 @@ The backend (dev) has:
   cards (「작업비 ○원 중 ○원 환불」 when paid, 상세보기). A request cancelled
   while recruiting shows only the date. The count shows 「-」 and `LoadNotice`
   replaces the list while loading or after a failure. 「후기 작성 완료」 shows
-  for a job reviewed in this session (`isOwnerWorkReviewed`), because the list
-  does not say whether the owner reviewed.
+  when the list says `reviewed`, or for a job reviewed in this session
+  (`isOwnerWorkReviewed`) before the list reloads.
 - **Home 끝난 일**: completed jobs from the same list; the section hides when
   the list fails.
 - **지난 결과물 보기** (/owner/works/:id/result with a numeric id): GET
@@ -87,6 +87,4 @@ The backend (dev) has:
 
 ## Agent Guidance
 
-- When the closed list says whether the owner reviewed, use it instead of
-  `isOwnerWorkReviewed` for server jobs.
 - When the review `content` becomes optional, send the text as written.

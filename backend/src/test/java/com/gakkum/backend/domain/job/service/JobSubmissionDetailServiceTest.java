@@ -40,7 +40,7 @@ class JobSubmissionDetailServiceTest {
     void returnsPendingSubmission() {
         JobSubmission submission = JobSubmission.create(
                 42L, JobSubmissionType.REVISION, 1, List.of("https://example.com/a.pdf"), "수정했습니다.");
-        when(jobRepository.findByIdAndOwnerProfileId(42L, 5L)).thenReturn(Optional.of(job(7L)));
+        when(jobRepository.findJobByIdAndOwnerProfileId(42L, 5L)).thenReturn(Optional.of(job(7L)));
         when(jobSubmissionRepository.findByJobIdAndReviewStatus(42L, JobSubmissionReviewStatus.PENDING))
                 .thenReturn(Optional.of(submission));
 
@@ -53,7 +53,7 @@ class JobSubmissionDetailServiceTest {
     @Test
     @DisplayName("존재하지 않거나 다른 사장님의 의뢰는 JOB_404로 거부하고 제출물을 조회하지 않는다")
     void rejectsJobNotOwned() {
-        when(jobRepository.findByIdAndOwnerProfileId(42L, 5L)).thenReturn(Optional.empty());
+        when(jobRepository.findJobByIdAndOwnerProfileId(42L, 5L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> jobService.getPendingSubmission(GetJobSubmissionCommand.of(42L, 5L)))
                 .isInstanceOfSatisfying(BusinessException.class, exception ->
@@ -64,7 +64,7 @@ class JobSubmissionDetailServiceTest {
     @Test
     @DisplayName("검토 대기 제출물이 없으면 JOB_SUBMISSION_404로 거부한다")
     void rejectsMissingPendingSubmission() {
-        when(jobRepository.findByIdAndOwnerProfileId(42L, 5L)).thenReturn(Optional.of(job(7L)));
+        when(jobRepository.findJobByIdAndOwnerProfileId(42L, 5L)).thenReturn(Optional.of(job(7L)));
         when(jobSubmissionRepository.findByJobIdAndReviewStatus(42L, JobSubmissionReviewStatus.PENDING))
                 .thenReturn(Optional.empty());
 
@@ -76,7 +76,7 @@ class JobSubmissionDetailServiceTest {
     @Test
     @DisplayName("제출물이 있는데 선택된 학생이 없으면 공통 500으로 실패한다")
     void rejectsMissingSelectedStudent() {
-        when(jobRepository.findByIdAndOwnerProfileId(42L, 5L)).thenReturn(Optional.of(job(null)));
+        when(jobRepository.findJobByIdAndOwnerProfileId(42L, 5L)).thenReturn(Optional.of(job(null)));
         when(jobSubmissionRepository.findByJobIdAndReviewStatus(42L, JobSubmissionReviewStatus.PENDING))
                 .thenReturn(Optional.of(JobSubmission.create(
                         42L, JobSubmissionType.DRAFT, 0, List.of("https://example.com/a.pdf"), "초안")));

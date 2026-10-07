@@ -41,6 +41,8 @@ import com.gakkum.backend.util.UlidGenerator;
 public class DemoFacade {
 
     private static final int SAMPLE_SPECIALTY_COUNT = 2;
+    // 방문자 데모 학생은 「24학번」으로 보인다
+    private static final int VISITOR_ADMISSION_YEAR = 24;
 
     private final UserService userService;
     private final OwnerService ownerService;
@@ -115,7 +117,7 @@ public class DemoFacade {
         Student profile = studentService.createStudentProfile(CreateStudentProfileCommand.of(
                 student.getId(),
                 "광운대학교",
-                DemoStudentNumbers.next(studentService),
+                DemoStudentNumbers.next(studentService, VISITOR_ADMISSION_YEAR),
                 "소프트웨어학부",
                 null,
                 "디자인과 SNS 홍보에 관심이 많은 체험용 데모 학생입니다.",

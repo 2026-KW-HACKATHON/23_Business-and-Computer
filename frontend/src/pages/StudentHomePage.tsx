@@ -41,7 +41,6 @@ function StudentHomePage() {
     if (todo.type === "proposalAgreement") {
       return navigate(STUDENT_PATHS.proposalStart(String(todo.proposal.proposalId)));
     }
-    if (todo.type === "agreement") return navigate(STUDENT_PATHS.workStart(todo.work.id));
     const id = String(todo.job.jobId);
     if (todo.type === "drafting") return navigate(STUDENT_PATHS.workSubmit(id));
     return navigate(STUDENT_PATHS.workRevision(id));
@@ -50,7 +49,6 @@ function StudentHomePage() {
     if (todo.type === "proposalAgreement") {
       return navigate(STUDENT_PATHS.proposalStart(String(todo.proposal.proposalId)));
     }
-    if (todo.type === "agreement") return navigate(STUDENT_PATHS.workStart(todo.work.id));
     const id = String(todo.job.jobId);
     if (todo.type === "drafting") return navigate(STUDENT_PATHS.workSubmit(id));
     return navigate(STUDENT_PATHS.workRevisionSubmit(id));
@@ -231,13 +229,16 @@ function StudentHomePage() {
             onAction={() => setDoneExpanded((v) => !v)}
           />
           <div className="student-home__list">
-            {doneRows.map((work) => (
+            {doneRows.map((job) => (
               <TaskRow
-                key={work.id}
-                kind={work.kind}
-                title={work.title}
-                lines={[`${work.store.name} 사장님`, `완료 : ${formatMonthDay(work.completedOn ?? "")}`]}
-                onClick={() => navigate(STUDENT_PATHS.workResult(work.id))}
+                key={job.jobId}
+                kind={job.kind}
+                title={job.title}
+                lines={[
+                  `${job.storeName ?? "가게"} 사장님`,
+                  ...(job.closedOn ? [`완료 : ${formatMonthDay(job.closedOn)}`] : []),
+                ]}
+                onClick={() => navigate(STUDENT_PATHS.workResult(String(job.jobId)))}
               />
             ))}
           </div>

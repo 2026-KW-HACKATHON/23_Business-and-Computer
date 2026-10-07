@@ -49,3 +49,9 @@
     transition: none;
   }
 }
+
+/* 누를 때 반응: 카드 넘기기 칸 전체가 버튼이라 바탕 덧칠을 하지 않는다 */
+.usage-carousel__viewport:hover,
+.usage-carousel__viewport:active {
+  box-shadow: none;
+}

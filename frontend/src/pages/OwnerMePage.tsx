@@ -2,7 +2,7 @@ import { useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { LoadNotice, MenuList, ProfilePhoto, StoreInfo, SubScreen, SummaryCard } from "../components";
 import { clearTokens, landingPath } from "../features/auth";
-import { OWNER_PATHS, ownerMeChanges, saveOwnerMe, useOwnerMe } from "../features/owner";
+import { OWNER_PATHS, ownerMeChanges, saveOwnerMe, useOpenJobs, useOwnerMe } from "../features/owner";
 import type { ActivityTab, OwnerMe } from "../features/owner";
 import { PROFILE_PHOTO_ACCEPT, TermsSheet, checkProfilePhoto } from "../features/signup";
 import { useBack } from "../hooks/useBack";
@@ -25,6 +25,8 @@ function OwnerMePage() {
   const navigate = useNavigate();
   const back = useBack(OWNER_PATHS.home);
   const { load, reload } = useOwnerMe();
+  // 보낸 의뢰는 내 활동 › 보낸 의뢰 탭과 같게 모집 중인 의뢰만 센다 (GET /owners/me 는 끝난 의뢰까지 센다)
+  const { load: openLoad } = useOpenJobs();
   const me = load.status === "loaded" ? load.data : undefined;
   const [termsOpen, setTermsOpen] = useState(false);
 
@@ -35,9 +37,12 @@ function OwnerMePage() {
     navigate("/login", { replace: true });
   };
 
-  const counts = me
-    ? [me.sentJobCount, me.receivedProposalCount, me.inProgressJobCount, me.completedJobCount]
-    : ["-", "-", "-", "-"];
+  const counts = [
+    openLoad.status === "loaded" ? openLoad.data.length : "-",
+    me ? me.receivedProposalCount : "-",
+    me ? me.inProgressJobCount : "-",
+    me ? me.completedJobCount : "-",
+  ];
 
   return (
     <SubScreen title="내 정보" onBack={back}>

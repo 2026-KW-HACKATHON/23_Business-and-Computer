@@ -28,3 +28,23 @@ button.star-rating__star:focus-visible {
   outline-offset: 2px;
   border-radius: 4px;
 }
+
+/* 누를 때 반응: 바탕 대신 별이 커졌다(올림) 작아진다(누름) */
+button.star-rating__star {
+  transition: transform 0.12s ease;
+}
+
+button.star-rating__star:hover,
+button.star-rating__star:active {
+  box-shadow: none;
+}
+
+@media (hover: hover) {
+  button.star-rating__star:hover {
+    transform: scale(1.12);
+  }
+}
+
+button.star-rating__star:active {
+  transform: scale(0.9);
+}

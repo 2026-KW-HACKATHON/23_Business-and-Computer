@@ -65,12 +65,11 @@ The backend (dev) has:
   the months in server order. Rows read 「가게 · 작업 중」 (정산 예정), 「가게 ·
   M월 D일 정산」 (정산 완료), 「가게 · M월 D일 사장님 사정 취소」 (착수 보상), and
   「가게 · M월 D일 성사되지 않음」 with 0원 (성사되지 않음). A 정산 예정 row opens
-  내 활동 › 진행 중; the other rows open nothing yet. No rows → 「아직 정산
-  내역이 없어요」.
+  내 활동 › 진행 중; the finished rows open 내 결과물 or 성사되지 않은 작업 (ADR
+  0042). No rows → 「아직 정산 내역이 없어요」.
 - **내 활동 › 완료 summary** (`src/pages/StudentActivityPage.tsx`): GET
   /settlements; the box hides while loading or after a failure. The 완료
-  list stays sample until the backend has a student finished list.
-- **내 작업물 모아보기** counts its stats from the same sample works it lists.
+  list reads the settlements too (ADR 0042).
 
 ## Rationale
 
@@ -81,14 +80,12 @@ The backend (dev) has:
 
 ## Alternatives Considered
 
-- Opening finished rows at 내 결과물 · 성사되지 않은 작업: rejected for now,
-  those screens read sample works only and would show a missing-work screen.
+- Hiding the 0원 row of a declined request: rejected, the month would no
+  longer match its summary.
 
 ## Agent Guidance
 
 - When GET /students/me carries the major, show 「광운대학교 경영학부 24학번」
   as in Figma; when reviews carry the job title, show it in place of the
   specialty names.
-- When 내 결과물 and 성사되지 않은 작업 read the backend, open them from the
-  finished settlement rows, and show 「자동 완료 정산」 when the server says a
-  job completed automatically.
+- Show 「자동 완료 정산」 when the server says a job completed automatically.

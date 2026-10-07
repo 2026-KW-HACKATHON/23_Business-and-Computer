@@ -214,7 +214,7 @@
 }
 
 .student-signup-profile__cert-input:focus {
-  border-color: var(--color-black);
+  border-color: var(--role-focus);
 }
 
 .student-signup-profile__cert-input--year {

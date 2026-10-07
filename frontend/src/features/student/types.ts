@@ -4,6 +4,7 @@ import type { WorkKind } from "../../types/workKind";
 import type { ApplicationPlan, WorkPlanContent } from "../../types/workPlan";
 import type { ExploreProposalCard } from "../explore";
 import type { AppliedJob } from "./lib/appliedJobs";
+import type { FinishedJob } from "./lib/finishedJobs";
 import type { ProgressJob } from "./lib/progressJobs";
 import type { SentProposal } from "./lib/sentProposals";
 
@@ -212,7 +213,6 @@ export type StudentTodo =
   /** 나와 매칭된 진행 중 작업 (GET /me/jobs?status=MATCHED) */
   | { type: "drafting"; job: ProgressJob }
   | { type: "revising"; job: ProgressJob }
-  | { type: "agreement"; work: StudentWork }
   /** 사장님이 결제해 의뢰서가 온 내 제안 (GET /me/proposals 의 AWAITING_START) */
   | { type: "proposalAgreement"; proposal: SentProposal };
 
@@ -241,6 +241,6 @@ export interface StudentHome {
   sentProposals: "loading" | "error" | "loaded";
   reloadSentProposals: () => void;
   examples: ProposalExample[];
-  /** 최근 끝난 것부터 */
-  done: StudentWork[];
+  /** 완료한 작업 (GET /settlements 의 정산 완료). 최근 끝난 것부터 */
+  done: FinishedJob[];
 }

@@ -12,12 +12,17 @@ export interface OwnerClosedJobResponse {
   completedAt: string;
   /** COMPLETED = 완료, CANCELLED = 취소 · 거절 */
   progressStage?: string | null;
+  /** 사장님이 후기를 남겼으면 true */
+  reviewed?: boolean | null;
 }
 
-/** GET /me/jobs?status=CLOSED — 끝난 내 의뢰 (끝난 날 최신순) */
+/**
+ * GET /me/jobs?status=CLOSED — 끝난 내 의뢰 (끝난 날 최신순). 다른 목록과 달리 data 가
+ * { jobs } 가 아니라 배열 그대로다
+ */
 export async function fetchOwnerClosedJobs(): Promise<OwnerClosedJobResponse[]> {
-  const data = await apiData<{ jobs?: OwnerClosedJobResponse[] } | undefined>("/me/jobs?status=CLOSED");
-  return data?.jobs ?? [];
+  const data = await apiData<OwnerClosedJobResponse[] | undefined>("/me/jobs?status=CLOSED");
+  return Array.isArray(data) ? data : [];
 }
 
 /** 작업 기록 한 줄의 종류 */

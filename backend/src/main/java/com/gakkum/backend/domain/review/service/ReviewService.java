@@ -6,6 +6,7 @@ import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -87,6 +88,17 @@ public class ReviewService {
     @Transactional(readOnly = true)
     public List<Review> getLatestStudentReviews(Long studentProfileId, int limit) {
         return reviewRepository.findLatestByStudentProfileId(studentProfileId, Limit.of(limit));
+    }
+
+    /** 리뷰가 있는 의뢰 ID. 사장님 끝난 의뢰 목록에서 후기를 남겼는지 가른다. */
+    @Transactional(readOnly = true)
+    public Set<Long> getReviewedJobIds(Collection<Long> jobIds) {
+        if (jobIds.isEmpty()) {
+            return Set.of();
+        }
+        return reviewRepository.findByJobIdIn(jobIds).stream()
+                .map(Review::getJobId)
+                .collect(Collectors.toSet());
     }
 
     /** 학생이 모든 사장님에게 받은 전체 리뷰 수. */
