@@ -1,6 +1,7 @@
 package com.gakkum.backend.application.payment.dto;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.List;
 
 import com.gakkum.backend.domain.payment.dto.PaymentHistoryStatus;
@@ -62,10 +63,13 @@ public class PaymentHistoryResponse {
         private final Instant approvedAt;
         private final String studentName;
         private final PaymentHistoryStatus status;
+        private final LocalDate settledDate;
+        private final LocalDate refundedDate;
 
         public static PaymentHistory from(PaymentHistoryItemResult result) {
             return new PaymentHistory(result.getJobId(), result.getTitle(), result.getAmount(),
-                    result.getRefundAmount(), result.getApprovedAt(), result.getStudentName(), result.getStatus());
+                    result.getRefundAmount(), result.getApprovedAt(), result.getStudentName(), result.getStatus(),
+                    result.getSettledDate(), result.getRefundedDate());
         }
     }
 }

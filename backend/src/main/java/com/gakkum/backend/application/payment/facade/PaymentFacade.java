@@ -188,7 +188,8 @@ public class PaymentFacade {
             YearMonth approvedMonth = YearMonth.from(payment.getApprovedAt().atZone(HISTORY_ZONE));
             itemsByMonth.computeIfAbsent(approvedMonth, month -> new ArrayList<>())
                     .add(PaymentHistoryItemResult.of(payment, job.getTitle(), refundAmount(payment),
-                            studentUsersById.get(student.getUserId()).getName(), status));
+                            studentUsersById.get(student.getUserId()).getName(), status,
+                            paymentSettledDate(job, status), paymentRefundedDate(payment, status)));
 
             if (approvedMonth.equals(thisMonth)) {
                 thisMonthPaymentAmount += payment.getAmount();
@@ -355,6 +356,28 @@ public class PaymentFacade {
                     : PaymentHistoryStatus.PARTIALLY_REFUNDED;
         }
         throw new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR);
+    }
+
+    // 정산 완료만 날짜가 있다. 정산 내역과 같이 UTC로 저장된 의뢰 완료 시각의 한국 날짜다
+    private LocalDate paymentSettledDate(Job job, PaymentHistoryStatus status) {
+        if (status != PaymentHistoryStatus.SETTLED) {
+            return null;
+        }
+        if (job.getCompletedAt() == null) {
+            throw new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR);
+        }
+        return job.getCompletedAt().atOffset(ZoneOffset.UTC).atZoneSameInstant(HISTORY_ZONE).toLocalDate();
+    }
+
+    // 부분·전액 환불만 날짜가 있다. 한국 시간 기준 환불 처리일이다
+    private LocalDate paymentRefundedDate(PaymentHistoryData payment, PaymentHistoryStatus status) {
+        if (status != PaymentHistoryStatus.PARTIALLY_REFUNDED && status != PaymentHistoryStatus.FULLY_REFUNDED) {
+            return null;
+        }
+        if (payment.getRefundedAt() == null) {
+            throw new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR);
+        }
+        return payment.getRefundedAt().atZone(HISTORY_ZONE).toLocalDate();
     }
 
     // 결제된 의뢰를 담당하는 학생. 일반 결제는 결제한 지원서의 학생, 제안 결제는 제안한 학생(의뢰의 담당 학생)이다
