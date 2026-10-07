@@ -11,6 +11,8 @@ import type { JobSpecialtyCategory } from "../api/jobApi";
 import { fetchOwnerPayments } from "../api/paymentHistoryApi";
 import type { PaymentHistoryItem } from "../api/paymentHistoryApi";
 import { fetchReceivedProposals } from "../api/receivedProposalApi";
+import type { PaymentSummary } from "../types";
+import { paymentSummaryOf } from "./paymentHistory";
 
 /** 끝난 결과. completed = 완료, canceled = 성사되지 않음 (취소 · 거절, 누가 했든) */
 export type OwnerClosedOutcome = "completed" | "canceled";
@@ -49,16 +51,22 @@ export function workHistoryText(type: WorkHistoryType, normalCompleted: boolean)
 }
 
 export type OwnerClosedJobsResult =
-  | { status: "loaded"; jobs: OwnerClosedJob[] }
+  | {
+      status: "loaded";
+      jobs: OwnerClosedJob[];
+      /** 결제 요약 (GET /payments, 완료 탭 위). 못 불러오면 없음 */
+      paymentSummary?: PaymentSummary;
+    }
   | { status: "unauthorized" }
   | { status: "error" };
 
 /**
- * 끝난 내 의뢰를 불러온다. 목록에 없는 작업비 · 환불 금액은 결제 내역(GET /payments)에서,
- * 제안에서 시작했는지는 받은 제안(GET /me/received-proposals)의 jobId 로 채운다. 그 둘은 실패해도
- * 목록은 그대로 보인다 (금액 줄을 숨기고 의뢰로 본다).
+ * 끝난 내 의뢰를 불러온다. 목록에 없는 작업비 · 환불 금액과 결제 요약은 결제 내역(GET /payments,
+ * 목록과 함께 보낸다)에서, 제안에서 시작했는지는 받은 제안(GET /me/received-proposals)의 jobId 로
+ * 채운다. 그 둘은 실패해도 목록은 그대로 보인다 (금액 줄 · 요약을 숨기고 의뢰로 본다).
  */
 export async function loadOwnerClosedJobs(): Promise<OwnerClosedJobsResult> {
+  const history = fetchOwnerPayments().catch(() => undefined);
   let closed: OwnerClosedJobResponse[];
   try {
     closed = await fetchOwnerClosedJobs();
@@ -66,19 +74,20 @@ export async function loadOwnerClosedJobs(): Promise<OwnerClosedJobsResult> {
     if (error instanceof ApiError && error.status === 401) return { status: "unauthorized" };
     return { status: "error" };
   }
-  if (closed.length === 0) return { status: "loaded", jobs: [] };
-
-  const [payments, proposals] = await Promise.all([
-    fetchOwnerPayments()
-      .then((history) => history.months.flatMap((month) => month.payments))
-      .catch((): PaymentHistoryItem[] => []),
-    fetchReceivedProposals().catch(() => []),
+  const [paid, proposals] = await Promise.all([
+    history,
+    closed.length > 0 ? fetchReceivedProposals().catch(() => []) : [],
   ]);
+  const paymentSummary = paid && paymentSummaryOf(paid);
+  if (closed.length === 0) return { status: "loaded", jobs: [], paymentSummary };
+
+  const payments: PaymentHistoryItem[] = paid?.months.flatMap((month) => month.payments) ?? [];
   const paymentByJob = new Map(payments.map((payment) => [payment.jobId, payment]));
   const proposalJobIds = new Set(proposals.map((proposal) => proposal.jobId));
 
   return {
     status: "loaded",
+    paymentSummary,
     jobs: closed.map((job) => {
       const payment = paymentByJob.get(job.jobId);
       return {

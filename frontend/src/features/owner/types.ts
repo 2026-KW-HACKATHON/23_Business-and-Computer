@@ -267,23 +267,6 @@ export interface OwnerRequest {
 }
 
 /** 가게 정보 수정 */
-export type PaymentStatus = "escrowed" | "settled" | "partialRefund" | "fullRefund";
-
-/** 결제 내역 한 줄 (작업 하나) */
-export interface OwnerPayment {
-  id: string;
-  workId: string;
-  title: string;
-  studentName: string;
-  amount: number;
-  paidOn: string;
-  status: PaymentStatus;
-  settledOn?: string;
-  /** 7일 지나 자동 완료되어 정산됐는지 */
-  autoCompleted?: boolean;
-  refund?: { on: string; amount: number };
-}
-
 export interface PaymentSummary {
   thisMonth: number;
   escrowed: number;

@@ -12,7 +12,6 @@ export {
   completeOwnerWork,
   markOwnerWorkReviewed,
   useOwnerNotifications,
-  useOwnerPayments,
   useOwnerRequests,
   useOwnerWork,
   useOwnerWorks,
@@ -39,6 +38,10 @@ export {
 export type { OwnerJobLoad } from "./hooks/useOwnerJobs";
 export { useOwnerClosedJobs } from "./hooks/useOwnerClosedJobs";
 export type { OwnerClosedJobsLoad } from "./hooks/useOwnerClosedJobs";
+export { useOwnerPaymentHistory } from "./hooks/useOwnerPaymentHistory";
+export type { OwnerPaymentHistoryLoad } from "./hooks/useOwnerPaymentHistory";
+export { PAYMENT_STATUS_LABEL, paymentDetailText, paymentSummaryOf } from "./lib/paymentHistory";
+export type { OwnerPaymentHistory, OwnerPaymentItem, PaymentHistoryStatus } from "./lib/paymentHistory";
 export { isOwnerWorkReviewed } from "./hooks/useOwnerData";
 export { REVIEW_POINTS, sendJobReview, workHistoryText } from "./lib/closedJobs";
 export type { JobResult, JobReviewResult, OwnerClosedJob, OwnerClosedOutcome } from "./lib/closedJobs";
@@ -111,7 +114,6 @@ export type {
   OwnerDoneItem,
   OwnerHome,
   OwnerNotification,
-  OwnerPayment,
   OwnerRequest,
   OwnerTodo,
   OwnerWaitingItem,
