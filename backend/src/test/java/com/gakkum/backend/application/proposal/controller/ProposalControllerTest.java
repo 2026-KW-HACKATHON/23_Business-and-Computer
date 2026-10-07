@@ -3,6 +3,7 @@ package com.gakkum.backend.application.proposal.controller;
 import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.ProposalJobDeclineResult;
 import com.gakkum.backend.domain.payment.dto.PaymentQueryDto.RefundedPaymentData;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.nullValue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -608,21 +609,26 @@ class ProposalControllerTest {
     }
 
     @Test
-    @DisplayName("받은 제안 목록은 200과 카드·학생 4개 필드를 반환한다")
+    @DisplayName("받은 제안 목록은 200과 카드·학생 4개 필드, 연결 의뢰 상태, 한국 시각 생성 시각을 반환한다")
     void returnsReceivedProposals() throws Exception {
+        // UTC 10월 5일 15:30 = 한국 10월 6일 00:30
         Proposal proposal = Proposal.builder().id(101L).title("메뉴판 개선 제안").likeCount(12)
-                .proposedSolution("사진 중심 메뉴판으로 바꿔드릴게요.").status(ProposalStatus.PENDING).build();
+                .proposedSolution("사진 중심 메뉴판으로 바꿔드릴게요.").status(ProposalStatus.PENDING)
+                .createdAt(LocalDateTime.of(2026, 10, 5, 15, 30)).build();
         Student student = Student.builder().id(7L).userId("student-user").major("소프트웨어학부")
                 .studentNumber("2024123456").build();
         User studentUser = User.builder().id("student-user").name("홍길동").build();
         when(proposalFacade.getReceivedProposals(USERNAME)).thenReturn(ReceivedProposalListResult.of(List.of(
                 ReceivedProposalResult.of(proposal, student, studentUser, List.of(SpecialtyCategoryResult.of(
-                        1L, "디자인", List.of(SpecialtyResult.of(3L, "편집 디자인")))), 42L))));
+                        1L, "디자인", List.of(SpecialtyResult.of(3L, "편집 디자인")))),
+                        Job.builder().id(42L).proposalId(101L).status(JobStatus.AWAITING_START).build()))));
 
         mockMvc.perform(get("/me/received-proposals").principal(authentication))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.proposals[0].jobId").value(42))
+                .andExpect(jsonPath("$.data.proposals[0].jobStatus").value("AWAITING_START"))
+                .andExpect(jsonPath("$.data.proposals[0].createdAt").value("2026-10-06T00:30:00"))
                 .andExpect(jsonPath("$.data.proposals[0].proposalId").value(101))
                 .andExpect(jsonPath("$.data.proposals[0].title").value("메뉴판 개선 제안"))
                 .andExpect(jsonPath("$.data.proposals[0].status").value("PENDING"))
@@ -638,6 +644,41 @@ class ProposalControllerTest {
                 .andExpect(jsonPath("$.data.proposals[0].student.major").value("소프트웨어학부"))
                 .andExpect(jsonPath("$.data.proposals[0].student.userId").doesNotExist())
                 .andExpect(jsonPath("$.data.proposals[0].student.averageRating").doesNotExist());
+    }
+
+    @Test
+    @DisplayName("결제 전이라 의뢰가 없는 받은 제안은 jobId와 jobStatus를 null로 반환한다")
+    void returnsNullJobFieldsForReceivedProposalWithoutJob() throws Exception {
+        // UTC 10월 5일 14:59 = 한국 10월 5일 23:59. 날짜가 넘어가지 않는 경계다
+        Proposal proposal = Proposal.builder().id(101L).title("메뉴판 개선 제안").likeCount(0)
+                .status(ProposalStatus.PENDING).createdAt(LocalDateTime.of(2026, 10, 5, 14, 59)).build();
+        when(proposalFacade.getReceivedProposals(USERNAME)).thenReturn(ReceivedProposalListResult.of(List.of(
+                ReceivedProposalResult.of(proposal, Student.builder().id(7L).build(),
+                        User.builder().name("홍길동").build(), List.of(), null))));
+
+        mockMvc.perform(get("/me/received-proposals").principal(authentication))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.proposals[0].jobId").value(nullValue()))
+                .andExpect(jsonPath("$.data.proposals[0].jobStatus").value(nullValue()))
+                .andExpect(jsonPath("$.data.proposals[0].createdAt").value("2026-10-05T23:59:00"));
+    }
+
+    @ParameterizedTest
+    @EnumSource(value = JobStatus.class, names = { "AWAITING_START", "MATCHED", "CLOSED", "CANCELLED" })
+    @DisplayName("받은 제안 목록은 연결 의뢰의 현재 상태를 제안 상태와 구분해 반환한다")
+    void returnsReceivedProposalJobStatus(JobStatus jobStatus) throws Exception {
+        Proposal proposal = Proposal.builder().id(31L).title("메뉴판 개선 제안").likeCount(5)
+                .status(ProposalStatus.ACCEPTED).build();
+        Job job = Job.builder().id(42L).proposalId(31L).status(jobStatus).build();
+        when(proposalFacade.getReceivedProposals(USERNAME)).thenReturn(ReceivedProposalListResult.of(List.of(
+                ReceivedProposalResult.of(proposal, Student.builder().id(7L).build(),
+                        User.builder().name("홍길동").build(), List.of(), job))));
+
+        mockMvc.perform(get("/me/received-proposals").principal(authentication))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.proposals[0].status").value("ACCEPTED"))
+                .andExpect(jsonPath("$.data.proposals[0].jobId").value(42))
+                .andExpect(jsonPath("$.data.proposals[0].jobStatus").value(jobStatus.name()));
     }
 
     @Test
