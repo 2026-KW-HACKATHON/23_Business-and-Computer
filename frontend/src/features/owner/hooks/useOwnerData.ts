@@ -4,17 +4,12 @@ import {
   SAMPLE_WORKS,
 } from "../lib/sampleDetails";
 import { SAMPLE_REQUEST_EXAMPLES } from "../lib/sampleHome";
-import { SAMPLE_STORE } from "../lib/sampleMe";
 import { SAMPLE_STUDENT_PROFILES } from "../lib/sampleStudents";
 import { SAMPLE_NOTIFICATIONS } from "../lib/sampleTabs";
 import type {
   OwnerNotification,
-  OwnerPayment,
-  OwnerProfile,
   OwnerRequest,
-  OwnerStore,
   OwnerWork,
-  PaymentSummary,
   RequestExample,
   StudentProfile,
   StudentProfileRef,
@@ -26,8 +21,8 @@ import { ownerDemo, useOwnerDemoVersion } from "./ownerDemo";
  * 사장님 화면 데이터. 지금은 임시 예시 데이터를 돌려준다.
  * 백엔드를 연동할 때 이 안만 API 호출로 바꾸면 화면은 그대로 쓴다.
  *
- * 원본은 작업 · 의뢰 · 제안 · 학생 프로필 · 탐색 상세 하나씩이고, 결제 내역 ·
- * 탐색 목록 · 내 정보 숫자(와 useOwnerHome 의 홈)는 원본에서 만든다. 그래서 어느 화면에서
+ * 원본은 작업 · 의뢰 · 제안 · 학생 프로필 · 탐색 상세 하나씩이고, 탐색 목록(과
+ * useOwnerHome 의 홈)은 원본에서 만든다. 그래서 어느 화면에서
  * 상세로 들어가도 이름 · 학과 · 금액 · 날짜가 같다.
  */
 
@@ -115,23 +110,6 @@ export function useOwnerNotifications(): OwnerNotification[] {
   );
 }
 
-/** 내 정보 머리. 숫자는 내 활동 목록과 같다 */
-export function useOwnerProfile(): OwnerProfile {
-  useOwnerDemoVersion();
-  const all = works();
-  const store = ownerDemo.store ?? SAMPLE_STORE;
-  return {
-    storeName: store.storeName,
-    ownerName: store.representative,
-    address: `${store.address}\n${store.addressDetail}`,
-    businessVerified: true,
-    counts: {
-      inProgress: all.filter((w) => w.status === "inProgress" || w.status === "submitted").length,
-      done: all.filter((w) => w.status === "completed").length,
-    },
-  };
-}
-
 /** 작업 하나. 없으면 undefined */
 export function useOwnerWork(workId: string | undefined): OwnerWork | undefined {
   return works().find((work) => work.id === workId);
@@ -151,57 +129,5 @@ export function useOwnerWorks(): OwnerWork[] {
 export function useOwnerRequests(): OwnerRequest[] {
   useOwnerDemoVersion();
   return requests();
-}
-
-/** 가게 정보 수정 */
-export function useOwnerStore(): OwnerStore {
-  useOwnerDemoVersion();
-  return ownerDemo.store ?? SAMPLE_STORE;
-}
-
-/** 작업 하나의 결제. 작업 상태가 곧 결제 상태다 */
-function paymentOf(work: OwnerWork): OwnerPayment {
-  const base = {
-    id: `pay-${work.id}`,
-    workId: work.id,
-    title: work.title,
-    studentName: work.student.name,
-    amount: work.budget,
-    paidOn: work.paidOn,
-  };
-  if (work.status === "completed") {
-    return {
-      ...base,
-      status: "settled",
-      settledOn: work.completedOn,
-      autoCompleted: work.completedBy === "auto",
-    };
-  }
-  if (work.status === "canceled" && work.cancel) {
-    return {
-      ...base,
-      status: work.cancel.refund >= work.budget ? "fullRefund" : "partialRefund",
-      refund: { on: work.cancel.canceledOn, amount: work.cancel.refund },
-    };
-  }
-  return { ...base, status: "escrowed" };
-}
-
-/** 결제 내역 (최근 일부터)과 위 요약 */
-export function useOwnerPayments(): { payments: OwnerPayment[]; summary: PaymentSummary } {
-  const eventDate = (p: OwnerPayment) => p.refund?.on ?? p.settledOn ?? p.paidOn;
-  const payments = works()
-    .map(paymentOf)
-    .sort((a, b) => eventDate(b).localeCompare(eventDate(a)));
-  const month = todayIsoDate().slice(0, 7);
-  const sum = (list: OwnerPayment[]) => list.reduce((total, p) => total + p.amount, 0);
-  return {
-    payments,
-    summary: {
-      thisMonth: sum(payments.filter((p) => p.paidOn.startsWith(month))),
-      escrowed: sum(payments.filter((p) => p.status === "escrowed")),
-      settled: sum(payments.filter((p) => p.status === "settled")),
-    },
-  };
 }
 

@@ -88,3 +88,18 @@
   line-height: 17px;
   color: var(--text-placeholder);
 }
+
+.owner-store__photo-error {
+  margin: 0;
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--color-danger);
+}
+
+.owner-store__send-error {
+  margin: 0 0 8px;
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--color-danger);
+  text-align: center;
+}

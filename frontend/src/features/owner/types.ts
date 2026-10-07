@@ -1,5 +1,4 @@
 import type { Field } from "../../types/field";
-import type { StoreCategory } from "../../types/storeCategory";
 import type { WorkKind } from "../../types/workKind";
 import type { ApplicationPlan, WorkPlanContent } from "../../types/workPlan";
 import type { OwnerProgressJob } from "./lib/progressJobs";
@@ -179,17 +178,6 @@ export interface OwnerNotification {
 }
 
 /** 내 정보 화면 머리 */
-export interface OwnerProfile {
-  storeName: string;
-  ownerName: string;
-  /** 줄바꿈(\n)은 그대로 보인다 */
-  address: string;
-  businessVerified: boolean;
-  /** 받은 제안 개수는 useReceivedProposals 로 센다 (ADR 0025) */
-  /** 보낸 의뢰 수는 useOpenJobs 로 센다 */
-  counts: { inProgress: number; done: number };
-}
-
 export type WorkStatus = "inProgress" | "submitted" | "completed" | "canceled";
 
 export interface WorkFile {
@@ -279,34 +267,6 @@ export interface OwnerRequest {
 }
 
 /** 가게 정보 수정 */
-export interface OwnerStore {
-  storeName: string;
-  category: StoreCategory;
-  address: string;
-  addressDetail: string;
-  intro: string;
-  /** 사업자 정보는 인증된 값이라 바꿀 수 없다 */
-  representative: string;
-  businessNumber: string;
-}
-
-export type PaymentStatus = "escrowed" | "settled" | "partialRefund" | "fullRefund";
-
-/** 결제 내역 한 줄 (작업 하나) */
-export interface OwnerPayment {
-  id: string;
-  workId: string;
-  title: string;
-  studentName: string;
-  amount: number;
-  paidOn: string;
-  status: PaymentStatus;
-  settledOn?: string;
-  /** 7일 지나 자동 완료되어 정산됐는지 */
-  autoCompleted?: boolean;
-  refund?: { on: string; amount: number };
-}
-
 export interface PaymentSummary {
   thisMonth: number;
   escrowed: number;

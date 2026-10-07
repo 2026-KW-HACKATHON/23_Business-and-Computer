@@ -9,3 +9,8 @@ export function withSubject(word: string): string {
 export function studentTitle(name: string): string {
   return name.endsWith("학생") ? name : `${name} 학생`;
 }
+
+/** 「이새빛」 → 「이새빛 사장님」. 이름이 이미 「사장님」으로 끝나면(둘러보기의 「데모 사장님」) 그대로 */
+export function ownerTitle(name: string): string {
+  return name.endsWith("사장님") ? name : `${name} 사장님`;
+}
