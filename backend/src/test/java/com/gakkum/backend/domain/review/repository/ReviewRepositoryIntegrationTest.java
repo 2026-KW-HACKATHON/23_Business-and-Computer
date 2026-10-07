@@ -87,6 +87,27 @@ class ReviewRepositoryIntegrationTest {
     }
 
     @Test
+    @DisplayName("PostgreSQL에 글 없는 리뷰를 NULL로 저장하고 조회하며 리뷰 수와 평균 별점에 포함한다")
+    void storesReviewWithoutContentAndCountsIt() {
+        long student = 987_040L;
+        Job job = saveClosedJob();
+        Review withoutContent = reviewRepository.saveAndFlush(Review.create(job.getId(), 5L, student,
+                List.of(ReviewPositivePoint.KINDNESS), null, 2));
+        reviewRepository.saveAndFlush(Review.create(saveClosedJob().getId(), 5L, student, List.of(), "좋았어요.", 5));
+
+        Review found = reviewRepository.findByJobIdAndStudentProfileId(job.getId(), student).orElseThrow();
+        assertThat(found.getId()).isEqualTo(withoutContent.getId());
+        assertThat(found.getContent()).isNull();
+        assertThat(found.getPositivePoints()).containsExactly(ReviewPositivePoint.KINDNESS);
+        assertThat(reviewService.getStudentReviews(student)).extracting(Review::getContent)
+                .containsExactlyInAnyOrder(null, "좋았어요.");
+        assertThat(reviewService.countStudentReviews(student)).isEqualTo(2L);
+        assertThat(reviewRepository.findAverageRatingByStudentProfileId(student)).isEqualTo(3.5);
+        assertThat(reviewService.getAverageRatings(List.of(student)).get(student)).hasToString("3.5");
+        assertThat(reviewService.getReviewedJobIds(List.of(job.getId()))).containsExactly(job.getId());
+    }
+
+    @Test
     @DisplayName("PostgreSQL에서 의뢰 ID와 리뷰 대상 학생 프로필 ID가 모두 맞을 때만 리뷰를 찾는다")
     void findsReviewByJobAndStudent() {
         Job job = saveClosedJob();
