@@ -87,11 +87,17 @@
   transform: scale(0.97);
 }
 
-/* 사진 크게 보기 */
+/* 사진 크게 보기. 앱 화면 폭(390px) 안에만 덮는다 */
 .photo-viewer {
   position: fixed;
-  inset: 0;
+  top: 0;
+  bottom: 0;
+  left: 50%;
   z-index: 200;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 390px;
+  transform: translateX(-50%);
   display: flex;
   align-items: center;
   justify-content: center;

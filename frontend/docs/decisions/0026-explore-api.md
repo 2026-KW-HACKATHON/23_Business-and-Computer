@@ -125,7 +125,7 @@ The backend (dev) has:
   status text of the cards (「다른 학생이 선택됐어요」 when the job is no
   longer OPEN and `applied` is REJECTED), the conditions (작업비 · 초안 마감 · 최종 마감 ·
   수정 n회), 할 일 chips (specialty names), 맡기고 싶은 일 (description),
-  「참고 사진」 (`ReferencePhotos`) when `referenceImageUrls` has any, and
+  「참고 자료」 (`ReferencePhotos`) when `referenceImageUrls` has any, and
   the 「선택되면 이렇게 진행돼요」 steps. The footer shows only while
   OPEN: 「지원하기」, or a disabled 「지원했어요」.
 - **Apply** (`src/pages/StudentApplyPage.tsx`): the same hook loads the job
@@ -220,7 +220,7 @@ The backend (dev) has:
     are any. The fee and days stay hidden.
   - 의뢰서 보기 (`src/pages/OwnerExploreRequestPage.tsx`): `useJobDetail`. The
     notice, the title, the category badges, the store, 할 일 chips, 맡기고
-    싶은 일, and 참고 사진 when there are any. The budget and deadlines stay
+    싶은 일, and 참고 자료 when there are any. The budget and deadlines stay
     hidden.
   - Both: a non-numeric id or 404 shows `OwnerMissing`; 401 goes to /login;
     other failures show `LoadNotice` with 「다시 시도」. 「우리 가게에도 비슷한

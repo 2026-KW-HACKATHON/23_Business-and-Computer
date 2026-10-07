@@ -21,7 +21,7 @@ import { LoadNotice } from "../components";
  * 피그마 「의뢰서 전체 보기」(학생). GET /jobs/{id} (ADR 0026).
  * 조건 · 할 일 · 맡기고 싶은 일과 선택된 뒤의 진행 순서. 모집 중(OPEN)이면 아래에서 지원한다.
  * 가게 이름(storeName) · 주소(storeAddress) · 지원 여부(applied)는 서버가 줄 때만 보인다.
- * 사장님이 올린 참고 사진(referenceImageUrls)이 있으면 「참고 사진」에 보인다.
+ * 사장님이 올린 참고 사진(referenceImageUrls)이 있으면 「참고 자료」에 보인다.
  */
 function StudentRequestFullPage() {
   const { requestId } = useParams();
@@ -123,7 +123,7 @@ function StudentRequestFullPage() {
 
           {(job.referenceImageUrls ?? []).length > 0 && (
             <section className="student-detail__section">
-              <h2 className="student-detail__section-title">참고 사진</h2>
+              <h2 className="student-detail__section-title">참고 자료</h2>
               <ReferencePhotos urls={job.referenceImageUrls ?? []} />
             </section>
           )}

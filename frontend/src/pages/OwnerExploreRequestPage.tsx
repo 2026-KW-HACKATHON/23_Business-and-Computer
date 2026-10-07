@@ -107,7 +107,7 @@ function OwnerExploreRequestPage() {
 
           {photos.length > 0 && (
             <section className="owner-detail__section">
-              <h2 className="owner-detail__section-title">참고 사진</h2>
+              <h2 className="owner-detail__section-title">참고 자료</h2>
               <ReferencePhotos urls={photos} />
             </section>
           )}
