@@ -64,6 +64,9 @@ export { useFinishedWork, useReceivedReview } from "./hooks/useFinishedWork";
 export type { FinishedLoad } from "./hooks/useFinishedWork";
 export { REVIEW_POINT_LABEL, workHistoryText } from "./lib/finishedWork";
 export type { FinishedWork, ReceivedReview } from "./lib/finishedWork";
+export { useFinishedJobs } from "./hooks/useFinishedJobs";
+export type { FinishedJobsLoad } from "./hooks/useFinishedJobs";
+export type { FinishedJob, FinishedOutcome } from "./lib/finishedJobs";
 export {
   progressDeadline,
   progressFlowSteps,
