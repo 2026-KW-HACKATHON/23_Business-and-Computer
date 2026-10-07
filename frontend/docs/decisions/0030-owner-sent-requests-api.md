@@ -58,7 +58,7 @@ The backend (dev) has:
 - **보낸 의뢰서 상세** (`src/pages/OwnerRequestPage.tsx`, GET /jobs/{id}): the
   title, category badges, 「모집 중, 지원자 N명」 (count from the applicant
   list) or the status label, the flow bar, the terms, 「의뢰 취소」 while OPEN,
-  할 일, 맡기고 싶은 일, 참고 자료, and the 「학생을 고르면 이렇게 진행돼요」
+  할 일, 맡기고 싶은 일, 참고 사진, and the 「학생을 고르면 이렇게 진행돼요」
   steps.
 - **의뢰 취소** (`src/pages/OwnerRequestCancelPage.tsx`): sends both texts
   trimmed; 「취소하는 중...」 while sending, one request per press; success

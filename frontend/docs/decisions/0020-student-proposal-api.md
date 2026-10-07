@@ -73,7 +73,7 @@ The shared API layer (ADR 0021) provides `apiData` in `src/api/client.ts`
   the same names exist on the server.
 - **3/4** keeps photos as `File` objects in router state (structured clone).
   Each picked photo shows a 40 px thumbnail, and 4/4 shows the photos as
-  square thumbnails that open large in a new tab (`ReferencePhotos`, object
+  square thumbnails with the file names that open large in the app (`ReferencePhotos`, object
   URLs from `useObjectUrls`), like the detail screens.
   Only jpeg/png/webp up to 10 MB, at most 5 photos; a refused file shows
   「JPG, PNG, WEBP 사진만 올릴 수 있어요」 or 「10MB 이하 사진만 올릴 수

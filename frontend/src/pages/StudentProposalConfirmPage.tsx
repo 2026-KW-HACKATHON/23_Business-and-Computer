@@ -218,7 +218,10 @@ function StudentProposalConfirmPage() {
             <p className="student-confirm__text-body">{content.plan}</p>
           </div>
           {content.photos.length > 0 && (
-            <ReferencePhotos urls={photoUrls} />
+            <div className="student-confirm__text">
+              <p className="student-confirm__text-title">참고 사진</p>
+              <ReferencePhotos urls={photoUrls} names={content.photos.map((photo) => photo.name)} />
+            </div>
           )}
           <hr className="student-confirm__divider" />
           <TextButton className="student-confirm__edit" onClick={back}>

@@ -219,7 +219,7 @@ function OwnerRequestConfirmPage() {
           {content.photos.length > 0 && (
             <div className="owner-confirm__text">
               <p className="owner-confirm__text-title">참고 사진</p>
-              <ReferencePhotos urls={photoUrls} />
+              <ReferencePhotos urls={photoUrls} names={content.photos.map((photo) => photo.name)} />
             </div>
           )}
           <hr className="owner-confirm__divider" />
