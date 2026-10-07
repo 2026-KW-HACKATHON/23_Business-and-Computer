@@ -38,7 +38,7 @@ import { studentTitle } from "../lib/korean";
 /**
  * 피그마 「받은 제안 상세」. GET /proposals/{id} (ADR 0025).
  * 결제한 제안(AWAITING_START · ACCEPTED)은 확정된 작업 조건(agreement)을 보인다.
- * 「의뢰하기」는 결정 대기(PENDING)일 때만 보인다.
+ * 「수락하기」는 결정 대기(PENDING)일 때만 보인다.
  */
 function OwnerProposalPage() {
   const { proposalId } = useParams();
@@ -68,7 +68,7 @@ function OwnerProposalPage() {
       footer={
         proposal && pending ? (
           <Button fullWidth onClick={() => navigate(OWNER_PATHS.proposalAccept(String(proposal.proposalId)))}>
-            의뢰하기
+            수락하기
           </Button>
         ) : (
           <Button fullWidth onClick={back}>
@@ -191,7 +191,7 @@ function OwnerProposalPage() {
 
           {pending && (
             <p className="owner-detail__footnote">
-              「의뢰하기」를 누르면 이 제안으로 의뢰서를 만들어요. 작업비는 학생이 제안한 금액이고,
+              「수락하기」를 누르면 이 제안으로 의뢰서를 만들어요. 작업비는 학생이 제안한 금액이고,
               수정 횟수는 의뢰할 때 정해요. 마감일은 결제한 날부터 학생이 제안한 기간으로 정해져요.
             </p>
           )}

@@ -109,7 +109,7 @@ The owner side read `SAMPLE_PROPOSALS`, so a proposal a student sent
       requesting, and 마감일 counts the student's period from the payment
       date.
   - Reference photos use `ReferencePhotos`.
-  - Footer: 「의뢰하기」 for PENDING (to the accept screen), otherwise
+  - Footer: 「수락하기」 for PENDING (to the accept screen), otherwise
     「확인」.
   - Errors: load failure → `LoadNotice`, 404 → `OwnerMissing`,
     401 → /login.
