@@ -619,6 +619,9 @@ public class JobFacade {
                 .flatMap(job -> job.getSpecialtyIds().stream())
                 .collect(Collectors.toSet());
         Map<Long, SpecialtyDetail> specialtiesById = specialtyCategoryService.getSpecialtyDetails(specialtyIds);
+        Set<Long> reviewedJobIds = reviewService.getReviewedJobIds(jobs.stream()
+                .map(job -> job.getJob().getId())
+                .toList());
 
         return ClosedJobListResult.of(jobs.stream()
                 .map(job -> {
@@ -628,7 +631,8 @@ public class JobFacade {
                             job,
                             student,
                             student == null ? null : workersById.get(student.getUserId()),
-                            groupSpecialties(job.getSpecialtyIds(), specialtiesById));
+                            groupSpecialties(job.getSpecialtyIds(), specialtiesById),
+                            reviewedJobIds.contains(job.getJob().getId()));
                 })
                 .toList());
     }
