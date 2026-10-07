@@ -8,7 +8,7 @@ import { fetchMyChatRooms, fetchOwnerMatchedJobs } from "../api/progressApi";
 import type { OwnerMatchedJobResponse } from "../api/progressApi";
 import { fetchReceivedProposals } from "../api/receivedProposalApi";
 import type { ReceivedProposalResponse } from "../api/receivedProposalApi";
-import type { DeadlineStage, WorkPlanSheetContent } from "../types";
+import type { DeadlineStage } from "../types";
 import { flowSteps } from "./flow";
 
 /**
@@ -89,19 +89,6 @@ export function ownerAutoCompleteOn(job: OwnerProgressJob): string | undefined {
   return job.arrivedOn && addDays(job.arrivedOn, 7);
 }
 
-/** 의뢰에 지원해 맡은 작업의 작업계획서 바텀시트 내용 (지원서는 loadProgressPlan 으로) */
-export function progressWorkPlanContent(job: OwnerProgressJob, plan: ApplicationPlan): WorkPlanSheetContent {
-  return {
-    title: job.title,
-    studentName: job.student.name,
-    plan,
-    budget: job.budget,
-    draftDue: job.draftDeadline,
-    finalDue: job.finalDeadline,
-    revisionLimit: job.revisionLimit,
-  };
-}
-
 export type OwnerProgressJobsResult =
   | { status: "loaded"; jobs: OwnerProgressJob[] }
   | { status: "unauthorized" }
@@ -115,28 +102,6 @@ function applicationPlan(
 ): ApplicationPlan | undefined {
   if (!summary || !workPlan || !deliveryMethod) return undefined;
   return { summary, method: workPlan, deliverable: deliveryMethod };
-}
-
-export type ProgressPlanResult =
-  | { status: "loaded"; plan: ApplicationPlan }
-  | { status: "unauthorized" }
-  /** 채팅방에 그 작업의 지원서가 없음 */
-  | { status: "missing" }
-  | { status: "error" };
-
-/**
- * 의뢰에 지원해 맡은 작업의 지원서. 진행 중 목록에는 없어서 바텀시트를 열 때 채팅방
- * (GET /me/chat-rooms, 결제한 의뢰마다 하나)에서 찾는다.
- */
-export async function loadProgressPlan(jobId: number): Promise<ProgressPlanResult> {
-  try {
-    const room = (await fetchMyChatRooms()).find((r) => r.jobId === jobId);
-    const plan = room && applicationPlan(room.applicationSummary, room.applicationWorkPlan, room.applicationDeliveryMethod);
-    return plan ? { status: "loaded", plan } : { status: "missing" };
-  } catch (error) {
-    if (error instanceof ApiError && error.status === 401) return { status: "unauthorized" };
-    return { status: "error" };
-  }
 }
 
 /** 진행 중 목록의 의뢰 하나. 받은 제안이 있으면 제안에서 시작한 작업이다 */

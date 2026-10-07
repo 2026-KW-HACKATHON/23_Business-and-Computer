@@ -48,7 +48,6 @@ export { REVIEW_POINTS, sendJobReview, workHistoryText } from "./lib/closedJobs"
 export type { JobResult, JobReviewResult, OwnerClosedJob, OwnerClosedOutcome } from "./lib/closedJobs";
 export { useOwnerProgressJobs } from "./hooks/useOwnerProgressJobs";
 export type { OwnerProgressJobsLoad } from "./hooks/useOwnerProgressJobs";
-export { useProgressPlanSheet } from "./hooks/useProgressPlanSheet";
 export { useAssignedWork } from "./hooks/useAssignedWork";
 export type { AssignedWorkLoad } from "./hooks/useAssignedWork";
 export {

@@ -1,7 +1,6 @@
 import type { Field } from "../../types/field";
 import type { WorkKind } from "../../types/workKind";
 import type { ApplicationPlan, WorkPlanContent } from "../../types/workPlan";
-import type { OwnerProgressJob } from "./lib/progressJobs";
 
 /** 마감 단계. draft = 초안, final = 최종 */
 export type DeadlineStage = "draft" | "final";
@@ -52,7 +51,7 @@ export interface ApplicantsTodo extends TodoBase {
 /** 「확인할 일」 카드 한 장. 종류마다 문구와 버튼이 다르다 */
 export type OwnerTodo = DraftArrivedTodo | ProposalArrivedTodo | ApplicantsTodo;
 
-/** 「학생이 작업 중」 한 줄 (id = 작업). 누르면 지원서 바텀시트, 제안으로 시작했으면 받은 제안 */
+/** 「학생이 작업 중」 한 줄 (id = 작업). 누르면 보낸 의뢰 상세, 제안으로 시작했으면 받은 제안 상세 */
 export interface OwnerWorkingItem {
   id: string;
   kind: WorkKind;
@@ -60,8 +59,6 @@ export interface OwnerWorkingItem {
   student: StudentRef;
   stage: DeadlineStage;
   due: string;
-  /** 의뢰에 지원해 맡은 작업. 누르면 이 작업의 지원서를 불러와 바텀시트로 */
-  planJob?: OwnerProgressJob;
   proposalId?: string;
 }
 
