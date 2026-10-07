@@ -114,15 +114,15 @@ public class DemoSampleDataSeeder {
         }
 
         private void seed() {
-            Student kim = student(1, "김광운", "시각디자인학과",
+            Student kim = student(1, 24, "김광운", "시각디자인학과",
                     "메뉴판·포스터처럼 가게에서 바로 쓰는 디자인을 좋아해요.", "메뉴판·가격표 디자인", "전단지·포스터 디자인");
-            Student park = student(2, "박지은", "시각디자인학과",
+            Student park = student(2, 23, "박지은", "시각디자인학과",
                     "쿠폰·스티커처럼 손님 손에 남는 디자인을 만들어요.", "쿠폰·스티커·명함 디자인");
-            Student lee = student(3, "이은서", "경영학부",
+            Student lee = student(3, 22, "이은서", "경영학부",
                     "리뷰와 매출을 정리해 다음에 할 일을 찾아 드려요.", "리뷰 분석", "홍보·이벤트 기획");
-            Student nuri = student(4, "박누리", "미디어커뮤니케이션학부",
+            Student nuri = student(4, 25, "박누리", "미디어커뮤니케이션학부",
                     "SNS 게시물과 짧은 영상을 만들어요.", "SNS 게시물", "영상 제작 및 편집");
-            Student choi = student(5, "최하늘", "영어산업학과",
+            Student choi = student(5, 21, "최하늘", "영어산업학과",
                     "메뉴판 번역과 안내문 쓰기를 도와 드려요.", "영어 번역", "소개·공지 글쓰기");
 
             Owner dino = store(1, "정민호", "공룡카페", "카페", "서울 노원구 광운로 12길 5",
@@ -306,10 +306,13 @@ public class DemoSampleDataSeeder {
             like(photos, park);
         }
 
-        private Student student(int number, String name, String major, String introduction, String... specialties) {
+        /** @param admissionYear 입학 연도 두 자리. 화면에 「24학번」처럼 보인다 */
+        private Student student(int number, int admissionYear, String name, String major, String introduction,
+                                String... specialties) {
             User user = userService.createDemoSampleUser(demoSessionId, UserRole.STUDENT, number, name);
             Student student = studentService.createStudentProfile(CreateStudentProfileCommand.of(
-                    user.getId(), UNIVERSITY, DemoStudentNumbers.next(studentService), major, null, introduction, null));
+                    user.getId(), UNIVERSITY, DemoStudentNumbers.next(studentService, admissionYear), major, null,
+                    introduction, null));
             for (Long specialtyId : specialties(specialties)) {
                 specialtyService.addStudentSpecialty(AddStudentSpecialtyCommand.of(student.getId(), specialtyId));
             }

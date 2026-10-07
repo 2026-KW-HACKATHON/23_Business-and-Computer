@@ -111,7 +111,7 @@ class DemoFacadeTest {
                 ArgumentCaptor.forClass(CreateStudentProfileCommand.class);
         verify(studentService).createStudentProfile(studentCaptor.capture());
         assertThat(studentCaptor.getValue().getUserId()).isEqualTo("student-user-" + session);
-        assertThat(studentCaptor.getValue().getStudentNumber()).matches("^2099\\d{6}$");
+        assertThat(studentCaptor.getValue().getStudentNumber()).matches("^20240\\d{5}$");
         ArgumentCaptor<AddStudentSpecialtyCommand> specialtyCaptor =
                 ArgumentCaptor.forClass(AddStudentSpecialtyCommand.class);
         verify(specialtyService, times(2)).addStudentSpecialty(specialtyCaptor.capture());
