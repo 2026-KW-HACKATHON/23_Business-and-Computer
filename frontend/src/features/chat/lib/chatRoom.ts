@@ -52,9 +52,9 @@ export function chatPlanOf(room: ChatRoom): ApplicationPlan | undefined {
   return { summary: applicationSummary, method: applicationWorkPlan, deliverable: applicationDeliveryMethod };
 }
 
-/** 사장님 「작업 취소」: 작업 상태가 매칭이고 확인할 결과물이 없을 때만 */
+/** 사장님 「작업 취소」: 작업 중이고 아직 결과물을 하나도 받지 않았을 때만 (받은 뒤에는 서버도 막는다) */
 export function canCancelChatWork(room: ChatRoom): boolean {
-  return room.jobStatus === "MATCHED" && room.submissionReviewStatus !== "PENDING";
+  return room.jobStatus === "MATCHED" && !room.submissionReviewStatus;
 }
 
 /** 「문제 신고」: 작업 상태가 매칭일 때만 */

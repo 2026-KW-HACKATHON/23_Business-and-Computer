@@ -262,7 +262,10 @@ function OwnerActivityPage() {
         ) : (
           <div className="owner-activity__trouble">
             <span>문제가 있나요?</span>
-            <TextButton onClick={() => navigate(OWNER_PATHS.workCancel(id))}>작업 취소</TextButton>
+            {/* 결과물을 하나라도 받으면 취소할 수 없다 (서버도 막는다) */}
+            {job.stage === "drafting" && (
+              <TextButton onClick={() => navigate(OWNER_PATHS.workCancel(id))}>작업 취소</TextButton>
+            )}
             <TextButton onClick={() => setReportTitle(job.title)}>문제 신고</TextButton>
           </div>
         )}
