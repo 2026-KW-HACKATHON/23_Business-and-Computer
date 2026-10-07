@@ -3,6 +3,8 @@ import { Navigate, useNavigate, useParams, useSearchParams } from "react-router-
 import { OWNER_PATHS, PaymentProgress } from "../features/owner";
 import { clearPendingPayment, readPendingPayment, useKakaoPayApproval } from "../features/payment";
 import type { PaymentFailure, PaymentTarget } from "../features/payment";
+import { useFinishFlow } from "../hooks/useFlowHistory";
+import { FLOW_KEYS } from "../lib/flowHistory";
 
 /** 무엇을 결제했는지 모를 때(결제 대기 정보가 없거나 다른 주문) 가는 곳 */
 const UNKNOWN_PAYMENT_PATH = OWNER_PATHS.activity("inProgress");
@@ -10,8 +12,12 @@ const UNKNOWN_PAYMENT_PATH = OWNER_PATHS.activity("inProgress");
 interface TargetScreens {
   /** 이미 결제된 주문을 다시 승인했을 때 알림 */
   alreadyPaid: string;
-  /** 결제 완료 「확인」 */
+  /** 결제 완료 「확인」: 홈 */
   done: string;
+  /** 결제를 마무리할 수 없을 때 상태를 볼 화면 */
+  status: string;
+  /** 끝낼 흐름 (맡기기 · 결제, 제안 수락). 결제가 끝나면 그 화면들을 방문 기록에서 지운다 */
+  flow?: string;
   /** 「다시 결제하기」 */
   retry: string;
   /** 목록 */
@@ -24,7 +30,8 @@ function targetScreens(target: PaymentTarget | undefined): TargetScreens {
   if (!target) {
     return {
       alreadyPaid: "이미 결제됐어요",
-      done: UNKNOWN_PAYMENT_PATH,
+      done: OWNER_PATHS.home,
+      status: UNKNOWN_PAYMENT_PATH,
       retry: UNKNOWN_PAYMENT_PATH,
       list: UNKNOWN_PAYMENT_PATH,
       successDescription: "작업비는 골목인턴이 보관해요.",
@@ -34,7 +41,9 @@ function targetScreens(target: PaymentTarget | undefined): TargetScreens {
     const id = String(target.proposalId);
     return {
       alreadyPaid: "이미 결제된 제안이에요",
-      done: OWNER_PATHS.proposal(id),
+      done: OWNER_PATHS.home,
+      status: OWNER_PATHS.proposal(id),
+      flow: FLOW_KEYS.proposalAccept(target.proposalId),
       retry: OWNER_PATHS.proposalAccept(id),
       list: OWNER_PATHS.activity("proposals"),
       successDescription: "작업비는 골목인턴이 보관해요.\n학생이 작업을 시작하면 알려 드릴게요",
@@ -42,29 +51,34 @@ function targetScreens(target: PaymentTarget | undefined): TargetScreens {
   }
   return {
     alreadyPaid: "이미 결제된 의뢰예요",
-    done: OWNER_PATHS.activity("inProgress"),
+    done: OWNER_PATHS.home,
+    status: OWNER_PATHS.activity("inProgress"),
+    flow: FLOW_KEYS.ownerPay(target.jobId),
     retry: OWNER_PATHS.assignPay(String(target.jobId), String(target.jobApplicationId)),
     list: OWNER_PATHS.activity("inProgress"),
     successDescription: "작업비는 골목인턴이 보관해요.\n학생과 채팅으로 자세한 내용을 나눠 보세요.",
   };
 }
 
-/** 승인 실패: 알림을 띄우고 갈 곳. undefined 면 결제 실패 팝업 (502 · 네트워크 · pg_token 없음) */
+/**
+ * 승인 실패: 알림을 띄우고 갈 곳. undefined 면 결제 실패 팝업 (502 · 네트워크 · pg_token 없음).
+ * finish 면 이미 결제가 끝난 것이라 결제 완료처럼 흐름을 끝낸다
+ */
 function approveFailureExit(
   reason: PaymentFailure,
   screens: TargetScreens,
-): { message?: string; to: string } | undefined {
+): { message?: string; to: string; finish?: boolean } | undefined {
   switch (reason) {
     case "unauthorized":
       return { to: "/login" };
     case "alreadyPaid":
-      return { message: screens.alreadyPaid, to: screens.done };
+      return { message: screens.alreadyPaid, to: screens.done, finish: true };
     case "otherOwnerOrder":
       return { message: "다른 계정에서 진행한 결제예요. 결제한 사장님 계정으로 확인해 주세요", to: screens.list };
     case "orderNotFound":
       return { message: "결제 정보를 찾을 수 없어요. 다시 결제해 주세요", to: screens.retry };
     case "orderNotPayable":
-      return { message: "결제를 마무리할 수 없는 상태예요. 내 활동에서 상태를 확인해 주세요", to: screens.done };
+      return { message: "결제를 마무리할 수 없는 상태예요. 내 활동에서 상태를 확인해 주세요", to: screens.status };
     case "notOwner":
       return { message: "사장님만 결제할 수 있어요", to: screens.list };
     default:
@@ -83,11 +97,14 @@ function ApprovalResult({
   target: PaymentTarget | undefined;
 }) {
   const navigate = useNavigate();
+  const finishFlow = useFinishFlow();
   const approval = useKakaoPayApproval(orderId, pgToken);
   const screens = targetScreens(target);
+  const flow = screens.flow;
   const exit = approval.status === "failed" ? approveFailureExit(approval.reason, screens) : undefined;
   const exitTo = exit?.to;
   const exitMessage = exit?.message;
+  const exitFinishes = exit?.finish === true;
   // StrictMode 개발 모드에서 effect 가 두 번 돌아도 알림은 한 번만
   const exited = useRef(false);
 
@@ -96,12 +113,19 @@ function ApprovalResult({
     exited.current = true;
     clearPendingPayment();
     if (exitMessage) window.alert(exitMessage);
-    navigate(exitTo, { replace: true });
-  }, [exitTo, exitMessage, navigate]);
+    if (exitFinishes) finishFlow(flow, exitTo);
+    else navigate(exitTo, { replace: true });
+  }, [exitTo, exitMessage, exitFinishes, flow, finishFlow, navigate]);
 
   const leave = (to: string) => {
     clearPendingPayment();
     navigate(to, { replace: true });
+  };
+
+  // 결제 완료 「확인」: 홈으로. 맡기기 · 결제 (제안 수락) 화면은 방문 기록에서 지워 뒤로가기로 다시 결제하지 못한다
+  const finish = () => {
+    clearPendingPayment();
+    finishFlow(flow, screens.done);
   };
 
   const phase =
@@ -120,7 +144,7 @@ function ApprovalResult({
       redirectTitle="결제를 확인하고 있어요"
       redirectDescription="잠시만 기다려 주세요. 이 화면을 닫지 말아 주세요."
       successDescription={screens.successDescription}
-      onDone={() => leave(screens.done)}
+      onDone={finish}
       onRetry={() => leave(screens.retry)}
     />
   );

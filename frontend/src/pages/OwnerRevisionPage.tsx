@@ -5,6 +5,7 @@ import {
   Dialog,
   FormField,
   LoadNotice,
+  PhotoViewer,
   SubScreen,
   TextAreaField,
   WorkKindIcon,
@@ -65,6 +66,8 @@ function RevisionForm({
 }) {
   const photoUrls = useObjectUrls(photos);
   const [photoNotice, setPhotoNotice] = useState<string>();
+  // 크게 보는 사진의 순서. 닫혀 있으면 null
+  const [viewing, setViewing] = useState<number | null>(null);
   return (
     <>
       <FormField label="자세히 적어 주세요" wrapsInput>
@@ -104,7 +107,14 @@ function RevisionForm({
           <ul className="owner-revision__photo-list">
             {photos.map((photo, i) => (
               <li key={photo.name}>
-                <img className="owner-revision__thumb" src={photoUrls[i]} alt="" />
+                <button
+                  type="button"
+                  className="owner-revision__thumb-button"
+                  aria-label={`${photo.name} 크게 보기`}
+                  onClick={() => setViewing(i)}
+                >
+                  <img className="owner-revision__thumb" src={photoUrls[i]} alt="" />
+                </button>
                 <span>{photo.name}</span>
                 <button
                   type="button"
@@ -116,6 +126,14 @@ function RevisionForm({
               </li>
             ))}
           </ul>
+        )}
+        {viewing !== null && viewing < photos.length && (
+          <PhotoViewer
+            photos={photos.map((photo, i) => ({ url: photoUrls[i], name: photo.name }))}
+            index={viewing}
+            onIndex={setViewing}
+            onClose={() => setViewing(null)}
+          />
         )}
       </div>
     </>

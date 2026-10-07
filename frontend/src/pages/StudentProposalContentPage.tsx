@@ -5,6 +5,7 @@ import {
   BudgetField,
   Button,
   FormField,
+  PhotoViewer,
   StepIndicator,
   SubScreen,
   TextAreaField,
@@ -87,6 +88,8 @@ function StudentProposalContentPage() {
   const fileInput = useRef<HTMLInputElement>(null);
   const photoUrls = useObjectUrls(content.photos);
   const [photoError, setPhotoError] = useState<keyof typeof PHOTO_ERROR_TEXT | null>(null);
+  // 크게 보는 사진의 순서. 닫혀 있으면 null
+  const [viewing, setViewing] = useState<number | null>(null);
 
   if (!state?.store || state.picked.length === 0) {
     return <Navigate to={STUDENT_PATHS.newProposal} replace />;
@@ -104,6 +107,9 @@ function StudentProposalContentPage() {
     e.target.value = "";
   };
 
+  // 최종 마감이 초안 마감 뒤로 며칠인지 (두 번째 칸에 보이는 값)
+  const finalGap = Math.max(0, content.finalDays - content.draftDays);
+
   const canNext =
     content.title.trim() !== "" &&
     content.problem.trim() !== "" &&
@@ -111,7 +117,7 @@ function StudentProposalContentPage() {
     content.plan.trim() !== "" &&
     content.wishBudget > 0 &&
     content.draftDays > 0 &&
-    content.finalDays >= content.draftDays;
+    content.finalDays > content.draftDays;
 
   const goNext = () => {
     const next = {
@@ -185,10 +191,19 @@ function StudentProposalContentPage() {
           <BudgetField value={content.wishBudget} onChange={(wishBudget) => update({ wishBudget })} />
         </FormField>
 
-        <FormField label="예상 기간" hint="제안이 수락된 날부터 세요">
+        <FormField label="예상 기간" hint="초안은 수락된 날부터, 최종은 초안 마감부터 세요">
+          {/* 서버는 두 값 모두 수락된 날부터 센다. 두 번째 칸은 초안 뒤 며칠이라, 보낼 때 최종 = 초안 + 그 값 */}
           <div className="student-new__days-row">
-            <DaysField label="초안까지" value={content.draftDays} onChange={(draftDays) => update({ draftDays })} />
-            <DaysField label="최종까지" value={content.finalDays} onChange={(finalDays) => update({ finalDays })} />
+            <DaysField
+              label="초안까지"
+              value={content.draftDays}
+              onChange={(draftDays) => update({ draftDays, finalDays: draftDays + finalGap })}
+            />
+            <DaysField
+              label="초안 뒤 최종까지"
+              value={finalGap}
+              onChange={(gap) => update({ finalDays: content.draftDays + gap })}
+            />
           </div>
         </FormField>
 
@@ -213,7 +228,14 @@ function StudentProposalContentPage() {
             )}
             {content.photos.map((photo, i) => (
               <div key={`${photo.name}-${i}`} className="student-new__file">
-                <img className="student-new__thumb" src={photoUrls[i]} alt="" />
+                <button
+                  type="button"
+                  className="student-new__thumb-button"
+                  aria-label={`${photo.name} 크게 보기`}
+                  onClick={() => setViewing(i)}
+                >
+                  <img className="student-new__thumb" src={photoUrls[i]} alt="" />
+                </button>
                 <strong>{photo.name}</strong>
                 <small>{sizeText(photo.size)}</small>
                 <button
@@ -226,6 +248,14 @@ function StudentProposalContentPage() {
               </div>
             ))}
           </div>
+          {viewing !== null && viewing < content.photos.length && (
+            <PhotoViewer
+              photos={content.photos.map((photo, i) => ({ url: photoUrls[i], name: photo.name }))}
+              index={viewing}
+              onIndex={setViewing}
+              onClose={() => setViewing(null)}
+            />
+          )}
           {photoError && (
             <p className="student-new__photo-error" role="alert">
               {PHOTO_ERROR_TEXT[photoError]}

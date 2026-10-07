@@ -1,6 +1,10 @@
+import { useState } from "react";
 import type { ReactNode } from "react";
+import BottomSheet from "../BottomSheet/BottomSheet";
+import Button from "../Button/Button";
+import DateWheel from "../DateWheel/DateWheel";
 import TextField from "../TextField/TextField";
-import { formatMonthDayWeekday, todayIsoDate } from "../../lib/date";
+import { formatMonthDay, formatMonthDayWeekday, todayIsoDate } from "../../lib/date";
 import "./FormFields.css";
 
 /** 초안 마감 · 최종 마감 ("2026-09-27", 아직 안 골랐으면 "") */
@@ -107,39 +111,65 @@ export function BudgetField({ value, onChange }: BudgetFieldProps) {
   );
 }
 
+/** 마감일은 올해와 내년 안에서 고른다 */
+function lastPickableDate(today: string): string {
+  return `${Number(today.slice(0, 4)) + 1}-12-31`;
+}
+
 interface DueBoxProps {
   label: string;
   value: string;
   min: string;
+  /** 하단 시트 제목 아래 설명 */
+  description: string;
   onChange: (value: string) => void;
 }
 
-/** 마감일 칸. 칸 전체가 날짜 입력이고 고른 날은 「9월 27일 (일)」로 보인다 */
-function DueBox({ label, value, min, onChange }: DueBoxProps) {
+/**
+ * 마감일 칸. 고른 날은 「9월 27일 (일)」로 보이고, 누르면 하단 시트에서 연 · 월 · 일 바퀴로 고른다
+ * (피그마 「의뢰 등록 2/3 - 초안 · 최종 마감일 고르기 (팝업)」). 「이 날짜로 정하기」로 칸에 넣고,
+ * 바깥을 누르거나 Esc 로 닫으면 바꾸지 않는다.
+ */
+function DueBox({ label, value, min, description, onChange }: DueBoxProps) {
+  const [open, setOpen] = useState(false);
+  const [draft, setDraft] = useState(value || min);
+  const max = lastPickableDate(todayIsoDate());
+
+  const openSheet = () => {
+    setDraft(value && value >= min ? value : min);
+    setOpen(true);
+  };
+
   return (
-    <label className="request-field__due">
-      <span className="request-field__due-label">{label}</span>
-      <span
-        className={`request-field__due-value${value ? "" : " request-field__due-value--empty"}`}
+    <>
+      <button type="button" className="request-field__due" onClick={openSheet}>
+        <span className="request-field__due-label">{label}</span>
+        <span
+          className={`request-field__due-value${value ? "" : " request-field__due-value--empty"}`}
+        >
+          {value ? formatMonthDayWeekday(value) : "날짜 고르기"}
+        </span>
+      </button>
+      <BottomSheet
+        open={open}
+        onClose={() => setOpen(false)}
+        title={`${label}일`}
+        description={description}
+        footer={
+          <Button
+            fullWidth
+            onClick={() => {
+              onChange(draft);
+              setOpen(false);
+            }}
+          >
+            이 날짜로 정하기
+          </Button>
+        }
       >
-        {value ? formatMonthDayWeekday(value) : "날짜 고르기"}
-      </span>
-      <input
-        type="date"
-        className="request-field__due-input"
-        aria-label={label}
-        value={value}
-        min={min}
-        onChange={(e) => onChange(e.target.value)}
-        onClick={(e) => {
-          try {
-            e.currentTarget.showPicker();
-          } catch {
-            // 달력을 바로 열 수 없는 브라우저는 기본 동작을 따른다
-          }
-        }}
-      />
-    </label>
+        <DateWheel value={draft} min={min} max={max} onChange={setDraft} />
+      </BottomSheet>
+    </>
   );
 }
 
@@ -160,6 +190,7 @@ export function DueDateFields({
         label="초안 마감"
         value={value.draftDue}
         min={today}
+        description="학생이 초안을 보내는 날이에요"
         // 초안 마감을 최종 마감보다 뒤로 옮기면 최종 마감은 다시 고른다
         onChange={(draftDue) =>
           onChange({
@@ -172,6 +203,11 @@ export function DueDateFields({
         label="최종 마감"
         value={value.finalDue}
         min={value.draftDue || today}
+        description={
+          value.draftDue
+            ? `초안 마감(${formatMonthDay(value.draftDue)})과 같거나 뒤로 골라 주세요`
+            : "초안 마감과 같거나 뒤로 골라 주세요"
+        }
         onChange={(finalDue) => onChange({ draftDue: value.draftDue, finalDue })}
       />
     </div>
