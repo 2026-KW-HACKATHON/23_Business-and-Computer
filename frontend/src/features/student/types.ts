@@ -197,25 +197,14 @@ export interface StudentNotification {
   targetId: string;
 }
 
-/** 정산 내역 한 줄 (작업 하나) */
-export type SettlementStatus = "expected" | "settled" | "reward";
-
-export interface StudentSettlement {
-  workId: string;
-  title: string;
-  storeName: string;
-  amount: number;
-  status: SettlementStatus;
-  /** 정산된 날 (expected 면 작업이 시작된 날) */
-  date: string;
-  autoCompleted?: boolean;
-}
-
+/** 정산 요약 3칸 (GET /settlements 의 summary) */
 export interface SettlementSummary {
-  /** 이번 달 = 정산 예정 + 이번 달에 정산된 금액 */
+  /** 이번 달에 결제된 작업의 금액 합 */
   thisMonth: number;
+  /** 정산 예정 (작업 중) */
   expected: number;
-  settledThisMonth: number;
+  /** 지금까지 정산된 금액 (착수 보상 포함) */
+  settled: number;
 }
 
 /** 확인할 일 카드 */

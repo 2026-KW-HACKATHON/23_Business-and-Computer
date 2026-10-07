@@ -54,6 +54,10 @@
   cursor: pointer;
 }
 
+.student-settlements__row--static {
+  cursor: default;
+}
+
 .student-settlements__row:focus-visible {
   outline: 2px solid var(--color-black);
   outline-offset: 2px;
@@ -117,7 +121,16 @@
   color: var(--text-body);
 }
 
-.student-settlements__status--reward {
+.student-settlements__status--reward,
+.student-settlements__status--refunded {
   background: var(--role-muted);
   color: var(--text-body);
+}
+
+.student-settlements__empty {
+  padding: 24px 0;
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--role-secondary);
+  text-align: center;
 }

@@ -16,6 +16,7 @@ import {
   ApplicationSheet,
   STUDENT_PATHS,
   SettlementSummaryBox,
+  settlementSummaryOf,
   deadlineText,
   progressDeadline,
   progressStatusText,
@@ -26,7 +27,7 @@ import {
   useAppliedJobs,
   useProgressJobs,
   useSentProposals,
-  useStudentSettlements,
+  useSettlementHistory,
   useStudentWorks,
 } from "../features/student";
 import { proposalBadgeNames } from "../features/proposal";
@@ -92,7 +93,8 @@ function StudentActivityPage() {
   const works = useStudentWorks();
   // 진행 중 카드에 가게 주소가 있어서 주소까지 불러온다
   const { load: progressLoad, reload: reloadProgress } = useProgressJobs({ storeAddress: true });
-  const { summary } = useStudentSettlements();
+  // 완료 탭 위 정산 요약 (GET /settlements). 불러오지 못하면 요약 칸을 숨긴다
+  const { load: settlementLoad } = useSettlementHistory();
   const [sheetJobId, setSheetJobId] = useState<number>();
   const sheetJob = applied.find((job) => job.jobId === sheetJobId);
 
@@ -320,7 +322,9 @@ function StudentActivityPage() {
               <h2 className="student-activity__list-title">정산 내역</h2>
               <TextButton onClick={() => navigate(STUDENT_PATHS.settlements)}>전체 보기</TextButton>
             </div>
-            <SettlementSummaryBox summary={summary} />
+            {settlementLoad.status === "loaded" && (
+              <SettlementSummaryBox summary={settlementSummaryOf(settlementLoad.data)} />
+            )}
           </section>
         )}
 

@@ -3,23 +3,15 @@ import { SAMPLE_NOTIFICATIONS } from "../lib/sampleNotifications";
 import { SAMPLE_MY_PROPOSALS, SAMPLE_PROPOSAL_EXAMPLES } from "../lib/sampleProposals";
 import { SAMPLE_STORES } from "../lib/sampleStores";
 import { SAMPLE_WORKS } from "../lib/sampleWorks";
-import type {
-  MyProposal,
-  ProposalExample,
-  SettlementSummary,
-  Store,
-  StudentNotification,
-  StudentSettlement,
-  StudentWork,
-} from "../types";
+import type { MyProposal, ProposalExample, Store, StudentNotification, StudentWork } from "../types";
 import { demo, useDemoVersion } from "./studentStore";
 
 /*
  * 학생 화면 데이터. 지금은 임시 예시 데이터를 돌려준다.
  * 백엔드를 연동할 때 이 안만 API 호출로 바꾸면 화면은 그대로 쓴다.
  *
- * 원본은 작업 · 의뢰 · 지원 · 제안 하나씩이고, 내 활동 완료 탭 · 정산 내역 · 내 작업물은 작업에서 만든다.
- * 내 정보 · 프로필은 서버를 읽는다 (useStudentMe).
+ * 원본은 작업 · 의뢰 · 지원 · 제안 하나씩이고, 내 활동 완료 탭과 내 작업물은 작업에서 만든다.
+ * 내 정보 · 프로필 · 정산 내역은 서버를 읽는다 (useStudentMe · useSettlementHistory).
  */
 
 // ---- 원본에 시연 중 바뀐 상태를 얹는다 ----
@@ -105,53 +97,4 @@ export function useStudentNotifications(): StudentNotification[] {
   return SAMPLE_NOTIFICATIONS.map((n) => (demo.readNotificationIds.has(n.id) ? { ...n, read: true } : n)).sort(
     (a, b) => b.createdAt.localeCompare(a.createdAt),
   );
-}
-
-// ---- 정산 내역: 작업에서 만든다 ----
-
-export function useStudentSettlements(): {
-  settlements: StudentSettlement[];
-  summary: SettlementSummary;
-} {
-  useDemoVersion();
-  const settlements: StudentSettlement[] = works()
-    .flatMap((w): StudentSettlement[] => {
-      const base = { workId: w.id, title: w.title, storeName: w.store.name };
-      if (w.status === "completed" && w.completedOn) {
-        return [
-          {
-            ...base,
-            amount: w.budget,
-            status: "settled",
-            date: w.completedOn,
-            autoCompleted: w.completedBy === "auto",
-          },
-        ];
-      }
-      if (w.status === "canceled" && w.cancel && w.cancel.reward > 0) {
-        return [{ ...base, amount: w.cancel.reward, status: "reward", date: w.cancel.canceledOn }];
-      }
-      if (["drafting", "revising", "submitted"].includes(w.status) && w.startedOn) {
-        return [{ ...base, amount: w.budget, status: "expected", date: w.startedOn }];
-      }
-      return [];
-    })
-    .sort((a, b) => {
-      // 정산 예정을 먼저, 그다음 최근 정산부터
-      if ((a.status === "expected") !== (b.status === "expected")) {
-        return a.status === "expected" ? -1 : 1;
-      }
-      return b.date.localeCompare(a.date);
-    });
-  const month = todayIsoDate().slice(0, 7);
-  const expected = settlements
-    .filter((s) => s.status === "expected")
-    .reduce((sum, s) => sum + s.amount, 0);
-  const settledThisMonth = settlements
-    .filter((s) => s.status !== "expected" && s.date.startsWith(month))
-    .reduce((sum, s) => sum + s.amount, 0);
-  return {
-    settlements,
-    summary: { thisMonth: expected + settledThisMonth, expected, settledThisMonth },
-  };
 }
