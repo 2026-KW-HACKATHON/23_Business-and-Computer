@@ -60,6 +60,10 @@ export { useLatestSubmission } from "./hooks/useLatestSubmission";
 export type { LatestSubmissionLoad } from "./hooks/useLatestSubmission";
 export { isLastRevision, submissionDay } from "./lib/latestSubmission";
 export type { LatestSubmission } from "./lib/latestSubmission";
+export { useFinishedWork, useReceivedReview } from "./hooks/useFinishedWork";
+export type { FinishedLoad } from "./hooks/useFinishedWork";
+export { REVIEW_POINT_LABEL, workHistoryText } from "./lib/finishedWork";
+export type { FinishedWork, ReceivedReview } from "./lib/finishedWork";
 export {
   progressDeadline,
   progressFlowSteps,
