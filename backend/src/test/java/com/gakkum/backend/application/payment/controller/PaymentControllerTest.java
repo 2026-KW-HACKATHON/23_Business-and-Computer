@@ -10,6 +10,7 @@ import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.hasEntry;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -277,11 +278,25 @@ class PaymentControllerTest {
         Payment payment = Payment.pending(42L, 21L, "owner-123", "order-123", 100_000L, Instant.EPOCH);
         payment.recordKakaoTid("T1234567890123456789");
         payment.approve(Instant.parse("2026-10-02T03:00:00Z"));
+        Payment refunded = Payment.pending(41L, 20L, "owner-123", "order-122", 100_000L, Instant.EPOCH);
+        refunded.recordKakaoTid("T1234567890123456788");
+        refunded.approve(Instant.parse("2026-10-01T03:00:00Z"));
+        refunded.refundOnCancel(Instant.parse("2026-10-05T03:00:00Z"));
+        Payment settled = Payment.pending(40L, 19L, "owner-123", "order-121", 100_000L, Instant.EPOCH);
+        settled.recordKakaoTid("T1234567890123456787");
+        settled.approve(Instant.parse("2026-10-01T02:00:00Z"));
         when(paymentFacade.getPaymentHistory(USERNAME)).thenReturn(PaymentHistoryResult.of(
                 PaymentHistorySummaryResult.of(300_000L, 100_000L, 3_000_000_000L), List.of(
-                PaymentHistoryMonthResult.of("2026-10", List.of(PaymentHistoryItemResult.of(
-                        PaymentHistoryData.from(payment), "매장 홍보 포스터 제작", 0L, "김학생",
-                        PaymentHistoryStatus.HELD))))));
+                PaymentHistoryMonthResult.of("2026-10", List.of(
+                        PaymentHistoryItemResult.of(
+                                PaymentHistoryData.from(payment), "매장 홍보 포스터 제작", 0L, "김학생",
+                                PaymentHistoryStatus.HELD, null, null),
+                        PaymentHistoryItemResult.of(
+                                PaymentHistoryData.from(refunded), "메뉴판 디자인", 80_000L, "김학생",
+                                PaymentHistoryStatus.PARTIALLY_REFUNDED, null, LocalDate.of(2026, 10, 5)),
+                        PaymentHistoryItemResult.of(
+                                PaymentHistoryData.from(settled), "로고 제작", 0L, "김학생",
+                                PaymentHistoryStatus.SETTLED, LocalDate.of(2026, 10, 8), null))))));
 
         mockMvc.perform(get("/payments").principal(authentication))
                 .andExpect(status().isOk())
@@ -293,15 +308,26 @@ class PaymentControllerTest {
                 .andExpect(jsonPath("$.data.summary.totalSettledAmount").value(3000000000L))
                 .andExpect(jsonPath("$.data.months.length()").value(1))
                 .andExpect(jsonPath("$.data.months[0].yearMonth").value("2026-10"))
-                .andExpect(jsonPath("$.data.months[0].payments.length()").value(1))
-                .andExpect(jsonPath("$.data.months[0].payments[0].length()").value(7))
+                .andExpect(jsonPath("$.data.months[0].payments.length()").value(3))
+                .andExpect(jsonPath("$.data.months[0].payments[0].length()").value(9))
                 .andExpect(jsonPath("$.data.months[0].payments[0].jobId").value(42))
                 .andExpect(jsonPath("$.data.months[0].payments[0].title").value("매장 홍보 포스터 제작"))
                 .andExpect(jsonPath("$.data.months[0].payments[0].amount").value(100000))
                 .andExpect(jsonPath("$.data.months[0].payments[0].refundAmount").value(0))
                 .andExpect(jsonPath("$.data.months[0].payments[0].approvedAt").value("2026-10-02T03:00:00Z"))
                 .andExpect(jsonPath("$.data.months[0].payments[0].studentName").value("김학생"))
-                .andExpect(jsonPath("$.data.months[0].payments[0].status").value("HELD"));
+                .andExpect(jsonPath("$.data.months[0].payments[0].status").value("HELD"))
+                // 해당하지 않는 날짜는 필드를 생략하지 않고 null로 내려준다
+                .andExpect(jsonPath("$.data.months[0].payments[0]", hasEntry("settledDate", null)))
+                .andExpect(jsonPath("$.data.months[0].payments[0]", hasEntry("refundedDate", null)))
+                .andExpect(jsonPath("$.data.months[0].payments[1].length()").value(9))
+                .andExpect(jsonPath("$.data.months[0].payments[1].status").value("PARTIALLY_REFUNDED"))
+                .andExpect(jsonPath("$.data.months[0].payments[1]", hasEntry("settledDate", null)))
+                .andExpect(jsonPath("$.data.months[0].payments[1].refundedDate").value("2026-10-05"))
+                .andExpect(jsonPath("$.data.months[0].payments[2].length()").value(9))
+                .andExpect(jsonPath("$.data.months[0].payments[2].status").value("SETTLED"))
+                .andExpect(jsonPath("$.data.months[0].payments[2].settledDate").value("2026-10-08"))
+                .andExpect(jsonPath("$.data.months[0].payments[2]", hasEntry("refundedDate", null)));
         verify(paymentFacade).getPaymentHistory(USERNAME);
     }
 
