@@ -2,7 +2,7 @@ package com.gakkum.backend.application.chat.facade;
 
 import java.time.Instant;
 import java.time.LocalDateTime;
-import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -318,9 +318,9 @@ public class ChatFacade {
         return MessageResult.attachment(message, view.url(), toLocalDateTime(view.expiresAt()));
     }
 
-    // 만료 시각은 createdAt과 같은 JVM 기본 시간대로 내린다
+    // 응답 DTO가 UTC로 해석해 한국 시각으로 바꾸므로 JVM 기본 시간대와 무관하게 UTC로 내린다
     private LocalDateTime toLocalDateTime(Instant instant) {
-        return LocalDateTime.ofInstant(instant, ZoneId.systemDefault());
+        return LocalDateTime.ofInstant(instant, ZoneOffset.UTC);
     }
 
     private static class Counterpart {

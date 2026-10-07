@@ -1,6 +1,6 @@
 package com.gakkum.backend.application.job.dto;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
 
@@ -10,6 +10,7 @@ import com.gakkum.backend.domain.job.dto.JobQueryDto.JobSubmissionDetailResult;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.PrepareSubmissionFileUploadResult;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.RevisionRequestResult;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.SubmissionFileResult;
+import com.gakkum.backend.global.response.KoreaTime;
 
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -84,7 +85,7 @@ public final class JobSubmissionResponse {
         private final List<File> files;
         private final String message;
         private final String reviewStatus;
-        private final LocalDateTime submittedAt;
+        private final OffsetDateTime submittedAt;
         private final RevisionRequest revisionRequest;
 
         public static Latest from(JobLatestSubmissionResult result) {
@@ -96,7 +97,7 @@ public final class JobSubmissionResponse {
                     .files(File.listFrom(result.getFiles()))
                     .message(result.getMessage())
                     .reviewStatus(result.getReviewStatus())
-                    .submittedAt(result.getSubmittedAt())
+                    .submittedAt(KoreaTime.from(result.getSubmittedAt()))
                     .revisionRequest(result.getRevisionRequest() == null
                             ? null
                             : RevisionRequest.from(result.getRevisionRequest()))
@@ -126,13 +127,13 @@ public final class JobSubmissionResponse {
 
         private final String message;
         private final List<String> referenceImageUrls;
-        private final LocalDateTime requestedAt;
+        private final OffsetDateTime requestedAt;
 
         public static RevisionRequest from(RevisionRequestResult result) {
             return RevisionRequest.builder()
                     .message(result.getMessage())
                     .referenceImageUrls(result.getReferenceImageUrls())
-                    .requestedAt(result.getRequestedAt())
+                    .requestedAt(KoreaTime.from(result.getRequestedAt()))
                     .build();
         }
     }
@@ -144,14 +145,14 @@ public final class JobSubmissionResponse {
 
         private final String uploadUrl;
         private final Map<String, String> uploadHeaders;
-        private final LocalDateTime uploadUrlExpiresAt;
+        private final OffsetDateTime uploadUrlExpiresAt;
         private final String fileUrl;
 
         public static PrepareFileUpload from(PrepareSubmissionFileUploadResult result) {
             return PrepareFileUpload.builder()
                     .uploadUrl(result.getUploadUrl())
                     .uploadHeaders(result.getUploadHeaders())
-                    .uploadUrlExpiresAt(result.getUploadUrlExpiresAt())
+                    .uploadUrlExpiresAt(KoreaTime.from(result.getUploadUrlExpiresAt()))
                     .fileUrl(result.getFileUrl())
                     .build();
         }

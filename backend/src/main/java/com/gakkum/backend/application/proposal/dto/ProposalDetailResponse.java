@@ -1,11 +1,8 @@
 package com.gakkum.backend.application.proposal.dto;
 
 import java.math.BigDecimal;
-import java.time.Instant;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
-import java.time.ZoneOffset;
+import java.time.OffsetDateTime;
 import java.util.List;
 
 import com.gakkum.backend.domain.job.entity.JobStatus;
@@ -16,6 +13,7 @@ import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.ProposalStudentRe
 import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.ProposalDetailResult;
 import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.SpecialtyCategoryResult;
 import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.SpecialtyResult;
+import com.gakkum.backend.global.response.KoreaTime;
 
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -26,8 +24,6 @@ import lombok.Getter;
 @Builder(access = AccessLevel.PRIVATE)
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 public class ProposalDetailResponse {
-
-    private static final ZoneId RESPONSE_ZONE = ZoneId.of("Asia/Seoul");
 
     private final Long proposalId;
     private final String title;
@@ -46,12 +42,11 @@ public class ProposalDetailResponse {
     private final Integer draftDays;
     private final Integer finalDays;
     private final List<String> referenceImageUrls;
-    // 한국 시각. 오프셋 없이 내린다
-    private final LocalDateTime createdAt;
+    private final OffsetDateTime createdAt;
     private final ProposalStatus status;
-    // 거절한 주체와 한국 시각의 거절 시각. 거절되지 않았거나 기록 전에 거절된 제안은 null
+    // 거절한 주체와 거절 시각. 거절되지 않았거나 기록 전에 거절된 제안은 null
     private final ProposalRejectedBy rejectedBy;
-    private final LocalDateTime rejectedAt;
+    private final OffsetDateTime rejectedAt;
     // 결제 전(PENDING)에만 내리는 한국 날짜 기준 예상 마감일
     private final LocalDate estimatedDraftDeadline;
     private final LocalDate estimatedFinalDeadline;
@@ -79,21 +74,15 @@ public class ProposalDetailResponse {
                 .draftDays(result.getDraftDays())
                 .finalDays(result.getFinalDays())
                 .referenceImageUrls(result.getReferenceImageUrls())
-                .createdAt(toKoreaTime(result.getCreatedAt()))
+                .createdAt(KoreaTime.from(result.getCreatedAt()))
                 .status(result.getStatus())
                 .rejectedBy(result.getRejectedBy())
-                .rejectedAt(toKoreaTime(result.getRejectedAt()))
+                .rejectedAt(KoreaTime.from(result.getRejectedAt()))
                 .estimatedDraftDeadline(result.getEstimatedDraftDeadline())
                 .estimatedFinalDeadline(result.getEstimatedFinalDeadline())
                 .jobId(result.getJobId())
                 .agreement(result.getAgreement() == null ? null : Agreement.from(result.getAgreement()))
                 .build();
-    }
-
-    /** UTC로 저장된 시각을 한국 시각으로 바꾼다. 제안 목록 응답과 함께 쓴다. */
-    static LocalDateTime toKoreaTime(LocalDateTime utc) {
-        return utc == null ? null
-                : utc.atOffset(ZoneOffset.UTC).atZoneSameInstant(RESPONSE_ZONE).toLocalDateTime();
     }
 
     @Getter
@@ -107,8 +96,8 @@ public class ProposalDetailResponse {
         private final LocalDate finalDeadline;
         private final Integer revisionCount;
         private final String messageToStudent;
-        private final Instant paidAt;
-        private final LocalDateTime startedAt;
+        private final OffsetDateTime paidAt;
+        private final OffsetDateTime startedAt;
 
         public static Agreement from(ProposalAgreementResult result) {
             return Agreement.builder()
@@ -118,8 +107,8 @@ public class ProposalDetailResponse {
                     .finalDeadline(result.getFinalDeadline())
                     .revisionCount(result.getRevisionCount())
                     .messageToStudent(result.getMessageToStudent())
-                    .paidAt(result.getPaidAt())
-                    .startedAt(result.getStartedAt())
+                    .paidAt(KoreaTime.from(result.getPaidAt()))
+                    .startedAt(KoreaTime.from(result.getStartedAt()))
                     .build();
         }
     }

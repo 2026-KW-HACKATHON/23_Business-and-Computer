@@ -1,6 +1,6 @@
 package com.gakkum.backend.application.payment.dto;
 
-import java.time.Instant;
+import java.time.OffsetDateTime;
 import java.time.LocalDate;
 import java.util.List;
 
@@ -9,6 +9,7 @@ import com.gakkum.backend.domain.payment.dto.PaymentQueryDto.PaymentHistoryItemR
 import com.gakkum.backend.domain.payment.dto.PaymentQueryDto.PaymentHistoryMonthResult;
 import com.gakkum.backend.domain.payment.dto.PaymentQueryDto.PaymentHistoryResult;
 import com.gakkum.backend.domain.payment.dto.PaymentQueryDto.PaymentHistorySummaryResult;
+import com.gakkum.backend.global.response.KoreaTime;
 
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -60,7 +61,7 @@ public class PaymentHistoryResponse {
         private final String title;
         private final Long amount;
         private final Long refundAmount;
-        private final Instant approvedAt;
+        private final OffsetDateTime approvedAt;
         private final String studentName;
         private final PaymentHistoryStatus status;
         private final LocalDate settledDate;
@@ -68,7 +69,8 @@ public class PaymentHistoryResponse {
 
         public static PaymentHistory from(PaymentHistoryItemResult result) {
             return new PaymentHistory(result.getJobId(), result.getTitle(), result.getAmount(),
-                    result.getRefundAmount(), result.getApprovedAt(), result.getStudentName(), result.getStatus(),
+                    result.getRefundAmount(), KoreaTime.from(result.getApprovedAt()), result.getStudentName(),
+                    result.getStatus(),
                     result.getSettledDate(), result.getRefundedDate());
         }
     }

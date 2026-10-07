@@ -1,11 +1,12 @@
 package com.gakkum.backend.application.proposal.dto;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 
 import com.gakkum.backend.domain.job.entity.JobStatus;
 import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.ProposalJobStartResult;
 import com.gakkum.backend.domain.proposal.entity.ProposalStatus;
+import com.gakkum.backend.global.response.KoreaTime;
 
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -20,7 +21,7 @@ public class ProposalJobStartResponse {
     private final Long jobId;
     private final JobStatus jobStatus;
     private final ProposalStatus proposalStatus;
-    private final LocalDateTime startedAt;
+    private final OffsetDateTime startedAt;
     private final String chatRoomId;
     private final LocalDate draftDeadline;
     private final LocalDate finalDeadline;
@@ -30,7 +31,7 @@ public class ProposalJobStartResponse {
                 .jobId(result.getJobId())
                 .jobStatus(result.getJobStatus())
                 .proposalStatus(result.getProposalStatus())
-                .startedAt(result.getStartedAt())
+                .startedAt(KoreaTime.from(result.getStartedAt()))
                 .chatRoomId(result.getChatRoomId())
                 .draftDeadline(result.getDraftDeadline())
                 .finalDeadline(result.getFinalDeadline())

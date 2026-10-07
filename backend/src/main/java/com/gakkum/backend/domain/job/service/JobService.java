@@ -2,7 +2,7 @@ package com.gakkum.backend.domain.job.service;
 
 import java.time.Clock;
 import java.time.LocalDateTime;
-import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -1118,6 +1118,6 @@ public class JobService {
     // createdAt과 같은 JVM 기본 시간대로 완료 시각을 기록한다.
     // PostgreSQL timestamp 정밀도(마이크로초)에 맞춰 반환값과 저장값이 어긋나지 않게 한다
     private LocalDateTime now() {
-        return LocalDateTime.ofInstant(clock.instant(), ZoneId.systemDefault()).truncatedTo(ChronoUnit.MICROS);
+        return LocalDateTime.ofInstant(clock.instant(), ZoneOffset.UTC).truncatedTo(ChronoUnit.MICROS);
     }
 }

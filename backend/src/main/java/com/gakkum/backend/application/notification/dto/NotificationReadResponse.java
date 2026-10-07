@@ -1,8 +1,9 @@
 package com.gakkum.backend.application.notification.dto;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 
 import com.gakkum.backend.domain.notification.dto.NotificationQueryDto.NotificationReadResult;
+import com.gakkum.backend.global.response.KoreaTime;
 
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -15,12 +16,12 @@ import lombok.Getter;
 public class NotificationReadResponse {
 
     private final Long notificationId;
-    private final LocalDateTime readAt;
+    private final OffsetDateTime readAt;
 
     public static NotificationReadResponse from(NotificationReadResult result) {
         return NotificationReadResponse.builder()
                 .notificationId(result.getNotificationId())
-                .readAt(result.getReadAt())
+                .readAt(KoreaTime.from(result.getReadAt()))
                 .build();
     }
 }

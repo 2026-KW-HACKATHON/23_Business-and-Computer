@@ -2,7 +2,7 @@ package com.gakkum.backend.application.demo.facade;
 
 import java.time.Clock;
 import java.time.LocalDateTime;
-import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Locale;
 
@@ -92,7 +92,7 @@ public class DemoFacade {
 
     /** 인증 없이 호출마다 행이 생기므로 최근 1시간에 만든 세션 수가 상한에 닿으면 새로 만들지 않는다. */
     private User createSession(UserRole requestedRole) {
-        LocalDateTime oneHourAgo = LocalDateTime.ofInstant(clock.instant(), ZoneId.systemDefault()).minusHours(1);
+        LocalDateTime oneHourAgo = LocalDateTime.ofInstant(clock.instant(), ZoneOffset.UTC).minusHours(1);
         if (userService.countDemoSessionsCreatedAfter(oneHourAgo) >= maxNewSessionsPerHour) {
             throw new BusinessException(ErrorCode.DEMO_SESSION_LIMIT_EXCEEDED);
         }
