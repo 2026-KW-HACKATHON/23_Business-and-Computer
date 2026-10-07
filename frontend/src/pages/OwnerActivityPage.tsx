@@ -4,7 +4,6 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   Button,
   CategoryBadge,
-  Dialog,
   EmpathyCount,
   LoadNotice,
   ReportSheet,
@@ -125,8 +124,7 @@ function OwnerActivityPage() {
   const { summary } = useOwnerPayments();
   const [planContent, setPlanContent] = useState<WorkPlanSheetContent>();
   const [reportTitle, setReportTitle] = useState<string>();
-  // 맡은 학생의 프로필 API 가 없어서 「프로필 보기」는 곧 열린다는 안내
-  const [profileSoon, setProfileSoon] = useState(false);
+  const openStudent = (studentProfileId: number) => navigate(OWNER_PATHS.student(String(studentProfileId)));
 
   const done = closedJobs.filter((job) => job.outcome === "completed");
   const canceled = closedJobs.filter((job) => job.outcome === "canceled");
@@ -206,6 +204,7 @@ function OwnerActivityPage() {
         <StudentLine
           name={proposal.student.name}
           department={studentMetaText(proposal.student.studentNumber, proposal.student.major)}
+          onProfile={() => openStudent(proposal.student.studentProfileId)}
         />
         {proposal.status === "PENDING" && (
           <>
@@ -253,7 +252,7 @@ function OwnerActivityPage() {
           name={job.student.name}
           year={admissionYearText(job.student.studentNumber)}
           department={job.student.major}
-          onProfile={() => setProfileSoon(true)}
+          onProfile={() => openStudent(job.student.profileId)}
         />
         {submitted ? (
           <>
@@ -416,18 +415,6 @@ function OwnerActivityPage() {
         content={planContent}
         onClose={() => setPlanContent(undefined)}
         onChat={() => navigate(OWNER_PATHS.chats)}
-      />
-      <Dialog
-        open={profileSoon}
-        image="sorryOwner"
-        title="학생 프로필은 곧 볼 수 있어요"
-        description={"지금은 작업 중인 학생의 프로필을 열 수 없어요.\n준비되면 여기서 바로 볼 수 있어요."}
-        onClose={() => setProfileSoon(false)}
-        actions={
-          <Button fullWidth onClick={() => setProfileSoon(false)}>
-            확인
-          </Button>
-        }
       />
       <ReportSheet
         open={reportTitle !== undefined}

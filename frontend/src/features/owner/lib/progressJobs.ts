@@ -32,6 +32,8 @@ export interface OwnerProgressJob {
   /** 도착한 결과물 id (submitted 일 때만) */
   pendingSubmissionId?: number;
   student: {
+    /** 「프로필 보기」 (GET /students/{id}/profile) */
+    profileId: number;
     /** 채팅방 · 받은 제안에서 채운다. 못 불러오면 없음 */
     name?: string;
     studentNumber?: string;
@@ -148,6 +150,7 @@ export async function loadOwnerProgressJobs(): Promise<OwnerProgressJobsResult> 
         revisionSubmitted: job.submissionType === "REVISION",
         pendingSubmissionId: job.pendingSubmissionId ?? undefined,
         student: {
+          profileId: job.studentProfileId,
           name,
           studentNumber: job.studentNumber ?? undefined,
           major: job.major?.trim() || undefined,
