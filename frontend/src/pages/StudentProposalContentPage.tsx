@@ -5,6 +5,7 @@ import {
   BudgetField,
   Button,
   FormField,
+  PhotoViewer,
   StepIndicator,
   SubScreen,
   TextAreaField,
@@ -87,6 +88,8 @@ function StudentProposalContentPage() {
   const fileInput = useRef<HTMLInputElement>(null);
   const photoUrls = useObjectUrls(content.photos);
   const [photoError, setPhotoError] = useState<keyof typeof PHOTO_ERROR_TEXT | null>(null);
+  // 크게 보는 사진의 순서. 닫혀 있으면 null
+  const [viewing, setViewing] = useState<number | null>(null);
 
   if (!state?.store || state.picked.length === 0) {
     return <Navigate to={STUDENT_PATHS.newProposal} replace />;
@@ -225,7 +228,14 @@ function StudentProposalContentPage() {
             )}
             {content.photos.map((photo, i) => (
               <div key={`${photo.name}-${i}`} className="student-new__file">
-                <img className="student-new__thumb" src={photoUrls[i]} alt="" />
+                <button
+                  type="button"
+                  className="student-new__thumb-button"
+                  aria-label={`${photo.name} 크게 보기`}
+                  onClick={() => setViewing(i)}
+                >
+                  <img className="student-new__thumb" src={photoUrls[i]} alt="" />
+                </button>
                 <strong>{photo.name}</strong>
                 <small>{sizeText(photo.size)}</small>
                 <button
@@ -238,6 +248,14 @@ function StudentProposalContentPage() {
               </div>
             ))}
           </div>
+          {viewing !== null && viewing < content.photos.length && (
+            <PhotoViewer
+              photos={content.photos.map((photo, i) => ({ url: photoUrls[i], name: photo.name }))}
+              index={viewing}
+              onIndex={setViewing}
+              onClose={() => setViewing(null)}
+            />
+          )}
           {photoError && (
             <p className="student-new__photo-error" role="alert">
               {PHOTO_ERROR_TEXT[photoError]}

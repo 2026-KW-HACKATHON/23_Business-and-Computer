@@ -40,6 +40,7 @@ function ReferencePhotos({ urls, names }: ReferencePhotosProps) {
   const isBroken = (url: string) => failed.has(url) || !isPhotoUrl(url);
   // 크게 볼 수 있는 사진의 순서 (불러오지 못한 사진은 건너뛴다)
   const viewable = urls.flatMap((url, i) => (isBroken(url) ? [] : [i]));
+  const photos = viewable.map((i) => ({ url: urls[i], name: labels[i] }));
 
   return (
     <>
@@ -72,11 +73,9 @@ function ReferencePhotos({ urls, names }: ReferencePhotosProps) {
       </ul>
       {open !== null && viewable.includes(open) && (
         <PhotoViewer
-          urls={urls}
-          labels={labels}
-          viewable={viewable}
-          index={open}
-          onIndex={setOpen}
+          photos={photos}
+          index={viewable.indexOf(open)}
+          onIndex={(position) => setOpen(viewable[position])}
           onClose={() => setOpen(null)}
         />
       )}
@@ -84,32 +83,39 @@ function ReferencePhotos({ urls, names }: ReferencePhotosProps) {
   );
 }
 
+export interface ViewerPhoto {
+  url: string;
+  /** 위에 보일 파일 이름 */
+  name: string;
+}
+
 interface PhotoViewerProps {
-  urls: string[];
-  labels: string[];
-  /** 넘겨 볼 수 있는 사진의 순서 */
-  viewable: number[];
+  /** 넘겨 볼 사진들 */
+  photos: ViewerPhoto[];
+  /** 지금 보는 사진의 순서 */
   index: number;
   onIndex: (index: number) => void;
   onClose: () => void;
 }
 
-/** 사진 크게 보기. 화면을 덮고, 바깥 · 사진을 누르거나 Esc 로 닫는다. 여러 장이면 양옆 화살표 · 방향키로 넘긴다 */
-function PhotoViewer({ urls, labels, viewable, index, onIndex, onClose }: PhotoViewerProps) {
-  const position = viewable.indexOf(index);
-  const many = viewable.length > 1;
+/**
+ * 사진 크게 보기. 앱 화면 폭 안을 덮고, 바깥 · 사진을 누르거나 Esc 로 닫는다.
+ * 여러 장이면 양옆 화살표 · 방향키로 넘긴다. 참고 사진 칸 밖(사진 고르는 칸의 썸네일 등)에서도 쓴다
+ */
+export function PhotoViewer({ photos, index, onIndex, onClose }: PhotoViewerProps) {
+  const many = photos.length > 1;
+  const photo = photos[index];
 
   useEffect(() => {
-    const step = (delta: number) =>
-      onIndex(viewable[(position + delta + viewable.length) % viewable.length]);
+    const step = (delta: number) => onIndex((index + delta + photos.length) % photos.length);
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
-      else if (e.key === "ArrowRight" && viewable.length > 1) step(1);
-      else if (e.key === "ArrowLeft" && viewable.length > 1) step(-1);
+      else if (e.key === "ArrowRight" && photos.length > 1) step(1);
+      else if (e.key === "ArrowLeft" && photos.length > 1) step(-1);
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [position, viewable, onIndex, onClose]);
+  }, [index, photos.length, onIndex, onClose]);
 
   // 보는 동안 뒤 화면이 스크롤되지 않게
   useEffect(() => {
@@ -122,29 +128,31 @@ function PhotoViewer({ urls, labels, viewable, index, onIndex, onClose }: PhotoV
 
   const go = (delta: number) => (e: MouseEvent) => {
     e.stopPropagation();
-    onIndex(viewable[(position + delta + viewable.length) % viewable.length]);
+    onIndex((index + delta + photos.length) % photos.length);
   };
+
+  if (!photo) return null;
 
   return createPortal(
     <div
       className="photo-viewer"
       role="dialog"
       aria-modal="true"
-      aria-label={`${labels[index]} 크게 보기`}
+      aria-label={`${photo.name} 크게 보기`}
       onClick={onClose}
     >
       <div className="photo-viewer__top">
-        <span className="photo-viewer__name">{labels[index]}</span>
+        <span className="photo-viewer__name">{photo.name}</span>
         {many && (
           <span className="photo-viewer__count">
-            {position + 1} / {viewable.length}
+            {index + 1} / {photos.length}
           </span>
         )}
         <button type="button" className="photo-viewer__close" aria-label="닫기" onClick={onClose}>
           ✕
         </button>
       </div>
-      <img className="photo-viewer__image" src={urls[index]} alt={labels[index]} />
+      <img className="photo-viewer__image" src={photo.url} alt={photo.name} />
       {many && (
         <>
           <button type="button" className="photo-viewer__nav photo-viewer__nav--prev" aria-label="이전 사진" onClick={go(-1)}>
