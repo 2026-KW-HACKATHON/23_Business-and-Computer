@@ -1,38 +1,36 @@
-import type { WorkKind } from "../../../types/workKind";
-import type { NotificationType, OwnerNotification } from "../types";
+import { isKnownNotificationType, numericTargetId } from "../../notification";
+import type { NotificationItem } from "../../notification";
 import { OWNER_PATHS } from "./paths";
 
-/** 알림 동그라미 안 아이콘: 종류 아이콘 또는 이모지 */
-export const NOTIFICATION_ICON: Record<NotificationType, WorkKind | string> = {
-  DRAFT_SUBMITTED: "request",
-  REVISION_SUBMITTED: "request",
-  PROPOSAL_RECEIVED: "proposal",
-  APPLICATION_RECEIVED: "request",
-  CHAT_MESSAGE: "💬",
-  PAYMENT_ESCROWED: "💳",
-  AUTO_COMPLETE_SOON: "request",
-  REVIEW_REQUEST: "⭐",
-  WORK_COMPLETED: "✅",
-};
-
-/** 알림을 누르면 가는 화면 (노션 「알림 (항목 종류 → 이동)」) */
-export function notificationPath({ type, targetId }: OwnerNotification): string {
-  switch (type) {
-    case "DRAFT_SUBMITTED":
-    case "REVISION_SUBMITTED":
-    case "AUTO_COMPLETE_SOON":
-      return OWNER_PATHS.workCheck(targetId);
-    case "PROPOSAL_RECEIVED":
-      return OWNER_PATHS.activity("proposals");
-    case "APPLICATION_RECEIVED":
-      return OWNER_PATHS.requestApplicants(targetId);
-    case "CHAT_MESSAGE":
-      return OWNER_PATHS.chats;
-    case "PAYMENT_ESCROWED":
-      return OWNER_PATHS.activity("inProgress");
-    case "REVIEW_REQUEST":
-      return OWNER_PATHS.workReview(targetId);
-    case "WORK_COMPLETED":
-      return OWNER_PATHS.workResult(targetId);
+/**
+ * 사장님이 알림을 누르면 가는 화면. 종류에 맞는 화면을 먼저 보고, 없으면 대상 종류로 간다.
+ * 모르는 종류 · 대상이거나 id 가 맞지 않으면 undefined (목록에 보이되 이동하지 않는다).
+ */
+export function notificationPath(item: NotificationItem): string | undefined {
+  if (!isKnownNotificationType(item.type)) return undefined;
+  const id = numericTargetId(item);
+  if (item.targetType === "JOB" && id) {
+    switch (item.type) {
+      case "JOB_DRAFT_SUBMITTED":
+        return OWNER_PATHS.workCheck(id);
+      case "JOB_APPLICATION_RECEIVED":
+        return OWNER_PATHS.requestApplicants(id);
+      case "JOB_COMPLETED":
+        return OWNER_PATHS.workResult(id);
+    }
+  }
+  switch (item.targetType) {
+    case "JOB":
+      // 의뢰서 상세는 모집 중 · 진행 중 · 끝난 의뢰 모두 연다
+      return id ? OWNER_PATHS.request(id) : undefined;
+    case "PROPOSAL":
+      return id ? OWNER_PATHS.proposal(id) : undefined;
+    case "CHAT_ROOM":
+      return item.targetId ? OWNER_PATHS.chat(item.targetId) : undefined;
+    case "PAYMENT":
+      // 결제 하나를 여는 화면이 없어 결제 내역으로
+      return OWNER_PATHS.payments;
+    default:
+      return undefined;
   }
 }

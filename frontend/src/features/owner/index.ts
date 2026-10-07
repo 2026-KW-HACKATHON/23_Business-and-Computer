@@ -11,13 +11,11 @@ export { default as WorkPlanSheet } from "./components/WorkPlanSheet";
 export {
   completeOwnerWork,
   markOwnerWorkReviewed,
-  useOwnerNotifications,
   useOwnerRequests,
   useOwnerWork,
   useOwnerWorks,
   useRequestExample,
 } from "./hooks/useOwnerData";
-export { markOwnerNotificationsRead } from "./hooks/ownerDemo";
 export { useJobAssignment } from "./hooks/useJobAssignment";
 export type { JobAssignment } from "./hooks/useJobAssignment";
 export { useOwnerHome } from "./hooks/useOwnerHome";
@@ -105,7 +103,7 @@ export {
   uploadRequestPhoto,
 } from "./lib/newRequest";
 export type { NewRequestState } from "./lib/newRequest";
-export { NOTIFICATION_ICON, notificationPath } from "./lib/notifications";
+export { notificationPath } from "./lib/notifications";
 export { OWNER_PATHS } from "./lib/paths";
 export { startReward } from "./lib/payment";
 export type { ActivityTab } from "./lib/paths";
@@ -113,7 +111,6 @@ export type {
   DueDates,
   OwnerDoneItem,
   OwnerHome,
-  OwnerNotification,
   OwnerRequest,
   OwnerTodo,
   OwnerWaitingItem,
