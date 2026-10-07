@@ -1055,15 +1055,15 @@ public class JobService {
         }
         if (command.isOldestFirst()) {
             return readInSegments(command.getLimit(),
-                    limit -> jobRepository.findByDemoSessionIdAndStatusNotAndCreatedAtAndIdGreaterThanOrderByIdAsc(
+                    limit -> jobRepository.findByDemoSessionIdAndStatusNotAndProposalIdIsNullAndCreatedAtAndIdGreaterThanOrderByIdAsc(
                             demoSessionId, JobStatus.CANCELLED, createdAt, idBound, limit),
-                    limit -> jobRepository.findByDemoSessionIdAndStatusNotAndCreatedAtGreaterThanOrderByCreatedAtAscIdAsc(
+                    limit -> jobRepository.findByDemoSessionIdAndStatusNotAndProposalIdIsNullAndCreatedAtGreaterThanOrderByCreatedAtAscIdAsc(
                             demoSessionId, JobStatus.CANCELLED, createdAt, limit));
         }
         return readInSegments(command.getLimit(),
-                limit -> jobRepository.findByDemoSessionIdAndStatusNotAndCreatedAtAndIdLessThanOrderByIdDesc(
+                limit -> jobRepository.findByDemoSessionIdAndStatusNotAndProposalIdIsNullAndCreatedAtAndIdLessThanOrderByIdDesc(
                         demoSessionId, JobStatus.CANCELLED, createdAt, idBound, limit),
-                limit -> jobRepository.findByDemoSessionIdAndStatusNotAndCreatedAtLessThanOrderByCreatedAtDescIdDesc(
+                limit -> jobRepository.findByDemoSessionIdAndStatusNotAndProposalIdIsNullAndCreatedAtLessThanOrderByCreatedAtDescIdDesc(
                         demoSessionId, JobStatus.CANCELLED, createdAt, limit));
     }
 
