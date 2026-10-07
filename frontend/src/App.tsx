@@ -38,6 +38,7 @@ import OwnerAssignPage from './pages/OwnerAssignPage'
 import OwnerPayPage from './pages/OwnerPayPage'
 import OwnerProposalAcceptPage from './pages/OwnerProposalAcceptPage'
 import OwnerRevisionPage from './pages/OwnerRevisionPage'
+import OwnerRevisionSentPage from './pages/OwnerRevisionSentPage'
 import OwnerReviewPage from './pages/OwnerReviewPage'
 import OwnerReviewDonePage from './pages/OwnerReviewDonePage'
 import OwnerWorkCancelPage from './pages/OwnerWorkCancelPage'
@@ -134,6 +135,7 @@ function App() {
       <Route path="/owner/requests/:requestId/assign/:applicationId/pay" element={<OwnerPayPage />} />
       <Route path="/owner/students/:studentId" element={<OwnerStudentPage />} />
       <Route path="/owner/works/:workId/revision" element={<OwnerRevisionPage />} />
+      <Route path="/owner/works/:workId/revision/sent" element={<OwnerRevisionSentPage />} />
       <Route path="/owner/works/:workId/review" element={<OwnerReviewPage />} />
       <Route path="/owner/works/:workId/review/done" element={<OwnerReviewDonePage />} />
       <Route path="/owner/works/:workId/cancel" element={<OwnerWorkCancelPage />} />

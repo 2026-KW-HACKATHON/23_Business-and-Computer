@@ -31,6 +31,7 @@ export {
   useApplicantProfile,
   useJobApplications,
   useJobResult,
+  useLatestJobSubmission,
   useOpenJobs,
   useOwnerStudentProfile,
   usePendingSubmission,

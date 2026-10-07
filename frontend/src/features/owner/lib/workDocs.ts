@@ -3,7 +3,7 @@ import type { WorkKind } from "../../../types/workKind";
 import { OWNER_PATHS } from "./paths";
 
 /**
- * 작업 서류마다 사장님이 여는 화면. 보낸 수정 요청 · 지난 초안 · 지난 수정안 · 남긴 후기는 서버가 아직
+ * 작업 서류마다 사장님이 여는 화면. 지난 초안 · 지난 수정안 · 지난 수정 요청 · 남긴 후기는 서버가 아직
  * 주지 않아 없다 (서류 이력 API 요청 중, ADR 0045)
  */
 export function ownerWorkDocPath(
@@ -25,6 +25,7 @@ export function ownerWorkDocPath(
     case "canceled":
       return OWNER_PATHS.workCanceled(id);
     case "revisionRequest":
+      return stage === "revising" ? OWNER_PATHS.workRevisionSent(id) : undefined;
     case "review":
       return undefined;
   }

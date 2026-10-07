@@ -101,3 +101,33 @@ export async function requestSubmissionRevision(
     body: JSON.stringify(request),
   });
 }
+
+/** GET /jobs/{jobId}/submissions/latest 의 답. 마지막 결과물과 그 결과물에 보낸 수정 요청 */
+export interface LatestJobSubmissionResponse {
+  submissionId: number;
+  submissionType: SubmissionType;
+  /** 초안 0, 수정안은 1부터 */
+  revisionNumber: number;
+  reviewStatus: "PENDING" | "REVISION_REQUESTED" | "APPROVED";
+  /** 한국 시각 "2026-10-07T15:22:05+09:00" */
+  submittedAt: string;
+  /** 이 결과물에 보낸 수정 요청. 보내지 않았으면 없음 */
+  revisionRequest?: {
+    /** 고칠 곳 */
+    message?: string | null;
+    /** 참고 사진 주소 (4장까지) */
+    referenceImageUrls?: string[] | null;
+    /** 한국 시각 "2026-10-07T15:22:05+09:00" */
+    requestedAt: string;
+  } | null;
+}
+
+/**
+ * GET /jobs/{jobId}/submissions/latest — 마지막 결과물과 그 수정 요청. 지금은 맡은 학생에게만 열려 있어
+ * 사장님은 404 를 받는다 (백엔드 요청 중, ADR 0045)
+ */
+export async function fetchLatestJobSubmission(jobId: number): Promise<LatestJobSubmissionResponse> {
+  const data = await apiData<LatestJobSubmissionResponse | undefined>(`/jobs/${jobId}/submissions/latest`);
+  if (!data) throw new Error("Latest submission response has no data");
+  return data;
+}

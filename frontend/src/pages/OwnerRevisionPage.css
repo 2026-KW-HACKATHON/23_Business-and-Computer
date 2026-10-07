@@ -176,3 +176,13 @@
   color: var(--color-danger);
   text-align: center;
 }
+
+/* 보낸 수정 요청 보기: 요청 내용을 입력칸 모양 그대로 읽기만 한다 */
+.owner-revision__sent-text {
+  min-height: 104px;
+  font-size: 15px;
+  line-height: 22px;
+  color: var(--color-black);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
