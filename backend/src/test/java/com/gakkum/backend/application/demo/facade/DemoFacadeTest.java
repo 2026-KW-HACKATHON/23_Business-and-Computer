@@ -14,7 +14,6 @@ import static org.mockito.Mockito.when;
 
 import java.time.Clock;
 import java.time.Instant;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
@@ -31,8 +30,6 @@ import com.gakkum.backend.application.demo.dto.DemoLoginRequest;
 import com.gakkum.backend.application.demo.dto.DemoLoginResponse;
 import com.gakkum.backend.application.demo.dto.DemoRole;
 import com.gakkum.backend.domain.category.service.BusinessCategoryService;
-import com.gakkum.backend.domain.job.dto.JobCommandDto.CreateJobCommand;
-import com.gakkum.backend.domain.job.service.JobService;
 import com.gakkum.backend.domain.jwt.service.JwtService;
 import com.gakkum.backend.domain.owner.dto.OwnerCommandDto.CreateOwnerProfileCommand;
 import com.gakkum.backend.domain.owner.entity.Owner;
@@ -59,12 +56,11 @@ class DemoFacadeTest {
     private final StudentService studentService = mock(StudentService.class);
     private final BusinessCategoryService businessCategoryService = mock(BusinessCategoryService.class);
     private final SpecialtyService specialtyService = mock(SpecialtyService.class);
-    private final JobService jobService = mock(JobService.class);
+    private final DemoSampleDataSeeder sampleDataSeeder = mock(DemoSampleDataSeeder.class);
     private final JwtService jwtService = mock(JwtService.class);
-    // 한국 시간 2026-10-05 08:00. UTC 날짜(10-04)와 달라 예시 의뢰 마감일이 한국 날짜 기준인지 드러난다
     private final Clock clock = Clock.fixed(Instant.parse("2026-10-04T23:00:00Z"), ZoneOffset.UTC);
     private final DemoFacade facade = new DemoFacade(userService, ownerService, studentService,
-            businessCategoryService, specialtyService, jobService, jwtService, clock, MAX_NEW_SESSIONS_PER_HOUR);
+            businessCategoryService, specialtyService, sampleDataSeeder, jwtService, clock, MAX_NEW_SESSIONS_PER_HOUR);
 
     @BeforeEach
     void givenTokens() {
@@ -97,8 +93,8 @@ class DemoFacadeTest {
     }
 
     @Test
-    @DisplayName("새 세션에는 데모 표시가 붙은 매장, 특기가 있는 학생 프로필, 모집 중 의뢰 2건을 같은 세션으로 채운다")
-    void seedsStoreStudentAndOpenJobs() {
+    @DisplayName("새 세션에는 데모 표시가 붙은 매장과 특기가 있는 학생 프로필을 만들고 같은 세션의 예시 데이터를 채운다")
+    void seedsStoreStudentAndSampleData() {
         givenNewSessionDependencies(List.of(11L, 12L));
 
         String session = facade.login(DemoLoginRequest.of(DemoRole.OWNER, null)).getDemoSessionId();
@@ -124,27 +120,23 @@ class DemoFacadeTest {
         assertThat(specialtyCaptor.getAllValues()).extracting(AddStudentSpecialtyCommand::getSpecialtyId)
                 .containsExactly(11L, 12L);
 
-        ArgumentCaptor<CreateJobCommand> jobCaptor = ArgumentCaptor.forClass(CreateJobCommand.class);
-        verify(jobService, times(2)).createJob(jobCaptor.capture(), eq(session));
-        LocalDate koreaToday = LocalDate.of(2026, 10, 5);
-        assertThat(jobCaptor.getAllValues()).allSatisfy(job -> {
-            assertThat(job.getOwnerProfileId()).isEqualTo(5L);
-            assertThat(job.getSpecialtyIds()).containsExactly(11L, 12L);
-            assertThat(job.getTitle()).startsWith("[데모]");
-            assertThat(job.getBudget()).isPositive();
-            assertThat(job.getDraftDeadline()).isAfter(koreaToday).isBeforeOrEqualTo(job.getFinalDeadline());
-        });
+        ArgumentCaptor<DemoSampleDataSeeder.Visitor> visitorCaptor =
+                ArgumentCaptor.forClass(DemoSampleDataSeeder.Visitor.class);
+        verify(sampleDataSeeder).seed(visitorCaptor.capture());
+        assertThat(visitorCaptor.getValue().demoSessionId()).isEqualTo(session);
+        assertThat(visitorCaptor.getValue().store().getId()).isEqualTo(5L);
+        assertThat(visitorCaptor.getValue().student().getId()).isEqualTo(7L);
     }
 
     @Test
-    @DisplayName("특기 기준 데이터가 없어도 특기 없이 계정과 예시 의뢰를 만든다")
+    @DisplayName("특기 기준 데이터가 없어도 특기 없이 계정을 만들고 예시 데이터를 채운다")
     void seedsWithoutSpecialties() {
         givenNewSessionDependencies(List.of());
 
         facade.login(DemoLoginRequest.of(DemoRole.STUDENT, null));
 
         verify(specialtyService, never()).addStudentSpecialty(any());
-        verify(jobService, times(2)).createJob(any(), anyString());
+        verify(sampleDataSeeder).seed(any());
     }
 
     @Test
@@ -170,7 +162,7 @@ class DemoFacadeTest {
                         assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.DEMO_SESSION_LIMIT_EXCEEDED));
 
         verify(userService, never()).createDemoUser(any(), any(), any(), any());
-        verifyNoInteractions(ownerService, studentService, jobService, jwtService);
+        verifyNoInteractions(ownerService, studentService, sampleDataSeeder, jwtService);
     }
 
     @Test
@@ -199,7 +191,7 @@ class DemoFacadeTest {
                 .isEqualTo("refresh:DEMO_" + SESSION + "_" + role.name() + ":" + role.name());
         verify(userService, never()).createDemoUser(any(), any(), any(), any());
         verify(userService, never()).countDemoSessionsCreatedAfter(any());
-        verifyNoInteractions(ownerService, studentService, jobService, specialtyService, businessCategoryService);
+        verifyNoInteractions(ownerService, studentService, sampleDataSeeder, specialtyService, businessCategoryService);
     }
 
     @Test
