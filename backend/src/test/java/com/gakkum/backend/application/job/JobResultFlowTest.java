@@ -21,6 +21,8 @@ import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
@@ -113,7 +115,7 @@ class JobResultFlowTest {
                 .andExpect(jsonPath("$.data.jobId").value(42))
                 .andExpect(jsonPath("$.data.title").value("가게 메뉴판 디자인"))
                 .andExpect(jsonPath("$.data.studentName").value("김학생"))
-                .andExpect(jsonPath("$.data.completedAt").value("2026-09-20"))
+                .andExpect(jsonPath("$.data.completedAt").value("2026-09-21"))
                 .andExpect(jsonPath("$.data.normalCompleted").value(true))
                 .andExpect(jsonPath("$.data.workFee").value(150000))
                 .andExpect(jsonPath("$.data.fileUrls", contains("https://cdn.example/81-a.png", "https://cdn.example/81-b.pdf")))
@@ -121,7 +123,7 @@ class JobResultFlowTest {
                 .andExpect(jsonPath("$.data.workHistory[*].type",
                         contains("STARTED", "DRAFT_SUBMITTED", "COMPLETED")))
                 .andExpect(jsonPath("$.data.workHistory[*].date",
-                        contains(STARTED_DATE, "2026-09-10", "2026-09-20")));
+                        contains(STARTED_DATE, "2026-09-10", "2026-09-21")));
     }
 
     @Test
@@ -149,7 +151,55 @@ class JobResultFlowTest {
                 .andExpect(jsonPath("$.data.workHistory[*].type",
                         contains("STARTED", "DRAFT_SUBMITTED", "COMPLETED")))
                 .andExpect(jsonPath("$.data.workHistory[*].date",
-                        contains("2026-09-05", "2026-09-10", "2026-09-20")));
+                        contains("2026-09-05", "2026-09-10", "2026-09-21")));
+    }
+
+    @ParameterizedTest
+    @DisplayName("완료 날짜와 완료 이력 날짜는 UTC로 저장된 완료 시각의 한국 날짜로 일치하고, 제출 날짜는 저장된 날짜 그대로다")
+    @CsvSource({
+            "2026-10-06T14:59:59, 2026-10-06",
+            "2026-10-06T15:00:00, 2026-10-07",
+            "2026-10-06T23:59:59, 2026-10-07",
+            "2026-10-31T15:00:00, 2026-11-01",
+            "2026-12-31T15:00:00, 2027-01-01"
+    })
+    void returnsKoreanCompletedDate(String completedAtUtc, String expectedDate) throws Exception {
+        givenActiveOwner(5L);
+        givenClosedJob();
+        givenClosedJobCompletedAt(null, null, completedAtUtc);
+        givenSubmissions(submission(81L, 0, JobSubmissionReviewStatus.APPROVED,
+                LocalDateTime.of(2026, 9, 10, 23, 30), null));
+        givenPaidPayment();
+
+        mockMvc.perform(get(URL).principal(authentication))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.completedAt").value(expectedDate))
+                .andExpect(jsonPath("$.data.workHistory[*].date",
+                        contains(STARTED_DATE, "2026-09-10", expectedDate)));
+    }
+
+    @ParameterizedTest
+    @DisplayName("제안으로 만든 의뢰도 완료 날짜는 한국 날짜로 내리고 시작 날짜는 저장된 날짜 그대로다")
+    @CsvSource({
+            "2026-10-06T14:59:59, 2026-10-06",
+            "2026-10-06T15:00:00, 2026-10-07",
+            "2026-10-06T23:59:59, 2026-10-07",
+            "2026-10-31T15:00:00, 2026-11-01",
+            "2026-12-31T15:00:00, 2027-01-01"
+    })
+    void returnsKoreanCompletedDateForProposalJob(String completedAtUtc, String expectedDate) throws Exception {
+        givenActiveOwner(5L);
+        givenClosedJob();
+        givenClosedJobCompletedAt(31L, LocalDateTime.of(2026, 9, 5, 23, 0), completedAtUtc);
+        givenSubmissions(submission(81L, 0, JobSubmissionReviewStatus.APPROVED,
+                LocalDateTime.of(2026, 9, 10, 9, 30), null));
+        givenPaidPayment();
+
+        mockMvc.perform(get(URL).principal(authentication))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.completedAt").value(expectedDate))
+                .andExpect(jsonPath("$.data.workHistory[*].date",
+                        contains("2026-09-05", "2026-09-10", expectedDate)));
     }
 
     @Test
@@ -171,7 +221,7 @@ class JobResultFlowTest {
                 .andExpect(jsonPath("$.data.workHistory[*].type", contains(
                         "STARTED", "DRAFT_SUBMITTED", "REVISION_REQUESTED", "REVISION_SUBMITTED", "COMPLETED")))
                 .andExpect(jsonPath("$.data.workHistory[*].date", contains(
-                        STARTED_DATE, "2026-09-10", "2026-09-11", "2026-09-13", "2026-09-20")));
+                        STARTED_DATE, "2026-09-10", "2026-09-11", "2026-09-13", "2026-09-21")));
     }
 
     @Test
@@ -310,12 +360,27 @@ class JobResultFlowTest {
                 .budget(150000L)
                 .status(JobStatus.CLOSED)
                 .selectedStudentProfileId(7L)
+                // UTC 15시는 한국 시간으로 다음 날 0시다
                 .completedAt(LocalDateTime.of(2026, 9, 20, 15, 0))
                 .build()));
         when(studentRepository.findById(7L))
                 .thenReturn(Optional.of(Student.builder().id(7L).userId(STUDENT_USER_ID).build()));
         when(userRepository.findById(STUDENT_USER_ID))
                 .thenReturn(Optional.of(User.builder().id(STUDENT_USER_ID).name("김학생").build()));
+    }
+
+    private void givenClosedJobCompletedAt(Long proposalId, LocalDateTime startedAt, String completedAtUtc) {
+        when(jobRepository.findById(42L)).thenReturn(Optional.of(Job.builder()
+                .id(42L)
+                .ownerProfileId(5L)
+                .title("가게 메뉴판 디자인")
+                .budget(150000L)
+                .status(JobStatus.CLOSED)
+                .selectedStudentProfileId(7L)
+                .proposalId(proposalId)
+                .startedAt(startedAt)
+                .completedAt(LocalDateTime.parse(completedAtUtc))
+                .build()));
     }
 
     private void givenSubmissions(JobSubmission... submissions) {

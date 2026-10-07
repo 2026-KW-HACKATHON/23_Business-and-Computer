@@ -24,6 +24,8 @@ import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 
 import com.gakkum.backend.application.payment.service.PaymentApprovalService;
 import com.gakkum.backend.application.payment.service.PaymentPreparationService;
@@ -548,6 +550,26 @@ class SettlementHistoryFacadeTest {
 
         assertThat(item.getStatus()).isEqualTo(SettlementHistoryStatus.SETTLED);
         assertThat(item.getSettledDate()).isEqualTo(LocalDate.of(2026, 10, 10));
+    }
+
+    @ParameterizedTest
+    @DisplayName("일반·제안 의뢰의 정산 완료 날짜는 UTC로 저장된 완료 시각의 한국 날짜다")
+    @CsvSource({
+            "2026-10-06T14:59:59, 2026-10-06",
+            "2026-10-06T15:00:00, 2026-10-07",
+            "2026-10-06T23:59:59, 2026-10-07",
+            "2026-10-31T15:00:00, 2026-11-01",
+            "2026-12-31T15:00:00, 2027-01-01"
+    })
+    void returnsKoreanSettledDate(String completedAtUtc, String expectedDate) {
+        proposalPaid(51L, 5L, "2026-10-03T03:00:00Z", JobStatus.CLOSED, completedAtUtc, 50_000L);
+        paid(42L, "2026-10-02T03:00:00Z", JobStatus.CLOSED, completedAtUtc);
+
+        List<SettlementHistoryItemResult> items =
+                facade.getSettlementHistory(USERNAME).getMonths().get(0).getSettlements();
+
+        assertThat(items).extracting(SettlementHistoryItemResult::getSettledDate)
+                .containsExactly(LocalDate.parse(expectedDate), LocalDate.parse(expectedDate));
     }
 
     @Test

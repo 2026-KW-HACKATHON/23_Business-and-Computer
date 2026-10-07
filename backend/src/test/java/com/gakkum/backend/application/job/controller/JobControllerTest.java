@@ -207,6 +207,7 @@ class JobControllerTest {
                 .id(42L)
                 .title("가게 메뉴판 디자인")
                 .selectedStudentProfileId(21L)
+                // UTC 18시 30분은 한국 시간으로 다음 날 새벽이다
                 .completedAt(LocalDateTime.of(2026, 9, 25, 18, 30))
                 .build();
         ClosedJobResult result = ClosedJobResult.of(
@@ -229,7 +230,7 @@ class JobControllerTest {
                 .andExpect(jsonPath("$.data[0].specialtyCategories[0].specialties").doesNotExist())
                 .andExpect(jsonPath("$.data[0].matchedWorker.studentProfileId").value(21))
                 .andExpect(jsonPath("$.data[0].matchedWorker.name").value("김람가"))
-                .andExpect(jsonPath("$.data[0].completedAt").value("2026-09-25"))
+                .andExpect(jsonPath("$.data[0].completedAt").value("2026-09-26"))
                 .andExpect(jsonPath("$.data[0].reviewed").value(true));
         verify(jobFacade).getClosedJobs(USERNAME);
     }

@@ -25,6 +25,8 @@ import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.ArgumentCaptor;
 import org.springframework.data.domain.Limit;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -276,9 +278,10 @@ class StudentMeFlowTest {
     }
 
     @Test
-    @DisplayName("정산 완료 내역은 일반·제안 의뢰를 함께 정산 내역 조회와 같은 6개 필드로 내리고 금액은 결제 금액, 정산일은 의뢰 완료일이다")
+    @DisplayName("정산 완료 내역은 일반·제안 의뢰를 함께 정산 내역 조회와 같은 6개 필드로 내리고 금액은 결제 금액, 정산일은 의뢰 완료 시각의 한국 날짜다")
     void returnsSettledItemsForApplicationAndProposalJobs() throws Exception {
         givenStudent(UserRole.STUDENT, null, null);
+        // UTC 23:59:59는 한국 시간으로 다음 날 오전이다
         closedJob(45L, 6L, "제안으로 만든 의뢰", 77L, "2026-09-29T23:59:59");
         closedJob(42L, 5L, "가을 메뉴 포스터 디자인", null, "2026-09-27T00:00:00");
         payments.add(paidProposalPayment(77L, 45L, 80000L));
@@ -292,7 +295,7 @@ class StudentMeFlowTest {
                 .andExpect(jsonPath("$.data.settlements[0].jobId").value(45))
                 .andExpect(jsonPath("$.data.settlements[0].title").value("제안으로 만든 의뢰"))
                 .andExpect(jsonPath("$.data.settlements[0].amount").value(80000))
-                .andExpect(jsonPath("$.data.settlements[0].settledDate").value("2026-09-29"))
+                .andExpect(jsonPath("$.data.settlements[0].settledDate").value("2026-09-30"))
                 .andExpect(jsonPath("$.data.settlements[0].storeName").value("가꿈 카페"))
                 .andExpect(jsonPath("$.data.settlements[0].status").value("SETTLED"))
                 .andExpect(jsonPath("$.data.settlements[1].jobId").value(42))
@@ -300,6 +303,29 @@ class StudentMeFlowTest {
                 .andExpect(jsonPath("$.data.settlements[1].settledDate").value("2026-09-27"))
                 .andExpect(jsonPath("$.data.settlements[1].storeName").value("가꿈 베이커리"))
                 .andExpect(jsonPath("$.data.settlements[1].status").value("SETTLED"));
+    }
+
+    @ParameterizedTest
+    @DisplayName("일반·제안 의뢰의 정산일은 UTC로 저장된 완료 시각의 한국 날짜다")
+    @CsvSource({
+            "2026-10-06T14:59:59, 2026-10-06",
+            "2026-10-06T15:00:00, 2026-10-07",
+            "2026-10-06T23:59:59, 2026-10-07",
+            "2026-10-31T15:00:00, 2026-11-01",
+            "2026-12-31T15:00:00, 2027-01-01"
+    })
+    void returnsKoreanSettledDate(String completedAtUtc, String expectedDate) throws Exception {
+        givenStudent(UserRole.STUDENT, null, null);
+        closedJob(45L, 6L, "제안으로 만든 의뢰", 77L, completedAtUtc);
+        closedJob(42L, 5L, "가을 메뉴 포스터 디자인", null, completedAtUtc);
+        payments.add(paidProposalPayment(77L, 45L, 80000L));
+        payments.add(paidPayment(42L, 91L, 50000L));
+        application(91L, 42L, STUDENT_PROFILE_ID);
+
+        perform()
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.settlements[0].settledDate").value(expectedDate))
+                .andExpect(jsonPath("$.data.settlements[1].settledDate").value(expectedDate));
     }
 
     @Test
