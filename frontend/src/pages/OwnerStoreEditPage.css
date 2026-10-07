@@ -60,7 +60,7 @@
 }
 
 .owner-store__textarea:focus {
-  border-color: var(--color-black);
+  border-color: var(--role-focus);
   outline: none;
 }
 

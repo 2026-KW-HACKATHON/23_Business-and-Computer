@@ -20,7 +20,7 @@
 }
 
 .text-field__box:focus-within {
-  border-color: var(--color-black);
+  border-color: var(--role-focus);
 }
 
 /* 인증이 끝나 잠긴 칸 */
