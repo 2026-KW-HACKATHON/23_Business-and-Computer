@@ -138,8 +138,7 @@ class StudentMeFlowTest {
                 .setControllerAdvice(new GlobalExceptionHandler())
                 .build();
 
-        when(reviewRepository.findLatestByStudentProfileId(eq(STUDENT_PROFILE_ID), any(Limit.class)))
-                .thenReturn(reviews);
+        when(reviewRepository.findByStudentProfileId(STUDENT_PROFILE_ID)).thenReturn(reviews);
         when(reviewRepository.findAverageRatingByStudentProfileId(STUDENT_PROFILE_ID)).thenReturn(null);
         when(paymentRepository.findLatestCompletedByStudentProfileId(
                 eq(STUDENT_PROFILE_ID), eq(JobStatus.CLOSED), eq(PaymentStatus.PAID), any(Limit.class)))
@@ -159,7 +158,7 @@ class StudentMeFlowTest {
     }
 
     @Test
-    @DisplayName("학생 본인의 프로필·집계·특기·자격증·최신 리뷰·정산 완료 내역 16개 필드를 반환하고 학번은 입학연도 두 자리로 내린다")
+    @DisplayName("학생 본인의 프로필·학과·집계·특기·자격증·받은 리뷰·정산 완료 내역 17개 필드를 반환하고 학번은 입학연도 두 자리로 내린다")
     void returnsOwnInformation() throws Exception {
         givenStudent(UserRole.STUDENT, "https://cdn.gakkum.test/profile.png", "포스터를 잘 만듭니다.");
         when(proposalRepository.countByStudentProfileIdAndStatusNot(STUDENT_PROFILE_ID, ProposalStatus.CANCELLED))
@@ -186,12 +185,13 @@ class StudentMeFlowTest {
         perform()
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.data.length()").value(16))
+                .andExpect(jsonPath("$.data.length()").value(17))
                 .andExpect(jsonPath("$.data.studentProfileId").value(7))
                 .andExpect(jsonPath("$.data.profileImageUrl").value("https://cdn.gakkum.test/profile.png"))
                 .andExpect(jsonPath("$.data.name").value("김광운"))
                 .andExpect(jsonPath("$.data.university").value("광운대학교"))
                 .andExpect(jsonPath("$.data.studentNumber").value("24"))
+                .andExpect(jsonPath("$.data.major").value("컴퓨터정보공학부"))
                 .andExpect(jsonPath("$.data.introduction").value("포스터를 잘 만듭니다."))
                 .andExpect(jsonPath("$.data.portfolioUrl").value("https://portfolio.gakkum.test/kim"))
                 .andExpect(jsonPath("$.data.proposalCount").value(2))
@@ -211,7 +211,8 @@ class StudentMeFlowTest {
                 .andExpect(jsonPath("$.data.certificates[0].acquiredYear").value(2025))
                 .andExpect(jsonPath("$.data.certificates[0].length()").value(2))
                 .andExpect(jsonPath("$.data.reviews.length()").value(2))
-                .andExpect(jsonPath("$.data.reviews[0].length()").value(5))
+                .andExpect(jsonPath("$.data.reviews[0].length()").value(6))
+                .andExpect(jsonPath("$.data.reviews[0].jobTitle").value("가을 메뉴 포스터 디자인"))
                 .andExpect(jsonPath("$.data.reviews[0].storeName").value("가꿈 베이커리"))
                 .andExpect(jsonPath("$.data.reviews[0].rating").value(5))
                 .andExpect(jsonPath("$.data.reviews[0].content").value("수정 요청을 빠르게 반영해 주셨어요."))
@@ -221,15 +222,17 @@ class StudentMeFlowTest {
                 .andExpect(jsonPath("$.data.reviews[0].specialtyCategories[0].specialties.length()").value(1))
                 .andExpect(jsonPath("$.data.reviews[0].specialtyCategories[0].specialties[0].id").value(11))
                 .andExpect(jsonPath("$.data.reviews[0].specialtyCategories[1].specialties[0].id").value(21))
+                .andExpect(jsonPath("$.data.reviews[1].jobTitle").value("로고 리뉴얼"))
                 .andExpect(jsonPath("$.data.reviews[1].storeName").value("가꿈 카페"))
                 .andExpect(jsonPath("$.data.reviews[1].specialtyCategories.length()").value(1))
                 .andExpect(jsonPath("$.data.reviews[1].specialtyCategories[0].specialties[0].name").value("로고"))
                 .andExpect(jsonPath("$.data.settlements.length()").value(1));
 
         // 다른 학생의 데이터를 섞지 않도록 모든 조회가 본인 프로필 ID로만 나간다
-        ArgumentCaptor<Limit> reviewLimit = ArgumentCaptor.forClass(Limit.class);
-        verify(reviewRepository).findLatestByStudentProfileId(eq(STUDENT_PROFILE_ID), reviewLimit.capture());
-        assertThat(reviewLimit.getValue().max()).isEqualTo(3);
+        verify(reviewRepository).findByStudentProfileId(STUDENT_PROFILE_ID);
+        verify(reviewRepository).countByStudentProfileId(STUDENT_PROFILE_ID);
+        verify(reviewRepository).findAverageRatingByStudentProfileId(STUDENT_PROFILE_ID);
+        // 리뷰와 달리 정산 완료 내역은 최신 세 개만 조회한다
         ArgumentCaptor<Limit> settlementLimit = ArgumentCaptor.forClass(Limit.class);
         verify(paymentRepository).findLatestCompletedByStudentProfileId(
                 eq(STUDENT_PROFILE_ID), eq(JobStatus.CLOSED), eq(PaymentStatus.PAID), settlementLimit.capture());
@@ -254,27 +257,59 @@ class StudentMeFlowTest {
     }
 
     @Test
-    @DisplayName("리뷰 목록은 세 개만 내려도 리뷰 수와 평균 별점은 받은 전체 리뷰 기준이고 평균은 소수 첫째 자리로 반올림한다")
+    @DisplayName("받은 리뷰는 개수 제한 없이 모두 작성 시각 내림차순, 같은 시각은 리뷰 ID 내림차순으로 내리고 작성 시각이 없는 리뷰는 마지막에 둔다")
+    void returnsAllReviewsInOrder() throws Exception {
+        givenStudent(UserRole.STUDENT, null, null);
+        closedJob(42L, 5L, "의뢰 A", null, "2026-09-27T10:00:00");
+        closedJob(43L, 6L, "의뢰 B", null, "2026-09-21T09:00:00");
+        closedJob(44L, 5L, "의뢰 C", null, "2026-09-20T09:00:00");
+        closedJob(45L, 6L, "의뢰 D", null, "2026-09-19T09:00:00");
+        closedJob(46L, 5L, "의뢰 E", null, "2026-09-18T09:00:00");
+        closedJob(47L, 6L, "의뢰 F", null, "2026-09-17T09:00:00");
+        // 저장소가 돌려주는 순서와 무관하게 정렬한다
+        review(301L, 42L, 3, "작성 시각 없음, 낮은 ID", null);
+        review(303L, 43L, 4, "같은 시각, 낮은 ID", LocalDateTime.of(2026, 9, 22, 8, 0));
+        review(306L, 44L, 5, "작성 시각 없음, 높은 ID", null);
+        review(302L, 45L, 5, "가장 오래된 리뷰", LocalDateTime.of(2026, 9, 20, 8, 0));
+        review(305L, 46L, 4, "가장 최근 리뷰", LocalDateTime.of(2026, 9, 28, 21, 30));
+        review(304L, 47L, 5, "같은 시각, 높은 ID", LocalDateTime.of(2026, 9, 22, 8, 0));
+
+        perform()
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.reviews.length()").value(6))
+                .andExpect(jsonPath("$.data.reviews[0].jobTitle").value("의뢰 E"))
+                .andExpect(jsonPath("$.data.reviews[1].jobTitle").value("의뢰 F"))
+                .andExpect(jsonPath("$.data.reviews[2].jobTitle").value("의뢰 B"))
+                .andExpect(jsonPath("$.data.reviews[3].jobTitle").value("의뢰 D"))
+                .andExpect(jsonPath("$.data.reviews[4].jobTitle").value("의뢰 C"))
+                .andExpect(jsonPath("$.data.reviews[5].jobTitle").value("의뢰 A"))
+                .andExpect(jsonPath("$.data.reviews[3].createdAt").value("2026-09-20"))
+                // 작성 시각이 없는 기존 데이터는 날짜 없이 내린다
+                .andExpect(jsonPath("$.data.reviews[5].length()").value(6))
+                .andExpect(jsonPath("$.data.reviews[5].createdAt").value(nullValue()))
+                .andExpect(jsonPath("$.data.reviews[5].specialtyCategories.length()").value(0));
+    }
+
+    @Test
+    @DisplayName("리뷰 수와 평균 별점은 받은 전체 리뷰를 따로 집계한 값이고 평균은 소수 첫째 자리로 반올림한다")
     void countsAndAveragesAllReviews() throws Exception {
         givenStudent(UserRole.STUDENT, null, null);
         closedJob(42L, 5L, "의뢰 A", null, "2026-09-27T10:00:00");
         closedJob(43L, 6L, "의뢰 B", null, "2026-09-21T09:00:00");
         closedJob(44L, 5L, "의뢰 C", null, "2026-09-20T09:00:00");
-        review(303L, 42L, 5, "a", LocalDateTime.of(2026, 9, 28, 21, 30));
-        review(302L, 43L, 4, "b", LocalDateTime.of(2026, 9, 22, 8, 0));
-        // 작성 시각이 없는 기존 데이터는 날짜 없이 내린다
-        review(301L, 44L, 3, "c", null);
-        when(reviewRepository.countByStudentProfileId(STUDENT_PROFILE_ID)).thenReturn(8L);
+        closedJob(45L, 6L, "의뢰 D", null, "2026-09-19T09:00:00");
+        review(304L, 42L, 5, "a", LocalDateTime.of(2026, 9, 28, 21, 30));
+        review(303L, 43L, 4, "b", LocalDateTime.of(2026, 9, 22, 8, 0));
+        review(302L, 44L, 4, "c", LocalDateTime.of(2026, 9, 21, 8, 0));
+        review(301L, 45L, 4, "d", LocalDateTime.of(2026, 9, 20, 8, 0));
+        when(reviewRepository.countByStudentProfileId(STUDENT_PROFILE_ID)).thenReturn(4L);
         when(reviewRepository.findAverageRatingByStudentProfileId(STUDENT_PROFILE_ID)).thenReturn(4.25);
 
         perform()
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.reviews.length()").value(3))
-                .andExpect(jsonPath("$.data.reviewCount").value(8))
-                .andExpect(jsonPath("$.data.averageRating").value(4.3))
-                .andExpect(jsonPath("$.data.reviews[2].length()").value(5))
-                .andExpect(jsonPath("$.data.reviews[2].createdAt").value(nullValue()))
-                .andExpect(jsonPath("$.data.reviews[2].specialtyCategories.length()").value(0));
+                .andExpect(jsonPath("$.data.reviews.length()").value(4))
+                .andExpect(jsonPath("$.data.reviewCount").value(4))
+                .andExpect(jsonPath("$.data.averageRating").value(4.3));
     }
 
     @Test
@@ -329,7 +364,7 @@ class StudentMeFlowTest {
     }
 
     @Test
-    @DisplayName("리뷰와 정산이 여러 건이어도 의뢰·지원서·매장·의뢰 소분류·분류 상세를 필요한 ID를 모두 모아 각각 한 번씩만 조회한다")
+    @DisplayName("리뷰가 정산 미리보기 개수보다 많아도 의뢰·지원서·매장·의뢰 소분류·분류 상세를 필요한 ID를 모두 모아 각각 한 번씩만 조회한다")
     void batchesRelatedQueries() throws Exception {
         givenStudent(UserRole.STUDENT, null, null);
         when(studentSpecialtyRepository.findByStudentProfileIdIn(List.of(STUDENT_PROFILE_ID))).thenReturn(List.of(
@@ -339,6 +374,10 @@ class StudentMeFlowTest {
         closedJob(44L, 5L, "의뢰 C", null, "2026-09-20T09:00:00");
         closedJob(45L, 6L, "제안으로 만든 의뢰", 77L, "2026-09-29T23:59:59");
         closedJob(46L, 6L, "의뢰 D", null, "2026-09-26T09:00:00");
+        closedJob(47L, 5L, "의뢰 E", null, "2026-09-19T09:00:00");
+        closedJob(48L, 6L, "의뢰 F", null, "2026-09-18T09:00:00");
+        review(305L, 48L, 5, "e", LocalDateTime.of(2026, 9, 30, 8, 0));
+        review(304L, 47L, 4, "d", LocalDateTime.of(2026, 9, 29, 8, 0));
         review(303L, 42L, 5, "a", LocalDateTime.of(2026, 9, 28, 21, 30));
         review(302L, 43L, 4, "b", LocalDateTime.of(2026, 9, 22, 8, 0));
         review(301L, 44L, 3, "c", LocalDateTime.of(2026, 9, 21, 8, 0));
@@ -353,12 +392,17 @@ class StudentMeFlowTest {
 
         perform()
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.reviews.length()").value(3))
+                .andExpect(jsonPath("$.data.reviews.length()").value(5))
                 .andExpect(jsonPath("$.data.settlements.length()").value(3));
 
+        verify(reviewRepository).findByStudentProfileId(STUDENT_PROFILE_ID);
+        ArgumentCaptor<Limit> settlementLimit = ArgumentCaptor.forClass(Limit.class);
+        verify(paymentRepository).findLatestCompletedByStudentProfileId(
+                eq(STUDENT_PROFILE_ID), eq(JobStatus.CLOSED), eq(PaymentStatus.PAID), settlementLimit.capture());
+        assertThat(settlementLimit.getValue().max()).isEqualTo(3);
         ArgumentCaptor<Iterable<Long>> jobIds = ArgumentCaptor.captor();
         verify(jobRepository).findAllById(jobIds.capture());
-        assertThat(jobIds.getValue()).containsExactlyInAnyOrder(42L, 43L, 44L, 45L, 46L);
+        assertThat(jobIds.getValue()).containsExactlyInAnyOrder(42L, 43L, 44L, 45L, 46L, 47L, 48L);
         ArgumentCaptor<Iterable<Long>> applicationIds = ArgumentCaptor.captor();
         verify(jobApplicationRepository).findAllById(applicationIds.capture());
         assertThat(applicationIds.getValue()).containsExactlyInAnyOrder(91L, 92L);
@@ -368,7 +412,7 @@ class StudentMeFlowTest {
         // 의뢰 소분류는 리뷰가 달린 의뢰만 조회한다
         ArgumentCaptor<Collection<Long>> reviewJobIds = ArgumentCaptor.captor();
         verify(jobSpecialtyRepository).findByJobIdIn(reviewJobIds.capture());
-        assertThat(reviewJobIds.getValue()).containsExactlyInAnyOrder(42L, 43L, 44L);
+        assertThat(reviewJobIds.getValue()).containsExactlyInAnyOrder(42L, 43L, 44L, 47L, 48L);
         // 학생 특기와 리뷰 의뢰의 소분류를 합쳐 분류 상세를 한 번에 조회한다
         ArgumentCaptor<Iterable<Long>> specialtyIds = ArgumentCaptor.captor();
         verify(specialtyRepository).findAllById(specialtyIds.capture());
@@ -391,7 +435,8 @@ class StudentMeFlowTest {
 
         perform()
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.length()").value(16))
+                .andExpect(jsonPath("$.data.length()").value(17))
+                .andExpect(jsonPath("$.data.major").value("컴퓨터정보공학부"))
                 .andExpect(jsonPath("$.data.profileImageUrl").value(nullValue()))
                 .andExpect(jsonPath("$.data.introduction").value(nullValue()))
                 .andExpect(jsonPath("$.data.portfolioUrl").value(nullValue()))

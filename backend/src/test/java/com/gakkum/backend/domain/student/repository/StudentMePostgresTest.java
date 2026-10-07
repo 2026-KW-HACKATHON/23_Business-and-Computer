@@ -27,17 +27,18 @@ import com.gakkum.backend.domain.proposal.entity.ProposalStatus;
 import com.gakkum.backend.domain.proposal.repository.ProposalRepository;
 import com.gakkum.backend.domain.review.entity.Review;
 import com.gakkum.backend.domain.review.repository.ReviewRepository;
+import com.gakkum.backend.domain.review.service.ReviewService;
 
 import jakarta.persistence.EntityManager;
 
 /**
- * NULLS LAST 정렬, 연관관계 없는 조인, 조회 개수 제한은 PostgreSQL에서만 확인할 수 있어 실제 DB로 검증한다.
+ * 연관관계 없는 조인과 조회 개수 제한은 PostgreSQL에서만 확인할 수 있어 실제 DB로 검증한다. 받은 리뷰 전체 조회도 같은 DB로 확인한다.
  * 공용 DB에 테스트 행을 쓰지 않도록 DATABASE_URL이 로컬 PostgreSQL일 때만 실행하며, 트랜잭션은 테스트마다 롤백된다.
  */
 @DataJpaTest
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @EnabledIfEnvironmentVariable(named = "DATABASE_URL", matches = "jdbc:postgresql://(localhost|127\\.0\\.0\\.1)[:/].*")
-@DisplayName("학생 내 정보 PostgreSQL 조회 (최신 리뷰·정산 완료 내역의 조건·정렬·개수 제한, 취소 제외 제안 수)")
+@DisplayName("학생 내 정보 PostgreSQL 조회 (받은 리뷰 전체의 조건·정렬, 정산 완료 내역의 조건·정렬·개수 제한, 취소 제외 제안 수)")
 class StudentMePostgresTest {
 
     private static final long STUDENT_PROFILE_ID = 989_101L;
@@ -67,8 +68,8 @@ class StudentMePostgresTest {
     private EntityManager entityManager;
 
     @Test
-    @DisplayName("리뷰는 본인이 받은 것만 작성 시각 내림차순, 같은 시각은 리뷰 ID 내림차순으로 세 개까지 읽고 전체 개수는 따로 센다")
-    void readsLatestThreeReviews() {
+    @DisplayName("리뷰는 본인이 받은 것만 개수 제한 없이 작성 시각 내림차순, 같은 시각은 리뷰 ID 내림차순으로 읽고 전체 개수는 따로 센다")
+    void readsAllOwnReviews() {
         Long oldest = review(STUDENT_PROFILE_ID, T1);
         Long tiedLowerId = review(STUDENT_PROFILE_ID, T2);
         Long tiedHigherId = review(STUDENT_PROFILE_ID, T2);
@@ -76,12 +77,7 @@ class StudentMePostgresTest {
         review(OTHER_STUDENT_PROFILE_ID, T4);
         entityManager.clear();
 
-        assertThat(reviewRepository.findLatestByStudentProfileId(STUDENT_PROFILE_ID, Limit.of(3)))
-                .extracting(Review::getId)
-                .containsExactly(latest, tiedHigherId, tiedLowerId);
-        assertThat(reviewRepository.findLatestByStudentProfileId(STUDENT_PROFILE_ID, Limit.of(10)))
-                .extracting(Review::getId)
-                .containsExactly(latest, tiedHigherId, tiedLowerId, oldest);
+        assertThat(studentReviewIds()).containsExactly(latest, tiedHigherId, tiedLowerId, oldest);
         assertThat(reviewRepository.countByStudentProfileId(STUDENT_PROFILE_ID)).isEqualTo(4);
         assertThat(reviewRepository.findAverageRatingByStudentProfileId(STUDENT_PROFILE_ID)).isEqualTo(4.0);
     }
@@ -95,12 +91,7 @@ class StudentMePostgresTest {
         Long latest = review(STUDENT_PROFILE_ID, T2);
         entityManager.clear();
 
-        assertThat(reviewRepository.findLatestByStudentProfileId(STUDENT_PROFILE_ID, Limit.of(3)))
-                .extracting(Review::getId)
-                .containsExactly(latest, dated, undatedHigherId);
-        assertThat(reviewRepository.findLatestByStudentProfileId(STUDENT_PROFILE_ID, Limit.of(10)))
-                .extracting(Review::getId)
-                .containsExactly(latest, dated, undatedHigherId, undatedLowerId);
+        assertThat(studentReviewIds()).containsExactly(latest, dated, undatedHigherId, undatedLowerId);
     }
 
     @Test
@@ -174,6 +165,13 @@ class StudentMePostgresTest {
         assertThat(proposalRepository.countByStudentProfileId(STUDENT_PROFILE_ID)).isEqualTo(6);
         assertThat(proposalRepository.countByStudentProfileIdAndStatusNot(989_199L, ProposalStatus.CANCELLED))
                 .isZero();
+    }
+
+    // 내 정보가 쓰는 전체 조회 경로
+    private List<Long> studentReviewIds() {
+        return new ReviewService(reviewRepository).getStudentReviews(STUDENT_PROFILE_ID).stream()
+                .map(Review::getId)
+                .toList();
     }
 
     private List<Long> settledJobIds(Limit limit) {
