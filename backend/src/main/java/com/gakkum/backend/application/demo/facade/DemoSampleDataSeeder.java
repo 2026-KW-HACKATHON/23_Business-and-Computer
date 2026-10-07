@@ -480,7 +480,7 @@ public class DemoSampleDataSeeder {
         private void decline(Proposal proposal, Job job, Instant declinedAt) {
             Owner store = ownerService.getOwnerProfileById(proposal.getOwnerProfileId());
             jobService.declineJob(job.getId(), proposal.getId(), proposal.getStudentProfileId());
-            proposal.reject();
+            proposal.rejectByStudent(LocalDateTime.ofInstant(declinedAt, ZoneOffset.UTC));
             paymentService.refundOnDecline(job.getId(), proposal.getId(), store.getUserId());
             backdate("jobs", "completed_at", job.getId(), declinedAt);
             backdateRefund(job.getId(), declinedAt);

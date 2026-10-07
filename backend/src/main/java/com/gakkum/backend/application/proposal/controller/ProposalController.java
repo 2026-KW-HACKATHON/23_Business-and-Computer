@@ -19,6 +19,7 @@ import com.gakkum.backend.application.proposal.dto.ProposalJobDeclineResponse;
 import com.gakkum.backend.application.proposal.dto.ProposalJobStartRequest;
 import com.gakkum.backend.application.proposal.dto.ProposalJobStartResponse;
 import com.gakkum.backend.application.proposal.dto.ProposalLikeResponse;
+import com.gakkum.backend.application.proposal.dto.ProposalRejectResponse;
 import com.gakkum.backend.application.proposal.dto.ReceivedProposalListResponse;
 import com.gakkum.backend.application.proposal.facade.ProposalFacade;
 import com.gakkum.backend.global.response.ApiResponse;
@@ -75,6 +76,15 @@ public class ProposalController {
             Authentication authentication, @PathVariable @Positive Long proposalId) {
         ProposalCancelResponse response = ProposalCancelResponse.from(
                 proposalFacade.cancelProposal(authentication.getName(), proposalId));
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    /** 제안을 받은 사장님이 결제 전 제안을 거절하는 API. 이미 거절한 본인 제안의 재요청도 성공한다 */
+    @PostMapping("/proposals/{proposalId}/reject")
+    public ResponseEntity<ApiResponse<ProposalRejectResponse>> rejectProposal(
+            Authentication authentication, @PathVariable @Positive Long proposalId) {
+        ProposalRejectResponse response = ProposalRejectResponse.from(
+                proposalFacade.rejectProposal(authentication.getName(), proposalId));
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 

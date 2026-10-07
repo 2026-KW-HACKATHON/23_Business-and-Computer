@@ -34,6 +34,7 @@ import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.ExploreProposalDa
 import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.ProposalDetailData;
 import com.gakkum.backend.domain.proposal.entity.Proposal;
 import com.gakkum.backend.domain.proposal.entity.ProposalLike;
+import com.gakkum.backend.domain.proposal.entity.ProposalRejectedBy;
 import com.gakkum.backend.domain.proposal.entity.ProposalSpecialty;
 import com.gakkum.backend.domain.proposal.entity.ProposalStatus;
 import com.gakkum.backend.domain.proposal.repository.ProposalLikeRepository;
@@ -391,8 +392,8 @@ class ProposalServiceTest {
     }
 
     @ParameterizedTest
-    @EnumSource(value = ProposalStatus.class, names = "CANCELLED", mode = EnumSource.Mode.EXCLUDE)
-    @DisplayName("취소되지 않은 모든 상태의 제안과 본인이 작성한 제안에 공감하고 취소할 수 있다")
+    @EnumSource(value = ProposalStatus.class, names = { "CANCELLED", "REJECTED" }, mode = EnumSource.Mode.EXCLUDE)
+    @DisplayName("취소·거절되지 않은 모든 상태의 제안과 본인이 작성한 제안에 공감하고 취소할 수 있다")
     void likesAndUnlikesOwnProposalInEveryStatus(ProposalStatus status) {
         // 공감하는 학생 77번이 제안의 작성자다
         Proposal proposal = likeableProposal(status, 0, null);
@@ -536,6 +537,93 @@ class ProposalServiceTest {
 
         assertThat(proposalService.likeProposal(31L, 77L, "01K6DEMO00000000000000000A").getLikeCount())
                 .isEqualTo(1);
+    }
+
+    @ParameterizedTest(name = "거절 주체 {0}")
+    @CsvSource(value = { "OWNER", "STUDENT", "NULL" }, nullValues = "NULL")
+    @DisplayName("거절된 제안의 공감 추가·취소는 거절 주체와 무관하게 PROPOSAL_409_LIKE로 거부하고 공감 기록과 공감 수를 바꾸지 않는다")
+    void rejectsLikeForRejectedProposal(ProposalRejectedBy rejectedBy) {
+        Proposal proposal = Proposal.builder().id(31L).studentProfileId(77L).ownerProfileId(5L)
+                .status(ProposalStatus.REJECTED).rejectedBy(rejectedBy).likeCount(3).build();
+        when(proposalRepository.findLockedById(31L)).thenReturn(Optional.of(proposal));
+
+        assertProposalError(() -> proposalService.likeProposal(31L, 77L, null),
+                ErrorCode.PROPOSAL_LIKE_NOT_AVAILABLE);
+        assertProposalError(() -> proposalService.unlikeProposal(31L, 77L, null),
+                ErrorCode.PROPOSAL_LIKE_NOT_AVAILABLE);
+        assertThat(proposal.getLikeCount()).isEqualTo(3);
+        verifyNoInteractions(proposalLikeRepository);
+    }
+
+    @Test
+    @DisplayName("격리 범위가 다른 거절 제안의 공감은 409가 아닌 PROPOSAL_404로 거부한다")
+    void rejectsLikeForRejectedProposalOutsideDemoSession() {
+        when(proposalRepository.findLockedById(31L)).thenReturn(Optional.of(
+                likeableProposal(ProposalStatus.REJECTED, 3, "01K6DEMO00000000000000000A")));
+
+        assertProposalError(() -> proposalService.likeProposal(31L, 77L, null), ErrorCode.PROPOSAL_NOT_FOUND);
+        assertProposalError(() -> proposalService.unlikeProposal(31L, 77L, null), ErrorCode.PROPOSAL_NOT_FOUND);
+    }
+
+    @Test
+    @DisplayName("거절할 제안은 행을 잠가 읽고 결제 전이거나 이 사장님이 이미 거절한 받은 제안을 그대로 반환한다")
+    void returnsRejectableProposalForUpdate() {
+        Proposal pending = rejectableProposal(ProposalStatus.PENDING, null, null);
+        Proposal rejected = rejectableProposal(ProposalStatus.REJECTED, ProposalRejectedBy.OWNER, null);
+        when(proposalRepository.findLockedById(31L)).thenReturn(Optional.of(pending));
+        when(proposalRepository.findLockedById(32L)).thenReturn(Optional.of(rejected));
+
+        assertThat(proposalService.getRejectableProposalForUpdate(31L, 5L, null)).isSameAs(pending);
+        assertThat(proposalService.getRejectableProposalForUpdate(32L, 5L, null)).isSameAs(rejected);
+        verify(proposalRepository).findLockedById(31L);
+        assertThat(pending.getStatus()).isEqualTo(ProposalStatus.PENDING);
+    }
+
+    @ParameterizedTest(name = "{0} / 거절 주체 {1}")
+    @CsvSource(value = { "AWAITING_START,NULL", "ACCEPTED,NULL", "CANCELLED,NULL", "REJECTED,STUDENT",
+            "REJECTED,NULL" }, nullValues = "NULL")
+    @DisplayName("결제됐거나 취소된 제안, 학생이 거절했거나 거절 주체가 없는 거절 제안의 거절은 PROPOSAL_409_REJECT로 거부한다")
+    void rejectsRejectOfUnavailableStatus(ProposalStatus status, ProposalRejectedBy rejectedBy) {
+        when(proposalRepository.findLockedById(31L))
+                .thenReturn(Optional.of(rejectableProposal(status, rejectedBy, null)));
+
+        assertProposalError(() -> proposalService.getRejectableProposalForUpdate(31L, 5L, null),
+                ErrorCode.PROPOSAL_REJECT_NOT_AVAILABLE);
+    }
+
+    @Test
+    @DisplayName("없는 제안의 거절은 PROPOSAL_404, 다른 사장님이 받은 제안은 상태와 무관하게 PROPOSAL_403_REJECT로 거부한다")
+    void rejectsRejectOfMissingOrOthersProposal() {
+        when(proposalRepository.findLockedById(99L)).thenReturn(Optional.empty());
+        assertProposalError(() -> proposalService.getRejectableProposalForUpdate(99L, 5L, null),
+                ErrorCode.PROPOSAL_NOT_FOUND);
+
+        for (ProposalStatus status : ProposalStatus.values()) {
+            when(proposalRepository.findLockedById(31L))
+                    .thenReturn(Optional.of(rejectableProposal(status, null, null)));
+            assertProposalError(() -> proposalService.getRejectableProposalForUpdate(31L, 6L, null),
+                    ErrorCode.PROPOSAL_REJECT_FORBIDDEN);
+        }
+    }
+
+    @ParameterizedTest(name = "사장님 {0} / 제안 {1}")
+    @CsvSource(value = { "NULL,01K6DEMO00000000000000000A", "01K6DEMO00000000000000000A,NULL",
+            "01K6DEMO00000000000000000A,01K6DEMO00000000000000000B" }, nullValues = "NULL")
+    @DisplayName("격리 범위가 다른 제안의 거절은 받은 사장님 검증보다 먼저 PROPOSAL_404로 거부한다")
+    void rejectsRejectOutsideDemoSession(String ownerSession, String proposalSession) {
+        // 다른 사장님이 받은 제안이어도 403이 아닌 404다
+        when(proposalRepository.findLockedById(31L)).thenReturn(Optional.of(
+                rejectableProposal(ProposalStatus.PENDING, null, proposalSession)));
+
+        assertProposalError(() -> proposalService.getRejectableProposalForUpdate(31L, 5L, ownerSession),
+                ErrorCode.PROPOSAL_NOT_FOUND);
+        assertProposalError(() -> proposalService.getRejectableProposalForUpdate(31L, 6L, ownerSession),
+                ErrorCode.PROPOSAL_NOT_FOUND);
+    }
+
+    private Proposal rejectableProposal(ProposalStatus status, ProposalRejectedBy rejectedBy, String demoSessionId) {
+        return Proposal.builder().id(31L).studentProfileId(77L).ownerProfileId(5L).status(status)
+                .rejectedBy(rejectedBy).likeCount(2).demoSessionId(demoSessionId).build();
     }
 
     private Proposal likeableProposal(ProposalStatus status, int likeCount, String demoSessionId) {

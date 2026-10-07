@@ -7,6 +7,7 @@ import com.gakkum.backend.domain.job.entity.JobStatus;
 import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.MyProposalListResult;
 import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.MyProposalResult;
 import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.ProposalStoreResult;
+import com.gakkum.backend.domain.proposal.entity.ProposalRejectedBy;
 import com.gakkum.backend.domain.proposal.entity.ProposalStatus;
 
 import lombok.AccessLevel;
@@ -39,6 +40,9 @@ public class MyProposalListResponse {
         private final JobStatus jobStatus;
         // 한국 시각. 오프셋 없이 내린다
         private final LocalDateTime createdAt;
+        // 거절한 주체와 한국 시각의 거절 시각. 거절되지 않았거나 기록 전에 거절된 제안은 null
+        private final ProposalRejectedBy rejectedBy;
+        private final LocalDateTime rejectedAt;
 
         public static MyProposal from(MyProposalResult result) {
             return new MyProposal(
@@ -53,7 +57,9 @@ public class MyProposalListResponse {
                     Store.from(result.getStore()),
                     result.getJobId(),
                     result.getJobStatus(),
-                    ProposalDetailResponse.toKoreaTime(result.getCreatedAt()));
+                    ProposalDetailResponse.toKoreaTime(result.getCreatedAt()),
+                    result.getRejectedBy(),
+                    ProposalDetailResponse.toKoreaTime(result.getRejectedAt()));
         }
     }
 

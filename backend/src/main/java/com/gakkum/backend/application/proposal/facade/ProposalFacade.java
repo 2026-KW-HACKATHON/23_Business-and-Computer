@@ -3,7 +3,10 @@ package com.gakkum.backend.application.proposal.facade;
 import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.time.ZoneOffset;
+import java.time.temporal.ChronoUnit;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -34,6 +37,7 @@ import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.ProposalCancelRes
 import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.ProposalJobDeclineResult;
 import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.ProposalJobStartResult;
 import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.ProposalLikeResult;
+import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.ProposalRejectResult;
 import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.ExploreProposalData;
 import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.MyProposalListResult;
 import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.MyProposalResult;
@@ -135,7 +139,7 @@ public class ProposalFacade {
     }
 
     /**
-     * 학생이 제안에 공감한다. 본인 제안과 취소되지 않은 모든 상태의 제안에 공감할 수 있다.
+     * 학생이 제안에 공감한다. 본인 제안과 취소·거절되지 않은 모든 상태의 제안에 공감할 수 있다.
      * 학생 검증과 공감 기록·공감 수 변경을 한 트랜잭션으로 처리하고, 이미 공감한 제안의 재요청은 공감 수를 바꾸지 않는다.
      */
     @Transactional
@@ -148,7 +152,7 @@ public class ProposalFacade {
 
     /**
      * 학생이 제안의 공감을 취소한다. 공감하지 않은 제안의 재요청도 성공하고 공감 수를 바꾸지 않는다.
-     * 학생 검증과 공감 기록·공감 수 변경을 한 트랜잭션으로 처리한다.
+     * 학생 검증과 공감 기록·공감 수 변경을 한 트랜잭션으로 처리한다. 거절된 제안은 공감 기록이 있어도 409로 거부한다.
      */
     @Transactional
     public ProposalLikeResult unlikeProposal(String username, Long proposalId) {
@@ -180,6 +184,27 @@ public class ProposalFacade {
     }
 
     /**
+     * 제안을 받은 사장님이 결제 전(PENDING) 제안을 거절한다. 본인이 이미 거절한 제안의 재요청은 아무것도 바꾸지 않고 성공한다.
+     * 제안 행을 잠근 채 격리 범위 → 받은 사장님 → 상태 → 결제 대기 주문 순서로 확인하고, 거절 주체와 시각을 함께 저장한다.
+     * 공감 기록·공감 수와 결제 데이터는 바꾸지 않고 외부 결제 호출도 하지 않는다.
+     * 결제 준비·승인도 같은 제안 행을 잠그므로 거절과 순서대로 처리되고, 카카오 거래번호와 무관하게 결제 대기 주문이 남아 있으면 409다.
+     */
+    @Transactional
+    public ProposalRejectResult rejectProposal(String username, Long proposalId) {
+        User user = userService.getActiveUser(username);
+        Owner owner = getRejectingOwner(user);
+        Proposal proposal = proposalService.getRejectableProposalForUpdate(
+                proposalId, owner.getId(), user.getDemoSessionId());
+        if (proposal.getStatus() == ProposalStatus.PENDING) {
+            if (paymentService.findPendingProposalPayment(proposalId).isPresent()) {
+                throw new BusinessException(ErrorCode.PROPOSAL_REJECT_PAYMENT_PENDING);
+            }
+            proposal.rejectByOwner(now());
+        }
+        return ProposalRejectResult.from(proposal);
+    }
+
+    /**
      * 제안한 학생이 결제된 제안 의뢰의 작업을 시작한다. 제출과 함께 확정 작업 조건(마감일·패널티)에 동의한 것으로 본다.
      * 제안의 수락 전환, 의뢰의 진행 중 전환, 시작 시각 기록, 채팅방 생성을 한 트랜잭션으로 처리한다.
      * 잠금 순서는 결제 승인과 같이 제안 → 의뢰다. 의뢰의 제안 ID를 먼저 읽고, 잠근 뒤 연결 관계를 다시 확인한다.
@@ -204,7 +229,7 @@ public class ProposalFacade {
 
     /**
      * 제안한 학생이 결제된 제안 의뢰서를 작업 시작 전에 거절한다. 거절 사유는 받지 않는다.
-     * 제안의 거절 전환, 의뢰의 취소 전환, 결제의 전액 환불 기록(학생 보상금 0원)을 한 트랜잭션으로 처리하고 채팅방은 만들지 않는다.
+     * 제안의 거절 전환(거절 주체·시각 기록 포함), 의뢰의 취소 전환, 결제의 전액 환불 기록(학생 보상금 0원)을 한 트랜잭션으로 처리하고 채팅방은 만들지 않는다.
      * 잠금 순서는 제안 → 의뢰 → 결제다. 의뢰의 제안 ID를 먼저 읽고, 잠근 뒤 연결 관계·작성자·상태를 다시 확인한다.
      * 이미 시작·거절·종료된 의뢰의 재요청은 409로 거부해 환불을 다시 처리하지 않는다.
      * 결제 완료 주문이 없거나 주문의 제안·결제한 사장님이 의뢰와 맞지 않으면 500으로 전체 변경을 되돌린다.
@@ -221,7 +246,7 @@ public class ProposalFacade {
         Long proposalId = jobService.getDeclinableProposalId(jobId, student.getId(), user.getDemoSessionId());
         Proposal proposal = proposalService.getDeclinableProposalForUpdate(proposalId, student.getId());
         Job job = jobService.declineJob(jobId, proposalId, student.getId());
-        proposal.reject();
+        proposal.rejectByStudent(now());
         // 환불 대상 결제가 이 의뢰의 사장님이 결제한 주문인지 확인하도록 의뢰한 사장님을 넘긴다
         Owner owner = ownerService.getOwnerProfileById(job.getOwnerProfileId());
         RefundedPaymentData refund = paymentService.refundOnDecline(jobId, proposalId, owner.getUserId());
@@ -332,6 +357,20 @@ public class ProposalFacade {
         }
         return studentService.findStudentProfileByUserId(user.getId())
                 .orElseThrow(() -> new BusinessException(ErrorCode.PROPOSAL_CANCEL_FORBIDDEN));
+    }
+
+    /** 사장님 프로필이 없는 사용자(학생·가입 대기 사용자 포함)는 제안을 거절할 수 없다. */
+    private Owner getRejectingOwner(User user) {
+        if (user.getRole() != UserRole.OWNER) {
+            throw new BusinessException(ErrorCode.PROPOSAL_REJECT_FORBIDDEN);
+        }
+        return ownerService.findOwnerProfileByUserId(user.getId())
+                .orElseThrow(() -> new BusinessException(ErrorCode.PROPOSAL_REJECT_FORBIDDEN));
+    }
+
+    // 거절 시각은 다른 제안 시각처럼 UTC로 저장한다. DB 정밀도에 맞춰 마이크로초로 자른다
+    private LocalDateTime now() {
+        return LocalDateTime.ofInstant(clock.instant(), ZoneOffset.UTC).truncatedTo(ChronoUnit.MICROS);
     }
 
     // 학생이 아니거나 학생 프로필이 없는 조회자는 공감 기록이 없는 것으로 본다

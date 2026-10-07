@@ -10,6 +10,7 @@ import java.util.List;
 
 import com.gakkum.backend.domain.job.entity.JobStatus;
 import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.ProposalAgreementResult;
+import com.gakkum.backend.domain.proposal.entity.ProposalRejectedBy;
 import com.gakkum.backend.domain.proposal.entity.ProposalStatus;
 import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.ProposalStudentResult;
 import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.ProposalDetailResult;
@@ -48,6 +49,9 @@ public class ProposalDetailResponse {
     // 한국 시각. 오프셋 없이 내린다
     private final LocalDateTime createdAt;
     private final ProposalStatus status;
+    // 거절한 주체와 한국 시각의 거절 시각. 거절되지 않았거나 기록 전에 거절된 제안은 null
+    private final ProposalRejectedBy rejectedBy;
+    private final LocalDateTime rejectedAt;
     // 결제 전(PENDING)에만 내리는 한국 날짜 기준 예상 마감일
     private final LocalDate estimatedDraftDeadline;
     private final LocalDate estimatedFinalDeadline;
@@ -77,6 +81,8 @@ public class ProposalDetailResponse {
                 .referenceImageUrls(result.getReferenceImageUrls())
                 .createdAt(toKoreaTime(result.getCreatedAt()))
                 .status(result.getStatus())
+                .rejectedBy(result.getRejectedBy())
+                .rejectedAt(toKoreaTime(result.getRejectedAt()))
                 .estimatedDraftDeadline(result.getEstimatedDraftDeadline())
                 .estimatedFinalDeadline(result.getEstimatedFinalDeadline())
                 .jobId(result.getJobId())

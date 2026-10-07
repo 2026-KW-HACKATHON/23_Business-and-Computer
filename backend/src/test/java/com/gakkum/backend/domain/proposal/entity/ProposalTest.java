@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -14,6 +15,8 @@ import com.gakkum.backend.global.exception.BusinessException;
 import com.gakkum.backend.global.exception.ErrorCode;
 
 class ProposalTest {
+
+    private static final LocalDateTime REJECTED_AT = LocalDateTime.of(2026, 10, 7, 3, 0);
 
     @Test
     @DisplayName("결제 전 제안은 결제 승인으로 수락 대기가 되고 학생의 작업 시작으로 수락된다")
@@ -162,9 +165,11 @@ class ProposalTest {
     void rejectsAwaitingStartProposal() {
         Proposal proposal = Proposal.builder().id(5L).status(ProposalStatus.AWAITING_START).likeCount(3).build();
 
-        proposal.reject();
+        proposal.rejectByStudent(REJECTED_AT);
 
         assertThat(proposal.getStatus()).isEqualTo(ProposalStatus.REJECTED);
+        assertThat(proposal.getRejectedBy()).isEqualTo(ProposalRejectedBy.STUDENT);
+        assertThat(proposal.getRejectedAt()).isEqualTo(REJECTED_AT);
         assertThat(proposal.getLikeCount()).isEqualTo(3);
     }
 
@@ -174,9 +179,77 @@ class ProposalTest {
     void rejectsRejectOfProposalNotAwaiting(ProposalStatus status) {
         Proposal proposal = proposal(status);
 
-        assertThatThrownBy(proposal::reject)
+        assertThatThrownBy(() -> proposal.rejectByStudent(REJECTED_AT))
                 .isInstanceOfSatisfying(BusinessException.class, exception ->
                         assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.JOB_DECLINE_NOT_AVAILABLE));
         assertThat(proposal.getStatus()).isEqualTo(status);
+        assertThat(proposal.getRejectedBy()).isNull();
+        assertThat(proposal.getRejectedAt()).isNull();
+    }
+
+    @Test
+    @DisplayName("결제 전 제안은 사장님 거절로 거절 상태가 되고 거절 주체와 시각을 남기며 공감 수는 그대로다")
+    void ownerRejectsPendingProposal() {
+        Proposal proposal = Proposal.builder().id(5L).status(ProposalStatus.PENDING).likeCount(3).build();
+
+        proposal.rejectByOwner(REJECTED_AT);
+
+        assertThat(proposal.getStatus()).isEqualTo(ProposalStatus.REJECTED);
+        assertThat(proposal.getRejectedBy()).isEqualTo(ProposalRejectedBy.OWNER);
+        assertThat(proposal.getRejectedAt()).isEqualTo(REJECTED_AT);
+        assertThat(proposal.getLikeCount()).isEqualTo(3);
+    }
+
+    @Test
+    @DisplayName("사장님이 이미 거절한 제안의 거절 재요청은 최초 거절 시각을 그대로 둔다")
+    void ownerRejectIsIdempotent() {
+        Proposal proposal = Proposal.builder().id(5L).status(ProposalStatus.PENDING).likeCount(3).build();
+        proposal.rejectByOwner(REJECTED_AT);
+
+        proposal.rejectByOwner(REJECTED_AT.plusHours(1));
+
+        assertThat(proposal.getStatus()).isEqualTo(ProposalStatus.REJECTED);
+        assertThat(proposal.getRejectedBy()).isEqualTo(ProposalRejectedBy.OWNER);
+        assertThat(proposal.getRejectedAt()).isEqualTo(REJECTED_AT);
+    }
+
+    @ParameterizedTest
+    @EnumSource(value = ProposalStatus.class, names = { "AWAITING_START", "ACCEPTED", "CANCELLED" })
+    @DisplayName("결제됐거나 취소된 제안의 사장님 거절은 PROPOSAL_409_REJECT로 거부하고 상태와 거절 기록을 바꾸지 않는다")
+    void rejectsOwnerRejectUnlessPending(ProposalStatus status) {
+        Proposal proposal = proposal(status);
+
+        assertThatThrownBy(() -> proposal.rejectByOwner(REJECTED_AT))
+                .isInstanceOfSatisfying(BusinessException.class, exception ->
+                        assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.PROPOSAL_REJECT_NOT_AVAILABLE));
+        assertThat(proposal.getStatus()).isEqualTo(status);
+        assertThat(proposal.getRejectedBy()).isNull();
+        assertThat(proposal.getRejectedAt()).isNull();
+    }
+
+    @ParameterizedTest
+    @EnumSource(value = ProposalRejectedBy.class, names = "STUDENT")
+    @DisplayName("학생이 거절한 제안의 사장님 거절은 PROPOSAL_409_REJECT로 거부하고 학생의 거절 기록을 그대로 둔다")
+    void rejectsOwnerRejectOfStudentRejectedProposal(ProposalRejectedBy rejectedBy) {
+        Proposal proposal = Proposal.builder().id(5L).status(ProposalStatus.REJECTED).rejectedBy(rejectedBy)
+                .rejectedAt(REJECTED_AT).build();
+
+        assertThatThrownBy(() -> proposal.rejectByOwner(REJECTED_AT.plusHours(1)))
+                .isInstanceOfSatisfying(BusinessException.class, exception ->
+                        assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.PROPOSAL_REJECT_NOT_AVAILABLE));
+        assertThat(proposal.getRejectedBy()).isEqualTo(rejectedBy);
+        assertThat(proposal.getRejectedAt()).isEqualTo(REJECTED_AT);
+    }
+
+    @Test
+    @DisplayName("거절 주체가 기록되지 않은 기존 거절 제안의 사장님 거절은 PROPOSAL_409_REJECT로 거부하고 기록을 채우지 않는다")
+    void rejectsOwnerRejectOfLegacyRejectedProposal() {
+        Proposal proposal = proposal(ProposalStatus.REJECTED);
+
+        assertThatThrownBy(() -> proposal.rejectByOwner(REJECTED_AT))
+                .isInstanceOfSatisfying(BusinessException.class, exception ->
+                        assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.PROPOSAL_REJECT_NOT_AVAILABLE));
+        assertThat(proposal.getRejectedBy()).isNull();
+        assertThat(proposal.getRejectedAt()).isNull();
     }
 }

@@ -192,6 +192,14 @@ class SecurityConfigTest {
     }
 
     @Test
+    @DisplayName("인증 없이 받은 제안을 거절하면 401을 반환한다")
+    void rejectsUnauthenticatedProposalReject() throws Exception {
+        mockMvc.perform(post("/proposals/31/reject"))
+            .andExpect(status().isUnauthorized())
+            .andExpect(jsonPath("$.error.code").value("COMMON_401"));
+    }
+
+    @Test
     @DisplayName("인증 없이 의뢰서를 거절하면 401을 반환한다")
     void rejectsUnauthenticatedJobDecline() throws Exception {
         mockMvc.perform(post("/jobs/42/decline"))

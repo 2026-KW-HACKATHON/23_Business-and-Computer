@@ -246,8 +246,11 @@ class ProposalJobDeclinePersistenceIntegrationTest {
         assertThat(job.getFinalDeadline()).isEqualTo(before.getFinalDeadline());
         assertThat(job.getRevisionCount()).isEqualTo(before.getRevisionCount());
         assertThat(job.getAcceptanceMessage()).isEqualTo("잘 부탁드립니다.");
-        assertThat(proposalRepository.findById(proposal.getId()).orElseThrow().getStatus())
-                .isEqualTo(ProposalStatus.REJECTED);
+        Proposal rejected = proposalRepository.findById(proposal.getId()).orElseThrow();
+        assertThat(rejected.getStatus()).isEqualTo(ProposalStatus.REJECTED);
+        // 학생 거절도 같은 트랜잭션에서 거절 주체와 시각을 남긴다
+        assertThat(rejected.getRejectedBy()).isEqualTo(com.gakkum.backend.domain.proposal.entity.ProposalRejectedBy.STUDENT);
+        assertThat(rejected.getRejectedAt()).isNotNull();
 
         Payment payment = paymentRepository.findByProposalIdAndStatus(proposal.getId(), PaymentStatus.REFUNDED)
                 .orElseThrow();
@@ -552,6 +555,9 @@ class ProposalJobDeclinePersistenceIntegrationTest {
     }
 
     private void assertAwaitingStart(Proposal proposal, Long jobId) {
+        // 거절이 롤백되면 거절 주체와 시각도 남지 않는다
+        assertThat(count("select count(*) from proposals where id = ? and rejected_by is null "
+                + "and rejected_at is null", proposal.getId())).isEqualTo(1);
         Job job = jobRepository.findById(jobId).orElseThrow();
         assertThat(job.getStatus()).isEqualTo(JobStatus.AWAITING_START);
         assertThat(job.getCompletedAt()).isNull();
