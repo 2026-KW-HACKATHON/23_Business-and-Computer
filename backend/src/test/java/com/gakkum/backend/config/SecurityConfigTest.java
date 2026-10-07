@@ -43,6 +43,8 @@ import com.gakkum.backend.application.explore.facade.ExploreFacade;
 import com.gakkum.backend.application.job.controller.JobController;
 import com.gakkum.backend.application.media.controller.MediaController;
 import com.gakkum.backend.application.media.facade.MediaFacade;
+import com.gakkum.backend.application.notification.controller.NotificationController;
+import com.gakkum.backend.application.notification.facade.NotificationFacade;
 import com.gakkum.backend.application.job.facade.JobFacade;
 import com.gakkum.backend.application.owner.controller.OwnerController;
 import com.gakkum.backend.application.owner.facade.OwnerFacade;
@@ -57,6 +59,8 @@ import com.gakkum.backend.application.student.facade.StudentFacade;
 import com.gakkum.backend.domain.category.dto.BusinessCategoryResponse;
 import com.gakkum.backend.domain.category.entity.BusinessCategory;
 import com.gakkum.backend.domain.category.service.BusinessCategoryService;
+import com.gakkum.backend.domain.notification.dto.NotificationQueryDto.NotificationReadAllResult;
+import com.gakkum.backend.domain.notification.dto.NotificationQueryDto.NotificationUnreadCountResult;
 import com.gakkum.backend.domain.owner.dto.OwnerCommandDto.UpdateOwnerMeCommand;
 import com.gakkum.backend.domain.owner.dto.OwnerQueryDto.OwnerMeResult;
 import com.gakkum.backend.domain.owner.entity.Owner;
@@ -75,7 +79,7 @@ import com.gakkum.backend.util.JWTUtil;
 @WebMvcTest(controllers = {SecurityConfigTest.TestController.class, SpecialtyController.class,
         JobController.class, PaymentController.class, MediaController.class, ReviewController.class,
         ProposalController.class, ExploreController.class, BusinessCategoryController.class,
-        StudentController.class, OwnerController.class, ChatController.class})
+        StudentController.class, OwnerController.class, ChatController.class, NotificationController.class})
 @Import({SecurityConfig.class, RestAuthenticationEntryPoint.class})
 @TestPropertySource(properties = "demo-login.enabled=false")
 class SecurityConfigTest {
@@ -130,6 +134,9 @@ class SecurityConfigTest {
 
     @MockitoBean
     private ChatFacade chatFacade;
+
+    @MockitoBean
+    private NotificationFacade notificationFacade;
 
     @Test
     @DisplayName("인증 없이 탐색 목록을 조회하면 401을 반환한다")
@@ -655,6 +662,59 @@ class SecurityConfigTest {
                     .header(HttpHeaders.ACCESS_CONTROL_REQUEST_METHOD, "POST"))
                 .andExpect(status().isForbidden())
                 .andExpect(header().doesNotExist(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN));
+        }
+    }
+
+    @Test
+    @DisplayName("인증 없이 알림 목록·미읽음 개수·개별 읽음·모두 읽음을 요청하면 401을 반환하고 컨트롤러에 도달하지 않는다")
+    void notificationsRequireAuthentication() throws Exception {
+        for (var request : List.of(
+                get("/me/notifications"), get("/me/notifications/unread-count"),
+                put("/me/notifications/31/read"), put("/me/notifications/read"))) {
+            mockMvc.perform(request)
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.error.code").value("COMMON_401"));
+        }
+
+        verifyNoInteractions(notificationFacade);
+    }
+
+    @Test
+    @DisplayName("유효하지 않은 Bearer 토큰으로 알림을 모두 읽음 처리하면 401을 반환하고 컨트롤러에 도달하지 않는다")
+    void notificationReadAllRejectsInvalidToken() throws Exception {
+        when(jwtUtil.isValid("expired-token", true)).thenReturn(false);
+
+        mockMvc.perform(put("/me/notifications/read")
+                .header(HttpHeaders.AUTHORIZATION, "Bearer expired-token"))
+            .andExpect(status().isUnauthorized());
+
+        verifyNoInteractions(notificationFacade);
+    }
+
+    @Test
+    @DisplayName("학생과 사장님의 Bearer 토큰 모두 역할 제한 없이 인증된 사용자 이름으로 알림 컨트롤러까지 도달한다")
+    void authenticatedStudentAndOwnerCanUseNotifications() throws Exception {
+        for (String role : List.of("STUDENT", "OWNER")) {
+            String token = role + "-access-token";
+            String username = "KAKAO_" + role;
+            when(jwtUtil.isValid(token, true)).thenReturn(true);
+            when(jwtUtil.getUsername(token)).thenReturn(username);
+            when(jwtUtil.getRole(token)).thenReturn(role);
+            when(notificationFacade.getUnreadCount(username)).thenReturn(NotificationUnreadCountResult.of(2L));
+            when(notificationFacade.markAllRead(username)).thenReturn(NotificationReadAllResult.of(2));
+
+            mockMvc.perform(get("/me/notifications/unread-count")
+                    .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.unreadCount").value(2));
+            // 본문과 Content-Type 없이 호출한다
+            mockMvc.perform(put("/me/notifications/read")
+                    .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.updatedCount").value(2));
+
+            verify(notificationFacade).getUnreadCount(username);
+            verify(notificationFacade).markAllRead(username);
         }
     }
 
