@@ -3,6 +3,7 @@ import type { ChangeEvent, FormEvent, MouseEvent } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { LoadNotice, ReportSheet, RoleAvatar, SubScreen } from "../components";
 import {
+  ChatPhotoViewer,
   ChatWorkCard,
   canCancelChatWork,
   canReportChatWork,
@@ -44,12 +45,14 @@ function OwnerChatRoomPage() {
 function OwnerChatRoom({ roomId }: { roomId: string }) {
   const navigate = useNavigate();
   const back = useBack(OWNER_PATHS.chats);
-  const { load, messages, reload, send, sendAttachment, resend, openExpiredAttachment } = useChatRoom(
-    roomId,
+  const { load, messages, reload, send, sendAttachment, resend, openExpiredAttachment, refreshAttachment } =
+    useChatRoom(roomId,
     OWNER_PATHS.chats,
   );
   const [draft, setDraft] = useState("");
   const [reportOpen, setReportOpen] = useState(false);
+  // 크게 보는 사진 (메시지의 clientMessageId)
+  const [photoKey, setPhotoKey] = useState<string | null>(null);
   // 처음 들어올 때, 맨 아래 근처에서 새 메시지를 받을 때, 내가 보낼 때 맨 아래로
   const endRef = useScrollToLatest(messages);
   // 받은 제안의 의뢰면 제안에서 시작한 작업 (값은 제안 id)
@@ -57,6 +60,12 @@ function OwnerChatRoom({ roomId }: { roomId: string }) {
   // 도착한 결과물이 초안인지 수정안인지는 진행 중 목록으로, 후기를 남겼는지는 끝난 목록으로
   const { load: progressLoad } = useOwnerProgressJobs();
   const { load: closedLoad } = useOwnerClosedJobs();
+
+  // 사진은 앱 안에서 크게 본다. 주소가 만료됐으면 새로 받아 바꿔 끼운다
+  const showPhoto = (message: ChatMessage) => {
+    if (isAttachmentExpired(message)) refreshAttachment(message);
+    setPhotoKey(message.clientMessageId);
+  };
 
   if (load.status !== "loaded") {
     return (
@@ -174,7 +183,12 @@ function OwnerChatRoom({ roomId }: { roomId: string }) {
                 {message.mine ? (
                   <div className="owner-chat__line owner-chat__line--mine">
                     <SendState message={message} onResend={resend} />
-                    <MessageBody message={message} mine onOpenExpired={openExpiredAttachment} />
+                    <MessageBody
+                      message={message}
+                      mine
+                      onOpenExpired={openExpiredAttachment}
+                      onShowPhoto={showPhoto}
+                    />
                   </div>
                 ) : (
                   <div className="owner-chat__partner-message">
@@ -182,7 +196,12 @@ function OwnerChatRoom({ roomId }: { roomId: string }) {
                     <div className="owner-chat__group">
                       <span className="owner-chat__sender">{partnerName}</span>
                       <div className="owner-chat__line">
-                        <MessageBody message={message} mine={false} onOpenExpired={openExpiredAttachment} />
+                        <MessageBody
+                          message={message}
+                          mine={false}
+                          onOpenExpired={openExpiredAttachment}
+                          onShowPhoto={showPhoto}
+                        />
                         <time className="owner-chat__time">{timeOf(message.createdAt)}</time>
                       </div>
                     </div>
@@ -194,6 +213,13 @@ function OwnerChatRoom({ roomId }: { roomId: string }) {
         </ol>
         <div ref={endRef} />
       </div>
+
+      <ChatPhotoViewer
+        messages={messages}
+        openKey={photoKey}
+        onShow={showPhoto}
+        onClose={() => setPhotoKey(null)}
+      />
 
       <ReportSheet open={reportOpen} workTitle={room.jobTitle} onClose={() => setReportOpen(false)} />
     </SubScreen>
@@ -234,10 +260,13 @@ function MessageBody({
   message,
   mine,
   onOpenExpired,
+  onShowPhoto,
 }: {
   message: ChatMessage;
   mine: boolean;
   onOpenExpired: (message: ChatMessage) => void;
+  /** 보낸 사진을 앱 안에서 크게 본다 */
+  onShowPhoto: (message: ChatMessage) => void;
 }) {
   if (message.type === "TEXT") {
     return (
@@ -295,7 +324,10 @@ function MessageBody({
         href={message.content}
         target="_blank"
         rel="noopener noreferrer"
-        onClick={handleClick}
+        onClick={(e) => {
+          e.preventDefault();
+          onShowPhoto(message);
+        }}
       >
         <img src={message.content} alt={name} />
       </a>

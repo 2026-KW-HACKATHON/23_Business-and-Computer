@@ -1,5 +1,6 @@
 /* 채팅 (사장님 · 학생 공용). 작업 하나에 채팅방 하나 */
 
+export { default as ChatPhotoViewer } from "./components/ChatPhotoViewer";
 export { default as ChatWorkCard } from "./components/ChatWorkCard";
 export type { ChatWorkTroubleItem } from "./components/ChatWorkCard";
 export { default as ChatWorkHistory } from "./components/ChatWorkHistory";
