@@ -36,6 +36,7 @@ import com.gakkum.backend.domain.job.entity.JobStatus;
 import com.gakkum.backend.domain.job.repository.JobRepository;
 import com.gakkum.backend.domain.owner.repository.OwnerRepository;
 import com.gakkum.backend.domain.proposal.entity.Proposal;
+import com.gakkum.backend.domain.proposal.entity.ProposalRejectedBy;
 import com.gakkum.backend.domain.proposal.entity.ProposalStatus;
 import com.gakkum.backend.domain.proposal.repository.ProposalRepository;
 import com.gakkum.backend.domain.specialty.entity.Specialty;
@@ -125,13 +126,17 @@ class DemoSampleDataIntegrationTest {
         assertThat(status("인스타 게시물 5개 제작")).isEqualTo(JobStatus.CLOSED);
         assertThat(status("가게 앞 입간판 시안")).isEqualTo(JobStatus.CLOSED);
         assertThat(status("포장 스티커 디자인")).isEqualTo(JobStatus.CANCELLED);
-        assertThat(jobs.values()).filteredOn(job -> myStoreId.equals(job.getOwnerProfileId())).hasSize(12);
+        assertThat(jobs.values()).filteredOn(job -> myStoreId.equals(job.getOwnerProfileId())).hasSize(13);
 
         assertThat(proposals.get("시험 기간 학생 할인 이벤트").getStatus()).isEqualTo(ProposalStatus.PENDING);
         assertThat(proposals.get("시험 기간 학생 할인 이벤트").getLikeCount()).isEqualTo(3);
         assertThat(proposals.get("점심 세트 메뉴판 정리").getStatus()).isEqualTo(ProposalStatus.AWAITING_START);
         assertThat(proposals.get("가게 소개글 다시 쓰기").getStatus()).isEqualTo(ProposalStatus.ACCEPTED);
         assertThat(proposals.get("단체 주문 안내문 디자인").getStatus()).isEqualTo(ProposalStatus.REJECTED);
+        assertThat(proposals.get("가게 앞 모니터 메뉴 영상").getStatus()).isEqualTo(ProposalStatus.REJECTED);
+        assertThat(proposals.get("가게 앞 모니터 메뉴 영상").getRejectedBy()).isEqualTo(ProposalRejectedBy.OWNER);
+        assertThat(proposals.get("대표 메뉴 사진 다시 찍기").getStatus()).isEqualTo(ProposalStatus.ACCEPTED);
+        assertThat(status("대표 메뉴 사진 다시 찍기")).isEqualTo(JobStatus.CLOSED);
         // 샘플의 학생 거절은 거절 주체와 거절 시각(의뢰 종료 시각과 같은 시점)을 함께 남긴다
         assertThat(proposals.get("단체 주문 안내문 디자인").getRejectedBy())
                 .isEqualTo(com.gakkum.backend.domain.proposal.entity.ProposalRejectedBy.STUDENT);
@@ -243,7 +248,7 @@ class DemoSampleDataIntegrationTest {
 
         read(ownerToken, "/jobs/" + id("신메뉴 인스타그램 홍보 게시물") + "/applications?sort=LATEST");
         assertThat(read(ownerToken, "/jobs/" + id("단골 쿠폰·도장카드 디자인") + "/submission")).contains("도장카드 시안");
-        assertThat(read(ownerToken, "/jobs/" + id("배달앱 리뷰 분석 리포트") + "/submission")).contains("수정안");
+        assertThat(read(ownerToken, "/jobs/" + id("배달앱 리뷰 분석 리포트") + "/submission")).contains("포장 의견을 한 장으로");
         read(ownerToken, "/jobs/" + id("인스타 게시물 5개 제작") + "/result");
         read(ownerToken, "/jobs/" + id("가게 앞 입간판 시안") + "/result");
         for (Job job : jobs.values()) {
@@ -274,7 +279,7 @@ class DemoSampleDataIntegrationTest {
         assertThat(read(studentToken, "/me/chat-rooms")).contains("공룡카페");
 
         assertThat(read(studentToken, "/jobs/" + id("가게 소개 릴스 영상 편집") + "/submissions/latest"))
-                .contains("자막을 조금 키우고");
+                .contains("자막이 조금 작아서 한 단계 키워 주세요");
         read(studentToken, "/jobs/" + id("쿠폰·스티커 디자인") + "/submissions/latest");
         assertThat(read(studentToken, "/proposals/" + proposals.get("점심 세트 메뉴판 정리").getId()))
                 .contains("점심 손님이 많아서 기대돼요!");
@@ -299,9 +304,9 @@ class DemoSampleDataIntegrationTest {
         assertThat(read(studentToken, "/students/me")).contains("GTQ 포토샵 1급");
         assertThat(read(studentToken, "/settlements")).contains("치킨 세트 메뉴 카드뉴스", "인스타 게시물 5개 제작");
         assertThat(read(ownerToken, "/me/chat-rooms"))
-                .contains("네, 두 메뉴 사진을 크게 넣어 볼게요.", "초안 올렸어요. 두 시안 중에 골라 주세요!");
+                .contains("튀김은 세트 칸으로 따로 빼 볼게요.", "두 시안 중에 골라 주세요.");
         assertThat(read(studentToken, "/me/chat-rooms"))
-                .contains("네! 내일 오후 3시 괜찮으세요?", "감사합니다! 반응 좋았으면 좋겠어요.");
+                .contains("네! 내일 오후 3시 괜찮으세요?", "세트 주문이 많이 들어왔으면 좋겠어요.");
     }
 
     private JobStatus status(String title) {
