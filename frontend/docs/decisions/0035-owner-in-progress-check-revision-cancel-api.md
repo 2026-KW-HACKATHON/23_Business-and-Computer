@@ -53,8 +53,8 @@ The backend (dev) has:
   goes to /login.
 - **내 활동 › 진행 중**: cards sorted by that deadline, with category badges,
   the status (초안 제작 중 · 수정안 제작 중 · 초안/수정안이 도착했어요), the
-  student line (name · 학번 · 학과; 「프로필 보기」 opens 「학생 프로필은 곧 볼 수
-  있어요」), and either 초안/수정안 확인하기 · 문의하기 (채팅
+  student line (name · 학번 · 학과; 「프로필 보기」 opens the student's
+  profile, ADR 0038), and either 초안/수정안 확인하기 · 문의하기 (채팅
   목록) or 작업 취소 · 문제 신고. 「상세보기」 opens the work check when
   something arrived, the application sheet for a request, or the received
   proposal for a proposal. The count shows 「-」 and `LoadNotice` replaces
@@ -103,8 +103,6 @@ The backend (dev) has:
 
 ## Agent Guidance
 
-- GET /students/{studentProfileId}/profile (owner) exists; 「프로필 보기」 can
-  open it with the matched list's `studentProfileId`.
 - When the matched list carries the student name, budget, and revision
   count, drop GET /me/chat-rooms from `loadOwnerProgressJobs`.
 - When submissions carry a date, show 「○월 ○일 도착」 and 「○월 ○일까지 확인해
