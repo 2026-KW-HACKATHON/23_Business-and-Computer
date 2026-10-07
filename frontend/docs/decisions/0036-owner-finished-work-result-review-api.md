@@ -13,9 +13,9 @@ The payment summary above the 완료 list and 결제 내역 read GET /payments
 
 The backend (dev) has:
 
-- GET /me/jobs?status=CLOSED (owner) → `{ jobs: [{ jobId, title,
+- GET /me/jobs?status=CLOSED (owner) → `[{ jobId, title,
   specialtyCategories, matchedWorker { studentProfileId, name }, completedAt,
-  progressStage }] }`, newest first. It lists completed jobs (progressStage
+  progressStage }]` (`data` is the array itself, ADR 0042), newest first. It lists completed jobs (progressStage
   COMPLETED) and cancelled or declined ones (CANCELLED); `matchedWorker` is
   null for a request cancelled while recruiting. It has no fee, refund, or
   whether the owner reviewed.

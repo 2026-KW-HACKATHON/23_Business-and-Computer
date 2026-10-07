@@ -32,8 +32,9 @@ The backend (dev) has:
 - **내 정보** (`src/pages/OwnerMePage.tsx`, `useOwnerMe` in
   `src/features/owner/hooks/useOwnerMe.ts`): store name, owner name
   (`ownerTitle` keeps 「데모 사장님」 from doubling), address, photo,
-  「사업자 인증 완료」, and the four counts come from GET /owners/me, so the
-  page no longer loads the open jobs and received proposals for its counts.
+  「사업자 인증 완료」, and the 받은 제안 · 진행 중 · 완료 counts come from GET
+  /owners/me. 보낸 의뢰 counts GET /me/jobs?status=OPEN like 내 활동 (ADR
+  0042).
   While loading or after a failure the store part shows `LoadNotice` and the
   counts 「-」. Choosing a photo checks its format and size as in signup,
   uploads it as PROFILE, and saves it with PUT /owners/me with the current
@@ -59,7 +60,8 @@ The backend (dev) has:
 
 ## Rationale
 
-- The counts in GET /owners/me replace two list requests on 내 정보.
+- The counts in GET /owners/me replace the received-proposal list request
+  on 내 정보.
 - Reusing the closed list's GET /payments keeps 내 활동 at one payment
   request.
 
