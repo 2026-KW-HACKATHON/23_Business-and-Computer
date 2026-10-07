@@ -58,3 +58,31 @@
   gap: 4px;
   padding: 6px 8px;
 }
+
+/* 화면이 낮으면(사파리 아래 바가 보일 때 등) 노션 링크까지 한 화면에 들어오도록 여백을 줄인다. 700px 보다 높으면 피그마 그대로 */
+@media (max-height: 700px) {
+  .login__body {
+    gap: 12px;
+    padding: 8px 20px 12px;
+  }
+
+  .login__usage {
+    margin-top: 16px;
+  }
+
+  .login__footer {
+    gap: 12px;
+    padding-bottom: calc(20px + env(safe-area-inset-bottom));
+  }
+}
+
+@media (max-height: 600px) {
+  .login__logo {
+    width: 128px;
+    height: auto;
+  }
+
+  .login__usage {
+    margin-top: 8px;
+  }
+}
