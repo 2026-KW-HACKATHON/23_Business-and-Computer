@@ -14,10 +14,13 @@ export interface OwnerClosedJobResponse {
   progressStage?: string | null;
 }
 
-/** GET /me/jobs?status=CLOSED — 끝난 내 의뢰 (끝난 날 최신순) */
+/**
+ * GET /me/jobs?status=CLOSED — 끝난 내 의뢰 (끝난 날 최신순). 다른 목록과 달리 data 가
+ * { jobs } 가 아니라 배열 그대로다
+ */
 export async function fetchOwnerClosedJobs(): Promise<OwnerClosedJobResponse[]> {
-  const data = await apiData<{ jobs?: OwnerClosedJobResponse[] } | undefined>("/me/jobs?status=CLOSED");
-  return data?.jobs ?? [];
+  const data = await apiData<OwnerClosedJobResponse[] | undefined>("/me/jobs?status=CLOSED");
+  return Array.isArray(data) ? data : [];
 }
 
 /** 작업 기록 한 줄의 종류 */

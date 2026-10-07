@@ -24,7 +24,7 @@ const STATUS_CLASS: Record<SettlementStatus, string> = {
 /**
  * 피그마 「정산 내역 (학생)」. GET /settlements (ADR 0041) 의 요약과 결제한 달마다 묶은 정산을
  * 서버 순서대로 보여 주고, 정산 예정 · 정산 완료 · 착수 보상 · 성사되지 않음을 칩으로 보여 준다.
- * 작업 중인 줄은 내 활동 › 진행 중을 연다. 끝난 줄은 내 결과물 · 성사되지 않은 작업이 서버를 읽을 때 연결한다.
+ * 작업 중 → 내 활동 › 진행 중, 정산 완료 → 내 결과물, 착수 보상 · 성사되지 않음 → 성사되지 않은 작업 (ADR 0042).
  */
 function StudentSettlementsPage() {
   const navigate = useNavigate();
@@ -45,20 +45,12 @@ function StudentSettlementsPage() {
   }
   const months = load.data.months.filter((month) => month.settlements.length > 0);
 
-  const rowContent = (s: SettlementItem) => (
-    <>
-      <span className="student-settlements__info">
-        <span className="student-settlements__title">{s.title}</span>
-        <span className="student-settlements__detail">{settlementDetailText(s)}</span>
-      </span>
-      <span className="student-settlements__side">
-        <span className="student-settlements__amount">{formatWon(s.amount)}</span>
-        <span className={`student-settlements__status student-settlements__status--${STATUS_CLASS[s.status]}`}>
-          {SETTLEMENT_STATUS_LABEL[s.status]}
-        </span>
-      </span>
-    </>
-  );
+  const open = (s: SettlementItem) => {
+    const id = String(s.jobId);
+    if (s.status === "SCHEDULED") return navigate(STUDENT_PATHS.activity("inProgress"));
+    if (s.status === "SETTLED") return navigate(STUDENT_PATHS.workResult(id));
+    return navigate(STUDENT_PATHS.workCanceled(id));
+  };
 
   return (
     <SubScreen title="정산 내역" onBack={back}>
@@ -80,19 +72,20 @@ function StudentSettlementsPage() {
               <ul className="student-settlements__list">
                 {month.settlements.map((s) => (
                   <li key={s.jobId}>
-                    {s.status === "SCHEDULED" ? (
-                      <button
-                        type="button"
-                        className="student-settlements__row"
-                        onClick={() => navigate(STUDENT_PATHS.activity("inProgress"))}
-                      >
-                        {rowContent(s)}
-                      </button>
-                    ) : (
-                      <div className="student-settlements__row student-settlements__row--static">
-                        {rowContent(s)}
-                      </div>
-                    )}
+                    <button type="button" className="student-settlements__row" onClick={() => open(s)}>
+                      <span className="student-settlements__info">
+                        <span className="student-settlements__title">{s.title}</span>
+                        <span className="student-settlements__detail">{settlementDetailText(s)}</span>
+                      </span>
+                      <span className="student-settlements__side">
+                        <span className="student-settlements__amount">{formatWon(s.amount)}</span>
+                        <span
+                          className={`student-settlements__status student-settlements__status--${STATUS_CLASS[s.status]}`}
+                        >
+                          {SETTLEMENT_STATUS_LABEL[s.status]}
+                        </span>
+                      </span>
+                    </button>
                   </li>
                 ))}
               </ul>

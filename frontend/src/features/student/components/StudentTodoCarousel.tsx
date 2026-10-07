@@ -19,7 +19,6 @@ function describe(todo: StudentTodo) {
       return { status: deadlineText("draft", todo.job.draftDeadline), action: "초안 제출하기" };
     case "revising":
       return { status: "수정 요청이 도착했어요", action: "수정안 제출하기" };
-    case "agreement":
     case "proposalAgreement":
       return { status: "제안이 받아들여졌어요", action: "조건 확인" };
   }
@@ -35,16 +34,6 @@ function heading(todo: StudentTodo) {
       title: proposal.title,
       fields: proposalBadgeNames(proposal.specialtyCategories),
       store: proposal.store.storeName,
-    };
-  }
-  if (todo.type === "agreement") {
-    const { work } = todo;
-    return {
-      key: `agreement-${work.id}`,
-      kind: work.kind,
-      title: work.title,
-      fields: [work.field],
-      store: work.store.name,
     };
   }
   const { job } = todo;

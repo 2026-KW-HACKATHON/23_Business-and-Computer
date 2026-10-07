@@ -27,16 +27,16 @@ import {
   useAppliedJobs,
   useProgressJobs,
   useSentProposals,
+  useFinishedJobs,
   useSettlementHistory,
-  useStudentWorks,
 } from "../features/student";
 import { proposalBadgeNames } from "../features/proposal";
 import type {
   AppliedJob,
+  FinishedJob,
   ProgressJob,
   SentProposal,
   StudentActivityTab,
-  StudentWork,
 } from "../features/student";
 import { useBack } from "../hooks/useBack";
 import { formatMonthDay } from "../lib/date";
@@ -79,7 +79,8 @@ function StoreLine({ name, address }: { name: string; address?: string }) {
  * 피그마 「내 활동 - 지원한 의뢰 · 보낸 제안 · 진행 중 · 완료 (학생)」.
  * 위 요약 카드 4칸이 탭이고, 고른 탭은 주소(?tab=)에 남아 돌아와도 그대로다.
  * 지원한 의뢰는 GET /me/job-applications (ADR 0027), 보낸 제안은 GET /me/proposals (ADR 0023).
- * 진행 중은 GET /me/jobs?status=MATCHED (ADR 0032). 완료 탭은 아직 샘플 데이터다.
+ * 진행 중은 GET /me/jobs?status=MATCHED (ADR 0032). 완료 · 성사되지 않은 일은 정산 내역
+ * (GET /settlements)의 끝난 작업 (ADR 0042).
  */
 function StudentActivityPage() {
   const navigate = useNavigate();
@@ -90,7 +91,8 @@ function StudentActivityPage() {
   const applied = appliedLoad.status === "loaded" ? appliedLoad.jobs : [];
   const { load: proposalsLoad, reload: reloadProposals } = useSentProposals();
   const proposals = proposalsLoad.status === "loaded" ? proposalsLoad.proposals : [];
-  const works = useStudentWorks();
+  // 완료 카드에 분야와 받은 후기 별점이 있어서 작업마다 함께 불러온다
+  const { load: finishedLoad, reload: reloadFinished } = useFinishedJobs({ details: true, reviews: true });
   // 진행 중 카드에 가게 주소가 있어서 주소까지 불러온다
   const { load: progressLoad, reload: reloadProgress } = useProgressJobs({ storeAddress: true });
   // 완료 탭 위 정산 요약 (GET /settlements). 불러오지 못하면 요약 칸을 숨긴다
@@ -102,16 +104,16 @@ function StudentActivityPage() {
   const inProgress = (progressLoad.status === "loaded" ? progressLoad.jobs : [])
     .slice()
     .sort((a, b) => progressDeadline(a).due.localeCompare(progressDeadline(b).due));
-  const done = works
-    .filter((w) => w.status === "completed")
-    .sort((a, b) => (b.completedOn ?? "").localeCompare(a.completedOn ?? ""));
-  const canceled = works.filter((w) => w.status === "canceled");
+  // 끝난 작업은 끝난 날 최신순
+  const finished = finishedLoad.status === "loaded" ? finishedLoad.jobs : [];
+  const done = finished.filter((job) => job.outcome === "completed");
+  const canceled = finished.filter((job) => job.outcome === "canceled");
   // 지원한 의뢰 · 보낸 제안을 불러오는 중이거나 실패하면 개수 대신 「-」
   const counts: Record<StudentActivityTab, number | string> = {
     applied: appliedLoad.status === "loaded" ? applied.length : "-",
     proposals: proposalsLoad.status === "loaded" ? proposals.length : "-",
     inProgress: progressLoad.status === "loaded" ? inProgress.length : "-",
-    done: done.length,
+    done: finishedLoad.status === "loaded" ? done.length : "-",
   };
   const selectedIndex = TABS.findIndex((t) => t.tab === tab);
 
@@ -249,28 +251,28 @@ function StudentActivityPage() {
     );
   };
 
-  const doneCard = (work: StudentWork) => {
-    const auto = work.completedBy === "auto";
+  /** 「가게, 9월 27일 완료」 · 「가게, 8월 16일 성사되지 않음」 */
+  const finishedLine = (job: FinishedJob, word: string) =>
+    [job.storeName, job.closedOn ? `${formatMonthDay(job.closedOn)} ${word}` : word].filter(Boolean).join(", ");
+
+  const doneCard = (job: FinishedJob) => {
+    const id = String(job.jobId);
     return (
-      <li key={work.id} className="student-activity__card">
-        <CardHead
-          kind={work.kind}
-          title={work.title}
-          right={<span className="student-activity__chip">{auto ? "자동 완료" : "완료"}</span>}
-        />
+      <li key={job.jobId} className="student-activity__card">
+        <CardHead kind={job.kind} title={job.title} right={<span className="student-activity__chip">완료</span>} />
         <div className="student-activity__meta">
-          <CategoryBadge field={work.field} />
-          <span>
-            {work.store.name}, {formatMonthDay(work.completedOn ?? "")} {auto ? "자동 완료" : "완료"}
-          </span>
+          {proposalBadgeNames(job.specialtyCategories).map((name) => (
+            <CategoryBadge key={name} field={name} />
+          ))}
+          <span>{finishedLine(job, "완료")}</span>
         </div>
-        <p className="student-activity__line">작업비 {formatWon(work.budget)} 정산 완료</p>
+        <p className="student-activity__line">작업비 {formatWon(job.amount)} 정산 완료</p>
         <div className="student-activity__divider" />
         <div className="student-activity__footer">
-          <TextButton onClick={() => navigate(STUDENT_PATHS.workResult(work.id))}>내 결과물 보기</TextButton>
-          {work.review && (
-            <TextButton onClick={() => navigate(STUDENT_PATHS.workReview(work.id))}>
-              받은 후기 ★ {work.review.rating.toFixed(1)}
+          <TextButton onClick={() => navigate(STUDENT_PATHS.workResult(id))}>내 결과물 보기</TextButton>
+          {job.rating !== undefined && (
+            <TextButton onClick={() => navigate(STUDENT_PATHS.workReview(id))}>
+              받은 후기 ★ {job.rating.toFixed(1)}
             </TextButton>
           )}
         </div>
@@ -278,25 +280,25 @@ function StudentActivityPage() {
     );
   };
 
-  const canceledCard = (work: StudentWork) => (
-    <li key={work.id} className="student-activity__card">
+  const canceledCard = (job: FinishedJob) => (
+    <li key={job.jobId} className="student-activity__card">
       <CardHead
-        kind={work.kind}
-        title={work.title}
+        kind={job.kind}
+        title={job.title}
         right={<span className="student-activity__chip">성사되지 않음</span>}
       />
       <div className="student-activity__meta">
-        <CategoryBadge field={work.field} />
-        <span>
-          {work.store.name}, {work.cancel ? formatMonthDay(work.cancel.canceledOn) : ""} 성사되지 않음
-        </span>
+        {proposalBadgeNames(job.specialtyCategories).map((name) => (
+          <CategoryBadge key={name} field={name} />
+        ))}
+        <span>{finishedLine(job, "성사되지 않음")}</span>
       </div>
-      {work.cancel && work.cancel.reward > 0 && (
-        <p className="student-activity__line">착수 보상 {formatWon(work.cancel.reward)} 정산 완료</p>
+      {job.amount > 0 && (
+        <p className="student-activity__line">착수 보상 {formatWon(job.amount)} 정산 완료</p>
       )}
       <div className="student-activity__divider" />
       <div className="student-activity__footer">
-        <TextButton onClick={() => navigate(STUDENT_PATHS.workCanceled(work.id))}>상세보기</TextButton>
+        <TextButton onClick={() => navigate(STUDENT_PATHS.workCanceled(String(job.jobId)))}>상세보기</TextButton>
       </div>
     </li>
   );
@@ -357,6 +359,14 @@ function StudentActivityPage() {
             loadingText="보낸 제안을 불러오는 중이에요"
             errorText="보낸 제안을 불러오지 못했어요"
             onRetry={reloadProposals}
+          />
+        )}
+        {tab === "done" && finishedLoad.status !== "loaded" && (
+          <LoadNotice
+            status={finishedLoad.status}
+            loadingText="끝난 작업을 불러오는 중이에요"
+            errorText="끝난 작업을 불러오지 못했어요"
+            onRetry={reloadFinished}
           />
         )}
         {counts[tab] === 0 && <p className="student-activity__empty">아직 없어요</p>}

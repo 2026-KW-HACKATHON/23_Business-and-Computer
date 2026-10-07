@@ -1,6 +1,12 @@
 import { useNavigate, useParams } from "react-router-dom";
-import { AppImage, Button, LabelChip, StarRating, SubScreen, TextButton } from "../components";
-import { STUDENT_PATHS, StudentMissing, useStudentWork } from "../features/student";
+import { AppImage, Button, LabelChip, LoadNotice, StarRating, SubScreen, TextButton } from "../components";
+import {
+  REVIEW_POINT_LABEL,
+  STUDENT_PATHS,
+  StudentMissing,
+  useReceivedReview,
+  useStudentWork,
+} from "../features/student";
 import { useBack } from "../hooks/useBack";
 import { formatMonthDay } from "../lib/date";
 import "./StudentDetailPage.css";
@@ -9,22 +15,99 @@ import "./StudentWorkPage.css";
 /** 별점 문구 (5점 = 최고예요) */
 const RATING_WORDS = ["", "아쉬워요", "그저 그래요", "괜찮아요", "좋아요", "최고예요"];
 
-/** 피그마 「받은 후기 보기」. 작업이 끝나 정산된 뒤 사장님이 남긴 후기 */
+/** 받은 후기 한 장에 보이는 것 */
+interface ReviewView {
+  /** 내 결과물 주소의 id */
+  workId: string;
+  storeName: string;
+  workTitle: string;
+  date: string;
+  rating: number;
+  points: string[];
+  text?: string;
+}
+
+/**
+ * 피그마 「받은 후기 보기」. 작업이 끝나 정산된 뒤 사장님이 남긴 후기.
+ * 주소의 id 가 숫자면 서버 작업(GET /jobs/{id}/review, ADR 0042), 아니면 샘플 작업.
+ */
 function StudentReviewPage() {
   const { workId = "" } = useParams();
-  const navigate = useNavigate();
+  const jobId = Number(workId);
+  return Number.isSafeInteger(jobId) && jobId > 0 ? (
+    <JobReview jobId={jobId} />
+  ) : (
+    <SampleReview workId={workId} />
+  );
+}
+
+/** 서버 작업에서 받은 후기 */
+function JobReview({ jobId }: { jobId: number }) {
+  const back = useBack(STUDENT_PATHS.home);
+  const { load, reload } = useReceivedReview(jobId);
+
+  if (load.status === "notFound") {
+    return <StudentMissing title="받은 후기" onBack={back} message="아직 받은 후기가 없어요" />;
+  }
+  if (load.status !== "loaded") {
+    return (
+      <SubScreen title="받은 후기" onBack={back}>
+        <LoadNotice
+          status={load.status}
+          loadingText="후기를 불러오는 중이에요"
+          errorText="후기를 불러오지 못했어요"
+          onRetry={reload}
+        />
+      </SubScreen>
+    );
+  }
+  const review = load.data;
+  return (
+    <ReviewScreen
+      onBack={back}
+      review={{
+        workId: String(jobId),
+        storeName: review.storeName?.trim() || "가게",
+        workTitle: review.jobTitle,
+        date: review.createdAt,
+        rating: review.rating,
+        points: review.positivePoints.map((point) => REVIEW_POINT_LABEL[point]),
+        text: review.content?.trim() || undefined,
+      }}
+    />
+  );
+}
+
+/** 샘플 작업의 후기 (알림 · 채팅의 예시) */
+function SampleReview({ workId }: { workId: string }) {
   const back = useBack(STUDENT_PATHS.home);
   const work = useStudentWork(workId);
 
   if (!work?.review) return <StudentMissing title="받은 후기" onBack={back} message="아직 받은 후기가 없어요" />;
-  const { review } = work;
+  return (
+    <ReviewScreen
+      onBack={back}
+      review={{
+        workId: work.id,
+        storeName: work.store.name,
+        workTitle: work.title,
+        date: work.review.date,
+        rating: work.review.rating,
+        points: work.review.points,
+        text: work.review.text,
+      }}
+    />
+  );
+}
 
+function ReviewScreen({ review, onBack }: { review: ReviewView; onBack: () => void }) {
+  const navigate = useNavigate();
   return (
     <SubScreen
       title="받은 후기"
-      onBack={back}
+      onBack={onBack}
       footer={
-        <Button tone="student" fullWidth onClick={back}>
+        <Button tone="student" fullWidth onClick={onBack}>
           확인
         </Button>
       }
@@ -38,13 +121,13 @@ function StudentReviewPage() {
             <br />
             받은 후기와 결과물은 내 프로필에 쌓여요.
           </p>
-          <TextButton onClick={() => navigate(STUDENT_PATHS.workResult(work.id))}>내 결과물 보기</TextButton>
+          <TextButton onClick={() => navigate(STUDENT_PATHS.workResult(review.workId))}>내 결과물 보기</TextButton>
         </div>
 
         <section className="student-work__review-card">
-          <h2 className="student-detail__section-title">{work.store.name} 사장님이 남긴 후기</h2>
+          <h2 className="student-detail__section-title">{review.storeName} 사장님이 남긴 후기</h2>
           <p className="student-work__review-meta">
-            {work.title} · {formatMonthDay(review.date)}
+            {review.workTitle} · {formatMonthDay(review.date)}
           </p>
           <div className="student-work__stars">
             <StarRating value={review.rating} size={24} />
@@ -62,7 +145,7 @@ function StudentReviewPage() {
               </div>
             </div>
           )}
-          <p className="student-detail__text">{review.text}</p>
+          {review.text && <p className="student-detail__text">{review.text}</p>}
         </section>
       </div>
     </SubScreen>

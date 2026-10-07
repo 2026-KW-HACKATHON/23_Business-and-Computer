@@ -54,10 +54,6 @@
   cursor: pointer;
 }
 
-.student-settlements__row--static {
-  cursor: default;
-}
-
 .student-settlements__row:focus-visible {
   outline: 2px solid var(--color-black);
   outline-offset: 2px;
