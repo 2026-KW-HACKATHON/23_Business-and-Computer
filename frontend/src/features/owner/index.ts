@@ -29,6 +29,10 @@ export {
 export { useJobAssignment } from "./hooks/useJobAssignment";
 export type { JobAssignment } from "./hooks/useJobAssignment";
 export { useOwnerHome } from "./hooks/useOwnerHome";
+export { useOwnerMe } from "./hooks/useOwnerMe";
+export type { OwnerMeLoad } from "./hooks/useOwnerMe";
+export { ownerMeChanges, saveOwnerMe } from "./lib/ownerMe";
+export type { OwnerMe, OwnerMeChanges, OwnerMeSaveResult } from "./lib/ownerMe";
 export { useProposalJobIds } from "./hooks/useProposalJobIds";
 export { useReceivedProposals } from "./hooks/useReceivedProposals";
 export {
