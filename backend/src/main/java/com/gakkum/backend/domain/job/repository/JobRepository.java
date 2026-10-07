@@ -23,6 +23,9 @@ public interface JobRepository extends JpaRepository<Job, Long> {
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     Optional<Job> findByIdAndOwnerProfileId(Long jobId, Long ownerProfileId);
 
+    /** 사장님 본인 의뢰를 잠그지 않고 읽는다. 읽기 전용 트랜잭션에서는 잠금 조회(SELECT ... FOR UPDATE)를 쓸 수 없다. */
+    Optional<Job> findJobByIdAndOwnerProfileId(Long jobId, Long ownerProfileId);
+
     /** 제안으로 만든 의뢰. 같은 제안의 결제 승인을 순서대로 처리하도록 의뢰 행을 잠근다. */
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     Optional<Job> findLockedByProposalId(Long proposalId);
