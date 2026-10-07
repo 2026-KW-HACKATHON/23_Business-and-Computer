@@ -16,7 +16,7 @@ export const STUDENT_PATHS = {
   exploreStores: "/student/explore/stores",
   peerProposal: (id: string) => `/student/explore/proposals/${id}`,
   chats: "/student/chats",
-  chat: (workId: string) => `/student/chats/${workId}`,
+  chat: (roomId: string) => `/student/chats/${roomId}`,
   notifications: "/student/notifications",
   me: "/student/me",
   profile: "/student/me/profile",

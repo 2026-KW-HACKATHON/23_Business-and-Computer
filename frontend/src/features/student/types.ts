@@ -194,29 +194,6 @@ export interface MyProfile {
   portfolioUrl?: string;
 }
 
-/** 채팅 메시지. 시각은 ISO */
-export type ChatMessage =
-  | { id: string; type: "system"; text: string; at: string }
-  | { id: string; type: "text"; from: "me" | "partner"; text: string; at: string }
-  | { id: string; type: "file"; from: "me" | "partner"; name: string; detail: string; at: string };
-
-export interface StudentChatThread {
-  workId: string;
-  unreadCount: number;
-  messages: ChatMessage[];
-}
-
-/** 채팅 목록 한 줄 */
-export interface StudentChatRoom {
-  workId: string;
-  storeName: string;
-  workTitle: string;
-  status: string;
-  lastMessage: string;
-  lastMessageAt: string;
-  unreadCount: number;
-}
-
 export type StudentNotificationType =
   | "SELECTED"
   | "NOT_SELECTED"

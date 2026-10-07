@@ -16,7 +16,8 @@ them yet.
 
 ## Decision
 
-- Routes follow Notion: /owner/explore, /owner/chats, /owner/chats/:workId,
+- Routes follow Notion: /owner/explore, /owner/chats, /owner/chats/:roomId
+  (ADR 0034),
   /owner/notifications, /owner/me, /owner/works/:workId/check,
   /owner/works/:workId/result, /owner/proposals/:proposalId,
   /owner/requests/:requestId, /owner/requests/:requestId/applicants, and
@@ -34,8 +35,8 @@ them yet.
   buttons with a ›; `TaskRow` takes `onClick` for this.
 - 작업계획서 보기 is a bottom sheet (`WorkPlanSheet`) opened from the home
   and the chat room, not a route. From the home it adds 「채팅하기」.
-- 알림 read state, sent chat messages, and a picked profile photo live only
-  in the screen until the backend is wired.
+- 알림 read state and a picked profile photo live only in the screen until
+  the backend is wired. Chat reads and writes the backend (ADR 0034).
 - 의뢰 등록 1/3 starts empty from the FAB and with the example's field and
   task picked when opened from an example card (`exampleId` in router
   state). Tasks per field reuse `SPECIALTY_BADGES`.
@@ -64,5 +65,5 @@ them yet.
 - The screens one level further (registration 2/3 · 3/3, payment,
   revision, review, cancel, explore details) are in ADR 0014.
 - Backend integration: replace the hooks in `useOwnerData.ts`, mark
-  notifications read on the server, send chat messages over the planned
-  WebSocket, and serve files through signed URLs for 「받기」.
+  notifications read on the server, and serve files through signed URLs for
+  「받기」. Chat is wired (ADR 0034).

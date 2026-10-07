@@ -1,12 +1,12 @@
-import { day, dayAt, minutesAgo, yesterdayAt } from "../../../lib/sampleTime";
-import type { StudentChatThread, StudentWork } from "../types";
+import { day, minutesAgo, yesterdayAt } from "../../../lib/sampleTime";
+import type { StudentWork } from "../types";
 
 /*
  * 내 작업 임시 예시 데이터 (피그마 「작업 진행 · 수정 요청 확인 · 수정안 제출 · 제출한 초안 보기 ·
- * 내 결과물 보기 · 받은 후기 보기 · 작업 시작 · 취소된 작업 · 채팅방」 내용).
- * 홈 · 내 활동 · 정산 내역 · 내 작업물 · 채팅 목록은 이 데이터에서 만든다. 날짜는 오늘 기준.
+ * 내 결과물 보기 · 받은 후기 보기 · 작업 시작 · 취소된 작업」 내용).
+ * 홈 · 내 활동 · 정산 내역 · 내 작업물은 이 데이터에서 만든다. 날짜는 오늘 기준.
  * work-103 · work-090 은 사장님 예시(features/owner/lib/sampleDetails.ts)의 같은 작업이라
- * 금액 · 날짜 · 작업계획서 · 채팅이 같다.
+ * 금액 · 날짜 · 작업계획서가 같다.
  */
 
 export const SAMPLE_WORKS: StudentWork[] = [
@@ -377,96 +377,6 @@ export const SAMPLE_WORKS: StudentWork[] = [
     },
   },
 ];
-
-/* 채팅방. work-103 은 사장님 예시의 같은 채팅방을 학생 쪽에서 본 것이다 */
-export const SAMPLE_CHAT_THREADS: StudentChatThread[] = [
-  {
-    workId: "work-103",
-    unreadCount: 0,
-    messages: [
-      { id: "m1", type: "system", text: "안전결제가 끝나 작업이 시작됐어요", at: dayAt(-2, 13, 50) },
-      {
-        id: "m2",
-        type: "text",
-        from: "me",
-        text: "메뉴 사진 원본 파일 보내주실 수 있나요? 인쇄용이라 화질 좋은 게 필요해요.",
-        at: yesterdayAt(14, 2),
-      },
-      { id: "m3", type: "text", from: "partner", text: "네, 지금 보내드릴게요.", at: yesterdayAt(14, 5) },
-      {
-        id: "m4",
-        type: "file",
-        from: "partner",
-        name: "메뉴사진_원본.zip",
-        detail: "사진 3장 · 12.8MB",
-        at: yesterdayAt(14, 5),
-      },
-      {
-        id: "m5",
-        type: "text",
-        from: "me",
-        text: "감사합니다! 초록 계열로 시안 2개 만들어서 초안 마감일까지 보내드릴게요.",
-        at: yesterdayAt(14, 22),
-      },
-    ],
-  },
-  {
-    workId: "work-211",
-    unreadCount: 2,
-    messages: [
-      { id: "m1", type: "system", text: "안전결제가 끝나 작업이 시작됐어요", at: dayAt(-9, 10, 0) },
-      { id: "m2", type: "system", text: "초안을 보냈어요", at: dayAt(-4, 20, 10) },
-      { id: "m3", type: "system", text: "수정 요청이 도착했어요", at: yesterdayAt(18, 40) },
-      {
-        id: "m4",
-        type: "text",
-        from: "partner",
-        text: "2번 사진만 조금 밝게 해 주세요. 나머지는 좋아요!",
-        at: yesterdayAt(18, 41),
-      },
-      {
-        id: "m5",
-        type: "text",
-        from: "partner",
-        text: "4번에는 시험 기간 이벤트 문구도 넣어 주세요.",
-        at: yesterdayAt(18, 42),
-      },
-    ],
-  },
-  {
-    workId: "work-212",
-    unreadCount: 0,
-    messages: [
-      { id: "m1", type: "system", text: "조건에 동의해 작업이 시작됐어요", at: dayAt(-6, 11, 0) },
-      {
-        id: "m2",
-        type: "text",
-        from: "partner",
-        text: "영업시간은 일요일 휴무로 고쳐 주세요. 사진은 좋아요!",
-        at: dayAt(-5, 16, 20),
-      },
-      { id: "m3", type: "text", from: "me", text: "네, 반영해서 보내 드릴게요.", at: dayAt(-5, 16, 31) },
-      { id: "m4", type: "system", text: "초안을 보냈어요", at: dayAt(-1, 21, 0) },
-    ],
-  },
-  {
-    workId: "work-201",
-    unreadCount: 0,
-    messages: [
-      { id: "m1", type: "system", text: "작업이 완료됐어요", at: dayAt(-21, 15, 0) },
-      {
-        id: "m2",
-        type: "text",
-        from: "partner",
-        text: "덕분에 로고 잘 쓰고 있어요. 고마워요 :)",
-        at: dayAt(-21, 15, 12),
-      },
-    ],
-  },
-];
-
-/* 조건에 동의하면 열리는 채팅방 (첫 메시지는 동의한 때 붙는다) */
-SAMPLE_CHAT_THREADS.push({ workId: "work-213", unreadCount: 0, messages: [] });
 
 /* 알림 시각과 맞추려고 내보낸다 */
 export const LAST_REVISION_AT = yesterdayAt(18, 40);

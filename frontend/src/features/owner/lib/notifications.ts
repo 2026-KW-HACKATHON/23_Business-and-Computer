@@ -27,7 +27,7 @@ export function notificationPath({ type, targetId }: OwnerNotification): string 
     case "APPLICATION_RECEIVED":
       return OWNER_PATHS.requestApplicants(targetId);
     case "CHAT_MESSAGE":
-      return OWNER_PATHS.chat(targetId);
+      return OWNER_PATHS.chats;
     case "PAYMENT_ESCROWED":
       return OWNER_PATHS.activity("inProgress");
     case "REVIEW_REQUEST":

@@ -13,6 +13,8 @@ interface MainTabScreenProps {
   /** 넣으면 앱바에 로고 대신 제목 */
   title?: string;
   hasUnread?: boolean;
+  /** 안 읽은 채팅 메시지가 있으면 탭바 「채팅」에 점 */
+  hasUnreadChat?: boolean;
   onNotifications: () => void;
   onMy: () => void;
   onSelectTab: (tab: MainTab) => void;
@@ -32,6 +34,7 @@ function MainTabScreen({
   tab,
   title,
   hasUnread,
+  hasUnreadChat,
   onNotifications,
   onMy,
   onSelectTab,
@@ -61,7 +64,13 @@ function MainTabScreen({
       {onFab && (
         <Fab role={role} collapsed={scrolled} onClick={onFab} className="main-tab-screen__fab" />
       )}
-      <TabBar current={tab} onSelect={onSelectTab} className="main-tab-screen__tab-bar" />
+      <TabBar
+        role={role}
+        current={tab}
+        onSelect={onSelectTab}
+        hasUnreadChat={hasUnreadChat}
+        className="main-tab-screen__tab-bar"
+      />
     </div>
   );
 }
