@@ -16,6 +16,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -83,6 +84,8 @@ class JobResultFlowTest {
     private final UsernamePasswordAuthenticationToken authentication =
             new UsernamePasswordAuthenticationToken(USERNAME, null);
 
+    private final JobSubmissionFileStorageClient storageClient = mock(JobSubmissionFileStorageClient.class);
+
     private MockMvc mockMvc;
 
     @BeforeEach
@@ -92,7 +95,7 @@ class JobResultFlowTest {
                 mock(JobApplicationRepository.class), jobSubmissionRepository, Clock.systemUTC());
         JobFacade facade = new JobFacade(userService, new OwnerService(ownerRepository), jobService,
                 mock(SpecialtyCategoryService.class), mock(SpecialtyService.class), new StudentService(studentRepository),
-                mock(JobSubmissionFileStorageClient.class), mock(ChatAttachmentPolicy.class),
+                storageClient, mock(ChatAttachmentPolicy.class),
                 new PaymentService(paymentRepository, Clock.systemUTC()),
                 mock(ReviewService.class), mock(CertificateService.class), mock(ProposalService.class), mock(MediaService.class));
         mockMvc = MockMvcBuilders.standaloneSetup(new JobController(facade))
@@ -124,6 +127,51 @@ class JobResultFlowTest {
                         contains("STARTED", "DRAFT_SUBMITTED", "COMPLETED")))
                 .andExpect(jsonPath("$.data.workHistory[*].date",
                         contains(STARTED_DATE, "2026-09-10", "2026-09-21")));
+    }
+
+    @Test
+    @DisplayName("승인된 제출물의 파일별 크기를 fileUrls 순서대로 연결해 반환하고 기존 fileUrls는 유지하며 저장소를 조회하지 않는다")
+    void returnsApprovedFilesWithSizes() throws Exception {
+        givenActiveOwner(5L);
+        givenClosedJob();
+        givenSubmissions(
+                submission(81L, 0, JobSubmissionReviewStatus.REVISION_REQUESTED,
+                        LocalDateTime.of(2026, 9, 10, 9, 30), LocalDateTime.of(2026, 9, 11, 9, 30),
+                        Map.of("https://cdn.example/81-a.png", 1L, "https://cdn.example/81-b.pdf", 2L)),
+                submission(82L, 1, JobSubmissionReviewStatus.APPROVED,
+                        LocalDateTime.of(2026, 9, 12, 9, 30), null,
+                        Map.of("https://cdn.example/82-b.pdf", 1048576L, "https://cdn.example/82-a.png", 2048L)));
+        givenPaidPayment();
+
+        mockMvc.perform(get(URL).principal(authentication))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.fileUrls", contains("https://cdn.example/82-a.png", "https://cdn.example/82-b.pdf")))
+                .andExpect(jsonPath("$.data.files[*].fileUrl",
+                        contains("https://cdn.example/82-a.png", "https://cdn.example/82-b.pdf")))
+                .andExpect(jsonPath("$.data.files[*].size", contains(2048, 1048576)));
+        verifyNoInteractions(storageClient);
+    }
+
+    @Test
+    @DisplayName("크기를 기록하기 전에 제출된 결과물 파일은 size를 생략하지 않고 null로 반환한다")
+    void returnsLegacyFilesWithNullSize() throws Exception {
+        givenActiveOwner(5L);
+        givenClosedJob();
+        givenSubmissions(submission(81L, 0, JobSubmissionReviewStatus.APPROVED,
+                LocalDateTime.of(2026, 9, 10, 9, 30), null));
+        givenPaidPayment();
+
+        mockMvc.perform(get(URL).principal(authentication))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.fileUrls", contains("https://cdn.example/81-a.png", "https://cdn.example/81-b.pdf")))
+                .andExpect(jsonPath("$.data.files.length()").value(2))
+                .andExpect(jsonPath("$.data.files[0].fileUrl").value("https://cdn.example/81-a.png"))
+                .andExpect(jsonPath("$.data.files[0]", hasKey("size")))
+                .andExpect(jsonPath("$.data.files[0].size").value(nullValue()))
+                .andExpect(jsonPath("$.data.files[1].fileUrl").value("https://cdn.example/81-b.pdf"))
+                .andExpect(jsonPath("$.data.files[1]", hasKey("size")))
+                .andExpect(jsonPath("$.data.files[1].size").value(nullValue()));
+        verifyNoInteractions(storageClient);
     }
 
     @Test
@@ -396,12 +444,18 @@ class JobResultFlowTest {
 
     private JobSubmission submission(Long id, int revisionNumber, JobSubmissionReviewStatus reviewStatus,
             LocalDateTime createdAt, LocalDateTime reviewedAt) {
+        return submission(id, revisionNumber, reviewStatus, createdAt, reviewedAt, Map.of());
+    }
+
+    private JobSubmission submission(Long id, int revisionNumber, JobSubmissionReviewStatus reviewStatus,
+            LocalDateTime createdAt, LocalDateTime reviewedAt, Map<String, Long> fileSizes) {
         return JobSubmission.builder()
                 .id(id)
                 .jobId(42L)
                 .submissionType(revisionNumber == 0 ? JobSubmissionType.DRAFT : JobSubmissionType.REVISION)
                 .revisionNumber(revisionNumber)
                 .fileUrls(List.of("https://cdn.example/" + id + "-a.png", "https://cdn.example/" + id + "-b.pdf"))
+                .fileSizes(fileSizes)
                 .message("제출물 " + id)
                 .reviewStatus(reviewStatus)
                 .reviewedAt(reviewedAt)

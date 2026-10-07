@@ -1,5 +1,7 @@
 package com.gakkum.backend.application.job;
 
+import static org.hamcrest.Matchers.hasKey;
+import static org.hamcrest.Matchers.nullValue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -9,6 +11,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import java.time.Clock;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -67,6 +70,8 @@ class JobSubmissionDetailFlowTest {
     private final UsernamePasswordAuthenticationToken authentication =
             new UsernamePasswordAuthenticationToken(USERNAME, null);
 
+    private final JobSubmissionFileStorageClient storageClient = mock(JobSubmissionFileStorageClient.class);
+
     private MockMvc mockMvc;
 
     @BeforeEach
@@ -77,7 +82,7 @@ class JobSubmissionDetailFlowTest {
                 Clock.systemUTC());
         JobFacade facade = new JobFacade(userService, new OwnerService(ownerRepository), jobService,
                 mock(SpecialtyCategoryService.class), mock(SpecialtyService.class), new StudentService(studentRepository),
-                mock(JobSubmissionFileStorageClient.class), mock(ChatAttachmentPolicy.class), mock(PaymentService.class),
+                storageClient, mock(ChatAttachmentPolicy.class), mock(PaymentService.class),
                 mock(ReviewService.class), mock(CertificateService.class), mock(ProposalService.class), mock(MediaService.class));
         mockMvc = MockMvcBuilders.standaloneSetup(new JobController(facade))
                 .setControllerAdvice(new GlobalExceptionHandler())
@@ -142,6 +147,44 @@ class JobSubmissionDetailFlowTest {
                 .andExpect(jsonPath("$.data.fileUrls[1]").value("https://example.com/result-1.pdf"))
                 .andExpect(jsonPath("$.data.fileUrls[2]").value("https://example.com/result-3.zip"))
                 .andExpect(jsonPath("$.data.message").value("요청해주신 내용을 반영했습니다."));
+    }
+
+    @Test
+    @DisplayName("파일별 크기를 fileUrls 순서대로 연결해 반환하고 기존 fileUrls는 유지하며 저장소를 조회하지 않는다")
+    void returnsFilesWithSizes() throws Exception {
+        givenOwnerWithStudent();
+        givenPendingSubmission(JobSubmission.create(42L, JobSubmissionType.REVISION, 1,
+                List.of("https://example.com/result-2.png", "https://example.com/result-1.pdf"),
+                Map.of("https://example.com/result-1.pdf", 1048576L, "https://example.com/result-2.png", 2048L),
+                "요청해주신 내용을 반영했습니다."));
+
+        mockMvc.perform(get("/jobs/42/submission").principal(authentication))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.fileUrls[0]").value("https://example.com/result-2.png"))
+                .andExpect(jsonPath("$.data.fileUrls[1]").value("https://example.com/result-1.pdf"))
+                .andExpect(jsonPath("$.data.files.length()").value(2))
+                .andExpect(jsonPath("$.data.files[0].fileUrl").value("https://example.com/result-2.png"))
+                .andExpect(jsonPath("$.data.files[0].size").value(2048))
+                .andExpect(jsonPath("$.data.files[1].fileUrl").value("https://example.com/result-1.pdf"))
+                .andExpect(jsonPath("$.data.files[1].size").value(1048576));
+        verifyNoInteractions(storageClient);
+    }
+
+    @Test
+    @DisplayName("크기를 기록하기 전에 제출된 파일은 size를 생략하지 않고 null로 반환한다")
+    void returnsLegacyFilesWithNullSize() throws Exception {
+        givenOwnerWithStudent();
+        givenPendingSubmission(JobSubmission.create(42L, JobSubmissionType.DRAFT, 0,
+                List.of("https://example.com/draft.pdf"), "초안입니다."));
+
+        mockMvc.perform(get("/jobs/42/submission").principal(authentication))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.fileUrls[0]").value("https://example.com/draft.pdf"))
+                .andExpect(jsonPath("$.data.files.length()").value(1))
+                .andExpect(jsonPath("$.data.files[0].fileUrl").value("https://example.com/draft.pdf"))
+                .andExpect(jsonPath("$.data.files[0]", hasKey("size")))
+                .andExpect(jsonPath("$.data.files[0].size").value(nullValue()));
+        verifyNoInteractions(storageClient);
     }
 
     @Test

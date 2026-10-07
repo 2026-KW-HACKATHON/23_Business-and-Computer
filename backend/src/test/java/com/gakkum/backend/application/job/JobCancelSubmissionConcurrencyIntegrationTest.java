@@ -7,6 +7,7 @@ import static org.assertj.core.api.Assertions.fail;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -90,7 +91,7 @@ class JobCancelSubmissionConcurrencyIntegrationTest {
         Long jobId = saveMatchedJob();
 
         assertRejectedAfterCommitted(
-                () -> jobService.submitDraft(submitCommand(jobId), STUDENT_PROFILE_ID),
+                () -> jobService.submitDraft(submitCommand(jobId), STUDENT_PROFILE_ID, Map.of()),
                 () -> jobService.cancelJob(cancelCommand(jobId), OWNER_PROFILE_ID),
                 ErrorCode.JOB_CANCEL_SUBMITTED);
 
@@ -105,7 +106,7 @@ class JobCancelSubmissionConcurrencyIntegrationTest {
 
         assertRejectedAfterCommitted(
                 () -> jobService.cancelJob(cancelCommand(jobId), OWNER_PROFILE_ID),
-                () -> jobService.submitDraft(submitCommand(jobId), STUDENT_PROFILE_ID),
+                () -> jobService.submitDraft(submitCommand(jobId), STUDENT_PROFILE_ID, Map.of()),
                 ErrorCode.JOB_SUBMISSION_NOT_AVAILABLE);
 
         assertThat(findStatus(jobId)).isEqualTo(JobStatus.CANCELLED);
