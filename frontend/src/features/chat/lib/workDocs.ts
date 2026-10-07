@@ -60,6 +60,36 @@ export function chatWorkDocs(stage: ChatWorkStage | undefined, withReview = fals
   }
 }
 
+/** 이력 줄 하나. round 는 수정이 두 번 이상일 때 수정 요청 · 수정안의 회차(1부터), past 면 지난 회차라 아직 열 수 없다 */
+export interface ChatWorkEntry {
+  doc: ChatWorkDoc;
+  round?: number;
+  past?: boolean;
+}
+
+/**
+ * 작업 이력 줄. revisions 는 마지막 결과물의 수정 번호(초안 0)로, 알면 수정 요청 · 수정안을 회차마다 한 줄씩
+ * 「수정 요청 1」「수정안 1」… 로 펼치고 마지막 회차만 연다. 수정이 한 번뿐이거나 번호를 모르면 한 줄씩
+ */
+export function chatWorkEntries(
+  stage: ChatWorkStage | undefined,
+  revisions: number | undefined,
+  withReview = false,
+): ChatWorkEntry[] {
+  const docs = chatWorkDocs(stage, withReview).map((doc): ChatWorkEntry => ({ doc }));
+  if (revisions === undefined || (stage !== "revising" && stage !== "revisionArrived")) return docs;
+  // 수정 요청 수: 고치는 중이면 낸 수정안보다 하나 많다
+  const requests = stage === "revising" ? revisions + 1 : revisions;
+  if (requests <= 1) return docs;
+  const rounds: ChatWorkEntry[] = [];
+  for (let round = 1; round <= requests; round++) {
+    const past = round < requests;
+    rounds.push({ doc: "revisionRequest", round, past });
+    if (past || stage === "revisionArrived") rounds.push({ doc: "revision", round, past });
+  }
+  return [{ doc: "start" }, { doc: "draft" }, ...rounds];
+}
+
 const DOC_LABEL: Record<Exclude<ChatWorkDoc, "start">, string> = {
   draft: "초안",
   revisionRequest: "수정 요청",
@@ -73,6 +103,12 @@ const DOC_LABEL: Record<Exclude<ChatWorkDoc, "start">, string> = {
 export function chatWorkDocLabel(doc: ChatWorkDoc, kind: WorkKind): string {
   if (doc === "start") return kind === "proposal" ? "제안서" : "의뢰서";
   return DOC_LABEL[doc];
+}
+
+/** 회차가 있으면 「수정 요청 2」처럼 번호를 붙인다 */
+export function chatWorkEntryLabel(entry: ChatWorkEntry, kind: WorkKind): string {
+  const label = chatWorkDocLabel(entry.doc, kind);
+  return entry.round === undefined ? label : `${label} ${entry.round}`;
 }
 
 /** 작업 카드의 굵은 진행 상태. 모르면 undefined (그 줄을 숨긴다) */
