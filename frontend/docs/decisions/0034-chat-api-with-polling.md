@@ -3,8 +3,8 @@
 ## Status
 
 Accepted. The chat list and chat room for owners and students read and write
-the backend through `src/features/chat`. Sending photos and files is not part
-of this change.
+the backend through `src/features/chat`. Sending photos and files is in
+ADR 0043.
 
 ## Context
 
@@ -36,8 +36,8 @@ owner and its selected student may use a room):
 - POST /chat-rooms/{roomId}/messages `{ clientMessageId (UUID), content
   (≤ 5000) }`. Sending the same `clientMessageId` again returns the stored
   message.
-- Attachment upload (POST …/attachments/uploads, then
-  POST …/messages/attachments) exists; this change does not use it.
+- Attachment upload: POST …/attachments/uploads, then
+  POST …/messages/attachments (ADR 0043).
 - Errors: 401, CHAT_403, CHAT_ROOM_404, CHAT_MESSAGE_404, CHAT_MESSAGE_409
   (same `clientMessageId` with other content), COMMON_400.
 - A room is made per job: when the owner's KakaoPay payment for an applicant
@@ -102,7 +102,8 @@ owner and its selected student may use a room):
   「보내지 못했어요」 and 「다시 보내기」, which resends the same
   `clientMessageId`. A pending or failed bubble that turns up in the reloaded
   history is replaced by the stored one. The input takes up to 5000
-  characters. The attach button is removed.
+  characters. The 「+」 button left of the input sends a photo or file
+  (ADR 0043).
 - **Scroll**: the room opens at the latest message. When messages are added
   it scrolls to the bottom only if the view was within 80px of the bottom or
   the newest message is one being sent from this screen; while reading older
@@ -176,4 +177,3 @@ owner and its selected student may use a room):
 - The owner home and 내 활동 「문의하기」 · 「채팅하기」, `CHAT_MESSAGE` sample
   notifications, and the student 수정 요청 확인 「문의하기」 open the chat
   list, not a room.
-- The composer sends text only; the attachment upload endpoints are unused.
