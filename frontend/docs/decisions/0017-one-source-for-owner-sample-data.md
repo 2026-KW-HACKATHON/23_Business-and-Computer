@@ -30,8 +30,8 @@ work never became completed.
 - A work, request, or proposal refers to a student by id. Name, department,
   year, rating (the average of the profile's reviews), and completed count
   always come from the profile.
-- Sample dates count from today with `day(offset)` and `dayAt(offset, h, m)`
-  in `src/lib/sampleTime.ts`. Plans say 「초안 마감일까지」
+- Sample dates count from today with `day(offset)` in
+  `src/lib/sampleTime.ts`. Plans say 「초안 마감일까지」
   instead of a date so they always agree with the request.
 - Chat reads the backend (ADR 0034).
 - Demo state: `completeOwnerWork` (완료 확인) and `markOwnerWorkReviewed`
@@ -62,7 +62,7 @@ work never became completed.
 
 - Add owner sample data only to the single sources and derive the rest in
   the hooks. Never copy a student's name or department into a work.
-- Use `day` / `dayAt` for new sample dates, not fixed strings.
+- Use `day` for new sample dates, not fixed strings.
 - When the API arrives, replace the bodies of the hooks in
   `useOwnerData.ts` and `useOwnerHome.ts`, and take `firstVisit` from the
   backend instead of `SAMPLE_FIRST_VISIT`.

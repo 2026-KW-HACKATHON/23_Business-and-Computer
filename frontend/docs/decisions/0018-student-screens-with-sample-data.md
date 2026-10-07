@@ -22,8 +22,7 @@ owner's applicant list).
   `useStudentHome.ts`.
 - Sample data has one source per kind: works
   (`src/features/student/lib/sampleWorks.ts`), my proposals and the home examples
-  (`sampleProposals.ts`), stores, and notifications; works serve the sample
-  ids that notification and chat examples open. 내 정보, the profile, and
+  (`sampleProposals.ts`), and stores. 알림 reads the backend. 내 정보, the profile, and
   정산 내역 read the backend (ADR 0041), and so do the finished work lists
   and screens (ADR 0042).
 - Facts shared with the owner sample keep the same ids and values: work-103

@@ -5,8 +5,7 @@
 Accepted. 내 활동 › 진행 중, the home 「확인할 일」 drafting · revising cards and
 「사장님이 확인 중」 rows, 초안 제출, 수정 요청 확인, 수정안 제출, and 제출한
 초안 read and write the backend for jobs matched to the student. Sample works
-(ids like `work-103`) still open the old sample screens, because sample
-notifications link to them.
+(ids like `work-103`) open the old sample screens.
 
 ## Context
 
@@ -72,13 +71,13 @@ The backend (dev) has:
 
 - Matched jobs are few per student, so one GET /jobs/{id} each for the store
   is cheap until the list carries the store name.
-- Keeping sample works for non-numeric ids leaves sample notifications
-  working until those read the backend.
+- Keeping sample works for non-numeric ids keeps the sample screens that
+  open them working.
 
 ## Alternatives Considered
 
-- Removing the sample in-progress works: rejected, sample notifications
-  still point at them.
+- Removing the sample in-progress works: rejected, sample screens still open
+  them.
 
 ## Agent Guidance
 
