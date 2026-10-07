@@ -2,6 +2,7 @@ package com.gakkum.backend.application.chat.dto;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.List;
 
 import com.gakkum.backend.domain.chat.entity.ChatMessageType;
@@ -10,6 +11,7 @@ import com.gakkum.backend.domain.job.entity.Job;
 import com.gakkum.backend.domain.job.entity.JobApplication;
 import com.gakkum.backend.domain.job.entity.JobStatus;
 import com.gakkum.backend.domain.job.entity.JobSubmissionReviewStatus;
+import com.gakkum.backend.global.response.KoreaTime;
 
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -84,10 +86,10 @@ public class ChatRoomListResponse {
     public static class LastMessage {
         private final ChatMessageType type;
         private final String preview;
-        private final LocalDateTime createdAt;
+        private final OffsetDateTime createdAt;
 
         public static LastMessage of(ChatMessageType type, String preview, LocalDateTime createdAt) {
-            return LastMessage.builder().type(type).preview(preview).createdAt(createdAt).build();
+            return LastMessage.builder().type(type).preview(preview).createdAt(KoreaTime.from(createdAt)).build();
         }
     }
 }

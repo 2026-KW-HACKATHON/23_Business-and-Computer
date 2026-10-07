@@ -17,6 +17,8 @@ import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -105,6 +107,34 @@ class ReviewCreateFlowTest {
         assertThat(captor.getValue().getRating()).isEqualTo(5);
     }
 
+    @ParameterizedTest
+    @ValueSource(strings = {
+            "{\"positivePoints\":[\"FAST_COMMUNICATION\"],\"rating\":4}",
+            "{\"positivePoints\":[\"FAST_COMMUNICATION\"],\"content\":null,\"rating\":4}",
+            "{\"positivePoints\":[\"FAST_COMMUNICATION\"],\"content\":\"\",\"rating\":4}",
+            "{\"positivePoints\":[\"FAST_COMMUNICATION\"],\"content\":\"   \",\"rating\":4}"})
+    @DisplayName("글 없이 별점과 좋은 점만 보내면 201을 반환하고 내용이 null인 리뷰를 저장한다")
+    void createsReviewWithoutContent(String body) throws Exception {
+        givenActiveUser(UserRole.OWNER);
+        givenOwnedJob(JobStatus.CLOSED);
+        when(reviewRepository.saveAndFlush(any())).thenAnswer(invocation -> {
+            Review review = invocation.getArgument(0);
+            return Review.builder().id(301L).jobId(review.getJobId()).build();
+        });
+
+        perform(body)
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.data.reviewId").value(301))
+                .andExpect(jsonPath("$.data.jobId").value(42));
+
+        ArgumentCaptor<Review> captor = ArgumentCaptor.forClass(Review.class);
+        verify(reviewRepository).saveAndFlush(captor.capture());
+        assertThat(captor.getValue().getContent()).isNull();
+        assertThat(captor.getValue().getStudentProfileId()).isEqualTo(7L);
+        assertThat(captor.getValue().getPositivePoints()).containsExactly(ReviewPositivePoint.FAST_COMMUNICATION);
+        assertThat(captor.getValue().getRating()).isEqualTo(4);
+    }
+
     @Test
     @DisplayName("다른 사장님의 의뢰이거나 없는 의뢰면 404 JOB_404를 반환하고 저장하지 않는다")
     void rejectsOtherOwnersJob() throws Exception {
@@ -166,9 +196,13 @@ class ReviewCreateFlowTest {
     }
 
     private ResultActions perform() throws Exception {
+        return perform(BODY);
+    }
+
+    private ResultActions perform(String body) throws Exception {
         return mockMvc.perform(post(URL).principal(authentication)
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(BODY));
+                .content(body));
     }
 
     private void givenActiveUser(UserRole role) {

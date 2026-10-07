@@ -5,6 +5,7 @@ import {
   FlowBar,
   LoadNotice,
   NoteBox,
+  ReferencePhotos,
   SubScreen,
   TextButton,
 } from "../components";
@@ -89,10 +90,10 @@ function JobResultView({ jobId }: { jobId: number }) {
 
         <section className="student-detail__section">
           <h2 className="student-detail__section-title">최종 수정안</h2>
-          <AttachmentTiles
+          {/* 사진은 누르면 크게, 사진이 아닌 파일은 빈 회색 칸에 이름만 */}
+          <ReferencePhotos
+            urls={result.fileUrls.map((url, i) => (IMAGE_NAME.test(names[i]) ? url : ""))}
             names={names}
-            srcs={result.fileUrls.map((url, i) => (IMAGE_NAME.test(names[i]) ? url : ""))}
-            height={110}
           />
           <p className="student-work__hint">완료된 작업이라 「내 작업물 모아보기」에 자동으로 담겼어요</p>
         </section>

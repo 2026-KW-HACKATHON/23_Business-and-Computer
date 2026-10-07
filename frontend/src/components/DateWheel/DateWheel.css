@@ -1,0 +1,115 @@
+.date-wheel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  font-family: var(--font-sans);
+}
+
+/* 고른 날 */
+.date-wheel__head {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.date-wheel__year {
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--role-secondary);
+}
+
+.date-wheel__date {
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 32px;
+  color: var(--color-black);
+}
+
+/* 세 줄 바퀴. 다섯 칸(44px)이 보이고 가운데 회색 줄이 고른 칸이다 */
+.date-wheel__wheel {
+  position: relative;
+  display: flex;
+  height: 220px;
+}
+
+.date-wheel__bar {
+  position: absolute;
+  top: 88px;
+  right: 0;
+  left: 0;
+  height: 44px;
+  border-radius: 12px;
+  background: var(--role-muted);
+  pointer-events: none;
+}
+
+.date-wheel__column {
+  position: relative;
+  flex: 1;
+  box-sizing: border-box;
+  min-width: 0;
+  height: 100%;
+  padding: 88px 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scroll-snap-type: y mandatory;
+  scrollbar-width: none;
+}
+
+.date-wheel__column::-webkit-scrollbar {
+  display: none;
+}
+
+.date-wheel__column:focus-visible {
+  outline: 2px solid var(--role-focus);
+  outline-offset: -2px;
+  border-radius: 12px;
+}
+
+.date-wheel__item {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 44px;
+  scroll-snap-align: center;
+  cursor: pointer;
+  user-select: none;
+  transition:
+    color 0.12s ease,
+    font-size 0.12s ease;
+}
+
+/* 가운데서 멀수록 작고 옅게 (피그마 「날짜 바퀴」) */
+.date-wheel__item--d0 {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--color-black);
+}
+
+.date-wheel__item--d1 {
+  font-size: 17px;
+  font-weight: 500;
+  color: var(--text-placeholder);
+}
+
+.date-wheel__item--d2,
+.date-wheel__item--d3 {
+  font-size: 15px;
+  font-weight: 400;
+  color: var(--input-border);
+}
+
+.date-wheel__hint {
+  margin: 0;
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--role-secondary);
+  text-align: center;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .date-wheel__item {
+    transition: none;
+  }
+}

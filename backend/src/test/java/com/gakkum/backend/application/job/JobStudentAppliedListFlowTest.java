@@ -140,7 +140,7 @@ class JobStudentAppliedListFlowTest {
                 .andExpect(jsonPath("$.data.jobs[0].finalDeadline").value("2026-10-20"))
                 .andExpect(jsonPath("$.data.jobs[0].jobStatus").value("OPEN"))
                 .andExpect(jsonPath("$.data.jobs[0].applicationStatus").value("PENDING"))
-                .andExpect(jsonPath("$.data.jobs[0].appliedAt").value("2026-10-05T09:30:00"))
+                .andExpect(jsonPath("$.data.jobs[0].appliedAt").value("2026-10-05T18:30:00+09:00"))
                 .andExpect(jsonPath("$.data.jobs[0].specialtyCategories.length()").value(2))
                 .andExpect(jsonPath("$.data.jobs[0].specialtyCategories[0].id").value(1))
                 .andExpect(jsonPath("$.data.jobs[0].specialtyCategories[0].name").value("개발"))
@@ -153,7 +153,7 @@ class JobStudentAppliedListFlowTest {
                 .andExpect(jsonPath("$.data.jobs[1].jobApplicationId").value(201))
                 .andExpect(jsonPath("$.data.jobs[1].storeName").value("동네 빵집"))
                 .andExpect(jsonPath("$.data.jobs[1].summary").value("요약 201"))
-                .andExpect(jsonPath("$.data.jobs[1].appliedAt").value("2026-10-03T12:00:00"))
+                .andExpect(jsonPath("$.data.jobs[1].appliedAt").value("2026-10-03T21:00:00+09:00"))
                 .andExpect(jsonPath("$.data.jobs[1].specialtyCategories").isEmpty());
         verify(ownerRepository, never()).findByUserId(any());
     }

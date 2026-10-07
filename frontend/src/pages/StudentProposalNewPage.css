@@ -505,6 +505,17 @@
 }
 
 /* 고른 사진 미리보기 */
+/* 썸네일을 누르면 고른 사진을 크게 본다 */
+.student-new__file > .student-new__thumb-button {
+  display: flex;
+  flex-shrink: 0;
+  padding: 0;
+  border: none;
+  border-radius: 8px;
+  background: none;
+  cursor: zoom-in;
+}
+
 .student-new__thumb {
   flex-shrink: 0;
   width: 40px;

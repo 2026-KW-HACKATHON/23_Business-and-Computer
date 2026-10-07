@@ -6,6 +6,7 @@ import {
   Button,
   DueDateFields,
   FormField,
+  PhotoViewer,
   RevisionStepper,
   StepIndicator,
   SubScreen,
@@ -52,6 +53,8 @@ function OwnerRequestContentPage() {
     state?.content ?? example?.content ?? EMPTY_CONTENT,
   );
   const [photoNotice, setPhotoNotice] = useState("");
+  // 크게 보는 사진의 순서. 닫혀 있으면 null
+  const [viewing, setViewing] = useState<number | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
   const photoUrls = useObjectUrls(content.photos);
 
@@ -161,7 +164,14 @@ function OwnerRequestContentPage() {
             )}
             {content.photos.map((photo, i) => (
               <div key={`${photo.name}-${i}`} className="owner-new__file">
-                <img className="owner-new__thumb" src={photoUrls[i]} alt="" />
+                <button
+                  type="button"
+                  className="owner-new__thumb-button"
+                  aria-label={`${photo.name} 크게 보기`}
+                  onClick={() => setViewing(i)}
+                >
+                  <img className="owner-new__thumb" src={photoUrls[i]} alt="" />
+                </button>
                 <strong>{photo.name}</strong>
                 <small>{photoSizeText(photo.size)}</small>
                 <button type="button" aria-label={`${photo.name} 빼기`} onClick={() => removePhoto(i)}>
@@ -170,6 +180,14 @@ function OwnerRequestContentPage() {
               </div>
             ))}
             {photoNotice && <p className="owner-new__photo-notice">{photoNotice}</p>}
+            {viewing !== null && viewing < content.photos.length && (
+              <PhotoViewer
+                photos={content.photos.map((photo, i) => ({ url: photoUrls[i], name: photo.name }))}
+                index={viewing}
+                onIndex={setViewing}
+                onClose={() => setViewing(null)}
+              />
+            )}
           </div>
         </FormField>
       </div>

@@ -15,7 +15,6 @@ import static org.mockito.Mockito.when;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.util.List;
 
@@ -154,7 +153,7 @@ class DemoFacadeTest {
     @Test
     @DisplayName("최근 1시간에 만든 세션 수가 상한에 닿으면 DEMO_429로 거부하고 아무것도 만들지 않는다")
     void rejectsNewSessionOverHourlyLimit() {
-        LocalDateTime oneHourAgo = LocalDateTime.ofInstant(clock.instant(), ZoneId.systemDefault()).minusHours(1);
+        LocalDateTime oneHourAgo = LocalDateTime.ofInstant(clock.instant(), ZoneOffset.UTC).minusHours(1);
         when(userService.countDemoSessionsCreatedAfter(oneHourAgo)).thenReturn(MAX_NEW_SESSIONS_PER_HOUR);
 
         assertThatThrownBy(() -> facade.login(DemoLoginRequest.of(DemoRole.OWNER, null)))

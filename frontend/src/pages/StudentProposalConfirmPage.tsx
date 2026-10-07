@@ -23,7 +23,9 @@ import {
 import type { NewProposalState, ProposalDoneState } from "../features/student";
 import { expectedDaysText } from "../features/proposal";
 import { useBack } from "../hooks/useBack";
+import { useFinishFlow } from "../hooks/useFlowHistory";
 import { useObjectUrls } from "../hooks/useObjectUrls";
+import { FLOW_KEYS } from "../lib/flowHistory";
 import { formatWon } from "../lib/money";
 import { FIELDS } from "../types/field";
 import type { Field } from "../types/field";
@@ -47,6 +49,7 @@ const SEND_ERROR_TEXT: Record<SendError, string> = {
  */
 function StudentProposalConfirmPage() {
   const navigate = useNavigate();
+  const finishFlow = useFinishFlow();
   const location = useLocation();
   const back = useBack(STUDENT_PATHS.newProposal);
   const state = readNewProposalState(location.state);
@@ -111,10 +114,10 @@ function StudentProposalConfirmPage() {
 
     switch (result.status) {
       case "sent":
-        navigate(STUDENT_PATHS.newProposalDone, {
-          replace: true,
-          state: { proposalId: result.proposalId } satisfies ProposalDoneState,
-        });
+        // 1/4 ~ 4/4 는 방문 기록에서 지워, 보낸 뒤 뒤로가기로 다시 보내지 못한다
+        finishFlow(FLOW_KEYS.proposalNew, STUDENT_PATHS.newProposalDone, {
+          proposalId: result.proposalId,
+        } satisfies ProposalDoneState);
         break;
       case "unauthorized":
         navigate("/login", { replace: true });
@@ -218,7 +221,10 @@ function StudentProposalConfirmPage() {
             <p className="student-confirm__text-body">{content.plan}</p>
           </div>
           {content.photos.length > 0 && (
-            <ReferencePhotos urls={photoUrls} />
+            <div className="student-confirm__text">
+              <p className="student-confirm__text-title">참고 사진</p>
+              <ReferencePhotos urls={photoUrls} names={content.photos.map((photo) => photo.name)} />
+            </div>
           )}
           <hr className="student-confirm__divider" />
           <TextButton className="student-confirm__edit" onClick={back}>

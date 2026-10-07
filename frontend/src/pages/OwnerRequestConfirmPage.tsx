@@ -24,8 +24,10 @@ import type { NewRequestState } from "../features/owner";
 import { fetchSpecialties } from "../features/specialty";
 import type { SpecialtyCategory } from "../features/specialty";
 import { useBack } from "../hooks/useBack";
+import { useFinishFlow } from "../hooks/useFlowHistory";
 import { useObjectUrls } from "../hooks/useObjectUrls";
 import { formatMonthDayWeekday } from "../lib/date";
+import { FLOW_KEYS } from "../lib/flowHistory";
 import { formatWon } from "../lib/money";
 import "./OwnerRequestNewPage.css";
 import "./OwnerRequestConfirmPage.css";
@@ -48,6 +50,7 @@ const SEND_ERROR_TEXT: Record<SendError, string> = {
  */
 function OwnerRequestConfirmPage() {
   const navigate = useNavigate();
+  const finishFlow = useFinishFlow();
   const location = useLocation();
   const back = useBack(OWNER_PATHS.newRequest);
   const state = readNewRequestState(location.state);
@@ -129,7 +132,8 @@ function OwnerRequestConfirmPage() {
 
     switch (result.status) {
       case "created":
-        navigate(OWNER_PATHS.newRequestDone, { replace: true });
+        // 1/3 ~ 3/3 은 방문 기록에서 지워, 등록한 뒤 뒤로가기로 다시 등록하지 못한다
+        finishFlow(FLOW_KEYS.requestNew, OWNER_PATHS.newRequestDone);
         break;
       case "unauthorized":
         navigate("/login", { replace: true });
@@ -219,7 +223,7 @@ function OwnerRequestConfirmPage() {
           {content.photos.length > 0 && (
             <div className="owner-confirm__text">
               <p className="owner-confirm__text-title">참고 사진</p>
-              <ReferencePhotos urls={photoUrls} />
+              <ReferencePhotos urls={photoUrls} names={content.photos.map((photo) => photo.name)} />
             </div>
           )}
           <hr className="owner-confirm__divider" />

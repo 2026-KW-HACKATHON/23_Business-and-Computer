@@ -1,6 +1,8 @@
 package com.gakkum.backend.application.review.controller;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.hasKey;
+import static org.hamcrest.Matchers.nullValue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -91,6 +93,30 @@ class ReviewControllerTest {
         assertThat(captureCommand().getPositivePoints()).isEmpty();
     }
 
+    @ParameterizedTest
+    @ValueSource(strings = {
+            "{\"positivePoints\":[\"KINDNESS\"],\"rating\":5}",
+            "{\"positivePoints\":[\"KINDNESS\"],\"content\":null,\"rating\":5}",
+            "{\"positivePoints\":[\"KINDNESS\"],\"content\":\"\",\"rating\":5}",
+            "{\"positivePoints\":[\"KINDNESS\"],\"content\":\"   \",\"rating\":5}",
+            "{\"content\":\" \\n\\t \",\"rating\":5}",
+            "{\"rating\":5}"})
+    @DisplayName("내용을 생략하거나 null·빈 문자열·공백만 보내면 201을 반환하고 내용을 null로 넘긴다")
+    void treatsMissingContentAsNull(String body) throws Exception {
+        givenCreated();
+
+        mockMvc.perform(post(URL).principal(authentication)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.data.reviewId").value(301))
+                .andExpect(jsonPath("$.data.jobId").value(42));
+
+        CreateReviewCommand command = captureCommand();
+        assertThat(command.getContent()).isNull();
+        assertThat(command.getRating()).isEqualTo(5);
+    }
+
     @Test
     @DisplayName("좋은 점 다섯 개를 모두 고를 수 있다")
     void acceptsAllPositivePoints() throws Exception {
@@ -107,9 +133,9 @@ class ReviewControllerTest {
 
     @ParameterizedTest
     @ValueSource(strings = {
-            "{\"rating\":5}",
-            "{\"content\":\"   \",\"rating\":5}",
             "{\"content\":\"좋았어요\"}",
+            "{\"positivePoints\":[\"KINDNESS\"]}",
+            "{\"rating\":null}",
             "{\"content\":\"좋았어요\",\"rating\":0}",
             "{\"content\":\"좋았어요\",\"rating\":6}",
             "{\"content\":\"좋았어요\",\"rating\":\"다섯\"}",
@@ -118,7 +144,7 @@ class ReviewControllerTest {
             "{\"positivePoints\":[\"KINDNESS\",\"KINDNESS\"],\"content\":\"좋았어요\",\"rating\":5}",
             "{\"positivePoints\":[null],\"content\":\"좋았어요\",\"rating\":5}",
             "{\"positivePoints\":\"KINDNESS\",\"content\":\"좋았어요\",\"rating\":5}"})
-    @DisplayName("내용·별점 누락, 별점 범위 초과, 알 수 없거나 중복된 좋은 점 코드는 COMMON_400으로 거부한다")
+    @DisplayName("별점 누락, 별점 범위 초과, 알 수 없거나 중복된 좋은 점 코드는 COMMON_400으로 거부한다")
     void rejectsInvalidRequest(String body) throws Exception {
         mockMvc.perform(post(URL).principal(authentication)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -143,6 +169,7 @@ class ReviewControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"content\":\"" + "가".repeat(5000) + "\",\"rating\":3}"))
                 .andExpect(status().isCreated());
+        assertThat(captureCommand().getContent()).hasSize(5000);
     }
 
     @Test
@@ -181,6 +208,26 @@ class ReviewControllerTest {
                 .andExpect(jsonPath("$.data.positivePoints[1]").value("KINDNESS"))
                 .andExpect(jsonPath("$.data.content").value("꼼꼼하게 작업해 주셨어요."))
                 .andExpect(jsonPath("$.error").doesNotExist());
+    }
+
+    @Test
+    @DisplayName("글 없는 리뷰를 조회하면 내용 키를 빼지 않고 null로 반환한다")
+    void returnsStudentReviewWithoutContent() throws Exception {
+        when(reviewFacade.getStudentReview(USERNAME, 42L)).thenReturn(StudentReviewResult.of(
+                Review.builder()
+                        .jobId(42L)
+                        .rating(4)
+                        .createdAt(LocalDateTime.of(2026, 9, 28, 21, 30, 15))
+                        .positivePoints(List.of(ReviewPositivePoint.KINDNESS))
+                        .build(),
+                82L, "가을 메뉴 포스터 디자인", "가꿈 베이커리"));
+
+        mockMvc.perform(get("/jobs/42/review").principal(authentication))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data", hasKey("content")))
+                .andExpect(jsonPath("$.data.content").value(nullValue()))
+                .andExpect(jsonPath("$.data.rating").value(4))
+                .andExpect(jsonPath("$.data.positivePoints[0]").value("KINDNESS"));
     }
 
     @Test

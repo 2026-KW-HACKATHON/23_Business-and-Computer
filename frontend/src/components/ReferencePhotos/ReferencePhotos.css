@@ -9,17 +9,25 @@
 }
 
 .reference-photos__tile {
+  position: relative;
   aspect-ratio: 1;
   overflow: hidden;
   border-radius: 12px;
   background: var(--role-muted);
 }
 
-.reference-photos__link,
+.reference-photos__open,
 .reference-photos__broken {
   display: block;
   width: 100%;
   height: 100%;
+}
+
+.reference-photos__open {
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: zoom-in;
 }
 
 .reference-photos__image {
@@ -29,24 +37,152 @@
   object-fit: cover;
 }
 
+/* 파일 이름 배지. 사진 왼쪽 아래에 얹고, 길면 말줄임 */
+.reference-photos__name {
+  position: absolute;
+  bottom: 6px;
+  left: 6px;
+  box-sizing: border-box;
+  max-width: calc(100% - 12px);
+  height: 20px;
+  padding: 0 7px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.55);
+  font-family: var(--font-sans);
+  font-size: 10px;
+  font-weight: 500;
+  line-height: 20px;
+  color: var(--color-white);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  pointer-events: none;
+}
+
+.reference-photos__open:focus-visible {
+  outline: 2px solid var(--color-black);
+  outline-offset: -2px;
+  border-radius: 12px;
+}
+
 /* 누를 때 반응: 사진이 덮어 바탕 덧칠은 안 보이니, 올리면 사진이 조금 옅어지고 누르면 칸 안에서 살짝 작아진다 */
-.reference-photos__link {
+.reference-photos__open {
   transition:
     opacity 0.15s ease,
     transform 0.12s ease;
 }
 
-.reference-photos__link:hover,
-.reference-photos__link:active {
+.reference-photos__open:hover,
+.reference-photos__open:active {
   box-shadow: none;
 }
 
 @media (hover: hover) {
-  .reference-photos__link:hover {
+  .reference-photos__open:hover {
     opacity: 0.88;
   }
 }
 
-.reference-photos__link:active {
+.reference-photos__open:active {
   transform: scale(0.97);
+}
+
+/* 사진 크게 보기. 앱 화면 폭(390px) 안에만 덮는다 */
+.photo-viewer {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  z-index: 200;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 390px;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.92);
+  font-family: var(--font-sans);
+}
+
+.photo-viewer__image {
+  display: block;
+  max-width: 100%;
+  max-height: calc(100dvh - 128px);
+  object-fit: contain;
+}
+
+.photo-viewer__top {
+  position: absolute;
+  top: env(safe-area-inset-top);
+  right: 0;
+  left: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  color: var(--color-white);
+}
+
+.photo-viewer__name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 20px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.photo-viewer__count {
+  flex-shrink: 0;
+  font-size: 13px;
+  line-height: 20px;
+  opacity: 0.8;
+}
+
+.photo-viewer__close,
+.photo-viewer__nav {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.14);
+  font-family: var(--font-sans);
+  color: var(--color-white);
+  cursor: pointer;
+}
+
+.photo-viewer__close {
+  width: 36px;
+  height: 36px;
+  font-size: 16px;
+}
+
+.photo-viewer__nav {
+  position: absolute;
+  top: 50%;
+  width: 40px;
+  height: 40px;
+  font-size: 28px;
+  line-height: 1;
+  transform: translateY(-50%);
+}
+
+.photo-viewer__nav--prev {
+  left: 12px;
+}
+
+.photo-viewer__nav--next {
+  right: 12px;
+}
+
+.photo-viewer__close:focus-visible,
+.photo-viewer__nav:focus-visible {
+  outline: 2px solid var(--color-white);
+  outline-offset: 2px;
 }

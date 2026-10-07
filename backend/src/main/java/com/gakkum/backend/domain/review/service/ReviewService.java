@@ -11,7 +11,6 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.data.domain.Limit;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -78,16 +77,6 @@ public class ReviewService {
                         .comparing(Review::getCreatedAt, Comparator.nullsLast(Comparator.reverseOrder()))
                         .thenComparing(Review::getId, Comparator.reverseOrder()))
                 .toList();
-    }
-
-    /**
-     * 학생이 모든 사장님에게 받은 리뷰 중 최신 limit개를 전체 조회와 같은 순서로 조회한다.
-     * @param studentProfileId 학생 프로필 ID
-     * @param limit 최대 개수
-     */
-    @Transactional(readOnly = true)
-    public List<Review> getLatestStudentReviews(Long studentProfileId, int limit) {
-        return reviewRepository.findLatestByStudentProfileId(studentProfileId, Limit.of(limit));
     }
 
     /** 리뷰가 있는 의뢰 ID. 사장님 끝난 의뢰 목록에서 후기를 남겼는지 가른다. */

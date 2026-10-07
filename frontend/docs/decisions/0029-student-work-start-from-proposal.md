@@ -38,7 +38,7 @@ POST /jobs/{jobId}/start. The sample work-start screen for sample works
   도착」 from `paidAt` (local date), 「사장님이 보낸 의뢰서」 (작업비, 초안 ·
   최종 마감, 수정 n회), 「사장님의 한마디」 when not blank, an 8 px gray band
   across the screen (as in 탐색), 「내가 보낸 제안서」 (문제, 해결, 작업계획서,
-  「50,000원 · 초안 2일 · 최종 4일」 on one line, and the reference photos) in
+  「50,000원 · 수락 후 초안 2일 · 최종 4일」 on one line, and the reference photos) in
   one gray box, 「시작 전에 약속해요」, and the terms check.
 - **Footer**, side by side: 「이 조건은 어려워요」 (gray, left) and 「동의하고
   작업 시작하기」 (enabled after the check, 「시작하는 중...」 while sending, one

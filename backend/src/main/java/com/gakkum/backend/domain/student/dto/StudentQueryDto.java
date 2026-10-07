@@ -31,6 +31,7 @@ public final class StudentQueryDto {
         private final String university;
         // 학번 전체가 아닌 입학연도 두 자리
         private final String studentNumber;
+        private final String major;
         private final String introduction;
         private final String portfolioUrl;
         private final Long proposalCount;
@@ -65,6 +66,7 @@ public final class StudentQueryDto {
                     .name(user.getName())
                     .university(student.getUniversity())
                     .studentNumber(admissionYear)
+                    .major(student.getMajor())
                     .introduction(student.getIntroduction())
                     .portfolioUrl(student.getPortfolioUrl())
                     .proposalCount(proposalCount)
@@ -124,16 +126,22 @@ public final class StudentQueryDto {
     @AllArgsConstructor(access = AccessLevel.PRIVATE)
     public static class StudentReceivedReviewResult {
 
+        private final String jobTitle;
         private final String storeName;
         private final List<StudentSpecialtyCategoryResult> specialtyCategories;
         private final Integer rating;
         private final String content;
         private final LocalDate createdAt;
 
-        /** 작성일은 서버 로컬 시각 기준 날짜만 내린다. 분류는 리뷰가 달린 의뢰에 연결된 전체 분류다. */
+        /**
+         * 작성일은 서버 로컬 시각 기준 날짜만 내린다. 분류는 리뷰가 달린 의뢰에 연결된 전체 분류다.
+         * @param jobTitle 리뷰가 달린 의뢰의 조회 시점 제목
+         */
         public static StudentReceivedReviewResult of(
-                Review review, String storeName, List<StudentSpecialtyCategoryResult> specialtyCategories) {
+                Review review, String jobTitle, String storeName,
+                List<StudentSpecialtyCategoryResult> specialtyCategories) {
             return StudentReceivedReviewResult.builder()
+                    .jobTitle(jobTitle)
                     .storeName(storeName)
                     .specialtyCategories(List.copyOf(specialtyCategories))
                     .rating(review.getRating())

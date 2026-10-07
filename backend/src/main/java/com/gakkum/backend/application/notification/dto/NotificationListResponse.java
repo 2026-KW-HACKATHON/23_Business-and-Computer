@@ -1,12 +1,13 @@
 package com.gakkum.backend.application.notification.dto;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.List;
 
 import com.gakkum.backend.domain.notification.dto.NotificationQueryDto.NotificationListResult;
 import com.gakkum.backend.domain.notification.dto.NotificationQueryDto.NotificationResult;
 import com.gakkum.backend.domain.notification.entity.NotificationTargetType;
 import com.gakkum.backend.domain.notification.entity.NotificationType;
+import com.gakkum.backend.global.response.KoreaTime;
 
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -39,8 +40,8 @@ public class NotificationListResponse {
         private final NotificationTargetType targetType;
         private final String targetId;
         // null이면 미읽음
-        private final LocalDateTime readAt;
-        private final LocalDateTime createdAt;
+        private final OffsetDateTime readAt;
+        private final OffsetDateTime createdAt;
 
         public static Item from(NotificationResult result) {
             return Item.builder()
@@ -50,8 +51,8 @@ public class NotificationListResponse {
                     .body(result.getBody())
                     .targetType(result.getTargetType())
                     .targetId(result.getTargetId())
-                    .readAt(result.getReadAt())
-                    .createdAt(result.getCreatedAt())
+                    .readAt(KoreaTime.from(result.getReadAt()))
+                    .createdAt(KoreaTime.from(result.getCreatedAt()))
                     .build();
         }
     }

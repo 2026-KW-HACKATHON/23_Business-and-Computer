@@ -215,9 +215,11 @@ class PaymentServiceTest {
         assertThat(history.get(0).getAmount()).isEqualTo(100_000L);
         assertThat(history.get(0).getRefundAmount()).isEqualTo(80_000L);
         assertThat(history.get(0).getApprovedAt()).isEqualTo(NOW);
+        assertThat(history.get(0).getRefundedAt()).isEqualTo(NOW.plusSeconds(60));
         assertThat(history.get(1).getStatus()).isEqualTo(PaymentStatus.PAID);
         assertThat(history.get(1).getJobApplicationId()).isEqualTo(21L);
         assertThat(history.get(1).getRefundAmount()).isNull();
+        assertThat(history.get(1).getRefundedAt()).isNull();
     }
 
     @Test

@@ -2,7 +2,7 @@ package com.gakkum.backend.domain.job.service;
 
 import java.time.Clock;
 import java.time.LocalDateTime;
-import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -575,10 +575,12 @@ public class JobService {
      * 의뢰 행을 잠가 같은 의뢰의 동시 제출을 순서대로 처리하고, 유니크 제약 충돌도 중복 제출로 본다.
      * @param command
      * @param studentProfileId
+     * @param fileSizes 파일 URL별 바이트 크기
      * @return 저장된 초안(revisionNumber 0, PENDING)
      */
     @Transactional
-    public JobSubmission submitDraft(CreateJobSubmissionCommand command, Long studentProfileId) {
+    public JobSubmission submitDraft(
+            CreateJobSubmissionCommand command, Long studentProfileId, Map<String, Long> fileSizes) {
         Job job = jobRepository.findLockedById(command.getJobId())
                 .orElseThrow(() -> new BusinessException(ErrorCode.JOB_NOT_FOUND));
         validateSubmittable(job, studentProfileId);
@@ -588,7 +590,7 @@ public class JobService {
 
         try {
             return jobSubmissionRepository.saveAndFlush(JobSubmission.create(
-                    job.getId(), JobSubmissionType.DRAFT, 0, command.getFileUrls(), command.getMessage()));
+                    job.getId(), JobSubmissionType.DRAFT, 0, command.getFileUrls(), fileSizes, command.getMessage()));
         } catch (DataIntegrityViolationException exception) {
             throw new BusinessException(ErrorCode.JOB_SUBMISSION_ALREADY_EXISTS);
         }
@@ -610,10 +612,12 @@ public class JobService {
      * 의뢰 행을 잠가 같은 의뢰의 동시 제출을 순서대로 처리하고, 유니크 제약 충돌도 수정 요청 없음으로 본다.
      * @param command
      * @param studentProfileId
+     * @param fileSizes 파일 URL별 바이트 크기
      * @return 저장된 수정안(revisionNumber = 최신 번호 + 1, PENDING)
      */
     @Transactional
-    public JobSubmission submitRevision(CreateJobSubmissionCommand command, Long studentProfileId) {
+    public JobSubmission submitRevision(
+            CreateJobSubmissionCommand command, Long studentProfileId, Map<String, Long> fileSizes) {
         Job job = jobRepository.findLockedById(command.getJobId())
                 .orElseThrow(() -> new BusinessException(ErrorCode.JOB_NOT_FOUND));
         validateSubmittable(job, studentProfileId);
@@ -622,7 +626,7 @@ public class JobService {
         try {
             return jobSubmissionRepository.saveAndFlush(JobSubmission.create(
                     job.getId(), JobSubmissionType.REVISION, revisionNumber, command.getFileUrls(),
-                    command.getMessage()));
+                    fileSizes, command.getMessage()));
         } catch (DataIntegrityViolationException exception) {
             throw new BusinessException(ErrorCode.JOB_SUBMISSION_REVISION_NOT_REQUESTED);
         }
@@ -1055,15 +1059,15 @@ public class JobService {
         }
         if (command.isOldestFirst()) {
             return readInSegments(command.getLimit(),
-                    limit -> jobRepository.findByDemoSessionIdAndStatusNotAndCreatedAtAndIdGreaterThanOrderByIdAsc(
+                    limit -> jobRepository.findByDemoSessionIdAndStatusNotAndProposalIdIsNullAndCreatedAtAndIdGreaterThanOrderByIdAsc(
                             demoSessionId, JobStatus.CANCELLED, createdAt, idBound, limit),
-                    limit -> jobRepository.findByDemoSessionIdAndStatusNotAndCreatedAtGreaterThanOrderByCreatedAtAscIdAsc(
+                    limit -> jobRepository.findByDemoSessionIdAndStatusNotAndProposalIdIsNullAndCreatedAtGreaterThanOrderByCreatedAtAscIdAsc(
                             demoSessionId, JobStatus.CANCELLED, createdAt, limit));
         }
         return readInSegments(command.getLimit(),
-                limit -> jobRepository.findByDemoSessionIdAndStatusNotAndCreatedAtAndIdLessThanOrderByIdDesc(
+                limit -> jobRepository.findByDemoSessionIdAndStatusNotAndProposalIdIsNullAndCreatedAtAndIdLessThanOrderByIdDesc(
                         demoSessionId, JobStatus.CANCELLED, createdAt, idBound, limit),
-                limit -> jobRepository.findByDemoSessionIdAndStatusNotAndCreatedAtLessThanOrderByCreatedAtDescIdDesc(
+                limit -> jobRepository.findByDemoSessionIdAndStatusNotAndProposalIdIsNullAndCreatedAtLessThanOrderByCreatedAtDescIdDesc(
                         demoSessionId, JobStatus.CANCELLED, createdAt, limit));
     }
 
@@ -1114,6 +1118,6 @@ public class JobService {
     // createdAt과 같은 JVM 기본 시간대로 완료 시각을 기록한다.
     // PostgreSQL timestamp 정밀도(마이크로초)에 맞춰 반환값과 저장값이 어긋나지 않게 한다
     private LocalDateTime now() {
-        return LocalDateTime.ofInstant(clock.instant(), ZoneId.systemDefault()).truncatedTo(ChronoUnit.MICROS);
+        return LocalDateTime.ofInstant(clock.instant(), ZoneOffset.UTC).truncatedTo(ChronoUnit.MICROS);
     }
 }

@@ -44,6 +44,8 @@ import com.gakkum.backend.domain.job.service.JobService;
 import com.gakkum.backend.domain.payment.entity.Payment;
 import com.gakkum.backend.domain.payment.service.PaymentService;
 import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.ProposalCancelResult;
+import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.ProposalRejectResult;
+import com.gakkum.backend.domain.proposal.entity.ProposalRejectedBy;
 import com.gakkum.backend.domain.proposal.dto.ProposalCommandDto.StartProposalJobCommand;
 import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.ProposalJobStartResult;
 import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.ProposalLikeResult;
@@ -1122,6 +1124,161 @@ class ProposalFacadeTest {
     }
 
     @Test
+    @DisplayName("받은 사장님이 결제 대기 주문이 없는 결제 전 제안을 거절하면 제안을 잠근 뒤 거절 주체와 UTC 시각을 남기고 거절 상태를 반환한다")
+    void rejectsPendingProposal() {
+        givenRejectingOwner(null);
+        Proposal proposal = Proposal.builder().id(31L).ownerProfileId(5L).status(ProposalStatus.PENDING)
+                .likeCount(2).build();
+        when(proposalService.getRejectableProposalForUpdate(31L, 5L, null)).thenReturn(proposal);
+        when(paymentService.findPendingProposalPayment(31L)).thenReturn(Optional.empty());
+
+        ProposalRejectResult result = proposalFacade.rejectProposal(USERNAME, 31L);
+
+        assertThat(result.getProposalId()).isEqualTo(31L);
+        assertThat(result.getStatus()).isEqualTo(ProposalStatus.REJECTED);
+        assertThat(proposal.getRejectedBy()).isEqualTo(ProposalRejectedBy.OWNER);
+        assertThat(proposal.getRejectedAt()).isEqualTo(LocalDateTime.of(2026, 10, 4, 23, 0));
+        assertThat(proposal.getLikeCount()).isEqualTo(2);
+        // 결제 대기 주문은 제안 행을 잠근 뒤에 확인한다
+        InOrder order = inOrder(proposalService, paymentService);
+        order.verify(proposalService).getRejectableProposalForUpdate(31L, 5L, null);
+        order.verify(paymentService).findPendingProposalPayment(31L);
+        // 환불 같은 결제 변경과 공감 기록 삭제, 의뢰·채팅 변경은 하지 않는다
+        verify(paymentService, never()).refundOnDecline(anyLong(), anyLong(), anyString());
+        verify(proposalService, never()).cancelProposal(any());
+        verifyNoInteractions(jobService, chatRoomService, studentService);
+    }
+
+    @Test
+    @DisplayName("본인이 이미 거절한 제안의 거절 재요청은 결제 주문을 확인하지 않고 최초 거절 시각을 그대로 둔 채 거절 상태를 반환한다")
+    void rejectIsIdempotentForOwner() {
+        givenRejectingOwner(null);
+        LocalDateTime firstRejectedAt = LocalDateTime.of(2026, 10, 1, 1, 0);
+        Proposal proposal = Proposal.builder().id(31L).ownerProfileId(5L).status(ProposalStatus.REJECTED)
+                .rejectedBy(ProposalRejectedBy.OWNER).rejectedAt(firstRejectedAt).build();
+        when(proposalService.getRejectableProposalForUpdate(31L, 5L, null)).thenReturn(proposal);
+
+        ProposalRejectResult result = proposalFacade.rejectProposal(USERNAME, 31L);
+
+        assertThat(result.getProposalId()).isEqualTo(31L);
+        assertThat(result.getStatus()).isEqualTo(ProposalStatus.REJECTED);
+        assertThat(proposal.getRejectedAt()).isEqualTo(firstRejectedAt);
+        verifyNoInteractions(paymentService);
+    }
+
+    @Test
+    @DisplayName("결제 대기 주문이 있는 결제 전 제안의 거절은 PROPOSAL_409_REJECT_PAYMENT_PENDING으로 거부하고 제안을 바꾸지 않는다")
+    void rejectsRejectWithPendingPayment() {
+        givenRejectingOwner(null);
+        Proposal proposal = Proposal.builder().id(31L).ownerProfileId(5L).status(ProposalStatus.PENDING)
+                .likeCount(2).build();
+        when(proposalService.getRejectableProposalForUpdate(31L, 5L, null)).thenReturn(proposal);
+        when(paymentService.findPendingProposalPayment(31L)).thenReturn(Optional.of(mock(Payment.class)));
+
+        assertError(() -> proposalFacade.rejectProposal(USERNAME, 31L), ErrorCode.PROPOSAL_REJECT_PAYMENT_PENDING);
+        assertThat(proposal.getStatus()).isEqualTo(ProposalStatus.PENDING);
+        assertThat(proposal.getRejectedBy()).isNull();
+        assertThat(proposal.getRejectedAt()).isNull();
+    }
+
+    @Test
+    @DisplayName("데모 사장님의 제안 거절은 자기 데모 세션 ID를 격리 범위로 전달한다")
+    void passesDemoSessionForReject() {
+        givenRejectingOwner(DEMO_SESSION_A);
+        Proposal proposal = Proposal.builder().id(31L).ownerProfileId(5L).status(ProposalStatus.PENDING)
+                .likeCount(0).demoSessionId(DEMO_SESSION_A).build();
+        when(proposalService.getRejectableProposalForUpdate(31L, 5L, DEMO_SESSION_A)).thenReturn(proposal);
+        when(paymentService.findPendingProposalPayment(31L)).thenReturn(Optional.empty());
+
+        assertThat(proposalFacade.rejectProposal(USERNAME, 31L).getStatus()).isEqualTo(ProposalStatus.REJECTED);
+
+        verify(proposalService).getRejectableProposalForUpdate(31L, 5L, DEMO_SESSION_A);
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @EnumSource(value = UserRole.class, names = { "STUDENT", "PENDING" })
+    @DisplayName("학생과 가입 대기 사용자의 제안 거절은 PROPOSAL_403_REJECT로 거부하고 사장님 프로필과 제안을 조회하지 않는다")
+    void rejectsNonOwnerForReject(UserRole role) {
+        givenUser(role);
+
+        assertError(() -> proposalFacade.rejectProposal(USERNAME, 31L), ErrorCode.PROPOSAL_REJECT_FORBIDDEN);
+        verifyNoInteractions(ownerService, proposalService, paymentService);
+    }
+
+    @Test
+    @DisplayName("사장님 프로필이 없는 사장님 역할 사용자의 제안 거절은 PROPOSAL_403_REJECT로 거부하고 제안을 잠그지 않는다")
+    void rejectsOwnerWithoutProfileForReject() {
+        givenUser(UserRole.OWNER);
+        when(ownerService.findOwnerProfileByUserId(USER_ID)).thenReturn(Optional.empty());
+
+        assertError(() -> proposalFacade.rejectProposal(USERNAME, 31L), ErrorCode.PROPOSAL_REJECT_FORBIDDEN);
+        verifyNoInteractions(proposalService, paymentService);
+    }
+
+    @Test
+    @DisplayName("잠긴 사용자의 제안 거절은 UNAUTHORIZED로 거부하고 사장님 프로필과 제안을 조회하지 않는다")
+    void rejectsInactiveUserForReject() {
+        when(userService.getActiveUser(USERNAME)).thenThrow(new BusinessException(ErrorCode.UNAUTHORIZED));
+
+        assertError(() -> proposalFacade.rejectProposal(USERNAME, 31L), ErrorCode.UNAUTHORIZED);
+        verifyNoInteractions(ownerService, proposalService, paymentService);
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @EnumSource(value = ErrorCode.class,
+            names = { "PROPOSAL_NOT_FOUND", "PROPOSAL_REJECT_FORBIDDEN", "PROPOSAL_REJECT_NOT_AVAILABLE" })
+    @DisplayName("제안을 잠가 확인한 거절의 404·403·409는 그대로 전달하고 결제 주문을 확인하지 않는다")
+    void propagatesRejectValidationErrors(ErrorCode errorCode) {
+        givenRejectingOwner(null);
+        when(proposalService.getRejectableProposalForUpdate(31L, 5L, null))
+                .thenThrow(new BusinessException(errorCode));
+
+        assertError(() -> proposalFacade.rejectProposal(USERNAME, 31L), errorCode);
+        verifyNoInteractions(paymentService);
+    }
+
+    @Test
+    @DisplayName("거절된 제안의 상세와 보낸 제안 목록은 저장된 거절 주체와 원본 거절 시각을 그대로 넘기고 예상 마감일은 내리지 않는다")
+    void returnsRejectionDetailsInDetailAndList() {
+        LocalDateTime rejectedAt = LocalDateTime.of(2026, 10, 5, 15, 30);
+        Proposal rejected = Proposal.builder().id(31L).studentProfileId(7L).ownerProfileId(5L).title("제안")
+                .draftDays(3).finalDays(7).referenceImageUrls(List.of()).likeCount(4)
+                .status(ProposalStatus.REJECTED).rejectedBy(ProposalRejectedBy.OWNER).rejectedAt(rejectedAt).build();
+        when(userService.getActiveUser(USERNAME)).thenReturn(
+                User.builder().id(STUDENT_USER_ID).username(USERNAME).role(UserRole.STUDENT).build());
+        when(proposalService.getProposalDetail(31L)).thenReturn(ProposalDetailData.of(rejected, List.of()));
+        when(ownerService.getOwnerProfileById(5L))
+                .thenReturn(Owner.builder().id(5L).userId(OWNER_USER_ID).storeName("가게 이름").build());
+        givenProposingStudent();
+        when(specialtyCategoryService.getSpecialtyDetails(any())).thenReturn(Map.of());
+        when(studentService.findStudentProfileByUserId(STUDENT_USER_ID))
+                .thenReturn(Optional.of(Student.builder().id(7L).userId(STUDENT_USER_ID).build()));
+        when(proposalService.getMyProposals(any(GetMyProposalsCommand.class)))
+                .thenReturn(List.of(ExploreProposalData.of(rejected, List.of())));
+        when(ownerService.getOwnerProfilesByIds(Set.of(5L)))
+                .thenReturn(Map.of(5L, Owner.builder().id(5L).storeName("가게 이름").build()));
+
+        ProposalDetailResult detail = proposalFacade.getProposalDetail(USERNAME, 31L);
+        assertThat(detail.getStatus()).isEqualTo(ProposalStatus.REJECTED);
+        assertThat(detail.getRejectedBy()).isEqualTo(ProposalRejectedBy.OWNER);
+        assertThat(detail.getRejectedAt()).isEqualTo(rejectedAt);
+        assertThat(detail.getLikeCount()).isEqualTo(4);
+        assertThat(detail.getEstimatedDraftDeadline()).isNull();
+        assertThat(detail.getEstimatedFinalDeadline()).isNull();
+
+        assertThat(proposalFacade.getMyProposals(USERNAME).getProposals())
+                .extracting(p -> p.getStatus(), p -> p.getRejectedBy(), p -> p.getRejectedAt())
+                .containsExactly(tuple(ProposalStatus.REJECTED, ProposalRejectedBy.OWNER, rejectedAt));
+    }
+
+    private void givenRejectingOwner(String demoSessionId) {
+        when(userService.getActiveUser(USERNAME)).thenReturn(User.builder()
+                .id(USER_ID).username(USERNAME).role(UserRole.OWNER).demoSessionId(demoSessionId).build());
+        when(ownerService.findOwnerProfileByUserId(USER_ID))
+                .thenReturn(Optional.of(Owner.builder().id(5L).userId(USER_ID).build()));
+    }
+
+    @Test
     @DisplayName("취소된 제안 상세는 제안한 학생 본인에게 취소 상태로 반환하고 예상 마감일과 의뢰·확정 조건은 내리지 않는다")
     void returnsCancelledProposalDetailToAuthor() {
         givenProposalDetail(ProposalStatus.CANCELLED, STUDENT_USER_ID, UserRole.STUDENT);
@@ -1172,6 +1329,9 @@ class ProposalFacadeTest {
         assertThat(result.getJobStatus()).isEqualTo(JobStatus.CANCELLED);
         assertThat(result.getProposalStatus()).isEqualTo(ProposalStatus.REJECTED);
         assertThat(proposal.getStatus()).isEqualTo(ProposalStatus.REJECTED);
+        // 거절 주체와 시계의 UTC 시각을 같은 트랜잭션에서 함께 남긴다
+        assertThat(proposal.getRejectedBy()).isEqualTo(ProposalRejectedBy.STUDENT);
+        assertThat(proposal.getRejectedAt()).isEqualTo(LocalDateTime.of(2026, 10, 4, 23, 0));
         assertThat(result.getPaidAmount()).isEqualTo(100_000L);
         assertThat(result.getStudentCompensationAmount()).isZero();
         assertThat(result.getRefundAmount()).isEqualTo(100_000L);

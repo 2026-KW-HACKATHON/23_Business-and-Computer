@@ -177,8 +177,8 @@ class ProposalLikePersistenceIntegrationTest {
     }
 
     @ParameterizedTest
-    @EnumSource(value = ProposalStatus.class, names = "CANCELLED", mode = EnumSource.Mode.EXCLUDE)
-    @DisplayName("PostgreSQL에서 취소되지 않은 모든 상태의 제안에 공감하고 취소할 수 있고 제안 상태는 바뀌지 않는다")
+    @EnumSource(value = ProposalStatus.class, names = { "CANCELLED", "REJECTED" }, mode = EnumSource.Mode.EXCLUDE)
+    @DisplayName("PostgreSQL에서 취소·거절되지 않은 모든 상태의 제안에 공감하고 취소할 수 있고 제안 상태는 바뀌지 않는다")
     void likesProposalInEveryStatus(ProposalStatus status) {
         Long proposalId = saveProposal(null);
         jdbcTemplate.update("update proposals set status = ? where id = ?", status.name(), proposalId);
@@ -202,6 +202,28 @@ class ProposalLikePersistenceIntegrationTest {
         assertNotFound(() -> proposalFacade.unlikeProposal(student, proposalId));
 
         assertLikes(proposalId, 0);
+    }
+
+    @ParameterizedTest(name = "거절 주체 {0}")
+    @org.junit.jupiter.params.provider.CsvSource(value = { "OWNER", "STUDENT", "NULL" }, nullValues = "NULL")
+    @DisplayName("PostgreSQL에서 거절된 제안의 공감 추가·취소는 거절 주체와 무관하게 PROPOSAL_409_LIKE로 거부하고 기존 공감 기록과 공감 수를 그대로 둔다")
+    void rejectsLikeForRejectedProposal(String rejectedBy) {
+        Long proposalId = saveProposal(null);
+        String liked = givenStudent(2, null);
+        String notLiked = givenStudent(3, null);
+        proposalFacade.likeProposal(liked, proposalId);
+        jdbcTemplate.update("update proposals set status = 'REJECTED', rejected_by = ? where id = ?",
+                rejectedBy, proposalId);
+
+        for (String student : List.of(liked, notLiked)) {
+            for (Runnable action : List.<Runnable>of(() -> proposalFacade.likeProposal(student, proposalId),
+                    () -> proposalFacade.unlikeProposal(student, proposalId))) {
+                assertThatThrownBy(action::run).isInstanceOfSatisfying(BusinessException.class, exception ->
+                        assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.PROPOSAL_LIKE_NOT_AVAILABLE));
+            }
+        }
+
+        assertLikes(proposalId, 1, profileId(2));
     }
 
     @Test

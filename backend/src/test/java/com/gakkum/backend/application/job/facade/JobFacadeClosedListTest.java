@@ -16,6 +16,8 @@ import java.util.Set;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.ArgumentCaptor;
 
 import com.gakkum.backend.application.job.dto.JobListResponse;
@@ -91,7 +93,7 @@ class JobFacadeClosedListTest {
 
         assertThat(response.getJobs()).extracting(item -> item.getJobId()).containsExactly(44L, 42L);
         assertThat(json).contains("\"success\":true", "\"data\":[", "\"studentProfileId\":21",
-                "\"name\":\"김람가\"", "\"completedAt\":\"2026-09-25\"");
+                "\"name\":\"김람가\"", "\"completedAt\":\"2026-09-26\"");
         assertThat(json).contains("\"specialtyCategories\":[{\"id\":3,\"name\":\"디자인\"}",
                 "{\"id\":5,\"name\":\"사진·영상\"}]");
         assertThat(json).doesNotContain("\"jobs\"", "\"specialties\"", "\"studentNumber\"");
@@ -169,6 +171,31 @@ class JobFacadeClosedListTest {
         assertThat(response.getJobs().get(0).getCompletedAt()).isEqualTo(LocalDate.of(2026, 9, 28));
         assertThat(response.getJobs().get(1).getMatchedWorker().getName()).isEqualTo("김람가");
         verify(studentService).getStudentProfilesByIds(List.of(21L));
+    }
+
+    @ParameterizedTest
+    @DisplayName("완료·취소 의뢰의 completedAt은 UTC로 저장된 완료 시각의 한국 날짜다")
+    @CsvSource({
+            "2026-10-06T14:59:59, 2026-10-06",
+            "2026-10-06T15:00:00, 2026-10-07",
+            "2026-10-06T23:59:59, 2026-10-07",
+            "2026-10-31T15:00:00, 2026-11-01",
+            "2026-12-31T15:00:00, 2027-01-01"
+    })
+    void returnsKoreanCompletedDate(String completedAtUtc, String expectedDate) {
+        givenOwner();
+        when(jobService.getClosedJobs(any(GetClosedJobsCommand.class))).thenReturn(List.of(
+                ClosedJobData.of(job(45L, null, LocalDateTime.parse(completedAtUtc)), List.of(), JobProgressStage.CANCELLED),
+                ClosedJobData.of(job(42L, 21L, LocalDateTime.parse(completedAtUtc)), List.of(), JobProgressStage.COMPLETED)));
+        when(studentService.getStudentProfilesByIds(List.of(21L))).thenReturn(Map.of(
+                21L, Student.builder().id(21L).userId(WORKER_USER_ID_1).build()));
+        when(userService.getUsersByIds(any())).thenReturn(Map.of(
+                WORKER_USER_ID_1, User.builder().id(WORKER_USER_ID_1).name("김람가").build()));
+
+        JobListResponse.ClosedJobList response = JobListResponse.ClosedJobList.from(jobFacade.getClosedJobs(USERNAME));
+
+        assertThat(response.getJobs()).extracting(item -> item.getCompletedAt())
+                .containsExactly(LocalDate.parse(expectedDate), LocalDate.parse(expectedDate));
     }
 
     private void givenOwner() {

@@ -11,6 +11,7 @@ import static org.mockito.Mockito.when;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import org.junit.jupiter.api.DisplayName;
@@ -33,6 +34,9 @@ import com.gakkum.backend.global.exception.ErrorCode;
 class JobSubmissionCreateServiceTest {
 
     private static final String FILE_URL = "https://bucket.s3.ap-northeast-2.amazonaws.com/job-submissions/42/7/x/a.pdf";
+    private static final String SECOND_FILE_URL =
+            "https://bucket.s3.ap-northeast-2.amazonaws.com/job-submissions/42/7/y/b.png";
+    private static final Map<String, Long> FILE_SIZES = Map.of(FILE_URL, 1048576L, SECOND_FILE_URL, 2048L);
 
     private final JobRepository jobRepository = mock(JobRepository.class);
     private final JobSubmissionRepository jobSubmissionRepository = mock(JobSubmissionRepository.class);
@@ -47,13 +51,14 @@ class JobSubmissionCreateServiceTest {
         when(jobSubmissionRepository.saveAndFlush(any(JobSubmission.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
-        JobSubmission saved = jobService.submitDraft(command(), 7L);
+        JobSubmission saved = jobService.submitDraft(command(), 7L, FILE_SIZES);
 
         assertThat(saved.getJobId()).isEqualTo(42L);
         assertThat(saved.getSubmissionType()).isEqualTo(JobSubmissionType.DRAFT);
         assertThat(saved.getRevisionNumber()).isZero();
         assertThat(saved.getReviewStatus()).isEqualTo(JobSubmissionReviewStatus.PENDING);
-        assertThat(saved.getFileUrls()).containsExactly(FILE_URL);
+        assertThat(saved.getFileUrls()).containsExactly(FILE_URL, SECOND_FILE_URL);
+        assertThat(saved.getFileSizes()).containsOnly(Map.entry(FILE_URL, 1048576L), Map.entry(SECOND_FILE_URL, 2048L));
         assertThat(saved.getMessage()).isEqualTo("초안입니다.");
     }
 
@@ -70,7 +75,8 @@ class JobSubmissionCreateServiceTest {
         when(jobSubmissionRepository.saveAndFlush(any(JobSubmission.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
-        assertThat(jobService.submitDraft(command(), 7L).getSubmissionType()).isEqualTo(JobSubmissionType.DRAFT);
+        assertThat(jobService.submitDraft(command(), 7L, FILE_SIZES).getSubmissionType())
+                .isEqualTo(JobSubmissionType.DRAFT);
     }
 
     @Test
@@ -78,7 +84,7 @@ class JobSubmissionCreateServiceTest {
     void rejectsMissingJob() {
         when(jobRepository.findLockedById(42L)).thenReturn(Optional.empty());
 
-        assertError(() -> jobService.submitDraft(command(), 7L), ErrorCode.JOB_NOT_FOUND);
+        assertError(() -> jobService.submitDraft(command(), 7L, FILE_SIZES), ErrorCode.JOB_NOT_FOUND);
     }
 
     @Test
@@ -86,7 +92,7 @@ class JobSubmissionCreateServiceTest {
     void rejectsOtherStudent() {
         when(jobRepository.findLockedById(42L)).thenReturn(Optional.of(job(JobStatus.MATCHED, 7L)));
 
-        assertError(() -> jobService.submitDraft(command(), 8L), ErrorCode.JOB_SUBMISSION_FORBIDDEN);
+        assertError(() -> jobService.submitDraft(command(), 8L, FILE_SIZES), ErrorCode.JOB_SUBMISSION_FORBIDDEN);
         verify(jobSubmissionRepository, never()).saveAndFlush(any());
     }
 
@@ -95,7 +101,7 @@ class JobSubmissionCreateServiceTest {
     void rejectsJobNotMatched() {
         when(jobRepository.findLockedById(42L)).thenReturn(Optional.of(job(JobStatus.CLOSED, 7L)));
 
-        assertError(() -> jobService.submitDraft(command(), 7L), ErrorCode.JOB_SUBMISSION_NOT_AVAILABLE);
+        assertError(() -> jobService.submitDraft(command(), 7L, FILE_SIZES), ErrorCode.JOB_SUBMISSION_NOT_AVAILABLE);
         verify(jobSubmissionRepository, never()).saveAndFlush(any());
     }
 
@@ -105,7 +111,7 @@ class JobSubmissionCreateServiceTest {
         when(jobRepository.findLockedById(42L)).thenReturn(Optional.of(job(JobStatus.MATCHED, 7L)));
         when(jobSubmissionRepository.existsByJobId(42L)).thenReturn(true);
 
-        assertError(() -> jobService.submitDraft(command(), 7L), ErrorCode.JOB_SUBMISSION_ALREADY_EXISTS);
+        assertError(() -> jobService.submitDraft(command(), 7L, FILE_SIZES), ErrorCode.JOB_SUBMISSION_ALREADY_EXISTS);
         verify(jobSubmissionRepository, never()).saveAndFlush(any());
     }
 
@@ -116,7 +122,7 @@ class JobSubmissionCreateServiceTest {
         when(jobSubmissionRepository.saveAndFlush(any(JobSubmission.class)))
                 .thenThrow(new DataIntegrityViolationException("duplicate"));
 
-        assertError(() -> jobService.submitDraft(command(), 7L), ErrorCode.JOB_SUBMISSION_ALREADY_EXISTS);
+        assertError(() -> jobService.submitDraft(command(), 7L, FILE_SIZES), ErrorCode.JOB_SUBMISSION_ALREADY_EXISTS);
     }
 
     @Test
@@ -139,7 +145,7 @@ class JobSubmissionCreateServiceTest {
     }
 
     private CreateJobSubmissionCommand command() {
-        return CreateJobSubmissionCommand.of("KAKAO_1", 42L, List.of(FILE_URL), "초안입니다.");
+        return CreateJobSubmissionCommand.of("KAKAO_1", 42L, List.of(FILE_URL, SECOND_FILE_URL), "초안입니다.");
     }
 
     private Job job(JobStatus status, Long selectedStudentProfileId) {

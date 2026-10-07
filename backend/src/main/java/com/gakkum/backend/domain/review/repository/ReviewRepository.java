@@ -4,7 +4,6 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
-import org.springframework.data.domain.Limit;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -21,17 +20,6 @@ public interface ReviewRepository extends JpaRepository<Review, Long> {
     List<Review> findByJobIdIn(Collection<Long> jobIds);
 
     long countByStudentProfileId(Long studentProfileId);
-
-    /*
-     * 작성 시각이 없는 기존 데이터를 마지막에 두는 NULLS LAST 정렬은 메서드 이름으로 표현할 수 없다.
-     * 작성 시각 내림차순, 같은 시각은 리뷰 ID 내림차순으로 limit개까지 읽는다.
-     */
-    @Query("""
-            select r from Review r
-            where r.studentProfileId = :studentProfileId
-            order by r.createdAt desc nulls last, r.id desc
-            """)
-    List<Review> findLatestByStudentProfileId(@Param("studentProfileId") Long studentProfileId, Limit limit);
 
     /** 학생이 받은 전체 리뷰의 평균 별점. 리뷰가 없으면 null이다. */
     @Query("select avg(r.rating) from Review r where r.studentProfileId = :studentProfileId")

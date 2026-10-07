@@ -2,6 +2,7 @@ package com.gakkum.backend.application.payment.facade;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.anyCollection;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -11,6 +12,8 @@ import static org.mockito.Mockito.when;
 
 import java.time.Clock;
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -20,6 +23,8 @@ import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.ArgumentMatchers;
 
 import com.gakkum.backend.application.payment.service.PaymentApprovalService;
@@ -53,6 +58,8 @@ class PaymentHistoryFacadeTest {
     private static final String OWNER_ID = "01K58M6PJV8VAJMXHBHJ2PNB5C";
     private static final Long STUDENT_PROFILE_ID = 7L;
     private static final String STUDENT_USER_ID = "01K58M6PJV8VAJMXHBHJ2PNB5D";
+    // 완료 시각을 따로 정하지 않은 완료 의뢰의 UTC 완료 시각
+    private static final String DEFAULT_COMPLETED_AT = "2026-10-10T00:00:00";
 
     private final PaymentService paymentService = mock(PaymentService.class);
     private final UserService userService = mock(UserService.class);
@@ -344,6 +351,136 @@ class PaymentHistoryFacadeTest {
         assertThat(summary.getTotalSettledAmount()).isEqualTo(4_000_000_000L);
     }
 
+    @Test
+    @DisplayName("일반 결제는 정산 완료에만 정산일을, 부분 환불에만 환불일을 한국 날짜로 반환하고 보관 중은 둘 다 null이다")
+    void returnsDatesByStatusForGeneralPayments() {
+        paid(43L, "2026-10-03T03:00:00Z", JobStatus.MATCHED);
+        paid(42L, "2026-10-02T03:00:00Z", JobStatus.CLOSED);
+        jobsById.put(42L, job(42L, JobStatus.CLOSED, "2026-10-08T05:00:00"));
+        refunded(41L, "2026-10-01T03:00:00Z", "2026-10-05T03:00:00Z", JobStatus.CANCELLED);
+
+        List<PaymentHistoryItemResult> items = facade.getPaymentHistory(USERNAME).getMonths().get(0).getPayments();
+
+        assertThat(items).extracting(PaymentHistoryItemResult::getStatus, PaymentHistoryItemResult::getSettledDate,
+                        PaymentHistoryItemResult::getRefundedDate)
+                .containsExactly(
+                        tuple(PaymentHistoryStatus.HELD, null, null),
+                        tuple(PaymentHistoryStatus.SETTLED, LocalDate.of(2026, 10, 8), null),
+                        tuple(PaymentHistoryStatus.PARTIALLY_REFUNDED, null, LocalDate.of(2026, 10, 5)));
+    }
+
+    @Test
+    @DisplayName("제안 결제도 보관 중은 날짜 없이, 정산 완료는 정산일만, 전액 환불은 환불일만 반환한다")
+    void returnsDatesByStatusForProposalPayments() {
+        proposalPaid(54L, 8L, "2026-10-04T03:00:00Z", JobStatus.AWAITING_START, 50_000L);
+        proposalPaid(53L, 7L, "2026-10-03T03:00:00Z", JobStatus.MATCHED, 50_000L);
+        proposalPaid(52L, 6L, "2026-10-02T03:00:00Z", JobStatus.CLOSED, 50_000L);
+        jobsById.put(52L, proposalJob(52L, 6L, JobStatus.CLOSED, "2026-10-08T05:00:00"));
+        proposalPaid(51L, 5L, "2026-10-01T03:00:00Z", JobStatus.CANCELLED, 50_000L,
+                payment -> payment.refundOnDecline(Instant.parse("2026-10-04T03:00:00Z")));
+
+        List<PaymentHistoryItemResult> items = facade.getPaymentHistory(USERNAME).getMonths().get(0).getPayments();
+
+        assertThat(items).extracting(PaymentHistoryItemResult::getStatus, PaymentHistoryItemResult::getSettledDate,
+                        PaymentHistoryItemResult::getRefundedDate)
+                .containsExactly(
+                        tuple(PaymentHistoryStatus.HELD, null, null),
+                        tuple(PaymentHistoryStatus.HELD, null, null),
+                        tuple(PaymentHistoryStatus.SETTLED, LocalDate.of(2026, 10, 8), null),
+                        tuple(PaymentHistoryStatus.FULLY_REFUNDED, null, LocalDate.of(2026, 10, 4)));
+    }
+
+    @ParameterizedTest
+    @DisplayName("일반·제안 결제의 정산일은 UTC로 저장된 의뢰 완료 시각의 한국 날짜다")
+    @CsvSource({
+            "2026-10-06T14:59:59, 2026-10-06",
+            "2026-10-06T15:00:00, 2026-10-07",
+            "2026-10-31T14:59:59, 2026-10-31",
+            "2026-10-31T15:00:00, 2026-11-01",
+            "2026-12-31T14:59:59, 2026-12-31",
+            "2026-12-31T15:00:00, 2027-01-01"
+    })
+    void returnsKoreanSettledDate(String completedAtUtc, String expectedDate) {
+        proposalPaid(51L, 5L, "2026-10-03T03:00:00Z", JobStatus.CLOSED, 50_000L);
+        jobsById.put(51L, proposalJob(51L, 5L, JobStatus.CLOSED, completedAtUtc));
+        paid(42L, "2026-10-02T03:00:00Z", JobStatus.CLOSED);
+        jobsById.put(42L, job(42L, JobStatus.CLOSED, completedAtUtc));
+
+        List<PaymentHistoryItemResult> items = facade.getPaymentHistory(USERNAME).getMonths().get(0).getPayments();
+
+        assertThat(items).extracting(PaymentHistoryItemResult::getSettledDate)
+                .containsExactly(LocalDate.parse(expectedDate), LocalDate.parse(expectedDate));
+    }
+
+    @ParameterizedTest
+    @DisplayName("부분·전액 환불의 환불일은 환불 처리 시각의 한국 날짜다")
+    @CsvSource({
+            "2026-10-06T14:59:59Z, 2026-10-06",
+            "2026-10-06T15:00:00Z, 2026-10-07",
+            "2026-10-31T14:59:59Z, 2026-10-31",
+            "2026-10-31T15:00:00Z, 2026-11-01",
+            "2026-12-31T14:59:59Z, 2026-12-31",
+            "2026-12-31T15:00:00Z, 2027-01-01"
+    })
+    void returnsKoreanRefundedDate(String refundedAt, String expectedDate) {
+        proposalPaid(51L, 5L, "2026-10-03T03:00:00Z", JobStatus.CANCELLED, 50_000L,
+                payment -> payment.refundOnDecline(Instant.parse(refundedAt)));
+        refunded(41L, "2026-10-01T03:00:00Z", refundedAt, JobStatus.CANCELLED);
+
+        List<PaymentHistoryItemResult> items = facade.getPaymentHistory(USERNAME).getMonths().get(0).getPayments();
+
+        assertThat(items).extracting(PaymentHistoryItemResult::getStatus, PaymentHistoryItemResult::getRefundedDate)
+                .containsExactly(
+                        tuple(PaymentHistoryStatus.FULLY_REFUNDED, LocalDate.parse(expectedDate)),
+                        tuple(PaymentHistoryStatus.PARTIALLY_REFUNDED, LocalDate.parse(expectedDate)));
+    }
+
+    @Test
+    @DisplayName("결제 다음 달에 정산·환불되어도 승인 월 묶음과 정렬, 요약 금액은 그대로이고 날짜만 다음 달이다")
+    void keepsApprovalMonthAndSummaryWhenSettledOrRefundedNextMonth() {
+        paid(42L, "2026-09-25T03:00:00Z", JobStatus.CLOSED, 70_000L);
+        jobsById.put(42L, job(42L, JobStatus.CLOSED, "2026-10-03T05:00:00"));
+        refunded(41L, "2026-09-20T03:00:00Z", "2026-10-05T03:00:00Z", JobStatus.CANCELLED);
+
+        PaymentHistoryResult result = facade.getPaymentHistory(USERNAME);
+
+        assertThat(result.getMonths()).extracting(PaymentHistoryMonthResult::getYearMonth).containsExactly("2026-09");
+        assertThat(result.getMonths().get(0).getPayments())
+                .extracting(PaymentHistoryItemResult::getJobId, PaymentHistoryItemResult::getSettledDate,
+                        PaymentHistoryItemResult::getRefundedDate)
+                .containsExactly(
+                        tuple(42L, LocalDate.of(2026, 10, 3), null),
+                        tuple(41L, null, LocalDate.of(2026, 10, 5)));
+        assertThat(result.getSummary().getThisMonthPaymentAmount()).isZero();
+        assertThat(result.getSummary().getHeldAmount()).isZero();
+        assertThat(result.getSummary().getTotalSettledAmount()).isEqualTo(70_000L);
+    }
+
+    @Test
+    @DisplayName("완료된 의뢰에 완료 시각이 없으면 정산일을 비워 두지 않고 서버 오류로 처리한다")
+    void rejectsClosedJobWithoutCompletedAt() {
+        paid(42L, "2026-10-02T03:00:00Z", JobStatus.CLOSED);
+        jobsById.put(42L, job(42L, JobStatus.CLOSED, null));
+
+        assertError(ErrorCode.INTERNAL_SERVER_ERROR);
+    }
+
+    @Test
+    @DisplayName("부분 환불된 결제에 환불 시각이 없으면 환불일을 비워 두지 않고 서버 오류로 처리한다")
+    void rejectsPartiallyRefundedPaymentWithoutRefundedAt() {
+        add(refundedWithoutRefundedAt(41L, 80_000L, 20_000L), JobStatus.CANCELLED, STUDENT_PROFILE_ID);
+
+        assertError(ErrorCode.INTERNAL_SERVER_ERROR);
+    }
+
+    @Test
+    @DisplayName("전액 환불된 결제에 환불 시각이 없으면 환불일을 비워 두지 않고 서버 오류로 처리한다")
+    void rejectsFullyRefundedPaymentWithoutRefundedAt() {
+        add(refundedWithoutRefundedAt(41L, 100_000L, 0L), JobStatus.CANCELLED, STUDENT_PROFILE_ID);
+
+        assertError(ErrorCode.INTERNAL_SERVER_ERROR);
+    }
+
     private PaymentFacade facadeAt(String now) {
         return new PaymentFacade(mock(PaymentPreparationService.class),
                 mock(KakaoPayClient.class), paymentService, mock(PaymentApprovalService.class),
@@ -390,8 +527,34 @@ class PaymentHistoryFacadeTest {
                 application(payment.getJobApplicationId(), payment.getJobId(), studentProfileId));
     }
 
+    // 완료된 의뢰는 기본 완료 시각을 채운다
     private Job job(Long id, JobStatus status) {
-        return Job.builder().id(id).title("의뢰 " + id).status(status).build();
+        return job(id, status, status == JobStatus.CLOSED ? DEFAULT_COMPLETED_AT : null);
+    }
+
+    private Job job(Long id, JobStatus status, String completedAt) {
+        return Job.builder().id(id).title("의뢰 " + id).status(status)
+                .completedAt(completedAt == null ? null : LocalDateTime.parse(completedAt)).build();
+    }
+
+    private Job proposalJob(Long id, Long proposalId, JobStatus status, String completedAt) {
+        return Job.builder().id(id).title("의뢰 " + id).status(status)
+                .proposalId(proposalId).selectedStudentProfileId(STUDENT_PROFILE_ID)
+                .completedAt(completedAt == null ? null : LocalDateTime.parse(completedAt)).build();
+    }
+
+    // 환불 금액은 저장됐지만 환불 시각이 없는 환불 결제
+    private Payment refundedWithoutRefundedAt(Long jobId, Long refundAmount, Long studentCompensationAmount) {
+        Payment broken = mock(Payment.class);
+        when(broken.getJobId()).thenReturn(jobId);
+        when(broken.getJobApplicationId()).thenReturn(jobId + 1000);
+        when(broken.getAmount()).thenReturn(100_000L);
+        when(broken.getRefundAmount()).thenReturn(refundAmount);
+        when(broken.getStudentCompensationAmount()).thenReturn(studentCompensationAmount);
+        when(broken.getStatus()).thenReturn(PaymentStatus.REFUNDED);
+        when(broken.getApprovedAt()).thenReturn(Instant.parse("2026-10-01T03:00:00Z"));
+        when(broken.getRefundedAt()).thenReturn(null);
+        return broken;
     }
 
     private JobApplication application(Long id, Long jobId, Long studentProfileId) {
@@ -415,8 +578,8 @@ class PaymentHistoryFacadeTest {
         payment.approve(Instant.parse(approvedAt));
         payment.linkJob(jobId);
         payments.add(PaymentHistoryData.from(payment));
-        jobsById.put(jobId, Job.builder().id(jobId).title("의뢰 " + jobId).status(jobStatus)
-                .proposalId(proposalId).selectedStudentProfileId(STUDENT_PROFILE_ID).build());
+        jobsById.put(jobId, proposalJob(jobId, proposalId, jobStatus,
+                jobStatus == JobStatus.CLOSED ? DEFAULT_COMPLETED_AT : null));
     }
 
     @Test
@@ -504,7 +667,7 @@ class PaymentHistoryFacadeTest {
         payment.linkJob(jobId);
         afterApproval.accept(payment);
         payments.add(PaymentHistoryData.from(payment));
-        jobsById.put(jobId, Job.builder().id(jobId).title("의뢰 " + jobId).status(jobStatus)
-                .proposalId(proposalId).selectedStudentProfileId(STUDENT_PROFILE_ID).build());
+        jobsById.put(jobId, proposalJob(jobId, proposalId, jobStatus,
+                jobStatus == JobStatus.CLOSED ? DEFAULT_COMPLETED_AT : null));
     }
 }

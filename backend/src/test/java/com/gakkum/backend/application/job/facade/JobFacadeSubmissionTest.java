@@ -13,13 +13,18 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.TimeZone;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
+import com.gakkum.backend.application.job.dto.JobSubmissionResponse;
 import com.gakkum.backend.domain.media.service.MediaService;
 import com.gakkum.backend.domain.chat.entity.ChatMessageType;
 import com.gakkum.backend.domain.certificate.service.CertificateService;
@@ -55,6 +60,9 @@ class JobFacadeSubmissionTest {
     private static final String USER_ID = "01K58M6PJV8VAJMXHBHJ2PNB5C";
     private static final String FILE_URL = "https://bucket.s3.ap-northeast-2.amazonaws.com/job-submissions/42/7/f/a.pdf";
     private static final String KEY = "job-submissions/42/7/f/a.pdf";
+    private static final String SECOND_FILE_URL =
+            "https://bucket.s3.ap-northeast-2.amazonaws.com/job-submissions/42/7/g/b.png";
+    private static final String SECOND_KEY = "job-submissions/42/7/g/b.png";
 
     private final UserService userService = mock(UserService.class);
     private final JobService jobService = mock(JobService.class);
@@ -87,6 +95,33 @@ class JobFacadeSubmissionTest {
         assertThat(result.getUploadHeaders()).containsEntry("content-type", "application/pdf");
         assertThat(result.getUploadUrlExpiresAt()).isNotNull();
         assertThat(result.getFileUrl()).isEqualTo(FILE_URL);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = { "UTC", "Asia/Seoul" })
+    @DisplayName("업로드 URL 만료 시각은 JVM 기본 시간대와 무관하게 UTC 시각으로 넘기고 응답은 한국 시각으로 내린다")
+    void expiresAtIgnoresDefaultTimeZone(String defaultZone) {
+        TimeZone original = TimeZone.getDefault();
+        TimeZone.setDefault(TimeZone.getTimeZone(defaultZone));
+        try {
+            givenStudent(UserRole.STUDENT);
+            when(chatAttachmentPolicy.validate(ChatMessageType.FILE, "draft.pdf", "application/pdf", 1048576L))
+                    .thenReturn("application/pdf");
+            when(storageClient.newKey(42L, 7L, "draft.pdf")).thenReturn(KEY);
+            when(storageClient.presignUpload(KEY, "application/pdf", 1048576L)).thenReturn(new PresignedFileUpload(
+                    "https://upload", Map.of("content-type", "application/pdf"),
+                    Instant.parse("2026-09-27T12:10:00Z"), FILE_URL));
+
+            PrepareSubmissionFileUploadResult result = jobFacade.prepareSubmissionFileUpload(
+                    PrepareSubmissionFileUploadCommand.of(USERNAME, 42L, JobSubmissionFileType.FILE, "draft.pdf",
+                            "application/pdf", 1048576L));
+
+            assertThat(result.getUploadUrlExpiresAt()).isEqualTo(LocalDateTime.of(2026, 9, 27, 12, 10));
+            assertThat(JobSubmissionResponse.PrepareFileUpload.from(result).getUploadUrlExpiresAt())
+                    .hasToString("2026-09-27T21:10+09:00");
+        } finally {
+            TimeZone.setDefault(original);
+        }
     }
 
     @Test
@@ -130,9 +165,11 @@ class JobFacadeSubmissionTest {
     void submitsDraft() {
         givenStudent(UserRole.STUDENT);
         when(storageClient.findKey(FILE_URL, 42L, 7L)).thenReturn(Optional.of(KEY));
-        when(storageClient.exists(KEY)).thenReturn(true);
-        CreateJobSubmissionCommand command = command(List.of(FILE_URL));
-        when(jobService.submitDraft(command, 7L)).thenReturn(JobSubmission.builder()
+        when(storageClient.findKey(SECOND_FILE_URL, 42L, 7L)).thenReturn(Optional.of(SECOND_KEY));
+        when(storageClient.findSize(KEY)).thenReturn(Optional.of(1048576L));
+        when(storageClient.findSize(SECOND_KEY)).thenReturn(Optional.of(2048L));
+        CreateJobSubmissionCommand command = command(List.of(FILE_URL, SECOND_FILE_URL));
+        when(jobService.submitDraft(command, 7L, Map.of(FILE_URL, 1048576L, SECOND_FILE_URL, 2048L))).thenReturn(JobSubmission.builder()
                 .id(81L)
                 .jobId(42L)
                 .submissionType(JobSubmissionType.DRAFT)
@@ -159,8 +196,8 @@ class JobFacadeSubmissionTest {
 
         assertError(() -> jobFacade.submitDraft(command(List.of(FILE_URL, "https://evil.example.com/a.pdf"))),
                 ErrorCode.JOB_SUBMISSION_FILE_URL_INVALID);
-        verify(storageClient, never()).exists(anyString());
-        verify(jobService, never()).submitDraft(any(), anyLong());
+        verify(storageClient, never()).findSize(anyString());
+        verify(jobService, never()).submitDraft(any(), anyLong(), any());
     }
 
     @Test
@@ -168,11 +205,11 @@ class JobFacadeSubmissionTest {
     void rejectsNotUploadedFile() {
         givenStudent(UserRole.STUDENT);
         when(storageClient.findKey(FILE_URL, 42L, 7L)).thenReturn(Optional.of(KEY));
-        when(storageClient.exists(KEY)).thenReturn(false);
+        when(storageClient.findSize(KEY)).thenReturn(Optional.empty());
 
         assertError(() -> jobFacade.submitDraft(command(List.of(FILE_URL))),
                 ErrorCode.JOB_SUBMISSION_FILE_NOT_UPLOADED);
-        verify(jobService, never()).submitDraft(any(), anyLong());
+        verify(jobService, never()).submitDraft(any(), anyLong(), any());
     }
 
     @Test
@@ -192,9 +229,11 @@ class JobFacadeSubmissionTest {
     void submitsRevision() {
         givenStudent(UserRole.STUDENT);
         when(storageClient.findKey(FILE_URL, 42L, 7L)).thenReturn(Optional.of(KEY));
-        when(storageClient.exists(KEY)).thenReturn(true);
-        CreateJobSubmissionCommand command = command(List.of(FILE_URL));
-        when(jobService.submitRevision(command, 7L)).thenReturn(JobSubmission.builder()
+        when(storageClient.findKey(SECOND_FILE_URL, 42L, 7L)).thenReturn(Optional.of(SECOND_KEY));
+        when(storageClient.findSize(KEY)).thenReturn(Optional.of(1048576L));
+        when(storageClient.findSize(SECOND_KEY)).thenReturn(Optional.of(2048L));
+        CreateJobSubmissionCommand command = command(List.of(FILE_URL, SECOND_FILE_URL));
+        when(jobService.submitRevision(command, 7L, Map.of(FILE_URL, 1048576L, SECOND_FILE_URL, 2048L))).thenReturn(JobSubmission.builder()
                 .id(82L)
                 .jobId(42L)
                 .submissionType(JobSubmissionType.REVISION)
@@ -219,8 +258,8 @@ class JobFacadeSubmissionTest {
 
         assertError(() -> jobFacade.submitRevision(command(List.of("https://evil.example.com/a.pdf"))),
                 ErrorCode.JOB_SUBMISSION_FILE_URL_INVALID);
-        verify(storageClient, never()).exists(anyString());
-        verify(jobService, never()).submitRevision(any(), anyLong());
+        verify(storageClient, never()).findSize(anyString());
+        verify(jobService, never()).submitRevision(any(), anyLong(), any());
     }
 
     @Test

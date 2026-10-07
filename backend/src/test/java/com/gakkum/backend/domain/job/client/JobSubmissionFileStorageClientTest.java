@@ -110,18 +110,18 @@ class JobSubmissionFileStorageClientTest {
     }
 
     @Test
-    @DisplayName("객체가 있으면 true, 404면 false를 반환한다")
-    void checksObjectExistence() {
+    @DisplayName("객체가 있으면 HEAD 응답의 바이트 크기를, 404면 빈 값을 반환한다")
+    void findsObjectSize() {
         S3Client headClient = mockHeadClient();
         JobSubmissionFileStorageClient headChecking =
                 new JobSubmissionFileStorageClient(headClient, s3Presigner, BUCKET, Duration.ofMinutes(10));
         when(headClient.headObject(HeadObjectRequest.builder().bucket(BUCKET).key("found").build()))
-                .thenReturn(HeadObjectResponse.builder().contentLength(10L).build());
+                .thenReturn(HeadObjectResponse.builder().contentLength(1048576L).build());
         when(headClient.headObject(HeadObjectRequest.builder().bucket(BUCKET).key("missing").build()))
                 .thenThrow(NoSuchKeyException.builder().statusCode(404).build());
 
-        assertThat(headChecking.exists("found")).isTrue();
-        assertThat(headChecking.exists("missing")).isFalse();
+        assertThat(headChecking.findSize("found")).contains(1048576L);
+        assertThat(headChecking.findSize("missing")).isEmpty();
     }
 
     @Test
@@ -135,7 +135,7 @@ class JobSubmissionFileStorageClientTest {
                 .thenThrow(SdkClientException.create("timeout"));
 
         for (int attempt = 0; attempt < 2; attempt++) {
-            assertThatThrownBy(() -> headChecking.exists("key"))
+            assertThatThrownBy(() -> headChecking.findSize("key"))
                     .isInstanceOfSatisfying(BusinessException.class, exception -> assertThat(exception.getErrorCode())
                             .isEqualTo(ErrorCode.JOB_SUBMISSION_FILE_UNAVAILABLE));
         }

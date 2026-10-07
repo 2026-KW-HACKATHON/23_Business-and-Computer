@@ -139,14 +139,14 @@ class NotificationControllerTest {
                 .andExpect(jsonPath("$.data.items[0].targetType").value("CHAT_ROOM"))
                 .andExpect(jsonPath("$.data.items[0].targetId").value("01K58M6PJV8VAJMXHBHJ2PNB5E"))
                 .andExpect(jsonPath("$.data.items[0].readAt").value((Object) null))
-                .andExpect(jsonPath("$.data.items[0].createdAt").value("2026-10-07T10:30:00.123456"))
+                .andExpect(jsonPath("$.data.items[0].createdAt").value("2026-10-07T19:30:00.123456+09:00"))
                 .andExpect(jsonPath("$.data.items[0].eventId").doesNotExist())
                 .andExpect(jsonPath("$.data.items[0].recipientUserId").doesNotExist())
                 .andExpect(jsonPath("$.data.items[1].length()").value(8))
                 .andExpect(jsonPath("$.data.items[1].id").value(6))
                 .andExpect(jsonPath("$.data.items[1].targetType").value("JOB"))
                 .andExpect(jsonPath("$.data.items[1].targetId").value("42"))
-                .andExpect(jsonPath("$.data.items[1].readAt").value("2026-10-07T11:00:15"))
+                .andExpect(jsonPath("$.data.items[1].readAt").value("2026-10-07T20:00:15+09:00"))
                 .andExpect(jsonPath("$.data.nextCursor").value("next"));
     }
 
@@ -200,7 +200,7 @@ class NotificationControllerTest {
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.length()").value(2))
                 .andExpect(jsonPath("$.data.notificationId").value(31))
-                .andExpect(jsonPath("$.data.readAt").value("2026-10-07T11:00:15"));
+                .andExpect(jsonPath("$.data.readAt").value("2026-10-07T20:00:15+09:00"));
 
         verify(notificationFacade).markRead(USERNAME, 31L);
     }

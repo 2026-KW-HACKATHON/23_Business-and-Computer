@@ -58,6 +58,8 @@ tasks.named('jar') {
 
 tasks.named('test') {
     useJUnitPlatform()
+    // 운영 JVM(BackendApplication)과 같이 UTC로 고정한다. Hibernate가 시작 시점의 기본 시간대를 붙잡아 두기 때문에 JVM 옵션으로 준다
+    systemProperty 'user.timezone', 'UTC'
     testLogging {
         events "passed", "skipped", "failed", "standardOut", "standardError"
         showStandardStreams = true

@@ -128,7 +128,7 @@ class ExploreFlowTest {
         givenActiveUser();
         when(proposalRepository.findByDemoSessionIdAndStatusNotAndCreatedAtLessThanOrderByCreatedAtDescIdDesc(any(), eq(ProposalStatus.CANCELLED), any(), eq(Limit.of(3))))
                 .thenReturn(List.of(proposal(31L, T2, 4, 50L), proposal(30L, T1, 0, 50L, 71L)));
-        when(jobRepository.findByDemoSessionIdAndStatusNotAndCreatedAtLessThanOrderByCreatedAtDescIdDesc(
+        when(jobRepository.findByDemoSessionIdAndStatusNotAndProposalIdIsNullAndCreatedAtLessThanOrderByCreatedAtDescIdDesc(
                 any(), eq(JobStatus.CANCELLED), any(), eq(Limit.of(3))))
                 .thenReturn(List.of(job(42L, T3, JobStatus.MATCHED, 60L), job(41L, T1, JobStatus.OPEN, 60L)));
         when(proposalSpecialtyRepository.findByProposalIdIn(List.of(31L, 30L))).thenReturn(List.of(
@@ -347,7 +347,7 @@ class ExploreFlowTest {
         // 같은 시각 제안은 커서 ID 앞만, 같은 시각 의뢰는 제안 뒤라 모두 읽는다
         verify(proposalRepository).findByDemoSessionIdAndStatusNotAndCreatedAtAndIdLessThanOrderByIdDesc(null, ProposalStatus.CANCELLED, T2, 31L, Limit.of(3));
         verify(proposalRepository).findByDemoSessionIdAndStatusNotAndCreatedAtLessThanOrderByCreatedAtDescIdDesc(null, ProposalStatus.CANCELLED, T2, Limit.of(3));
-        verify(jobRepository).findByDemoSessionIdAndStatusNotAndCreatedAtAndIdLessThanOrderByIdDesc(
+        verify(jobRepository).findByDemoSessionIdAndStatusNotAndProposalIdIsNullAndCreatedAtAndIdLessThanOrderByIdDesc(
                 null, JobStatus.CANCELLED, T2, Long.MAX_VALUE, Limit.of(3));
         verifyNoInteractions(ownerRepository, specialtyRepository, studentRepository, proposalLikeRepository);
     }
@@ -405,7 +405,7 @@ class ExploreFlowTest {
     }
 
     private void givenJobs(Job... jobs) {
-        when(jobRepository.findByDemoSessionIdAndStatusNotAndCreatedAtLessThanOrderByCreatedAtDescIdDesc(
+        when(jobRepository.findByDemoSessionIdAndStatusNotAndProposalIdIsNullAndCreatedAtLessThanOrderByCreatedAtDescIdDesc(
                 any(), eq(JobStatus.CANCELLED), any(), any())).thenReturn(List.of(jobs));
         when(ownerRepository.findAllById(any())).thenReturn(List.of(
                 Owner.builder().id(60L).storeName("가꿈 카페").build()));

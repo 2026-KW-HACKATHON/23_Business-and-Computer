@@ -1,13 +1,15 @@
 package com.gakkum.backend.application.proposal.dto;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.List;
 
 import com.gakkum.backend.domain.job.entity.JobStatus;
 import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.ReceivedProposalListResult;
 import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.ReceivedProposalResult;
 import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.ReceivedProposalStudentResult;
+import com.gakkum.backend.domain.proposal.entity.ProposalRejectedBy;
 import com.gakkum.backend.domain.proposal.entity.ProposalStatus;
+import com.gakkum.backend.global.response.KoreaTime;
 
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -38,8 +40,10 @@ public class ReceivedProposalListResponse {
         // 결제로 만들어진 의뢰. 결제 전이면 null
         private final Long jobId;
         private final JobStatus jobStatus;
-        // 한국 시각. 오프셋 없이 내린다
-        private final LocalDateTime createdAt;
+        private final OffsetDateTime createdAt;
+        // 거절한 주체와 거절 시각. 거절되지 않았거나 기록 전에 거절된 제안은 null
+        private final ProposalRejectedBy rejectedBy;
+        private final OffsetDateTime rejectedAt;
 
         public static ReceivedProposal from(ReceivedProposalResult result) {
             return new ReceivedProposal(
@@ -54,7 +58,9 @@ public class ReceivedProposalListResponse {
                     ReceivedProposalStudent.from(result.getStudent()),
                     result.getJobId(),
                     result.getJobStatus(),
-                    ProposalDetailResponse.toKoreaTime(result.getCreatedAt()));
+                    KoreaTime.from(result.getCreatedAt()),
+                    result.getRejectedBy(),
+                    KoreaTime.from(result.getRejectedAt()));
         }
     }
 
