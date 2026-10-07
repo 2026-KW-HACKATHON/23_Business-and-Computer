@@ -85,6 +85,8 @@
   line-height: 23px;
   color: var(--text-title);
   word-break: keep-all;
+  /* 사장님이 여러 줄로 적은 수정 요청 */
+  white-space: pre-line;
 }
 
 .student-work__files {

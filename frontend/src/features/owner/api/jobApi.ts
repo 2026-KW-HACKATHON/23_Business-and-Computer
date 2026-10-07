@@ -126,6 +126,16 @@ export async function fetchApplicantProfile(
   return data;
 }
 
+/**
+ * GET /students/{studentProfileId}/profile — 사장님이 보는 학생 프로필 (지원자 프로필과 같은 모양).
+ * 의뢰 · 지원 · 제안과 상관없이 볼 수 있다. 사장님이 아니면 403 STUDENT_PROFILE_403_OWNER, 없으면 404 STUDENT_PROFILE_404
+ */
+export async function fetchStudentProfile(studentProfileId: number): Promise<ApplicantProfileResponse> {
+  const data = await apiData<ApplicantProfileResponse | undefined>(`/students/${studentProfileId}/profile`);
+  if (!data) throw new Error("Student profile response has no data");
+  return data;
+}
+
 /** POST /jobs/{id}/cancel 의 답 (JobCancelResponse). 금액은 원, 모집 중 취소면 모두 0 */
 export interface JobCancelResponse {
   jobId: number;

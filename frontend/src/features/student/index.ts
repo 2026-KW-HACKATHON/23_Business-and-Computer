@@ -45,6 +45,10 @@ export type { SentProposalsLoad } from "./hooks/useSentProposals";
 export { useStudentHome } from "./hooks/useStudentHome";
 export { useProgressJobs } from "./hooks/useProgressJobs";
 export type { ProgressJobsLoad } from "./hooks/useProgressJobs";
+export { useLatestSubmission } from "./hooks/useLatestSubmission";
+export type { LatestSubmissionLoad } from "./hooks/useLatestSubmission";
+export { isLastRevision, submissionDay } from "./lib/latestSubmission";
+export type { LatestSubmission } from "./lib/latestSubmission";
 export {
   progressDeadline,
   progressFlowSteps,

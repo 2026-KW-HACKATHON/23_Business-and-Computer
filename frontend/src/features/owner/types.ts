@@ -2,6 +2,7 @@ import type { Field } from "../../types/field";
 import type { StoreCategory } from "../../types/storeCategory";
 import type { WorkKind } from "../../types/workKind";
 import type { ApplicationPlan, WorkPlanContent } from "../../types/workPlan";
+import type { OwnerProgressJob } from "./lib/progressJobs";
 
 /** 마감 단계. draft = 초안, final = 최종 */
 export type DeadlineStage = "draft" | "final";
@@ -60,7 +61,8 @@ export interface OwnerWorkingItem {
   student: StudentRef;
   stage: DeadlineStage;
   due: string;
-  plan?: WorkPlanSheetContent;
+  /** 의뢰에 지원해 맡은 작업. 누르면 이 작업의 지원서를 불러와 바텀시트로 */
+  planJob?: OwnerProgressJob;
   proposalId?: string;
 }
 

@@ -30,8 +30,8 @@ The backend (dev) has:
   JOB_SUBMISSION_409_STATUS, JOB_SUBMISSION_403, JOB_404,
   CHAT_UPLOAD_400_TYPE · _SIZE, JOB_SUBMISSION_400_FILE_URL,
   JOB_SUBMISSION_409_FILE_NOT_UPLOADED.
-- A student cannot read their own submission, and a revision request has no
-  text or photos.
+- GET /jobs/{jobId}/submissions/latest gives the student their latest
+  submission and the revision request on it (ADR 0038).
 
 ## Decision
 
@@ -63,8 +63,8 @@ The backend (dev) has:
   errors → 「파일을 올리지 못했어요…」; anything else → 「잠시 후 다시 시도해
   주세요」.
 - **수정 요청 확인 · 제출한 초안** (`src/pages/StudentJobStagePages.tsx`): the
-  job summary, flow bar, and buttons; the revision request text and the
-  student's own files and message show 「…곧 여기서 볼 수 있어요」.
+  job summary, flow bar, and buttons; the revision request and the
+  student's own files and message come from the latest submission (ADR 0038).
 - Every server screen sends the student to the screen of the job's current
   stage when the address points at another stage.
 
@@ -82,7 +82,5 @@ The backend (dev) has:
 
 ## Agent Guidance
 
-- When the matched list carries the store name or the latest submission
-  date, drop the per-job GET /jobs/{id} and show 「초안 제출 : M월 D일」.
-- When the backend lets a student read their submission and the revision
-  request, replace the 「곧」 notices in `StudentJobStagePages.tsx`.
+- The matched list carries the store name and submission time (ADR 0039);
+  only 내 활동 still calls GET /jobs/{id}, for the store address.

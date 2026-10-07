@@ -90,7 +90,8 @@ function StudentActivityPage() {
   const { load: proposalsLoad, reload: reloadProposals } = useSentProposals();
   const proposals = proposalsLoad.status === "loaded" ? proposalsLoad.proposals : [];
   const works = useStudentWorks();
-  const { load: progressLoad, reload: reloadProgress } = useProgressJobs();
+  // 진행 중 카드에 가게 주소가 있어서 주소까지 불러온다
+  const { load: progressLoad, reload: reloadProgress } = useProgressJobs({ storeAddress: true });
   const { summary } = useStudentSettlements();
   const [sheetJobId, setSheetJobId] = useState<number>();
   const sheetJob = applied.find((job) => job.jobId === sheetJobId);

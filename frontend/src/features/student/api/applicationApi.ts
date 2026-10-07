@@ -5,7 +5,10 @@ import type {
   JobStatus,
 } from "../../explore";
 
-/** GET /me/job-applications 의 의뢰 하나. 모집 중인 의뢰에 낸, 선정을 기다리는 내 지원서 */
+/**
+ * GET /me/job-applications 의 의뢰 하나. 모집 중인 의뢰에 낸 검토 중 지원서와
+ * 다른 학생이 선정돼 선택되지 않은(REJECTED) 지원서. 선정된 지원은 진행 중 목록에 있다
+ */
 export interface AppliedJobResponse {
   jobId: number;
   jobApplicationId: number;
@@ -18,11 +21,11 @@ export interface AppliedJobResponse {
   finalDeadline: string;
   jobStatus: JobStatus;
   applicationStatus: JobApplicationStatus;
-  /** 지원한 시각 "2026-10-06T10:20:30" */
+  /** 지원한 시각 (UTC, 오프셋 없음) "2026-10-06T01:20:30" */
   appliedAt?: string | null;
-  /** 가게 이름. 서버가 주면 카드에 「가게, 사장님 검토 중」으로 보인다 */
+  /** 가게 이름. 카드에 「가게, 사장님 검토 중」으로 보인다 */
   storeName?: string | null;
-  /** 내가 보낸 한 줄 요약 · 작업계획서 · 결과물. 서버가 셋 다 주면 「내 지원서」에 보인다 */
+  /** 내가 보낸 한 줄 요약 · 작업계획서 · 결과물. 셋 다 있으면 「내 지원서」에 보인다 */
   summary?: string | null;
   workPlan?: string | null;
   deliveryMethod?: string | null;
