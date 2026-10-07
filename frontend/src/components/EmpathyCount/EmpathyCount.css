@@ -25,3 +25,14 @@
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
 }
+
+/* 누를 때 반응: 공감 버튼이 살짝 작아진다 */
+.empathy-count--button {
+  transition:
+    box-shadow 0.15s ease,
+    transform 0.12s ease;
+}
+
+.empathy-count--button:active {
+  transform: scale(0.94);
+}

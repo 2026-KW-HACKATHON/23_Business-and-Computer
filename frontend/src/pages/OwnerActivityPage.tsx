@@ -209,7 +209,7 @@ function OwnerActivityPage() {
           <>
             <div className="owner-activity__divider" />
             <Button size="medium" fullWidth onClick={openDetail}>
-              제안 받기
+              자세히 보고 수락하기
             </Button>
           </>
         )}

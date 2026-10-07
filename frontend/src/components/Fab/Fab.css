@@ -16,7 +16,9 @@
   cursor: pointer;
   transition:
     gap 0.28s cubic-bezier(0.2, 0, 0, 1),
-    padding 0.28s cubic-bezier(0.2, 0, 0, 1);
+    padding 0.28s cubic-bezier(0.2, 0, 0, 1),
+    background-color 0.15s ease,
+    transform 0.12s ease;
 }
 
 .fab__plus {
@@ -89,4 +91,19 @@
 .fab:focus-visible {
   outline: 2px solid var(--color-black);
   outline-offset: 2px;
+}
+
+/* 누를 때 반응: 올리면 역할 색이 받침 색 쪽으로 조금 진해지고, 누르면 살짝 작아진다 */
+@media (hover: hover) {
+  .fab--owner:hover {
+    background: color-mix(in srgb, var(--color-owner) 86%, var(--color-owner-shadow));
+  }
+
+  .fab--student:hover {
+    background: color-mix(in srgb, var(--color-student) 86%, var(--color-student-shadow));
+  }
+}
+
+.fab:active {
+  transform: scale(0.94);
 }

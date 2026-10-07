@@ -94,7 +94,7 @@ The owner side read `SAMPLE_PROPOSALS`, so a proposal a student sent
 - **List card** (all statuses):
   - Shows the chip, `likeCount`, one badge per category, 「M월 D일 도착」
     when `createdAt` exists, the solution excerpt, and the student line.
-  - PENDING cards have 「제안 받기」, which opens the detail.
+  - PENDING cards have 「자세히 보고 수락하기」, which opens the detail.
 - **Detail**:
   - Heading: chip, badges, and 「M월 D일 도착」. A missing `createdAt` hides
     the date.
@@ -105,11 +105,11 @@ The owner side read `SAMPLE_PROPOSALS`, so a proposal a student sent
     수정 횟수, and 「학생에게 한마디」 when it is not blank.
   - PENDING shows:
     - 「수락하면 M월 D일까지 초안, M월 D일까지 최종」;
-    - the footnote: 작업비 is the student's amount, 수정 횟수 is set when
-      requesting, and 마감일 counts the student's period from the payment
-      date.
+    - the footnote: the owner sets 작업비 (from the student's hoped amount)
+      and 수정 횟수 when accepting, and 마감일 counts the student's period
+      from the payment date.
   - Reference photos use `ReferencePhotos`.
-  - Footer: 「의뢰하기」 for PENDING (to the accept screen), otherwise
+  - Footer: 「수락하기」 for PENDING (to the accept screen), otherwise
     「확인」.
   - Errors: load failure → `LoadNotice`, 404 → `OwnerMissing`,
     401 → /login.
