@@ -157,19 +157,6 @@ class JobProposalStartServiceTest {
     }
 
     @Test
-    @DisplayName("제안 ID 목록의 연결 의뢰를 한 번에 조회하고 결제 전 제안은 결과에서 빠진다")
-    void findsJobIdsByProposalIdsInOneQuery() {
-        when(jobRepository.findByProposalIdIn(List.of(5L, 6L, 7L))).thenReturn(List.of(
-                Job.builder().id(42L).proposalId(5L).build(), Job.builder().id(43L).proposalId(7L).build()));
-
-        Map<Long, Long> jobIds = jobService.getJobIdsByProposalIds(List.of(5L, 6L, 7L));
-
-        assertThat(jobIds).containsOnly(Map.entry(5L, 42L), Map.entry(7L, 43L));
-        assertThat(jobService.getJobIdsByProposalIds(List.of())).isEmpty();
-        verify(jobRepository).findByProposalIdIn(anyCollection());
-    }
-
-    @Test
     @DisplayName("제안 ID 목록에서 연결 의뢰와 취소 상태를 한 번에 조회하고 빈 목록은 조회하지 않는다")
     void findsJobsByProposalIdsInOneQuery() {
         Job cancelled = Job.builder().id(42L).proposalId(5L).status(JobStatus.CANCELLED).build();

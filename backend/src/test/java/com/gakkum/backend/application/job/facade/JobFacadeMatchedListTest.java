@@ -3,12 +3,16 @@ package com.gakkum.backend.application.job.facade;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -72,15 +76,25 @@ class JobFacadeMatchedListTest {
     void assemblesMatchedJobs() {
         givenOwner();
         when(jobService.getMatchedJobs(any(GetMatchedJobsCommand.class))).thenReturn(List.of(
-                MatchedJobData.of(job(42L, 7L), List.of(12L, 11L), submission(81L, JobSubmissionType.DRAFT),
+                MatchedJobData.of(job(42L, 7L), List.of(12L, 11L),
+                        submission(81L, JobSubmissionType.DRAFT, 0, LocalDateTime.of(2026, 10, 9, 14, 5, 30)),
                         JobProgressStage.DRAFT),
-                MatchedJobData.of(job(43L, 8L), List.of(21L), submission(87L, JobSubmissionType.REVISION),
+                MatchedJobData.of(job(43L, 8L), List.of(21L),
+                        submission(87L, JobSubmissionType.REVISION, 2, LocalDateTime.of(2026, 10, 12, 9, 0)),
                         JobProgressStage.REVISION),
-                MatchedJobData.of(job(44L, 9L), List.of(22L), null, JobProgressStage.STARTED)));
+                MatchedJobData.of(job(44L, 9L), List.of(22L), null, JobProgressStage.STARTED),
+                // 같은 학생이 맡은 두 번째 의뢰. 학생·사용자는 중복 없이 조회한다
+                MatchedJobData.of(job(45L, 7L), List.of(), null, JobProgressStage.STARTED)));
         when(studentService.getStudentProfilesByIds(List.of(7L, 8L, 9L))).thenReturn(Map.of(
                 7L, student(7L, "2023123456", "컴퓨터정보공학부"),
                 8L, student(8L, "2024123456", "시각디자인학부"),
                 9L, student(9L, "2022123456", "미디어학부")));
+        // 학생 맵의 순회 순서에 의존하지 않도록 중복 없는 사용자 ID 집합으로만 맞춘다
+        when(userService.getUsersByIds(argThat(ids -> ids.size() == 3
+                && Set.copyOf(ids).equals(Set.of("user-7", "user-8", "user-9"))))).thenReturn(Map.of(
+                "user-7", User.builder().id("user-7").name("홍길동").build(),
+                "user-8", User.builder().id("user-8").name("김철수").build(),
+                "user-9", User.builder().id("user-9").name("이영희").build()));
         when(specialtyCategoryService.getSpecialtyDetails(Set.of(11L, 12L, 21L, 22L)))
                 .thenReturn(Map.of(
                         11L, SpecialtyDetail.of(11L, "백엔드", 1L, "개발"),
@@ -91,7 +105,15 @@ class JobFacadeMatchedListTest {
         MatchedJobListResult result = jobFacade.getMatchedJobs(USERNAME);
         JobListResponse.MatchedJobList response = JobListResponse.MatchedJobList.from(result);
 
-        assertThat(response.getJobs()).extracting(job -> job.getJobId()).containsExactly(42L, 43L, 44L);
+        assertThat(response.getJobs()).extracting(job -> job.getJobId()).containsExactly(42L, 43L, 44L, 45L);
+        assertThat(response.getJobs()).extracting(job -> job.getStudentName())
+                .containsExactly("홍길동", "김철수", "이영희", "홍길동");
+        assertThat(response.getJobs()).extracting(job -> job.getBudget()).containsOnly(300000L);
+        assertThat(response.getJobs()).extracting(job -> job.getRevisionCount()).containsOnly(2);
+        // 검토 대기 제출물의 수정 번호와 제출 시각. 초안은 0번이고 검토 대기가 없으면 둘 다 null이다
+        assertThat(response.getJobs()).extracting(job -> job.getRevisionNumber()).containsExactly(0, 2, null, null);
+        assertThat(response.getJobs()).extracting(job -> job.getSubmittedAt()).containsExactly(
+                LocalDateTime.of(2026, 10, 9, 14, 5, 30), LocalDateTime.of(2026, 10, 12, 9, 0), null, null);
         assertThat(response.getJobs().get(0).getDraftDeadline()).isEqualTo(LocalDate.of(2026, 10, 10));
         assertThat(response.getJobs().get(0).getStudentProfileId()).isEqualTo(7L);
         assertThat(response.getJobs().get(0).getStudentNumber()).isEqualTo("2023123456");
@@ -107,11 +129,32 @@ class JobFacadeMatchedListTest {
         assertThat(new ObjectMapper().writeValueAsString(ApiResponse.success(response)))
                 .contains("\"success\":true", "\"jobs\":[", "\"studentProfileId\":7",
                         "\"submissionType\":null", "\"pendingSubmissionId\":null",
-                        "\"draftDeadline\":\"2026-10-10\"");
+                        "\"draftDeadline\":\"2026-10-10\"", "\"studentName\":\"홍길동\"",
+                        "\"budget\":300000", "\"revisionNumber\":null", "\"submittedAt\":null");
 
         ArgumentCaptor<GetMatchedJobsCommand> command = ArgumentCaptor.forClass(GetMatchedJobsCommand.class);
         verify(jobService).getMatchedJobs(command.capture());
         assertThat(command.getValue().getOwnerProfileId()).isEqualTo(5L);
+        verify(studentService, times(1)).getStudentProfilesByIds(any());
+        verify(userService, times(1)).getUsersByIds(any());
+        verify(specialtyCategoryService, times(1)).getSpecialtyDetails(any());
+    }
+
+    @Test
+    @DisplayName("선정 학생의 사용자 일괄 조회에서 난 참조 누락 오류는 그대로 전달한다")
+    void propagatesMissingStudentUser() {
+        givenOwner();
+        when(jobService.getMatchedJobs(any(GetMatchedJobsCommand.class))).thenReturn(List.of(
+                MatchedJobData.of(job(42L, 7L), List.of(), null, JobProgressStage.STARTED)));
+        when(studentService.getStudentProfilesByIds(List.of(7L)))
+                .thenReturn(Map.of(7L, student(7L, "2023123456", "컴퓨터정보공학부")));
+        when(userService.getUsersByIds(List.of("user-7")))
+                .thenThrow(new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR));
+
+        assertThatThrownBy(() -> jobFacade.getMatchedJobs(USERNAME))
+                .isInstanceOfSatisfying(BusinessException.class, exception ->
+                        assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.INTERNAL_SERVER_ERROR));
+        verifyNoInteractions(specialtyCategoryService);
     }
 
     @Test
@@ -122,6 +165,7 @@ class JobFacadeMatchedListTest {
 
         assertThat(jobFacade.getMatchedJobs(USERNAME).getJobs()).isEmpty();
         verifyNoInteractions(studentService, specialtyCategoryService);
+        verify(userService, never()).getUsersByIds(any());
     }
 
     @Test
@@ -144,6 +188,8 @@ class JobFacadeMatchedListTest {
         return Job.builder()
                 .id(id)
                 .title("의뢰 " + id)
+                .budget(300000L)
+                .revisionCount(2)
                 .draftDeadline(LocalDate.of(2026, 10, 10))
                 .finalDeadline(LocalDate.of(2026, 10, 20))
                 .selectedStudentProfileId(studentId)
@@ -151,10 +197,11 @@ class JobFacadeMatchedListTest {
     }
 
     private Student student(Long id, String number, String major) {
-        return Student.builder().id(id).studentNumber(number).major(major).build();
+        return Student.builder().id(id).userId("user-" + id).studentNumber(number).major(major).build();
     }
 
-    private JobSubmission submission(Long id, JobSubmissionType type) {
-        return JobSubmission.builder().id(id).submissionType(type).build();
+    private JobSubmission submission(Long id, JobSubmissionType type, int revisionNumber, LocalDateTime createdAt) {
+        return JobSubmission.builder()
+                .id(id).submissionType(type).revisionNumber(revisionNumber).createdAt(createdAt).build();
     }
 }

@@ -493,7 +493,8 @@ class ProposalFacadeTest {
                 3L, SpecialtyDetail.of(3L, "로고 디자인", 1L, "디자인"),
                 12L, SpecialtyDetail.of(12L, "영상 편집", 2L, "영상")));
 
-        when(jobService.getJobIdsByProposalIds(List.of(33L, 32L, 31L))).thenReturn(Map.of(31L, 410L));
+        when(jobService.getJobsByProposalIds(List.of(33L, 32L, 31L))).thenReturn(Map.of(
+                31L, Job.builder().id(410L).proposalId(31L).status(JobStatus.MATCHED).build()));
 
         ReceivedProposalListResult result = proposalFacade.getReceivedProposals(USERNAME);
 
@@ -502,7 +503,12 @@ class ProposalFacadeTest {
                         tuple(31L, ProposalStatus.ACCEPTED));
         // 연결 의뢰는 제안 수와 무관하게 한 번에 조회하고 결제 전 제안은 null이다
         assertThat(result.getProposals()).extracting(p -> p.getJobId()).containsExactly(null, null, 410L);
-        verify(jobService, times(1)).getJobIdsByProposalIds(any());
+        assertThat(result.getProposals()).extracting(p -> p.getJobStatus())
+                .containsExactly(null, null, JobStatus.MATCHED);
+        // 생성 시각은 저장된 원본을 그대로 넘기고 한국 시각 변환은 응답이 맡는다
+        assertThat(result.getProposals()).extracting(p -> p.getCreatedAt())
+                .containsOnly(LocalDateTime.of(2026, 10, 5, 15, 30));
+        verify(jobService, times(1)).getJobsByProposalIds(any());
         assertThat(result.getProposals().get(0).getLikeCount()).isEqualTo(5);
         assertThat(result.getProposals().get(0).getSpecialtyCategories())
                 .extracting(SpecialtyCategoryResult::getId).containsExactly(1L, 2L);
@@ -530,7 +536,7 @@ class ProposalFacadeTest {
         when(proposalService.getReceivedProposals(any())).thenReturn(List.of());
 
         assertThat(proposalFacade.getReceivedProposals(USERNAME).getProposals()).isEmpty();
-        verifyNoInteractions(studentService, specialtyCategoryService);
+        verifyNoInteractions(studentService, specialtyCategoryService, jobService);
         verify(userService, never()).getUsersByIds(any());
     }
 
@@ -603,7 +609,7 @@ class ProposalFacadeTest {
     private Proposal receivedProposal(Long id, Long studentProfileId, ProposalStatus status) {
         return Proposal.builder().id(id).studentProfileId(studentProfileId).ownerProfileId(5L).title("제안 " + id)
                 .customerProblem("메뉴를 알아보기 어렵습니다.").proposedSolution("사진 메뉴판으로 바꿉니다.")
-                .likeCount(5).status(status).build();
+                .likeCount(5).status(status).createdAt(LocalDateTime.of(2026, 10, 5, 15, 30)).build();
     }
 
     private Proposal detailProposal(ProposalStatus status) {

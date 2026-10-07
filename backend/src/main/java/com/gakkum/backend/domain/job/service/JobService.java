@@ -6,6 +6,7 @@ import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -184,17 +185,6 @@ public class JobService {
     @Transactional(readOnly = true)
     public Optional<Job> findJobByProposalId(Long proposalId) {
         return jobRepository.findByProposalId(proposalId);
-    }
-
-    /**
-     * 제안 ID 목록으로 연결된 의뢰 ID를 한 번에 조회한다.
-     * @param proposalIds
-     * @return 제안 ID별 의뢰 ID. 결제 전이라 의뢰가 없는 제안은 키가 없다
-     */
-    @Transactional(readOnly = true)
-    public Map<Long, Long> getJobIdsByProposalIds(Collection<Long> proposalIds) {
-        return getJobsByProposalIds(proposalIds).values().stream()
-                .collect(Collectors.toMap(Job::getProposalId, Job::getId));
     }
 
     /** 제안 ID별 연결된 의뢰. 결제 전이라 의뢰가 없는 제안은 키가 없다. */
@@ -921,7 +911,8 @@ public class JobService {
     }
 
     /**
-     * 학생 본인이 지원한 의뢰 중 모집 중(OPEN)이고 지원서가 대기 중(PENDING)인 항목을 최신 지원순으로 조회한다.
+     * 학생 본인이 지원한 의뢰 중 모집 중 대기 지원과 미선정 지원 이력을 최신 지원순으로 조회한다. 선정된 지원은 뺀다.
+     * 다른 학생이 선정됐지만 대기 중(PENDING)으로 남은 지원서는 이 목록에서만 탈락(REJECTED)으로 계산하고 저장하지 않는다.
      * 작업 마감일이 지나도 모집 중이면 포함한다. 격리 범위(demoSessionId)가 학생과 다르거나 없는 의뢰의 지원서는 뺀다.
      * 지원서·의뢰·특기는 항목 수와 무관하게 한 번씩만 조회한다.
      * @param command
@@ -930,18 +921,27 @@ public class JobService {
     @Transactional(readOnly = true)
     public List<StudentAppliedJobData> getStudentAppliedJobs(GetStudentAppliedJobsCommand command) {
         List<JobApplication> applications = jobApplicationRepository
-                .findByStudentProfileIdAndStatusOrderByCreatedAtDescIdDesc(
-                        command.getStudentProfileId(), JobApplicationStatus.PENDING);
+                .findByStudentProfileIdAndStatusInOrderByCreatedAtDescIdDesc(
+                        command.getStudentProfileId(),
+                        List.of(JobApplicationStatus.PENDING, JobApplicationStatus.REJECTED));
         if (applications.isEmpty()) {
             return List.of();
         }
 
-        Map<Long, Job> jobsById = jobRepository.findByIdInAndStatusAndDemoSessionId(
+        Map<Long, Job> jobsById = jobRepository.findByIdInAndDemoSessionId(
                         applications.stream().map(JobApplication::getJobId).toList(),
-                        JobStatus.OPEN, command.getDemoSessionId()).stream()
+                        command.getDemoSessionId()).stream()
                 .collect(Collectors.toMap(Job::getId, Function.identity()));
+        Map<Long, JobApplicationStatus> listedStatuses = new HashMap<>();
+        for (JobApplication application : applications) {
+            Job job = jobsById.get(application.getJobId());
+            JobApplicationStatus listedStatus = job == null ? null : listedApplicationStatus(application, job);
+            if (listedStatus != null) {
+                listedStatuses.put(application.getId(), listedStatus);
+            }
+        }
         List<JobApplication> listed = applications.stream()
-                .filter(application -> jobsById.containsKey(application.getJobId()))
+                .filter(application -> listedStatuses.containsKey(application.getId()))
                 .toList();
         if (listed.isEmpty()) {
             return List.of();
@@ -955,10 +955,29 @@ public class JobService {
                 .map(application -> StudentAppliedJobData.of(
                         jobsById.get(application.getJobId()),
                         application,
+                        listedStatuses.get(application.getId()),
                         specialtiesByJobId.getOrDefault(application.getJobId(), List.of()).stream()
                                 .map(JobSpecialty::getSpecialtyId)
                                 .toList()))
                 .toList();
+    }
+
+    /**
+     * '내가 지원한 의뢰' 목록에 내릴 지원 상태. 목록에서 빼는 지원서는 null이다.
+     * 저장된 탈락은 의뢰 상태와 무관하게 탈락이다. 대기 중 지원서는 다른 학생이 선정됐으면 탈락, 선정 없이 모집 중이면 대기이고,
+     * 본인이 선정됐거나 선정 없이 모집이 끝난(취소 등) 의뢰의 지원서는 뺀다.
+     */
+    private static JobApplicationStatus listedApplicationStatus(JobApplication application, Job job) {
+        if (application.getStatus() == JobApplicationStatus.REJECTED) {
+            return JobApplicationStatus.REJECTED;
+        }
+        Long selectedStudentProfileId = job.getSelectedStudentProfileId();
+        if (selectedStudentProfileId != null) {
+            return selectedStudentProfileId.equals(application.getStudentProfileId())
+                    ? null
+                    : JobApplicationStatus.REJECTED;
+        }
+        return job.getStatus() == JobStatus.OPEN ? JobApplicationStatus.PENDING : null;
     }
 
     @Transactional(readOnly = true)
