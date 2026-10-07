@@ -4,7 +4,7 @@ import "./Fab.css";
 interface FabProps {
   /** 사장님 = 새 의뢰(노랑), 학생 = 새 제안(자주) */
   role: Role;
-  /** 스크롤을 내리면 true. 글자를 숨기고 동그라미로 접힌다 */
+  /** 스크롤을 내리면 true. 글자 폭이 줄며 동그라미로 접힌다 */
   collapsed?: boolean;
   onClick: () => void;
   className?: string;
@@ -22,7 +22,10 @@ function Fab({ role, collapsed = false, onClick, className = "" }: FabProps) {
       <svg className="fab__plus" viewBox="0 0 20 20" fill="none" aria-hidden="true">
         <path d="M10 4v12M4 10h12" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" />
       </svg>
-      {!collapsed && <span>{label}</span>}
+      {/* 접힐 때도 글자는 남겨 두고 폭만 0으로 줄여, 접히고 펼쳐지는 모습이 이어지게 한다 */}
+      <span className="fab__label">
+        <span>{label}</span>
+      </span>
     </button>
   );
 }

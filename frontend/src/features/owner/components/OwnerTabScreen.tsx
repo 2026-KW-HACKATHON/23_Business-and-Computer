@@ -19,7 +19,7 @@ interface OwnerTabScreenProps {
 /** 사장님 메인 탭 틀. 탭 · 알림 · MY · 새 의뢰 버튼을 사장님 화면 주소로 잇는다 */
 function OwnerTabScreen({ tab, title, showFab = false, children }: OwnerTabScreenProps) {
   const navigate = useNavigate();
-  // 둘러보기 중이면 홈 앱바에 「둘러보기 중 · 학생으로 보기 ⇄」
+  // 둘러보기 중이면 홈 앱바에 「학생으로 보기 ⇄」
   const switchDemoRole = useDemoRoleSwitch("owner");
   // 홈 · 탐색 · 채팅 어느 탭에서든 안 읽은 알림이 있으면 종에 점
   // 탭바 「채팅」 점: 안 읽은 채팅 메시지가 있는지

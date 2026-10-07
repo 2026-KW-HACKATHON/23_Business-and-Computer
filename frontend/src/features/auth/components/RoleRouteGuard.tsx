@@ -2,25 +2,8 @@ import { useSyncExternalStore } from "react";
 import type { ReactNode } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import { subscribeSession } from "../../../api/tokens";
+import { requiredRole } from "../lib/routeRole";
 import { getUserRole, landingPath } from "../lib/session";
-import type { UserRole } from "../lib/session";
-
-/**
- * 이 주소로 시작하는 화면은 그 역할만 연다 (/explore/… 는 사장님이 보는 다른 가게 글,
- * /payments/… 는 카카오페이에서 돌아오는 사장님 결제 화면)
- */
-const ROLE_BY_PREFIX: [string, UserRole][] = [
-  ["/owner", "owner"],
-  ["/explore/", "owner"],
-  ["/payments/", "owner"],
-  ["/student", "student"],
-];
-
-function requiredRole(pathname: string): UserRole | undefined {
-  return ROLE_BY_PREFIX.find(
-    ([prefix]) => pathname === prefix || pathname.startsWith(prefix.endsWith("/") ? prefix : `${prefix}/`),
-  )?.[1];
-}
 
 /**
  * 화면 주소의 역할과 토큰의 역할이 다르면 화면을 그리기 전에 토큰에 맞는 첫 화면으로 보낸다.

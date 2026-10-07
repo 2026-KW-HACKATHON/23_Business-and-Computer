@@ -24,7 +24,6 @@
   background: var(--color-black);
 }
 
-.demo-role-badge__status,
 .demo-role-badge__switch {
   font-weight: 700;
 }

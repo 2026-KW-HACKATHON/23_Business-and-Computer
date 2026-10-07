@@ -51,7 +51,7 @@
 }
 
 .request-field__textarea-box:focus-within {
-  border-color: var(--color-black);
+  border-color: var(--role-focus);
 }
 
 .request-field__textarea {
@@ -97,7 +97,7 @@
 }
 
 .request-field__due:focus-within {
-  border-color: var(--color-black);
+  border-color: var(--role-focus);
 }
 
 .request-field__due-label {
