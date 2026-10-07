@@ -33,7 +33,6 @@ export const OWNER_PATHS = {
   /** 고른 지원자에게 맡기는 안전결제 (의뢰 id · 지원서 id) */
   assignPay: (requestId: string, applicationId: string) =>
     `/owner/requests/${requestId}/assign/${applicationId}/pay`,
-  student: (studentId: string) => `/owner/students/${studentId}`,
   proposalAccept: (id: string) => `/owner/proposals/${id}/accept`,
   workCheck: (workId: string) => `/owner/works/${workId}/check`,
   workRevision: (workId: string) => `/owner/works/${workId}/revision`,

@@ -16,7 +16,7 @@ read-only explore details. The backend has no API for them yet.
 ## Decision
 
 - Routes follow Notion: /owner/me/store, /owner/me/payments,
-  /owner/requests?tab=, /owner/students/:studentId,
+  /owner/requests?tab=,
   /owner/requests/:requestId/assign/:applicationId and its /pay (ADR 0037),
   /owner/proposals/:proposalId/accept, /owner/works/:workId/revision,
   /owner/works/:workId/review, /owner/works/:workId/cancel,

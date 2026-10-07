@@ -87,7 +87,8 @@ function OwnerAssignPage() {
         <FlowBar steps={flowSteps("의뢰", 1, "결제 후 시작")} />
 
         <div className="owner-assign__intro">
-          <h2 className="owner-assign__title">{`${name}에게\n이 의뢰를 맡길까요?`}</h2>        </div>
+          <h2 className="owner-assign__title">{`${name}에게\n이 의뢰를 맡길까요?`}</h2>
+        </div>
 
         <section className="owner-assign__card">
           <div className="owner-assign__student">

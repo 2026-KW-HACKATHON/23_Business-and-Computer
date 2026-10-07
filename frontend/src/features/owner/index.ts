@@ -14,13 +14,11 @@ export {
   useOwnerNotifications,
   useOwnerPayments,
   useOwnerProfile,
-  useOwnerRequest,
   useOwnerRequests,
   useOwnerStore,
   useOwnerWork,
   useOwnerWorks,
   useRequestExample,
-  useStudentProfile,
 } from "./hooks/useOwnerData";
 export {
   markOwnerNotificationsRead,

@@ -103,5 +103,5 @@ The backend (dev) has:
 
 - Other applications stay PENDING after payment; this screen does not
   mention them.
-- `OwnerStudentPage` (/owner/students/:studentId, sample) links to the assign
-  route with sample ids, which show 「없음」; no screen links to it.
+- The assign route is opened only from the applicant list and the applicant
+  profile (ADR 0030), both with the job id and the job application id.

@@ -137,12 +137,6 @@ export function useOwnerWork(workId: string | undefined): OwnerWork | undefined 
   return works().find((work) => work.id === workId);
 }
 
-/** 보낸 의뢰 하나 (지원자 포함) */
-export function useOwnerRequest(requestId: string): OwnerRequest | undefined {
-  useOwnerDemoVersion();
-  return requests().find((request) => request.id === requestId);
-}
-
 /** 홈 「이런 의뢰는 어때요?」 예시 하나. 의뢰 등록을 이 내용으로 채워 시작한다 */
 export function useRequestExample(exampleId: string | undefined): RequestExample | undefined {
   return SAMPLE_REQUEST_EXAMPLES.find((example) => example.id === exampleId);
@@ -210,10 +204,4 @@ export function useOwnerPayments(): { payments: OwnerPayment[]; summary: Payment
     },
   };
 }
-
-/** 학생 프로필 (뱃지 · 자격증 · 후기). 평점은 후기 평균 */
-export function useStudentProfile(studentId: string): StudentProfile | undefined {
-  return profileOf(studentId);
-}
-
 
