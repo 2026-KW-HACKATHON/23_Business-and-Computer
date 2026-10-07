@@ -65,7 +65,7 @@ public interface JobRepository extends JpaRepository<Job, Long> {
     List<Job> findByProposalIdIn(Collection<Long> proposalIds);
 
     /** demoSessionId가 조회자와 같은 의뢰만 고른다. 실제 사용자는 null이고 메서드 이름 쿼리는 null을 IS NULL로 비교한다. */
-    List<Job> findByIdInAndStatusAndDemoSessionId(Collection<Long> jobIds, JobStatus status, String demoSessionId);
+    List<Job> findByIdInAndDemoSessionId(Collection<Long> jobIds, String demoSessionId);
 
     List<Job> findByOwnerProfileIdAndStatusOrderByCreatedAtDescIdDesc(Long ownerProfileId, JobStatus status);
     List<Job> findByOwnerProfileIdAndStatusInOrderByCompletedAtDescIdDesc(

@@ -1,6 +1,7 @@
 package com.gakkum.backend.domain.job.repository;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.Mockito.mock;
 
 import java.time.Clock;
@@ -28,17 +29,18 @@ import com.gakkum.backend.domain.job.service.JobService;
 import jakarta.persistence.EntityManager;
 
 /**
- * 지원 시각 정렬과 demo_session_id의 NULL 비교는 PostgreSQL에서만 확인할 수 있어 실제 DB로 검증한다.
+ * 지원 상태 조건, 지원 시각 정렬, demo_session_id의 NULL 비교는 PostgreSQL에서만 확인할 수 있어 실제 DB로 검증한다.
  * 공용 DB에 테스트 행을 쓰지 않도록 DATABASE_URL이 로컬 PostgreSQL일 때만 실행하며, 트랜잭션은 테스트마다 롤백된다.
  */
 @DataJpaTest
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @EnabledIfEnvironmentVariable(named = "DATABASE_URL", matches = "jdbc:postgresql://(localhost|127\\.0\\.0\\.1)[:/].*")
-@DisplayName("학생 '내가 지원한 의뢰' 목록 PostgreSQL 조회 (조회 조건·정렬·데모 격리)")
+@DisplayName("학생 '내가 지원한 의뢰' 목록 PostgreSQL 조회 (조회 조건·계산된 탈락·정렬·데모 격리)")
 class JobStudentAppliedListPostgresTest {
 
     private static final long STUDENT_PROFILE_ID = 988_101L;
     private static final long OTHER_STUDENT_PROFILE_ID = 988_102L;
+    private static final long SELECTED_OTHER_STUDENT_PROFILE_ID = 988_199L;
     private static final String DEMO_SESSION_ID = "01K58M6PJV8VAJMXHBHJ2DEMO1";
     private static final String OTHER_DEMO_SESSION_ID = "01K58M6PJV8VAJMXHBHJ2DEMO2";
     private static final LocalDateTime T1 = LocalDateTime.of(2031, 1, 1, 9, 0, 0, 123_456_000);
@@ -66,24 +68,16 @@ class JobStudentAppliedListPostgresTest {
     }
 
     @Test
-    @DisplayName("본인의 PENDING 지원서와 OPEN 의뢰 조합만 반환하고 다른 학생·나머지 상태 조합은 뺀다")
-    void returnsOnlyOwnPendingApplicationsOfOpenJobs() {
+    @DisplayName("본인의 모집 중 대기 지원서를 지원서 원문·전문분야와 함께 반환하고 다른 학생의 지원서는 뺀다")
+    void returnsOwnPendingApplicationOfOpenJob() {
         Long listed = job(JobStatus.OPEN, null);
         Long listedApplication = application(listed, STUDENT_PROFILE_ID, JobApplicationStatus.PENDING, T1);
         jobSpecialtyRepository.saveAndFlush(JobSpecialty.create(listed, 988_901L));
         jobSpecialtyRepository.saveAndFlush(JobSpecialty.create(listed, 988_902L));
-
-        // 모집 중이 아닌 의뢰의 대기 중 지원서
-        for (JobStatus status : List.of(
-                JobStatus.AWAITING_START, JobStatus.MATCHED, JobStatus.CLOSED, JobStatus.CANCELLED)) {
-            application(job(status, null), STUDENT_PROFILE_ID, JobApplicationStatus.PENDING, T2);
-        }
-        // 모집 중 의뢰의 선정·탈락 지원서
-        application(job(JobStatus.OPEN, null), STUDENT_PROFILE_ID, JobApplicationStatus.ACCEPTED, T2);
-        application(job(JobStatus.OPEN, null), STUDENT_PROFILE_ID, JobApplicationStatus.REJECTED, T2);
-        // 다른 학생의 지원서. 같은 의뢰에 낸 것도 본인 목록에는 나오지 않는다
+        // 다른 학생의 지원서. 같은 의뢰에 낸 것도, 탈락한 것도 본인 목록에는 나오지 않는다
         application(listed, OTHER_STUDENT_PROFILE_ID, JobApplicationStatus.PENDING, T3);
         application(job(JobStatus.OPEN, null), OTHER_STUDENT_PROFILE_ID, JobApplicationStatus.PENDING, T3);
+        application(job(JobStatus.CLOSED, null), OTHER_STUDENT_PROFILE_ID, JobApplicationStatus.REJECTED, T3);
         entityManager.clear();
 
         List<StudentAppliedJobData> result = jobService.getStudentAppliedJobs(
@@ -94,9 +88,58 @@ class JobStudentAppliedListPostgresTest {
         assertThat(data.getJob().getId()).isEqualTo(listed);
         assertThat(data.getJob().getStatus()).isEqualTo(JobStatus.OPEN);
         assertThat(data.getApplication().getId()).isEqualTo(listedApplication);
-        assertThat(data.getApplication().getStatus()).isEqualTo(JobApplicationStatus.PENDING);
+        assertThat(data.getApplicationStatus()).isEqualTo(JobApplicationStatus.PENDING);
         assertThat(data.getApplication().getCreatedAt()).isEqualTo(T1);
+        assertThat(data.getApplication().getSummary()).isEqualTo("한 줄 요약");
+        assertThat(data.getApplication().getWorkPlan()).isEqualTo("작업계획서");
+        assertThat(data.getApplication().getDeliveryMethod()).isEqualTo("결과물 전달 방법");
         assertThat(data.getSpecialtyIds()).containsExactlyInAnyOrder(988_901L, 988_902L);
+    }
+
+    @Test
+    @DisplayName("미선정 지원은 탈락으로 반환하되 저장된 PENDING은 바꾸지 않고, 선정된 지원과 선정 전 취소된 의뢰의 지원은 뺀다")
+    void returnsUnselectedHistoryAndExcludesSelected() {
+        // 다른 학생이 선정된 뒤 진행 중·완료·취소된 의뢰에 대기 중으로 남은 지원서
+        Long matched = application(
+                job(JobStatus.MATCHED, null), STUDENT_PROFILE_ID, JobApplicationStatus.PENDING, T3);
+        Long closed = application(
+                job(JobStatus.CLOSED, null), STUDENT_PROFILE_ID, JobApplicationStatus.PENDING, T3);
+        Long cancelledAfterSelection = application(
+                job(JobStatus.CANCELLED, null), STUDENT_PROFILE_ID, JobApplicationStatus.PENDING, T3);
+        // 저장된 탈락. 모집 중이든 선정 없이 취소됐든 포함한다
+        Long storedRejectedOpen = application(
+                job(JobStatus.OPEN, null), STUDENT_PROFILE_ID, JobApplicationStatus.REJECTED, T2);
+        Long storedRejectedCancelled = application(
+                job(JobStatus.CANCELLED, null, null), STUDENT_PROFILE_ID, JobApplicationStatus.REJECTED, T2);
+        Long pendingOpen = application(
+                job(JobStatus.OPEN, null), STUDENT_PROFILE_ID, JobApplicationStatus.PENDING, T1);
+        // 빠지는 지원서: 학생 선정 없이 취소된 의뢰의 대기, 본인이 선정된 의뢰의 선정·대기
+        application(job(JobStatus.CANCELLED, null, null), STUDENT_PROFILE_ID, JobApplicationStatus.PENDING, T3);
+        application(job(JobStatus.MATCHED, STUDENT_PROFILE_ID, null),
+                STUDENT_PROFILE_ID, JobApplicationStatus.ACCEPTED, T3);
+        application(job(JobStatus.CLOSED, STUDENT_PROFILE_ID, null),
+                STUDENT_PROFILE_ID, JobApplicationStatus.PENDING, T3);
+        entityManager.clear();
+
+        List<StudentAppliedJobData> result = jobService.getStudentAppliedJobs(
+                GetStudentAppliedJobsCommand.of(STUDENT_PROFILE_ID, null));
+
+        assertThat(result).extracting(data -> data.getApplication().getId(),
+                        StudentAppliedJobData::getApplicationStatus, data -> data.getJob().getStatus())
+                .containsExactly(
+                        tuple(cancelledAfterSelection, JobApplicationStatus.REJECTED, JobStatus.CANCELLED),
+                        tuple(closed, JobApplicationStatus.REJECTED, JobStatus.CLOSED),
+                        tuple(matched, JobApplicationStatus.REJECTED, JobStatus.MATCHED),
+                        tuple(storedRejectedCancelled, JobApplicationStatus.REJECTED, JobStatus.CANCELLED),
+                        tuple(storedRejectedOpen, JobApplicationStatus.REJECTED, JobStatus.OPEN),
+                        tuple(pendingOpen, JobApplicationStatus.PENDING, JobStatus.OPEN));
+
+        // 계산한 탈락은 저장하지 않는다
+        entityManager.flush();
+        entityManager.clear();
+        assertThat(jobApplicationRepository.findAllById(List.of(matched, closed, cancelledAfterSelection)))
+                .extracting(JobApplication::getStatus)
+                .containsOnly(JobApplicationStatus.PENDING);
     }
 
     @Test
@@ -112,7 +155,8 @@ class JobStudentAppliedListPostgresTest {
 
         // 지원 시각이 늦을수록 지원서 ID가 작도록 저장해 ID 내림차순만으로는 같은 순서가 나오지 않게 한다
         Long newest = application(oldestJob, STUDENT_PROFILE_ID, JobApplicationStatus.PENDING, T3);
-        Long sameTime = application(sameTimeJob, STUDENT_PROFILE_ID, JobApplicationStatus.PENDING, T2);
+        // 같은 시각의 탈락·대기 지원서도 상태와 무관하게 지원서 ID 내림차순이다
+        Long sameTime = application(sameTimeJob, STUDENT_PROFILE_ID, JobApplicationStatus.REJECTED, T2);
         Long laterSameTime = application(laterSameTimeJob, STUDENT_PROFILE_ID, JobApplicationStatus.PENDING, T2);
         Long oldest = application(newestJob, STUDENT_PROFILE_ID, JobApplicationStatus.PENDING, T1);
         entityManager.clear();
@@ -156,18 +200,25 @@ class JobStudentAppliedListPostgresTest {
         Long realJob = job(JobStatus.OPEN, null);
         Long demoJob = job(JobStatus.OPEN, DEMO_SESSION_ID);
         Long otherDemoJob = job(JobStatus.OPEN, OTHER_DEMO_SESSION_ID);
+        // 모집이 끝난 의뢰의 미선정 이력도 같은 격리 범위에서만 보인다
+        Long realClosedJob = job(JobStatus.CLOSED, null);
+        Long demoClosedJob = job(JobStatus.CLOSED, DEMO_SESSION_ID);
+        Long otherDemoClosedJob = job(JobStatus.CLOSED, OTHER_DEMO_SESSION_ID);
         application(realJob, STUDENT_PROFILE_ID, JobApplicationStatus.PENDING, T1);
         application(demoJob, STUDENT_PROFILE_ID, JobApplicationStatus.PENDING, T2);
         application(otherDemoJob, STUDENT_PROFILE_ID, JobApplicationStatus.PENDING, T3);
+        application(realClosedJob, STUDENT_PROFILE_ID, JobApplicationStatus.PENDING, T1);
+        application(demoClosedJob, STUDENT_PROFILE_ID, JobApplicationStatus.REJECTED, T2);
+        application(otherDemoClosedJob, STUDENT_PROFILE_ID, JobApplicationStatus.REJECTED, T3);
         entityManager.clear();
 
         assertThat(jobService.getStudentAppliedJobs(GetStudentAppliedJobsCommand.of(STUDENT_PROFILE_ID, null)))
                 .extracting(data -> data.getJob().getId())
-                .containsExactly(realJob);
+                .containsExactlyInAnyOrder(realJob, realClosedJob);
         assertThat(jobService.getStudentAppliedJobs(
                 GetStudentAppliedJobsCommand.of(STUDENT_PROFILE_ID, DEMO_SESSION_ID)))
                 .extracting(data -> data.getJob().getId())
-                .containsExactly(demoJob);
+                .containsExactlyInAnyOrder(demoJob, demoClosedJob);
     }
 
     @Test
@@ -186,7 +237,12 @@ class JobStudentAppliedListPostgresTest {
                 .containsExactly(listed);
     }
 
+    /** 모집 중이 아닌 의뢰는 다른 학생이 선정된 것으로 만든다. */
     private Long job(JobStatus status, String demoSessionId) {
+        return job(status, status == JobStatus.OPEN ? null : SELECTED_OTHER_STUDENT_PROFILE_ID, demoSessionId);
+    }
+
+    private Long job(JobStatus status, Long selectedStudentProfileId, String demoSessionId) {
         return jobRepository.saveAndFlush(Job.builder()
                 .ownerProfileId(988_001L)
                 .title("지원 목록 테스트 의뢰")
@@ -196,7 +252,7 @@ class JobStudentAppliedListPostgresTest {
                 .finalDeadline(LocalDate.of(2031, 2, 10))
                 .revisionCount(1)
                 .status(status)
-                .selectedStudentProfileId(status == JobStatus.OPEN ? null : 988_199L)
+                .selectedStudentProfileId(selectedStudentProfileId)
                 .demoSessionId(demoSessionId)
                 .build()).getId();
     }
