@@ -108,7 +108,7 @@ function App() {
       <Route path="/owner/me/store" element={<OwnerStoreEditPage />} />
       <Route path="/owner/me/payments" element={<OwnerPaymentsPage />} />
       <Route path="/owner/requests" element={<OwnerActivityPage />} />
-      <Route path="/owner/chats/:workId" element={<OwnerChatRoomPage />} />
+      <Route path="/owner/chats/:roomId" element={<OwnerChatRoomPage />} />
       <Route path="/owner/works/:workId/check" element={<OwnerWorkCheckPage />} />
       <Route path="/owner/works/:workId/result" element={<OwnerWorkResultPage />} />
       <Route path="/owner/proposals/:proposalId" element={<OwnerProposalPage />} />
@@ -138,7 +138,7 @@ function App() {
       <Route path="/student/explore" element={<StudentExplorePage />} />
       <Route path="/student/explore/stores" element={<StudentStoresPage />} />
       <Route path="/student/chats" element={<StudentChatsPage />} />
-      <Route path="/student/chats/:workId" element={<StudentChatRoomPage />} />
+      <Route path="/student/chats/:roomId" element={<StudentChatRoomPage />} />
       <Route path="/student/notifications" element={<StudentNotificationsPage />} />
       <Route path="/student/me" element={<StudentMePage />} />
       <Route path="/student/me/profile" element={<StudentProfilePage />} />

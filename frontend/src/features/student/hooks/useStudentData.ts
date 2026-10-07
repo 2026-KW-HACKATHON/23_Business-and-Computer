@@ -5,8 +5,7 @@ import { SAMPLE_MY_PROFILE } from "../lib/sampleMe";
 import { SAMPLE_NOTIFICATIONS } from "../lib/sampleNotifications";
 import { SAMPLE_MY_PROPOSALS, SAMPLE_PROPOSAL_EXAMPLES } from "../lib/sampleProposals";
 import { SAMPLE_STORES } from "../lib/sampleStores";
-import { SAMPLE_CHAT_THREADS, SAMPLE_WORKS } from "../lib/sampleWorks";
-import { chatStatusText } from "../lib/format";
+import { SAMPLE_WORKS } from "../lib/sampleWorks";
 import type {
   MyProfile,
   MyProposal,
@@ -14,8 +13,6 @@ import type {
   ProposalExample,
   SettlementSummary,
   Store,
-  StudentChatRoom,
-  StudentChatThread,
   StudentNotification,
   StudentSettlement,
   StudentWork,
@@ -27,7 +24,7 @@ import { demo, useDemoVersion } from "./studentStore";
  * 백엔드를 연동할 때 이 안만 API 호출로 바꾸면 화면은 그대로 쓴다.
  *
  * 원본은 작업 · 의뢰 · 지원 · 제안 · 프로필 하나씩이고, 홈 · 내 활동 숫자 · 정산 내역 ·
- * 내 작업물 · 채팅 목록 · 프로필의 완료 건수와 평점은 원본에서 만든다.
+ * 내 작업물 · 프로필의 완료 건수와 평점은 원본에서 만든다.
  */
 
 // ---- 원본에 시연 중 바뀐 상태를 얹는다 ----
@@ -159,50 +156,13 @@ export function useMyProfile(): MyProfileView {
   };
 }
 
-// ---- 알림 · 채팅 ----
+// ---- 알림 ----
 
 export function useStudentNotifications(): StudentNotification[] {
   useDemoVersion();
   return SAMPLE_NOTIFICATIONS.map((n) => (demo.readNotificationIds.has(n.id) ? { ...n, read: true } : n)).sort(
     (a, b) => b.createdAt.localeCompare(a.createdAt),
   );
-}
-
-/** 시연 중 조건에 동의한 작업은 그때 「작업이 시작됐어요」로 채팅방이 열린다 */
-function currentThread(thread: StudentChatThread): StudentChatThread {
-  const agreedAt = demo.agreedAt.get(thread.workId);
-  if (thread.messages.length > 0 || !agreedAt) return thread;
-  return {
-    ...thread,
-    messages: [{ id: "m1", type: "system", text: "조건에 동의해 작업이 시작됐어요", at: agreedAt }],
-  };
-}
-
-export function useStudentChatThread(workId: string | undefined): StudentChatThread | undefined {
-  useDemoVersion();
-  const thread = SAMPLE_CHAT_THREADS.find((t) => t.workId === workId);
-  return thread && currentThread(thread);
-}
-
-export function useStudentChats(): StudentChatRoom[] {
-  useDemoVersion();
-  const all = works();
-  return SAMPLE_CHAT_THREADS.map(currentThread).flatMap((thread) => {
-    const work = all.find((w) => w.id === thread.workId);
-    const last = thread.messages[thread.messages.length - 1];
-    if (!work || !last) return [];
-    return [
-      {
-        workId: work.id,
-        storeName: work.store.name,
-        workTitle: work.title,
-        status: chatStatusText(work),
-        lastMessage: last.type === "file" ? last.name : last.text,
-        lastMessageAt: last.at,
-        unreadCount: thread.unreadCount,
-      },
-    ];
-  }).sort((a, b) => b.lastMessageAt.localeCompare(a.lastMessageAt));
 }
 
 // ---- 정산 내역: 작업에서 만든다 ----

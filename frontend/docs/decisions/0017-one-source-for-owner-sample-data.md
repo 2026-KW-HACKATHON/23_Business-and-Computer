@@ -25,7 +25,7 @@ work never became completed.
   `sampleStudents.ts` (탐색 reads the backend, ADR 0026; sent requests,
   their applicants, and cancel read it too, ADR 0030; in-progress works,
   ADR 0035). The home, 내 활동,
-  결제 내역 and its summary, the chat list, and the 내 정보 counts are built
+  결제 내역 and its summary, and the 내 정보 counts are built
   from them in
   `src/features/owner/hooks/useOwnerData.ts` and `useOwnerHome.ts`.
 - A work, request, or proposal refers to a student by id. Name, department,
@@ -34,8 +34,8 @@ work never became completed.
 - Sample dates count from today with `day(offset)` and `dayAt(offset, h, m)`
   in `src/lib/sampleTime.ts`. Plans say 「초안 마감일까지」
   instead of a date so they always agree with the request.
-- Each work has `paidOn`; 결제 내역 and 「이번 달 결제」 use it. Chat threads
-  carry `unreadCount`.
+- Each work has `paidOn`; 결제 내역 and 「이번 달 결제」 use it. Chat reads
+  the backend (ADR 0034).
 - Demo state: `completeOwnerWork` (완료 확인) and `markOwnerWorkReviewed`
   (후기 남기기) mark a work in memory, so the result screen, 내 활동 완료, the
   home 끝난 일, and 결제 내역 follow the demo until the page reloads.
@@ -43,8 +43,7 @@ work never became completed.
   처음」) instead of 확인할 일, 학생이 작업 중, 기다리는 중, and 끝난 일.
 - 보낸 의뢰 and 진행 중 in 내 활동 are sorted by 초안 마감, earliest first.
 - 「신고」 on 초안 확인 and 「문제 신고」 in the chat room open `ReportSheet`.
-  The chat room shows the work actions only while the work is in progress or
-  waiting for a check, and 「작업 취소」 only before the draft arrives.
+  When the chat room shows its work actions is in ADR 0034.
 - The 「안전결제가 완료됐어요」 notification opens 내 활동 진행 중, as in Notion.
 - Passed segments of `FlowBar` are black.
 

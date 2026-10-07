@@ -152,25 +152,6 @@ export interface OwnerHome {
   done: OwnerDoneItem[];
 }
 
-/** 채팅 목록의 진행 상태 */
-export type ChatProgress =
-  | { type: "drafting"; due: string }
-  | { type: "revising"; due: string }
-  | { type: "draftSubmitted" }
-  | { type: "completed" };
-
-/** 채팅방 하나 = 작업 하나 (workId) */
-export interface OwnerChatRoom {
-  workId: string;
-  student: StudentRef;
-  workTitle: string;
-  progress: ChatProgress;
-  lastMessage: string;
-  /** ISO 시각 */
-  lastMessageAt: string;
-  unreadCount: number;
-}
-
 /** 알림 종류 (notifications.type) */
 export type NotificationType =
   | "DRAFT_SUBMITTED"
@@ -293,19 +274,6 @@ export interface OwnerRequest {
   description: string;
   attachments: string[];
   applicants: Applicant[];
-}
-
-/** 채팅 메시지. 시각은 ISO */
-export type ChatMessage =
-  | { id: string; type: "system"; text: string; at: string }
-  | { id: string; type: "text"; from: "me" | "partner"; text: string; at: string }
-  | { id: string; type: "file"; from: "me" | "partner"; name: string; detail: string; at: string };
-
-export interface OwnerChatThread {
-  workId: string;
-  /** 안 읽은 메시지 수 */
-  unreadCount: number;
-  messages: ChatMessage[];
 }
 
 /** 가게 정보 수정 */

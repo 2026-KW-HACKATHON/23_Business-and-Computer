@@ -55,7 +55,7 @@ function SampleWork({ workId }: { workId: string }) {
       onBack={back}
       footer={
         <div className="student-detail__actions">
-          <Button variant="secondary" onClick={() => navigate(STUDENT_PATHS.chat(work.id))}>
+          <Button variant="secondary" onClick={() => navigate(STUDENT_PATHS.chats)}>
             문의하기
           </Button>
           <Button tone="student" onClick={() => navigate(STUDENT_PATHS.workRevisionSubmit(work.id))}>

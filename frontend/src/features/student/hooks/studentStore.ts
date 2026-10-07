@@ -18,8 +18,6 @@ interface Submission {
 
 export const demo = {
   agreedWorkIds: new Set<string>(),
-  /** 동의한 시각 (채팅방 첫 메시지) */
-  agreedAt: new Map<string, string>(),
   readNotificationIds: new Set<string>(),
   declinedWorkIds: new Set<string>(),
   submissions: new Map<string, Submission>(),
@@ -54,7 +52,6 @@ export function useDemoVersion(): number {
 /** 작업 시작 「동의하고 작업 시작하기」 */
 export function agreeToWork(workId: string): void {
   demo.agreedWorkIds.add(workId);
-  demo.agreedAt.set(workId, new Date().toISOString());
   changed();
 }
 

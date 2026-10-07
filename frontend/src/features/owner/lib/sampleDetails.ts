@@ -1,9 +1,9 @@
-import type { OwnerChatThread, OwnerRequest, OwnerWork } from "../types";
-import { day, dayAt, minutesAgo, yesterdayAt } from "../../../lib/sampleTime";
+import type { OwnerRequest, OwnerWork } from "../types";
+import { day } from "../../../lib/sampleTime";
 
 /*
  * 임시 예시 데이터 (피그마 「작업 확인 · 받은 제안 상세 · 지원자 목록 · 보낸 의뢰 상세 ·
- * 결과물 보기 · 채팅방 · 작업계획서 보기」 내용). 홈 · 결제 내역 · 채팅 목록은 이 데이터에서 만든다.
+ * 결과물 보기 · 작업계획서 보기」 내용). 홈 · 결제 내역은 이 데이터에서 만든다.
  * 날짜는 오늘 기준이라 언제 열어도 앞뒤가 맞는다 (오늘 = 박지은 학생 초안이 도착한 날).
  */
 
@@ -389,75 +389,6 @@ export const SAMPLE_REQUESTS: OwnerRequest[] = [
             "첫 작업이라 초안 전에 페이지 구성을 먼저 보여 드리고, 사장님이 직접 글을 고칠 수 있게 만들어요.",
           deliverable: "노션 페이지 주소와 고치는 방법 안내",
         },
-      },
-    ],
-  },
-];
-
-export const SAMPLE_CHAT_THREADS: OwnerChatThread[] = [
-  {
-    workId: "work-103",
-    unreadCount: 1,
-    messages: [
-      { id: "m1", type: "system", text: "안전결제가 끝나 작업이 시작됐어요", at: dayAt(-2, 13, 50) },
-      {
-        id: "m2",
-        type: "text",
-        from: "partner",
-        text: "메뉴 사진 원본 파일 보내주실 수 있나요? 인쇄용이라 화질 좋은 게 필요해요.",
-        at: yesterdayAt(14, 2),
-      },
-      { id: "m3", type: "text", from: "me", text: "네, 지금 보내드릴게요.", at: yesterdayAt(14, 5) },
-      {
-        id: "m4",
-        type: "file",
-        from: "me",
-        name: "메뉴사진_원본.zip",
-        detail: "사진 3장 · 12.8MB",
-        at: yesterdayAt(14, 5),
-      },
-      {
-        id: "m5",
-        type: "text",
-        from: "partner",
-        text: "감사합니다! 초록 계열로 시안 2개 만들어서 초안 마감일까지 보내드릴게요.",
-        at: yesterdayAt(14, 22),
-      },
-    ],
-  },
-  {
-    workId: "work-101",
-    unreadCount: 1,
-    messages: [
-      { id: "m1", type: "system", text: "안전결제가 끝나 작업이 시작됐어요", at: dayAt(-6, 11, 0) },
-      { id: "m2", type: "system", text: "초안이 도착했어요", at: minutesAgo(11) },
-      {
-        id: "m3",
-        type: "text",
-        from: "partner",
-        text: "초안 5장 올렸어요. 확인 부탁드려요!",
-        at: minutesAgo(10),
-      },
-    ],
-  },
-  {
-    workId: "work-070",
-    unreadCount: 0,
-    messages: [
-      { id: "m1", type: "system", text: "작업이 완료됐어요", at: dayAt(-39, 17, 0) },
-      {
-        id: "m2",
-        type: "text",
-        from: "me",
-        text: "로고 정말 마음에 들어요. 후기 남겼어요!",
-        at: dayAt(-39, 17, 20),
-      },
-      {
-        id: "m3",
-        type: "text",
-        from: "partner",
-        text: "후기 남겨 주셔서 감사합니다 :)",
-        at: dayAt(-39, 17, 30),
       },
     ],
   },

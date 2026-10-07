@@ -4,9 +4,15 @@ import { formatWon } from "../../../lib/money";
 import type { StudentWork } from "../types";
 import "./MyPlanSheet.css";
 
+/** 시트에 보이는 작업. 채팅방은 보낸 날 · 작업 종류를 모른다 (지원서로 본다) */
+type PlanSheetWork = Pick<StudentWork, "title" | "plan" | "budget" | "draftDue" | "finalDue" | "revisionLimit"> & {
+  kind?: StudentWork["kind"];
+  planSentOn?: string;
+};
+
 interface MyPlanSheetProps {
   /** 없으면 닫힌 상태 */
-  work: StudentWork | undefined;
+  work: PlanSheetWork | undefined;
   onClose: () => void;
 }
 
@@ -19,7 +25,9 @@ function MyPlanSheet({ work, onClose }: MyPlanSheetProps) {
       onClose={onClose}
       title="내 작업계획서"
       description={
-        work ? `${work.title}, ${formatMonthDay(work.planSentOn)} ${sentWith} 보냄` : undefined
+        work?.planSentOn
+          ? `${work.title}, ${formatMonthDay(work.planSentOn)} ${sentWith} 보냄`
+          : work?.title
       }
       footer={
         <Button variant="secondary" fullWidth onClick={onClose}>
