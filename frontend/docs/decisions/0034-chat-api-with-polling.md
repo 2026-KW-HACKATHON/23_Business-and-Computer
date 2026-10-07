@@ -4,7 +4,7 @@
 
 Accepted. The chat list and chat room for owners and students read and write
 the backend through `src/features/chat`. Sending photos and files is in
-ADR 0043.
+ADR 0050.
 
 ## Context
 
@@ -37,7 +37,7 @@ owner and its selected student may use a room):
   (≤ 5000) }`. Sending the same `clientMessageId` again returns the stored
   message.
 - Attachment upload: POST …/attachments/uploads, then
-  POST …/messages/attachments (ADR 0043).
+  POST …/messages/attachments (ADR 0050).
 - Errors: 401, CHAT_403, CHAT_ROOM_404, CHAT_MESSAGE_404, CHAT_MESSAGE_409
   (same `clientMessageId` with other content), COMMON_400.
 - A room is made per job: when the owner's KakaoPay payment for an applicant
@@ -103,7 +103,7 @@ owner and its selected student may use a room):
   `clientMessageId`. A pending or failed bubble that turns up in the reloaded
   history is replaced by the stored one. The input takes up to 5000
   characters. The 「+」 button left of the input sends a photo or file
-  (ADR 0043).
+  (ADR 0050).
 - **Scroll**: the room opens at the latest message. When messages are added
   it scrolls to the bottom only if the view was within 80px of the bottom or
   the newest message is one being sent from this screen; while reading older
