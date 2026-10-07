@@ -23,7 +23,6 @@ import {
   ownerProgressDeadline,
   ownerProgressNoun,
   ownerProgressStatusText,
-  progressWorkPlanContent,
   receivedOnText,
   receivedProposalStatusLabel,
   jobCategoryNames,
@@ -32,6 +31,7 @@ import {
   useOwnerClosedJobs,
   useOwnerPayments,
   useOwnerProgressJobs,
+  useProgressPlanSheet,
   useReceivedProposals,
 } from "../features/owner";
 import type {
@@ -40,7 +40,6 @@ import type {
   OwnerClosedJob,
   OwnerProgressJob,
   ReceivedProposal,
-  WorkPlanSheetContent,
 } from "../features/owner";
 import { proposalBadgeNames } from "../features/proposal";
 import { useBack } from "../hooks/useBack";
@@ -122,7 +121,8 @@ function OwnerActivityPage() {
   const { load: closedLoad, reload: reloadClosed } = useOwnerClosedJobs();
   const closedJobs = closedLoad.status === "loaded" ? closedLoad.jobs : [];
   const { summary } = useOwnerPayments();
-  const [planContent, setPlanContent] = useState<WorkPlanSheetContent>();
+  // 진행 중 카드의 「상세보기」 = 지원서 바텀시트 (누를 때 불러옴)
+  const planSheet = useProgressPlanSheet();
   const [reportTitle, setReportTitle] = useState<string>();
   const openStudent = (studentProfileId: number) => navigate(OWNER_PATHS.student(String(studentProfileId)));
 
@@ -224,12 +224,11 @@ function OwnerActivityPage() {
     const submitted = job.stage === "submitted";
     const noun = ownerProgressNoun(job);
     const deadline = ownerProgressDeadline(job);
-    const plan = progressWorkPlanContent(job);
     const proposalId = job.proposalId;
     const openDetail = submitted
       ? () => navigate(OWNER_PATHS.workCheck(id))
-      : plan
-        ? () => setPlanContent(plan)
+      : job.kind === "request"
+        ? () => planSheet.open(job)
         : proposalId !== undefined
           ? () => navigate(OWNER_PATHS.proposal(String(proposalId)))
           : undefined;
@@ -412,8 +411,8 @@ function OwnerActivityPage() {
       </div>
 
       <WorkPlanSheet
-        content={planContent}
-        onClose={() => setPlanContent(undefined)}
+        content={planSheet.content}
+        onClose={planSheet.close}
         onChat={() => navigate(OWNER_PATHS.chats)}
       />
       <ReportSheet

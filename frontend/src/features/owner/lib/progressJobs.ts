@@ -1,5 +1,6 @@
 import { ApiError } from "../../../api/client";
 import type { FlowStep } from "../../../components";
+import { addDays, koreaDateOfUtc } from "../../../lib/date";
 import type { WorkKind } from "../../../types/workKind";
 import type { ApplicationPlan } from "../../../types/workPlan";
 import type { JobSpecialtyCategory } from "../api/jobApi";
@@ -15,7 +16,7 @@ import { flowSteps } from "./flow";
  */
 export type OwnerProgressStage = "drafting" | "revising" | "submitted";
 
-/** 학생이 맡아 진행 중인 내 의뢰 하나 (GET /me/jobs?status=MATCHED + 채팅방 · 받은 제안) */
+/** 학생이 맡아 진행 중인 내 의뢰 하나 (GET /me/jobs?status=MATCHED + 받은 제안) */
 export interface OwnerProgressJob {
   jobId: number;
   /** 학생 제안에서 시작했으면 proposal, 내 의뢰에 지원받았으면 request */
@@ -31,19 +32,19 @@ export interface OwnerProgressJob {
   revisionSubmitted: boolean;
   /** 도착한 결과물 id (submitted 일 때만) */
   pendingSubmissionId?: number;
+  /** 도착한 결과물이 온 한국 날짜 "2026-10-07" (submitted 일 때만) */
+  arrivedOn?: string;
   student: {
     /** 「프로필 보기」 (GET /students/{id}/profile) */
     profileId: number;
-    /** 채팅방 · 받은 제안에서 채운다. 못 불러오면 없음 */
+    /** 목록에서, 없으면 받은 제안에서 채운다. 둘 다 없으면 없음 */
     name?: string;
     studentNumber?: string;
     major?: string;
   };
-  /** 작업비(원) · 수정 횟수 · 지원서. 채팅방(GET /me/chat-rooms)에서 채우고, 못 불러오면 없음 */
+  /** 작업비(원) · 수정 횟수. 목록에 없으면 없음 */
   budget?: number;
   revisionLimit?: number;
-  /** 의뢰에 지원해 맡은 작업의 지원서. 제안으로 시작했으면 없음 */
-  plan?: ApplicationPlan;
 }
 
 /** 검토를 기다리는 결과물이 있으면 도착, 없으면 수정 요청 뒤인지로 단계를 정한다 */
@@ -79,13 +80,20 @@ export function ownerProgressFlowSteps(job: OwnerProgressJob, sub?: string): Flo
   return flowSteps(first, ownerProgressNoun(job) === "수정안" ? 3 : 2, sub);
 }
 
-/** 지원서가 있으면 작업계획서 바텀시트 내용, 없으면(제안으로 시작) undefined */
-export function progressWorkPlanContent(job: OwnerProgressJob): WorkPlanSheetContent | undefined {
-  if (!job.plan) return undefined;
+/**
+ * 도착한 결과물을 이날까지 확인하지 않으면 자동으로 완료된다 (도착한 날 + 7일).
+ * 도착 날짜를 모르면 undefined (화면은 「7일 동안」)
+ */
+export function ownerAutoCompleteOn(job: OwnerProgressJob): string | undefined {
+  return job.arrivedOn && addDays(job.arrivedOn, 7);
+}
+
+/** 의뢰에 지원해 맡은 작업의 작업계획서 바텀시트 내용 (지원서는 loadProgressPlan 으로) */
+export function progressWorkPlanContent(job: OwnerProgressJob, plan: ApplicationPlan): WorkPlanSheetContent {
   return {
     title: job.title,
     studentName: job.student.name,
-    plan: job.plan,
+    plan,
     budget: job.budget,
     draftDue: job.draftDeadline,
     finalDue: job.finalDeadline,
@@ -108,10 +116,32 @@ function applicationPlan(
   return { summary, method: workPlan, deliverable: deliveryMethod };
 }
 
+export type ProgressPlanResult =
+  | { status: "loaded"; plan: ApplicationPlan }
+  | { status: "unauthorized" }
+  /** 채팅방에 그 작업의 지원서가 없음 */
+  | { status: "missing" }
+  | { status: "error" };
+
 /**
- * 학생이 맡아 진행 중인 내 의뢰를 불러온다. 목록에 없는 학생 이름 · 작업비 · 수정 횟수 · 지원서는
- * 채팅방(GET /me/chat-rooms)에서, 제안에서 시작했는지는 받은 제안(GET /me/received-proposals)의
- * jobId 로 채운다. 그 둘은 실패해도 목록은 그대로 보인다 (빈칸은 숨기고 의뢰로 본다).
+ * 의뢰에 지원해 맡은 작업의 지원서. 진행 중 목록에는 없어서 바텀시트를 열 때 채팅방
+ * (GET /me/chat-rooms, 결제한 의뢰마다 하나)에서 찾는다.
+ */
+export async function loadProgressPlan(jobId: number): Promise<ProgressPlanResult> {
+  try {
+    const room = (await fetchMyChatRooms()).find((r) => r.jobId === jobId);
+    const plan = room && applicationPlan(room.applicationSummary, room.applicationWorkPlan, room.applicationDeliveryMethod);
+    return plan ? { status: "loaded", plan } : { status: "missing" };
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 401) return { status: "unauthorized" };
+    return { status: "error" };
+  }
+}
+
+/**
+ * 학생이 맡아 진행 중인 내 의뢰를 불러온다. 학생 이름 · 작업비 · 수정 횟수 · 도착 시각은 목록에서,
+ * 제안에서 시작했는지는 받은 제안(GET /me/received-proposals)의 jobId 로 채운다. 받은 제안은
+ * 실패해도 목록은 그대로 보인다 (의뢰로 본다).
  */
 export async function loadOwnerProgressJobs(): Promise<OwnerProgressJobsResult> {
   let matched: OwnerMatchedJobResponse[];
@@ -123,11 +153,7 @@ export async function loadOwnerProgressJobs(): Promise<OwnerProgressJobsResult> 
   }
   if (matched.length === 0) return { status: "loaded", jobs: [] };
 
-  const [rooms, proposals] = await Promise.all([
-    fetchMyChatRooms().catch(() => []),
-    fetchReceivedProposals().catch(() => []),
-  ]);
-  const roomByJob = new Map(rooms.map((room) => [room.jobId, room]));
+  const proposals = await fetchReceivedProposals().catch(() => []);
   const proposalByJob = new Map(
     proposals.flatMap((proposal) => (proposal.jobId ? [[proposal.jobId, proposal] as const] : [])),
   );
@@ -135,9 +161,8 @@ export async function loadOwnerProgressJobs(): Promise<OwnerProgressJobsResult> 
   return {
     status: "loaded",
     jobs: matched.map((job) => {
-      const room = roomByJob.get(job.jobId);
       const proposal = proposalByJob.get(job.jobId);
-      const name = room?.counterpartName?.trim() || proposal?.student.name.trim() || undefined;
+      const name = job.studentName?.trim() || proposal?.student.name.trim() || undefined;
       return {
         jobId: job.jobId,
         kind: proposal ? "proposal" : "request",
@@ -149,17 +174,15 @@ export async function loadOwnerProgressJobs(): Promise<OwnerProgressJobsResult> 
         stage: ownerProgressStageOf(job),
         revisionSubmitted: job.submissionType === "REVISION",
         pendingSubmissionId: job.pendingSubmissionId ?? undefined,
+        arrivedOn: job.pendingSubmissionId && job.submittedAt ? koreaDateOfUtc(job.submittedAt) : undefined,
         student: {
           profileId: job.studentProfileId,
           name,
           studentNumber: job.studentNumber ?? undefined,
           major: job.major?.trim() || undefined,
         },
-        budget: room?.budget ?? undefined,
-        revisionLimit: room?.revisionCount ?? undefined,
-        plan: room
-          ? applicationPlan(room.applicationSummary, room.applicationWorkPlan, room.applicationDeliveryMethod)
-          : undefined,
+        budget: job.budget ?? undefined,
+        revisionLimit: job.revisionCount ?? undefined,
       };
     }),
   };
