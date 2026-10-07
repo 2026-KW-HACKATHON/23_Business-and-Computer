@@ -515,7 +515,7 @@ public class JobService {
      */
     @Transactional(readOnly = true)
     public JobSubmissionDetailData getPendingSubmission(GetJobSubmissionCommand command) {
-        Job job = jobRepository.findByIdAndOwnerProfileId(command.getJobId(), command.getOwnerProfileId())
+        Job job = jobRepository.findJobByIdAndOwnerProfileId(command.getJobId(), command.getOwnerProfileId())
                 .orElseThrow(() -> new BusinessException(ErrorCode.JOB_NOT_FOUND));
         JobSubmission submission = jobSubmissionRepository
                 .findByJobIdAndReviewStatus(job.getId(), JobSubmissionReviewStatus.PENDING)
