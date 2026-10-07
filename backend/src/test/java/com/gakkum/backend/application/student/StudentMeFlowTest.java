@@ -1,6 +1,7 @@
 package com.gakkum.backend.application.student;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.hasKey;
 import static org.hamcrest.Matchers.nullValue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyIterable;
@@ -288,6 +289,26 @@ class StudentMeFlowTest {
                 .andExpect(jsonPath("$.data.reviews[5].length()").value(6))
                 .andExpect(jsonPath("$.data.reviews[5].createdAt").value(nullValue()))
                 .andExpect(jsonPath("$.data.reviews[5].specialtyCategories.length()").value(0));
+    }
+
+    @Test
+    @DisplayName("글 없는 리뷰도 받은 리뷰 목록에서 빼지 않고 내용을 null로 내린다")
+    void returnsReviewWithoutContent() throws Exception {
+        givenStudent(UserRole.STUDENT, null, null);
+        closedJob(42L, 5L, "의뢰 A", null, "2026-09-27T10:00:00");
+        closedJob(43L, 6L, "의뢰 B", null, "2026-09-21T09:00:00");
+        review(302L, 42L, 5, null, LocalDateTime.of(2026, 9, 28, 21, 30));
+        review(301L, 43L, 4, "꼼꼼했어요.", LocalDateTime.of(2026, 9, 22, 8, 0));
+
+        perform()
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.reviews.length()").value(2))
+                .andExpect(jsonPath("$.data.reviews[0].jobTitle").value("의뢰 A"))
+                .andExpect(jsonPath("$.data.reviews[0]", hasKey("content")))
+                .andExpect(jsonPath("$.data.reviews[0].content").value(nullValue()))
+                .andExpect(jsonPath("$.data.reviews[0].rating").value(5))
+                .andExpect(jsonPath("$.data.reviews[0].length()").value(6))
+                .andExpect(jsonPath("$.data.reviews[1].content").value("꼼꼼했어요."));
     }
 
     @Test
