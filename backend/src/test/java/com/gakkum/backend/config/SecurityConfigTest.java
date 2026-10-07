@@ -351,6 +351,7 @@ class SecurityConfigTest {
         when(ownerFacade.getMe("KAKAO_123")).thenReturn(OwnerMeResult.of(
                 Owner.builder().id(5L).storeName("가꿈 베이커리").build(),
                 User.builder().name("김사장").build(),
+                "김사장",
                 3L, 2L, 1L, 1L));
 
         mockMvc.perform(get("/owners/me")

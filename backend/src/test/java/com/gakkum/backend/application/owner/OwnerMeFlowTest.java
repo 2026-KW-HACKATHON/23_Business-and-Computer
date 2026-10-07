@@ -1,6 +1,7 @@
 package com.gakkum.backend.application.owner;
 
 import static org.hamcrest.Matchers.nullValue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -18,6 +19,8 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
+import org.junit.jupiter.params.provider.NullSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
@@ -83,7 +86,7 @@ class OwnerMeFlowTest {
     }
 
     @Test
-    @DisplayName("사장님 본인의 프로필과 활동 개수 11개 필드를 반환하고 이름은 대표자명이 아닌 가입자 이름이다")
+    @DisplayName("사장님 본인의 프로필·사업자 정보·활동 개수 13개 필드를 반환하고 이름은 가입자 이름, 대표자 이름은 저장된 대표자명이다")
     void returnsOwnInformation() throws Exception {
         givenOwner(UserRole.OWNER, "https://cdn.gakkum.test/owner.png", "서울시 노원구 광운로 20", "매일 굽는 빵집입니다.");
         when(jobRepository.countByOwnerProfileIdAndStatusNot(OWNER_PROFILE_ID, JobStatus.CANCELLED)).thenReturn(7L);
@@ -96,10 +99,12 @@ class OwnerMeFlowTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(2))
                 .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.data.length()").value(11))
+                .andExpect(jsonPath("$.data.length()").value(13))
                 .andExpect(jsonPath("$.data.ownerProfileId").value(5))
                 .andExpect(jsonPath("$.data.profileImageUrl").value("https://cdn.gakkum.test/owner.png"))
                 .andExpect(jsonPath("$.data.name").value("김가입"))
+                .andExpect(jsonPath("$.data.representativeName").value("김대표"))
+                .andExpect(jsonPath("$.data.businessNumber").value("1234567890"))
                 .andExpect(jsonPath("$.data.storeName").value("가꿈 베이커리"))
                 .andExpect(jsonPath("$.data.storeAddress").value("서울시 노원구 광운로 20"))
                 .andExpect(jsonPath("$.data.categoryId").value(2))
@@ -132,7 +137,7 @@ class OwnerMeFlowTest {
 
         perform()
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.length()").value(11))
+                .andExpect(jsonPath("$.data.length()").value(13))
                 .andExpect(jsonPath("$.data.profileImageUrl").value(nullValue()))
                 .andExpect(jsonPath("$.data.storeAddress").value(nullValue()))
                 .andExpect(jsonPath("$.data.categoryId").value(2))
@@ -141,6 +146,32 @@ class OwnerMeFlowTest {
                 .andExpect(jsonPath("$.data.receivedProposalCount").value(0))
                 .andExpect(jsonPath("$.data.inProgressJobCount").value(0))
                 .andExpect(jsonPath("$.data.completedJobCount").value(0));
+    }
+
+    @ParameterizedTest
+    @NullSource
+    @ValueSource(strings = {"", "   "})
+    @DisplayName("저장된 대표자 이름이 null·빈 문자열·공백이면 가입자 이름을 대표자 이름으로 반환하고 저장하지 않는다")
+    void fallsBackToUserNameWhenRepresentativeNameIsBlank(String representativeName) throws Exception {
+        givenOwner(UserRole.OWNER, representativeName, "1234567890");
+
+        perform()
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.name").value("김가입"))
+                .andExpect(jsonPath("$.data.representativeName").value("김가입"));
+        verify(ownerRepository, never()).save(any());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"0123456789", "123-45-67890"})
+    @DisplayName("사업자등록번호는 숫자 변환·마스킹·하이픈 추가 없이 저장된 문자열 그대로 반환한다")
+    void returnsBusinessNumberAsStored(String businessNumber) throws Exception {
+        givenOwner(UserRole.OWNER, "김대표", businessNumber);
+
+        perform()
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.businessNumber").isString())
+                .andExpect(jsonPath("$.data.businessNumber").value(businessNumber));
     }
 
     @ParameterizedTest
@@ -185,12 +216,22 @@ class OwnerMeFlowTest {
     }
 
     private void givenOwner(UserRole role, String profileImageUrl, String storeAddress, String description) {
+        givenOwner(role, "김대표", "1234567890", profileImageUrl, storeAddress, description);
+    }
+
+    private void givenOwner(UserRole role, String representativeName, String businessNumber) {
+        givenOwner(role, representativeName, businessNumber, null, null, null);
+    }
+
+    private void givenOwner(UserRole role, String representativeName, String businessNumber,
+            String profileImageUrl, String storeAddress, String description) {
         when(userRepository.findByUsernameAndIsLock(USERNAME, false)).thenReturn(Optional.of(
                 User.builder().id(OWNER_USER_ID).role(role).name("김가입").build()));
         when(ownerRepository.findByUserId(OWNER_USER_ID)).thenReturn(Optional.of(Owner.builder()
                 .id(OWNER_PROFILE_ID)
                 .userId(OWNER_USER_ID)
-                .representativeName("김대표")
+                .businessNumber(businessNumber)
+                .representativeName(representativeName)
                 .storeName("가꿈 베이커리")
                 .categoryId(2L)
                 .storeAddress(storeAddress)
