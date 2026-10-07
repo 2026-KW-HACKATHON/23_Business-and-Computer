@@ -5,7 +5,7 @@
 Accepted. 내 활동 › 보낸 의뢰, the home 「학생 고르기」 cards and 「기다리는 중」
 rows, the 내 정보 보낸 의뢰 count, 보낸 의뢰서 상세, 의뢰 취소, 지원자 목록, and
 지원자 프로필 read and write the backend instead of the sample requests of
-ADR 0017. 이 학생에게 맡기기 and 안전결제 belong to the payment work.
+ADR 0017. 이 학생에게 맡기기 and 안전결제 are in ADR 0037.
 
 ## Context
 
@@ -93,7 +93,7 @@ The backend (dev) has:
 
 ## Agent Guidance
 
-- The payment work wires /owner/requests/:requestId/assign/:applicationId;
-  the second id is the job application id.
+- /owner/requests/:requestId/assign/:applicationId (ADR 0037) takes the job
+  application id as its second id.
 - 「추천순」 on the applicant list does not change the order yet; the server
   sorts by LATEST, RATING, or COMPLETED.

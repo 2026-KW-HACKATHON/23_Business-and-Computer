@@ -11,19 +11,14 @@ export { default as WorkPlanSheet } from "./components/WorkPlanSheet";
 export {
   completeOwnerWork,
   markOwnerWorkReviewed,
-  useOwnerChatThread,
-  useOwnerChats,
-  useOwnerCheckout,
   useOwnerNotifications,
   useOwnerPayments,
   useOwnerProfile,
-  useOwnerRequest,
   useOwnerRequests,
   useOwnerStore,
   useOwnerWork,
   useOwnerWorks,
   useRequestExample,
-  useStudentProfile,
 } from "./hooks/useOwnerData";
 export {
   markOwnerNotificationsRead,
@@ -31,15 +26,17 @@ export {
   setOwnerStorePhoto,
   useOwnerStorePhoto,
 } from "./hooks/ownerDemo";
-export { useSafePayment } from "./hooks/useSafePayment";
-export type { PaymentPhase } from "./hooks/useSafePayment";
+export { useJobAssignment } from "./hooks/useJobAssignment";
+export type { JobAssignment } from "./hooks/useJobAssignment";
 export { useOwnerHome } from "./hooks/useOwnerHome";
+export { useProposalJobIds } from "./hooks/useProposalJobIds";
 export { useReceivedProposals } from "./hooks/useReceivedProposals";
 export {
   useApplicantProfile,
   useJobApplications,
   useJobResult,
   useOpenJobs,
+  useOwnerStudentProfile,
   usePendingSubmission,
 } from "./hooks/useOwnerJobs";
 export type { OwnerJobLoad } from "./hooks/useOwnerJobs";
@@ -50,12 +47,13 @@ export { REVIEW_POINTS, sendJobReview, workHistoryText } from "./lib/closedJobs"
 export type { JobResult, JobReviewResult, OwnerClosedJob, OwnerClosedOutcome } from "./lib/closedJobs";
 export { useOwnerProgressJobs } from "./hooks/useOwnerProgressJobs";
 export type { OwnerProgressJobsLoad } from "./hooks/useOwnerProgressJobs";
+export { useProgressPlanSheet } from "./hooks/useProgressPlanSheet";
 export {
+  ownerAutoCompleteOn,
   ownerProgressDeadline,
   ownerProgressFlowSteps,
   ownerProgressNoun,
   ownerProgressStatusText,
-  progressWorkPlanContent,
 } from "./lib/progressJobs";
 export type { OwnerProgressJob, OwnerProgressStage } from "./lib/progressJobs";
 export { sendRevisionRequest, sendSubmissionComplete, submissionFileName } from "./lib/submissionReview";
@@ -87,14 +85,11 @@ export type { ReceivedProposal } from "./lib/receivedProposals";
 export { flowSteps } from "./lib/flow";
 export {
   WAITING_STATUS_LABEL,
-  chatProgressText,
   deadlineText,
   ownerWorkPlanContent,
   studentLabel,
   studentRecord,
-  workChatSummary,
 } from "./lib/format";
-export { checkoutWorkId } from "./lib/checkout";
 export {
   MAX_REQUEST_PHOTOS,
   REQUEST_PHOTO_ACCEPT,
@@ -115,9 +110,7 @@ export { OWNER_PATHS } from "./lib/paths";
 export { startReward } from "./lib/payment";
 export type { ActivityTab } from "./lib/paths";
 export type {
-  ChatMessage,
   DueDates,
-  OwnerChatRoom,
   OwnerDoneItem,
   OwnerHome,
   OwnerNotification,
@@ -130,6 +123,7 @@ export type {
   OwnerWork,
   OwnerWorkingItem,
   PaymentMethod,
+  PaymentPhase,
   PickedTask,
   RequestContent,
   RequestExample,

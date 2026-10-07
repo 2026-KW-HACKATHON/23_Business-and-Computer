@@ -22,6 +22,16 @@ export interface OwnerMatchedJobResponse {
   pendingSubmissionId?: number | null;
   /** STARTED = 첫 초안 전, DRAFT = 초안 검토, REVISION = 수정 요청 뒤 */
   progressStage?: string | null;
+  /** 맡은 학생 이름 */
+  studentName?: string | null;
+  /** 작업비(원) */
+  budget?: number | null;
+  /** 사장님이 정한 수정 횟수 */
+  revisionCount?: number | null;
+  /** 검토를 기다리는 결과물의 수정 번호 (초안 0). 없으면 학생이 만드는 중 */
+  revisionNumber?: number | null;
+  /** 검토를 기다리는 결과물이 도착한 시각 (UTC, 오프셋 없음). 없으면 학생이 만드는 중 */
+  submittedAt?: string | null;
 }
 
 /** GET /me/jobs?status=MATCHED — 학생이 맡아 진행 중인 내 의뢰 (최신순) */

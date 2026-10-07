@@ -7,6 +7,7 @@ import {
   ReferencePhotos,
   RoleAvatar,
   SubScreen,
+  TextButton,
   WorkKindIcon,
 } from "../components";
 import {
@@ -128,6 +129,9 @@ function OwnerExploreProposalPage() {
                     .join("\n")}
                 </span>
               </div>
+              <TextButton onClick={() => navigate(OWNER_PATHS.student(String(student.studentProfileId)))}>
+                프로필 보기
+              </TextButton>
             </div>
           )}
 

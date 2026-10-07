@@ -105,7 +105,7 @@
   gap: 12px;
 }
 
-/* 날짜 · 시스템 알림 (가운데 회색 알약) */
+/* 날짜 (가운데 회색 알약) */
 .owner-chat__pill {
   align-self: center;
   display: inline-flex;
@@ -176,6 +176,8 @@
 
 .owner-chat__file {
   display: flex;
+  text-decoration: none;
+  color: inherit;
   align-items: center;
   gap: 10px;
   max-width: 236px;
@@ -210,15 +212,52 @@
   color: var(--text-placeholder);
 }
 
+.owner-chat__image {
+  display: block;
+  max-width: 200px;
+  overflow: hidden;
+  border: 1px solid var(--role-border);
+  border-radius: 14px;
+}
+
+.owner-chat__image > img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+/* 보내지 못한 글: 말풍선 왼쪽에 안내와 「다시 보내기」 */
+.owner-chat__failed {
+  display: flex;
+  flex-shrink: 0;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  font-size: 10px;
+  line-height: 13px;
+  color: var(--color-danger);
+}
+
+.owner-chat__resend {
+  padding: 0;
+  border: none;
+  background: none;
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 14px;
+  color: var(--color-danger);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
 .owner-chat__composer {
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
-.owner-chat__attach,
 .owner-chat__send {
-  position: relative;
   display: flex;
   flex-shrink: 0;
   align-items: center;
@@ -231,28 +270,6 @@
   font-family: var(--font-sans);
   font-weight: 700;
   cursor: pointer;
-}
-
-.owner-chat__attach {
-  background: var(--role-muted);
-  font-size: 20px;
-  color: var(--role-secondary);
-}
-
-.owner-chat__attach > input {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  opacity: 0;
-  pointer-events: none;
-}
-
-.owner-chat__attach:focus-within {
-  outline: 2px solid var(--color-black);
-  outline-offset: 2px;
-}
-
-.owner-chat__send {
   background: var(--color-owner);
   font-size: 18px;
   color: var(--color-black);

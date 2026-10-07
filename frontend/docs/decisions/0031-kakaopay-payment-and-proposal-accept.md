@@ -5,7 +5,7 @@
 Accepted. Implements ADR 0004 for proposal payments and replaces its
 「removes `pg_token` from the visible URL」 rule (see Decision). Replaces
 the mock payment of the proposal accept screen (ADR 0014, 0025). The
-request pay screen (`OwnerPayPage`) keeps `useSafePayment`.
+request pay screen (`OwnerPayPage`) uses the same flow (ADR 0037).
 
 ## Context
 
@@ -67,8 +67,8 @@ The backend (dev) pays through the KakaoPay test merchant:
   이동 중」, 「결제 완료 팝업」, 「결제 실패 팝업」). New optional props are
   `redirectTitle`, `redirectDescription` (one line that replaces the default
   description and the bottom note), `successDescription`, and an optional
-  `onCancel`.
-  `OwnerPayPage` passes none of them and looks the same as before.
+  `onCancel`. Without `successDescription` the completion popup reads
+  「작업비는 골목인턴이 보관해요. 학생과 채팅으로 자세한 내용을 나눠 보세요.」.
 - **Accept screen** (`OwnerProposalAcceptPage`):
   - The method list shows KakaoPay only (`PaymentSection` `methods`).
   - 「안전결제하기」 shows 「카카오페이로 이동하고 있어요」, prepares the
@@ -116,10 +116,12 @@ The backend (dev) pays through the KakaoPay test merchant:
     - Any other return goes straight to 내 활동 › 진행 중.
   - The stored record is cleared when the page is left through a popup
     button or a redirect.
-- **Request targets** (`kind: "job"`) are handled by the same page:
+- **Request targets** (`kind: "job"`, with `jobId` and `jobApplicationId`)
+  are handled by the same page (ADR 0037):
   - completion goes to 내 활동 › 진행 중, with 「학생과 채팅으로 자세한
     내용을 나눠 보세요」;
-  - 「다시 결제하기」 goes to /owner/works/{jobId}/pay.
+  - 「다시 결제하기」 goes to
+    /owner/requests/{jobId}/assign/{jobApplicationId}/pay.
 - 수정 횟수 starts at 1 and cannot go below 1 on screen, although the server
   accepts 0.
 

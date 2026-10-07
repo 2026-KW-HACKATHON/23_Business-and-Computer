@@ -80,6 +80,7 @@ public enum ErrorCode {
     PROPOSAL_CANCEL_NOT_AVAILABLE(HttpStatus.CONFLICT, "PROPOSAL_409_CANCEL", "취소할 수 없는 제안 상태입니다."),
     PROPOSAL_CANCEL_PAYMENT_PENDING(HttpStatus.CONFLICT, "PROPOSAL_409_CANCEL_PAYMENT_PENDING", "결제가 진행 중인 제안은 취소할 수 없습니다."),
     STORE_STUDENT_REQUIRED(HttpStatus.FORBIDDEN, "STORE_403_STUDENT", "학생만 매장 목록을 조회할 수 있습니다."),
+    NOTIFICATION_NOT_FOUND(HttpStatus.NOT_FOUND, "NOTIFICATION_404", "알림을 찾을 수 없습니다."),
     OWNER_NOT_FOUND(HttpStatus.NOT_FOUND, "OWNER_404", "존재하지 않는 사장님입니다."),
     OWNER_PROFILE_NOT_FOUND(HttpStatus.FORBIDDEN, "OWNER_403", "사장님 프로필이 존재하지 않습니다."),
     OWNER_ME_REQUIRED(HttpStatus.FORBIDDEN, "OWNER_403_ME", "사장님만 내 정보를 조회할 수 있습니다."),

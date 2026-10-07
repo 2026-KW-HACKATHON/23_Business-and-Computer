@@ -1,0 +1,71 @@
+package com.gakkum.backend.domain.notification.service;
+
+import java.time.Clock;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.temporal.ChronoUnit;
+import java.util.List;
+
+import org.springframework.data.domain.Limit;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.gakkum.backend.domain.notification.dto.NotificationCommandDto.GetNotificationsCommand;
+import com.gakkum.backend.domain.notification.entity.Notification;
+import com.gakkum.backend.domain.notification.repository.NotificationRepository;
+import com.gakkum.backend.global.exception.BusinessException;
+import com.gakkum.backend.global.exception.ErrorCode;
+
+import lombok.RequiredArgsConstructor;
+
+@Service
+@RequiredArgsConstructor
+public class NotificationService {
+
+    private final NotificationRepository notificationRepository;
+    private final Clock clock;
+
+    /**
+     * 수신자의 알림을 읽음 여부와 무관하게 최신순으로 읽는다. 커서가 있으면 그 알림 뒤부터 읽는다.
+     * 호출하는 쪽이 다음 페이지 여부를 알 수 있도록 요청 크기보다 하나 더 읽는다. 읽음 상태는 바꾸지 않는다.
+     */
+    @Transactional(readOnly = true)
+    public List<Notification> getNotifications(String recipientUserId, GetNotificationsCommand command) {
+        Limit limit = Limit.of(command.getSize() + 1);
+        if (command.getCursorCreatedAt() == null) {
+            return notificationRepository.findByRecipientUserIdOrderByCreatedAtDescIdDesc(recipientUserId, limit);
+        }
+        return notificationRepository.findPageAfterCursor(
+                recipientUserId, command.getCursorCreatedAt(), command.getCursorId(), limit);
+    }
+
+    @Transactional(readOnly = true)
+    public long countUnread(String recipientUserId) {
+        return notificationRepository.countByRecipientUserIdAndReadAtIsNull(recipientUserId);
+    }
+
+    /**
+     * 본인 알림 행을 잠근 뒤 최초 읽음 시각을 기록한다. 이미 읽은 알림은 기존 시각을 그대로 둔다.
+     * 없는 알림과 다른 수신자의 알림은 구분하지 않고 404로 거부한다.
+     */
+    @Transactional
+    public Notification markRead(String recipientUserId, Long notificationId) {
+        Notification notification = notificationRepository
+                .findLockedByIdAndRecipientUserId(notificationId, recipientUserId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.NOTIFICATION_NOT_FOUND));
+        notification.markRead(now());
+        return notification;
+    }
+
+    /** 수신자의 미읽음 알림을 UPDATE 한 번으로 읽음 처리하고 바꾼 행 수를 반환한다. 이미 읽은 알림의 시각은 바꾸지 않는다. */
+    @Transactional
+    public int markAllRead(String recipientUserId) {
+        return notificationRepository.markAllRead(recipientUserId, now());
+    }
+
+    // createdAt과 같은 JVM 기본 시간대로 읽음 시각을 기록한다.
+    // PostgreSQL timestamp 정밀도(마이크로초)에 맞춰 반환값과 저장값이 어긋나지 않게 한다
+    private LocalDateTime now() {
+        return LocalDateTime.ofInstant(clock.instant(), ZoneId.systemDefault()).truncatedTo(ChronoUnit.MICROS);
+    }
+}

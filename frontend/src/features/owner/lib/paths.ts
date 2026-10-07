@@ -11,7 +11,7 @@ export const OWNER_PATHS = {
   home: "/owner",
   explore: "/owner/explore",
   chats: "/owner/chats",
-  chat: (workId: string) => `/owner/chats/${workId}`,
+  chat: (roomId: string) => `/owner/chats/${roomId}`,
   notifications: "/owner/notifications",
   me: "/owner/me",
   store: "/owner/me/store",
@@ -27,12 +27,15 @@ export const OWNER_PATHS = {
   applicantProfile: (requestId: string, applicationId: string) =>
     `/owner/requests/${requestId}/applicants/${applicationId}`,
   proposal: (id: string) => `/owner/proposals/${id}`,
-  /** 이 학생에게 맡기기 (의뢰 id · 지원서 id). 결제 연동 화면 */
-  assign: (requestId: string, studentId: string) =>
-    `/owner/requests/${requestId}/assign/${studentId}`,
+  /** 이 학생에게 맡기기 (의뢰 id · 지원서 id) */
+  assign: (requestId: string, applicationId: string) =>
+    `/owner/requests/${requestId}/assign/${applicationId}`,
+  /** 고른 지원자에게 맡기는 안전결제 (의뢰 id · 지원서 id) */
+  assignPay: (requestId: string, applicationId: string) =>
+    `/owner/requests/${requestId}/assign/${applicationId}/pay`,
+  /** 학생 프로필 (studentProfileId) */
   student: (studentId: string) => `/owner/students/${studentId}`,
   proposalAccept: (id: string) => `/owner/proposals/${id}/accept`,
-  workPay: (workId: string) => `/owner/works/${workId}/pay`,
   workCheck: (workId: string) => `/owner/works/${workId}/check`,
   workRevision: (workId: string) => `/owner/works/${workId}/revision`,
   workCancel: (workId: string) => `/owner/works/${workId}/cancel`,

@@ -23,12 +23,6 @@
   white-space: pre-line;
 }
 
-.owner-assign__description {
-  font-size: 14px;
-  line-height: 20px;
-  color: var(--role-secondary);
-}
-
 .owner-assign__card {
   display: flex;
   flex-direction: column;

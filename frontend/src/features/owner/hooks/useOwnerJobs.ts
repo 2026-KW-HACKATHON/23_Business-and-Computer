@@ -7,6 +7,7 @@ import {
   loadJobResult,
   loadOpenJobs,
   loadPendingSubmission,
+  loadStudentProfile,
 } from "../lib/ownerJobs";
 import type {
   ApplicantProfile,
@@ -99,6 +100,17 @@ export function useApplicantProfile(
     jobId === undefined || applicationId === undefined ? undefined : `${jobId}:${applicationId}`,
     () => loadApplicantProfile(jobId ?? 0, applicationId ?? 0),
     "내 의뢰의 지원자만 볼 수 있어요",
+  );
+}
+
+/** 학생 프로필 (GET /students/{id}/profile). 진행 중 작업 · 받은 제안의 「프로필 보기」 */
+export function useOwnerStudentProfile(
+  studentProfileId: number | undefined,
+): { load: OwnerJobLoad<ApplicantProfile>; reload: () => void } {
+  return useOwnerJobLoad(
+    studentProfileId === undefined ? undefined : String(studentProfileId),
+    () => loadStudentProfile(studentProfileId ?? 0),
+    "사장님만 학생 프로필을 볼 수 있어요",
   );
 }
 

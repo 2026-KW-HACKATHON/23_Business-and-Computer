@@ -23,6 +23,10 @@ export interface MatchedJobResponse {
   submissionType?: SubmissionType | null;
   reviewStatus?: SubmissionReviewStatus | null;
   progressStage?: string | null;
+  /** 의뢰한 사장님의 지금 가게 이름 */
+  storeName?: string | null;
+  /** 마지막으로 낸 결과물의 제출 시각 (UTC, 오프셋 없음). 아직 아무것도 내지 않았으면 null */
+  submittedAt?: string | null;
 }
 
 /** GET /me/jobs?status=MATCHED — 나와 매칭된 진행 중 작업 (최신순) */

@@ -29,8 +29,6 @@ export {
   useProposalExamples,
   useStore,
   useStores,
-  useStudentChatThread,
-  useStudentChats,
   useStudentNotifications,
   useStudentSettlements,
   useStudentWork,
@@ -41,11 +39,16 @@ export { useExploreStores } from "./hooks/useExploreStores";
 export type { ExploreStoresLoad } from "./hooks/useExploreStores";
 export { useAppliedJobs } from "./hooks/useAppliedJobs";
 export type { AppliedJobsLoad } from "./hooks/useAppliedJobs";
+export { useProposalJobIds } from "./hooks/useProposalJobIds";
 export { useSentProposals } from "./hooks/useSentProposals";
 export type { SentProposalsLoad } from "./hooks/useSentProposals";
 export { useStudentHome } from "./hooks/useStudentHome";
 export { useProgressJobs } from "./hooks/useProgressJobs";
 export type { ProgressJobsLoad } from "./hooks/useProgressJobs";
+export { useLatestSubmission } from "./hooks/useLatestSubmission";
+export type { LatestSubmissionLoad } from "./hooks/useLatestSubmission";
+export { isLastRevision, submissionDay } from "./lib/latestSubmission";
+export type { LatestSubmission } from "./lib/latestSubmission";
 export {
   progressDeadline,
   progressFlowSteps,
@@ -64,11 +67,9 @@ export type { SubmissionKind, SubmissionResult } from "./lib/submission";
 export type { ProgressJob, ProgressStage } from "./lib/progressJobs";
 export { flowSteps, workFlowSteps } from "./lib/flow";
 export {
-  chatStatusText,
   currentDeadline,
   deadlineText,
   peerRecord,
-  workChatSummary,
   workStatusText,
 } from "./lib/format";
 export {
@@ -108,7 +109,6 @@ export type { ProfileEditSection, StudentActivityTab } from "./lib/paths";
 export type {
   ApplicationPlan,
   ExploreStore,
-  ChatMessage,
   MyProposal,
   ProposalExample,
   Store,

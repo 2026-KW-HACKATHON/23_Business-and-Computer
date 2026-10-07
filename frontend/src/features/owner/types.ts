@@ -2,6 +2,7 @@ import type { Field } from "../../types/field";
 import type { StoreCategory } from "../../types/storeCategory";
 import type { WorkKind } from "../../types/workKind";
 import type { ApplicationPlan, WorkPlanContent } from "../../types/workPlan";
+import type { OwnerProgressJob } from "./lib/progressJobs";
 
 /** 마감 단계. draft = 초안, final = 최종 */
 export type DeadlineStage = "draft" | "final";
@@ -60,7 +61,8 @@ export interface OwnerWorkingItem {
   student: StudentRef;
   stage: DeadlineStage;
   due: string;
-  plan?: WorkPlanSheetContent;
+  /** 의뢰에 지원해 맡은 작업. 누르면 이 작업의 지원서를 불러와 바텀시트로 */
+  planJob?: OwnerProgressJob;
   proposalId?: string;
 }
 
@@ -150,25 +152,6 @@ export interface OwnerHome {
   examples: RequestExample[];
   /** 최근 끝난 것부터 */
   done: OwnerDoneItem[];
-}
-
-/** 채팅 목록의 진행 상태 */
-export type ChatProgress =
-  | { type: "drafting"; due: string }
-  | { type: "revising"; due: string }
-  | { type: "draftSubmitted" }
-  | { type: "completed" };
-
-/** 채팅방 하나 = 작업 하나 (workId) */
-export interface OwnerChatRoom {
-  workId: string;
-  student: StudentRef;
-  workTitle: string;
-  progress: ChatProgress;
-  lastMessage: string;
-  /** ISO 시각 */
-  lastMessageAt: string;
-  unreadCount: number;
 }
 
 /** 알림 종류 (notifications.type) */
@@ -295,19 +278,6 @@ export interface OwnerRequest {
   applicants: Applicant[];
 }
 
-/** 채팅 메시지. 시각은 ISO */
-export type ChatMessage =
-  | { id: string; type: "system"; text: string; at: string }
-  | { id: string; type: "text"; from: "me" | "partner"; text: string; at: string }
-  | { id: string; type: "file"; from: "me" | "partner"; name: string; detail: string; at: string };
-
-export interface OwnerChatThread {
-  workId: string;
-  /** 안 읽은 메시지 수 */
-  unreadCount: number;
-  messages: ChatMessage[];
-}
-
 /** 가게 정보 수정 */
 export interface OwnerStore {
   storeName: string;
@@ -345,12 +315,8 @@ export interface PaymentSummary {
 
 export type PaymentMethod = "kakaoPay" | "card" | "transfer";
 
-/** 안전결제할 의뢰와 고른 학생 */
-export interface OwnerCheckout {
-  workId: string;
-  request: OwnerRequest;
-  applicant: Applicant;
-}
+/** 결제 진행: idle = 결제 전, redirecting = 결제 창으로 가는 중, success / failed = 결과 팝업 */
+export type PaymentPhase = "idle" | "redirecting" | "success" | "failed";
 
 export interface StudentCertificate {
   name: string;

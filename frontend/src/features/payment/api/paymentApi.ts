@@ -22,6 +22,27 @@ export interface PaymentApproveResponse {
   jobStatus: string;
 }
 
+/** POST /jobs/{id}/payments 요청 본문 (PaymentPrepareRequest). 금액은 서버가 의뢰 작업비로 정한다 */
+export interface JobPaymentRequest {
+  /** 맡길 지원자의 지원서 id. 대기 중(PENDING) 지원서여야 한다 */
+  jobApplicationId: number;
+  /** true 여야 한다 */
+  refundPolicyAgreed: boolean;
+}
+
+/** POST /jobs/{jobId}/payments — 모집 중인 내 의뢰를 고른 지원자에게 맡기며 결제를 준비한다 */
+export async function prepareJobPayment(
+  jobId: number,
+  request: JobPaymentRequest,
+): Promise<PaymentPrepareResponse> {
+  const data = await apiData<PaymentPrepareResponse | undefined>(`/jobs/${jobId}/payments`, {
+    method: "POST",
+    body: JSON.stringify(request),
+  });
+  if (!data) throw new Error("Payment prepare response has no data");
+  return data;
+}
+
 /** POST /proposals/{id}/payments 요청 본문 (ProposalPaymentPrepareRequest) */
 export interface ProposalPaymentRequest {
   /** 사장님이 정한 작업비(원). 양수. 결제 금액 · 의뢰 작업비가 된다 */

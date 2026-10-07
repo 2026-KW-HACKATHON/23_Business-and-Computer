@@ -30,8 +30,8 @@ import OwnerRequestNewPage from './pages/OwnerRequestNewPage'
 import OwnerRequestContentPage from './pages/OwnerRequestContentPage'
 import OwnerRequestConfirmPage from './pages/OwnerRequestConfirmPage'
 import OwnerRequestDonePage from './pages/OwnerRequestDonePage'
-import OwnerStudentPage from './pages/OwnerStudentPage'
 import OwnerApplicantProfilePage from './pages/OwnerApplicantProfilePage'
+import OwnerStudentPage from './pages/OwnerStudentPage'
 import OwnerAssignPage from './pages/OwnerAssignPage'
 import OwnerPayPage from './pages/OwnerPayPage'
 import OwnerProposalAcceptPage from './pages/OwnerProposalAcceptPage'
@@ -108,7 +108,7 @@ function App() {
       <Route path="/owner/me/store" element={<OwnerStoreEditPage />} />
       <Route path="/owner/me/payments" element={<OwnerPaymentsPage />} />
       <Route path="/owner/requests" element={<OwnerActivityPage />} />
-      <Route path="/owner/chats/:workId" element={<OwnerChatRoomPage />} />
+      <Route path="/owner/chats/:roomId" element={<OwnerChatRoomPage />} />
       <Route path="/owner/works/:workId/check" element={<OwnerWorkCheckPage />} />
       <Route path="/owner/works/:workId/result" element={<OwnerWorkResultPage />} />
       <Route path="/owner/proposals/:proposalId" element={<OwnerProposalPage />} />
@@ -123,9 +123,9 @@ function App() {
         path="/owner/requests/:requestId/applicants/:applicationId"
         element={<OwnerApplicantProfilePage />}
       />
-      <Route path="/owner/requests/:requestId/assign/:studentId" element={<OwnerAssignPage />} />
+      <Route path="/owner/requests/:requestId/assign/:applicationId" element={<OwnerAssignPage />} />
+      <Route path="/owner/requests/:requestId/assign/:applicationId/pay" element={<OwnerPayPage />} />
       <Route path="/owner/students/:studentId" element={<OwnerStudentPage />} />
-      <Route path="/owner/works/:workId/pay" element={<OwnerPayPage />} />
       <Route path="/owner/works/:workId/revision" element={<OwnerRevisionPage />} />
       <Route path="/owner/works/:workId/review" element={<OwnerReviewPage />} />
       <Route path="/owner/works/:workId/review/done" element={<OwnerReviewDonePage />} />
@@ -138,7 +138,7 @@ function App() {
       <Route path="/student/explore" element={<StudentExplorePage />} />
       <Route path="/student/explore/stores" element={<StudentStoresPage />} />
       <Route path="/student/chats" element={<StudentChatsPage />} />
-      <Route path="/student/chats/:workId" element={<StudentChatRoomPage />} />
+      <Route path="/student/chats/:roomId" element={<StudentChatRoomPage />} />
       <Route path="/student/notifications" element={<StudentNotificationsPage />} />
       <Route path="/student/me" element={<StudentMePage />} />
       <Route path="/student/me/profile" element={<StudentProfilePage />} />
