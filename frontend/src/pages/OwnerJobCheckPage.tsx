@@ -15,12 +15,14 @@ import {
   OWNER_PATHS,
   OwnerMissing,
   flowSteps,
+  ownerAutoCompleteOn,
   sendSubmissionComplete,
   submissionFileName,
   useOwnerProgressJobs,
   usePendingSubmission,
 } from "../features/owner";
 import { useBack } from "../hooks/useBack";
+import { formatMonthDay } from "../lib/date";
 import { studentTitle } from "../lib/korean";
 import "./OwnerDetailPage.css";
 import "./OwnerWorkCheckPage.css";
@@ -29,7 +31,7 @@ import "./OwnerWorkCheckPage.css";
  * 피그마 「작업 확인 · 초안」 · 「작업 확인 · 수정안」 (서버 작업, ADR 0035).
  * 작업은 진행 중 목록(GET /me/jobs?status=MATCHED)에서, 도착한 결과물은 GET /jobs/{id}/submission 에서 불러온다.
  * 「수정 요청」 → 수정 요청 화면, 「완료 확인」 → POST .../complete 뒤 후기 작성 (ADR 0036).
- * 남은 수정이 없으면 「수정 요청」 버튼이 없다. 자동 완료 날짜는 서버가 주지 않아 「7일 동안」으로 적는다.
+ * 남은 수정이 없으면 「수정 요청」 버튼이 없다. 확인할 날짜는 목록의 도착 시각 + 7일, 모르면 「7일 동안」.
  */
 function OwnerJobCheckPage({ jobId }: { jobId: number }) {
   const navigate = useNavigate();
@@ -79,11 +81,14 @@ function OwnerJobCheckPage({ jobId }: { jobId: number }) {
   const limit = job.revisionLimit;
   // 초안은 0, 수정안은 1부터. 수정 횟수를 모르면 버튼을 두고 서버 답으로 막는다
   const remaining = limit === undefined ? undefined : Math.max(0, limit - submission.revisionNumber);
-  const meta = [who, `${noun} 도착`, limit !== undefined && `수정 ${submission.revisionNumber}/${limit}`]
+  // 도착 날짜를 알면 「초안 도착 9월 22일」 · 「9월 29일까지 확인해 주세요」, 모르면 「7일 동안」
+  const autoCompleteOn = ownerAutoCompleteOn(job);
+  const arrived = job.arrivedOn ? `${noun} 도착 ${formatMonthDay(job.arrivedOn)}` : `${noun} 도착`;
+  const meta = [who, arrived, limit !== undefined && `수정 ${submission.revisionNumber}/${limit}`]
     .filter(Boolean)
     .join(" · ");
   const notice = [
-    "7일 동안 답이 없으면 자동으로 완료돼요",
+    autoCompleteOn ? "답이 없으면 자동으로 완료돼요" : "7일 동안 답이 없으면 자동으로 완료돼요",
     remaining === undefined ? "" : remaining > 0 ? `수정 요청 ${remaining}회 남음` : "남은 수정 요청이 없어요",
   ]
     .filter(Boolean)
@@ -168,7 +173,11 @@ function OwnerJobCheckPage({ jobId }: { jobId: number }) {
 
         <div className="owner-check__notice">
           <h2 className="owner-check__headline">{noun}이 도착했어요</h2>
-          <TurnNotice tone="owner" title={`${noun}을 확인해 주세요`} description={notice} />
+          <TurnNotice
+            tone="owner"
+            title={autoCompleteOn ? `${formatMonthDay(autoCompleteOn)}까지 확인해 주세요` : `${noun}을 확인해 주세요`}
+            description={notice}
+          />
         </div>
 
         <section className="owner-detail__section owner-check__files">

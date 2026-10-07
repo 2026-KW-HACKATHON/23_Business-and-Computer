@@ -4,7 +4,6 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   Button,
   CategoryBadge,
-  Dialog,
   EmpathyCount,
   LoadNotice,
   ReportSheet,
@@ -24,7 +23,6 @@ import {
   ownerProgressDeadline,
   ownerProgressNoun,
   ownerProgressStatusText,
-  progressWorkPlanContent,
   receivedOnText,
   receivedProposalStatusLabel,
   jobCategoryNames,
@@ -33,6 +31,7 @@ import {
   useOwnerClosedJobs,
   useOwnerPayments,
   useOwnerProgressJobs,
+  useProgressPlanSheet,
   useReceivedProposals,
 } from "../features/owner";
 import type {
@@ -41,7 +40,6 @@ import type {
   OwnerClosedJob,
   OwnerProgressJob,
   ReceivedProposal,
-  WorkPlanSheetContent,
 } from "../features/owner";
 import { proposalBadgeNames } from "../features/proposal";
 import { useBack } from "../hooks/useBack";
@@ -123,10 +121,10 @@ function OwnerActivityPage() {
   const { load: closedLoad, reload: reloadClosed } = useOwnerClosedJobs();
   const closedJobs = closedLoad.status === "loaded" ? closedLoad.jobs : [];
   const { summary } = useOwnerPayments();
-  const [planContent, setPlanContent] = useState<WorkPlanSheetContent>();
+  // 진행 중 카드의 「상세보기」 = 지원서 바텀시트 (누를 때 불러옴)
+  const planSheet = useProgressPlanSheet();
   const [reportTitle, setReportTitle] = useState<string>();
-  // 맡은 학생의 프로필 API 가 없어서 「프로필 보기」는 곧 열린다는 안내
-  const [profileSoon, setProfileSoon] = useState(false);
+  const openStudent = (studentProfileId: number) => navigate(OWNER_PATHS.student(String(studentProfileId)));
 
   const done = closedJobs.filter((job) => job.outcome === "completed");
   const canceled = closedJobs.filter((job) => job.outcome === "canceled");
@@ -206,6 +204,7 @@ function OwnerActivityPage() {
         <StudentLine
           name={proposal.student.name}
           department={studentMetaText(proposal.student.studentNumber, proposal.student.major)}
+          onProfile={() => openStudent(proposal.student.studentProfileId)}
         />
         {proposal.status === "PENDING" && (
           <>
@@ -225,12 +224,11 @@ function OwnerActivityPage() {
     const submitted = job.stage === "submitted";
     const noun = ownerProgressNoun(job);
     const deadline = ownerProgressDeadline(job);
-    const plan = progressWorkPlanContent(job);
     const proposalId = job.proposalId;
     const openDetail = submitted
       ? () => navigate(OWNER_PATHS.workCheck(id))
-      : plan
-        ? () => setPlanContent(plan)
+      : job.kind === "request"
+        ? () => planSheet.open(job)
         : proposalId !== undefined
           ? () => navigate(OWNER_PATHS.proposal(String(proposalId)))
           : undefined;
@@ -253,7 +251,7 @@ function OwnerActivityPage() {
           name={job.student.name}
           year={admissionYearText(job.student.studentNumber)}
           department={job.student.major}
-          onProfile={() => setProfileSoon(true)}
+          onProfile={() => openStudent(job.student.profileId)}
         />
         {submitted ? (
           <>
@@ -413,21 +411,9 @@ function OwnerActivityPage() {
       </div>
 
       <WorkPlanSheet
-        content={planContent}
-        onClose={() => setPlanContent(undefined)}
+        content={planSheet.content}
+        onClose={planSheet.close}
         onChat={() => navigate(OWNER_PATHS.chats)}
-      />
-      <Dialog
-        open={profileSoon}
-        image="sorryOwner"
-        title="학생 프로필은 곧 볼 수 있어요"
-        description={"지금은 작업 중인 학생의 프로필을 열 수 없어요.\n준비되면 여기서 바로 볼 수 있어요."}
-        onClose={() => setProfileSoon(false)}
-        actions={
-          <Button fullWidth onClick={() => setProfileSoon(false)}>
-            확인
-          </Button>
-        }
       />
       <ReportSheet
         open={reportTitle !== undefined}

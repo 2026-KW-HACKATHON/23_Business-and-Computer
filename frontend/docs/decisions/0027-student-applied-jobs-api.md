@@ -77,7 +77,5 @@ not show in any student screen. The backend (dev) has:
 
 ## Agent Guidance
 
-- When the list adds `storeName` or the sent application, only the type
-  comment needs a look; the screens already show them.
-- Not-selected results need REJECTED items in the list (or another API); the
-  card and the sheet already handle REJECTED.
+- The list now carries `storeName`, the sent application, and REJECTED
+  items (ADR 0039); `appliedAt` is UTC, read it with `koreaDateOfUtc`.

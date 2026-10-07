@@ -9,6 +9,7 @@ import {
   ReferencePhotos,
   RoleAvatar,
   SubScreen,
+  TextButton,
   WorkKindIcon,
   WorkPlan,
 } from "../components";
@@ -125,6 +126,9 @@ function OwnerProposalPage() {
                 {[studentMeta, proposalStudentRecord(student)].filter(Boolean).join("\n")}
               </span>
             </div>
+            <TextButton onClick={() => navigate(OWNER_PATHS.student(String(student.studentProfileId)))}>
+              프로필 보기
+            </TextButton>
           </div>
 
           {showAgreement && agreement && (

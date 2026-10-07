@@ -5,7 +5,7 @@ import { useOwnerClosedJobs } from "./useOwnerClosedJobs";
 import { useOpenJobs } from "./useOwnerJobs";
 import { useOwnerProgressJobs } from "./useOwnerProgressJobs";
 import { jobCategoryNames } from "../lib/ownerJobs";
-import { ownerProgressDeadline, progressWorkPlanContent } from "../lib/progressJobs";
+import { ownerAutoCompleteOn, ownerProgressDeadline } from "../lib/progressJobs";
 import type { OwnerProgressJob } from "../lib/progressJobs";
 import { useReceivedProposals } from "./useReceivedProposals";
 
@@ -52,6 +52,7 @@ export function useOwnerHome(): OwnerHome {
         field: jobCategoryNames(job.specialtyCategories)[0] ?? "기타",
         student: studentRef(job),
         revision: job.revisionSubmitted,
+        autoCompleteOn: ownerAutoCompleteOn(job),
       })),
     // 결정을 기다리는 제안만. 대분류가 여러 개면 첫 번째를 뱃지로
     ...proposals
@@ -96,7 +97,7 @@ export function useOwnerHome(): OwnerHome {
           student: studentRef(job),
           stage: deadline.stage,
           due: deadline.due,
-          plan: progressWorkPlanContent(job),
+          planJob: job.kind === "request" ? job : undefined,
           proposalId: job.proposalId !== undefined ? String(job.proposalId) : undefined,
         };
       }),

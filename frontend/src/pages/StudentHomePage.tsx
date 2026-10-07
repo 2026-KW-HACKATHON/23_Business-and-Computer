@@ -197,7 +197,9 @@ function StudentHomePage() {
                 title={job.title}
                 lines={[
                   ...(job.storeName ? [`${job.storeName} 사장님`] : []),
-                  `${job.revisionSubmitted ? "수정안" : "초안"} 제출, 사장님 확인 중`,
+                  job.submittedOn
+                    ? `${job.revisionSubmitted ? "수정안" : "초안"} 제출 : ${formatMonthDay(job.submittedOn)}`
+                    : `${job.revisionSubmitted ? "수정안" : "초안"} 제출, 사장님 확인 중`,
                 ]}
                 onClick={() => navigate(STUDENT_PATHS.workSubmitted(String(job.jobId)))}
               />

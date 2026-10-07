@@ -39,6 +39,7 @@ export {
   useJobApplications,
   useJobResult,
   useOpenJobs,
+  useOwnerStudentProfile,
   usePendingSubmission,
 } from "./hooks/useOwnerJobs";
 export type { OwnerJobLoad } from "./hooks/useOwnerJobs";
@@ -49,12 +50,13 @@ export { REVIEW_POINTS, sendJobReview, workHistoryText } from "./lib/closedJobs"
 export type { JobResult, JobReviewResult, OwnerClosedJob, OwnerClosedOutcome } from "./lib/closedJobs";
 export { useOwnerProgressJobs } from "./hooks/useOwnerProgressJobs";
 export type { OwnerProgressJobsLoad } from "./hooks/useOwnerProgressJobs";
+export { useProgressPlanSheet } from "./hooks/useProgressPlanSheet";
 export {
+  ownerAutoCompleteOn,
   ownerProgressDeadline,
   ownerProgressFlowSteps,
   ownerProgressNoun,
   ownerProgressStatusText,
-  progressWorkPlanContent,
 } from "./lib/progressJobs";
 export type { OwnerProgressJob, OwnerProgressStage } from "./lib/progressJobs";
 export { sendRevisionRequest, sendSubmissionComplete, submissionFileName } from "./lib/submissionReview";

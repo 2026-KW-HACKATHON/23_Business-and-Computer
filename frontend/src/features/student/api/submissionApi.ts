@@ -56,6 +56,41 @@ export async function submitDraft(jobId: number, request: SubmissionRequest): Pr
   await apiData<unknown>(`/jobs/${jobId}/submission`, { method: "POST", body: JSON.stringify(request) });
 }
 
+/** GET /jobs/{jobId}/submissions/latest 의 답. 내가 마지막으로 낸 초안 · 수정안과 거기에 받은 수정 요청 */
+export interface LatestSubmissionResponse {
+  submissionId: number;
+  submissionType: "DRAFT" | "REVISION";
+  /** 초안 0, 수정안은 1부터 */
+  revisionNumber: number;
+  /** 파일 주소. 끝 경로가 내가 올린 파일 이름 */
+  fileUrls: string[];
+  /** 제출할 때 남긴 말 */
+  message?: string | null;
+  /** PENDING = 사장님 확인 중, REVISION_REQUESTED = 수정 요청 받음, APPROVED = 완료 */
+  reviewStatus: "PENDING" | "REVISION_REQUESTED" | "APPROVED";
+  /** UTC, 오프셋 없음 ("2026-10-07T05:22:05"). 날짜는 submissionDay 로 한국 날짜로 바꿔 쓴다 */
+  submittedAt: string;
+  /** 이 결과물에 받은 수정 요청. 받지 않았으면 없음 */
+  revisionRequest?: {
+    /** 고칠 곳. 본문을 받기 전(백엔드 #196 전)에 한 요청이면 없음 */
+    message?: string | null;
+    /** 참고 사진 주소 (4장까지) */
+    referenceImageUrls?: string[] | null;
+    /** UTC, 오프셋 없음 */
+    requestedAt: string;
+  } | null;
+}
+
+/**
+ * GET /jobs/{jobId}/submissions/latest — 내가 맡은 의뢰에 마지막으로 낸 결과물 (완료 · 취소 뒤에도).
+ * 낸 게 없으면 404 JOB_SUBMISSION_404_LATEST, 내 의뢰가 아니면 404 JOB_404, 학생이 아니면 403 JOB_SUBMISSION_403_VIEW
+ */
+export async function fetchLatestSubmission(jobId: number): Promise<LatestSubmissionResponse> {
+  const data = await apiData<LatestSubmissionResponse | undefined>(`/jobs/${jobId}/submissions/latest`);
+  if (!data) throw new Error("Latest submission response has no data");
+  return data;
+}
+
 /** POST /jobs/{jobId}/submission/revisions — 수정 요청을 받은 뒤의 수정안 */
 export async function submitRevision(jobId: number, request: SubmissionRequest): Promise<void> {
   await apiData<unknown>(`/jobs/${jobId}/submission/revisions`, {

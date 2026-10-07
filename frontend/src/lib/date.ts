@@ -61,6 +61,16 @@ export function todayIsoDate(now = new Date()): string {
   return `${now.getFullYear()}-${month}-${day}`;
 }
 
+/**
+ * 서버가 오프셋 없이 주는 UTC 시각("2026-10-07T15:22:05")의 한국 날짜 "2026-10-08".
+ * 제출물 · 수정 요청 시각에 쓴다. 읽지 못하면 앞 10자(날짜)를 그대로 쓴다
+ */
+export function koreaDateOfUtc(utcDateTime: string): string {
+  const time = Date.parse(`${utcDateTime.replace(/(\.\d{3})\d+/, "$1").replace(/Z$/, "")}Z`);
+  if (Number.isNaN(time)) return utcDateTime.slice(0, 10);
+  return new Date(time + 9 * 3_600_000).toISOString().slice(0, 10);
+}
+
 /** "2026-09-11" → "2026.09.11", "2025-03" → "2025.03" */
 export function formatDotDate(isoDate: string): string {
   return isoDate.split("-").join(".");

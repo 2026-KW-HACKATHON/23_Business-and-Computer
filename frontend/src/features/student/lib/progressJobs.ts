@@ -1,5 +1,6 @@
 import { ApiError } from "../../../api/client";
 import type { FlowStep } from "../../../components";
+import { koreaDateOfUtc } from "../../../lib/date";
 import type { WorkKind } from "../../../types/workKind";
 import { fetchJobDetail } from "../../explore";
 import type { ExploreSpecialtyCategory } from "../../explore";
@@ -32,8 +33,11 @@ export interface ProgressJob {
   stage: ProgressStage;
   /** 마지막으로 낸 것이 수정안이면 true (확인 중일 때 「수정안」) */
   revisionSubmitted: boolean;
-  /** 가게 이름 · 주소 (GET /jobs/{id}). 못 불러오면 비운다 (그 줄을 숨긴다) */
+  /** 마지막으로 낸 결과물의 한국 날짜 "2026-10-07". 아무것도 내지 않았으면 없음 */
+  submittedOn?: string;
+  /** 가게 이름 (목록). 없으면 그 줄을 숨긴다 */
   storeName?: string;
+  /** 가게 주소. 목록에 없어서 storeAddress 를 부탁한 화면만 GET /jobs/{id} 로 채운다 */
   storeAddress?: string;
 }
 
@@ -90,11 +94,14 @@ export type ProgressJobsResult =
   | { status: "error" };
 
 /**
- * 진행 중 작업을 불러온다. 목록에 없는 가게 이름 · 주소는 의뢰마다 GET /jobs/{id} 로,
- * 제안에서 시작했는지는 보낸 제안(GET /me/proposals)의 jobId 로 채운다. 그 둘은 실패해도
- * 목록은 그대로 보인다 (가게 줄을 숨기고 의뢰로 본다).
+ * 진행 중 작업을 불러온다. 가게 이름 · 제출 시각은 목록에서, 제안에서 시작했는지는 보낸 제안
+ * (GET /me/proposals)의 jobId 로 채운다. 가게 주소는 목록에 없어서 storeAddress 를 부탁한
+ * 화면(내 활동)만 의뢰마다 GET /jobs/{id} 로 채운다. 그 둘은 실패해도 목록은 그대로 보인다
+ * (주소를 숨기고 의뢰로 본다).
  */
-export async function loadProgressJobs(): Promise<ProgressJobsResult> {
+export async function loadProgressJobs({
+  storeAddress = false,
+}: { storeAddress?: boolean } = {}): Promise<ProgressJobsResult> {
   let matched: MatchedJobResponse[];
   try {
     matched = await fetchMatchedJobs();
@@ -106,7 +113,9 @@ export async function loadProgressJobs(): Promise<ProgressJobsResult> {
 
   const [proposals, details] = await Promise.all([
     fetchMyProposals().catch(() => []),
-    Promise.all(matched.map((job) => fetchJobDetail(job.jobId).catch(() => undefined))),
+    storeAddress
+      ? Promise.all(matched.map((job) => fetchJobDetail(job.jobId).catch(() => undefined)))
+      : [],
   ]);
   const proposalJobIds = new Set(proposals.map((proposal) => proposal.jobId));
 
@@ -123,7 +132,8 @@ export async function loadProgressJobs(): Promise<ProgressJobsResult> {
       revisionLimit: job.revisionCount,
       stage: progressStageOf(job),
       revisionSubmitted: job.submissionType === "REVISION",
-      storeName: details[i]?.storeName?.trim() || undefined,
+      submittedOn: job.submittedAt ? koreaDateOfUtc(job.submittedAt) : undefined,
+      storeName: job.storeName?.trim() || details[i]?.storeName?.trim() || undefined,
       storeAddress: details[i]?.storeAddress?.trim() || undefined,
     })),
   };
