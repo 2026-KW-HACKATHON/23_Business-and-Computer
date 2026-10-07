@@ -257,6 +257,37 @@
   gap: 8px;
 }
 
+/* 사진 · 파일 보내기 (+). 숨긴 파일 고르기 칸을 감싼다 */
+.owner-chat__attach {
+  position: relative;
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--role-muted);
+  font-family: var(--font-sans);
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--role-secondary);
+  cursor: pointer;
+}
+
+.owner-chat__attach > input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.owner-chat__attach:focus-within {
+  outline: 2px solid var(--color-black);
+  outline-offset: 2px;
+}
+
 .owner-chat__send {
   display: flex;
   flex-shrink: 0;

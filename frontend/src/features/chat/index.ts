@@ -15,7 +15,7 @@ export {
   chatPlanOf,
   chatSummaryText,
 } from "./lib/chatRoom";
-export { isAttachmentExpired } from "./lib/messages";
+export { attachmentDetailText, isAttachmentExpired } from "./lib/messages";
 
 export type { ChatJobStatus } from "./api/chatApi";
 export type { ChatMessage, ChatRoom } from "./types";

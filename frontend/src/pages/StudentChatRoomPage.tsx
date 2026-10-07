@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { FormEvent, MouseEvent } from "react";
+import type { ChangeEvent, FormEvent, MouseEvent } from "react";
 import { useParams } from "react-router-dom";
 import {
   LoadNotice,
@@ -13,6 +13,7 @@ import {
   canReportChatWork,
   chatPlanOf,
   chatSummaryText,
+  attachmentDetailText,
   isAttachmentExpired,
   useChatRoom,
   useScrollToLatest,
@@ -20,6 +21,7 @@ import {
 import type { ChatMessage } from "../features/chat";
 import { MyPlanSheet, STUDENT_PATHS, useProposalJobIds } from "../features/student";
 import { useBack } from "../hooks/useBack";
+import { ATTACHMENT_ACCEPT } from "../lib/attachmentFormats";
 import { formatDayChip, formatMonthDay } from "../lib/date";
 import { formatWon } from "../lib/money";
 import "./StudentChatRoomPage.css";
@@ -39,7 +41,7 @@ function StudentChatRoomPage() {
 
 function StudentChatRoom({ roomId }: { roomId: string }) {
   const back = useBack(STUDENT_PATHS.chats);
-  const { load, messages, reload, send, resend, openExpiredAttachment } = useChatRoom(
+  const { load, messages, reload, send, sendAttachment, resend, openExpiredAttachment } = useChatRoom(
     roomId,
     STUDENT_PATHS.chats,
   );
@@ -78,6 +80,13 @@ function StudentChatRoom({ roomId }: { roomId: string }) {
     setDraft("");
   };
 
+  // 한 번에 하나. 같은 파일을 다시 고를 수 있게 고른 값은 바로 비운다
+  const handleFile = (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (file) sendAttachment(file);
+  };
+
   return (
     <SubScreen
       title={
@@ -92,6 +101,10 @@ function StudentChatRoom({ roomId }: { roomId: string }) {
       onBack={back}
       footer={
         <form className="student-chat__composer" onSubmit={handleSubmit}>
+          <label className="student-chat__attach" aria-label="사진·파일 보내기">
+            +
+            <input type="file" accept={ATTACHMENT_ACCEPT} onChange={handleFile} />
+          </label>
           <input
             className="student-chat__input"
             value={draft}
@@ -202,6 +215,7 @@ function SendState({
     return (
       <span className="student-chat__failed">
         <span>보내지 못했어요</span>
+        {message.failureReason && <span>{message.failureReason}</span>}
         <button
           type="button"
           className="student-chat__resend"
@@ -215,7 +229,7 @@ function SendState({
   return <time className="student-chat__time">{timeOf(message.createdAt)}</time>;
 }
 
-/** 글 · 사진 · 파일 말풍선. 열람 주소가 만료됐으면 새 주소를 받아 연다 */
+/** 글 · 사진 · 파일 말풍선. 열람 주소가 만료됐으면 새 주소를 받아 연다. 보낸 파일은 크기도 보인다 */
 function MessageBody({
   message,
   mine,
@@ -234,6 +248,28 @@ function MessageBody({
   }
 
   const name = message.attachmentName ?? (message.type === "IMAGE" ? "사진" : "파일");
+  const detail = attachmentDetailText(message);
+  const fileBody = (
+    <>
+      <span aria-hidden="true">📄</span>
+      <span className="student-chat__file-info">
+        <strong>{name}</strong>
+        {detail && <small>{detail}</small>}
+      </span>
+    </>
+  );
+
+  // 보내는 중 · 보내지 못한 첨부: 사진은 고른 파일 미리보기, 파일은 이름과 크기
+  if (message.status !== "sent") {
+    return message.type === "IMAGE" && message.content ? (
+      <span className="student-chat__image">
+        <img src={message.content} alt={name} />
+      </span>
+    ) : (
+      <span className="student-chat__file">{fileBody}</span>
+    );
+  }
+
   if (!message.content) {
     return (
       <span className="student-chat__file">
@@ -273,10 +309,7 @@ function MessageBody({
       rel="noopener noreferrer"
       onClick={handleClick}
     >
-      <span aria-hidden="true">📄</span>
-      <span className="student-chat__file-info">
-        <strong>{name}</strong>
-      </span>
+      {fileBody}
     </a>
   );
 }

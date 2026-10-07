@@ -1,59 +1,20 @@
 import { ApiError } from "../../../api/client";
+import { ATTACHMENT_ACCEPT, ATTACHMENT_MAX_BYTES, attachmentFormatOf } from "../../../lib/attachmentFormats";
 import { submitDraft, submitRevision, uploadSubmissionFile } from "../api/submissionApi";
-import type { SubmissionFileType } from "../api/submissionApi";
 
 /** 결과물은 한 번에 이만큼까지 낸다 */
 export const MAX_SUBMISSION_FILES = 10;
 
-const MB = 1024 * 1024;
-
-/** 백엔드가 받는 확장자와 형식 (채팅 첨부와 같은 규칙). 크기는 이미지 10MB, 그 밖의 파일 50MB */
-const SUBMISSION_FORMATS: Record<string, { type: SubmissionFileType; contentTypes: string[] }> = {
-  jpg: { type: "IMAGE", contentTypes: ["image/jpeg"] },
-  jpeg: { type: "IMAGE", contentTypes: ["image/jpeg"] },
-  png: { type: "IMAGE", contentTypes: ["image/png"] },
-  webp: { type: "IMAGE", contentTypes: ["image/webp"] },
-  gif: { type: "IMAGE", contentTypes: ["image/gif"] },
-  pdf: { type: "FILE", contentTypes: ["application/pdf"] },
-  // Windows 브라우저는 zip 을 application/x-zip-compressed 로 준다
-  zip: { type: "FILE", contentTypes: ["application/zip", "application/x-zip-compressed"] },
-  doc: { type: "FILE", contentTypes: ["application/msword"] },
-  docx: {
-    type: "FILE",
-    contentTypes: ["application/vnd.openxmlformats-officedocument.wordprocessingml.document"],
-  },
-  xls: { type: "FILE", contentTypes: ["application/vnd.ms-excel"] },
-  xlsx: { type: "FILE", contentTypes: ["application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"] },
-  ppt: { type: "FILE", contentTypes: ["application/vnd.ms-powerpoint"] },
-  pptx: {
-    type: "FILE",
-    contentTypes: ["application/vnd.openxmlformats-officedocument.presentationml.presentation"],
-  },
-};
-
-const MAX_BYTES: Record<SubmissionFileType, number> = { IMAGE: 10 * MB, FILE: 50 * MB };
-
-/** 파일 고르기 창에서 받을 확장자 */
-export const SUBMISSION_FILE_ACCEPT = Object.keys(SUBMISSION_FORMATS)
-  .map((ext) => `.${ext}`)
-  .join(",");
+/** 파일 고르기 창에서 받을 확장자 (채팅 첨부와 같은 규칙, src/lib/attachmentFormats.ts) */
+export const SUBMISSION_FILE_ACCEPT = ATTACHMENT_ACCEPT;
 
 /** 파일 고르기 아래 회색 안내 */
 export const SUBMISSION_FILE_HINT = `이미지 10MB · PDF·문서·ZIP 50MB까지, 최대 ${MAX_SUBMISSION_FILES}개`;
 
-function formatOf(file: File) {
-  const ext = file.name.includes(".") ? file.name.split(".").pop()!.toLowerCase() : "";
-  const format = SUBMISSION_FORMATS[ext];
-  if (!format) return undefined;
-  // 브라우저가 형식을 비우거나 다르게 주면 확장자의 대표 형식으로 보낸다
-  const contentType = format.contentTypes.includes(file.type) ? file.type : format.contentTypes[0];
-  return { type: format.type, contentType };
-}
-
 /** 올릴 수 있는 파일이면 true (확장자 · 크기) */
 export function isSubmittableFile(file: File): boolean {
-  const format = formatOf(file);
-  return format !== undefined && file.size > 0 && file.size <= MAX_BYTES[format.type];
+  const format = attachmentFormatOf(file);
+  return format !== undefined && file.size > 0 && file.size <= ATTACHMENT_MAX_BYTES[format.type];
 }
 
 export type SubmissionKind = "draft" | "revision";
@@ -107,7 +68,7 @@ export async function sendSubmission(
   const fileUrls: string[] = [];
   try {
     for (const file of files) {
-      const format = formatOf(file);
+      const format = attachmentFormatOf(file);
       if (!format) return { status: "fileFailed" };
       fileUrls.push(
         await uploadSubmissionFile(jobId, file, {
