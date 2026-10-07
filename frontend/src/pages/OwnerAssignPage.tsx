@@ -74,11 +74,11 @@ function OwnerAssignPage() {
       onBack={back}
       footer={
         <div className="owner-assign__actions">
-          <Button fullWidth onClick={() => navigate(OWNER_PATHS.assignPay(requestId, applicationId))}>
-            네, 맡길게요
+          <Button variant="secondary" onClick={back}>
+            더 볼게요
           </Button>
-          <Button variant="secondary" fullWidth onClick={back}>
-            좀 더 고민해볼래요
+          <Button onClick={() => navigate(OWNER_PATHS.assignPay(requestId, applicationId))}>
+            네, 맡길게요
           </Button>
         </div>
       }

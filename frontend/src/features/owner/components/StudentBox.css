@@ -1,0 +1,30 @@
+.student-box {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px;
+  border: 1px solid var(--role-border);
+  border-radius: 16px;
+}
+
+.student-box__info {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.student-box__name {
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 21px;
+  color: var(--color-black);
+}
+
+.student-box__sub {
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--role-secondary);
+  white-space: pre-line;
+}

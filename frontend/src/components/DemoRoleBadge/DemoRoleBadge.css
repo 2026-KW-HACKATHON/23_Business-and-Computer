@@ -24,7 +24,6 @@
   background: var(--color-black);
 }
 
-.demo-role-badge__status,
 .demo-role-badge__switch {
   font-weight: 700;
 }
@@ -32,4 +31,15 @@
 .demo-role-badge:focus-visible {
   outline: 2px solid var(--color-black);
   outline-offset: 2px;
+}
+
+/* 누를 때 반응: 살짝 작아진다 */
+.demo-role-badge {
+  transition:
+    box-shadow 0.15s ease,
+    transform 0.12s ease;
+}
+
+.demo-role-badge:active {
+  transform: scale(0.96);
 }

@@ -96,8 +96,16 @@
   color: var(--color-black);
 }
 
+/* 아래 버튼: 왼쪽 보조 + 오른쪽 주요 (작업 확인과 같은 배치) */
 .owner-assign__actions {
   display: flex;
-  flex-direction: column;
   gap: 8px;
+}
+
+.owner-assign__actions > .button--secondary {
+  flex: 0 0 112px;
+}
+
+.owner-assign__actions > .button--owner {
+  flex: 1;
 }

@@ -37,11 +37,9 @@ an offset; the received proposal `createdAt` is Korean time.
   date (`arrivedOn`) from the list and only GET /me/received-proposals
   besides (kind and the name fallback). GET /me/chat-rooms is gone from the
   load.
-- **작업계획서 sheet** (`src/features/owner/hooks/useProgressPlanSheet.ts`):
-  내 활동 › 진행 중 「상세보기」 and the home 「학생이 작업 중」 rows of a
-  request load the application from GET /me/chat-rooms when tapped, then
-  open the sheet. A second tap while loading does nothing; no application →
-  「지원서를 찾지 못했어요」, failure → 「지원서를 불러오지 못했어요…」.
+- **Application**: the application of a request comes from GET
+  /me/chat-rooms when 보낸 의뢰 opens on a working job (`loadAssignedWork`,
+  ADR 0049).
 - **Owner dates**: the home 「확인할 일」 card reads 「M월 D일까지 확인하지 않으면
   자동으로 완료돼요」, and 작업 확인 reads 「학생 · 초안 도착 M월 D일 · 수정
   n/m」 with 「M월 D일까지 확인해 주세요」 / 「답이 없으면 자동으로 완료돼요」.
@@ -75,7 +73,7 @@ an offset; the received proposal `createdAt` is Korean time.
 
 - When the student matched list carries the store address, drop the
   `storeAddress` option and GET /jobs/{id} from `loadProgressJobs`.
-- When the owner matched list carries the application, drop
-  `loadProgressPlan` and fill the sheet from the list.
+- When the owner matched list carries the application, read it there and
+  drop GET /me/chat-rooms from `loadAssignedWork` (ADR 0049).
 - New list times are UTC without an offset unless the backend says
   otherwise; read them with `koreaDateOfUtc`.

@@ -25,37 +25,6 @@
   color: var(--role-secondary);
 }
 
-.owner-proposal__student {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 16px;
-  border: 1px solid var(--role-border);
-  border-radius: 16px;
-}
-
-.owner-proposal__student-info {
-  display: flex;
-  flex: 1;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-}
-
-.owner-proposal__student-name {
-  font-size: 16px;
-  font-weight: 700;
-  line-height: 21px;
-  color: var(--color-black);
-}
-
-.owner-proposal__student-sub {
-  font-size: 12px;
-  line-height: 16px;
-  color: var(--role-secondary);
-  white-space: pre-line;
-}
-
 /* 받은 제안: 상태 칩 · 대분류 뱃지(여러 개면 다음 줄로) · 도착 날짜 */
 .owner-proposal__meta {
   flex-wrap: wrap;

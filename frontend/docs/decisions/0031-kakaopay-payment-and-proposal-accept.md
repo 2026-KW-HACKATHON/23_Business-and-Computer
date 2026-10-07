@@ -94,14 +94,14 @@ The backend (dev) pays through the KakaoPay test merchant:
       single line 「잠시만 기다려 주세요. 이 화면을 닫지 말아 주세요.」,
       approves, and then shows the success popup.
     - For a proposal the text is 「작업비는 골목인턴이 보관해요. 학생이 작업을
-      시작하면 알려 드릴게요」, and 「확인」 replaces the history entry with
-      that proposal's detail.
+      시작하면 알려 드릴게요」, and 「확인」 goes home; the proposal detail
+      and accept screens leave the history (ADR 0047).
     - `pg_token` stays in the URL, so a refresh approves again and gets the
       stored result.
   - **cancel / fail**: the failure popup is shown. 「다시 결제하기」 goes to
     that proposal's accept screen.
   - **Approval failures**:
-    - `PAYMENT_409_PAID` → 「이미 결제된 제안이에요」, then the detail.
+    - `PAYMENT_409_PAID` → 「이미 결제된 제안이에요」, then home (ADR 0047).
     - `PAYMENT_403_FORBIDDEN` → 「다른 계정에서 진행한 결제예요. 결제한
       사장님 계정으로 확인해 주세요」, then 받은 제안 tab.
     - `PAYMENT_404_ORDER` → 「결제 정보를 찾을 수 없어요. 다시 결제해
@@ -112,7 +112,7 @@ The backend (dev) pays through the KakaoPay test merchant:
     - 502, network errors, or a missing `pg_token` → the failure popup.
   - **No stored record**, or one for another order:
     - An approval URL with `orderId` and `pg_token` is still approved, then
-      「확인」 goes to 내 활동 › 진행 중.
+      「확인」 goes home.
     - Any other return goes straight to 내 활동 › 진행 중.
   - The stored record is cleared when the page is left through a popup
     button or a redirect.

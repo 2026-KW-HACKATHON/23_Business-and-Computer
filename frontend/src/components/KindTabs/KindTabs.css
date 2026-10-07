@@ -46,3 +46,15 @@
   outline: 2px solid var(--color-black);
   outline-offset: -2px;
 }
+
+/* 누를 때 반응: 탭이 살짝 작아진다 */
+.kind-tabs__tab {
+  transition:
+    background-color 0.15s ease,
+    box-shadow 0.15s ease,
+    transform 0.12s ease;
+}
+
+.kind-tabs__tab:active {
+  transform: scale(0.97);
+}

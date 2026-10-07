@@ -105,8 +105,11 @@ student screen, which still read `sampleProposals.ts`. The backend (dev) has:
   - PENDING shows 「수락하면 M월 D일까지 초안, M월 D일까지 최종」 from the
     estimated deadlines, plus the old footnote.
   - Reference photos use the new `ReferencePhotos` component
-    (`src/components/ReferencePhotos`). It draws square thumbnails that open
-    the original image in a new tab. A photo that fails to load becomes a grey
+    (`src/components/ReferencePhotos`). It draws square thumbnails with a file
+    name badge (the given `names`, else the URL's last segment, else 「사진
+    n」 for a random server name); a tap opens the photo large in the app
+    (`PhotoViewer`: close with ✕, the backdrop, or Esc; ‹ › and the arrow
+    keys move between photos). A photo that fails to load becomes a grey
     tile. `AttachmentTiles` is unchanged.
   - Footer: 「조건 확인하기」 for AWAITING_START with the job not cancelled
     (ADR 0029); 「제안 취소」 (gray) and 「확인」 while PENDING and the job is

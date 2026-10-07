@@ -1,6 +1,6 @@
 import logoGolmok from "../../assets/brand/logo-golmok.png";
 import appIcon from "../../assets/brand/app-icon.png";
-import taglineRole from "../../assets/brand/tagline-role.png";
+import taglineRole from "../../assets/brand/tagline-role.webp";
 import characterOwner from "../../assets/characters/owner.svg";
 import characterStudent from "../../assets/characters/student.svg";
 import splashOwner from "../../assets/characters/splash-owner.webp";
@@ -63,7 +63,7 @@ export const IMAGES = {
   // 브랜드
   logoGolmok: { src: logoGolmok, width: 180, height: 53, alt: "골목인턴" },
   appIcon: { src: appIcon, width: 96, height: 96, alt: "골목인턴 앱 아이콘" },
-  taglineRole: { src: taglineRole, width: 174, height: 58, alt: "가게에 필요한 작업을 학생이 전공을 살려 해드려요" },
+  taglineRole: { src: taglineRole, width: 180, height: 32, alt: "제안과 의뢰로 함께 만들어 가는 월계1동 골목상권" },
 
   // 캐릭터
   characterOwner: { src: characterOwner, width: 160, height: 160, alt: "사장님 캐릭터" },

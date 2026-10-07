@@ -126,7 +126,7 @@
 }
 
 .student-profile-edit__cert-input:focus {
-  border-color: var(--color-black);
+  border-color: var(--role-focus);
 }
 
 .student-profile-edit__cert-input--year {

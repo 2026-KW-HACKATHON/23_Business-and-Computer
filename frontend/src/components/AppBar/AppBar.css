@@ -19,8 +19,11 @@
   box-sizing: border-box;
 }
 
+/* 누를 때 어두워지는 칸이 화살표를 둥글게 감싸도록 여백을 두고, 그만큼 바깥 여백을 빼 자리는 그대로 둔다 */
 .app-bar__back {
-  padding: 0;
+  margin: -4px -6px;
+  padding: 4px 6px;
+  border-radius: 10px;
   border: none;
   background: none;
   font-family: var(--font-sans);

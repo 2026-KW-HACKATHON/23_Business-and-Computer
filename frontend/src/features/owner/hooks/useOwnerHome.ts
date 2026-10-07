@@ -97,7 +97,6 @@ export function useOwnerHome(): OwnerHome {
           student: studentRef(job),
           stage: deadline.stage,
           due: deadline.due,
-          planJob: job.kind === "request" ? job : undefined,
           proposalId: job.proposalId !== undefined ? String(job.proposalId) : undefined,
         };
       }),

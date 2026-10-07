@@ -2,7 +2,10 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  padding: 4px 0 4px 4px;
+  /* 오른쪽 여백만큼 바깥 여백을 빼 자리는 그대로 두고, 누를 때 어두워지는 칸은 글자를 고르게 감싼다 */
+  margin-right: -4px;
+  padding: 4px;
+  border-radius: 6px;
   border: none;
   background: none;
   font-family: var(--font-sans);

@@ -16,7 +16,6 @@ import {
 import {
   OWNER_PATHS,
   PaymentSummaryBox,
-  WorkPlanSheet,
   admissionYearText,
   deadlineText,
   isOwnerWorkReviewed,
@@ -30,7 +29,6 @@ import {
   useOpenJobs,
   useOwnerClosedJobs,
   useOwnerProgressJobs,
-  useProgressPlanSheet,
   useReceivedProposals,
 } from "../features/owner";
 import type {
@@ -120,8 +118,6 @@ function OwnerActivityPage() {
   const { load: closedLoad, reload: reloadClosed } = useOwnerClosedJobs();
   const closedJobs = closedLoad.status === "loaded" ? closedLoad.jobs : [];
   const paymentSummary = closedLoad.status === "loaded" ? closedLoad.paymentSummary : undefined;
-  // 진행 중 카드의 「상세보기」 = 지원서 바텀시트 (누를 때 불러옴)
-  const planSheet = useProgressPlanSheet();
   const [reportTitle, setReportTitle] = useState<string>();
   const openStudent = (studentProfileId: number) => navigate(OWNER_PATHS.student(String(studentProfileId)));
 
@@ -209,7 +205,7 @@ function OwnerActivityPage() {
           <>
             <div className="owner-activity__divider" />
             <Button size="medium" fullWidth onClick={openDetail}>
-              제안 받기
+              자세히 보고 수락하기
             </Button>
           </>
         )}
@@ -217,20 +213,21 @@ function OwnerActivityPage() {
     );
   };
 
-  // 학생이 맡아 진행 중인 내 의뢰 (서버). 만드는 중이면 상세보기 = 지원서 바텀시트 또는 받은 제안
+  // 학생이 맡아 진행 중인 내 의뢰 (서버). 「상세보기」는 도착했으면 작업 확인, 만드는 중이면 보낸 의뢰 · 받은 제안 상세
   const inProgressCard = (job: OwnerProgressJob) => {
     const id = String(job.jobId);
     const submitted = job.stage === "submitted";
     const noun = ownerProgressNoun(job);
     const deadline = ownerProgressDeadline(job);
     const proposalId = job.proposalId;
-    const openDetail = submitted
-      ? () => navigate(OWNER_PATHS.workCheck(id))
-      : job.kind === "request"
-        ? () => planSheet.open(job)
-        : proposalId !== undefined
-          ? () => navigate(OWNER_PATHS.proposal(String(proposalId)))
-          : undefined;
+    const openDetail = () =>
+      navigate(
+        submitted
+          ? OWNER_PATHS.workCheck(id)
+          : proposalId !== undefined
+            ? OWNER_PATHS.proposal(String(proposalId))
+            : OWNER_PATHS.request(id),
+      );
     return (
       <li key={job.jobId} className="owner-activity__card">
         <CardHead kind={job.kind} title={job.title} />
@@ -243,7 +240,7 @@ function OwnerActivityPage() {
         <div className="owner-activity__box">
           <span className="owner-activity__dot" aria-hidden="true" />
           <span className="owner-activity__status">{ownerProgressStatusText(job)}</span>
-          {openDetail && <TextButton onClick={openDetail}>상세보기</TextButton>}
+          <TextButton onClick={openDetail}>상세보기</TextButton>
         </div>
         <div className="owner-activity__divider" />
         <StudentLine
@@ -410,11 +407,6 @@ function OwnerActivityPage() {
         )}
       </div>
 
-      <WorkPlanSheet
-        content={planSheet.content}
-        onClose={planSheet.close}
-        onChat={() => navigate(OWNER_PATHS.chats)}
-      />
       <ReportSheet
         open={reportTitle !== undefined}
         workTitle={reportTitle ?? ""}

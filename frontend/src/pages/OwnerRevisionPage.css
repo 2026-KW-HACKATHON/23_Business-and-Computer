@@ -153,6 +153,14 @@
 }
 
 /* 고른 사진 미리보기 */
+/* 썸네일을 누르면 고른 사진을 크게 본다 */
+.owner-revision__photo-list .owner-revision__thumb-button {
+  display: flex;
+  padding: 0;
+  border-radius: 4px;
+  cursor: zoom-in;
+}
+
 .owner-revision__thumb {
   flex-shrink: 0;
   width: 20px;

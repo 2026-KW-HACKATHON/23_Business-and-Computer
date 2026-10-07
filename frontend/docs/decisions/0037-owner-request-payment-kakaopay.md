@@ -76,7 +76,8 @@ The backend (dev) has:
   target keeps `jobApplicationId`, so 「다시 결제하기」 goes back to the pay
   route for the same applicant. The completion popup reads 「작업비는
   골목인턴이 보관해요. 학생과 채팅으로 자세한 내용을 나눠 보세요.」 and 「확인」
-  goes to 내 활동 › 진행 중.
+  goes home; the applicant, assign, and pay screens leave the history (ADR
+  0047).
 - **features/payment**: `prepareJobPayment(jobId, { jobApplicationId,
   refundPolicyAgreed })`; `paymentFailureOf` maps JOB_APPLICATION_404 to
   `applicationNotFound`.

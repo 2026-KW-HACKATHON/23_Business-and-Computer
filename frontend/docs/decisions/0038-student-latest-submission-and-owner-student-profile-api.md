@@ -36,8 +36,8 @@ The backend (dev) has:
   of the UTC times (`koreaDateOfUtc` in `src/lib/date.ts`).
 - **수정 요청 확인** (`src/pages/StudentJobStagePages.tsx`): the owner's
   request with its date, the text (line breaks kept; 「사장님이 적은 내용이
-  없어요」 when there is none), and 참고 사진 (`ReferencePhotos`, tap to open
-  the original); 「내가 보낸 초안 · 수정안」 lists the files by name with 「M월
+  없어요」 when there is none), and 참고 사진 (`ReferencePhotos`, tap to see
+  it large); 「내가 보낸 초안 · 수정안」 lists the files by name with 「M월
   D일 보냄」 and a 「받기」 link. 「이번이 마지막 수정이에요」 shows when
   `revisionNumber + 1` reaches the revision count.
 - **수정안 제출** (`src/pages/StudentJobSubmitPage.tsx`): the owner's request
