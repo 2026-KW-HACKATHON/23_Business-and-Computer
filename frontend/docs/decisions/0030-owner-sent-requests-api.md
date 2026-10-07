@@ -58,8 +58,10 @@ The backend (dev) has:
 - **보낸 의뢰서 상세** (`src/pages/OwnerRequestPage.tsx`, GET /jobs/{id}): the
   title, category badges, 「모집 중, 지원자 N명」 (count from the applicant
   list) or the status label, the flow bar, the terms, 「의뢰 취소」 while OPEN,
-  할 일, 맡기고 싶은 일, 참고 자료, and the 「학생을 고르면 이렇게 진행돼요」
-  steps.
+  할 일, 맡기고 싶은 일, 참고 자료, and while OPEN the 「학생을 고르면 이렇게
+  진행돼요」 steps. With applicants the button reads 「지원자 N명 보기」 (the
+  applicant list), otherwise 「확인」. While a student works on it the screen
+  shows the stage, the student, and the application (ADR 0049).
 - **의뢰 취소** (`src/pages/OwnerRequestCancelPage.tsx`): sends both texts
   trimmed; 「취소하는 중...」 while sending, one request per press; success
   opens 「의뢰를 취소했어요」; 409 or 404 → 「지금은 취소할 수 없는 의뢰예요…」,
