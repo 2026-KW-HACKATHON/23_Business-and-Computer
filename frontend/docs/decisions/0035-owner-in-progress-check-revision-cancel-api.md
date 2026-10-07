@@ -56,7 +56,8 @@ The backend (dev) has:
   the status (초안 제작 중 · 수정안 제작 중 · 초안/수정안이 도착했어요), the
   student line (name · 학번 · 학과; 「프로필 보기」 opens the student's
   profile, ADR 0038), and either 초안/수정안 확인하기 · 문의하기 (채팅
-  목록) or 작업 취소 · 문제 신고. 「상세보기」 opens the work check when
+  목록) or, under a gray line, 「문제가 있나요?」 with 작업 취소 (only while
+  drafting, ADR 0045) · 문제 신고. 「상세보기」 opens the work check when
   something arrived, otherwise 보낸 의뢰 for a request or the received
   proposal for a proposal (ADR 0049). The count shows 「-」 and `LoadNotice` replaces
   the list while loading or after a failure.
@@ -65,8 +66,6 @@ The backend (dev) has:
   revising jobs are 「학생이 작업 중」 rows that open 보낸 의뢰 or the
   received proposal (ADR 0049). A failed load shows one 「다시 시도」 line, and the
   확인할 일 count waits for both lists.
-- **작업계획서 sheet** (`WorkPlanSheet`): takes `WorkPlanSheetContent` and
-  leaves out the date, fee, and revision rows it does not know.
 - **작업 확인** (`src/pages/OwnerJobCheckPage.tsx`, /owner/works/:id/check
   with a numeric id): the summary (student · 초안/수정안 도착 M월 D일 · 수정
   n/m), flow bar, 「M월 D일까지 확인해 주세요」 with the revisions left (ADR
