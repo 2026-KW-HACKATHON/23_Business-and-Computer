@@ -233,3 +233,9 @@
     bottom: calc(20px + env(safe-area-inset-bottom));
   }
 }
+
+/* 누를 때 반응: 화면 전체가 버튼이라 바탕 덧칠을 하지 않는다 */
+.intro:hover,
+.intro:active {
+  box-shadow: none;
+}

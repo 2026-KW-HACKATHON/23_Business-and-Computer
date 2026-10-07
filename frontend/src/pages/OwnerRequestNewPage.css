@@ -298,3 +298,8 @@
   background: var(--color-white);
   object-fit: cover;
 }
+
+/* 누를 때 반응: 분야 카드가 살짝 작아진다 (고른 카드도) */
+.owner-new__field:active {
+  transform: scale(0.98);
+}

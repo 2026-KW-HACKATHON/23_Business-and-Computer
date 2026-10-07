@@ -45,6 +45,7 @@
   height: 32px;
   padding: 0;
   border: none;
+  border-radius: 50%;
   background: none;
   cursor: pointer;
 }
@@ -70,5 +71,4 @@
 .main-app-bar__icon:focus-visible {
   outline: 2px solid var(--color-black);
   outline-offset: 2px;
-  border-radius: 8px;
 }

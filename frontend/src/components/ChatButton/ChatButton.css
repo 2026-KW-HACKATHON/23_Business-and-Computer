@@ -11,7 +11,8 @@
   cursor: pointer;
   transition:
     transform 0.08s ease,
-    box-shadow 0.08s ease;
+    box-shadow 0.08s ease,
+    background-color 0.15s ease;
 }
 
 .chat-button--owner {
@@ -35,4 +36,15 @@
 .chat-button:focus-visible {
   outline: 2px solid var(--color-black);
   outline-offset: 2px;
+}
+
+/* 누를 때 반응: 올리면 바탕이 자기 받침 색 쪽으로 조금 진해진다 */
+@media (hover: hover) {
+  .chat-button--owner:hover {
+    background: color-mix(in srgb, var(--color-owner) 86%, var(--color-owner-shadow));
+  }
+
+  .chat-button--student:hover {
+    background: color-mix(in srgb, var(--color-student) 86%, var(--color-student-shadow));
+  }
 }

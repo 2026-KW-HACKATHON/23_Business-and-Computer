@@ -61,3 +61,23 @@
   outline-offset: 2px;
   border-radius: 16px;
 }
+
+/* 누를 때 반응: 버튼 전체가 아니라 아이콘 칸이 반응한다. 안 고른 칸은 올리면 조금 진해지고, 누르면 살짝 작아진다 */
+.field-filter:hover,
+.field-filter:active {
+  box-shadow: none;
+}
+
+@media (hover: hover) {
+  .field-filter:hover:not(.field-filter--selected) .field-filter__icon {
+    background: color-mix(in srgb, var(--role-muted) 70%, var(--input-border));
+  }
+}
+
+.field-filter:active .field-filter__icon {
+  transform: scale(0.94);
+}
+
+.field-filter--selected:active .field-filter__icon {
+  transform: translateY(-1px) scale(0.97);
+}
