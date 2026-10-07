@@ -2,7 +2,6 @@
 export { default as ApplicationSheet } from "./components/ApplicationSheet";
 export { default as ExploreTabs } from "./components/ExploreTabs";
 export { default as FilePicker } from "./components/FilePicker";
-export { default as MyPlanSheet } from "./components/MyPlanSheet";
 export { default as PeerProposalCard } from "./components/PeerProposalCard";
 export { default as PeerProposalRow } from "./components/PeerProposalRow";
 export { default as RequestCard } from "./components/RequestCard";
@@ -84,6 +83,7 @@ export {
 export type { SubmissionKind, SubmissionResult } from "./lib/submission";
 export type { ProgressJob, ProgressStage } from "./lib/progressJobs";
 export { flowSteps, workFlowSteps } from "./lib/flow";
+export { studentWorkDocPath, studentWorkDocSub } from "./lib/workDocs";
 export {
   currentDeadline,
   deadlineText,

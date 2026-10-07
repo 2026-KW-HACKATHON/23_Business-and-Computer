@@ -1,25 +1,19 @@
 import { useState } from "react";
 import type { ChangeEvent, FormEvent, MouseEvent } from "react";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
+import { LoadNotice, ReportSheet, RoleAvatar, SubScreen } from "../components";
 import {
-  LoadNotice,
-  ReportSheet,
-  RoleAvatar,
-  SubScreen,
-  TextButton,
-  WorkKindIcon,
-} from "../components";
-import {
+  ChatWorkCard,
   canReportChatWork,
-  chatPlanOf,
-  chatSummaryText,
+  chatWorkStageOf,
+  chatWorkStatusText,
   attachmentDetailText,
   isAttachmentExpired,
   useChatRoom,
   useScrollToLatest,
 } from "../features/chat";
-import type { ChatMessage } from "../features/chat";
-import { MyPlanSheet, STUDENT_PATHS, useProposalJobIds } from "../features/student";
+import type { ChatMessage, ChatWorkTroubleItem } from "../features/chat";
+import { STUDENT_PATHS, useProgressJobs, useProposalJobIds } from "../features/student";
 import { useBack } from "../hooks/useBack";
 import { ATTACHMENT_ACCEPT } from "../lib/attachmentFormats";
 import { formatDayChip, formatMonthDay } from "../lib/date";
@@ -40,18 +34,20 @@ function StudentChatRoomPage() {
 }
 
 function StudentChatRoom({ roomId }: { roomId: string }) {
+  const navigate = useNavigate();
   const back = useBack(STUDENT_PATHS.chats);
   const { load, messages, reload, send, sendAttachment, resend, openExpiredAttachment } = useChatRoom(
     roomId,
     STUDENT_PATHS.chats,
   );
   const [draft, setDraft] = useState("");
-  const [planOpen, setPlanOpen] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
   // 처음 들어올 때, 맨 아래 근처에서 새 메시지를 받을 때, 내가 보낼 때 맨 아래로
   const endRef = useScrollToLatest(messages);
-  // 받은 · 보낸 제안의 의뢰면 제안에서 시작한 작업
+  // 보낸 제안의 의뢰면 제안에서 시작한 작업 (값은 제안 id)
   const proposalJobIds = useProposalJobIds();
+  // 낸 결과물이 초안인지 수정안인지는 진행 중 목록으로
+  const { load: progressLoad } = useProgressJobs();
 
   if (load.status !== "loaded") {
     return (
@@ -67,10 +63,23 @@ function StudentChatRoom({ roomId }: { roomId: string }) {
   }
 
   const { room } = load;
-  const plan = chatPlanOf(room);
-  const summary = chatSummaryText(room, "student");
-  const canReport = canReportChatWork(room);
   const partnerName = `${room.counterpartName} 사장님`;
+  const id = String(room.jobId);
+  const matched = progressLoad.status === "loaded" ? progressLoad.jobs.find((job) => job.jobId === room.jobId) : undefined;
+  const stage = chatWorkStageOf(room, matched);
+  const proposalId = proposalJobIds.get(room.jobId);
+  const kind = proposalId !== undefined ? "proposal" : "request";
+  // 지금 할 일: 초안 · 수정안 내기
+  const action =
+    stage === "drafting"
+      ? { label: "초안 제출하기", onClick: () => navigate(STUDENT_PATHS.workSubmit(id)) }
+      : stage === "revising"
+        ? { label: "수정안 작성하기", onClick: () => navigate(STUDENT_PATHS.workRevisionSubmit(id)) }
+        : undefined;
+  // 「문제가 있나요?」: 신고는 작업 중에만. 작업 취소는 사장님만 할 수 있다
+  const trouble: ChatWorkTroubleItem[] = canReportChatWork(room)
+    ? [{ label: "문제 신고", onSelect: () => setReportOpen(true) }]
+    : [];
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
@@ -120,25 +129,16 @@ function StudentChatRoom({ roomId }: { roomId: string }) {
       }
     >
       <div className="student-chat">
-        <div className="student-chat__work">
-          <div className="student-chat__work-head">
-            <WorkKindIcon kind={proposalJobIds.has(room.jobId) ? "proposal" : "request"} size={20} />
-            <strong className="student-chat__work-title">{room.jobTitle}</strong>
-            {plan && <TextButton onClick={() => setPlanOpen(true)}>작업계획서 보기</TextButton>}
-          </div>
-          {summary && <p className="student-chat__work-progress">{summary}</p>}
-          <p className="student-chat__work-terms">
-            {`${formatWon(room.budget)}, 수정 ${room.revisionCount}회, 최종 마감 ${formatMonthDay(room.finalDeadline)}`}
-          </p>
-          {/* 신고는 작업 상태를 알 때 작업 중에만. 작업 취소는 사장님만 할 수 있다 */}
-          {canReport && (
-            <div className="student-chat__work-actions">
-              <TextButton showChevron={false} onClick={() => setReportOpen(true)}>
-                문제 신고
-              </TextButton>
-            </div>
-          )}
-        </div>
+        <ChatWorkCard
+          role="student"
+          kind={kind}
+          title={room.jobTitle}
+          status={chatWorkStatusText(stage, room, "student")}
+          terms={`${formatWon(room.budget)}, 수정 ${room.revisionCount}회, 최종 마감 ${formatMonthDay(room.finalDeadline)}`}
+          historyTo={STUDENT_PATHS.workHistory(id)}
+          action={action}
+          trouble={trouble}
+        />
 
         <p className="student-chat__notice">
           <span aria-hidden="true">ⓘ</span>
@@ -175,21 +175,6 @@ function StudentChatRoom({ roomId }: { roomId: string }) {
         <div ref={endRef} />
       </div>
 
-      <MyPlanSheet
-        work={
-          planOpen && plan
-            ? {
-                title: room.jobTitle,
-                plan,
-                budget: room.budget,
-                draftDue: room.draftDeadline,
-                finalDue: room.finalDeadline,
-                revisionLimit: room.revisionCount,
-              }
-            : undefined
-        }
-        onClose={() => setPlanOpen(false)}
-      />
       <ReportSheet
         tone="student"
         open={reportOpen}

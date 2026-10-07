@@ -22,6 +22,7 @@ import OwnerNotificationsPage from './pages/OwnerNotificationsPage'
 import OwnerMePage from './pages/OwnerMePage'
 import OwnerWorkCheckPage from './pages/OwnerWorkCheckPage'
 import OwnerWorkResultPage from './pages/OwnerWorkResultPage'
+import OwnerWorkHistoryPage from './pages/OwnerWorkHistoryPage'
 import OwnerProposalPage from './pages/OwnerProposalPage'
 import OwnerRequestCancelPage from './pages/OwnerRequestCancelPage'
 import OwnerRequestPage from './pages/OwnerRequestPage'
@@ -74,6 +75,7 @@ import StudentRevisionPage from './pages/StudentRevisionPage'
 import StudentRevisionSubmitPage from './pages/StudentRevisionSubmitPage'
 import StudentSubmittedPage from './pages/StudentSubmittedPage'
 import StudentWorkResultPage from './pages/StudentWorkResultPage'
+import StudentWorkHistoryPage from './pages/StudentWorkHistoryPage'
 import StudentReviewPage from './pages/StudentReviewPage'
 import StudentWorkCanceledPage from './pages/StudentWorkCanceledPage'
 import StudentChatRoomPage from './pages/StudentChatRoomPage'
@@ -115,6 +117,7 @@ function App() {
       <Route path="/owner/chats/:roomId" element={<OwnerChatRoomPage />} />
       <Route path="/owner/works/:workId/check" element={<OwnerWorkCheckPage />} />
       <Route path="/owner/works/:workId/result" element={<OwnerWorkResultPage />} />
+      <Route path="/owner/works/:workId/history" element={<OwnerWorkHistoryPage />} />
       <Route path="/owner/proposals/:proposalId" element={<OwnerProposalPage />} />
       <Route path="/owner/requests/new" element={<OwnerRequestNewPage />} />
       <Route path="/owner/requests/new/2" element={<OwnerRequestContentPage />} />
@@ -166,6 +169,7 @@ function App() {
       <Route path="/student/works/:workId/revision/submit" element={<StudentRevisionSubmitPage />} />
       <Route path="/student/works/:workId/submitted" element={<StudentSubmittedPage />} />
       <Route path="/student/works/:workId/result" element={<StudentWorkResultPage />} />
+      <Route path="/student/works/:workId/history" element={<StudentWorkHistoryPage />} />
       <Route path="/student/works/:workId/review" element={<StudentReviewPage />} />
       <Route path="/student/works/:workId/canceled" element={<StudentWorkCanceledPage />} />
       {/* Student screens not built yet fall back to the student home. */}

@@ -43,6 +43,7 @@ export const OWNER_PATHS = {
   workReview: (workId: string) => `/owner/works/${workId}/review`,
   workReviewDone: (workId: string) => `/owner/works/${workId}/review/done`,
   workResult: (workId: string) => `/owner/works/${workId}/result`,
+  workHistory: (workId: string) => `/owner/works/${workId}/history`,
   exploreProposal: (id: string) => `/explore/proposals/${id}`,
   exploreRequest: (id: string) => `/explore/requests/${id}`,
 };

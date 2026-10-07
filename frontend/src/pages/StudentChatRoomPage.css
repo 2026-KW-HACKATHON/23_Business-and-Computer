@@ -30,50 +30,11 @@
   padding: 12px 16px 16px;
 }
 
-.student-chat__work {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  padding: 12px 12px 12px 14px;
-  border: 1px solid var(--role-border);
-  border-radius: 14px;
-}
 
-.student-chat__work-head {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
 
-.student-chat__work-title {
-  flex: 1;
-  min-width: 0;
-  font-size: 15px;
-  font-weight: 700;
-  line-height: 20px;
-  color: var(--color-black);
-}
 
-.student-chat__work-progress {
-  font-size: 13px;
-  font-weight: 700;
-  line-height: 18px;
-  color: var(--color-black);
-}
 
-.student-chat__work-terms {
-  font-size: 12px;
-  line-height: 16px;
-  color: var(--text-placeholder);
-}
 
-.student-chat__work-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 16px;
-  padding-top: 6px;
-  border-top: 1px solid var(--role-border);
-}
 
 .student-chat__notice {
   display: flex;

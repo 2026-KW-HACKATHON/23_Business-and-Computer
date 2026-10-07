@@ -1,26 +1,26 @@
 import { useState } from "react";
 import type { ChangeEvent, FormEvent, MouseEvent } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { LoadNotice, ReportSheet, RoleAvatar, SubScreen } from "../components";
 import {
-  LoadNotice,
-  ReportSheet,
-  RoleAvatar,
-  SubScreen,
-  TextButton,
-  WorkKindIcon,
-} from "../components";
-import {
+  ChatWorkCard,
   canCancelChatWork,
   canReportChatWork,
-  chatPlanOf,
-  chatSummaryText,
+  chatWorkStageOf,
+  chatWorkStatusText,
   attachmentDetailText,
   isAttachmentExpired,
   useChatRoom,
   useScrollToLatest,
 } from "../features/chat";
-import type { ChatMessage } from "../features/chat";
-import { OWNER_PATHS, WorkPlanSheet, useProposalJobIds } from "../features/owner";
+import type { ChatMessage, ChatWorkTroubleItem } from "../features/chat";
+import {
+  OWNER_PATHS,
+  isOwnerWorkReviewed,
+  useOwnerClosedJobs,
+  useOwnerProgressJobs,
+  useProposalJobIds,
+} from "../features/owner";
 import { useBack } from "../hooks/useBack";
 import { ATTACHMENT_ACCEPT } from "../lib/attachmentFormats";
 import { formatDayChip, formatMonthDay } from "../lib/date";
@@ -49,12 +49,14 @@ function OwnerChatRoom({ roomId }: { roomId: string }) {
     OWNER_PATHS.chats,
   );
   const [draft, setDraft] = useState("");
-  const [planOpen, setPlanOpen] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
   // 처음 들어올 때, 맨 아래 근처에서 새 메시지를 받을 때, 내가 보낼 때 맨 아래로
   const endRef = useScrollToLatest(messages);
-  // 받은 · 보낸 제안의 의뢰면 제안에서 시작한 작업
+  // 받은 제안의 의뢰면 제안에서 시작한 작업 (값은 제안 id)
   const proposalJobIds = useProposalJobIds();
+  // 도착한 결과물이 초안인지 수정안인지는 진행 중 목록으로, 후기를 남겼는지는 끝난 목록으로
+  const { load: progressLoad } = useOwnerProgressJobs();
+  const { load: closedLoad } = useOwnerClosedJobs();
 
   if (load.status !== "loaded") {
     return (
@@ -70,11 +72,30 @@ function OwnerChatRoom({ roomId }: { roomId: string }) {
   }
 
   const { room } = load;
-  const plan = chatPlanOf(room);
-  const summary = chatSummaryText(room, "owner");
-  const canCancel = canCancelChatWork(room);
-  const canReport = canReportChatWork(room);
   const partnerName = studentTitle(room.counterpartName);
+  const id = String(room.jobId);
+  const matched = progressLoad.status === "loaded" ? progressLoad.jobs.find((job) => job.jobId === room.jobId) : undefined;
+  const stage = chatWorkStageOf(room, matched);
+  const proposalId = proposalJobIds.get(room.jobId);
+  const kind = proposalId !== undefined ? "proposal" : "request";
+  const reviewed =
+    isOwnerWorkReviewed(id) ||
+    (closedLoad.status === "loaded" && closedLoad.jobs.some((job) => job.jobId === room.jobId && job.reviewed));
+  // 지금 할 일: 도착한 결과물 확인, 끝났으면 (끝난 목록을 불러온 뒤) 아직 남기지 않은 후기
+  const action =
+    stage === "draftArrived" || stage === "revisionArrived"
+      ? {
+          label: stage === "draftArrived" ? "초안 확인하기" : "수정안 확인하기",
+          onClick: () => navigate(OWNER_PATHS.workCheck(id)),
+        }
+      : stage === "completed" && closedLoad.status === "loaded" && !reviewed
+        ? { label: "후기 남기기", onClick: () => navigate(OWNER_PATHS.workReview(id)) }
+        : undefined;
+  // 「문제가 있나요?」: 작업 취소는 결과물을 하나도 받기 전에만, 신고는 작업 중에만
+  const trouble: ChatWorkTroubleItem[] = [
+    ...(canCancelChatWork(room) ? [{ label: "작업 취소", onSelect: () => navigate(OWNER_PATHS.workCancel(id)) }] : []),
+    ...(canReportChatWork(room) ? [{ label: "문제 신고", onSelect: () => setReportOpen(true) }] : []),
+  ];
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
@@ -124,35 +145,16 @@ function OwnerChatRoom({ roomId }: { roomId: string }) {
       }
     >
       <div className="owner-chat">
-        <div className="owner-chat__work">
-          <div className="owner-chat__work-head">
-            <WorkKindIcon kind={proposalJobIds.has(room.jobId) ? "proposal" : "request"} size={20} />
-            <strong className="owner-chat__work-title">{room.jobTitle}</strong>
-            {plan && <TextButton onClick={() => setPlanOpen(true)}>작업계획서 보기</TextButton>}
-          </div>
-          {summary && <p className="owner-chat__work-progress">{summary}</p>}
-          <p className="owner-chat__work-terms">
-            {`${formatWon(room.budget)}, 수정 ${room.revisionCount}회, 최종 마감 ${formatMonthDay(room.finalDeadline)}`}
-          </p>
-          {/* 작업 상태를 알 때만: 취소는 확인할 결과물이 없는 작업 중에만, 신고는 작업 중에만 */}
-          {(canCancel || canReport) && (
-            <div className="owner-chat__work-actions">
-              {canCancel && (
-                <TextButton
-                  showChevron={false}
-                  onClick={() => navigate(OWNER_PATHS.workCancel(String(room.jobId)))}
-                >
-                  작업 취소
-                </TextButton>
-              )}
-              {canReport && (
-                <TextButton showChevron={false} onClick={() => setReportOpen(true)}>
-                  문제 신고
-                </TextButton>
-              )}
-            </div>
-          )}
-        </div>
+        <ChatWorkCard
+          role="owner"
+          kind={kind}
+          title={room.jobTitle}
+          status={chatWorkStatusText(stage, room, "owner")}
+          terms={`${formatWon(room.budget)}, 수정 ${room.revisionCount}회, 최종 마감 ${formatMonthDay(room.finalDeadline)}`}
+          historyTo={OWNER_PATHS.workHistory(id)}
+          action={action}
+          trouble={trouble}
+        />
 
         <p className="owner-chat__notice">
           <span aria-hidden="true">ⓘ</span>
@@ -189,22 +191,6 @@ function OwnerChatRoom({ roomId }: { roomId: string }) {
         <div ref={endRef} />
       </div>
 
-      <WorkPlanSheet
-        content={
-          planOpen && plan
-            ? {
-                title: room.jobTitle,
-                studentName: room.counterpartName,
-                plan,
-                budget: room.budget,
-                draftDue: room.draftDeadline,
-                finalDue: room.finalDeadline,
-                revisionLimit: room.revisionCount,
-              }
-            : undefined
-        }
-        onClose={() => setPlanOpen(false)}
-      />
       <ReportSheet open={reportOpen} workTitle={room.jobTitle} onClose={() => setReportOpen(false)} />
     </SubScreen>
   );

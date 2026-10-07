@@ -1,0 +1,113 @@
+/* 피그마 「작업 이력」 (ADR 0045) */
+.chat-work-history {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 16px;
+}
+
+.chat-work-history__work {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px 16px;
+  border: 1px solid var(--role-border);
+  border-radius: 16px;
+}
+
+.chat-work-history__head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.chat-work-history__title {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 22px;
+  letter-spacing: normal;
+  color: var(--color-black);
+}
+
+.chat-work-history__badge {
+  flex-shrink: 0;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: var(--color-main);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 16px;
+  color: var(--color-black);
+}
+
+.chat-work-history__meta {
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--role-secondary);
+  white-space: pre-line;
+}
+
+.chat-work-history__list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.chat-work-history__row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 1px solid var(--role-border);
+  border-radius: 12px;
+  color: inherit;
+  text-decoration: none;
+}
+
+.chat-work-history__icon {
+  font-size: 16px;
+}
+
+.chat-work-history__text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.chat-work-history__text > strong {
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 20px;
+  color: var(--color-black);
+}
+
+.chat-work-history__row--closed .chat-work-history__text > strong {
+  color: var(--role-secondary);
+}
+
+.chat-work-history__text > small {
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--text-placeholder);
+}
+
+.chat-work-history__chevron {
+  font-size: 20px;
+  line-height: 1;
+  color: var(--text-placeholder);
+}
+
+.chat-work-history__note {
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--text-placeholder);
+}
