@@ -12,6 +12,8 @@ import java.time.ZoneId;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -278,6 +280,28 @@ class DemoSampleDataIntegrationTest {
                 .contains("점심 손님이 많아서 기대돼요!");
         read(studentToken, "/jobs/" + id("영어·중국어 메뉴판 번역"));
         read(studentToken, "/jobs/" + id("배달 리뷰 이벤트 배너"));
+    }
+
+    @Test
+    @DisplayName("지원자 프로필·학생 내 정보·채팅 목록에 지난 작업 후기·자격증·대화가 채워진다")
+    void fillsProfilesAndChats() throws Exception {
+        String applications = read(ownerToken, "/jobs/" + id("신메뉴 인스타그램 홍보 게시물") + "/applications?sort=LATEST");
+        Matcher matcher = Pattern.compile("\"(?:jobApplicationId|applicationId)\":(\\d+)").matcher(applications);
+        StringBuilder profiles = new StringBuilder();
+        while (matcher.find()) {
+            profiles.append(read(ownerToken, "/jobs/" + id("신메뉴 인스타그램 홍보 게시물") + "/applications/"
+                    + matcher.group(1) + "/profile"));
+        }
+        assertThat(profiles.toString())
+                .contains("중식 메뉴판 가격표 정리", "메뉴가 한눈에 들어와서 주문이 빨라졌어요.", "GTQ 포토샵 1급")
+                .contains("치킨 신메뉴 릴스", "GTQ 포토샵 2급");
+
+        assertThat(read(studentToken, "/students/me")).contains("GTQ 포토샵 1급");
+        assertThat(read(studentToken, "/settlements")).contains("치킨 세트 메뉴 카드뉴스", "인스타 게시물 5개 제작");
+        assertThat(read(ownerToken, "/me/chat-rooms"))
+                .contains("네, 두 메뉴 사진을 크게 넣어 볼게요.", "초안 올렸어요. 두 시안 중에 골라 주세요!");
+        assertThat(read(studentToken, "/me/chat-rooms"))
+                .contains("네! 내일 오후 3시 괜찮으세요?", "감사합니다! 반응 좋았으면 좋겠어요.");
     }
 
     private JobStatus status(String title) {
