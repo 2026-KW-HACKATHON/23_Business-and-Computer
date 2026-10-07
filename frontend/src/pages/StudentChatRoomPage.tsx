@@ -142,7 +142,11 @@ function StudentChatRoom({ roomId }: { roomId: string }) {
 
         <p className="student-chat__notice">
           <span aria-hidden="true">ⓘ</span>
-          채팅은 작업 질문·자료 요청용이에요. 내용·금액·마감 같은 작업 조건은 채팅으로 바뀌지 않아요.
+          <span>
+            채팅은 작업 질문·자료 요청용이에요.
+            <br />
+            작업 조건(내용·금액·마감)은 바꿀 수 없어요.
+          </span>
         </p>
 
         <ol className="student-chat__messages">

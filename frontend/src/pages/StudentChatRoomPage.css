@@ -47,7 +47,7 @@
   color: var(--role-secondary);
 }
 
-.student-chat__notice > span {
+.student-chat__notice > span:first-child {
   font-weight: 700;
 }
 

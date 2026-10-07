@@ -47,7 +47,7 @@
   color: var(--role-secondary);
 }
 
-.owner-chat__notice > span {
+.owner-chat__notice > span:first-child {
   font-weight: 700;
 }
 
