@@ -2,10 +2,10 @@ import { useEffect, useRef, useState } from "react";
 import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import {
   AppImage,
-  AttachmentTiles,
   Button,
   CategoryBadge,
   InfoRows,
+  ReferencePhotos,
   StepIndicator,
   SubScreen,
   TextButton,
@@ -218,7 +218,7 @@ function StudentProposalConfirmPage() {
             <p className="student-confirm__text-body">{content.plan}</p>
           </div>
           {content.photos.length > 0 && (
-            <AttachmentTiles names={content.photos.map((p) => p.name)} srcs={photoUrls} height={90} />
+            <ReferencePhotos urls={photoUrls} />
           )}
           <hr className="student-confirm__divider" />
           <TextButton className="student-confirm__edit" onClick={back}>

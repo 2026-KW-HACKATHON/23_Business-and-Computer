@@ -2,10 +2,10 @@ import { useEffect, useRef, useState } from "react";
 import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import {
   AppImage,
-  AttachmentTiles,
   Button,
   CategoryBadge,
   InfoRows,
+  ReferencePhotos,
   StepIndicator,
   SubScreen,
   TextButton,
@@ -219,11 +219,7 @@ function OwnerRequestConfirmPage() {
           {content.photos.length > 0 && (
             <div className="owner-confirm__text">
               <p className="owner-confirm__text-title">참고 사진</p>
-              <AttachmentTiles
-                names={content.photos.map((photo) => photo.name)}
-                srcs={photoUrls}
-                height={90}
-              />
+              <ReferencePhotos urls={photoUrls} />
             </div>
           )}
           <hr className="owner-confirm__divider" />
