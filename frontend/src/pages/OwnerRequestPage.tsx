@@ -33,7 +33,8 @@ import "./OwnerRequestPage.css";
 
 /**
  * 피그마 「보낸 의뢰>상세보기」. GET /jobs/{id} 의 의뢰서 (ADR 0030).
- * 모집 중이면 지원자 수(GET /jobs/{id}/applications), 「의뢰 취소」, 학생을 고른 뒤의 진행 안내가 보인다.
+ * 모집 중이면 지원자 수(GET /jobs/{id}/applications), 「의뢰 취소」, 학생을 고른 뒤의 진행 안내가 보이고,
+ * 지원자가 있으면 아래 버튼이 「지원자 N명 보기」(지원자 목록)다.
  * 학생이 작업 중(MATCHED)이면 지금 단계, 맡은 학생, 학생이 보낸 작업계획서(지원서)가 보인다 (ADR 0049).
  */
 function OwnerRequestPage() {
@@ -94,9 +95,15 @@ function OwnerRequestPage() {
       title="보낸 의뢰"
       onBack={back}
       footer={
-        <Button fullWidth onClick={back}>
-          확인
-        </Button>
+        job && open && applicantCount ? (
+          <Button fullWidth onClick={() => navigate(OWNER_PATHS.requestApplicants(String(job.id)))}>
+            지원자 {applicantCount}명 보기
+          </Button>
+        ) : (
+          <Button fullWidth onClick={back}>
+            확인
+          </Button>
+        )
       }
     >
       {load.status !== "loaded" && (
