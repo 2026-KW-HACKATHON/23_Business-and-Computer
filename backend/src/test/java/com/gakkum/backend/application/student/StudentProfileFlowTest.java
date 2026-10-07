@@ -1,6 +1,7 @@
 package com.gakkum.backend.application.student;
 
 import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.hasKey;
 import static org.hamcrest.Matchers.nullValue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyCollection;
@@ -191,6 +192,27 @@ class StudentProfileFlowTest {
         // 리뷰가 참조하는 의뢰 전부와 그 의뢰의 사장님 전부를 중복 없이 조회한다
         verify(jobRepository).findAllById(exactly(Set.of(201L, 202L, 203L, 204L)));
         verify(ownerRepository).findAllById(exactly(Set.of(OWNER_PROFILE_ID, OTHER_OWNER_PROFILE_ID)));
+    }
+
+    @Test
+    @DisplayName("글 없는 리뷰도 리뷰 목록과 리뷰 수에 포함하고 내용을 null로 내린다")
+    void returnsReviewWithoutContent() throws Exception {
+        givenOwner();
+        givenStudent("https://example.com/portfolio", 3);
+        givenActivity();
+        when(reviewRepository.findByStudentProfileId(STUDENT_PROFILE_ID)).thenReturn(List.of(
+                review(302L, 202L, REVIEWED_AT.minusDays(1), "꼼꼼했어요.", 4),
+                review(301L, 201L, REVIEWED_AT, null, 5)));
+
+        getProfile()
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.reviewCount").value(2))
+                .andExpect(jsonPath("$.data.reviews.length()").value(2))
+                .andExpect(jsonPath("$.data.reviews[0].jobTitle").value("카페 홈페이지 제작"))
+                .andExpect(jsonPath("$.data.reviews[0]", hasKey("content")))
+                .andExpect(jsonPath("$.data.reviews[0].content").value(nullValue()))
+                .andExpect(jsonPath("$.data.reviews[0].rating").value(5))
+                .andExpect(jsonPath("$.data.reviews[1].content").value("꼼꼼했어요."));
     }
 
     @Test

@@ -22,6 +22,7 @@ import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.ExploreProposalDa
 import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.ProposalDetailData;
 import com.gakkum.backend.domain.proposal.entity.Proposal;
 import com.gakkum.backend.domain.proposal.entity.ProposalLike;
+import com.gakkum.backend.domain.proposal.entity.ProposalRejectedBy;
 import com.gakkum.backend.domain.proposal.entity.ProposalSpecialty;
 import com.gakkum.backend.domain.proposal.entity.ProposalStatus;
 import com.gakkum.backend.domain.proposal.repository.ProposalLikeRepository;
@@ -169,6 +170,32 @@ public class ProposalService {
         proposalLikeRepository.deleteAllByProposalId(proposal.getId());
     }
 
+    /**
+     * 사장님이 거절하려는 받은 제안을 잠가 반환한다. 같은 제안의 거절·취소·결제 준비·승인·공감 변경을 순서대로 처리한다.
+     * 없거나 격리 범위가 다른 제안은 404, 다른 사장님이 받은 제안은 403으로 거부한다.
+     * 결제됐거나 학생이 거절·취소한 제안, 거절 주체가 기록되지 않은 거절 제안은 409로 거부한다.
+     * @param proposalId
+     * @param ownerProfileId
+     * @param demoSessionId 거절하는 사장님의 격리 범위. 실제 사장님은 null
+     * @return 결제 전(PENDING) 또는 이 사장님이 이미 거절한(REJECTED) 제안
+     */
+    @Transactional
+    public Proposal getRejectableProposalForUpdate(Long proposalId, Long ownerProfileId, String demoSessionId) {
+        Proposal proposal = getProposalForUpdate(proposalId);
+        if (!Objects.equals(proposal.getDemoSessionId(), demoSessionId)) {
+            throw new BusinessException(ErrorCode.PROPOSAL_NOT_FOUND);
+        }
+        if (!proposal.getOwnerProfileId().equals(ownerProfileId)) {
+            throw new BusinessException(ErrorCode.PROPOSAL_REJECT_FORBIDDEN);
+        }
+        boolean rejectedByOwner = proposal.getStatus() == ProposalStatus.REJECTED
+                && proposal.getRejectedBy() == ProposalRejectedBy.OWNER;
+        if (proposal.getStatus() != ProposalStatus.PENDING && !rejectedByOwner) {
+            throw new BusinessException(ErrorCode.PROPOSAL_REJECT_NOT_AVAILABLE);
+        }
+        return proposal;
+    }
+
     /** 제안 행을 잠가 반환한다. 없는 제안은 404로 거부한다. */
     @Transactional
     public Proposal getProposalForUpdate(Long proposalId) {
@@ -241,7 +268,8 @@ public class ProposalService {
     /**
      * 학생의 공감을 켠다. 제안 행을 잠가 같은 제안의 공감 변경을 순서대로 처리하고,
      * 공감 기록이 없을 때만 저장하고 공감 수를 1 올린다. 이미 공감한 제안은 그대로 둔다.
-     * 본인 제안과 취소되지 않은 모든 상태의 제안에 허용하고, 없거나 격리 범위가 다르거나 취소된 제안은 404로 거부한다.
+     * 본인 제안과 취소·거절되지 않은 모든 상태의 제안에 허용한다.
+     * 없거나 격리 범위가 다르거나 취소된 제안은 404, 거절된 제안은 409로 거부한다.
      * @param proposalId
      * @param studentProfileId
      * @param demoSessionId 공감하는 학생의 격리 범위. 실제 학생은 null
@@ -260,7 +288,7 @@ public class ProposalService {
     /**
      * 학생의 공감을 끈다. 제안 행을 잠가 같은 제안의 공감 변경을 순서대로 처리하고,
      * 공감 기록이 있을 때만 삭제하고 공감 수를 1 내린다. 공감하지 않은 제안은 그대로 둔다.
-     * 없거나 격리 범위가 다르거나 취소된 제안은 공감 기록과 무관하게 404로 거부한다.
+     * 없거나 격리 범위가 다르거나 취소된 제안은 공감 기록과 무관하게 404, 거절된 제안은 409로 거부한다.
      * @param proposalId
      * @param studentProfileId
      * @param demoSessionId 공감을 취소하는 학생의 격리 범위. 실제 학생은 null
@@ -282,6 +310,10 @@ public class ProposalService {
         if (!Objects.equals(proposal.getDemoSessionId(), demoSessionId)
                 || proposal.getStatus() == ProposalStatus.CANCELLED) {
             throw new BusinessException(ErrorCode.PROPOSAL_NOT_FOUND);
+        }
+        // 거절된 제안은 거절 주체와 무관하게 기존 공감 기록과 공감 수를 그대로 남긴다
+        if (proposal.getStatus() == ProposalStatus.REJECTED) {
+            throw new BusinessException(ErrorCode.PROPOSAL_LIKE_NOT_AVAILABLE);
         }
         return proposal;
     }

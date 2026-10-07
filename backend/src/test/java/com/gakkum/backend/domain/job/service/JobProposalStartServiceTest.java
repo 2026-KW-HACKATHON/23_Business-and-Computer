@@ -16,6 +16,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -43,7 +44,7 @@ import com.gakkum.backend.global.exception.ErrorCode;
 class JobProposalStartServiceTest {
 
     private static final Instant NOW = Instant.parse("2026-10-06T00:30:00Z");
-    private static final LocalDateTime EXPECTED_STARTED_AT = LocalDateTime.ofInstant(NOW, ZoneId.systemDefault());
+    private static final LocalDateTime EXPECTED_STARTED_AT = LocalDateTime.ofInstant(NOW, ZoneOffset.UTC);
     private static final LocalDate DRAFT_DEADLINE = LocalDate.of(2026, 10, 8);
     private static final LocalDate FINAL_DEADLINE = LocalDate.of(2026, 10, 12);
 

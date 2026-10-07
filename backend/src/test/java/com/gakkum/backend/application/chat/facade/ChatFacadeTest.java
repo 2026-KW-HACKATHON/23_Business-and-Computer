@@ -18,16 +18,19 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.ZoneId;
+import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.TimeZone;
 import java.util.UUID;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InOrder;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -133,7 +136,9 @@ class ChatFacadeTest {
         assertThat(result.getRooms().get(0).getCounterpartName()).isEqualTo("학생 이름");
         assertThat(result.getRooms().get(0).getCounterpartProfileImageUrl()).isEqualTo("student.png");
         assertThat(result.getRooms().get(0).getLastMessage().getPreview()).isEqualTo("사진");
-        assertThat(result.getRooms().get(0).getLastMessage().getCreatedAt()).isEqualTo(image.getCreatedAt());
+        // UTC 11:00으로 저장된 시각은 한국 20:00으로 내려간다
+        assertThat(result.getRooms().get(0).getLastMessage().getCreatedAt())
+                .isEqualTo(OffsetDateTime.parse("2026-09-26T20:00:00+09:00"));
         assertThat(result.getRooms().get(0).getUnreadCount()).isEqualTo(2L);
         assertThat(result.getRooms().get(1).getLastMessage()).isNull();
         assertThat(result.getRooms().get(1).getUnreadCount()).isZero();
@@ -325,7 +330,7 @@ class ChatFacadeTest {
         assertThat(result.getMessages().get(1).getAttachmentName()).isEqualTo("견적서.pdf");
         assertThat(result.getMessages().get(1).getContent()).isEqualTo("https://view.example");
         assertThat(result.getMessages().get(1).getContentExpiresAt())
-                .isEqualTo(LocalDateTime.ofInstant(viewExpiresAt, ZoneId.systemDefault()));
+                .isEqualTo(OffsetDateTime.parse("2026-09-27T14:15:00+09:00"));
     }
 
     @Test
@@ -414,7 +419,33 @@ class ChatFacadeTest {
         assertThat(result.getId()).isEqualTo(5L);
         assertThat(result.getContent()).isEqualTo("https://view.example/new");
         assertThat(result.getContentExpiresAt())
-                .isEqualTo(LocalDateTime.ofInstant(viewExpiresAt, ZoneId.systemDefault()));
+                .isEqualTo(OffsetDateTime.parse("2026-09-27T14:15:00+09:00"));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = { "UTC", "Asia/Seoul" })
+    @DisplayName("열람 URL 만료 시각은 JVM 기본 시간대와 무관하게 같은 한국 시각과 +09:00으로 내린다")
+    void contentExpiresAtIgnoresDefaultTimeZone(String defaultZone) {
+        TimeZone original = TimeZone.getDefault();
+        TimeZone.setDefault(TimeZone.getTimeZone(defaultZone));
+        try {
+            studentViewer();
+            ChatRoom room = room(2L, LocalDateTime.now());
+            when(roomRepository.findById(room.getId())).thenReturn(Optional.of(room));
+            when(jobRepository.findById(2L)).thenReturn(Optional.of(job(2L, "의뢰", JobStatus.MATCHED)));
+            ChatMessage image = ChatMessage.builder().id(5L).roomId(room.getId()).type(ChatMessageType.IMAGE)
+                    .attachmentKey("chat/room/upload.png").attachmentName("시안.png").build();
+            when(messageRepository.findById(5L)).thenReturn(Optional.of(image));
+            when(storageClient.presignView("chat/room/upload.png", ChatMessageType.IMAGE, "시안.png"))
+                    .thenReturn(new PresignedView("https://view.example/new", now.plus(Duration.ofMinutes(15))));
+
+            var result = service.getMessage("student", room.getId(), 5L);
+
+            // UTC 05:15 → 한국 14:15
+            assertThat(result.getContentExpiresAt()).hasToString("2026-09-27T14:15+09:00");
+        } finally {
+            TimeZone.setDefault(original);
+        }
     }
 
     @Test
@@ -668,14 +699,14 @@ class ChatFacadeTest {
         assertThat(saved.getFileSize()).isEqualTo(482133L);
         assertThat(saved.getStatus()).isEqualTo(ChatAttachmentUploadStatus.PENDING);
         assertThat(saved.getExpiresAt())
-                .isEqualTo(LocalDateTime.ofInstant(now.plus(Duration.ofHours(1)), ZoneId.systemDefault()));
+                .isEqualTo(LocalDateTime.ofInstant(now.plus(Duration.ofHours(1)), ZoneOffset.UTC));
         verify(storageClient).presignUpload(saved.getStorageKey(), "image/png", 482133L);
 
         assertThat(result.getUploadId()).isEqualTo(saved.getId());
         assertThat(result.getUploadUrl()).isEqualTo("https://upload.example");
         assertThat(result.getUploadHeaders()).containsEntry("content-type", "image/png");
         assertThat(result.getUploadUrlExpiresAt())
-                .isEqualTo(LocalDateTime.ofInstant(urlExpiresAt, ZoneId.systemDefault()));
+                .isEqualTo(LocalDateTime.ofInstant(urlExpiresAt, ZoneOffset.UTC));
     }
 
     @Test
@@ -743,7 +774,7 @@ class ChatFacadeTest {
         assertThat(saved.getAttachmentUploadId()).isEqualTo(upload.getId());
         assertThat(result.getContentUrl()).isEqualTo("https://view.example");
         assertThat(result.getContentExpiresAt())
-                .isEqualTo(LocalDateTime.ofInstant(viewExpiresAt, ZoneId.systemDefault()));
+                .isEqualTo(LocalDateTime.ofInstant(viewExpiresAt, ZoneOffset.UTC));
     }
 
     @Test
@@ -825,7 +856,7 @@ class ChatFacadeTest {
         ChatAttachmentUpload used = arrangeUpload(room, OWNER_ID, ChatMessageType.IMAGE);
         used.attach();
         ChatAttachmentUpload expired = ChatAttachmentUpload.create(room.getId(), OWNER_ID, ChatMessageType.IMAGE,
-                "시안.png", "image/png", 482133L, LocalDateTime.ofInstant(now, ZoneId.systemDefault()));
+                "시안.png", "image/png", 482133L, LocalDateTime.ofInstant(now, ZoneOffset.UTC));
         when(uploadRepository.findById(expired.getId())).thenReturn(Optional.of(expired));
 
         assertCode(ErrorCode.CHAT_UPLOAD_TYPE_NOT_ALLOWED, () -> service.sendAttachmentMessage(
@@ -895,7 +926,7 @@ class ChatFacadeTest {
     private ChatAttachmentUpload arrangeUpload(ChatRoom room, String uploaderUserId, ChatMessageType type) {
         ChatAttachmentUpload upload = ChatAttachmentUpload.create(room.getId(), uploaderUserId, type,
                 "시안.png", "image/png", 482133L,
-                LocalDateTime.ofInstant(now.plus(Duration.ofHours(1)), ZoneId.systemDefault()));
+                LocalDateTime.ofInstant(now.plus(Duration.ofHours(1)), ZoneOffset.UTC));
         when(uploadRepository.findById(upload.getId())).thenReturn(Optional.of(upload));
         return upload;
     }

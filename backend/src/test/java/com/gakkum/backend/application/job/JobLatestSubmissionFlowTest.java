@@ -12,6 +12,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -72,6 +73,8 @@ class JobLatestSubmissionFlowTest {
     private final UsernamePasswordAuthenticationToken authentication =
             new UsernamePasswordAuthenticationToken(USERNAME, null);
 
+    private final JobSubmissionFileStorageClient storageClient = mock(JobSubmissionFileStorageClient.class);
+
     private MockMvc mockMvc;
 
     @BeforeEach
@@ -82,7 +85,7 @@ class JobLatestSubmissionFlowTest {
                 Clock.systemUTC());
         JobFacade facade = new JobFacade(userService, new OwnerService(mock(OwnerRepository.class)), jobService,
                 mock(SpecialtyCategoryService.class), mock(SpecialtyService.class), new StudentService(studentRepository),
-                mock(JobSubmissionFileStorageClient.class), mock(ChatAttachmentPolicy.class), mock(PaymentService.class),
+                storageClient, mock(ChatAttachmentPolicy.class), mock(PaymentService.class),
                 mock(ReviewService.class), mock(CertificateService.class), mock(ProposalService.class), mock(MediaService.class));
         mockMvc = MockMvcBuilders.standaloneSetup(new JobController(facade))
                 .setControllerAdvice(new GlobalExceptionHandler())
@@ -110,9 +113,48 @@ class JobLatestSubmissionFlowTest {
                 .andExpect(jsonPath("$.data.fileUrls[1]").value("https://example.com/a.pdf"))
                 .andExpect(jsonPath("$.data.message").value("제출합니다."))
                 .andExpect(jsonPath("$.data.reviewStatus").value("PENDING"))
-                .andExpect(jsonPath("$.data.submittedAt").value("2026-10-01T09:30:00"))
+                .andExpect(jsonPath("$.data.submittedAt").value("2026-10-01T18:30:00+09:00"))
                 .andExpect(jsonPath("$.data", hasKey("revisionRequest")))
                 .andExpect(jsonPath("$.data.revisionRequest").value(nullValue()));
+    }
+
+    @Test
+    @DisplayName("파일별 크기를 fileUrls 순서대로 연결해 반환하고 기존 fileUrls는 유지하며 저장소를 조회하지 않는다")
+    void returnsFilesWithSizes() throws Exception {
+        givenStudent();
+        givenJob(JobStatus.MATCHED, 7L);
+        givenLatest(submission(JobSubmissionType.DRAFT, 0, JobSubmissionReviewStatus.PENDING)
+                .fileUrls(List.of("https://example.com/b.png", "https://example.com/a.pdf"))
+                .fileSizes(Map.of("https://example.com/a.pdf", 1048576L, "https://example.com/b.png", 2048L))
+                .build());
+
+        mockMvc.perform(get(URL).principal(authentication))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.fileUrls[0]").value("https://example.com/b.png"))
+                .andExpect(jsonPath("$.data.fileUrls[1]").value("https://example.com/a.pdf"))
+                .andExpect(jsonPath("$.data.files.length()").value(2))
+                .andExpect(jsonPath("$.data.files[0].fileUrl").value("https://example.com/b.png"))
+                .andExpect(jsonPath("$.data.files[0].size").value(2048))
+                .andExpect(jsonPath("$.data.files[1].fileUrl").value("https://example.com/a.pdf"))
+                .andExpect(jsonPath("$.data.files[1].size").value(1048576));
+        verifyNoInteractions(storageClient);
+    }
+
+    @Test
+    @DisplayName("크기를 기록하기 전에 제출된 파일은 size를 생략하지 않고 null로 반환한다")
+    void returnsLegacyFilesWithNullSize() throws Exception {
+        givenStudent();
+        givenJob(JobStatus.MATCHED, 7L);
+        givenLatest(submission(JobSubmissionType.DRAFT, 0, JobSubmissionReviewStatus.PENDING).build());
+
+        mockMvc.perform(get(URL).principal(authentication))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.fileUrls[0]").value("https://example.com/draft.pdf"))
+                .andExpect(jsonPath("$.data.files.length()").value(1))
+                .andExpect(jsonPath("$.data.files[0].fileUrl").value("https://example.com/draft.pdf"))
+                .andExpect(jsonPath("$.data.files[0]", hasKey("size")))
+                .andExpect(jsonPath("$.data.files[0].size").value(nullValue()));
+        verifyNoInteractions(storageClient);
     }
 
     @Test
@@ -136,7 +178,7 @@ class JobLatestSubmissionFlowTest {
                         .value("https://images.example.com/b.png"))
                 .andExpect(jsonPath("$.data.revisionRequest.referenceImageUrls[1]")
                         .value("https://images.example.com/a.png"))
-                .andExpect(jsonPath("$.data.revisionRequest.requestedAt").value("2026-10-02T14:05:30"));
+                .andExpect(jsonPath("$.data.revisionRequest.requestedAt").value("2026-10-02T23:05:30+09:00"));
     }
 
     @Test

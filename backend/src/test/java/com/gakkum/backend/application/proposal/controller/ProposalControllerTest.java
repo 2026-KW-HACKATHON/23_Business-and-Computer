@@ -61,6 +61,8 @@ import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.SpecialtyCategory
 import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.SpecialtyResult;
 import com.gakkum.backend.domain.proposal.entity.Proposal;
 import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.ProposalCancelResult;
+import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.ProposalRejectResult;
+import com.gakkum.backend.domain.proposal.entity.ProposalRejectedBy;
 import com.gakkum.backend.domain.student.entity.Student;
 import com.gakkum.backend.domain.user.entity.User;
 import com.gakkum.backend.global.exception.BusinessException;
@@ -242,8 +244,8 @@ class ProposalControllerTest {
                 .andExpect(jsonPath("$.data.jobId").doesNotExist())
                 .andExpect(jsonPath("$.data.agreement").doesNotExist())
                 .andExpect(jsonPath("$.data.referenceImageUrls[0]").value(IMAGE_URL))
-                // UTC 10:00 → 한국 19:00. 오프셋은 붙이지 않는다
-                .andExpect(jsonPath("$.data.createdAt").value("2026-09-30T19:00:00"));
+                // UTC 10:00 → 한국 19:00. 한 번만 변환하고 +09:00을 붙인다
+                .andExpect(jsonPath("$.data.createdAt").value("2026-09-30T19:00:00+09:00"));
     }
 
     @Test
@@ -281,7 +283,7 @@ class ProposalControllerTest {
                 .andExpect(jsonPath("$.data.agreement.finalDeadline").value("2026-10-12"))
                 .andExpect(jsonPath("$.data.agreement.revisionCount").value(2))
                 .andExpect(jsonPath("$.data.agreement.messageToStudent").value("매장 분위기에 맞춰 작업 부탁드립니다."))
-                .andExpect(jsonPath("$.data.agreement.paidAt").value("2026-10-05T03:00:00Z"))
+                .andExpect(jsonPath("$.data.agreement.paidAt").value("2026-10-05T12:00:00+09:00"))
                 .andExpect(jsonPath("$.data.agreement.startedAt").doesNotExist());
     }
 
@@ -303,7 +305,7 @@ class ProposalControllerTest {
                 .andExpect(jsonPath("$.data.jobId").value(42))
                 .andExpect(jsonPath("$.data.jobStatus").value("MATCHED"))
                 .andExpect(jsonPath("$.data.proposalStatus").value("ACCEPTED"))
-                .andExpect(jsonPath("$.data.startedAt").exists())
+                .andExpect(jsonPath("$.data.startedAt").value("2026-10-06T18:30:00+09:00"))
                 .andExpect(jsonPath("$.data.chatRoomId").value("01K58M6PJV8VAJMXHBHJ2ROOM1"))
                 .andExpect(jsonPath("$.data.draftDeadline").value("2026-10-08"))
                 .andExpect(jsonPath("$.data.finalDeadline").value("2026-10-12"));
@@ -430,12 +432,13 @@ class ProposalControllerTest {
         return Stream.of(
                 Arguments.of(ErrorCode.UNAUTHORIZED, 401, "COMMON_401"),
                 Arguments.of(ErrorCode.PROPOSAL_LIKE_STUDENT_REQUIRED, 403, "PROPOSAL_403_LIKE_STUDENT"),
-                Arguments.of(ErrorCode.PROPOSAL_NOT_FOUND, 404, "PROPOSAL_404"));
+                Arguments.of(ErrorCode.PROPOSAL_NOT_FOUND, 404, "PROPOSAL_404"),
+                Arguments.of(ErrorCode.PROPOSAL_LIKE_NOT_AVAILABLE, 409, "PROPOSAL_409_LIKE"));
     }
 
     @ParameterizedTest(name = "{2}")
     @MethodSource("likeErrors")
-    @DisplayName("공감 추가·취소의 잠긴 사용자·학생 아님·없는 제안 오류는 각 오류 코드의 상태로 반환한다")
+    @DisplayName("공감 추가·취소의 잠긴 사용자·학생 아님·없는 제안·거절된 제안 오류는 각 오류 코드의 상태로 반환한다")
     void returnsLikeErrors(ErrorCode errorCode, int status, String code) throws Exception {
         when(proposalFacade.likeProposal(USERNAME, 31L)).thenThrow(new BusinessException(errorCode));
         when(proposalFacade.unlikeProposal(USERNAME, 31L)).thenThrow(new BusinessException(errorCode));
@@ -499,6 +502,118 @@ class ProposalControllerTest {
                 .andExpect(status().is(status))
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.error.code").value(code));
+    }
+
+    @Test
+    @DisplayName("제안 거절은 본문 없이 인증 사용자와 제안 ID를 전달하고 200과 제안 ID·거절 상태만 반환한다")
+    void rejectsProposal() throws Exception {
+        when(proposalFacade.rejectProposal(USERNAME, 31L)).thenReturn(ProposalRejectResult.from(
+                Proposal.builder().id(31L).status(ProposalStatus.REJECTED).rejectedBy(ProposalRejectedBy.OWNER)
+                        .rejectedAt(LocalDateTime.of(2026, 10, 5, 15, 30)).build()));
+
+        // 이미 거절한 본인 제안의 반복 요청도 같은 200 응답이다
+        for (int i = 0; i < 2; i++) {
+            mockMvc.perform(post("/proposals/31/reject").principal(authentication))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.success").value(true))
+                    .andExpect(jsonPath("$.data.length()").value(2))
+                    .andExpect(jsonPath("$.data.proposalId").value(31))
+                    .andExpect(jsonPath("$.data.status").value("REJECTED"));
+        }
+
+        verify(proposalFacade, org.mockito.Mockito.times(2)).rejectProposal(USERNAME, 31L);
+    }
+
+    @ParameterizedTest(name = "제안 ID {0}")
+    @ValueSource(strings = { "abc", "0", "-1", "1.5" })
+    @DisplayName("제안 거절은 숫자가 아니거나 0 이하인 제안 ID를 COMMON_400으로 거부하고 파사드를 호출하지 않는다")
+    void rejectsInvalidProposalIdForReject(String proposalId) throws Exception {
+        mockMvc.perform(post("/proposals/" + proposalId + "/reject").principal(authentication))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.error.code").value("COMMON_400"));
+        verifyNoInteractions(proposalFacade);
+    }
+
+    static Stream<Arguments> rejectErrors() {
+        return Stream.of(
+                Arguments.of(ErrorCode.UNAUTHORIZED, 401, "COMMON_401"),
+                Arguments.of(ErrorCode.PROPOSAL_REJECT_FORBIDDEN, 403, "PROPOSAL_403_REJECT"),
+                Arguments.of(ErrorCode.PROPOSAL_NOT_FOUND, 404, "PROPOSAL_404"),
+                Arguments.of(ErrorCode.PROPOSAL_REJECT_NOT_AVAILABLE, 409, "PROPOSAL_409_REJECT"),
+                Arguments.of(ErrorCode.PROPOSAL_REJECT_PAYMENT_PENDING, 409, "PROPOSAL_409_REJECT_PAYMENT_PENDING"));
+    }
+
+    @ParameterizedTest(name = "{2}")
+    @MethodSource("rejectErrors")
+    @DisplayName("제안 거절의 잠긴 사용자·받은 사장님 아님·없는 제안·거절 불가 상태·결제 대기 오류는 각 오류 코드의 상태로 반환한다")
+    void returnsRejectErrors(ErrorCode errorCode, int status, String code) throws Exception {
+        when(proposalFacade.rejectProposal(USERNAME, 31L)).thenThrow(new BusinessException(errorCode));
+
+        mockMvc.perform(post("/proposals/31/reject").principal(authentication))
+                .andExpect(status().is(status))
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.error.code").value(code));
+    }
+
+    @Test
+    @DisplayName("거절된 제안은 양쪽 목록과 상세에서 거절 주체와 같은 한국 시각의 거절 시각을 반환하고 UTC 오후 3시 이후는 다음 날이 된다")
+    void returnsRejectionDetailsInListsAndDetail() throws Exception {
+        // UTC 10월 5일 15:30 = 한국 10월 6일 00:30
+        givenProposalInListsAndDetail(Proposal.builder().id(31L).title("메뉴판 개선 제안").likeCount(4)
+                .draftDays(3).finalDays(7).referenceImageUrls(List.of()).status(ProposalStatus.REJECTED)
+                .rejectedBy(ProposalRejectedBy.OWNER).rejectedAt(LocalDateTime.of(2026, 10, 5, 15, 30))
+                .createdAt(LocalDateTime.of(2026, 10, 1, 1, 0)).build());
+
+        for (String path : List.of("/me/proposals", "/me/received-proposals")) {
+            mockMvc.perform(get(path).principal(authentication))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.data.proposals[0].status").value("REJECTED"))
+                    .andExpect(jsonPath("$.data.proposals[0].likeCount").value(4))
+                    .andExpect(jsonPath("$.data.proposals[0].rejectedBy").value("OWNER"))
+                    .andExpect(jsonPath("$.data.proposals[0].rejectedAt").value("2026-10-06T00:30:00+09:00"));
+        }
+        mockMvc.perform(get("/proposals/31").principal(authentication))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.status").value("REJECTED"))
+                .andExpect(jsonPath("$.data.rejectedBy").value("OWNER"))
+                .andExpect(jsonPath("$.data.rejectedAt").value("2026-10-06T00:30:00+09:00"))
+                .andExpect(jsonPath("$.data.estimatedDraftDeadline").value(nullValue()));
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @EnumSource(value = ProposalStatus.class, names = { "PENDING", "REJECTED" })
+    @DisplayName("거절되지 않았거나 거절 기록이 없는 기존 거절 제안은 양쪽 목록과 상세에서 거절 주체와 거절 시각을 null로 반환한다")
+    void returnsNullRejectionDetailsWithoutRecord(ProposalStatus status) throws Exception {
+        givenProposalInListsAndDetail(Proposal.builder().id(31L).title("메뉴판 개선 제안").likeCount(0)
+                .draftDays(3).finalDays(7).referenceImageUrls(List.of()).status(status)
+                .createdAt(LocalDateTime.of(2026, 10, 1, 1, 0)).build());
+
+        for (String path : List.of("/me/proposals", "/me/received-proposals")) {
+            mockMvc.perform(get(path).principal(authentication))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.data.proposals[0].status").value(status.name()))
+                    .andExpect(jsonPath("$.data.proposals[0].rejectedBy").value(nullValue()))
+                    .andExpect(jsonPath("$.data.proposals[0].rejectedAt").value(nullValue()));
+        }
+        mockMvc.perform(get("/proposals/31").principal(authentication))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.rejectedBy").value(nullValue()))
+                .andExpect(jsonPath("$.data.rejectedAt").value(nullValue()));
+    }
+
+    // 같은 제안을 보낸 제안 목록·받은 제안 목록·상세가 모두 내리게 한다
+    private void givenProposalInListsAndDetail(Proposal proposal) {
+        Student student = Student.builder().id(7L).studentNumber("2024123456").build();
+        User studentUser = User.builder().name("김학생").build();
+        when(proposalFacade.getMyProposals(USERNAME)).thenReturn(MyProposalListResult.of(List.of(
+                MyProposalResult.of(proposal, Owner.builder().id(50L).storeName("가꿈 카페").build(),
+                        List.of(), null))));
+        when(proposalFacade.getReceivedProposals(USERNAME)).thenReturn(ReceivedProposalListResult.of(List.of(
+                ReceivedProposalResult.of(proposal, student, studentUser, List.of(), null))));
+        when(proposalFacade.getProposalDetail(USERNAME, 31L))
+                .thenReturn(ProposalDetailResult.of(proposal, "가꿈 카페", null, student, studentUser,
+                        new java.math.BigDecimal("4.3"), 5L, List.of(), false, LocalDate.of(2026, 10, 6), null, null));
     }
 
     private static String body(String specialtyIds, String title, String customerProblem, String proposedFee,
@@ -582,10 +697,10 @@ class ProposalControllerTest {
 
         mockMvc.perform(get("/me/proposals").principal(authentication))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.proposals[0].createdAt").value("2026-10-06T00:30:00"));
+                .andExpect(jsonPath("$.data.proposals[0].createdAt").value("2026-10-06T00:30:00+09:00"));
         mockMvc.perform(get("/proposals/31").principal(authentication))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.createdAt").value("2026-10-06T00:30:00"));
+                .andExpect(jsonPath("$.data.createdAt").value("2026-10-06T00:30:00+09:00"));
     }
 
     @Test
@@ -628,7 +743,7 @@ class ProposalControllerTest {
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.proposals[0].jobId").value(42))
                 .andExpect(jsonPath("$.data.proposals[0].jobStatus").value("AWAITING_START"))
-                .andExpect(jsonPath("$.data.proposals[0].createdAt").value("2026-10-06T00:30:00"))
+                .andExpect(jsonPath("$.data.proposals[0].createdAt").value("2026-10-06T00:30:00+09:00"))
                 .andExpect(jsonPath("$.data.proposals[0].proposalId").value(101))
                 .andExpect(jsonPath("$.data.proposals[0].title").value("메뉴판 개선 제안"))
                 .andExpect(jsonPath("$.data.proposals[0].status").value("PENDING"))
@@ -660,7 +775,7 @@ class ProposalControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.proposals[0].jobId").value(nullValue()))
                 .andExpect(jsonPath("$.data.proposals[0].jobStatus").value(nullValue()))
-                .andExpect(jsonPath("$.data.proposals[0].createdAt").value("2026-10-05T23:59:00"));
+                .andExpect(jsonPath("$.data.proposals[0].createdAt").value("2026-10-05T23:59:00+09:00"));
     }
 
     @ParameterizedTest
@@ -724,7 +839,7 @@ class ProposalControllerTest {
                 .andExpect(jsonPath("$.data.paidAmount").value(100000))
                 .andExpect(jsonPath("$.data.studentCompensationAmount").value(0))
                 .andExpect(jsonPath("$.data.refundAmount").value(100000))
-                .andExpect(jsonPath("$.data.declinedAt").exists());
+                .andExpect(jsonPath("$.data.declinedAt").value("2026-10-06T21:00:00+09:00"));
 
         verify(proposalFacade).declineProposalJob(USERNAME, 42L);
     }

@@ -373,10 +373,11 @@ public class DemoSampleDataSeeder {
             backdateByJob("chat_rooms", "created_at", job.getId(), approvedAt);
         }
 
+        // 샘플 파일은 저장소에 올린 것이 아니라 크기를 기록하지 않는다
         private JobSubmission submitDraft(Job job, Student student, Instant submittedAt, String message,
                                           String... files) {
             JobSubmission submission = jobService.submitDraft(CreateJobSubmissionCommand.of(
-                    null, job.getId(), sampleFiles(files), message), student.getId());
+                    null, job.getId(), sampleFiles(files), message), student.getId(), Map.of());
             backdate("job_submissions", "created_at", submission.getId(), submittedAt);
             return submission;
         }
@@ -384,7 +385,7 @@ public class DemoSampleDataSeeder {
         private JobSubmission submitRevision(Job job, Student student, Instant submittedAt, String message,
                                              String... files) {
             JobSubmission submission = jobService.submitRevision(CreateJobSubmissionCommand.of(
-                    null, job.getId(), sampleFiles(files), message), student.getId());
+                    null, job.getId(), sampleFiles(files), message), student.getId(), Map.of());
             backdate("job_submissions", "created_at", submission.getId(), submittedAt);
             return submission;
         }
@@ -480,7 +481,7 @@ public class DemoSampleDataSeeder {
         private void decline(Proposal proposal, Job job, Instant declinedAt) {
             Owner store = ownerService.getOwnerProfileById(proposal.getOwnerProfileId());
             jobService.declineJob(job.getId(), proposal.getId(), proposal.getStudentProfileId());
-            proposal.reject();
+            proposal.rejectByStudent(LocalDateTime.ofInstant(declinedAt, ZoneOffset.UTC));
             paymentService.refundOnDecline(job.getId(), proposal.getId(), store.getUserId());
             backdate("jobs", "completed_at", job.getId(), declinedAt);
             backdateRefund(job.getId(), declinedAt);
@@ -502,16 +503,16 @@ public class DemoSampleDataSeeder {
         /*
          * 지난 일의 시각을 적어 둔다. 서비스는 지금 시각으로 저장하고 생성 시각 칼럼은 엔티티로 바꿀 수 없어서
          * (updatable = false) 예시 데이터를 다 만든 뒤 applyTimeline 에서 한꺼번에 고친다.
-         * TIMESTAMP 칼럼은 서비스의 now() 처럼 서버 기본 시간대의 시각으로 저장한다.
+         * TIMESTAMP 칼럼은 서비스의 now() 처럼 UTC 시각으로 저장한다.
          */
         private void backdate(String table, String column, Long id, Instant at) {
             timeline.add(new TimelineUpdate("update " + table + " set " + column + " = :at where id = :id",
-                    LocalDateTime.ofInstant(at, ZoneId.systemDefault()), id));
+                    LocalDateTime.ofInstant(at, ZoneOffset.UTC), id));
         }
 
         private void backdateByJob(String table, String column, Long jobId, Instant at) {
             timeline.add(new TimelineUpdate("update " + table + " set " + column + " = :at where job_id = :id",
-                    LocalDateTime.ofInstant(at, ZoneId.systemDefault()), jobId));
+                    LocalDateTime.ofInstant(at, ZoneOffset.UTC), jobId));
         }
 
         // 환불 시각은 TIMESTAMP WITH TIME ZONE 칼럼이다

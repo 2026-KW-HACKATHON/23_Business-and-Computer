@@ -130,6 +130,11 @@ class DemoSampleDataIntegrationTest {
         assertThat(proposals.get("점심 세트 메뉴판 정리").getStatus()).isEqualTo(ProposalStatus.AWAITING_START);
         assertThat(proposals.get("가게 소개글 다시 쓰기").getStatus()).isEqualTo(ProposalStatus.ACCEPTED);
         assertThat(proposals.get("단체 주문 안내문 디자인").getStatus()).isEqualTo(ProposalStatus.REJECTED);
+        // 샘플의 학생 거절은 거절 주체와 거절 시각(의뢰 종료 시각과 같은 시점)을 함께 남긴다
+        assertThat(proposals.get("단체 주문 안내문 디자인").getRejectedBy())
+                .isEqualTo(com.gakkum.backend.domain.proposal.entity.ProposalRejectedBy.STUDENT);
+        assertThat(proposals.get("단체 주문 안내문 디자인").getRejectedAt()).isNotNull();
+        assertThat(proposals.get("시험 기간 학생 할인 이벤트").getRejectedBy()).isNull();
 
         // 이름으로 고른 특기가 모든 의뢰·제안과 예시 학생에 이어진다
         List<Long> jobIds = jobs.values().stream().map(Job::getId).toList();

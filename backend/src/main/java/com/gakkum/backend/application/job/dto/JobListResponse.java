@@ -1,7 +1,7 @@
 package com.gakkum.backend.application.job.dto;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonValue;
@@ -21,6 +21,7 @@ import com.gakkum.backend.domain.job.dto.JobQueryDto.StudentMatchedJobResult;
 import com.gakkum.backend.domain.job.entity.JobApplicationStatus;
 import com.gakkum.backend.domain.job.entity.JobProgressStage;
 import com.gakkum.backend.domain.job.entity.JobStatus;
+import com.gakkum.backend.global.response.KoreaTime;
 
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -154,7 +155,7 @@ public final class JobListResponse {
         private final Long budget;
         private final Integer revisionCount;
         private final Integer revisionNumber;
-        private final LocalDateTime submittedAt;
+        private final OffsetDateTime submittedAt;
 
         public static MatchedJob from(MatchedJobResult result) {
             return MatchedJob.builder()
@@ -175,7 +176,7 @@ public final class JobListResponse {
                     .budget(result.getBudget())
                     .revisionCount(result.getRevisionCount())
                     .revisionNumber(result.getRevisionNumber())
-                    .submittedAt(result.getSubmittedAt())
+                    .submittedAt(KoreaTime.from(result.getSubmittedAt()))
                     .build();
         }
     }
@@ -209,7 +210,7 @@ public final class JobListResponse {
         private final String reviewStatus;
         private final JobProgressStage progressStage;
         private final String storeName;
-        private final LocalDateTime submittedAt;
+        private final OffsetDateTime submittedAt;
 
         public static StudentMatchedJob from(StudentMatchedJobResult result) {
             return StudentMatchedJob.builder()
@@ -226,7 +227,7 @@ public final class JobListResponse {
                     .reviewStatus(result.getReviewStatus())
                     .progressStage(result.getProgressStage())
                     .storeName(result.getStoreName())
-                    .submittedAt(result.getSubmittedAt())
+                    .submittedAt(KoreaTime.from(result.getSubmittedAt()))
                     .build();
         }
     }
@@ -258,7 +259,7 @@ public final class JobListResponse {
         private final LocalDate finalDeadline;
         private final JobStatus jobStatus;
         private final JobApplicationStatus applicationStatus;
-        private final LocalDateTime appliedAt;
+        private final OffsetDateTime appliedAt;
         private final String storeName;
         private final String summary;
         private final String workPlan;
@@ -277,7 +278,7 @@ public final class JobListResponse {
                     .finalDeadline(result.getFinalDeadline())
                     .jobStatus(result.getJobStatus())
                     .applicationStatus(result.getApplicationStatus())
-                    .appliedAt(result.getAppliedAt())
+                    .appliedAt(KoreaTime.from(result.getAppliedAt()))
                     .storeName(result.getStoreName())
                     .summary(result.getSummary())
                     .workPlan(result.getWorkPlan())

@@ -122,7 +122,7 @@ class JobStudentMatchedListFlowTest {
                 .andExpect(jsonPath("$.data.jobs[0].storeName").value("가꿈 카페"))
                 .andExpect(jsonPath("$.data.jobs[1].jobId").value(42))
                 .andExpect(jsonPath("$.data.jobs[1].storeName").value("가꿈 카페"))
-                .andExpect(jsonPath("$.data.jobs[1].submittedAt").value("2026-10-09T14:05:30"))
+                .andExpect(jsonPath("$.data.jobs[1].submittedAt").value("2026-10-09T23:05:30+09:00"))
                 .andExpect(jsonPath("$.data.jobs[1].title").value("의뢰 42"))
                 .andExpect(jsonPath("$.data.jobs[1].budget").value(300000))
                 .andExpect(jsonPath("$.data.jobs[1].draftDeadline").value("2026-10-10"))
@@ -157,7 +157,7 @@ class JobStudentMatchedListFlowTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.jobs[0].submissionType").value("REVISION"))
                 .andExpect(jsonPath("$.data.jobs[0].reviewStatus").value("PENDING"))
-                .andExpect(jsonPath("$.data.jobs[0].submittedAt").value("2026-10-13T18:45:10"));
+                .andExpect(jsonPath("$.data.jobs[0].submittedAt").value("2026-10-14T03:45:10+09:00"));
     }
 
     @Test

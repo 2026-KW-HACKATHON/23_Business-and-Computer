@@ -78,6 +78,14 @@ public class Proposal {
     @Column(nullable = false, length = 20)
     private ProposalStatus status;
 
+    // 거절한 주체와 시각(UTC). 거절되지 않았거나 기록을 남기기 전에 거절된 제안은 null
+    @Enumerated(EnumType.STRING)
+    @Column(name = "rejected_by", length = 20)
+    private ProposalRejectedBy rejectedBy;
+
+    @Column(name = "rejected_at")
+    private LocalDateTime rejectedAt;
+
     // 데모 로그인이 만든 데이터의 격리 범위. 실제 데이터는 null
     @Column(name = "demo_session_id", length = 26, updatable = false)
     private String demoSessionId;
@@ -151,12 +159,34 @@ public class Proposal {
         status = ProposalStatus.ACCEPTED;
     }
 
-    /** 제안한 학생이 결제된 의뢰서를 작업 시작 전에 거절한다. 수락 대기(AWAITING_START) 제안만 거절할 수 있다. */
-    public void reject() {
+    /**
+     * 제안한 학생이 결제된 의뢰서를 작업 시작 전에 거절한다. 수락 대기(AWAITING_START) 제안만 거절할 수 있다.
+     * @param rejectedAt 거절 시각(UTC)
+     */
+    public void rejectByStudent(LocalDateTime rejectedAt) {
         if (status != ProposalStatus.AWAITING_START) {
             throw new BusinessException(ErrorCode.JOB_DECLINE_NOT_AVAILABLE);
         }
         status = ProposalStatus.REJECTED;
+        rejectedBy = ProposalRejectedBy.STUDENT;
+        this.rejectedAt = rejectedAt;
+    }
+
+    /**
+     * 제안을 받은 사장님이 결제 전(PENDING) 제안을 거절한다. 공감 기록과 공감 수는 그대로 둔다.
+     * 사장님이 이미 거절한 제안의 재요청은 최초 거절 시각을 그대로 둔다.
+     * @param rejectedAt 거절 시각(UTC)
+     */
+    public void rejectByOwner(LocalDateTime rejectedAt) {
+        if (status == ProposalStatus.REJECTED && rejectedBy == ProposalRejectedBy.OWNER) {
+            return;
+        }
+        if (status != ProposalStatus.PENDING) {
+            throw new BusinessException(ErrorCode.PROPOSAL_REJECT_NOT_AVAILABLE);
+        }
+        status = ProposalStatus.REJECTED;
+        rejectedBy = ProposalRejectedBy.OWNER;
+        this.rejectedAt = rejectedAt;
     }
 
     /**

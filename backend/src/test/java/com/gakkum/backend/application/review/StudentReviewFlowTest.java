@@ -1,5 +1,7 @@
 package com.gakkum.backend.application.review;
 
+import static org.hamcrest.Matchers.hasKey;
+import static org.hamcrest.Matchers.nullValue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -103,6 +105,23 @@ class StudentReviewFlowTest {
     }
 
     @Test
+    @DisplayName("글 없는 리뷰도 404가 아니라 7개 필드로 조회되고 내용은 null이다")
+    void returnsReviewWithoutContent() throws Exception {
+        givenActiveStudent(UserRole.STUDENT, 7L);
+        givenReview(7L, null);
+        givenReviewedJob();
+        givenStoreName("가꿈 베이커리");
+
+        perform()
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data", hasKey("content")))
+                .andExpect(jsonPath("$.data.content").value(nullValue()))
+                .andExpect(jsonPath("$.data.rating").value(4))
+                .andExpect(jsonPath("$.data.positivePoints.length()").value(2))
+                .andExpect(jsonPath("$.data.length()").value(7));
+    }
+
+    @Test
     @DisplayName("사장님이 매장 이름을 바꾼 뒤 조회하면 리뷰 작성 당시가 아닌 현재 매장 이름을 반환한다")
     void returnsCurrentStoreName() throws Exception {
         givenActiveStudent(UserRole.STUDENT, 7L);
@@ -175,6 +194,10 @@ class StudentReviewFlowTest {
     }
 
     private void givenReview(Long studentProfileId) {
+        givenReview(studentProfileId, "수정 요청을 빠르게 반영해 주셨어요.");
+    }
+
+    private void givenReview(Long studentProfileId, String content) {
         when(reviewRepository.findByJobIdAndStudentProfileId(42L, studentProfileId)).thenReturn(Optional.of(
                 Review.builder()
                         .id(301L)
@@ -183,7 +206,7 @@ class StudentReviewFlowTest {
                         .studentProfileId(studentProfileId)
                         .positivePoints(List.of(
                                 ReviewPositivePoint.REVISION_FEEDBACK, ReviewPositivePoint.FAST_COMMUNICATION))
-                        .content("수정 요청을 빠르게 반영해 주셨어요.")
+                        .content(content)
                         .rating(4)
                         .createdAt(LocalDateTime.of(2026, 9, 28, 21, 30, 15))
                         .build()));

@@ -12,6 +12,7 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.util.Optional;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -100,7 +101,7 @@ class JobCompleteFlowTest {
                 .andExpect(jsonPath("$.error").doesNotExist());
         assertThat(submission.getReviewStatus()).isEqualTo(JobSubmissionReviewStatus.APPROVED);
         assertThat(job.getStatus()).isEqualTo(JobStatus.CLOSED);
-        assertThat(job.getCompletedAt()).isEqualTo(LocalDateTime.ofInstant(NOW, ZoneId.systemDefault()));
+        assertThat(job.getCompletedAt()).isEqualTo(LocalDateTime.ofInstant(NOW, ZoneOffset.UTC));
     }
 
     @Test

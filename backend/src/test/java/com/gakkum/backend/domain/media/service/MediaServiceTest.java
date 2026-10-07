@@ -12,15 +12,17 @@ import static org.mockito.Mockito.when;
 
 import java.time.Instant;
 import java.time.LocalDateTime;
-import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.util.Map;
 import java.util.Optional;
+import java.util.TimeZone;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.springframework.util.unit.DataSize;
 
@@ -60,8 +62,24 @@ class MediaServiceTest {
         assertThat(result.getUploadUrl()).isEqualTo("https://upload.example.com");
         assertThat(result.getUploadHeaders()).isEqualTo(Map.of("content-type", "image/jpeg"));
         assertThat(result.getUploadUrlExpiresAt())
-                .isEqualTo(LocalDateTime.ofInstant(EXPIRES_AT, ZoneId.systemDefault()));
+                .isEqualTo(LocalDateTime.ofInstant(EXPIRES_AT, ZoneOffset.UTC));
         assertThat(result.getImageUrl()).isEqualTo("https://images.example.com/" + keyCaptor.getValue());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = { "UTC", "Asia/Seoul" })
+    @DisplayName("업로드 URL 만료 시각은 JVM 기본 시간대와 무관하게 UTC 시각으로 넘긴다")
+    void expiresAtIgnoresDefaultTimeZone(String defaultZone) {
+        TimeZone original = TimeZone.getDefault();
+        TimeZone.setDefault(TimeZone.getTimeZone(defaultZone));
+        try {
+            PrepareImageUploadResult result = service.prepareImageUpload(
+                    USER_ID, ImagePurpose.STORE, "매장 전경.JPG", "image/jpeg", 482133);
+
+            assertThat(result.getUploadUrlExpiresAt()).isEqualTo(LocalDateTime.of(2026, 9, 27, 3, 10));
+        } finally {
+            TimeZone.setDefault(original);
+        }
     }
 
     @Test

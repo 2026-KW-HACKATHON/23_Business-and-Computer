@@ -11,6 +11,7 @@ import static org.mockito.Mockito.when;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import org.junit.jupiter.api.DisplayName;
@@ -35,6 +36,9 @@ import com.gakkum.backend.global.exception.ErrorCode;
 class JobSubmissionRevisionServiceTest {
 
     private static final String FILE_URL = "https://bucket.s3.ap-northeast-2.amazonaws.com/job-submissions/42/7/x/a.pdf";
+    private static final String SECOND_FILE_URL =
+            "https://bucket.s3.ap-northeast-2.amazonaws.com/job-submissions/42/7/y/b.png";
+    private static final Map<String, Long> FILE_SIZES = Map.of(FILE_URL, 1048576L, SECOND_FILE_URL, 2048L);
 
     private final JobRepository jobRepository = mock(JobRepository.class);
     private final JobSubmissionRepository jobSubmissionRepository = mock(JobSubmissionRepository.class);
@@ -49,13 +53,14 @@ class JobSubmissionRevisionServiceTest {
         givenLatest(0, JobSubmissionReviewStatus.REVISION_REQUESTED);
         givenSaveReturnsArgument();
 
-        JobSubmission saved = jobService.submitRevision(command(), 7L);
+        JobSubmission saved = jobService.submitRevision(command(), 7L, FILE_SIZES);
 
         assertThat(saved.getJobId()).isEqualTo(42L);
         assertThat(saved.getSubmissionType()).isEqualTo(JobSubmissionType.REVISION);
         assertThat(saved.getRevisionNumber()).isEqualTo(1);
         assertThat(saved.getReviewStatus()).isEqualTo(JobSubmissionReviewStatus.PENDING);
-        assertThat(saved.getFileUrls()).containsExactly(FILE_URL);
+        assertThat(saved.getFileUrls()).containsExactly(FILE_URL, SECOND_FILE_URL);
+        assertThat(saved.getFileSizes()).containsOnly(Map.entry(FILE_URL, 1048576L), Map.entry(SECOND_FILE_URL, 2048L));
         assertThat(saved.getMessage()).isEqualTo("반영했습니다.");
     }
 
@@ -66,7 +71,7 @@ class JobSubmissionRevisionServiceTest {
         givenLatest(1, JobSubmissionReviewStatus.REVISION_REQUESTED);
         givenSaveReturnsArgument();
 
-        assertThat(jobService.submitRevision(command(), 7L).getRevisionNumber()).isEqualTo(2);
+        assertThat(jobService.submitRevision(command(), 7L, FILE_SIZES).getRevisionNumber()).isEqualTo(2);
     }
 
     @Test
@@ -75,7 +80,7 @@ class JobSubmissionRevisionServiceTest {
         givenLockedJob(JobStatus.MATCHED, 2);
         givenLatest(2, JobSubmissionReviewStatus.REVISION_REQUESTED);
 
-        assertError(() -> jobService.submitRevision(command(), 7L), ErrorCode.JOB_SUBMISSION_REVISION_LIMIT_EXCEEDED);
+        assertError(() -> jobService.submitRevision(command(), 7L, FILE_SIZES), ErrorCode.JOB_SUBMISSION_REVISION_LIMIT_EXCEEDED);
         verify(jobSubmissionRepository, never()).saveAndFlush(any());
     }
 
@@ -85,7 +90,7 @@ class JobSubmissionRevisionServiceTest {
         givenLockedJob(JobStatus.MATCHED, 0);
         givenLatest(0, JobSubmissionReviewStatus.REVISION_REQUESTED);
 
-        assertError(() -> jobService.submitRevision(command(), 7L), ErrorCode.JOB_SUBMISSION_REVISION_LIMIT_EXCEEDED);
+        assertError(() -> jobService.submitRevision(command(), 7L, FILE_SIZES), ErrorCode.JOB_SUBMISSION_REVISION_LIMIT_EXCEEDED);
     }
 
     @ParameterizedTest
@@ -95,7 +100,7 @@ class JobSubmissionRevisionServiceTest {
         givenLockedJob(JobStatus.MATCHED, 2);
         givenLatest(0, status);
 
-        assertError(() -> jobService.submitRevision(command(), 7L),
+        assertError(() -> jobService.submitRevision(command(), 7L, FILE_SIZES),
                 ErrorCode.JOB_SUBMISSION_REVISION_NOT_REQUESTED);
         verify(jobSubmissionRepository, never()).saveAndFlush(any());
     }
@@ -106,7 +111,7 @@ class JobSubmissionRevisionServiceTest {
         givenLockedJob(JobStatus.MATCHED, 2);
         when(jobSubmissionRepository.findFirstByJobIdOrderByRevisionNumberDesc(42L)).thenReturn(Optional.empty());
 
-        assertError(() -> jobService.submitRevision(command(), 7L),
+        assertError(() -> jobService.submitRevision(command(), 7L, FILE_SIZES),
                 ErrorCode.JOB_SUBMISSION_REVISION_NOT_REQUESTED);
     }
 
@@ -115,7 +120,7 @@ class JobSubmissionRevisionServiceTest {
     void rejectsOtherStudent() {
         givenLockedJob(JobStatus.MATCHED, 2);
 
-        assertError(() -> jobService.submitRevision(command(), 8L), ErrorCode.JOB_SUBMISSION_FORBIDDEN);
+        assertError(() -> jobService.submitRevision(command(), 8L, FILE_SIZES), ErrorCode.JOB_SUBMISSION_FORBIDDEN);
         verify(jobSubmissionRepository, never()).findFirstByJobIdOrderByRevisionNumberDesc(any());
     }
 
@@ -124,7 +129,7 @@ class JobSubmissionRevisionServiceTest {
     void rejectsJobNotMatched() {
         givenLockedJob(JobStatus.CLOSED, 2);
 
-        assertError(() -> jobService.submitRevision(command(), 7L), ErrorCode.JOB_SUBMISSION_NOT_AVAILABLE);
+        assertError(() -> jobService.submitRevision(command(), 7L, FILE_SIZES), ErrorCode.JOB_SUBMISSION_NOT_AVAILABLE);
     }
 
     @Test
@@ -135,7 +140,7 @@ class JobSubmissionRevisionServiceTest {
         when(jobSubmissionRepository.saveAndFlush(any(JobSubmission.class)))
                 .thenThrow(new DataIntegrityViolationException("duplicate"));
 
-        assertError(() -> jobService.submitRevision(command(), 7L),
+        assertError(() -> jobService.submitRevision(command(), 7L, FILE_SIZES),
                 ErrorCode.JOB_SUBMISSION_REVISION_NOT_REQUESTED);
     }
 
@@ -152,7 +157,7 @@ class JobSubmissionRevisionServiceTest {
         givenLatest(0, JobSubmissionReviewStatus.REVISION_REQUESTED);
         givenSaveReturnsArgument();
 
-        assertThat(jobService.submitRevision(command(), 7L).getRevisionNumber()).isEqualTo(1);
+        assertThat(jobService.submitRevision(command(), 7L, FILE_SIZES).getRevisionNumber()).isEqualTo(1);
     }
 
     @Test
@@ -185,7 +190,7 @@ class JobSubmissionRevisionServiceTest {
     }
 
     private CreateJobSubmissionCommand command() {
-        return CreateJobSubmissionCommand.of("KAKAO_1", 42L, List.of(FILE_URL), "반영했습니다.");
+        return CreateJobSubmissionCommand.of("KAKAO_1", 42L, List.of(FILE_URL, SECOND_FILE_URL), "반영했습니다.");
     }
 
     private Job job(JobStatus status, int revisionCount) {

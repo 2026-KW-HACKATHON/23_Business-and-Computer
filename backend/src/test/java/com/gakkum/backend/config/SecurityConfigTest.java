@@ -192,6 +192,14 @@ class SecurityConfigTest {
     }
 
     @Test
+    @DisplayName("인증 없이 받은 제안을 거절하면 401을 반환한다")
+    void rejectsUnauthenticatedProposalReject() throws Exception {
+        mockMvc.perform(post("/proposals/31/reject"))
+            .andExpect(status().isUnauthorized())
+            .andExpect(jsonPath("$.error.code").value("COMMON_401"));
+    }
+
+    @Test
     @DisplayName("인증 없이 의뢰서를 거절하면 401을 반환한다")
     void rejectsUnauthenticatedJobDecline() throws Exception {
         mockMvc.perform(post("/jobs/42/decline"))
@@ -343,6 +351,7 @@ class SecurityConfigTest {
         when(ownerFacade.getMe("KAKAO_123")).thenReturn(OwnerMeResult.of(
                 Owner.builder().id(5L).storeName("가꿈 베이커리").build(),
                 User.builder().name("김사장").build(),
+                "김사장",
                 3L, 2L, 1L, 1L));
 
         mockMvc.perform(get("/owners/me")

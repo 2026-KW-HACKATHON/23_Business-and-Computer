@@ -71,15 +71,15 @@ class JobExploreServiceTest {
                         tuple(41L, JobProgressStage.COMPLETED));
         assertThat(result.get(0).getSpecialtyIds()).containsExactly(11L, 4L);
         assertThat(result.get(4).getSpecialtyIds()).isEmpty();
-        verify(jobRepository, never()).findByDemoSessionIdAndStatusNotAndCreatedAtLessThanOrderByCreatedAtDescIdDesc(any(), any(), any(), any());
+        verify(jobRepository, never()).findByDemoSessionIdAndStatusNotAndProposalIdIsNullAndCreatedAtLessThanOrderByCreatedAtDescIdDesc(any(), any(), any(), any());
     }
 
     @Test
     @DisplayName("대분류 없는 오래된순은 경계 시각과 같은 행 뒤에 경계 이후 행을 이어 붙이고, 진행 중 의뢰가 없으면 제출물을 조회하지 않는다")
     void usesOldestQueryWithoutSubmissionLookup() {
-        when(jobRepository.findByDemoSessionIdAndStatusNotAndCreatedAtAndIdGreaterThanOrderByIdAsc(
+        when(jobRepository.findByDemoSessionIdAndStatusNotAndProposalIdIsNullAndCreatedAtAndIdGreaterThanOrderByIdAsc(
                 null, JobStatus.CANCELLED, BOUND, 50L, Limit.of(2))).thenReturn(List.of(job(41L, JobStatus.OPEN)));
-        when(jobRepository.findByDemoSessionIdAndStatusNotAndCreatedAtGreaterThanOrderByCreatedAtAscIdAsc(
+        when(jobRepository.findByDemoSessionIdAndStatusNotAndProposalIdIsNullAndCreatedAtGreaterThanOrderByCreatedAtAscIdAsc(
                 null, JobStatus.CANCELLED, BOUND, Limit.of(1))).thenReturn(List.of(job(42L, JobStatus.CLOSED)));
 
         List<ExploreJobData> result = jobService.getExploreJobs(GetExploreJobsCommand.of(null, null, true, BOUND, 50L, 2));
@@ -95,9 +95,9 @@ class JobExploreServiceTest {
         jobService.getExploreJobs(GetExploreJobsCommand.of(null, null, false, BOUND, 50L, 2));
         jobService.getExploreJobs(GetExploreJobsCommand.of(null, 4L, true, BOUND, 50L, 2));
 
-        verify(jobRepository).findByDemoSessionIdAndStatusNotAndCreatedAtAndIdLessThanOrderByIdDesc(
+        verify(jobRepository).findByDemoSessionIdAndStatusNotAndProposalIdIsNullAndCreatedAtAndIdLessThanOrderByIdDesc(
                 null, JobStatus.CANCELLED, BOUND, 50L, Limit.of(2));
-        verify(jobRepository).findByDemoSessionIdAndStatusNotAndCreatedAtLessThanOrderByCreatedAtDescIdDesc(
+        verify(jobRepository).findByDemoSessionIdAndStatusNotAndProposalIdIsNullAndCreatedAtLessThanOrderByCreatedAtDescIdDesc(
                 null, JobStatus.CANCELLED, BOUND, Limit.of(2));
         verify(jobRepository).findExploreOldestInCategory(null, JobStatus.CANCELLED, 4L, BOUND, 50L, Limit.of(2));
     }

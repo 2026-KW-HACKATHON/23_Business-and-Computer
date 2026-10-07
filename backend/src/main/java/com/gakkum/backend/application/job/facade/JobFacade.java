@@ -5,7 +5,9 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -276,9 +278,9 @@ public class JobFacade {
     public JobSubmissionCreateResult submitDraft(CreateJobSubmissionCommand command) {
         Student student = getSubmittingStudent(command.getUsername());
         jobService.validateDraftSubmittable(command.getJobId(), student.getId());
-        validateUploadedFiles(command, student.getId());
+        Map<String, Long> fileSizes = findUploadedFileSizes(command, student.getId());
 
-        JobSubmission submission = jobService.submitDraft(command, student.getId());
+        JobSubmission submission = jobService.submitDraft(command, student.getId(), fileSizes);
         return JobSubmissionCreateResult.from(submission);
     }
 
@@ -289,9 +291,9 @@ public class JobFacade {
     public JobSubmissionCreateResult submitRevision(CreateJobSubmissionCommand command) {
         Student student = getSubmittingStudent(command.getUsername());
         jobService.validateRevisionSubmittable(command.getJobId(), student.getId());
-        validateUploadedFiles(command, student.getId());
+        Map<String, Long> fileSizes = findUploadedFileSizes(command, student.getId());
 
-        JobSubmission submission = jobService.submitRevision(command, student.getId());
+        JobSubmission submission = jobService.submitRevision(command, student.getId(), fileSizes);
         return JobSubmissionCreateResult.from(submission);
     }
 
@@ -647,22 +649,27 @@ public class JobFacade {
                 .orElseThrow(() -> new BusinessException(ErrorCode.JOB_SUBMISSION_FORBIDDEN));
     }
 
-    /** 모든 URL이 이 의뢰·학생용으로 발급한 경로인지 먼저 확인한 뒤 실제 업로드 여부를 확인한다. */
-    private void validateUploadedFiles(CreateJobSubmissionCommand command, Long studentProfileId) {
-        List<String> keys = command.getFileUrls().stream()
-                .map(fileUrl -> jobSubmissionFileStorageClient.findKey(fileUrl, command.getJobId(), studentProfileId)
-                        .orElseThrow(() -> new BusinessException(ErrorCode.JOB_SUBMISSION_FILE_URL_INVALID)))
-                .toList();
-        for (String key : keys) {
-            if (!jobSubmissionFileStorageClient.exists(key)) {
-                throw new BusinessException(ErrorCode.JOB_SUBMISSION_FILE_NOT_UPLOADED);
-            }
+    /**
+     * 모든 URL이 이 의뢰·학생용으로 발급한 경로인지 먼저 확인한 뒤 실제 업로드 여부를 확인한다.
+     * @return 파일 URL별 바이트 크기
+     */
+    private Map<String, Long> findUploadedFileSizes(CreateJobSubmissionCommand command, Long studentProfileId) {
+        Map<String, String> keysByFileUrl = new LinkedHashMap<>();
+        for (String fileUrl : command.getFileUrls()) {
+            keysByFileUrl.put(fileUrl,
+                    jobSubmissionFileStorageClient.findKey(fileUrl, command.getJobId(), studentProfileId)
+                            .orElseThrow(() -> new BusinessException(ErrorCode.JOB_SUBMISSION_FILE_URL_INVALID)));
         }
+        Map<String, Long> fileSizes = new LinkedHashMap<>();
+        keysByFileUrl.forEach((fileUrl, key) -> fileSizes.put(fileUrl,
+                jobSubmissionFileStorageClient.findSize(key)
+                        .orElseThrow(() -> new BusinessException(ErrorCode.JOB_SUBMISSION_FILE_NOT_UPLOADED))));
+        return fileSizes;
     }
 
-    // 만료 시각은 다른 API 응답과 같은 JVM 기본 시간대로 내린다
+    // 응답 DTO가 UTC로 해석해 한국 시각으로 바꾸므로 JVM 기본 시간대와 무관하게 UTC로 내린다
     private static LocalDateTime toLocalDateTime(Instant instant) {
-        return LocalDateTime.ofInstant(instant, ZoneId.systemDefault());
+        return LocalDateTime.ofInstant(instant, ZoneOffset.UTC);
     }
 
     private List<SpecialtyCategoryResult> groupSpecialties(

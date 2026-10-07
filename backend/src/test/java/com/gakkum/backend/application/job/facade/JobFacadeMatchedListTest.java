@@ -13,6 +13,7 @@ import static org.mockito.Mockito.when;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -113,7 +114,8 @@ class JobFacadeMatchedListTest {
         // 검토 대기 제출물의 수정 번호와 제출 시각. 초안은 0번이고 검토 대기가 없으면 둘 다 null이다
         assertThat(response.getJobs()).extracting(job -> job.getRevisionNumber()).containsExactly(0, 2, null, null);
         assertThat(response.getJobs()).extracting(job -> job.getSubmittedAt()).containsExactly(
-                LocalDateTime.of(2026, 10, 9, 14, 5, 30), LocalDateTime.of(2026, 10, 12, 9, 0), null, null);
+                OffsetDateTime.parse("2026-10-09T23:05:30+09:00"), OffsetDateTime.parse("2026-10-12T18:00:00+09:00"),
+                null, null);
         assertThat(response.getJobs().get(0).getDraftDeadline()).isEqualTo(LocalDate.of(2026, 10, 10));
         assertThat(response.getJobs().get(0).getStudentProfileId()).isEqualTo(7L);
         assertThat(response.getJobs().get(0).getStudentNumber()).isEqualTo("2023123456");

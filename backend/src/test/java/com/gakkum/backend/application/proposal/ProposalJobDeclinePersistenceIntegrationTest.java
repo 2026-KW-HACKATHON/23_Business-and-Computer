@@ -10,6 +10,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -246,8 +247,11 @@ class ProposalJobDeclinePersistenceIntegrationTest {
         assertThat(job.getFinalDeadline()).isEqualTo(before.getFinalDeadline());
         assertThat(job.getRevisionCount()).isEqualTo(before.getRevisionCount());
         assertThat(job.getAcceptanceMessage()).isEqualTo("잘 부탁드립니다.");
-        assertThat(proposalRepository.findById(proposal.getId()).orElseThrow().getStatus())
-                .isEqualTo(ProposalStatus.REJECTED);
+        Proposal rejected = proposalRepository.findById(proposal.getId()).orElseThrow();
+        assertThat(rejected.getStatus()).isEqualTo(ProposalStatus.REJECTED);
+        // 학생 거절도 같은 트랜잭션에서 거절 주체와 시각을 남긴다
+        assertThat(rejected.getRejectedBy()).isEqualTo(com.gakkum.backend.domain.proposal.entity.ProposalRejectedBy.STUDENT);
+        assertThat(rejected.getRejectedAt()).isNotNull();
 
         Payment payment = paymentRepository.findByProposalIdAndStatus(proposal.getId(), PaymentStatus.REFUNDED)
                 .orElseThrow();
@@ -288,7 +292,8 @@ class ProposalJobDeclinePersistenceIntegrationTest {
             assertThat(detail.getMessageToStudent()).isNull();
             assertThat(detail.getRefundAmount()).isEqualTo(50_000L);
             assertThat(detail.getStudentCompensationAmount()).isZero();
-            assertThat(detail.getCancelledAt()).isEqualTo(declinedJob.getCompletedAt());
+            assertThat(detail.getCancelledAt()).isEqualTo(declinedJob.getCompletedAt().atOffset(ZoneOffset.UTC));
+            assertThat(detail.getCancelledAt().getOffset()).isEqualTo(ZoneOffset.ofHours(9));
             assertThat(detail.getBudget()).isEqualTo(50_000L);
         }
 
@@ -552,6 +557,9 @@ class ProposalJobDeclinePersistenceIntegrationTest {
     }
 
     private void assertAwaitingStart(Proposal proposal, Long jobId) {
+        // 거절이 롤백되면 거절 주체와 시각도 남지 않는다
+        assertThat(count("select count(*) from proposals where id = ? and rejected_by is null "
+                + "and rejected_at is null", proposal.getId())).isEqualTo(1);
         Job job = jobRepository.findById(jobId).orElseThrow();
         assertThat(job.getStatus()).isEqualTo(JobStatus.AWAITING_START);
         assertThat(job.getCompletedAt()).isNull();
