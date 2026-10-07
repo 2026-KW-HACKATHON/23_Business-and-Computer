@@ -120,3 +120,56 @@
   border-radius: 1px;
   background: var(--text-placeholder);
 }
+
+/*
+ * 지금 단계 강조: 역할 색 물결이 원 밖으로 퍼졌다 사라지고, 가운데 점이 같은 박자로 살짝 커졌다 작아진다.
+ * 물결 색은 역할마다 (사장님 노랑 · 학생 자주). 움직임을 줄이는 설정이면 멈춘 모양 그대로
+ */
+.flow-bar--owner {
+  --flow-bar-pulse: 254 211 77;
+}
+
+.flow-bar--student {
+  --flow-bar-pulse: 152 39 76;
+}
+
+.flow-bar__step--current .flow-bar__circle {
+  animation: flow-bar-pulse 1.8s ease-out infinite;
+}
+
+.flow-bar__step--current .flow-bar__circle::after {
+  animation: flow-bar-dot 1.8s ease-in-out infinite;
+}
+
+@keyframes flow-bar-pulse {
+  0% {
+    box-shadow:
+      0 0 0 4px rgb(var(--flow-bar-pulse) / 0.35),
+      0 0 0 4px rgb(var(--flow-bar-pulse) / 0.5);
+  }
+
+  70%,
+  100% {
+    box-shadow:
+      0 0 0 4px rgb(var(--flow-bar-pulse) / 0.35),
+      0 0 0 11px rgb(var(--flow-bar-pulse) / 0);
+  }
+}
+
+@keyframes flow-bar-dot {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+
+  50% {
+    transform: scale(1.25);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .flow-bar__step--current .flow-bar__circle,
+  .flow-bar__step--current .flow-bar__circle::after {
+    animation: none;
+  }
+}
