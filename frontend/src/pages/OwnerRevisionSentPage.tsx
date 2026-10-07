@@ -17,7 +17,8 @@ import "./OwnerRevisionPage.css";
 /**
  * 피그마 「보낸 수정 요청 보기 (사장님)」 (ADR 0045). 작업 이력의 「수정 요청」 줄. 수정 요청 화면과 같은
  * 틀로, 내가 보낸 요청 내용과 참고 사진을 읽기만 한다. 마지막 결과물의 수정 요청을
- * GET /jobs/{id}/submissions/latest 로 읽는데, 서버가 지금은 맡은 학생에게만 열어 두어 그 전까지는 안내만 보인다
+ * GET /jobs/{id}/submissions/latest 로 읽는데, 서버가 지금은 맡은 학생에게만 열어 두어 그 전까지는 같은 틀에
+ * 「요청 내용」 칸만 안내로 보인다
  */
 function OwnerRevisionSentPage() {
   const { workId } = useParams();
@@ -29,11 +30,11 @@ function OwnerRevisionSentPage() {
   const proposalJobIds = useProposalJobIds();
 
   if (jobId === undefined) return <OwnerMissing title="보낸 수정 요청" onBack={back} />;
-  if (load.status === "notFound" || load.status === "closed") {
-    return <OwnerMissing title="보낸 수정 요청" onBack={back} message="보낸 수정 요청은 곧 여기서 볼 수 있어요" />;
-  }
 
-  const request = load.status === "loaded" ? load.data.revisionRequest : undefined;
+  // 서버가 아직 주지 않음 (사장님에게 열리기 전)
+  const waiting = load.status === "notFound" || load.status === "closed";
+  const latest = load.status === "loaded" ? load.data : undefined;
+  const request = latest?.revisionRequest ?? undefined;
   const job = jobLoad.status === "loaded" ? jobLoad.job : undefined;
   const matched = progressLoad.status === "loaded" ? progressLoad.jobs.find((j) => j.jobId === jobId) : undefined;
   const revising = matched?.stage === "revising";
@@ -41,7 +42,7 @@ function OwnerRevisionSentPage() {
   const meta = [
     matched?.student.name ? studentTitle(matched.student.name) : undefined,
     request ? `${formatMonthDay(koreaDateOfUtc(request.requestedAt))} 수정 요청` : undefined,
-    load.status === "loaded" && job ? `수정 ${load.data.revisionNumber + 1}/${job.revisionCount}` : undefined,
+    latest && job ? `수정 ${latest.revisionNumber + 1}/${job.revisionCount}` : undefined,
   ]
     .filter(Boolean)
     .join(", ");
@@ -57,7 +58,7 @@ function OwnerRevisionSentPage() {
         </Button>
       }
     >
-      {load.status !== "loaded" && (
+      {(load.status === "loading" || load.status === "error") && (
         <LoadNotice
           status={load.status}
           loadingText="수정 요청을 불러오는 중이에요"
@@ -65,10 +66,8 @@ function OwnerRevisionSentPage() {
           onRetry={reload}
         />
       )}
-      {load.status === "loaded" && !request && (
-        <p className="owner-revision__note">이 결과물에는 보낸 수정 요청이 없어요</p>
-      )}
-      {request && (
+      {latest && !request && <p className="owner-revision__note">이 결과물에는 보낸 수정 요청이 없어요</p>}
+      {(waiting || request) && (
         <div className="owner-revision">
           <section className="owner-revision__work">
             <div className="owner-revision__work-head">
@@ -86,7 +85,13 @@ function OwnerRevisionSentPage() {
           <section className="request-field">
             <h3 className="request-field__label">요청 내용</h3>
             <div className="request-field__textarea-box">
-              <p className="owner-revision__sent-text">{request.message?.trim() || "적은 내용이 없어요"}</p>
+              {request ? (
+                <p className="owner-revision__sent-text">{request.message?.trim() || "적은 내용이 없어요"}</p>
+              ) : (
+                <p className="owner-revision__sent-text owner-revision__sent-text--waiting">
+                  보낸 수정 요청은 곧 여기서 볼 수 있어요
+                </p>
+              )}
             </div>
           </section>
 
