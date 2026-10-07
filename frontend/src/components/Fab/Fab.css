@@ -14,11 +14,33 @@
   line-height: 19px;
   white-space: nowrap;
   cursor: pointer;
+  transition:
+    gap 0.28s cubic-bezier(0.2, 0, 0, 1),
+    padding 0.28s cubic-bezier(0.2, 0, 0, 1);
 }
 
 .fab__plus {
+  flex-shrink: 0;
   width: 20px;
   height: 20px;
+  transition:
+    width 0.28s cubic-bezier(0.2, 0, 0, 1),
+    height 0.28s cubic-bezier(0.2, 0, 0, 1);
+}
+
+/* 글자 칸. 칸 너비(1fr → 0fr)와 투명도를 함께 줄여 글자가 오른쪽 끝으로 말려 들어가게 한다 */
+.fab__label {
+  display: grid;
+  grid-template-columns: 1fr;
+  min-width: 0;
+  transition:
+    grid-template-columns 0.28s cubic-bezier(0.2, 0, 0, 1),
+    opacity 0.2s ease;
+}
+
+.fab__label > span {
+  min-width: 0;
+  overflow: hidden;
 }
 
 .fab--owner {
@@ -39,15 +61,29 @@
     inset 0 1px 0 rgba(255, 255, 255, 0.25);
 }
 
+/* 접히면 14 + 더하기 24 + 14 = 52px 동그라미 */
 .fab--collapsed {
-  width: 52px;
-  padding: 0;
+  gap: 0;
+  padding: 0 14px;
+}
+
+.fab--collapsed .fab__label {
+  grid-template-columns: 0fr;
+  opacity: 0;
 }
 
 /* 접히면 더하기가 24px로 커진다. 선 굵기도 같은 비율로 커진다 */
 .fab--collapsed .fab__plus {
   width: 24px;
   height: 24px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fab,
+  .fab__plus,
+  .fab__label {
+    transition: none;
+  }
 }
 
 .fab:focus-visible {
