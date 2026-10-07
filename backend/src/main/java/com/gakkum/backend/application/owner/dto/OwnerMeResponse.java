@@ -15,6 +15,8 @@ public class OwnerMeResponse {
     private final Long ownerProfileId;
     private final String profileImageUrl;
     private final String name;
+    private final String representativeName;
+    private final String businessNumber;
     private final String storeName;
     private final String storeAddress;
     private final Long categoryId;
@@ -29,6 +31,8 @@ public class OwnerMeResponse {
                 .ownerProfileId(result.getOwnerProfileId())
                 .profileImageUrl(result.getProfileImageUrl())
                 .name(result.getName())
+                .representativeName(result.getRepresentativeName())
+                .businessNumber(result.getBusinessNumber())
                 .storeName(result.getStoreName())
                 .storeAddress(result.getStoreAddress())
                 .categoryId(result.getCategoryId())

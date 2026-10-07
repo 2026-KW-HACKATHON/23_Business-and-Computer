@@ -48,7 +48,7 @@ public class OwnerFacade {
 
     /**
      * 사장님 본인의 기본 정보와 활동 개수. 보낸 의뢰는 취소만 뺀 누적 수라 진행 중·완료 수와 겹치고, 받은 제안은 지원서가 아닌 제안 기준이다.
-     * 사장님 프로필이 없으면 500으로 거부한다.
+     * 저장된 대표자 이름이 비어 있으면 가입자 이름으로 대신 응답하고 저장하지는 않는다. 사장님 프로필이 없으면 500으로 거부한다.
      */
     @Transactional(readOnly = true)
     public OwnerMeResult getMe(String username) {
@@ -59,9 +59,15 @@ public class OwnerFacade {
         Owner owner = ownerService.findOwnerProfileByUserId(user.getId())
                 .orElseThrow(() -> new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR));
 
+        String representativeName = owner.getRepresentativeName();
+        if (representativeName == null || representativeName.isBlank()) {
+            representativeName = user.getName();
+        }
+
         return OwnerMeResult.of(
                 owner,
                 user,
+                representativeName,
                 jobService.countOwnerJobsExcludingCancelled(owner.getId()),
                 proposalService.countReceivedProposalsExcludingCancelled(owner.getId()),
                 jobService.countOwnerInProgressJobs(owner.getId()),
