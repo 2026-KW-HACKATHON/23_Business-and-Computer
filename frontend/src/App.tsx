@@ -30,8 +30,8 @@ import OwnerRequestNewPage from './pages/OwnerRequestNewPage'
 import OwnerRequestContentPage from './pages/OwnerRequestContentPage'
 import OwnerRequestConfirmPage from './pages/OwnerRequestConfirmPage'
 import OwnerRequestDonePage from './pages/OwnerRequestDonePage'
-import OwnerStudentPage from './pages/OwnerStudentPage'
 import OwnerApplicantProfilePage from './pages/OwnerApplicantProfilePage'
+import OwnerStudentPage from './pages/OwnerStudentPage'
 import OwnerAssignPage from './pages/OwnerAssignPage'
 import OwnerPayPage from './pages/OwnerPayPage'
 import OwnerProposalAcceptPage from './pages/OwnerProposalAcceptPage'
@@ -123,9 +123,9 @@ function App() {
         path="/owner/requests/:requestId/applicants/:applicationId"
         element={<OwnerApplicantProfilePage />}
       />
-      <Route path="/owner/requests/:requestId/assign/:studentId" element={<OwnerAssignPage />} />
+      <Route path="/owner/requests/:requestId/assign/:applicationId" element={<OwnerAssignPage />} />
+      <Route path="/owner/requests/:requestId/assign/:applicationId/pay" element={<OwnerPayPage />} />
       <Route path="/owner/students/:studentId" element={<OwnerStudentPage />} />
-      <Route path="/owner/works/:workId/pay" element={<OwnerPayPage />} />
       <Route path="/owner/works/:workId/revision" element={<OwnerRevisionPage />} />
       <Route path="/owner/works/:workId/review" element={<OwnerReviewPage />} />
       <Route path="/owner/works/:workId/review/done" element={<OwnerReviewDonePage />} />

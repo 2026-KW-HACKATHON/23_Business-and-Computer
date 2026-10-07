@@ -11,17 +11,14 @@ export { default as WorkPlanSheet } from "./components/WorkPlanSheet";
 export {
   completeOwnerWork,
   markOwnerWorkReviewed,
-  useOwnerCheckout,
   useOwnerNotifications,
   useOwnerPayments,
   useOwnerProfile,
-  useOwnerRequest,
   useOwnerRequests,
   useOwnerStore,
   useOwnerWork,
   useOwnerWorks,
   useRequestExample,
-  useStudentProfile,
 } from "./hooks/useOwnerData";
 export {
   markOwnerNotificationsRead,
@@ -29,8 +26,8 @@ export {
   setOwnerStorePhoto,
   useOwnerStorePhoto,
 } from "./hooks/ownerDemo";
-export { useSafePayment } from "./hooks/useSafePayment";
-export type { PaymentPhase } from "./hooks/useSafePayment";
+export { useJobAssignment } from "./hooks/useJobAssignment";
+export type { JobAssignment } from "./hooks/useJobAssignment";
 export { useOwnerHome } from "./hooks/useOwnerHome";
 export { useProposalJobIds } from "./hooks/useProposalJobIds";
 export { useReceivedProposals } from "./hooks/useReceivedProposals";
@@ -93,7 +90,6 @@ export {
   studentLabel,
   studentRecord,
 } from "./lib/format";
-export { checkoutWorkId } from "./lib/checkout";
 export {
   MAX_REQUEST_PHOTOS,
   REQUEST_PHOTO_ACCEPT,
@@ -127,6 +123,7 @@ export type {
   OwnerWork,
   OwnerWorkingItem,
   PaymentMethod,
+  PaymentPhase,
   PickedTask,
   RequestContent,
   RequestExample,

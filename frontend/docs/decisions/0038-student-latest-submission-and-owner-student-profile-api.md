@@ -6,8 +6,8 @@ Accepted. 수정 요청 확인, 수정안 제출, and 제출한 초안 · 수정
 the owner's revision request and the student's own files and message from the
 backend.
 「프로필 보기」 on 내 활동 › 받은 제안 · 진행 중, 받은 제안 상세, and 제안서
-(다른 가게) opens the student's profile from the backend. Sample works and
-sample students (non-numeric ids) still open the sample screens.
+(다른 가게) opens the student's profile from the backend. Sample works
+(non-numeric ids) still open the sample screens.
 
 ## Context
 
@@ -52,7 +52,8 @@ The backend (dev) has:
   in `src/features/owner/hooks/useOwnerJobs.ts`): /owner/students/:id with a
   numeric id loads GET /students/{id}/profile and shows the same body as
   지원자 프로필 (`src/pages/OwnerStudentProfileView.tsx`), without a button
-  below. 404 → 「찾는 학생이 없어요」; 403 → alert and the landing page.
+  below. A non-numeric id or 404 → 「찾는 학생이 없어요」; 403 → alert and
+  the landing page.
 - **프로필 보기**: 내 활동 › 진행 중 cards (replacing the 「학생 프로필은 곧 볼
   수 있어요」 popup), 내 활동 › 받은 제안 cards, 받은 제안 상세, and 제안서
   (다른 가게) open /owner/students/:studentProfileId.
@@ -62,7 +63,7 @@ The backend (dev) has:
 - The two profile APIs return the same shape, so one body keeps 학생 프로필
   and 지원자 프로필 identical.
 - A numeric id selects server data, as for server jobs (ADR 0032, ADR 0035),
-  so sample links keep working.
+  so sample work links keep working.
 
 ## Alternatives Considered
 
@@ -72,6 +73,5 @@ The backend (dev) has:
 
 ## Agent Guidance
 
-- When sample works and sample students are removed, drop the non-numeric
-  branches in `src/pages/StudentRevisionPage.tsx`,
-  `src/pages/StudentSubmittedPage.tsx`, and `src/pages/OwnerStudentPage.tsx`.
+- When sample works are removed, drop the non-numeric branches in
+  `src/pages/StudentRevisionPage.tsx` and `src/pages/StudentSubmittedPage.tsx`.

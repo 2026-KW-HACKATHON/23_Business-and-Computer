@@ -2,8 +2,13 @@ import { ApiError } from "../../../api/client";
 import { approvePayment } from "../api/paymentApi";
 import type { PaymentPrepareResponse } from "../api/paymentApi";
 
-/** 무엇을 결제하는지. 카카오페이에 다녀온 뒤 돌아갈 화면을 정한다 */
-export type PaymentTarget = { kind: "proposal"; proposalId: number } | { kind: "job"; jobId: number };
+/**
+ * 무엇을 결제하는지. 카카오페이에 다녀온 뒤 돌아갈 화면을 정한다.
+ * 의뢰 결제는 고른 지원서(jobApplicationId)도 남겨 「다시 결제하기」가 같은 지원자로 돌아간다
+ */
+export type PaymentTarget =
+  | { kind: "proposal"; proposalId: number }
+  | { kind: "job"; jobId: number; jobApplicationId: number };
 
 /** 카카오페이로 가기 전에 sessionStorage 에 남기는 값 */
 export interface PendingPayment {
@@ -17,7 +22,9 @@ function isPaymentTarget(value: unknown): value is PaymentTarget {
   if (!value || typeof value !== "object") return false;
   const target = value as Record<string, unknown>;
   if (target.kind === "proposal") return Number.isSafeInteger(target.proposalId);
-  if (target.kind === "job") return Number.isSafeInteger(target.jobId);
+  if (target.kind === "job") {
+    return Number.isSafeInteger(target.jobId) && Number.isSafeInteger(target.jobApplicationId);
+  }
   return false;
 }
 
@@ -80,13 +87,18 @@ export type PaymentFailure =
   | "otherStore"
   /** 403 PAYMENT_403_FORBIDDEN — 이 사장님의 주문이 아님 */
   | "otherOwnerOrder"
-  /** 404 PROPOSAL_404 · JOB_404 — 결제할 대상이 없음 */
+  /** 404 PROPOSAL_404 · JOB_404 — 결제할 대상이 없음 (의뢰는 없거나 내 의뢰가 아님) */
   | "targetNotFound"
+  /** 404 JOB_APPLICATION_404 — 지원서가 없거나 그 의뢰의 지원서가 아님 */
+  | "applicationNotFound"
   /** 404 PAYMENT_404_ORDER — 주문이 없음 */
   | "orderNotFound"
   /** 409 PROPOSAL_409_PAYMENT — 결정 대기(PENDING)가 아닌 제안 */
   | "targetNotPayable"
-  /** 409 PAYMENT_409_UNAVAILABLE — 승인할 수 없는 주문 · 대상 상태 */
+  /**
+   * 409 PAYMENT_409_UNAVAILABLE — 준비 · 승인할 수 없는 상태. 의뢰 결제 준비에서는 모집 중이 아닌 의뢰,
+   * 대기 중이 아닌 지원서, 작업비가 0 이하인 의뢰
+   */
   | "orderNotPayable"
   /** 409 PAYMENT_409_PAID — 이미 결제됨 */
   | "alreadyPaid"
@@ -107,6 +119,8 @@ export function paymentFailureOf(error: unknown): PaymentFailure {
     case "PROPOSAL_404":
     case "JOB_404":
       return "targetNotFound";
+    case "JOB_APPLICATION_404":
+      return "applicationNotFound";
     case "PAYMENT_404_ORDER":
       return "orderNotFound";
     case "PROPOSAL_409_PAYMENT":
@@ -125,7 +139,7 @@ export type PaymentStartResult = { status: "redirect"; url: string } | { status:
 
 /**
  * 결제를 준비하고 카카오페이로 갈 주소를 돌려준다. prepare 는 대상별 결제 준비 요청
- * (제안: prepareProposalPayment, 의뢰: POST /jobs/{jobId}/payments)이다.
+ * (제안: prepareProposalPayment, 의뢰: prepareJobPayment)이다.
  */
 export async function startKakaoPay(
   target: PaymentTarget,

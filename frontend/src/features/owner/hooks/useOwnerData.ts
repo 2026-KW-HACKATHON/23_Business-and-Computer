@@ -1,5 +1,4 @@
 import { todayIsoDate } from "../../../lib/date";
-import { parseCheckoutWorkId } from "../lib/checkout";
 import {
   SAMPLE_REQUESTS,
   SAMPLE_WORKS,
@@ -9,7 +8,6 @@ import { SAMPLE_STORE } from "../lib/sampleMe";
 import { SAMPLE_STUDENT_PROFILES } from "../lib/sampleStudents";
 import { SAMPLE_NOTIFICATIONS } from "../lib/sampleTabs";
 import type {
-  OwnerCheckout,
   OwnerNotification,
   OwnerPayment,
   OwnerProfile,
@@ -139,12 +137,6 @@ export function useOwnerWork(workId: string | undefined): OwnerWork | undefined 
   return works().find((work) => work.id === workId);
 }
 
-/** 보낸 의뢰 하나 (지원자 포함) */
-export function useOwnerRequest(requestId: string): OwnerRequest | undefined {
-  useOwnerDemoVersion();
-  return requests().find((request) => request.id === requestId);
-}
-
 /** 홈 「이런 의뢰는 어때요?」 예시 하나. 의뢰 등록을 이 내용으로 채워 시작한다 */
 export function useRequestExample(exampleId: string | undefined): RequestExample | undefined {
   return SAMPLE_REQUEST_EXAMPLES.find((example) => example.id === exampleId);
@@ -211,18 +203,5 @@ export function useOwnerPayments(): { payments: OwnerPayment[]; summary: Payment
       settled: sum(payments.filter((p) => p.status === "settled")),
     },
   };
-}
-
-/** 학생 프로필 (뱃지 · 자격증 · 후기). 평점은 후기 평균 */
-export function useStudentProfile(studentId: string): StudentProfile | undefined {
-  return profileOf(studentId);
-}
-
-/** 안전결제할 의뢰와 고른 학생. 작업 id 는 lib/checkout.ts 참고 */
-export function useOwnerCheckout(workId: string): OwnerCheckout | undefined {
-  const ids = parseCheckoutWorkId(workId);
-  const request = requests().find((r) => r.id === ids?.requestId);
-  const applicant = request?.applicants.find((a) => a.student.id === ids?.studentId);
-  return request && applicant ? { workId, request, applicant } : undefined;
 }
 

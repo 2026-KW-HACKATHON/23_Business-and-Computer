@@ -1,8 +1,7 @@
 import { createPortal } from "react-dom";
 import { Button, Dialog } from "../../../components";
-import type { PaymentPhase } from "../hooks/useSafePayment";
 import { PAYMENT_METHODS } from "../lib/payment";
-import type { PaymentMethod } from "../types";
+import type { PaymentMethod, PaymentPhase } from "../types";
 import "./PaymentProgress.css";
 
 interface PaymentProgressProps {
@@ -12,7 +11,7 @@ interface PaymentProgressProps {
   redirectTitle?: string;
   /** 이동 화면 설명 한 줄. 넣으면 기본 설명과 아래 「결제가 끝나면…」 줄 대신 이것만 보인다 */
   redirectDescription?: string;
-  /** 결제 완료 팝업 설명. 없으면 의뢰 결제(useSafePayment) 문구 */
+  /** 결제 완료 팝업 설명. 없으면 의뢰 결제 문구 (「작업비는 골목인턴이 보관해요. 학생과 채팅으로 …」) */
   successDescription?: string;
   /** 이동 화면을 누름 (결제 창을 닫음). 없으면 눌러도 그대로다 */
   onCancel?: () => void;
@@ -61,7 +60,7 @@ function PaymentProgress({
         title="결제가 완료되었어요."
         description={
           successDescription ??
-          "작업비는 골목인턴이 보관해요.\n학생과 채팅으로 자세한 내용을 나눠 보세요.\n(구현을 완료했으나, 실제 결제는 막아두었습니다)"
+          "작업비는 골목인턴이 보관해요.\n학생과 채팅으로 자세한 내용을 나눠 보세요."
         }
         actions={
           <Button fullWidth onClick={onDone}>
