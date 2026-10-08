@@ -42,7 +42,7 @@ The backend (dev) has:
   경영학부 24학번」 (the major is left out when missing), the specialty categories (「디자인 / 홍보」), and the photo come from
   GET /students/me, and so does the 완료 count. 진행 중 counts the matched list
   (ADR 0032) instead of sample works. While loading or after a failure the
-  profile part shows `LoadNotice` and the counts 「-」.
+  profile part shows `LoadNotice` and the counts show loading dots (ADR 0059).
 - **Photo** (내 정보 and 프로필 수정): choosing a photo checks its format and
   size as in signup, uploads it as PROFILE, and saves it with PUT
   /students/me with the current values; the new photo shows while uploading,
@@ -57,7 +57,7 @@ The backend (dev) has:
 - **프로필 편집** (`src/pages/StudentProfileEditPage.tsx`): the form waits for
   GET /students/me and GET /specialties; the chips are the signup 3/3 chips
   with server ids. 「저장하기」 uploads a new photo first, sends the trimmed
-  values (the portfolio gets 「https://」), shows 「저장하는 중...」, and goes back
+  values (the portfolio gets 「https://」), shows loading dots (ADR 0059), and goes back
   to 프로필 수정. A specialty error shows 「고른 특기를 다시 확인해 주세요」, another
   400 「입력한 내용을 다시 확인해 주세요」, and other failures 「잠시 후 다시 시도해
   주세요」, above the button.

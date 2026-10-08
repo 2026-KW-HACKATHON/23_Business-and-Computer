@@ -45,7 +45,7 @@ ADR 0041.
   (category badges, 「가게, 10월 7일 완료」, 「작업비 ○원 정산 완료」, 내 결과물
   보기, and 「받은 후기 ★ 5.0」 when reviewed) and 「성사되지 않은 일」 cards
   (「착수 보상 ○원 정산 완료」 when paid out, 상세보기). While loading or after a
-  failure the count shows 「-」 with `LoadNotice`.
+  failure the count shows loading dots (ADR 0059) with `LoadNotice`.
 - **Home** (`src/features/student/hooks/useStudentHome.ts`): 끝난 일 lists
   the completed jobs, and 확인할 일 holds requests waiting for agreement on my
   proposals, drafts, and revisions. The first-visit guide shows only when the

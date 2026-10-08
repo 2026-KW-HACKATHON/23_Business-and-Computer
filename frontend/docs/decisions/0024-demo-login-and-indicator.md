@@ -39,7 +39,8 @@ route, and the URL could still disagree with the account actually logged in.
     it clears the tokens.
   - Results are `ok`, `limit` (429), `expired` (401/403/404), and `failed`.
 - /demo/role (`src/pages/RoleSelectPage.tsx`):
-  - Pressing a card shows 「들어가는 중...」, locks both cards, and sends one
+  - Pressing a card shows loading dots (ADR 0059) on its button, locks
+    both cards, and sends one
     request even on a double click. On success it goes to `landingPath()`.
   - `limit` shows 「지금은 둘러보기를 더 열 수 없어요. 잠시 후 다시 시도해
     주세요」 under the cards; any other failure shows 「둘러보기를 시작하지

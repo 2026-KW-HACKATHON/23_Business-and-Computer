@@ -40,7 +40,7 @@ POST /jobs/{jobId}/start.
   「50,000원 · 수락 후 초안 2일 · 최종 4일」 on one line, and the reference photos) in
   one gray box, 「시작 전에 약속해요」, and the terms check.
 - **Footer**, side by side: 「이 조건은 어려워요」 (gray, left) and 「동의하고
-  작업 시작하기」 (enabled after the check, 「시작하는 중...」 while sending, one
+  작업 시작하기」 (enabled after the check, loading dots (ADR 0059) while sending, one
   request per press).
   - Start: `sendWorkStart` (`src/features/student/lib/workStart.ts`). Success
     opens 「작업을 시작했어요」 with the answer's draft deadline; 「확인」 goes to

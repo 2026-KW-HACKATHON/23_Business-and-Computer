@@ -59,8 +59,8 @@ Backend facts (dev):
   rules of ADR 0019: find the category id by the chip name in
   `GET /business-categories`, upload the profile and store photos (each
   photo once, reused on retry), then `POST /auth/owner`; on success the new
-  token is saved and the done screen opens. While sending, the button reads
-  「가입 중...」 and inputs are locked; a ref blocks double submits.
+  token is saved and the done screen opens. While sending, the button shows
+  loading dots (ADR 0059) and inputs are locked; a ref blocks double submits.
   Failures show one line above the button: category lookup or
   `CATEGORY_400` → 「업종 정보를 불러오지 못했어요…」,
   `OWNER_409_BUSINESS_NUMBER` → 「이미 다른 계정에서 가입한 사업자등록번호예요」,

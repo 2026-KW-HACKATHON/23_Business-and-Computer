@@ -44,7 +44,7 @@ The backend (dev) has:
 - **내 활동 › 진행 중**: cards sorted by that deadline, with category badges,
   status (초안 제작 중 · 수정 요청이 왔어요 · 초안/수정안 제출, 사장님 확인
   중), store line when known, and 초안 제출하기 · 수정안 제출하기 · 문의하기
-  (그 작업의 채팅방, ADR 0057). The count shows 「-」 and `LoadNotice` replaces the list while
+  (그 작업의 채팅방, ADR 0057). The count shows loading dots (ADR 0059) and `LoadNotice` replaces the list while
   loading or after a failure.
 - **Home**: drafting · revising jobs join 「확인할 일」 (sorted with the
   agreement cards by deadline); submitted jobs are 「사장님이 확인 중」
@@ -56,7 +56,7 @@ The backend (dev) has:
   `src/lib/attachmentFormats.ts`, shared with chat attachments; files that do not
   fit and files past 10 are dropped with one notice), the message is required
   (「꼭 적어 주세요」), then `sendSubmission` uploads each file and submits.
-  「보내는 중...」 while sending, one request per press. Success opens the
+  Loading dots while sending (ADR 0059), one request per press. Success opens the
   done popup → 내 활동 › 진행 중. Duplicate → alert and 제출한 초안; not
   requested or not available → alert and 내 활동 › 진행 중; upload or file
   errors → 「파일을 올리지 못했어요…」; anything else → 「잠시 후 다시 시도해

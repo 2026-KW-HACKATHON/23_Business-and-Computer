@@ -72,7 +72,8 @@ The owner side read `SAMPLE_PROPOSALS`, so a proposal a student sent
       제안을 볼 수 있어요」, then goes to `landingPath()`.
 - **One hook for three places**: 내 활동 › 받은 제안, the home 「확인할 일」,
   and the 내 정보 count all use `useReceivedProposals`.
-  - The summary counts read 「-」 while loading or after a failure.
+  - The summary counts show loading dots while loading or after a failure
+    (ADR 0059).
   - 내 활동 shows `LoadNotice` with 「다시 시도」.
   - Home: only PENDING proposals become 「새 제안」 cards. The card badge is
     the first category name, and the student line shows `major`. While the

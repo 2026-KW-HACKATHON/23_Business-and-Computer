@@ -43,7 +43,7 @@ failures needed a decision.
   - 401 → /login (history replaced).
   - 409 → alert 「이미 가입을 마친 계정이에요」, then the owner home /owner
     (replaced).
-  - While requesting, the button is disabled and reads 「인증 중...」.
+  - While requesting, the button is disabled and shows loading dots (ADR 0059).
 - The shared signup draft stores only the result in `business.check`
   (idle / verified / mismatch / error). "Requesting" is local `useState` in
   `src/pages/OwnerSignupVerifyPage.tsx`, so it never outlives the screen.
