@@ -1,10 +1,12 @@
 package com.gakkum.backend.handler;
 
+import com.gakkum.backend.config.FrontendOrigins;
 import com.gakkum.backend.domain.jwt.service.JwtService;
 import com.gakkum.backend.util.JWTUtil;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpHeaders;
@@ -22,6 +24,7 @@ public class SocialSuccessHandler implements AuthenticationSuccessHandler {
 
     private final JwtService jwtService;
     private final JWTUtil jwtUtil;
+    private final FrontendOrigins frontendOrigins;
 
     @Override
     public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response, Authentication authentication) throws IOException, ServletException {
@@ -46,7 +49,18 @@ public class SocialSuccessHandler implements AuthenticationSuccessHandler {
                 .build();
         response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
 
-        response.sendRedirect("http://localhost:5173/cookie");
+        // 로그인을 시작한 프론트(LoginOriginFilter 가 세션에 담음)로 돌려보내고, 모르면 기본 프론트로 보낸다
+        response.sendRedirect(frontendOrigins.resolve(takeLoginOrigin(request)) + "/cookie");
+    }
+
+    private String takeLoginOrigin(HttpServletRequest request) {
+        HttpSession session = request.getSession(false);
+        if (session == null) {
+            return null;
+        }
+        Object origin = session.getAttribute(FrontendOrigins.LOGIN_ORIGIN_SESSION_KEY);
+        session.removeAttribute(FrontendOrigins.LOGIN_ORIGIN_SESSION_KEY);
+        return origin instanceof String value ? value : null;
     }
 
 }
