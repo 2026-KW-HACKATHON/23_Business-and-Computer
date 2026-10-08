@@ -9,8 +9,10 @@
 
 2026 광운대학교 KW 해커톤 · 경영과컴퓨터 23조
 
-## 개발 과정 및 상세 문서 ( 기획, 기능, 정책, api 명세서)
-https://www.notion.so/2026-KW-0a0934d4ce52829080af81f185aacf3b?source=copy_link
+## 개발 과정 및 상세 문서 모아보기 (노션 페이지 하단)
+| 구분 | 주소 |
+| --- | --- |
+| 노션 | https://www.notion.so/2026-KW-0a0934d4ce52829080af81f185aacf3b?source=copy_link | 
 
 ## 바로 써 보기
 
