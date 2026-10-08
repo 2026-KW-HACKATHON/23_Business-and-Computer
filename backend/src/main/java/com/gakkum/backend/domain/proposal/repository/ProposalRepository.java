@@ -1,6 +1,7 @@
 package com.gakkum.backend.domain.proposal.repository;
 
 import java.time.LocalDateTime;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -45,41 +46,44 @@ public interface ProposalRepository extends JpaRepository<Proposal, Long> {
             Long ownerProfileId, ProposalStatus excludedStatus);
 
     // 탐색 목록은 demoSessionId가 조회자와 같은 제안만 고른다. 실제 사용자는 null이고 메서드 이름 쿼리는 null을 IS NULL로 비교한다
-    // 취소된 제안은 페이지 크기와 커서가 어긋나지 않도록 모든 구간에서 조회 조건(excludedStatus)으로 뺀다
+    // 뺄 상태(excludedStatuses)와 본인 제안(excludedStudentProfileId)은 페이지 크기와 커서가 어긋나지 않도록 모든 구간에서 조회 조건으로 뺀다
+    // excludedStudentProfileId가 null이면 메서드 이름 쿼리는 IS NOT NULL로 비교해 작성 학생으로 거르지 않는다
 
     // 최신순: 경계 시각과 같은 행 중 경계 ID 앞 → 경계 시각 이전
-    List<Proposal> findByDemoSessionIdAndStatusNotAndCreatedAtAndIdLessThanOrderByIdDesc(
-            String demoSessionId, ProposalStatus excludedStatus, LocalDateTime createdAt, Long idBound, Limit limit);
+    List<Proposal> findByDemoSessionIdAndStatusNotInAndStudentProfileIdNotAndCreatedAtAndIdLessThanOrderByIdDesc(
+            String demoSessionId, Collection<ProposalStatus> excludedStatuses, Long excludedStudentProfileId, LocalDateTime createdAt, Long idBound, Limit limit);
 
-    List<Proposal> findByDemoSessionIdAndStatusNotAndCreatedAtLessThanOrderByCreatedAtDescIdDesc(
-            String demoSessionId, ProposalStatus excludedStatus, LocalDateTime createdAt, Limit limit);
+    List<Proposal> findByDemoSessionIdAndStatusNotInAndStudentProfileIdNotAndCreatedAtLessThanOrderByCreatedAtDescIdDesc(
+            String demoSessionId, Collection<ProposalStatus> excludedStatuses, Long excludedStudentProfileId, LocalDateTime createdAt, Limit limit);
 
     // 오래된순: 경계 시각과 같은 행 중 경계 ID 뒤 → 경계 시각 이후
-    List<Proposal> findByDemoSessionIdAndStatusNotAndCreatedAtAndIdGreaterThanOrderByIdAsc(
-            String demoSessionId, ProposalStatus excludedStatus, LocalDateTime createdAt, Long idBound, Limit limit);
+    List<Proposal> findByDemoSessionIdAndStatusNotInAndStudentProfileIdNotAndCreatedAtAndIdGreaterThanOrderByIdAsc(
+            String demoSessionId, Collection<ProposalStatus> excludedStatuses, Long excludedStudentProfileId, LocalDateTime createdAt, Long idBound, Limit limit);
 
-    List<Proposal> findByDemoSessionIdAndStatusNotAndCreatedAtGreaterThanOrderByCreatedAtAscIdAsc(
-            String demoSessionId, ProposalStatus excludedStatus, LocalDateTime createdAt, Limit limit);
+    List<Proposal> findByDemoSessionIdAndStatusNotInAndStudentProfileIdNotAndCreatedAtGreaterThanOrderByCreatedAtAscIdAsc(
+            String demoSessionId, Collection<ProposalStatus> excludedStatuses, Long excludedStudentProfileId, LocalDateTime createdAt, Limit limit);
 
     // 좋아요순: 같은 좋아요·같은 시각 중 경계 ID 앞 → 같은 좋아요 중 경계 시각 이전 → 좋아요가 더 적은 제안
-    List<Proposal> findByDemoSessionIdAndStatusNotAndLikeCountAndCreatedAtAndIdLessThanOrderByIdDesc(
-            String demoSessionId, ProposalStatus excludedStatus, Integer likeCount, LocalDateTime createdAt, Long idBound, Limit limit);
+    List<Proposal> findByDemoSessionIdAndStatusNotInAndStudentProfileIdNotAndLikeCountAndCreatedAtAndIdLessThanOrderByIdDesc(
+            String demoSessionId, Collection<ProposalStatus> excludedStatuses, Long excludedStudentProfileId, Integer likeCount, LocalDateTime createdAt, Long idBound, Limit limit);
 
-    List<Proposal> findByDemoSessionIdAndStatusNotAndLikeCountAndCreatedAtLessThanOrderByCreatedAtDescIdDesc(
-            String demoSessionId, ProposalStatus excludedStatus, Integer likeCount, LocalDateTime createdAt, Limit limit);
+    List<Proposal> findByDemoSessionIdAndStatusNotInAndStudentProfileIdNotAndLikeCountAndCreatedAtLessThanOrderByCreatedAtDescIdDesc(
+            String demoSessionId, Collection<ProposalStatus> excludedStatuses, Long excludedStudentProfileId, Integer likeCount, LocalDateTime createdAt, Limit limit);
 
-    List<Proposal> findByDemoSessionIdAndStatusNotAndLikeCountLessThanOrderByLikeCountDescCreatedAtDescIdDesc(
-            String demoSessionId, ProposalStatus excludedStatus, Integer likeCount, Limit limit);
+    List<Proposal> findByDemoSessionIdAndStatusNotInAndStudentProfileIdNotAndLikeCountLessThanOrderByLikeCountDescCreatedAtDescIdDesc(
+            String demoSessionId, Collection<ProposalStatus> excludedStatuses, Long excludedStudentProfileId, Integer likeCount, Limit limit);
 
     /*
      * 대분류 조건은 연관관계가 없는 ProposalSpecialty·Specialty를 EXISTS로 확인해야 해서 메서드 이름으로 표현할 수 없다.
-     * 그 대분류의 소분류가 하나라도 연결된 제안만 고르고, 메서드 이름 쿼리와 같이 취소된 제안을 뺀다.
+     * 그 대분류의 소분류가 하나라도 연결된 제안만 고르고, 메서드 이름 쿼리와 같이 뺄 상태와 본인 제안을 뺀다.
+     * excludedStudentProfileId가 null이면 IS DISTINCT FROM이 항상 참이라 작성 학생으로 거르지 않는다.
      */
 
     @Query("""
             select p from Proposal p
             where p.demoSessionId is not distinct from :demoSessionId
-              and p.status <> :excludedStatus
+              and p.status not in :excludedStatuses
+              and p.studentProfileId is distinct from :excludedStudentProfileId
               and p.createdAt is not null
               and (p.createdAt, p.id) < (:createdAt, :idBound)
               and exists (
@@ -88,13 +92,15 @@ public interface ProposalRepository extends JpaRepository<Proposal, Long> {
             order by p.createdAt desc, p.id desc
             """)
     List<Proposal> findExploreLatestInCategory(@Param("demoSessionId") String demoSessionId,
-            @Param("excludedStatus") ProposalStatus excludedStatus, @Param("categoryId") Long categoryId,
+            @Param("excludedStatuses") Collection<ProposalStatus> excludedStatuses,
+            @Param("excludedStudentProfileId") Long excludedStudentProfileId, @Param("categoryId") Long categoryId,
             @Param("createdAt") LocalDateTime createdAt, @Param("idBound") Long idBound, Limit limit);
 
     @Query("""
             select p from Proposal p
             where p.demoSessionId is not distinct from :demoSessionId
-              and p.status <> :excludedStatus
+              and p.status not in :excludedStatuses
+              and p.studentProfileId is distinct from :excludedStudentProfileId
               and p.createdAt is not null
               and (p.createdAt, p.id) > (:createdAt, :idBound)
               and exists (
@@ -103,13 +109,15 @@ public interface ProposalRepository extends JpaRepository<Proposal, Long> {
             order by p.createdAt asc, p.id asc
             """)
     List<Proposal> findExploreOldestInCategory(@Param("demoSessionId") String demoSessionId,
-            @Param("excludedStatus") ProposalStatus excludedStatus, @Param("categoryId") Long categoryId,
+            @Param("excludedStatuses") Collection<ProposalStatus> excludedStatuses,
+            @Param("excludedStudentProfileId") Long excludedStudentProfileId, @Param("categoryId") Long categoryId,
             @Param("createdAt") LocalDateTime createdAt, @Param("idBound") Long idBound, Limit limit);
 
     @Query("""
             select p from Proposal p
             where p.demoSessionId is not distinct from :demoSessionId
-              and p.status <> :excludedStatus
+              and p.status not in :excludedStatuses
+              and p.studentProfileId is distinct from :excludedStudentProfileId
               and p.createdAt is not null
               and (p.likeCount, p.createdAt, p.id) < (:likeCount, :createdAt, :idBound)
               and exists (
@@ -118,7 +126,8 @@ public interface ProposalRepository extends JpaRepository<Proposal, Long> {
             order by p.likeCount desc, p.createdAt desc, p.id desc
             """)
     List<Proposal> findExploreByLikesInCategory(@Param("demoSessionId") String demoSessionId,
-            @Param("excludedStatus") ProposalStatus excludedStatus, @Param("categoryId") Long categoryId,
+            @Param("excludedStatuses") Collection<ProposalStatus> excludedStatuses,
+            @Param("excludedStudentProfileId") Long excludedStudentProfileId, @Param("categoryId") Long categoryId,
             @Param("likeCount") Integer likeCount, @Param("createdAt") LocalDateTime createdAt,
             @Param("idBound") Long idBound, Limit limit);
 }

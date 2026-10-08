@@ -113,7 +113,12 @@ public final class ProposalCommandDto {
         private final LocalDateTime createdAtBound;
         private final Long idBound;
         private final int limit;
+        // 탐색 화면 조회에서만 true다. 거절된 제안도 뺀다
+        private final boolean rejectedExcluded;
+        // 이 학생이 작성한 제안을 뺀다. null이면 작성 학생으로 거르지 않는다
+        private final Long excludedStudentProfileId;
 
+        /** 취소된 제안만 뺀다. */
         public static GetExploreProposalsCommand of(String demoSessionId, Long specialtyCategoryId,
                 ProposalExploreOrder order, Integer likeCountBound, LocalDateTime createdAtBound, Long idBound,
                 int limit) {
@@ -125,6 +130,23 @@ public final class ProposalCommandDto {
                     .createdAtBound(createdAtBound)
                     .idBound(idBound)
                     .limit(limit)
+                    .build();
+        }
+
+        /** 탐색 화면용. 취소·거절된 제안과 조회자(viewerStudentProfileId)가 작성한 제안을 뺀다. 학생 프로필이 없으면 null이다. */
+        public static GetExploreProposalsCommand forViewer(String demoSessionId, Long specialtyCategoryId,
+                ProposalExploreOrder order, Integer likeCountBound, LocalDateTime createdAtBound, Long idBound,
+                int limit, Long viewerStudentProfileId) {
+            return GetExploreProposalsCommand.builder()
+                    .demoSessionId(demoSessionId)
+                    .specialtyCategoryId(specialtyCategoryId)
+                    .order(order)
+                    .likeCountBound(likeCountBound)
+                    .createdAtBound(createdAtBound)
+                    .idBound(idBound)
+                    .limit(limit)
+                    .rejectedExcluded(true)
+                    .excludedStudentProfileId(viewerStudentProfileId)
                     .build();
         }
     }

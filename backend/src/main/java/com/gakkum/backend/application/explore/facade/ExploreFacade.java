@@ -74,7 +74,8 @@ public class ExploreFacade {
     private final StudentService studentService;
 
     /**
-     * 제안과 의뢰를 한 목록으로 탐색한다. 종류마다 커서 뒤의 카드를 size+1개까지 읽어 병합하고,
+     * 제안과 의뢰를 한 목록으로 탐색한다. 취소·거절된 제안, 조회자가 작성한 제안·의뢰, 조회 학생의 지원이 탈락한 의뢰는
+     * 조회 조건으로 빼서 페이지 크기와 커서에 들지 않는다. 종류마다 커서 뒤의 카드를 size+1개까지 읽어 병합하고,
      * 한 장이 남으면 다음 페이지가 있다고 보고 이번 페이지 마지막 카드로 커서를 만든다.
      * 매장 이름과 대분류·소분류, 제안 작성 학생 이름, 학생의 지원 상태·공감 여부는 이번 페이지 카드에 대해서만 묶어서 조회한다.
      */
@@ -83,14 +84,22 @@ public class ExploreFacade {
         User user = userService.getActiveUser(command.getUsername());
         String demoSessionId = user.getDemoSessionId();
         int limit = command.getSize() + 1;
+        // 본인 글과 탈락한 지원을 거르는 기준. 역할에 맞는 프로필이 없으면 null이라 그 필터는 적용하지 않는다
+        Long viewerStudentProfileId = user.getRole() == UserRole.STUDENT
+                ? studentService.findStudentProfileByUserId(user.getId()).map(Student::getId).orElse(null)
+                : null;
+        Long viewerOwnerProfileId = user.getRole() == UserRole.OWNER
+                ? ownerService.findOwnerProfileByUserId(user.getId()).map(Owner::getId).orElse(null)
+                : null;
 
         List<Candidate> candidates = new ArrayList<>();
         if (command.getType() != ExploreType.JOB) {
-            proposalService.getExploreProposals(proposalCommand(command, demoSessionId, limit))
+            proposalService.getExploreProposals(proposalCommand(command, demoSessionId, limit, viewerStudentProfileId))
                     .forEach(data -> candidates.add(Candidate.of(data)));
         }
         if (command.getType() != ExploreType.PROPOSAL) {
-            jobService.getExploreJobs(jobCommand(command, demoSessionId, limit))
+            jobService.getExploreJobs(
+                            jobCommand(command, demoSessionId, limit, viewerOwnerProfileId, viewerStudentProfileId))
                     .forEach(data -> candidates.add(Candidate.of(data)));
         }
         candidates.sort(comparator(command.getSort()));
@@ -98,7 +107,7 @@ public class ExploreFacade {
         boolean hasNext = candidates.size() > command.getSize();
         List<Candidate> page = hasNext ? candidates.subList(0, command.getSize()) : candidates;
         String nextCursor = hasNext ? toCursor(command, page.get(page.size() - 1)).encode() : null;
-        return ExploreResult.of(toItems(page, user), nextCursor);
+        return ExploreResult.of(toItems(page, viewerStudentProfileId), nextCursor);
     }
 
     /**
@@ -146,26 +155,33 @@ public class ExploreFacade {
         return StoreExploreResult.of(items, nextCursor);
     }
 
-    private GetExploreProposalsCommand proposalCommand(ExploreCommand command, String demoSessionId, int limit) {
+    private GetExploreProposalsCommand proposalCommand(
+            ExploreCommand command, String demoSessionId, int limit, Long viewerStudentProfileId) {
         ExploreCursor cursor = command.getCursor();
+        Long categoryId = command.getSpecialtyCategoryId();
         return switch (command.getSort()) {
-            case LATEST -> GetExploreProposalsCommand.of(demoSessionId, command.getSpecialtyCategoryId(),
-                    ProposalExploreOrder.LATEST, null, createdAtBound(cursor, false), idBound(cursor, ExploreItemType.PROPOSAL, false), limit);
-            case OLDEST -> GetExploreProposalsCommand.of(demoSessionId, command.getSpecialtyCategoryId(),
-                    ProposalExploreOrder.OLDEST, null, createdAtBound(cursor, true), idBound(cursor, ExploreItemType.PROPOSAL, true), limit);
-            case LIKES -> GetExploreProposalsCommand.of(demoSessionId, command.getSpecialtyCategoryId(),
+            case LATEST -> GetExploreProposalsCommand.forViewer(demoSessionId, categoryId,
+                    ProposalExploreOrder.LATEST, null, createdAtBound(cursor, false),
+                    idBound(cursor, ExploreItemType.PROPOSAL, false), limit, viewerStudentProfileId);
+            case OLDEST -> GetExploreProposalsCommand.forViewer(demoSessionId, categoryId,
+                    ProposalExploreOrder.OLDEST, null, createdAtBound(cursor, true),
+                    idBound(cursor, ExploreItemType.PROPOSAL, true), limit, viewerStudentProfileId);
+            case LIKES -> GetExploreProposalsCommand.forViewer(demoSessionId, categoryId,
                     ProposalExploreOrder.LIKES,
                     cursor == null ? Integer.MAX_VALUE : cursor.getLikeCount(),
-                    createdAtBound(cursor, false), cursor == null ? Long.MAX_VALUE : cursor.getId(), limit);
+                    createdAtBound(cursor, false), cursor == null ? Long.MAX_VALUE : cursor.getId(), limit,
+                    viewerStudentProfileId);
         };
     }
 
     // 좋아요순은 제안 전용이라 의뢰 조회에는 최신순·오래된순만 온다
-    private GetExploreJobsCommand jobCommand(ExploreCommand command, String demoSessionId, int limit) {
+    private GetExploreJobsCommand jobCommand(ExploreCommand command, String demoSessionId, int limit,
+            Long viewerOwnerProfileId, Long viewerStudentProfileId) {
         boolean oldestFirst = command.getSort() == ExploreSort.OLDEST;
         ExploreCursor cursor = command.getCursor();
-        return GetExploreJobsCommand.of(demoSessionId, command.getSpecialtyCategoryId(), oldestFirst,
-                createdAtBound(cursor, oldestFirst), idBound(cursor, ExploreItemType.JOB, oldestFirst), limit);
+        return GetExploreJobsCommand.forViewer(demoSessionId, command.getSpecialtyCategoryId(), oldestFirst,
+                createdAtBound(cursor, oldestFirst), idBound(cursor, ExploreItemType.JOB, oldestFirst), limit,
+                viewerOwnerProfileId, viewerStudentProfileId);
     }
 
     private static LocalDateTime createdAtBound(ExploreCursor cursor, boolean oldestFirst) {
@@ -214,7 +230,7 @@ public class ExploreFacade {
                 last.getType(), last.getLikeCount(), last.getCreatedAt(), last.getId());
     }
 
-    private List<ExploreItemResult> toItems(List<Candidate> page, User user) {
+    private List<ExploreItemResult> toItems(List<Candidate> page, Long viewerProfileId) {
         if (page.isEmpty()) {
             return List.of();
         }
@@ -229,10 +245,7 @@ public class ExploreFacade {
         Map<Long, String> studentNames = studentNames(page);
         List<Long> proposalIds = idsOf(page, ExploreItemType.PROPOSAL);
         List<Long> jobIds = idsOf(page, ExploreItemType.JOB);
-        // 지원 상태와 공감 여부가 로그인 학생의 프로필 조회 한 번을 함께 쓴다. 학생 프로필이 없는 학생은 이력이 없는 것으로 본다
-        Long viewerProfileId = user.getRole() == UserRole.STUDENT
-                ? studentService.findStudentProfileByUserId(user.getId()).map(Student::getId).orElse(null)
-                : null;
+        // 지원 상태와 공감 여부는 로그인 학생의 프로필로 조회한다. 학생 프로필이 없는 학생은 이력이 없는 것으로 본다
         Set<Long> likedProposalIds = viewerProfileId == null || proposalIds.isEmpty()
                 ? Set.of()
                 : proposalService.getLikedProposalIds(viewerProfileId, proposalIds);
