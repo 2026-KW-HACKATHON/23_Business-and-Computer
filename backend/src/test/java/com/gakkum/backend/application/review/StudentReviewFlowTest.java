@@ -39,6 +39,7 @@ import com.gakkum.backend.domain.job.repository.JobSpecialtyRepository;
 import com.gakkum.backend.domain.job.repository.JobSubmissionRepository;
 import com.gakkum.backend.domain.job.service.JobService;
 import com.gakkum.backend.domain.jwt.service.JwtService;
+import com.gakkum.backend.domain.notification.service.NotificationService;
 import com.gakkum.backend.domain.owner.entity.Owner;
 import com.gakkum.backend.domain.owner.repository.OwnerRepository;
 import com.gakkum.backend.domain.owner.service.OwnerService;
@@ -80,7 +81,8 @@ class StudentReviewFlowTest {
                 mock(JobApplicationRepository.class), jobSubmissionRepository, Clock.systemUTC());
         ReviewFacade facade = new ReviewFacade(new UserService(userRepository, mock(JwtService.class)),
                 new OwnerService(ownerRepository), new StudentService(studentRepository), jobService,
-                new ReviewService(reviewRepository), mock(ApplicationEventPublisher.class));
+                new ReviewService(reviewRepository), mock(NotificationService.class),
+                mock(ApplicationEventPublisher.class));
         mockMvc = MockMvcBuilders.standaloneSetup(new ReviewController(facade))
                 .setControllerAdvice(new GlobalExceptionHandler())
                 .build();
