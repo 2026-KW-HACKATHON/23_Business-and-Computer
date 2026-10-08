@@ -1,135 +1,73 @@
+import { useCallback, useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { loadOwnerHome } from "../lib/ownerHome";
+import type { OwnerHomeData } from "../lib/ownerHome";
 import { SAMPLE_REQUEST_EXAMPLES } from "../lib/sampleHome";
-import type { OwnerHome, OwnerTodo, StudentRef } from "../types";
-import { proposalBadgeNames } from "../../proposal";
-import { useOwnerClosedJobs } from "./useOwnerClosedJobs";
-import { useOpenJobs } from "./useOwnerJobs";
-import { useOwnerProgressJobs } from "./useOwnerProgressJobs";
-import { jobCategoryNames } from "../lib/ownerJobs";
-import { ownerAutoCompleteOn, ownerProgressDeadline } from "../lib/progressJobs";
-import type { OwnerProgressJob } from "../lib/progressJobs";
-import { useReceivedProposals } from "./useReceivedProposals";
+import type { OwnerHome, OwnerHomeSectionStatus } from "../types";
 
-/** 지금 지킬 마감이 빠른 것부터 */
-const byDue = (a: OwnerProgressJob, b: OwnerProgressJob) =>
-  ownerProgressDeadline(a).due.localeCompare(ownerProgressDeadline(b).due);
-
-/** 홈 카드 · 줄의 학생 (이름을 모르면 「학생」) */
-const studentRef = (job: OwnerProgressJob): StudentRef => ({
-  name: job.student.name ?? "",
-  department: job.student.major,
-});
+/** retrying = 불러온 홈을 두고 다시 부르는 중 (실패한 섹션만 로딩으로 보인다) */
+type OwnerHomeLoad =
+  | { status: "loading" }
+  | { status: "error" }
+  | { status: "loaded"; home: OwnerHomeData; retrying: boolean };
 
 /**
- * 사장님 홈에 그릴 데이터. 작업 · 의뢰 · 제안에서 만들어서, 홈 카드를 눌러 들어간
- * 상세와 내용이 같다. 백엔드를 연동할 때 홈 API 로 바꿔도 화면은 그대로 쓴다.
- * 받은 제안(GET /me/received-proposals, ADR 0025), 모집 중인 의뢰(GET /me/jobs?status=OPEN, ADR 0030),
- * 진행 중 작업(GET /me/jobs?status=MATCHED, ADR 0035), 끝난 일(GET /me/jobs?status=CLOSED, ADR 0036)은 API 다.
- * 끝난 일은 불러오지 못하면 섹션째 숨는다. 첫 활동인지는 백엔드 값 없이 이 네 목록으로 정한다 (ADR 0051).
+ * 사장님 홈에 그릴 데이터. GET /me/home 한 번으로 확인할 일 · 학생이 작업 중 · 기다리는 중 · 끝난 일과
+ * 처음 온 계정인지(firstVisit, ADR 0051)를 함께 받는다 (ADR 0064). 순서 · 자동 완료 날짜도 서버 값 그대로 쓴다.
+ * 서버가 null 로 준 섹션만 실패로 보이고, 다시 시도하면 홈 전체를 다시 부른다.
+ * 401 은 /login, 403 HOME_403(가입 전)은 /signup/role 로 보낸다 (그동안은 loading). 화면을 떠난 뒤 온 응답은 버린다.
  */
 export function useOwnerHome(): OwnerHome {
-  // 끝난 내 의뢰 (완료한 것만, 끝난 날 최신순)
-  const { load: closedLoad } = useOwnerClosedJobs();
-  const completed = closedLoad.status === "loaded" ? closedLoad.jobs.filter((job) => job.outcome === "completed") : [];
-  // 모집 중인 내 의뢰 (GET /me/jobs?status=OPEN), 초안 마감이 빠른 것부터
-  const { load: openLoad } = useOpenJobs();
-  const requests = (openLoad.status === "loaded" ? [...openLoad.data] : []).sort((a, b) =>
-    a.draftDeadline.localeCompare(b.draftDeadline),
-  );
-  const { load: proposalsLoad, reload: reloadReceivedProposals } = useReceivedProposals();
-  const proposals = proposalsLoad.status === "loaded" ? proposalsLoad.proposals : [];
-  const { load: progressLoad, reload: reloadProgress } = useOwnerProgressJobs();
-  const progress = progressLoad.status === "loaded" ? [...progressLoad.jobs].sort(byDue) : [];
+  const navigate = useNavigate();
+  const [load, setLoad] = useState<OwnerHomeLoad>({ status: "loading" });
+  const [request, setRequest] = useState(0);
 
-  // 확인할 일: 도착한 결과물 → 새 제안 → 지원자가 생긴 의뢰
-  const todos: OwnerTodo[] = [
-    ...progress
-      .filter((job) => job.stage === "submitted")
-      .map((job): OwnerTodo => ({
-        type: "draftArrived",
-        id: String(job.jobId),
-        kind: job.kind,
-        title: job.title,
-        field: jobCategoryNames(job.specialtyCategories)[0] ?? "기타",
-        student: studentRef(job),
-        revision: job.revisionSubmitted,
-        autoCompleteOn: ownerAutoCompleteOn(job),
-      })),
-    // 결정을 기다리는 제안만. 대분류가 여러 개면 첫 번째를 뱃지로
-    ...proposals
-      .filter((p) => p.status === "PENDING")
-      .map((p): OwnerTodo => ({
-        type: "proposalArrived",
-        id: String(p.proposalId),
-        kind: "proposal",
-        title: p.title,
-        field: proposalBadgeNames(p.specialtyCategories)[0] ?? "기타",
-        student: { name: p.student.name, department: p.student.major ?? undefined },
-        empathyCount: p.likeCount,
-      })),
-    ...requests
-      .filter((r) => r.applicantCount > 0)
-      .map((r): OwnerTodo => ({
-        type: "applicants",
-        id: String(r.jobId),
-        kind: "request",
-        title: r.title,
-        field: jobCategoryNames(r.specialtyCategories)[0] ?? "기타",
-        applicantCount: r.applicantCount,
-        draftDue: r.draftDeadline,
-      })),
-  ];
+  useEffect(() => {
+    let active = true;
+    void loadOwnerHome().then((result) => {
+      if (!active) return;
+      if (result.status === "unauthorized") {
+        navigate("/login", { replace: true });
+      } else if (result.status === "signupRequired") {
+        navigate("/signup/role", { replace: true });
+      } else if (result.status === "loaded") {
+        setLoad({ status: "loaded", home: result.home, retrying: false });
+      } else {
+        // 불러온 홈이 있으면 그대로 두고, 실패한 섹션이 다시 「다시 시도」를 보인다
+        setLoad((prev) => (prev.status === "loaded" ? { ...prev, retrying: false } : { status: "error" }));
+      }
+    });
+    return () => {
+      active = false;
+    };
+  }, [request, navigate]);
 
-  // 이력이 하나도 없는 계정: 네 목록이 모두 비었을 때. 하나라도 있거나 실패하면 일반 홈
-  const lists = [openLoad, proposalsLoad, progressLoad, closedLoad];
-  const hasHistory =
-    requests.length > 0 ||
-    proposals.length > 0 ||
-    progress.length > 0 ||
-    (closedLoad.status === "loaded" && closedLoad.jobs.length > 0);
-  const firstVisit = hasHistory
-    ? false
-    : lists.some((list) => list.status === "loading")
-      ? undefined
-      : lists.every((list) => list.status === "loaded");
+  const reload = useCallback(() => {
+    setLoad((prev) => (prev.status === "loaded" ? { ...prev, retrying: true } : { status: "loading" }));
+    setRequest((n) => n + 1);
+  }, []);
+
+  const home = load.status === "loaded" ? load.home : undefined;
+  const sectionStatus = (items: unknown[] | null | undefined): OwnerHomeSectionStatus => {
+    if (load.status !== "loaded") return load.status;
+    if (items) return "loaded";
+    return load.retrying ? "loading" : "error";
+  };
 
   return {
-    firstVisit,
-    todos,
-    receivedProposals: proposalsLoad.status,
-    reloadReceivedProposals,
-    progress: progressLoad.status,
-    reloadProgress,
-    working: progress
-      .filter((job) => job.stage !== "submitted")
-      .map((job) => {
-        const deadline = ownerProgressDeadline(job);
-        return {
-          id: String(job.jobId),
-          kind: job.kind,
-          title: job.title,
-          student: studentRef(job),
-          stage: deadline.stage,
-          due: deadline.due,
-          proposalId: job.proposalId !== undefined ? String(job.proposalId) : undefined,
-        };
-      }),
-    waiting: requests
-      .filter((r) => r.applicantCount === 0)
-      .map((r) => ({
-        id: String(r.jobId),
-        kind: "request",
-        title: r.title,
-        stage: "draft",
-        due: r.draftDeadline,
-        status: "recruiting",
-      })),
+    firstVisit: load.status === "loading" ? undefined : (home?.firstVisit ?? false),
+    status: load.status,
+    sections: {
+      todos: sectionStatus(home?.todos),
+      working: sectionStatus(home?.working),
+      waiting: sectionStatus(home?.waiting),
+      done: sectionStatus(home?.done),
+    },
+    reload,
+    todos: home?.todos ?? [],
+    working: home?.working ?? [],
+    waiting: home?.waiting ?? [],
     examples: SAMPLE_REQUEST_EXAMPLES,
-    done: completed.map((job) => ({
-      id: String(job.jobId),
-      kind: job.kind,
-      title: job.title,
-      student: { name: job.studentName ?? "" },
-      completedOn: job.closedOn,
-    })),
+    done: home?.done ?? [],
   };
 }

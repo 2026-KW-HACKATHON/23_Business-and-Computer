@@ -78,7 +78,7 @@ function useOwnerJobLoad<T>(
   return { load, reload };
 }
 
-/** 모집 중인 내 의뢰 (GET /me/jobs?status=OPEN). 내 활동 · 홈 · 내 정보가 함께 쓴다 */
+/** 모집 중인 내 의뢰 (GET /me/jobs?status=OPEN). 내 활동 · 내 정보 · 학생 고르기가 함께 쓴다 */
 export function useOpenJobs(): { load: OwnerJobLoad<OpenJob[]>; reload: () => void } {
   return useOwnerJobLoad("open", loadOpenJobs, "사장님만 보낸 의뢰를 볼 수 있어요");
 }

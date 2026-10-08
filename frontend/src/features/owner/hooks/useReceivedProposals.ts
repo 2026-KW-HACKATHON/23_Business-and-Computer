@@ -10,7 +10,7 @@ export type ReceivedProposalsLoad =
   | { status: "loaded"; proposals: ReceivedProposal[] };
 
 /**
- * 내가 받은 제안 목록 (GET /me/received-proposals, 최신순). 내 활동 · 홈 · 내 정보가 함께 쓴다.
+ * 내가 받은 제안 목록 (GET /me/received-proposals, 최신순). 내 활동 · 탐색 · 결과물 화면이 함께 쓴다.
  * 실패하면 reload 로 다시 불러온다. 401 은 /login, 403 PROPOSAL_403_LIST_OWNER · OWNER_403 은
  * 알림 뒤 landingPath() 로 보낸다 (그동안은 loading). 화면을 떠난 뒤 온 응답은 버린다.
  */
