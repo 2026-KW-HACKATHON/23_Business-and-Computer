@@ -1129,6 +1129,7 @@ public class JobService {
 
     /**
      * 탐색 목록용으로 취소되지 않은 의뢰를 커서 경계 뒤부터 정렬 순서대로 limit개까지 읽는다.
+     * 탐색 화면용 조건이면 조회 사장님이 작성한 의뢰와 조회 학생의 지원이 탈락한 의뢰도 limit을 세기 전에 뺀다.
      * 진행 단계 계산에 필요한 최신 제출물은 진행 중(MATCHED) 의뢰만 한 번에 조회한다.
      */
     @Transactional(readOnly = true)
@@ -1163,26 +1164,37 @@ public class JobService {
         Long categoryId = command.getSpecialtyCategoryId();
         LocalDateTime createdAt = command.getCreatedAtBound();
         Long idBound = command.getIdBound();
+        Long excludedOwner = command.getExcludedOwnerProfileId();
+        Long applicant = command.getRejectedApplicantProfileId();
         if (categoryId != null) {
             Limit limit = Limit.of(command.getLimit());
             return command.isOldestFirst()
                     ? jobRepository.findExploreOldestInCategory(
-                            demoSessionId, JobStatus.CANCELLED, categoryId, createdAt, idBound, limit)
+                            demoSessionId, JobStatus.CANCELLED, excludedOwner, applicant, categoryId, createdAt, idBound, limit)
                     : jobRepository.findExploreLatestInCategory(
-                            demoSessionId, JobStatus.CANCELLED, categoryId, createdAt, idBound, limit);
+                            demoSessionId, JobStatus.CANCELLED, excludedOwner, applicant, categoryId, createdAt, idBound, limit);
+        }
+        // 지원 이력으로 거를 때만 NOT EXISTS 쿼리를 쓰고, 그 밖에는 메서드 이름 구간 쿼리로 읽는다
+        if (applicant != null) {
+            Limit limit = Limit.of(command.getLimit());
+            return command.isOldestFirst()
+                    ? jobRepository.findExploreOldestForStudent(
+                            demoSessionId, JobStatus.CANCELLED, excludedOwner, applicant, createdAt, idBound, limit)
+                    : jobRepository.findExploreLatestForStudent(
+                            demoSessionId, JobStatus.CANCELLED, excludedOwner, applicant, createdAt, idBound, limit);
         }
         if (command.isOldestFirst()) {
             return readInSegments(command.getLimit(),
-                    limit -> jobRepository.findByDemoSessionIdAndStatusNotAndProposalIdIsNullAndCreatedAtAndIdGreaterThanOrderByIdAsc(
-                            demoSessionId, JobStatus.CANCELLED, createdAt, idBound, limit),
-                    limit -> jobRepository.findByDemoSessionIdAndStatusNotAndProposalIdIsNullAndCreatedAtGreaterThanOrderByCreatedAtAscIdAsc(
-                            demoSessionId, JobStatus.CANCELLED, createdAt, limit));
+                    limit -> jobRepository.findByDemoSessionIdAndStatusNotAndProposalIdIsNullAndOwnerProfileIdNotAndCreatedAtAndIdGreaterThanOrderByIdAsc(
+                            demoSessionId, JobStatus.CANCELLED, excludedOwner, createdAt, idBound, limit),
+                    limit -> jobRepository.findByDemoSessionIdAndStatusNotAndProposalIdIsNullAndOwnerProfileIdNotAndCreatedAtGreaterThanOrderByCreatedAtAscIdAsc(
+                            demoSessionId, JobStatus.CANCELLED, excludedOwner, createdAt, limit));
         }
         return readInSegments(command.getLimit(),
-                limit -> jobRepository.findByDemoSessionIdAndStatusNotAndProposalIdIsNullAndCreatedAtAndIdLessThanOrderByIdDesc(
-                        demoSessionId, JobStatus.CANCELLED, createdAt, idBound, limit),
-                limit -> jobRepository.findByDemoSessionIdAndStatusNotAndProposalIdIsNullAndCreatedAtLessThanOrderByCreatedAtDescIdDesc(
-                        demoSessionId, JobStatus.CANCELLED, createdAt, limit));
+                limit -> jobRepository.findByDemoSessionIdAndStatusNotAndProposalIdIsNullAndOwnerProfileIdNotAndCreatedAtAndIdLessThanOrderByIdDesc(
+                        demoSessionId, JobStatus.CANCELLED, excludedOwner, createdAt, idBound, limit),
+                limit -> jobRepository.findByDemoSessionIdAndStatusNotAndProposalIdIsNullAndOwnerProfileIdNotAndCreatedAtLessThanOrderByCreatedAtDescIdDesc(
+                        demoSessionId, JobStatus.CANCELLED, excludedOwner, createdAt, limit));
     }
 
     /** 커서 경계 뒤를 정렬 순서상 앞 구간부터 읽어 limit개를 채운다. 채워지면 남은 구간은 조회하지 않는다. */

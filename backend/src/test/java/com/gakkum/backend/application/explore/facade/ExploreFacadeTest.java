@@ -44,6 +44,7 @@ import com.gakkum.backend.domain.job.entity.JobApplicationStatus;
 import com.gakkum.backend.domain.job.entity.JobProgressStage;
 import com.gakkum.backend.domain.job.entity.JobStatus;
 import com.gakkum.backend.domain.job.service.JobService;
+import com.gakkum.backend.domain.owner.entity.Owner;
 import com.gakkum.backend.domain.owner.service.OwnerService;
 import com.gakkum.backend.domain.proposal.dto.ProposalCommandDto.GetExploreProposalsCommand;
 import com.gakkum.backend.domain.proposal.dto.ProposalExploreOrder;
@@ -441,7 +442,9 @@ class ExploreFacadeTest {
                 .thenReturn(Optional.of(Student.builder().id(77L).userId(USER_ID).build()));
 
         assertThat(exploreFacade.explore(command(ExploreType.ALL, ExploreSort.LATEST, 20, null)).getItems()).isEmpty();
-        verifyNoInteractions(studentService);
+        // 조회 조건에 쓰는 본인 프로필만 읽는다
+        verify(studentService).findStudentProfileByUserId(USER_ID);
+        verify(studentService, never()).getStudentProfilesByIds(any());
 
         when(jobService.getExploreJobs(any())).thenReturn(List.of(
                 job(9L, T2, 61L, List.of(3L), JobStatus.OPEN, JobProgressStage.REQUESTED)));
@@ -468,6 +471,60 @@ class ExploreFacadeTest {
         assertThatThrownBy(() -> exploreFacade.explore(command(ExploreType.PROPOSAL, ExploreSort.LATEST, 20, null)))
                 .isInstanceOfSatisfying(BusinessException.class, exception ->
                         assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.INTERNAL_SERVER_ERROR));
+    }
+
+    @Test
+    @DisplayName("학생의 탐색은 거절된 제안과 본인 제안, 본인 지원이 탈락한 의뢰를 빼도록 학생 프로필 ID를 조회 조건으로 넘긴다")
+    void passesStudentProfileAsExploreFilter() {
+        givenUser(UserRole.STUDENT);
+        when(studentService.findStudentProfileByUserId(USER_ID))
+                .thenReturn(Optional.of(Student.builder().id(77L).userId(USER_ID).build()));
+
+        for (ExploreSort sort : ExploreSort.values()) {
+            exploreFacade.explore(command(ExploreType.PROPOSAL, sort, 3L, 20, null));
+            GetExploreProposalsCommand proposalCommand = captureProposalCommand();
+            assertThat(proposalCommand.isRejectedExcluded()).isTrue();
+            assertThat(proposalCommand.getExcludedStudentProfileId()).isEqualTo(77L);
+        }
+        exploreFacade.explore(command(ExploreType.JOB, ExploreSort.OLDEST, 20, null));
+        GetExploreJobsCommand jobCommand = captureJobCommand();
+        assertThat(jobCommand.getRejectedApplicantProfileId()).isEqualTo(77L);
+        assertThat(jobCommand.getExcludedOwnerProfileId()).isNull();
+        verify(ownerService, never()).findOwnerProfileByUserId(any());
+    }
+
+    @Test
+    @DisplayName("사장님의 탐색은 본인 의뢰를 빼도록 사장님 프로필 ID를 넘기고, 거절된 제안은 빼되 작성 학생과 지원 이력으로는 거르지 않는다")
+    void passesOwnerProfileAsExploreFilter() {
+        givenUser(UserRole.OWNER);
+        when(ownerService.findOwnerProfileByUserId(USER_ID))
+                .thenReturn(Optional.of(Owner.builder().id(55L).userId(USER_ID).build()));
+
+        exploreFacade.explore(command(ExploreType.ALL, ExploreSort.LATEST, 20, null));
+
+        GetExploreJobsCommand jobCommand = captureJobCommand();
+        assertThat(jobCommand.getExcludedOwnerProfileId()).isEqualTo(55L);
+        assertThat(jobCommand.getRejectedApplicantProfileId()).isNull();
+        GetExploreProposalsCommand proposalCommand = captureProposalCommand();
+        assertThat(proposalCommand.isRejectedExcluded()).isTrue();
+        assertThat(proposalCommand.getExcludedStudentProfileId()).isNull();
+    }
+
+    @Test
+    @DisplayName("프로필이 없는 사용자의 탐색은 본인 글과 지원 이력 필터 없이 거절된 제안만 뺀다")
+    void skipsViewerFiltersWithoutProfile() {
+        for (UserRole role : List.of(UserRole.STUDENT, UserRole.OWNER, UserRole.PENDING)) {
+            givenUser(role);
+
+            exploreFacade.explore(command(ExploreType.ALL, ExploreSort.LATEST, 20, null));
+
+            GetExploreProposalsCommand proposalCommand = captureProposalCommand();
+            assertThat(proposalCommand.isRejectedExcluded()).isTrue();
+            assertThat(proposalCommand.getExcludedStudentProfileId()).isNull();
+            GetExploreJobsCommand jobCommand = captureJobCommand();
+            assertThat(jobCommand.getExcludedOwnerProfileId()).isNull();
+            assertThat(jobCommand.getRejectedApplicantProfileId()).isNull();
+        }
     }
 
     private void givenUser(UserRole role) {
