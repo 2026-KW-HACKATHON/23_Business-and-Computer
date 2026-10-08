@@ -2,11 +2,13 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { AppBar, Button, Checkbox, StepIndicator, TextField, UniversityField } from "../components";
 import { TermsSheet, isStudentInfoComplete, isStudentNumber, useStudentSignup } from "../features/signup";
+import { usePushed } from "../hooks/usePushed";
 import "./SignupPage.css";
 import "./StudentSignupInfoPage.css";
 
 /** 피그마 「회원가입 - 정보입력(학생) 1/3」 */
 function StudentSignupInfoPage() {
+  const pushed = usePushed();
   const navigate = useNavigate();
   const { draft, update } = useStudentSignup();
   const [termsOpen, setTermsOpen] = useState(false);
@@ -31,7 +33,7 @@ function StudentSignupInfoPage() {
   };
 
   return (
-    <div className="signup">
+    <div className={`signup${pushed ? " screen-pushed" : ""}`}>
       <AppBar
         title="정보 입력"
         onBack={() => navigate("/signup/role")}
