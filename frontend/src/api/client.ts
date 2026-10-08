@@ -93,14 +93,37 @@ function refreshAccessToken(): Promise<boolean> {
  * `init.headers` must be a plain object (it is spread, see ADR 0016).
  */
 export async function apiData<T>(path: string, init: RequestInit = {}): Promise<T> {
-  const send = async () => {
+  return withSession(async () => {
     const body = await apiFetch<ApiResponse<T>>(path, {
       ...init,
       headers: { ...authHeaders(), ...init.headers },
     });
     return body.data as T;
-  };
+  });
+}
 
+/**
+ * Authenticated backend call that answers a file (e.g. `application/zip`)
+ * instead of the JSON envelope. Errors (still JSON envelopes) and the 401
+ * refresh work like {@link apiData}.
+ */
+export async function apiFile(path: string, init: RequestInit = {}): Promise<Blob> {
+  return withSession(async () => {
+    const response = await fetch(`${BACKEND_API_BASE_URL}${path}`, {
+      credentials: "include",
+      ...init,
+      headers: { "Content-Type": "application/json", ...authHeaders(), ...init.headers },
+    });
+    if (!response.ok) {
+      const body = (await response.json().catch(() => null)) as ApiResponse<unknown> | null;
+      throw new ApiError(response.status, `Request to ${path} failed (${response.status})`, body?.error?.code);
+    }
+    return response.blob();
+  });
+}
+
+/** Runs an authenticated call; on 401 refreshes the token once and retries (see {@link apiData}). */
+async function withSession<T>(send: () => Promise<T>): Promise<T> {
   try {
     return await send();
   } catch (error) {
