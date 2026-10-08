@@ -33,6 +33,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import com.gakkum.backend.application.demo.dto.DemoLoginResponse;
 import com.gakkum.backend.application.demo.dto.DemoRole;
 import com.gakkum.backend.application.demo.facade.DemoFacade;
+import com.gakkum.backend.config.FrontendOrigins;
 import com.gakkum.backend.config.SecurityConfig;
 import com.gakkum.backend.domain.jwt.service.JwtService;
 import com.gakkum.backend.domain.user.service.UserService;
@@ -43,7 +44,7 @@ import com.gakkum.backend.util.JWTUtil;
 
 @DisplayName("데모 로그인 API - 켜진 서버에서 키 없이 공개되는 범위와 응답 모양")
 @WebMvcTest(controllers = DemoController.class)
-@Import({SecurityConfig.class, RestAuthenticationEntryPoint.class})
+@Import({SecurityConfig.class, FrontendOrigins.class, RestAuthenticationEntryPoint.class})
 @TestPropertySource(properties = "demo-login.enabled=true")
 class DemoControllerTest {
 

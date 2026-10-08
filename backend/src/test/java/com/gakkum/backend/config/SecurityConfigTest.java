@@ -80,7 +80,7 @@ import com.gakkum.backend.util.JWTUtil;
         JobController.class, PaymentController.class, MediaController.class, ReviewController.class,
         ProposalController.class, ExploreController.class, BusinessCategoryController.class,
         StudentController.class, OwnerController.class, ChatController.class, NotificationController.class})
-@Import({SecurityConfig.class, RestAuthenticationEntryPoint.class})
+@Import({SecurityConfig.class, FrontendOrigins.class, RestAuthenticationEntryPoint.class})
 @TestPropertySource(properties = "demo-login.enabled=false")
 class SecurityConfigTest {
 

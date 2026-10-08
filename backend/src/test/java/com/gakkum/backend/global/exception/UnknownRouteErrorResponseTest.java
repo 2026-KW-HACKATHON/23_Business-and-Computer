@@ -30,6 +30,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.context.WebApplicationContext;
 
+import com.gakkum.backend.config.FrontendOrigins;
 import com.gakkum.backend.config.SecurityConfig;
 import com.gakkum.backend.domain.jwt.service.JwtService;
 import com.gakkum.backend.domain.user.service.UserService;
@@ -39,7 +40,7 @@ import com.gakkum.backend.util.JWTUtil;
 @DisplayName("핸들러가 없는 요청의 공통 오류 응답 검증")
 @WebMvcTest(controllers = UnknownRouteErrorResponseTest.TestController.class)
 // 테스트 클래스의 중첩 컨트롤러는 컴포넌트 스캔에서 제외되므로 직접 등록한다
-@Import({SecurityConfig.class, RestAuthenticationEntryPoint.class, UnknownRouteErrorResponseTest.TestController.class})
+@Import({SecurityConfig.class, FrontendOrigins.class, RestAuthenticationEntryPoint.class, UnknownRouteErrorResponseTest.TestController.class})
 class UnknownRouteErrorResponseTest {
 
     private static final String ACCESS_TOKEN = "valid-access-token";
