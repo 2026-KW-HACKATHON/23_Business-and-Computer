@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import type { CardKind } from "../../../components";
 import type { Field } from "../../../types/field";
 import { useSpecialties } from "../../specialty";
-import type { ExploreItem, ExploreProposalCard, ExploreSort, ExploreType } from "../api/exploreApi";
+import type { ExploreItem, ExploreSort, ExploreType } from "../api/exploreApi";
 import { categoryIdOf, exploreItemKey, exploreType, loadExplorePage, sortForKind } from "../lib/explore";
 
 export interface ExploreFilter {
@@ -156,19 +156,4 @@ export function useExploreFeed({
     return { status: "loaded", items: [], hasNext: false, more: "idle", loadMore: noop, reload: noop };
   }
   return feed;
-}
-
-/**
- * 공감 많은 제안 앞의 size 개 (GET /explore?type=PROPOSAL&sort=LIKES). 첫 쪽만 부른다.
- * 401 은 /login 으로 보낸다.
- */
-export function usePopularProposals(size: number): {
-  status: ExploreFeed["status"];
-  proposals: ExploreProposalCard[];
-} {
-  const { status, items } = useExplore({ type: "PROPOSAL", sort: "LIKES", size });
-  return {
-    status,
-    proposals: items.filter((item): item is ExploreProposalCard => item.type === "PROPOSAL"),
-  };
 }

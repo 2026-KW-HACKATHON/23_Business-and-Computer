@@ -18,14 +18,13 @@ import {
   deadlineText,
   useStudentHome,
 } from "../features/student";
-import type { StudentTodo, StudentWaitingItem } from "../features/student";
+import type { StudentPeerProposal, StudentTodo, StudentWaitingItem } from "../features/student";
 import { formatMonthDay } from "../lib/date";
 import { useDragScroll } from "../hooks/useDragScroll";
 import { finishDemoGuide, pendingDemoGuide } from "../lib/demoGuide";
 import { clearSignupGuide, pendingSignupGuide } from "../lib/signupGuide";
 import "./StudentHomePage.css";
 import { useProposalLikes } from "../features/proposal";
-import type { ExploreProposalCard } from "../features/explore";
 
 /**
  * 피그마 「학생 홈 (개선안)」.
@@ -33,10 +32,10 @@ import type { ExploreProposalCard } from "../features/explore";
  * 비어 있는 목록은 섹션째 숨기되, 확인할 일은 할 일이 없어도 남아 「지금 확인할 일이 없어요」 카드를 보인다.
  * 이력이 하나도 없으면 피그마 「학생 홈 - 처음」처럼 확인할 일 자리의 첫 제안 안내 → 이런 제안은 어때요? →
  * 공감하기만 보인다 (ADR 0051). 공감하기는 이력으로 세지 않는다.
- * 공감하기는 GET /explore 공감 많은 순에서 내 제안을 뺀 앞의 2개 (ADR 0026). 불러오는 중이거나
- * 실패하면 섹션째 숨기고 나머지 홈은 그대로 보인다.
- * 기다리는 중의 보낸 제안은 GET /me/proposals (ADR 0023). 작업 · 지원이 없는데 보낸 제안을 아직
- * 못 불러왔으면 처음인지 알 수 없어서, 사용법 안내 대신 불러오는 중 · 「다시 시도」 줄을 보인다.
+ * 모두 GET /me/home 한 번에서 온다 (ADR 0065). 통째로 못 불러오면 「다시 시도」 한 줄,
+ * 섹션 하나만 못 불러오면 그 섹션 자리에 「다시 시도」 줄을 보인다 (같은 요청을 다시 보낸다).
+ * 공감하기는 못 불러오면 섹션째 숨기고 나머지 홈은 그대로 보인다 (ADR 0026).
+ * 처음인지 알 수 없고 보이는 항목도 없으면 사용법 안내 대신 「다시 시도」 줄만 보인다.
  */
 /** 가입 후 첫 안내 말풍선: ① 확인할 일 · ② 새 제안 · ③ 알림 */
 const SIGNUP_GUIDE_TIPS = [
@@ -60,27 +59,26 @@ function StudentHomePage() {
     finishDemoGuide();
     setDemoGuide(false);
   };
-  const home = useStudentHome();
+  const { load, reload, examples } = useStudentHome();
   const likes = useProposalLikes();
   // 끝난 일은 접힌 채 최근 1건만 보인다
   const [doneExpanded, setDoneExpanded] = useState(false);
-  const doneRows = doneExpanded ? home.done : home.done.slice(0, 1);
   const exampleScroll = useDragScroll<HTMLUListElement>();
 
   // 상세보기: 지금 화면을 본다 / 아래 버튼: 바로 할 일로 간다
   const openDetail = (todo: StudentTodo) => {
     if (todo.type === "proposalAgreement") {
-      return navigate(STUDENT_PATHS.proposalStart(String(todo.proposal.proposalId)));
+      return navigate(STUDENT_PATHS.proposalStart(String(todo.proposalId)));
     }
-    const id = String(todo.job.jobId);
+    const id = String(todo.jobId);
     if (todo.type === "drafting") return navigate(STUDENT_PATHS.workSubmit(id));
     return navigate(STUDENT_PATHS.workRevision(id));
   };
   const openAction = (todo: StudentTodo) => {
     if (todo.type === "proposalAgreement") {
-      return navigate(STUDENT_PATHS.proposalStart(String(todo.proposal.proposalId)));
+      return navigate(STUDENT_PATHS.proposalStart(String(todo.proposalId)));
     }
-    const id = String(todo.job.jobId);
+    const id = String(todo.jobId);
     if (todo.type === "drafting") return navigate(STUDENT_PATHS.workSubmit(id));
     return navigate(STUDENT_PATHS.workRevisionSubmit(id));
   };
@@ -88,33 +86,92 @@ function StudentHomePage() {
   const waitingRow = (item: StudentWaitingItem) =>
     item.type === "proposal" ? (
       <TaskRow
-        key={item.proposal.proposalId}
+        key={item.proposalId}
         kind="proposal"
-        title={item.proposal.title}
-        lines={[`${item.proposal.store.storeName}에 보낸 제안`, `손님 ${item.proposal.likeCount}명 공감`]}
+        title={item.title}
+        lines={[
+          item.storeName ? `${item.storeName}에 보낸 제안` : "보낸 제안",
+          `손님 ${item.likeCount}명 공감`,
+        ]}
         status="수락 대기"
-        onClick={() => navigate(STUDENT_PATHS.proposal(String(item.proposal.proposalId)))}
+        onClick={() => navigate(STUDENT_PATHS.proposal(String(item.proposalId)))}
       />
     ) : (
       <TaskRow
-        key={`job-${item.job.jobApplicationId}`}
+        key={`job-${item.jobApplicationId}`}
         kind="request"
-        title={item.job.title}
+        title={item.title}
         lines={[
-          item.job.storeName ? `${item.job.storeName} 의뢰에 지원` : "의뢰에 지원",
-          deadlineText("draft", item.job.draftDeadline),
+          item.storeName ? `${item.storeName} 의뢰에 지원` : "의뢰에 지원",
+          ...(item.draftDeadline ? [deadlineText("draft", item.draftDeadline)] : []),
         ]}
         status="사장님이 고르는 중"
-        onClick={() => navigate(STUDENT_PATHS.requestFull(String(item.job.jobId)))}
+        onClick={() => navigate(STUDENT_PATHS.requestFull(String(item.jobId)))}
       />
     );
 
   // 이 화면에서 누른 공감이 있으면 그 값, 없으면 목록의 값
-  const likeOf = (proposal: ExploreProposalCard) =>
+  const likeOf = (proposal: StudentPeerProposal) =>
     likes.likeOf(proposal.proposalId, {
       likeCount: proposal.likeCount,
-      likedByMe: proposal.likedByMe === true,
+      likedByMe: proposal.likedByMe,
     });
+
+  const examplesSection = (
+    <section className="student-home__section student-home__section--wide">
+      <div className="student-home__section-head">
+        <SectionHeader
+          title="이런 제안은 어때요?"
+          actionLabel="더 보기 ›"
+          onAction={() => navigate(STUDENT_PATHS.explore)}
+        />
+      </div>
+      <ul className="student-home__examples" {...exampleScroll}>
+        {examples.map((example) => (
+          <li key={example.id}>
+            <button
+              type="button"
+              className="student-home__example"
+              onClick={() =>
+                navigate(STUDENT_PATHS.newProposal, { state: { exampleId: example.id } })
+              }
+            >
+              <CategoryBadge field={example.field} />
+              <span className="student-home__example-title">{example.title}</span>
+              <span className="student-home__example-link">이 예시로 제안 쓰기 ›</span>
+            </button>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+
+  // 홈 전체를 불러오는 중 · 실패
+  if (load.status !== "loaded") {
+    return (
+      <StudentTabScreen tab="home" showFab>
+        <section className="student-home__section">
+          <LoadNotice
+            status={load.status}
+            loadingText="홈을 불러오는 중이에요"
+            errorText="홈을 불러오지 못했어요"
+            onRetry={reload}
+          />
+        </section>
+      </StudentTabScreen>
+    );
+  }
+
+  const { home, retrying } = load;
+  /** 못 불러온 섹션 자리. 「다시 시도」는 홈을 다시 불러오고, 그동안 불러오는 중을 보인다 */
+  const sectionNotice = (subject: string) => (
+    <LoadNotice
+      status={retrying ? "loading" : "error"}
+      loadingText={`${subject} 불러오는 중이에요`}
+      errorText={`${subject} 불러오지 못했어요`}
+      onRetry={reload}
+    />
+  );
 
   const peerSection = home.peerProposals.length > 0 && (
     <section className="student-home__section">
@@ -137,48 +194,10 @@ function StudentHomePage() {
     </section>
   );
 
-  const examplesSection = (
-    <section className="student-home__section student-home__section--wide">
-      <div className="student-home__section-head">
-        <SectionHeader
-          title="이런 제안은 어때요?"
-          actionLabel="더 보기 ›"
-          onAction={() => navigate(STUDENT_PATHS.explore)}
-        />
-      </div>
-      <ul className="student-home__examples" {...exampleScroll}>
-        {home.examples.map((example) => (
-          <li key={example.id}>
-            <button
-              type="button"
-              className="student-home__example"
-              onClick={() =>
-                navigate(STUDENT_PATHS.newProposal, { state: { exampleId: example.id } })
-              }
-            >
-              <CategoryBadge field={example.field} />
-              <span className="student-home__example-title">{example.title}</span>
-              <span className="student-home__example-link">이 예시로 제안 쓰기 ›</span>
-            </button>
-          </li>
-        ))}
-      </ul>
-    </section>
-  );
-
-  const proposalsNotice = home.sentProposals !== "loaded" && (
-    <LoadNotice
-      status={home.sentProposals}
-      loadingText="보낸 제안을 불러오는 중이에요"
-      errorText="보낸 제안을 불러오지 못했어요"
-      onRetry={home.reloadSentProposals}
-    />
-  );
-
   if (home.firstVisit === undefined) {
     return (
       <StudentTabScreen tab="home" showFab>
-        <section className="student-home__section">{proposalsNotice}</section>
+        <section className="student-home__section">{sectionNotice("홈을")}</section>
       </StudentTabScreen>
     );
   }
@@ -208,91 +227,106 @@ function StudentHomePage() {
     );
   }
 
+  const { todos, checking, waiting, done } = home;
+
   return (
     <StudentTabScreen tab="home" showFab>
-      {home.progress === "error" && (
-        <section className="student-home__section">
-          <LoadNotice
-            status="error"
-            loadingText="진행 중인 작업을 불러오는 중이에요"
-            errorText="진행 중인 작업을 불러오지 못했어요"
-            onRetry={home.reloadProgress}
-          />
-        </section>
-      )}
-
-      {(home.todos.length > 0 || (home.progress === "loaded" && home.sentProposals === "loaded")) && (
-        <section className="student-home__section">
-          <SectionHeader title="확인할 일" count={home.todos.length} />
-          {home.todos.length > 0 ? (
-            <StudentTodoCarousel todos={home.todos} onDetail={openDetail} onAction={openAction} />
-          ) : (
-            <TodoNoneCard tone="student" />
-          )}
-        </section>
-      )}
+      <section className="student-home__section">
+        {todos === null ? (
+          <>
+            <SectionHeader title="확인할 일" />
+            {sectionNotice("확인할 일을")}
+          </>
+        ) : (
+          <>
+            <SectionHeader title="확인할 일" count={todos.length} />
+            {todos.length > 0 ? (
+              <StudentTodoCarousel todos={todos} onDetail={openDetail} onAction={openAction} />
+            ) : (
+              <TodoNoneCard tone="student" />
+            )}
+          </>
+        )}
+      </section>
 
       {peerSection}
 
-      {home.checking.length > 0 && (
+      {checking === null ? (
         <section className="student-home__section">
-          <SectionHeader title="사장님이 확인 중" count={home.checking.length} />
-          <div className="student-home__list">
-            {home.checking.map((job) => (
-              <TaskRow
-                key={job.jobId}
-                kind={job.kind}
-                title={job.title}
-                lines={[
-                  ...(job.storeName ? [`${job.storeName} 사장님`] : []),
-                  job.submittedOn
-                    ? `${job.revisionSubmitted ? "수정안" : "초안"} 제출 : ${formatMonthDay(job.submittedOn)}`
-                    : `${job.revisionSubmitted ? "수정안" : "초안"} 제출, 사장님 확인 중`,
-                ]}
-                onClick={() => navigate(STUDENT_PATHS.workSubmitted(String(job.jobId)))}
-              />
-            ))}
-          </div>
+          <SectionHeader title="사장님이 확인 중" />
+          {sectionNotice("사장님이 확인 중인 작업을")}
         </section>
+      ) : (
+        checking.length > 0 && (
+          <section className="student-home__section">
+            <SectionHeader title="사장님이 확인 중" count={checking.length} />
+            <div className="student-home__list">
+              {checking.map((job) => (
+                <TaskRow
+                  key={job.jobId}
+                  kind={job.kind}
+                  title={job.title}
+                  lines={[
+                    ...(job.storeName ? [`${job.storeName} 사장님`] : []),
+                    job.submittedOn
+                      ? `${job.revisionSubmitted ? "수정안" : "초안"} 제출 : ${formatMonthDay(job.submittedOn)}`
+                      : `${job.revisionSubmitted ? "수정안" : "초안"} 제출, 사장님 확인 중`,
+                  ]}
+                  onClick={() => navigate(STUDENT_PATHS.workSubmitted(String(job.jobId)))}
+                />
+              ))}
+            </div>
+          </section>
+        )
       )}
 
-      {(home.waiting.length > 0 || proposalsNotice) && (
+      {waiting === null ? (
         <section className="student-home__section">
-          <SectionHeader
-            title="기다리는 중"
-            count={home.sentProposals === "loaded" ? home.waiting.length : undefined}
-          />
-          <div className="student-home__list">{home.waiting.map(waitingRow)}</div>
-          {proposalsNotice}
+          <SectionHeader title="기다리는 중" />
+          {sectionNotice("보낸 제안과 지원한 의뢰를")}
         </section>
+      ) : (
+        waiting.length > 0 && (
+          <section className="student-home__section">
+            <SectionHeader title="기다리는 중" count={waiting.length} />
+            <div className="student-home__list">{waiting.map(waitingRow)}</div>
+          </section>
+        )
       )}
 
       {examplesSection}
 
-      {home.done.length > 0 && (
+      {done === null ? (
         <section className="student-home__section">
-          <SectionHeader
-            title="끝난 일"
-            count={home.done.length}
-            actionLabel={home.done.length > 1 ? (doneExpanded ? "접기" : "펼치기 ›") : undefined}
-            expanded={doneExpanded}
-            onAction={() => setDoneExpanded((v) => !v)}
-          />
-          <div className={`student-home__list${doneExpanded ? " student-home__list--expanded" : ""}`}>
-            {doneRows.map((job) => (
-              <TaskRow
-                key={job.jobId}
-                kind={job.kind}
-                title={job.title}
-                lines={[
-                  `${job.storeName ?? "가게"} 사장님`,
-                  ...(job.closedOn ? [`완료 : ${formatMonthDay(job.closedOn)}`] : []),
-                ]}
-                onClick={() => navigate(STUDENT_PATHS.workResult(String(job.jobId)))}
-              />
-            ))}
-          </div>
+          <SectionHeader title="끝난 일" />
+          {sectionNotice("끝난 일을")}
         </section>
+      ) : (
+        done.length > 0 && (
+          <section className="student-home__section">
+            <SectionHeader
+              title="끝난 일"
+              count={done.length}
+              actionLabel={done.length > 1 ? (doneExpanded ? "접기" : "펼치기 ›") : undefined}
+              expanded={doneExpanded}
+              onAction={() => setDoneExpanded((v) => !v)}
+            />
+            <div className={`student-home__list${doneExpanded ? " student-home__list--expanded" : ""}`}>
+              {(doneExpanded ? done : done.slice(0, 1)).map((job) => (
+                <TaskRow
+                  key={job.jobId}
+                  kind={job.kind}
+                  title={job.title}
+                  lines={[
+                    `${job.storeName ?? "가게"} 사장님`,
+                    ...(job.completedOn ? [`완료 : ${formatMonthDay(job.completedOn)}`] : []),
+                  ]}
+                  onClick={() => navigate(STUDENT_PATHS.workResult(String(job.jobId)))}
+                />
+              ))}
+            </div>
+          </section>
+        )
       )}
       {demoGuide && <DemoGuide tone="student" onClose={closeDemoGuide} />}
     </StudentTabScreen>

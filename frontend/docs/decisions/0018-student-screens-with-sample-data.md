@@ -31,9 +31,8 @@ owner's applicant list).
   school, and student number are verified and stay read-only. The 내 정보
   fields line (「디자인 / 홍보」) lists the categories of the chosen specialties.
 - The student home shows 「학생 홈 - 처음」 when the account has no works,
-  applications, or proposals, derived from the lists (no backend flag). Sent
-  proposals and applications now come from the API, so the check waits for
-  those lists (ADR 0023, ADR 0027).
+  applications, or proposals. The `firstVisit` of GET /me/home now decides
+  it (ADR 0065).
 - Shared pieces moved out of the owner feature so both roles use them:
   `src/components/FormFields/FormFields.tsx` (title, text area, budget, due
   dates, revision stepper),

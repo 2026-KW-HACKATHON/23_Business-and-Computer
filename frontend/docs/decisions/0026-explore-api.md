@@ -176,13 +176,13 @@ The backend (dev) has:
     disabled 「수락된 제안이에요」, REJECTED a disabled 「끝난 제안이에요」, and
     the like note is hidden. Explore cards and home rows do not toggle the
     heart for them either (a card with no `status` still can).
-- **Home 「다른 학생들의 제안 공감하기」**: `usePopularProposals(5)`
-  (`src/features/explore/hooks/useExplore.ts`) calls GET
-  /explore?type=PROPOSAL&sort=LIKES&size=5 once (no next page). `useStudentHome`
-  drops my proposals (ids from `useSentProposals`) and keeps the first two.
-  - The section shows only when both lists have loaded and something is left.
-    While either loads, or after a failure, the section is hidden and the rest
-    of the home shows as before. 401 goes to /login.
+- **Home 「다른 학생들의 제안 공감하기」**: the `peerProposals` of GET
+  /me/home (ADR 0065). The server takes the top 5 of the likes order (the
+  same as GET /explore?type=PROPOSAL&sort=LIKES), drops my proposals, and
+  sends the first two.
+  - The section shows only when that list has loaded and is not empty.
+    While the home loads, or after the section fails, it is hidden and the
+    rest of the home shows as before. 401 goes to /login.
   - `PeerProposalRow` shows the title, 「○○ 학생 → 가게」 when `studentName`
     is sent (otherwise the store name), and the heart pill, which likes and
     takes back like the explore card. A row opens the peer-proposal detail;

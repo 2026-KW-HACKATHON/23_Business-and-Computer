@@ -1,84 +1,56 @@
-import { usePopularProposals } from "../../explore";
-import { useAppliedJobs } from "./useAppliedJobs";
-import { useFinishedJobs } from "./useFinishedJobs";
-import { useProgressJobs } from "./useProgressJobs";
+import { useCallback, useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useProposalExamples } from "./useStudentData";
-import { useSentProposals } from "./useSentProposals";
-import { progressDeadline } from "../lib/progressJobs";
-import type { StudentHome, StudentTodo, StudentWaitingItem } from "../types";
-
-/** 공감 많은 제안을 이만큼 받아 내 제안을 빼고 */
-const POPULAR_SIZE = 5;
-/** 홈에는 이만큼 보인다 */
-const PEER_COUNT = 2;
+import { loadStudentHome } from "../lib/studentHome";
+import type { ProposalExample, StudentHome } from "../types";
 
 /**
- * 학생 홈 한 화면 분량. 작업 · 제안 · 지원에서 만든다.
- * 확인할 일 = 의뢰서가 온 내 제안(GET /me/proposals) → 초안 · 수정안 차례 (마감이 빠른 것부터).
- * 보낸 제안(GET /me/proposals) · 지원한 의뢰(GET /me/job-applications) · 진행 중 작업
- * (GET /me/jobs?status=MATCHED: 초안 · 수정안 차례와 사장님이 확인 중) · 다른 학생 제안
- * (GET /explore 공감 많은 순) · 끝난 일(GET /settlements 의 정산 완료, ADR 0042)은 모두 API 다.
- * 다른 학생 제안은 내 제안 목록과 둘 다 불러온 뒤에만 채운다 (내 제안을 빼야 해서).
+ * 학생 홈을 불러온 상태. retrying 은 홈을 보이는 채로 못 불러온 섹션을 다시 부르는 중
+ * (그 섹션 자리에 불러오는 중을 보인다)
  */
-export function useStudentHome(): StudentHome {
-  const { load: finishedLoad } = useFinishedJobs();
-  const finished = finishedLoad.status === "loaded" ? finishedLoad.jobs : [];
-  const { load: proposalsLoad, reload: reloadSentProposals } = useSentProposals();
-  const proposals = proposalsLoad.status === "loaded" ? proposalsLoad.proposals : [];
-  const { load: appliedLoad } = useAppliedJobs();
-  const applied = appliedLoad.status === "loaded" ? appliedLoad.jobs : [];
-  const { load: progressLoad, reload: reloadProgress } = useProgressJobs();
-  const progress = progressLoad.status === "loaded" ? progressLoad.jobs : [];
-  const popular = usePopularProposals(POPULAR_SIZE);
+export type StudentHomeLoad =
+  | { status: "loading" }
+  | { status: "error" }
+  | { status: "loaded"; home: StudentHome; retrying: boolean };
+
+/**
+ * 학생 홈 한 화면 분량 (GET /me/home 한 번, ADR 0065). 확인할 일 · 사장님이 확인 중 · 기다리는 중 ·
+ * 다른 학생 제안 · 끝난 일을 서버가 모아 준다. 「이런 제안은 어때요?」 예시만 화면에 둔 예시다.
+ * reload 는 같은 요청을 다시 보낸다: 홈을 보이는 중이면 그대로 두고(섹션 재시도), 아니면 처음부터.
+ * 401 은 /login 으로 보낸다 (그동안은 loading). 화면을 떠난 뒤 온 응답은 버린다.
+ */
+export function useStudentHome(): {
+  load: StudentHomeLoad;
+  reload: () => void;
+  examples: ProposalExample[];
+} {
+  const navigate = useNavigate();
+  const [load, setLoad] = useState<StudentHomeLoad>({ status: "loading" });
+  const [request, setRequest] = useState(0);
   const examples = useProposalExamples();
 
-  // 의뢰서가 온 제안이 먼저, 그다음 작업 (마감이 빠른 것부터)
-  const proposalTodos: StudentTodo[] = proposals
-    .filter((p) => p.status === "AWAITING_START" && p.jobStatus !== "CANCELLED")
-    .map((proposal) => ({ type: "proposalAgreement", proposal }));
-  const dueOf = (todo: StudentTodo): string =>
-    todo.type === "proposalAgreement" ? "" : progressDeadline(todo.job).due;
-  const workTodos: StudentTodo[] = progress
-    .flatMap((job): StudentTodo[] => {
-      if (job.stage === "drafting") return [{ type: "drafting", job }];
-      if (job.stage === "revising") return [{ type: "revising", job }];
-      return [];
-    })
-    .sort((a, b) => dueOf(a).localeCompare(dueOf(b)));
-  const todos = [...proposalTodos, ...workTodos];
+  useEffect(() => {
+    let active = true;
+    void loadStudentHome().then((result) => {
+      if (!active) return;
+      if (result.status === "unauthorized") {
+        navigate("/login", { replace: true });
+      } else if (result.status === "loaded") {
+        setLoad({ status: "loaded", home: result.home, retrying: false });
+      } else {
+        // 섹션 재시도가 통째로 실패했으면 보이던 홈을 두고 그 섹션의 「다시 시도」로 돌아간다
+        setLoad((prev) => (prev.status === "loaded" ? { ...prev, retrying: false } : { status: "error" }));
+      }
+    });
+    return () => {
+      active = false;
+    };
+  }, [request, navigate]);
 
-  const waiting: StudentWaitingItem[] = [
-    ...proposals
-      .filter((p) => p.status === "PENDING")
-      .map((proposal) => ({ type: "proposal" as const, proposal })),
-    ...applied
-      .filter((job) => job.applicationStatus === "PENDING")
-      .map((job) => ({ type: "application" as const, job })),
-  ];
+  const reload = useCallback(() => {
+    setLoad((prev) => (prev.status === "loaded" ? { ...prev, retrying: true } : { status: "loading" }));
+    setRequest((n) => n + 1);
+  }, []);
 
-  return {
-    firstVisit:
-      finished.length > 0 || progress.length > 0 || applied.length > 0 || proposals.length > 0
-        ? false
-        : proposalsLoad.status === "loaded" &&
-            appliedLoad.status === "loaded" &&
-            finishedLoad.status === "loaded"
-          ? true
-          : undefined,
-    todos,
-    peerProposals:
-      popular.status === "loaded" && proposalsLoad.status === "loaded"
-        ? popular.proposals
-            .filter((peer) => !proposals.some((mine) => mine.proposalId === peer.proposalId))
-            .slice(0, PEER_COUNT)
-        : [],
-    checking: progress.filter((job) => job.stage === "submitted"),
-    progress: progressLoad.status,
-    reloadProgress,
-    waiting,
-    sentProposals: proposalsLoad.status,
-    reloadSentProposals,
-    examples,
-    done: finished.filter((job) => job.outcome === "completed"),
-  };
+  return { load, reload, examples };
 }
