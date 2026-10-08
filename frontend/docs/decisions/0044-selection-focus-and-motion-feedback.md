@@ -30,7 +30,10 @@ the confirm screens show picked photos like the detail screens.
   `<html data-role>` — addresses under /owner, /explore/, /payments/, and
   /signup/owner → owner (`--color-owner`); /student and /signup/student →
   student (`--color-student`); other screens keep black. The guard and the
-  scope share the prefixes in `src/features/auth/lib/routeRole.ts`.
+  scope share the prefixes in `src/features/auth/lib/routeRole.ts`. Focus
+  outlines on buttons, links, and tiles are 2px `--role-focus` too; the chat
+  「+」 and the revision photo button show theirs only for keyboard focus
+  (`:focus-visible` on the file input inside).
 - **Floating button**: the label stays in the DOM; on scroll its grid column
   shrinks from `1fr` to `0fr` and fades while the plus grows from 20 to 24 px,
   over 0.28 s, ending in a 52 px circle.
@@ -58,5 +61,6 @@ the confirm screens show picked photos like the detail screens.
 - A new selectable tile uses the raised style above, not a border. A row that
   scrolls sideways needs about 8px of padding above and below the tiles so the
   shadow is not cut.
-- A new input's focused border uses `var(--role-focus)`. A new role-only
+- A new input's focused border and a new focus outline use
+  `var(--role-focus)`. A new role-only
   address prefix goes in `src/features/auth/lib/routeRole.ts`.

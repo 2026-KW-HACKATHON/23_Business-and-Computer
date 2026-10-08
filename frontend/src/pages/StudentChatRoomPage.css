@@ -30,50 +30,11 @@
   padding: 12px 16px 16px;
 }
 
-.student-chat__work {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  padding: 12px 12px 12px 14px;
-  border: 1px solid var(--role-border);
-  border-radius: 14px;
-}
 
-.student-chat__work-head {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
 
-.student-chat__work-title {
-  flex: 1;
-  min-width: 0;
-  font-size: 15px;
-  font-weight: 700;
-  line-height: 20px;
-  color: var(--color-black);
-}
 
-.student-chat__work-progress {
-  font-size: 13px;
-  font-weight: 700;
-  line-height: 18px;
-  color: var(--color-black);
-}
 
-.student-chat__work-terms {
-  font-size: 12px;
-  line-height: 16px;
-  color: var(--text-placeholder);
-}
 
-.student-chat__work-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 16px;
-  padding-top: 6px;
-  border-top: 1px solid var(--role-border);
-}
 
 .student-chat__notice {
   display: flex;
@@ -86,7 +47,7 @@
   color: var(--role-secondary);
 }
 
-.student-chat__notice > span {
+.student-chat__notice > span:first-child {
   font-weight: 700;
 }
 
@@ -274,6 +235,25 @@
   font-weight: 700;
   color: var(--role-secondary);
   cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: box-shadow 0.15s ease;
+}
+
+/* 다른 버튼과 같은 반응 (ADR 0046): 올리면 살짝, 누르면 조금 더 어둡게 */
+@media (hover: hover) {
+  .student-chat__attach:hover {
+    box-shadow: inset 0 0 0 100vmax rgba(12, 12, 12, 0.04);
+  }
+}
+
+.student-chat__attach:active {
+  box-shadow: inset 0 0 0 100vmax rgba(12, 12, 12, 0.08);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .student-chat__attach {
+    transition: none;
+  }
 }
 
 .student-chat__attach > input {
@@ -284,8 +264,9 @@
   pointer-events: none;
 }
 
-.student-chat__attach:focus-within {
-  outline: 2px solid var(--color-black);
+/* 키보드로 왔을 때만 (누를 때는 안 보인다) */
+.student-chat__attach:has(> input:focus-visible) {
+  outline: 2px solid var(--role-focus);
   outline-offset: 2px;
 }
 

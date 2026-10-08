@@ -61,6 +61,8 @@ export interface ChatRoomState {
   resend: (clientMessageId: string) => void;
   /** 만료된 사진 · 파일 주소를 새로 받아 새 탭에서 연다 */
   openExpiredAttachment: (message: ChatMessage) => void;
+  /** 만료된 사진 주소를 새로 받아 말풍선 · 크게 보기에 바꿔 끼운다 */
+  refreshAttachment: (message: ChatMessage) => void;
 }
 
 /**
@@ -414,6 +416,23 @@ export function useChatRoom(roomId: string, listPath: string): ChatRoomState {
     [roomId, leave],
   );
 
+  const refreshAttachment = useCallback(
+    (message: ChatMessage) => {
+      if (message.id === undefined) return;
+      void fetchChatMessage(roomId, message.id).then(
+        (response) => {
+          const fresh = toChatMessage(response, viewerUserId.current, message.mine);
+          if (mounted.current) setSaved((current) => upsertMessage(current, fresh));
+        },
+        (error: unknown) => {
+          const failure = chatFailureOf(error);
+          if (failure !== "error") leave(failure);
+        },
+      );
+    },
+    [roomId, leave],
+  );
+
   const reload = useCallback(() => {
     setLoad({ status: "loading" });
     setRequest((n) => n + 1);
@@ -437,5 +456,5 @@ export function useChatRoom(roomId: string, listPath: string): ChatRoomState {
     return [...saved, ...pending];
   }, [saved, outgoing, outgoingImages, previewUrls]);
 
-  return { load, messages, reload, send, sendAttachment, resend, openExpiredAttachment };
+  return { load, messages, reload, send, sendAttachment, resend, openExpiredAttachment, refreshAttachment };
 }
