@@ -56,6 +56,8 @@ public class JobApplicantProfileResponse {
 
         private final Long studentProfileId;
         private final String name;
+        // 학생 프로필 사진. 사진이 없으면 null
+        private final String profileImageUrl;
         private final String university;
         private final String major;
         private final String studentNumber;
@@ -64,6 +66,7 @@ public class JobApplicantProfileResponse {
             return StudentInfo.builder()
                     .studentProfileId(result.getStudentProfileId())
                     .name(result.getName())
+                    .profileImageUrl(result.getProfileImageUrl())
                     .university(result.getUniversity())
                     .major(result.getMajor())
                     .studentNumber(result.getStudentNumber())

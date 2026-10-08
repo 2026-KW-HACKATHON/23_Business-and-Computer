@@ -65,10 +65,10 @@ function CardHead({ kind, title, right }: { kind: WorkKind; title: string; right
 }
 
 /** 가게 사진 + 이름 · 주소 */
-function StoreLine({ name, address }: { name: string; address?: string }) {
+function StoreLine({ name, address, photo }: { name: string; address?: string; photo?: string | null }) {
   return (
     <div className="student-activity__store">
-      <RoleAvatar role="owner" size={32} />
+      <RoleAvatar role="owner" size={32} src={photo} />
       <span className="student-activity__store-info">
         <strong>{name}</strong>
         {address && <span>{address}</span>}
@@ -189,7 +189,11 @@ function StudentActivityPage() {
           <TextButton onClick={openDetail}>상세보기</TextButton>
         </div>
         <div className="student-activity__divider" />
-        <StoreLine name={proposal.store.storeName} address={storeAddressText(proposal.store.storeAddress)} />
+        <StoreLine
+          name={proposal.store.storeName}
+          address={storeAddressText(proposal.store.storeAddress)}
+          photo={proposal.store.profileImageUrl}
+        />
         {proposal.status === "AWAITING_START" && proposal.jobStatus !== "CANCELLED" && (
           <>
             <div className="student-activity__divider" />
@@ -233,7 +237,7 @@ function StudentActivityPage() {
         {job.storeName && (
           <>
             <div className="student-activity__divider" />
-            <StoreLine name={job.storeName} address={job.storeAddress} />
+            <StoreLine name={job.storeName} address={job.storeAddress} photo={job.storePhoto} />
           </>
         )}
         <div className="student-activity__divider" />

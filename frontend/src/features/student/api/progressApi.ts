@@ -25,6 +25,8 @@ export interface MatchedJobResponse {
   progressStage?: string | null;
   /** 의뢰한 사장님의 지금 가게 이름 */
   storeName?: string | null;
+  /** 의뢰한 사장님이 올린 가게 사진. 없으면 없음 */
+  storeProfileImageUrl?: string | null;
   /** 마지막으로 낸 결과물의 제출 시각 (한국 시각 +09:00). 아직 아무것도 내지 않았으면 null */
   submittedAt?: string | null;
 }

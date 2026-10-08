@@ -95,7 +95,7 @@ export interface RequestContent {
   /** "2026-09-27". 아직 안 골랐으면 "" */
   draftDue: string;
   finalDue: string;
-  /** 최소 1회 */
+  /** 최소 1회 · 최대 5회 */
   revisions: number;
   /** 참고 사진 (선택, 최대 4장). 등록할 때 올린다 */
   photos: File[];
@@ -122,21 +122,24 @@ export interface OwnerDoneItem {
   completedOn: string;
 }
 
-/** 사장님 홈 한 화면 분량. 날짜는 모두 YYYY-MM-DD */
+/** 홈 섹션 하나를 불러온 상태. loading = 불러오거나 다시 부르는 중, error = 불러오지 못함 */
+export type OwnerHomeSectionStatus = "loading" | "error" | "loaded";
+
+/** 사장님 홈 한 화면 분량 (GET /me/home). 날짜는 모두 YYYY-MM-DD */
 export interface OwnerHome {
   /**
-   * 이력이 하나도 없는 계정이면 true: 모집 중 · 받은 제안 · 진행 중 · 끝난 의뢰를 다 불러왔는데 모두 비었을 때.
-   * 하나라도 있거나 불러오지 못했으면 false, 아직 불러오는 중이면 undefined (모름)
+   * 이력이 하나도 없는 계정이면 true (서버의 firstVisit). 이력이 있거나 서버가 모른다고(null) 답했거나
+   * 홈을 불러오지 못했으면 false, 아직 불러오는 중이면 undefined (모름)
    */
   firstVisit: boolean | undefined;
-  /** 도착한 결과물 → 결정 대기 제안 → 지원자가 생긴 의뢰. 받은 제안은 불러온 뒤에만 들어간다 */
+  /** 홈 요청 자체. loading = 처음 불러오는 중, error = 요청이 실패해 섹션이 하나도 없음 */
+  status: "loading" | "error" | "loaded";
+  /** 섹션마다 불러온 상태. 요청이 성공해도 섹션 하나만 실패할 수 있다 (서버가 null 로 준 섹션) */
+  sections: Record<"todos" | "working" | "waiting" | "done", OwnerHomeSectionStatus>;
+  /** GET /me/home 을 다시 부른다. 홈 전체 · 실패한 섹션의 「다시 시도」가 함께 쓴다 */
+  reload: () => void;
+  /** 도착한 결과물 → 결정 대기 제안 → 지원자가 생긴 의뢰 (서버 순서 그대로) */
   todos: OwnerTodo[];
-  /** 받은 제안(GET /me/received-proposals)을 불러온 상태와 다시 시도 */
-  receivedProposals: "loading" | "error" | "loaded";
-  reloadReceivedProposals: () => void;
-  /** 진행 중 작업(GET /me/jobs?status=MATCHED)을 불러온 상태와 다시 시도 */
-  progress: "loading" | "error" | "loaded";
-  reloadProgress: () => void;
   working: OwnerWorkingItem[];
   waiting: OwnerWaitingItem[];
   examples: RequestExample[];

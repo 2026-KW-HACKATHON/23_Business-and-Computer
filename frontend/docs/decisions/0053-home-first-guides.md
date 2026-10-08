@@ -52,13 +52,25 @@ Accepted. Two guides cover the home once:
     the key matches and the home is 「처음」; closing removes the key, so it
     never comes back on this device. Another device may show it once more;
   - the 「처음」 card is drawn again, not clickable, its button at 40%; the bell
-    sits on a 44px white circle; the floating button is drawn at 55%;
+    sits on a 44px white circle; the floating button is drawn at 55% with the
+    measured width and height of the real button (left to itself, Safari sized
+    its label to 0 and drew only a circle);
   - 「골목인턴에 오신 걸 환영해요」 (24px, white) 14px above the card;
   - tips on `--color-main` pills: ① under the card 「진행 상황은 여기 확인할
     일에서 봐요」, ② left of the floating button 「새 의뢰는 여기서 올려요」 ·
     「새 제안은 여기서 써요」, ③ left of the bell 「학생 제안이 오면 알림으로
     알려 드려요」 · 「사장님 답이 오면 알림으로 알려 드려요」, rising in at 0.5s,
-    1s, and 1.5s; 「알겠어요」 at 2s.
+    1s, and 1.5s; 「알겠어요」 at 2s;
+  - short or narrow screens (Safari with its bottom bar, small phones): the
+    places above come first, and `placeGuide`
+    (`src/components/SignupGuide/signupGuideLayout.ts`) moves a tip when it
+    would overlap another tip, the welcome line, the bell, the floating button,
+    ✕, or 「알겠어요」, or leave the screen. ① tries under the card, on its
+    bottom edge, inside its bottom, on its top edge (the welcome line moves
+    above), inside its top, then above it; ② left of the button, then above it;
+    ③ left of the bell, then under it. A tip longer than its room wraps to two
+    lines; one-line widths come from hidden copies. Tips may cover the card,
+    which is only a picture here.
 - **둘러보기 첫 안내** (`DemoGuide`, `src/lib/demoGuide.ts`):
   - a successful 「사장님으로 · 대학생으로 둘러보기」 on the role screen marks
     `demoGuide` pending in sessionStorage unless this tab has seen it. The home

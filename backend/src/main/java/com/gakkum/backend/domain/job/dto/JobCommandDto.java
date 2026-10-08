@@ -393,6 +393,39 @@ public final class JobCommandDto {
         }
     }
 
+    /** 여러 의뢰에서 고른 제출 파일의 ZIP 다운로드 요청. 의뢰와 파일은 요청한 순서를 유지한다. */
+    @Getter
+    @Builder(access = AccessLevel.PRIVATE)
+    @AllArgsConstructor(access = AccessLevel.PRIVATE)
+    public static class DownloadJobSubmissionFilesCommand {
+
+        private final String username;
+        private final List<JobFiles> jobs;
+
+        public static DownloadJobSubmissionFilesCommand of(String username, List<JobFiles> jobs) {
+            return DownloadJobSubmissionFilesCommand.builder()
+                    .username(username)
+                    .jobs(List.copyOf(jobs))
+                    .build();
+        }
+
+        @Getter
+        @Builder(access = AccessLevel.PRIVATE)
+        @AllArgsConstructor(access = AccessLevel.PRIVATE)
+        public static class JobFiles {
+
+            private final Long jobId;
+            private final List<String> fileUrls;
+
+            public static JobFiles of(Long jobId, List<String> fileUrls) {
+                return JobFiles.builder()
+                        .jobId(jobId)
+                        .fileUrls(List.copyOf(fileUrls))
+                        .build();
+            }
+        }
+    }
+
     @Getter
     @Builder(access = AccessLevel.PRIVATE)
     @AllArgsConstructor(access = AccessLevel.PRIVATE)
@@ -457,9 +490,23 @@ public final class JobCommandDto {
         private final LocalDateTime createdAtBound;
         private final Long idBound;
         private final int limit;
+        // 이 사장님이 작성한 의뢰를 뺀다. null이면 작성 사장님으로 거르지 않는다
+        private final Long excludedOwnerProfileId;
+        // 이 학생의 지원이 탈락한 의뢰를 뺀다. null이면 지원 이력으로 거르지 않는다
+        private final Long rejectedApplicantProfileId;
 
         public static GetExploreJobsCommand of(String demoSessionId, Long specialtyCategoryId, boolean oldestFirst,
                 LocalDateTime createdAtBound, Long idBound, int limit) {
+            return forViewer(demoSessionId, specialtyCategoryId, oldestFirst, createdAtBound, idBound, limit, null, null);
+        }
+
+        /**
+         * 탐색 화면용. 조회 사장님(viewerOwnerProfileId)이 작성한 의뢰와 조회 학생(viewerStudentProfileId)의 지원이 탈락한 의뢰를 뺀다.
+         * 해당 프로필이 없으면 null이다.
+         */
+        public static GetExploreJobsCommand forViewer(String demoSessionId, Long specialtyCategoryId,
+                boolean oldestFirst, LocalDateTime createdAtBound, Long idBound, int limit,
+                Long viewerOwnerProfileId, Long viewerStudentProfileId) {
             return GetExploreJobsCommand.builder()
                     .demoSessionId(demoSessionId)
                     .specialtyCategoryId(specialtyCategoryId)
@@ -467,6 +514,8 @@ public final class JobCommandDto {
                     .createdAtBound(createdAtBound)
                     .idBound(idBound)
                     .limit(limit)
+                    .excludedOwnerProfileId(viewerOwnerProfileId)
+                    .rejectedApplicantProfileId(viewerStudentProfileId)
                     .build();
         }
     }

@@ -83,6 +83,7 @@ class JobDetailFlowTest {
     private static final Long SELECTED_STUDENT_PROFILE_ID = 7L;
     private static final String STORE_NAME = "가꿈 베이커리";
     private static final String STORE_ADDRESS = "서울특별시 노원구 광운로 20";
+    private static final String STORE_PROFILE_IMAGE_URL = "https://cdn.example.com/owners/999/profile.png";
     private static final String CANCEL_REASON = "가게 운영 계획이 변경되었습니다.";
     private static final String MESSAGE_TO_STUDENT = "함께하지 못해 아쉽습니다.";
     private static final LocalDateTime CANCELLED_AT = LocalDateTime.of(2026, 10, 4, 12, 0);
@@ -125,7 +126,7 @@ class JobDetailFlowTest {
 
     @ParameterizedTest
     @EnumSource(JobStatus.class)
-    @DisplayName("작성자가 아닌 학생도 모든 상태의 의뢰 상세 필드와 매장명·주소를 조회한다")
+    @DisplayName("작성자가 아닌 학생도 모든 상태의 의뢰 상세 필드와 매장명·주소·사진을 조회한다")
     void returnsJobDetailForEveryStatus(JobStatus jobStatus) throws Exception {
         givenActiveStudent();
         when(jobRepository.findById(42L)).thenReturn(Optional.of(job(jobStatus)));
@@ -167,6 +168,7 @@ class JobDetailFlowTest {
                 .andExpect(jsonPath("$.data.revisionCount").value(1))
                 .andExpect(jsonPath("$.data.storeName").value(STORE_NAME))
                 .andExpect(jsonPath("$.data.storeAddress").value(STORE_ADDRESS))
+                .andExpect(jsonPath("$.data.storeProfileImageUrl").value(STORE_PROFILE_IMAGE_URL))
                 .andExpect(jsonPath("$.data", not(hasKey("applied"))));
         expectNoCancellationInfo(mockMvc.perform(get("/jobs/42").principal(authentication)));
         verifyNoInteractions(paymentRepository);
@@ -375,17 +377,19 @@ class JobDetailFlowTest {
     }
 
     @Test
-    @DisplayName("주소를 등록하지 않은 매장은 매장명과 함께 storeAddress를 null로 반환한다")
+    @DisplayName("주소·사진을 등록하지 않은 매장은 매장명과 함께 storeAddress·storeProfileImageUrl을 null로 반환한다")
     void returnsNullStoreAddressWhenNotRegistered() throws Exception {
         givenActiveStudent();
-        givenJobOwnerStore(null);
+        givenJobOwnerStore(null, null);
         givenJob(job(JobStatus.OPEN));
 
         mockMvc.perform(get("/jobs/42").principal(authentication))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.storeName").value(STORE_NAME))
                 .andExpect(jsonPath("$.data", hasKey("storeAddress")))
-                .andExpect(jsonPath("$.data.storeAddress").value(nullValue()));
+                .andExpect(jsonPath("$.data.storeAddress").value(nullValue()))
+                .andExpect(jsonPath("$.data", hasKey("storeProfileImageUrl")))
+                .andExpect(jsonPath("$.data.storeProfileImageUrl").value(nullValue()));
     }
 
     @Test
@@ -536,8 +540,13 @@ class JobDetailFlowTest {
     }
 
     private void givenJobOwnerStore(String storeAddress) {
+        givenJobOwnerStore(storeAddress, STORE_PROFILE_IMAGE_URL);
+    }
+
+    private void givenJobOwnerStore(String storeAddress, String profileImageUrl) {
         when(ownerRepository.findById(JOB_OWNER_PROFILE_ID)).thenReturn(Optional.of(Owner.builder()
-                .id(JOB_OWNER_PROFILE_ID).storeName(STORE_NAME).storeAddress(storeAddress).build()));
+                .id(JOB_OWNER_PROFILE_ID).storeName(STORE_NAME).storeAddress(storeAddress)
+                .profileImageUrl(profileImageUrl).build()));
     }
 
     private void givenApplication(Long studentProfileId, JobApplicationStatus status) {

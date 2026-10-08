@@ -145,7 +145,7 @@ function StudentPeerProposalPage() {
 
           {student && (
             <div className="student-proposal__student">
-              <RoleAvatar role="student" />
+              <RoleAvatar role="student" src={student.profileImageUrl} />
               <div className="student-proposal__student-info">
                 <strong className="student-proposal__student-name">{studentTitle(student.name)}</strong>
                 <span className="student-proposal__student-sub">
@@ -165,7 +165,11 @@ function StudentPeerProposalPage() {
             </div>
           )}
 
-          <StoreBox name={shown.storeName} address={storeAddressText(shown.storeAddress)} />
+          <StoreBox
+            name={shown.storeName}
+            address={storeAddressText(shown.storeAddress)}
+            photo={shown.storeProfileImageUrl}
+          />
 
           <section className="student-detail__section">
             <h2 className="student-detail__section-title">손님 눈으로 본 문제</h2>

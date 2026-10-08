@@ -13,6 +13,7 @@ import org.springframework.data.repository.query.Param;
 
 import com.gakkum.backend.domain.job.entity.Job;
 import com.gakkum.backend.domain.job.entity.JobStatus;
+import com.gakkum.backend.domain.job.entity.JobSubmissionReviewStatus;
 
 import jakarta.persistence.LockModeType;
 
@@ -103,6 +104,31 @@ public interface JobRepository extends JpaRepository<Job, Long> {
         Long getJobCount();
     }
 
+    /*
+     * 자동 완료 대상 의뢰 ID. 의뢰의 최신 제출물(수정 번호가 가장 큰 행)만 골라 검토 상태와 제출 시각을 비교해야 해서
+     * 연관관계가 없는 JobSubmission을 EXISTS와 MAX 서브쿼리로 확인하며, 메서드 이름으로 표현할 수 없다.
+     * 데모 의뢰(demoSessionId가 있는 행)는 빼고, afterJobId보다 큰 ID를 오름차순으로 읽는다.
+     */
+    @Query("""
+            select j.id from Job j
+            where j.id > :afterJobId
+              and j.status = :jobStatus
+              and j.demoSessionId is null
+              and exists (
+                    select 1 from JobSubmission s
+                    where s.jobId = j.id
+                      and s.reviewStatus = :reviewStatus
+                      and s.createdAt <= :submittedUntil
+                      and s.revisionNumber = (
+                            select max(latest.revisionNumber) from JobSubmission latest
+                            where latest.jobId = j.id))
+            order by j.id asc
+            """)
+    List<Long> findAutoCompletableJobIds(@Param("afterJobId") Long afterJobId,
+            @Param("jobStatus") JobStatus jobStatus,
+            @Param("reviewStatus") JobSubmissionReviewStatus reviewStatus,
+            @Param("submittedUntil") LocalDateTime submittedUntil, Limit limit);
+
     List<Job> findByOwnerProfileId(Long ownerProfileId);
     List<Job> findBySelectedStudentProfileId(Long studentProfileId);
 
@@ -113,23 +139,27 @@ public interface JobRepository extends JpaRepository<Job, Long> {
      * 메서드 이름 쿼리로 읽고 서비스가 이어 붙인다. 각 구간은 (created_at, id) 인덱스의 연속 범위다.
      * idBound에 Long 최솟값·최댓값을 넣어 경계 시각과 같은 행 전체를 빼거나 포함한다.
      * demoSessionId가 조회자와 같은 의뢰만 고른다. 실제 사용자는 null이고 메서드 이름 쿼리는 null을 IS NULL로 비교한다.
+     * excludedOwnerProfileId는 조회 사장님 본인이 작성한 의뢰를 뺀다. null이면 메서드 이름 쿼리는 IS NOT NULL로,
+     * 직접 쓴 쿼리는 IS DISTINCT FROM으로 비교해 작성 사장님으로 거르지 않는다.
      */
 
-    List<Job> findByDemoSessionIdAndStatusNotAndProposalIdIsNullAndCreatedAtAndIdLessThanOrderByIdDesc(
-            String demoSessionId, JobStatus excludedStatus, LocalDateTime createdAt, Long idBound, Limit limit);
+    List<Job> findByDemoSessionIdAndStatusNotAndProposalIdIsNullAndOwnerProfileIdNotAndCreatedAtAndIdLessThanOrderByIdDesc(
+            String demoSessionId, JobStatus excludedStatus, Long excludedOwnerProfileId, LocalDateTime createdAt, Long idBound, Limit limit);
 
-    List<Job> findByDemoSessionIdAndStatusNotAndProposalIdIsNullAndCreatedAtLessThanOrderByCreatedAtDescIdDesc(
-            String demoSessionId, JobStatus excludedStatus, LocalDateTime createdAt, Limit limit);
+    List<Job> findByDemoSessionIdAndStatusNotAndProposalIdIsNullAndOwnerProfileIdNotAndCreatedAtLessThanOrderByCreatedAtDescIdDesc(
+            String demoSessionId, JobStatus excludedStatus, Long excludedOwnerProfileId, LocalDateTime createdAt, Limit limit);
 
-    List<Job> findByDemoSessionIdAndStatusNotAndProposalIdIsNullAndCreatedAtAndIdGreaterThanOrderByIdAsc(
-            String demoSessionId, JobStatus excludedStatus, LocalDateTime createdAt, Long idBound, Limit limit);
+    List<Job> findByDemoSessionIdAndStatusNotAndProposalIdIsNullAndOwnerProfileIdNotAndCreatedAtAndIdGreaterThanOrderByIdAsc(
+            String demoSessionId, JobStatus excludedStatus, Long excludedOwnerProfileId, LocalDateTime createdAt, Long idBound, Limit limit);
 
-    List<Job> findByDemoSessionIdAndStatusNotAndProposalIdIsNullAndCreatedAtGreaterThanOrderByCreatedAtAscIdAsc(
-            String demoSessionId, JobStatus excludedStatus, LocalDateTime createdAt, Limit limit);
+    List<Job> findByDemoSessionIdAndStatusNotAndProposalIdIsNullAndOwnerProfileIdNotAndCreatedAtGreaterThanOrderByCreatedAtAscIdAsc(
+            String demoSessionId, JobStatus excludedStatus, Long excludedOwnerProfileId, LocalDateTime createdAt, Limit limit);
 
     /*
-     * 대분류 조건은 연관관계가 없는 JobSpecialty·Specialty를 EXISTS로 확인해야 해서 메서드 이름으로 표현할 수 없다.
-     * 그 대분류의 소분류가 하나라도 연결된 의뢰만 고른다.
+     * 조회 학생(studentProfileId)의 지원이 탈락한 의뢰는 연관관계가 없는 JobApplication을 NOT EXISTS로 확인해야 해서
+     * 메서드 이름으로 표현할 수 없다. 저장된 탈락(REJECTED)과, 대기 중(PENDING)인데 다른 학생이 선정된 지원을 탈락으로 본다.
+     * '내가 지원한 의뢰' 목록의 탈락 판정과 같다. 지원하지 않았거나 대기 중·본인이 선정된 의뢰는 남는다.
+     * studentProfileId가 null이면 일치하는 지원서가 없어 지원 이력으로 거르지 않는다.
      */
 
     @Query("""
@@ -137,32 +167,99 @@ public interface JobRepository extends JpaRepository<Job, Long> {
             where j.demoSessionId is not distinct from :demoSessionId
               and j.status <> :excludedStatus
               and j.proposalId is null
+              and j.ownerProfileId is distinct from :excludedOwnerProfileId
+              and j.createdAt is not null
+              and (j.createdAt, j.id) < (:createdAt, :idBound)
+              and not exists (
+                    select 1 from JobApplication a
+                    where a.jobId = j.id
+                      and a.studentProfileId = :studentProfileId
+                      and (a.status = REJECTED
+                           or (a.status = PENDING and j.selectedStudentProfileId <> :studentProfileId)))
+            order by j.createdAt desc, j.id desc
+            """)
+    List<Job> findExploreLatestForStudent(@Param("demoSessionId") String demoSessionId,
+            @Param("excludedStatus") JobStatus excludedStatus,
+            @Param("excludedOwnerProfileId") Long excludedOwnerProfileId,
+            @Param("studentProfileId") Long studentProfileId,
+            @Param("createdAt") LocalDateTime createdAt, @Param("idBound") Long idBound, Limit limit);
+
+    @Query("""
+            select j from Job j
+            where j.demoSessionId is not distinct from :demoSessionId
+              and j.status <> :excludedStatus
+              and j.proposalId is null
+              and j.ownerProfileId is distinct from :excludedOwnerProfileId
+              and j.createdAt is not null
+              and (j.createdAt, j.id) > (:createdAt, :idBound)
+              and not exists (
+                    select 1 from JobApplication a
+                    where a.jobId = j.id
+                      and a.studentProfileId = :studentProfileId
+                      and (a.status = REJECTED
+                           or (a.status = PENDING and j.selectedStudentProfileId <> :studentProfileId)))
+            order by j.createdAt asc, j.id asc
+            """)
+    List<Job> findExploreOldestForStudent(@Param("demoSessionId") String demoSessionId,
+            @Param("excludedStatus") JobStatus excludedStatus,
+            @Param("excludedOwnerProfileId") Long excludedOwnerProfileId,
+            @Param("studentProfileId") Long studentProfileId,
+            @Param("createdAt") LocalDateTime createdAt, @Param("idBound") Long idBound, Limit limit);
+
+    /*
+     * 대분류 조건은 연관관계가 없는 JobSpecialty·Specialty를 EXISTS로 확인해야 해서 메서드 이름으로 표현할 수 없다.
+     * 그 대분류의 소분류가 하나라도 연결된 의뢰만 고르고, 위 쿼리와 같이 본인 의뢰와 지원이 탈락한 의뢰를 뺀다.
+     */
+
+    @Query("""
+            select j from Job j
+            where j.demoSessionId is not distinct from :demoSessionId
+              and j.status <> :excludedStatus
+              and j.proposalId is null
+              and j.ownerProfileId is distinct from :excludedOwnerProfileId
               and j.createdAt is not null
               and (j.createdAt, j.id) < (:createdAt, :idBound)
               and exists (
                     select 1 from JobSpecialty js join Specialty s on s.id = js.specialtyId
                     where js.jobId = j.id and s.specialtyCategoryId = :categoryId)
+              and not exists (
+                    select 1 from JobApplication a
+                    where a.jobId = j.id
+                      and a.studentProfileId = :studentProfileId
+                      and (a.status = REJECTED
+                           or (a.status = PENDING and j.selectedStudentProfileId <> :studentProfileId)))
             order by j.createdAt desc, j.id desc
             """)
     List<Job> findExploreLatestInCategory(@Param("demoSessionId") String demoSessionId,
             @Param("excludedStatus") JobStatus excludedStatus,
-            @Param("categoryId") Long categoryId, @Param("createdAt") LocalDateTime createdAt,
-            @Param("idBound") Long idBound, Limit limit);
+            @Param("excludedOwnerProfileId") Long excludedOwnerProfileId,
+            @Param("studentProfileId") Long studentProfileId,
+            @Param("categoryId") Long categoryId,
+            @Param("createdAt") LocalDateTime createdAt, @Param("idBound") Long idBound, Limit limit);
 
     @Query("""
             select j from Job j
             where j.demoSessionId is not distinct from :demoSessionId
               and j.status <> :excludedStatus
               and j.proposalId is null
+              and j.ownerProfileId is distinct from :excludedOwnerProfileId
               and j.createdAt is not null
               and (j.createdAt, j.id) > (:createdAt, :idBound)
               and exists (
                     select 1 from JobSpecialty js join Specialty s on s.id = js.specialtyId
                     where js.jobId = j.id and s.specialtyCategoryId = :categoryId)
+              and not exists (
+                    select 1 from JobApplication a
+                    where a.jobId = j.id
+                      and a.studentProfileId = :studentProfileId
+                      and (a.status = REJECTED
+                           or (a.status = PENDING and j.selectedStudentProfileId <> :studentProfileId)))
             order by j.createdAt asc, j.id asc
             """)
     List<Job> findExploreOldestInCategory(@Param("demoSessionId") String demoSessionId,
             @Param("excludedStatus") JobStatus excludedStatus,
-            @Param("categoryId") Long categoryId, @Param("createdAt") LocalDateTime createdAt,
-            @Param("idBound") Long idBound, Limit limit);
+            @Param("excludedOwnerProfileId") Long excludedOwnerProfileId,
+            @Param("studentProfileId") Long studentProfileId,
+            @Param("categoryId") Long categoryId,
+            @Param("createdAt") LocalDateTime createdAt, @Param("idBound") Long idBound, Limit limit);
 }

@@ -36,6 +36,8 @@ export interface ProposalAgreementResponse {
 export interface ProposalStudentResponse {
   studentProfileId: number;
   name: string;
+  /** 학생이 올린 프로필 사진. 없으면 없음 */
+  profileImageUrl?: string | null;
   major?: string | null;
   /** 입학년도 뒤 두 자리 ("24") */
   studentNumber?: string | null;
@@ -51,6 +53,8 @@ export interface ProposalDetailResponse {
   storeName: string;
   /** 가게의 지금 프로필 주소. 등록하지 않았으면 없음 */
   storeAddress?: string | null;
+  /** 사장님이 올린 가게 사진. 없으면 없음 */
+  storeProfileImageUrl?: string | null;
   likeCount: number;
   /** 내가 공감했는지. 서버가 주면 다른 학생 제안서의 하트가 채워진다 */
   likedByMe?: boolean | null;

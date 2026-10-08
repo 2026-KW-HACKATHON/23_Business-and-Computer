@@ -241,11 +241,8 @@ function SubmitForm({
         </FormField>
 
         <div className="student-work__info">
-          {draft && <strong>완료 전까지는 사장님께 미리보기로만 보여요</strong>}
           <p>
-            {draft
-              ? "사장님이 완료를 확인하면 원본 파일이 전달되고 작업비가 정산돼요. 7일 동안 답이 없으면 자동으로 완료돼요."
-              : `사장님이 완료를 확인하면 작업비 ${formatWon(job.budget)}이 정산돼요. 7일 동안 답이 없으면 자동으로 완료돼요.`}
+            {`사장님이 완료를 확인하면 작업비 ${formatWon(job.budget)}이 정산돼요. 7일 동안 답이 없으면 자동으로 완료돼요.`}
           </p>
         </div>
       </div>

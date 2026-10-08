@@ -212,7 +212,10 @@ public class ProposalService {
                 .toList();
     }
 
-    /** 탐색 목록용으로 커서 경계 뒤의 취소되지 않은 제안을 정렬 순서대로 limit개까지 읽고 제안별 소분류 ID를 한 번에 붙인다. */
+    /**
+     * 탐색 목록용으로 커서 경계 뒤의 취소되지 않은 제안을 정렬 순서대로 limit개까지 읽고 제안별 소분류 ID를 한 번에 붙인다.
+     * 탐색 화면용 조건이면 거절된 제안과 조회 학생이 작성한 제안도 limit을 세기 전에 뺀다.
+     */
     @Transactional(readOnly = true)
     public List<ExploreProposalData> getExploreProposals(GetExploreProposalsCommand command) {
         return withSpecialtyIds(findExploreProposals(command));
@@ -342,36 +345,39 @@ public class ProposalService {
         Integer likeCount = command.getLikeCountBound();
         LocalDateTime createdAt = command.getCreatedAtBound();
         Long idBound = command.getIdBound();
-        ProposalStatus excluded = ProposalStatus.CANCELLED;
+        List<ProposalStatus> excluded = command.isRejectedExcluded()
+                ? List.of(ProposalStatus.CANCELLED, ProposalStatus.REJECTED)
+                : List.of(ProposalStatus.CANCELLED);
+        Long excludedStudent = command.getExcludedStudentProfileId();
         if (categoryId != null) {
             Limit limit = Limit.of(command.getLimit());
             return switch (command.getOrder()) {
                 case LATEST -> proposalRepository.findExploreLatestInCategory(
-                        demoSessionId, excluded, categoryId, createdAt, idBound, limit);
+                        demoSessionId, excluded, excludedStudent, categoryId, createdAt, idBound, limit);
                 case OLDEST -> proposalRepository.findExploreOldestInCategory(
-                        demoSessionId, excluded, categoryId, createdAt, idBound, limit);
+                        demoSessionId, excluded, excludedStudent, categoryId, createdAt, idBound, limit);
                 case LIKES -> proposalRepository.findExploreByLikesInCategory(
-                        demoSessionId, excluded, categoryId, likeCount, createdAt, idBound, limit);
+                        demoSessionId, excluded, excludedStudent, categoryId, likeCount, createdAt, idBound, limit);
             };
         }
         return switch (command.getOrder()) {
             case LATEST -> readInSegments(command.getLimit(),
-                    limit -> proposalRepository.findByDemoSessionIdAndStatusNotAndCreatedAtAndIdLessThanOrderByIdDesc(
-                            demoSessionId, excluded, createdAt, idBound, limit),
-                    limit -> proposalRepository.findByDemoSessionIdAndStatusNotAndCreatedAtLessThanOrderByCreatedAtDescIdDesc(
-                            demoSessionId, excluded, createdAt, limit));
+                    limit -> proposalRepository.findByDemoSessionIdAndStatusNotInAndStudentProfileIdNotAndCreatedAtAndIdLessThanOrderByIdDesc(
+                            demoSessionId, excluded, excludedStudent, createdAt, idBound, limit),
+                    limit -> proposalRepository.findByDemoSessionIdAndStatusNotInAndStudentProfileIdNotAndCreatedAtLessThanOrderByCreatedAtDescIdDesc(
+                            demoSessionId, excluded, excludedStudent, createdAt, limit));
             case OLDEST -> readInSegments(command.getLimit(),
-                    limit -> proposalRepository.findByDemoSessionIdAndStatusNotAndCreatedAtAndIdGreaterThanOrderByIdAsc(
-                            demoSessionId, excluded, createdAt, idBound, limit),
-                    limit -> proposalRepository.findByDemoSessionIdAndStatusNotAndCreatedAtGreaterThanOrderByCreatedAtAscIdAsc(
-                            demoSessionId, excluded, createdAt, limit));
+                    limit -> proposalRepository.findByDemoSessionIdAndStatusNotInAndStudentProfileIdNotAndCreatedAtAndIdGreaterThanOrderByIdAsc(
+                            demoSessionId, excluded, excludedStudent, createdAt, idBound, limit),
+                    limit -> proposalRepository.findByDemoSessionIdAndStatusNotInAndStudentProfileIdNotAndCreatedAtGreaterThanOrderByCreatedAtAscIdAsc(
+                            demoSessionId, excluded, excludedStudent, createdAt, limit));
             case LIKES -> readInSegments(command.getLimit(),
-                    limit -> proposalRepository.findByDemoSessionIdAndStatusNotAndLikeCountAndCreatedAtAndIdLessThanOrderByIdDesc(
-                            demoSessionId, excluded, likeCount, createdAt, idBound, limit),
-                    limit -> proposalRepository.findByDemoSessionIdAndStatusNotAndLikeCountAndCreatedAtLessThanOrderByCreatedAtDescIdDesc(
-                            demoSessionId, excluded, likeCount, createdAt, limit),
-                    limit -> proposalRepository.findByDemoSessionIdAndStatusNotAndLikeCountLessThanOrderByLikeCountDescCreatedAtDescIdDesc(
-                            demoSessionId, excluded, likeCount, limit));
+                    limit -> proposalRepository.findByDemoSessionIdAndStatusNotInAndStudentProfileIdNotAndLikeCountAndCreatedAtAndIdLessThanOrderByIdDesc(
+                            demoSessionId, excluded, excludedStudent, likeCount, createdAt, idBound, limit),
+                    limit -> proposalRepository.findByDemoSessionIdAndStatusNotInAndStudentProfileIdNotAndLikeCountAndCreatedAtLessThanOrderByCreatedAtDescIdDesc(
+                            demoSessionId, excluded, excludedStudent, likeCount, createdAt, limit),
+                    limit -> proposalRepository.findByDemoSessionIdAndStatusNotInAndStudentProfileIdNotAndLikeCountLessThanOrderByLikeCountDescCreatedAtDescIdDesc(
+                            demoSessionId, excluded, excludedStudent, likeCount, limit));
         };
     }
 

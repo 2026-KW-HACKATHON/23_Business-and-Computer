@@ -46,9 +46,10 @@ The backend (dev) has:
   중), store line when known, and 초안 제출하기 · 수정안 제출하기 · 문의하기
   (그 작업의 채팅방, ADR 0057). The count shows loading dots (ADR 0059) and `LoadNotice` replaces the list while
   loading or after a failure.
-- **Home**: drafting · revising jobs join 「확인할 일」 (sorted with the
-  agreement cards by deadline); submitted jobs are 「사장님이 확인 중」
-  rows. A failed load shows one 「다시 시도」 line.
+- **Home**: drafting · revising jobs join 「확인할 일」 after the agreement
+  cards, by deadline; submitted jobs are 「사장님이 확인 중」 rows. Both come
+  from GET /me/home (ADR 0065); a failed section shows its own
+  「다시 시도」 line.
 - **Submit** (`src/pages/StudentJobSubmitPage.tsx`, routes
   /student/works/:id/submit and /student/works/:id/revision/submit when the
   id is a number):

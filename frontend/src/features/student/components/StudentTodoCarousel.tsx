@@ -1,7 +1,6 @@
 import type { MouseEvent } from "react";
 import { Button, CategoryBadge, TextButton, WorkKindIcon } from "../../../components";
 import { useLoopCarousel, withLoopClones } from "../../../hooks/useLoopCarousel";
-import { proposalBadgeNames } from "../../proposal";
 import { deadlineText } from "../lib/format";
 import type { StudentTodo } from "../types";
 import "./StudentTodoCarousel.css";
@@ -16,7 +15,7 @@ const SLIDE_GAP_PX = 12;
 function describe(todo: StudentTodo) {
   switch (todo.type) {
     case "drafting":
-      return { status: deadlineText("draft", todo.job.draftDeadline), action: "초안 제출하기" };
+      return { status: deadlineText(todo.stage, todo.due), action: "초안 제출하기" };
     case "revising":
       return { status: "수정 요청이 도착했어요", action: "수정안 제출하기" };
     case "proposalAgreement":
@@ -24,25 +23,23 @@ function describe(todo: StudentTodo) {
   }
 }
 
-/** 카드 머리 (종류 · 제목 · 분야 · 가게) */
+/** 카드 머리 (종류 · 제목 · 분야 · 가게). 분야는 서버가 준 대분류 이름 그대로 */
 function heading(todo: StudentTodo) {
   if (todo.type === "proposalAgreement") {
-    const { proposal } = todo;
     return {
-      key: `proposal-${proposal.proposalId}`,
+      key: `proposal-${todo.proposalId}`,
       kind: "proposal" as const,
-      title: proposal.title,
-      fields: proposalBadgeNames(proposal.specialtyCategories),
-      store: proposal.store.storeName,
+      title: todo.title,
+      fields: todo.categories,
+      store: todo.storeName ?? "",
     };
   }
-  const { job } = todo;
   return {
-    key: `${todo.type}-${job.jobId}`,
-    kind: job.kind,
-    title: job.title,
-    fields: proposalBadgeNames(job.specialtyCategories),
-    store: job.storeName ?? "",
+    key: `${todo.type}-${todo.jobId}`,
+    kind: todo.kind,
+    title: todo.title,
+    fields: todo.categories,
+    store: todo.storeName ?? "",
   };
 }
 

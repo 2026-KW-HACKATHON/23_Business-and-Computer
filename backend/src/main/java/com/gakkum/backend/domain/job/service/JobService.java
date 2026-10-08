@@ -1,6 +1,7 @@
 package com.gakkum.backend.domain.job.service;
 
 import java.time.Clock;
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
@@ -11,6 +12,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -24,6 +26,8 @@ import com.gakkum.backend.domain.job.dto.JobCommandDto.CompleteJobSubmissionComm
 import com.gakkum.backend.domain.job.dto.JobCommandDto.CreateJobApplicationCommand;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.CreateJobCommand;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.CreateJobSubmissionCommand;
+import com.gakkum.backend.domain.job.dto.JobCommandDto.DownloadJobSubmissionFilesCommand;
+import com.gakkum.backend.domain.job.dto.JobCommandDto.DownloadJobSubmissionFilesCommand.JobFiles;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.CreateProposalJobCommand;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.GetClosedJobsCommand;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.GetExploreJobsCommand;
@@ -76,6 +80,9 @@ import lombok.RequiredArgsConstructor;
 @Service
 @RequiredArgsConstructor
 public class JobService {
+
+    // 최신 제출물이 이 기간 동안 승인·수정 요청 없이 남으면 자동 완료한다
+    private static final Duration AUTO_COMPLETION_PERIOD = Duration.ofHours(168);
 
     private final JobRepository jobRepository;
     private final JobSpecialtyRepository jobSpecialtyRepository;
@@ -568,6 +575,37 @@ public class JobService {
         return jobSubmissionRepository.findByJobIdOrderByRevisionNumberAsc(job.getId());
     }
 
+    /**
+     * ZIP으로 내려받을 제출 파일을 고른 의뢰들을 조회. 의뢰마다 제출물 조회와 같은 당사자 확인을 하고 작업 상태는 제한하지 않는다.
+     * 하나라도 존재하지 않거나 당사자가 아니면 같은 404, 고른 URL이 그 의뢰의 제출물에 등록된 파일이 아니면 JOB_SUBMISSION_400_FILE_URL로 전체를 거부한다.
+     * @param command
+     * @param ownerProfileId 사장님으로 조회할 때의 프로필 ID(학생이면 null)
+     * @param studentProfileId 학생으로 조회할 때의 프로필 ID(사장님이면 null)
+     * @return 의뢰 ID별 의뢰
+     */
+    @Transactional(readOnly = true)
+    public Map<Long, Job> getSubmissionDownloadJobs(
+            DownloadJobSubmissionFilesCommand command, Long ownerProfileId, Long studentProfileId) {
+        List<Long> jobIds = command.getJobs().stream().map(JobFiles::getJobId).toList();
+        Map<Long, Job> jobsById = jobRepository.findAllById(jobIds).stream()
+                .filter(job -> isSubmissionViewer(job, ownerProfileId, studentProfileId))
+                .collect(Collectors.toMap(Job::getId, job -> job));
+        if (!jobsById.keySet().containsAll(jobIds)) {
+            throw new BusinessException(ErrorCode.JOB_NOT_FOUND);
+        }
+
+        Map<Long, Set<String>> submittedFileUrlsByJobId = jobSubmissionRepository.findByJobIdIn(jobIds).stream()
+                .collect(Collectors.groupingBy(
+                        JobSubmission::getJobId,
+                        Collectors.flatMapping(submission -> submission.getFileUrls().stream(), Collectors.toSet())));
+        for (JobFiles files : command.getJobs()) {
+            if (!submittedFileUrlsByJobId.getOrDefault(files.getJobId(), Set.of()).containsAll(files.getFileUrls())) {
+                throw new BusinessException(ErrorCode.JOB_SUBMISSION_FILE_URL_INVALID);
+            }
+        }
+        return jobsById;
+    }
+
     private boolean isSubmissionViewer(Job job, Long ownerProfileId, Long studentProfileId) {
         if (ownerProfileId != null) {
             return ownerProfileId.equals(job.getOwnerProfileId());
@@ -735,6 +773,46 @@ public class JobService {
         }
         submission.approve();
         job.complete(now());
+        return job;
+    }
+
+    /**
+     * 자동 완료 대상 의뢰 ID를 ID 오름차순으로 조회. 진행 중(MATCHED)이고 데모가 아니며,
+     * 최신 제출물이 검토 대기(PENDING)인 채 제출 후 자동 완료 기간이 지난 의뢰다.
+     * @param afterJobId 이 ID보다 큰 의뢰만 조회한다
+     * @param referenceTime 만료를 판단하는 기준 시각(UTC)
+     * @param limit
+     * @return 의뢰 ID, 없으면 빈 목록
+     */
+    @Transactional(readOnly = true)
+    public List<Long> getAutoCompletableJobIds(Long afterJobId, LocalDateTime referenceTime, int limit) {
+        return jobRepository.findAutoCompletableJobIds(afterJobId, JobStatus.MATCHED,
+                JobSubmissionReviewStatus.PENDING, referenceTime.minus(AUTO_COMPLETION_PERIOD), Limit.of(limit));
+    }
+
+    /**
+     * 검토 없이 자동 완료 기간이 지난 최신 제출물을 최종 결과로 승인하고 의뢰를 종료한다. 완료 시각은 실제 처리 시각이다.
+     * 의뢰 행을 잠가 같은 의뢰의 수동 완료·수정 요청·수정안 제출과 순서대로 처리하고, 잠근 뒤 조건을 다시 확인한다.
+     * @param jobId
+     * @param referenceTime 만료를 판단하는 기준 시각(UTC)
+     * @return 종료된(CLOSED) 의뢰. 대상 조회 뒤 조건이 바뀌어 건너뛰었으면 빈 값
+     */
+    @Transactional
+    public Optional<Job> autoCompleteSubmission(Long jobId, LocalDateTime referenceTime) {
+        Optional<Job> job = jobRepository.findLockedById(jobId)
+                .filter(found -> found.getStatus() == JobStatus.MATCHED && found.getDemoSessionId() == null);
+        if (job.isEmpty()) {
+            return Optional.empty();
+        }
+        LocalDateTime submittedUntil = referenceTime.minus(AUTO_COMPLETION_PERIOD);
+        Optional<JobSubmission> submission = jobSubmissionRepository.findFirstByJobIdOrderByRevisionNumberDesc(jobId)
+                .filter(latest -> latest.getReviewStatus() == JobSubmissionReviewStatus.PENDING)
+                .filter(latest -> latest.getCreatedAt() != null && !latest.getCreatedAt().isAfter(submittedUntil));
+        if (submission.isEmpty()) {
+            return Optional.empty();
+        }
+        submission.get().approve();
+        job.get().complete(now());
         return job;
     }
 
@@ -1051,6 +1129,7 @@ public class JobService {
 
     /**
      * 탐색 목록용으로 취소되지 않은 의뢰를 커서 경계 뒤부터 정렬 순서대로 limit개까지 읽는다.
+     * 탐색 화면용 조건이면 조회 사장님이 작성한 의뢰와 조회 학생의 지원이 탈락한 의뢰도 limit을 세기 전에 뺀다.
      * 진행 단계 계산에 필요한 최신 제출물은 진행 중(MATCHED) 의뢰만 한 번에 조회한다.
      */
     @Transactional(readOnly = true)
@@ -1085,26 +1164,37 @@ public class JobService {
         Long categoryId = command.getSpecialtyCategoryId();
         LocalDateTime createdAt = command.getCreatedAtBound();
         Long idBound = command.getIdBound();
+        Long excludedOwner = command.getExcludedOwnerProfileId();
+        Long applicant = command.getRejectedApplicantProfileId();
         if (categoryId != null) {
             Limit limit = Limit.of(command.getLimit());
             return command.isOldestFirst()
                     ? jobRepository.findExploreOldestInCategory(
-                            demoSessionId, JobStatus.CANCELLED, categoryId, createdAt, idBound, limit)
+                            demoSessionId, JobStatus.CANCELLED, excludedOwner, applicant, categoryId, createdAt, idBound, limit)
                     : jobRepository.findExploreLatestInCategory(
-                            demoSessionId, JobStatus.CANCELLED, categoryId, createdAt, idBound, limit);
+                            demoSessionId, JobStatus.CANCELLED, excludedOwner, applicant, categoryId, createdAt, idBound, limit);
+        }
+        // 지원 이력으로 거를 때만 NOT EXISTS 쿼리를 쓰고, 그 밖에는 메서드 이름 구간 쿼리로 읽는다
+        if (applicant != null) {
+            Limit limit = Limit.of(command.getLimit());
+            return command.isOldestFirst()
+                    ? jobRepository.findExploreOldestForStudent(
+                            demoSessionId, JobStatus.CANCELLED, excludedOwner, applicant, createdAt, idBound, limit)
+                    : jobRepository.findExploreLatestForStudent(
+                            demoSessionId, JobStatus.CANCELLED, excludedOwner, applicant, createdAt, idBound, limit);
         }
         if (command.isOldestFirst()) {
             return readInSegments(command.getLimit(),
-                    limit -> jobRepository.findByDemoSessionIdAndStatusNotAndProposalIdIsNullAndCreatedAtAndIdGreaterThanOrderByIdAsc(
-                            demoSessionId, JobStatus.CANCELLED, createdAt, idBound, limit),
-                    limit -> jobRepository.findByDemoSessionIdAndStatusNotAndProposalIdIsNullAndCreatedAtGreaterThanOrderByCreatedAtAscIdAsc(
-                            demoSessionId, JobStatus.CANCELLED, createdAt, limit));
+                    limit -> jobRepository.findByDemoSessionIdAndStatusNotAndProposalIdIsNullAndOwnerProfileIdNotAndCreatedAtAndIdGreaterThanOrderByIdAsc(
+                            demoSessionId, JobStatus.CANCELLED, excludedOwner, createdAt, idBound, limit),
+                    limit -> jobRepository.findByDemoSessionIdAndStatusNotAndProposalIdIsNullAndOwnerProfileIdNotAndCreatedAtGreaterThanOrderByCreatedAtAscIdAsc(
+                            demoSessionId, JobStatus.CANCELLED, excludedOwner, createdAt, limit));
         }
         return readInSegments(command.getLimit(),
-                limit -> jobRepository.findByDemoSessionIdAndStatusNotAndProposalIdIsNullAndCreatedAtAndIdLessThanOrderByIdDesc(
-                        demoSessionId, JobStatus.CANCELLED, createdAt, idBound, limit),
-                limit -> jobRepository.findByDemoSessionIdAndStatusNotAndProposalIdIsNullAndCreatedAtLessThanOrderByCreatedAtDescIdDesc(
-                        demoSessionId, JobStatus.CANCELLED, createdAt, limit));
+                limit -> jobRepository.findByDemoSessionIdAndStatusNotAndProposalIdIsNullAndOwnerProfileIdNotAndCreatedAtAndIdLessThanOrderByIdDesc(
+                        demoSessionId, JobStatus.CANCELLED, excludedOwner, createdAt, idBound, limit),
+                limit -> jobRepository.findByDemoSessionIdAndStatusNotAndProposalIdIsNullAndOwnerProfileIdNotAndCreatedAtLessThanOrderByCreatedAtDescIdDesc(
+                        demoSessionId, JobStatus.CANCELLED, excludedOwner, createdAt, limit));
     }
 
     /** 커서 경계 뒤를 정렬 순서상 앞 구간부터 읽어 limit개를 채운다. 채워지면 남은 구간은 조회하지 않는다. */

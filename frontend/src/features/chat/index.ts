@@ -13,6 +13,8 @@ export { findJobChatRoomId, useOpenJobChat } from "./hooks/useOpenJobChat";
 export type { ChatRoomsLoad } from "./hooks/useChatRooms";
 export { useChatUnread } from "./hooks/useChatUnread";
 export { useScrollToLatest } from "./hooks/useScrollToLatest";
+export { useWorkHistory } from "./hooks/useWorkHistory";
+export type { WorkHistoryLoad } from "./hooks/useWorkHistory";
 
 export {
   canCancelChatWork,
@@ -24,7 +26,6 @@ export {
 export {
   chatWorkBadge,
   chatWorkDocLabel,
-  chatWorkEntries,
   chatWorkEntriesFromSubmissions,
   chatWorkEntryLabel,
   chatWorkFlowIndex,

@@ -126,10 +126,11 @@ class ExploreFlowTest {
     @DisplayName("제안과 취소되지 않은 의뢰를 최신순으로 섞어 카드마다 매장·분류·진행 단계를 채우고 다음 커서를 응답한다")
     void returnsMixedCardsThroughAllLayers() throws Exception {
         givenActiveUser();
-        when(proposalRepository.findByDemoSessionIdAndStatusNotAndCreatedAtLessThanOrderByCreatedAtDescIdDesc(any(), eq(ProposalStatus.CANCELLED), any(), eq(Limit.of(3))))
+        when(proposalRepository.findByDemoSessionIdAndStatusNotInAndStudentProfileIdNotAndCreatedAtLessThanOrderByCreatedAtDescIdDesc(any(), eq(List.of(ProposalStatus.CANCELLED, ProposalStatus.REJECTED)), any(), any(), eq(Limit.of(3))))
                 .thenReturn(List.of(proposal(31L, T2, 4, 50L), proposal(30L, T1, 0, 50L, 71L)));
-        when(jobRepository.findByDemoSessionIdAndStatusNotAndProposalIdIsNullAndCreatedAtLessThanOrderByCreatedAtDescIdDesc(
-                any(), eq(JobStatus.CANCELLED), any(), eq(Limit.of(3))))
+        // 학생 프로필이 있으면 의뢰는 지원 탈락을 거르는 쿼리로 읽는다
+        when(jobRepository.findExploreLatestForStudent(
+                any(), eq(JobStatus.CANCELLED), any(), eq(STUDENT_PROFILE_ID), any(), any(), eq(Limit.of(3))))
                 .thenReturn(List.of(job(42L, T3, JobStatus.MATCHED, 60L), job(41L, T1, JobStatus.OPEN, 60L)));
         when(proposalSpecialtyRepository.findByProposalIdIn(List.of(31L, 30L))).thenReturn(List.of(
                 ProposalSpecialty.create(31L, 12L), ProposalSpecialty.create(31L, 11L),
@@ -268,18 +269,17 @@ class ExploreFlowTest {
     }
 
     @Test
-    @DisplayName("학생의 의뢰 탐색은 본인 지원서의 대기·선정·거절 상태를 문자열 그대로 응답하고, 본인 지원서가 없는 의뢰는 applied 키를 내리지 않는다")
+    @DisplayName("학생의 의뢰 탐색은 본인 프로필로 지원 탈락 의뢰를 거르고, 남은 의뢰에 본인 지원서의 대기·선정 상태를 문자열 그대로 응답하며 지원서가 없는 의뢰는 applied 키를 내리지 않는다")
     void returnsOwnApplicationStatusForStudent() throws Exception {
         givenActiveUser();
         givenJobs(job(44L, T3, JobStatus.OPEN, 60L), job(43L, T3, JobStatus.OPEN, 60L),
                 job(42L, T3, JobStatus.OPEN, 60L), job(41L, T3, JobStatus.OPEN, 60L));
         when(studentRepository.findByUserId(USER_ID))
                 .thenReturn(Optional.of(Student.builder().id(STUDENT_PROFILE_ID).userId(USER_ID).build()));
-        // 의뢰 41에는 다른 학생의 지원서만 있어 본인 조회 결과에 없다
+        // 의뢰 42·41에는 다른 학생의 지원서만 있어 본인 조회 결과에 없다
         when(jobApplicationRepository.findByStudentProfileIdAndJobIdIn(STUDENT_PROFILE_ID, List.of(44L, 43L, 42L, 41L)))
                 .thenReturn(List.of(application(44L, JobApplicationStatus.PENDING),
-                        application(43L, JobApplicationStatus.ACCEPTED),
-                        application(42L, JobApplicationStatus.REJECTED)));
+                        application(43L, JobApplicationStatus.ACCEPTED)));
 
         explore(get("/explore").param("type", "JOB"))
                 .andExpect(status().isOk())
@@ -287,13 +287,18 @@ class ExploreFlowTest {
                 .andExpect(jsonPath("$.data.items[0].applied").isString())
                 .andExpect(jsonPath("$.data.items[0].applied").value("PENDING"))
                 .andExpect(jsonPath("$.data.items[1].applied").value("ACCEPTED"))
-                .andExpect(jsonPath("$.data.items[2].applied").value("REJECTED"))
                 // 공고 상태와 본인 지원 상태는 별개로 내린다
-                .andExpect(jsonPath("$.data.items[2].status").value("OPEN"))
+                .andExpect(jsonPath("$.data.items[1].status").value("OPEN"))
+                .andExpect(jsonPath("$.data.items[2]", not(hasKey("applied"))))
                 .andExpect(jsonPath("$.data.items[3].jobId").value(41))
                 .andExpect(jsonPath("$.data.items[3]", not(hasKey("applied"))))
                 .andExpect(jsonPath("$.data.items[3].budget").value(300000));
 
+        // 지원 탈락 의뢰는 조회 조건에서 학생 프로필로 거르고, 구간 쿼리는 쓰지 않는다
+        verify(jobRepository).findExploreLatestForStudent(
+                eq(null), eq(JobStatus.CANCELLED), eq(null), eq(STUDENT_PROFILE_ID), any(), eq(Long.MAX_VALUE), eq(Limit.of(21)));
+        verify(jobRepository, never()).findByDemoSessionIdAndStatusNotAndProposalIdIsNullAndOwnerProfileIdNotAndCreatedAtLessThanOrderByCreatedAtDescIdDesc(
+                any(), any(), any(), any(), any());
         // 이번 페이지의 의뢰 지원서를 한 번에 조회한다
         verify(jobApplicationRepository).findByStudentProfileIdAndJobIdIn(STUDENT_PROFILE_ID, List.of(44L, 43L, 42L, 41L));
 
@@ -345,11 +350,14 @@ class ExploreFlowTest {
                 .andExpect(jsonPath("$.data.hasNext").value(false));
 
         // 같은 시각 제안은 커서 ID 앞만, 같은 시각 의뢰는 제안 뒤라 모두 읽는다
-        verify(proposalRepository).findByDemoSessionIdAndStatusNotAndCreatedAtAndIdLessThanOrderByIdDesc(null, ProposalStatus.CANCELLED, T2, 31L, Limit.of(3));
-        verify(proposalRepository).findByDemoSessionIdAndStatusNotAndCreatedAtLessThanOrderByCreatedAtDescIdDesc(null, ProposalStatus.CANCELLED, T2, Limit.of(3));
-        verify(jobRepository).findByDemoSessionIdAndStatusNotAndProposalIdIsNullAndCreatedAtAndIdLessThanOrderByIdDesc(
-                null, JobStatus.CANCELLED, T2, Long.MAX_VALUE, Limit.of(3));
-        verifyNoInteractions(ownerRepository, specialtyRepository, studentRepository, proposalLikeRepository);
+        verify(proposalRepository).findByDemoSessionIdAndStatusNotInAndStudentProfileIdNotAndCreatedAtAndIdLessThanOrderByIdDesc(null, List.of(ProposalStatus.CANCELLED, ProposalStatus.REJECTED), null, T2, 31L, Limit.of(3));
+        verify(proposalRepository).findByDemoSessionIdAndStatusNotInAndStudentProfileIdNotAndCreatedAtLessThanOrderByCreatedAtDescIdDesc(null, List.of(ProposalStatus.CANCELLED, ProposalStatus.REJECTED), null, T2, Limit.of(3));
+        verify(jobRepository).findByDemoSessionIdAndStatusNotAndProposalIdIsNullAndOwnerProfileIdNotAndCreatedAtAndIdLessThanOrderByIdDesc(
+                null, JobStatus.CANCELLED, null, T2, Long.MAX_VALUE, Limit.of(3));
+        // 빈 페이지에서는 조회 조건에 쓰는 본인 학생 프로필만 읽는다
+        verify(studentRepository).findByUserId(USER_ID);
+        verify(studentRepository, never()).findAllById(any());
+        verifyNoInteractions(ownerRepository, specialtyRepository, proposalLikeRepository);
     }
 
     @Test
@@ -362,7 +370,7 @@ class ExploreFlowTest {
                 .andExpect(jsonPath("$.data.items").isEmpty());
 
         verify(proposalRepository).findExploreByLikesInCategory(
-                any(), eq(ProposalStatus.CANCELLED), eq(3L), eq(Integer.MAX_VALUE), any(), eq(Long.MAX_VALUE), eq(Limit.of(21)));
+                any(), eq(List.of(ProposalStatus.CANCELLED, ProposalStatus.REJECTED)), any(), eq(3L), eq(Integer.MAX_VALUE), any(), eq(Long.MAX_VALUE), eq(Limit.of(21)));
         verifyNoInteractions(jobRepository);
     }
 
@@ -405,14 +413,17 @@ class ExploreFlowTest {
     }
 
     private void givenJobs(Job... jobs) {
-        when(jobRepository.findByDemoSessionIdAndStatusNotAndProposalIdIsNullAndCreatedAtLessThanOrderByCreatedAtDescIdDesc(
-                any(), eq(JobStatus.CANCELLED), any(), any())).thenReturn(List.of(jobs));
+        when(jobRepository.findByDemoSessionIdAndStatusNotAndProposalIdIsNullAndOwnerProfileIdNotAndCreatedAtLessThanOrderByCreatedAtDescIdDesc(
+                any(), eq(JobStatus.CANCELLED), any(), any(), any())).thenReturn(List.of(jobs));
+        // 학생 프로필이 있는 조회자는 지원 탈락을 거르는 쿼리로 읽는다
+        when(jobRepository.findExploreLatestForStudent(
+                any(), eq(JobStatus.CANCELLED), any(), any(), any(), any(), any())).thenReturn(List.of(jobs));
         when(ownerRepository.findAllById(any())).thenReturn(List.of(
                 Owner.builder().id(60L).storeName("가꿈 카페").build()));
     }
 
     private void givenProposals(Proposal... proposals) {
-        when(proposalRepository.findByDemoSessionIdAndStatusNotAndCreatedAtLessThanOrderByCreatedAtDescIdDesc(any(), eq(ProposalStatus.CANCELLED), any(), any()))
+        when(proposalRepository.findByDemoSessionIdAndStatusNotInAndStudentProfileIdNotAndCreatedAtLessThanOrderByCreatedAtDescIdDesc(any(), eq(List.of(ProposalStatus.CANCELLED, ProposalStatus.REJECTED)), any(), any(), any()))
                 .thenReturn(List.of(proposals));
         when(ownerRepository.findAllById(any())).thenReturn(List.of(
                 Owner.builder().id(50L).storeName("가꿈 분식").build()));

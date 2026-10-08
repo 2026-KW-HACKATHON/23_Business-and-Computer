@@ -7,6 +7,8 @@ interface ChatRowProps {
   tone: Role;
   /** 상대 역할. 프로필 사진을 고른다 */
   partnerRole: Role;
+  /** 상대가 올린 프로필 사진. 없으면 역할 아이콘 */
+  partnerPhoto?: string | null;
   /** 「김광운 학생」 */
   name: string;
   workTitle: string;
@@ -23,6 +25,7 @@ interface ChatRowProps {
 function ChatRow({
   tone,
   partnerRole,
+  partnerPhoto,
   name,
   workTitle,
   status,
@@ -33,7 +36,7 @@ function ChatRow({
 }: ChatRowProps) {
   return (
     <button type="button" className={`chat-row chat-row--${tone}`} onClick={onClick}>
-      <RoleAvatar role={partnerRole} size={48} />
+      <RoleAvatar role={partnerRole} size={48} src={partnerPhoto} />
       <span className="chat-row__content">
         <span className="chat-row__head">
           <span className="chat-row__name">{name}</span>

@@ -84,7 +84,7 @@ function OwnerExploreRequestPage() {
 
           {job.storeName && (
             <div className="owner-explore-detail__store">
-              <RoleAvatar role="owner" />
+              <RoleAvatar role="owner" src={job.storeProfileImageUrl} />
               <strong>{job.storeName}</strong>
             </div>
           )}

@@ -98,7 +98,9 @@ function OpenRequestView({ job, onBack }: { job: LoadedJob; onBack: () => void }
           meta={!recruiting && job.applied === "REJECTED" ? "다른 학생이 선택됐어요" : jobStatusLabel(job.status)}
         />
         <FlowBar tone="student" steps={flowSteps("의뢰", 0, recruiting ? "모집 중" : "모집 끝")} />
-        {job.storeName && <StoreBox name={job.storeName} address={job.storeAddress ?? undefined} />}
+        {job.storeName && (
+          <StoreBox name={job.storeName} address={job.storeAddress ?? undefined} photo={job.storeProfileImageUrl} />
+        )}
         <RequestTerms job={job} />
         <RequestContent job={job} />
 
@@ -148,7 +150,9 @@ function MyRequestView({ job, onBack }: { job: LoadedJob; onBack: () => void }) 
         {flowIndex !== undefined && (
           <FlowBar tone="student" steps={flowSteps("의뢰", flowIndex, flowIndex < 5 ? flowSub : undefined)} />
         )}
-        {job.storeName && <StoreBox name={job.storeName} address={job.storeAddress ?? undefined} />}
+        {job.storeName && (
+          <StoreBox name={job.storeName} address={job.storeAddress ?? undefined} photo={job.storeProfileImageUrl} />
+        )}
         <RequestTerms job={job} />
         {plan && (
           <section className="student-detail__section">

@@ -18,6 +18,8 @@ import {
   PaymentProgress,
   PaymentSection,
   flowSteps,
+  readProposalAcceptDraft,
+  saveProposalAcceptDraft,
 } from "../features/owner";
 import type { PaymentPhase } from "../features/owner";
 import { landingPath } from "../features/auth";
@@ -91,11 +93,12 @@ function prepareFailureExit(
 
 function AcceptForm({ proposal, onBack }: { proposal: ProposalDetail; onBack: () => void }) {
   const navigate = useNavigate();
-  // 학생 희망 작업비를 채워 두고 사장님이 고친다
-  const [budget, setBudget] = useState(proposal.proposedFee);
-  const [revisions, setRevisions] = useState(1);
-  const [message, setMessage] = useState("");
-  const [agreed, setAgreed] = useState(false);
+  // 카카오페이에 다녀와 「다시 결제하기」로 돌아왔으면 정했던 값, 아니면 학생 희망 작업비를 채워 두고 사장님이 고친다
+  const [draft] = useState(() => readProposalAcceptDraft(proposal.proposalId));
+  const [budget, setBudget] = useState(draft?.budget ?? proposal.proposedFee);
+  const [revisions, setRevisions] = useState(draft?.revisions ?? 1);
+  const [message, setMessage] = useState(draft?.message ?? "");
+  const [agreed, setAgreed] = useState(draft?.agreed ?? false);
   const [phase, setPhase] = useState<PaymentPhase>("idle");
   // 빠른 두 번 누름에도 결제 준비를 한 번만 보낸다
   const inFlight = useRef(false);
@@ -118,6 +121,7 @@ function AcceptForm({ proposal, onBack }: { proposal: ProposalDetail; onBack: ()
     inFlight.current = true;
     setPhase("redirecting");
     const { proposalId } = proposal;
+    saveProposalAcceptDraft({ proposalId, budget, revisions, message, agreed });
     const result = await startKakaoPay({ kind: "proposal", proposalId }, () =>
       prepareProposalPayment(proposalId, {
         revisionCount: revisions,
@@ -187,7 +191,7 @@ function AcceptForm({ proposal, onBack }: { proposal: ProposalDetail; onBack: ()
           </p>
         </FormField>
 
-        <FormField label="수정 횟수" hint="최소 1회 · 등록한 뒤에는 바꿀 수 없어요">
+        <FormField label="수정 횟수" hint="최소 1회 · 최대 5회 · 등록한 뒤에는 바꿀 수 없어요">
           <RevisionStepper value={revisions} onChange={setRevisions} />
         </FormField>
 

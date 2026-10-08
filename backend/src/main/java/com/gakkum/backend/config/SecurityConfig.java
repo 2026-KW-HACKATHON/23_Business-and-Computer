@@ -13,6 +13,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -126,7 +127,13 @@ public class SecurityConfig {
         configuration.setAllowedHeaders(List.of("*"));
         configuration.setAllowCredentials(true);
 
+        // 브라우저가 내려받는 파일명을 읽을 수 있게 다운로드 경로에서만 Content-Disposition을 노출한다. 허용 출처와 메서드는 같다
+        CorsConfiguration downloadConfiguration = new CorsConfiguration(configuration);
+        downloadConfiguration.setExposedHeaders(List.of(HttpHeaders.CONTENT_DISPOSITION));
+
+        // 먼저 등록한 경로가 먼저 적용되므로 다운로드 경로를 /** 앞에 둔다
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/jobs/submissions/download", downloadConfiguration);
         source.registerCorsConfiguration("/**", configuration);
         return source;
     }

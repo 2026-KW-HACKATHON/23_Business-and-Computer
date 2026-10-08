@@ -1,10 +1,6 @@
 import type { Field } from "../../types/field";
+import type { WorkKind } from "../../types/workKind";
 import type { ApplicationPlan } from "../../types/workPlan";
-import type { ExploreProposalCard } from "../explore";
-import type { AppliedJob } from "./lib/appliedJobs";
-import type { FinishedJob } from "./lib/finishedJobs";
-import type { ProgressJob } from "./lib/progressJobs";
-import type { SentProposal } from "./lib/sentProposals";
 
 /** 마감 단계. draft = 초안, final = 최종 */
 export type DeadlineStage = "draft" | "final";
@@ -19,6 +15,8 @@ export interface ExploreStore {
   /** 백엔드 업종 이름 (예: 음식점) */
   category: string;
   address: string;
+  /** 사장님이 올린 가게 사진. 없으면 없다 */
+  photo?: string | null;
 }
 
 export interface WorkFile {
@@ -53,39 +51,94 @@ export interface SettlementSummary {
   settled: number;
 }
 
-/** 확인할 일 카드 */
+/** 확인할 일 카드 (GET /me/home 의 todos). 가게 이름이 없으면 storeName 이 없다 */
 export type StudentTodo =
-  /** 나와 매칭된 진행 중 작업 (GET /me/jobs?status=MATCHED) */
-  | { type: "drafting"; job: ProgressJob }
-  | { type: "revising"; job: ProgressJob }
-  /** 사장님이 결제해 의뢰서가 온 내 제안 (GET /me/proposals 의 AWAITING_START) */
-  | { type: "proposalAgreement"; proposal: SentProposal };
+  /** 사장님이 결제해 의뢰서가 온 내 제안 */
+  | {
+      type: "proposalAgreement";
+      proposalId: number;
+      title: string;
+      /** 겹치지 않는 대분류 이름 */
+      categories: string[];
+      storeName?: string;
+    }
+  /** 초안 · 수정안을 만들 차례인 작업. stage · due 는 지금 지킬 마감 (초안 차례는 초안, 수정안 차례는 최종) */
+  | {
+      type: "drafting" | "revising";
+      jobId: number;
+      kind: WorkKind;
+      title: string;
+      categories: string[];
+      storeName?: string;
+      stage: DeadlineStage;
+      due: string;
+    };
 
-/** 기다리는 중 한 줄 */
+/** 사장님이 확인 중 한 줄 (GET /me/home 의 checking). 결과물을 내고 수정 요청을 받지 않은 작업 */
+export interface StudentCheckingItem {
+  jobId: number;
+  kind: WorkKind;
+  title: string;
+  storeName?: string;
+  /** 마지막으로 낸 것이 수정안이면 true (「수정안 제출」) */
+  revisionSubmitted: boolean;
+  /** 마지막으로 낸 한국 날짜 "2026-10-07" */
+  submittedOn?: string;
+}
+
+/** 기다리는 중 한 줄 (GET /me/home 의 waiting) */
 export type StudentWaitingItem =
-  | { type: "proposal"; proposal: SentProposal }
-  | { type: "application"; job: AppliedJob };
+  /** 수락 대기 중인 보낸 제안 */
+  | { type: "proposal"; proposalId: number; title: string; storeName?: string; likeCount: number }
+  /** 사장님이 고르는 중인 지원 */
+  | {
+      type: "application";
+      jobId: number;
+      jobApplicationId: number;
+      title: string;
+      storeName?: string;
+      draftDeadline?: string;
+    };
 
+/** 다른 학생들의 제안 공감하기 한 줄 (GET /me/home 의 peerProposals, 내 제안은 빠져 있다) */
+export interface StudentPeerProposal {
+  proposalId: number;
+  title: string;
+  studentName?: string;
+  storeName: string;
+  /** 수락 대기(PENDING) 제안만 공감할 수 있다 */
+  status?: string;
+  likeCount: number;
+  likedByMe: boolean;
+}
+
+/** 끝난 일 한 줄 (GET /me/home 의 done). 정산까지 끝난 작업 */
+export interface StudentDoneItem {
+  jobId: number;
+  kind: WorkKind;
+  title: string;
+  storeName?: string;
+  /** 정산된 날 "2026-10-08" */
+  completedOn?: string;
+}
+
+/**
+ * 학생 홈 한 화면 분량 (GET /me/home). 목록이 null 이면 그 섹션만 불러오지 못한 것이고
+ * (홈을 다시 불러와 재시도), 빈 목록이면 불러왔는데 없는 것이다.
+ */
 export interface StudentHome {
   /**
-   * 이력(작업 · 지원 · 제안)이 하나도 없으면 할 일 대신 사용법 안내.
-   * 작업 · 지원 · 제안이 없고 지원한 의뢰나 보낸 제안을 아직 못 불러왔으면(불러오는 중 · 실패) undefined (모름)
+   * 이력(제안 · 지원 · 작업 · 정산)이 하나도 없으면 할 일 대신 사용법 안내.
+   * 서버가 알 수 없다고(null) 하면 보이는 목록에 항목이 있을 때만 false, 아니면 undefined (모름)
    */
   firstVisit: boolean | undefined;
-  todos: StudentTodo[];
-  /** 공감 많은 다른 학생 제안 (GET /explore). 불러오는 중 · 실패 · 내 제안 목록을 모를 때는 빈 목록 */
-  peerProposals: ExploreProposalCard[];
-  /** 사장님이 확인 중 (낸 결과물, GET /me/jobs?status=MATCHED) */
-  checking: ProgressJob[];
-  /** 진행 중 작업을 불러온 상태와 다시 시도 */
-  progress: "loading" | "error" | "loaded";
-  reloadProgress: () => void;
-  /** 수락 대기 중인 보낸 제안 + 고르는 중인 지원. 보낸 제안은 불러온 뒤에만 들어간다 */
-  waiting: StudentWaitingItem[];
-  /** 보낸 제안(GET /me/proposals)을 불러온 상태와 다시 시도 */
-  sentProposals: "loading" | "error" | "loaded";
-  reloadSentProposals: () => void;
-  examples: ProposalExample[];
-  /** 완료한 작업 (GET /settlements 의 정산 완료). 최근 끝난 것부터 */
-  done: FinishedJob[];
+  /** 의뢰서가 온 내 제안 → 초안 · 수정안 차례 (마감이 빠른 것부터) */
+  todos: StudentTodo[] | null;
+  checking: StudentCheckingItem[] | null;
+  /** 수락 대기 중인 보낸 제안 → 고르는 중인 지원 */
+  waiting: StudentWaitingItem[] | null;
+  /** 공감 많은 다른 학생 제안 2개. 못 불러왔으면 빈 목록 (섹션째 숨긴다) */
+  peerProposals: StudentPeerProposal[];
+  /** 최근 끝난 것부터 */
+  done: StudentDoneItem[] | null;
 }

@@ -76,6 +76,11 @@ The backend (dev) pays through the KakaoPay test merchant:
     prepare per press.
   - When the browser restores the page from its back/forward cache, the
     loading screen is cleared.
+  - Before preparing, the press stores the 작업비, 수정 횟수, 한마디, and the
+    agreement in `sessionStorage` (`gakkum.proposalAcceptDraft`, one
+    proposal at a time). The form opens with them for the same proposal, so
+    「다시 결제하기」 from the return page or a reload after KakaoPay keeps
+    what the owner chose instead of resetting to the student's fee and 1회.
   - Prepare failures:
     - `PROPOSAL_403_PAYMENT` → alert 「우리 가게가 받은 제안만 결제할 수
       있어요」, then 받은 제안 tab (history replaced).
@@ -122,8 +127,9 @@ The backend (dev) pays through the KakaoPay test merchant:
     내용을 나눠 보세요」;
   - 「다시 결제하기」 goes to
     /owner/requests/{jobId}/assign/{jobApplicationId}/pay.
-- 수정 횟수 starts at 1 and cannot go below 1 on screen, although the server
-  accepts 0.
+- 수정 횟수 starts at 1 and stays between 1 and 5 on screen, although the
+  server accepts 0 and more than 5. The hint under the label says so: 「최소
+  1회 · 최대 5회 · 등록한 뒤에는 바꿀 수 없어요」 (the same on 의뢰 등록 2/3).
 
 ## Rationale
 

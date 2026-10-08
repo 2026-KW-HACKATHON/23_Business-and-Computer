@@ -121,7 +121,7 @@ function OwnerExploreProposalPage() {
 
           {student && (
             <div className="owner-proposal__student">
-              <RoleAvatar role="student" />
+              <RoleAvatar role="student" src={student.profileImageUrl} />
               <div className="owner-proposal__student-info">
                 <strong className="owner-proposal__student-name">{studentTitle(student.name)}</strong>
                 <span className="owner-proposal__student-sub">

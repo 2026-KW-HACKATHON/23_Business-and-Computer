@@ -118,7 +118,7 @@ public class ProposalFacade {
      * 격리 범위(demoSessionId)가 조회자와 다른 제안도 없는 제안과 같은 404로 거부한다.
      * 취소된 제안은 제안한 학생 본인에게만 내리고, 받은 사장님을 포함한 다른 사용자에게는 404로 거부한다.
      * 결제 전에는 한국 날짜 기준 오늘에 제안 기간을 더한 예상 마감일을 함께 내린다.
-     * 제안을 찾은 뒤에만 매장(현재 이름·주소)·학생 정보·학생 통계(평균 별점·완료 의뢰 수)·특기·본인 공감 여부를 조회한다.
+     * 제안을 찾은 뒤에만 매장(현재 이름·주소·사진)·학생 정보·학생 통계(평균 별점·완료 의뢰 수)·특기·본인 공감 여부를 조회한다.
      */
     @Transactional(readOnly = true)
     public ProposalDetailResult getProposalDetail(String username, Long proposalId) {
@@ -146,7 +146,7 @@ public class ProposalFacade {
                 ? ProposalAgreementResult.of(job, paymentService.getProposalPaidAt(proposalId))
                 : null;
         return ProposalDetailResult.of(data.getProposal(), owner.getStoreName(), owner.getStoreAddress(),
-                student, studentUser, averageRating, completedJobCount,
+                owner.getProfileImageUrl(), student, studentUser, averageRating, completedJobCount,
                 groupSpecialties(data.getSpecialtyIds(), specialtiesById), isLikedByViewer(viewer, proposalId),
                 LocalDate.now(clock.withZone(DEADLINE_ZONE)), job == null ? null : job.getId(), agreement);
     }

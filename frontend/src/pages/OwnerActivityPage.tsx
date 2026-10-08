@@ -60,18 +60,21 @@ const TABS: { tab: ActivityTab; label: string }[] = [
 /** 학생 사진 + 이름 · 학번 · 학과 + 「프로필 보기」. 이름을 모르면 「학생」 */
 function StudentLine({
   name,
+  photo,
   year,
   department,
   onProfile,
 }: {
   name?: string;
+  /** 학생이 올린 프로필 사진. 없으면 학생 아이콘 */
+  photo?: string | null;
   year?: string;
   department?: string;
   onProfile?: () => void;
 }) {
   return (
     <div className="owner-activity__student">
-      <RoleAvatar role="student" size={32} />
+      <RoleAvatar role="student" size={32} src={photo} />
       <span className="owner-activity__student-info">
         <span className="owner-activity__student-name">
           <strong>{name ? studentTitle(name) : "학생"}</strong>
@@ -210,6 +213,7 @@ function OwnerActivityPage() {
         <div className="owner-activity__divider" />
         <StudentLine
           name={proposal.student.name}
+          photo={proposal.student.profileImageUrl}
           department={studentMetaText(proposal.student.studentNumber, proposal.student.major)}
           onProfile={() => openStudent(proposal.student.studentProfileId)}
         />
@@ -262,6 +266,7 @@ function OwnerActivityPage() {
         <div className="owner-activity__divider" />
         <StudentLine
           name={job.student.name}
+          photo={job.student.photo}
           year={admissionYearText(job.student.studentNumber)}
           department={job.student.major}
           onProfile={() => openStudent(job.student.profileId)}

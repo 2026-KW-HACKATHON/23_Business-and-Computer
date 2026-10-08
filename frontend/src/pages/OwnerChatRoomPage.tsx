@@ -15,11 +15,7 @@ import {
   useScrollToLatest,
 } from "../features/chat";
 import type { ChatMessage, ChatWorkTroubleItem } from "../features/chat";
-import {
-  OWNER_PATHS,
-  isOwnerWorkReviewed,
-  useOwnerClosedJobs,
-} from "../features/owner";
+import { OWNER_PATHS, isOwnerWorkReviewed } from "../features/owner";
 import { useBack } from "../hooks/useBack";
 import { ATTACHMENT_ACCEPT } from "../lib/attachmentFormats";
 import { formatDayChip, formatMonthDay } from "../lib/date";
@@ -53,8 +49,6 @@ function OwnerChatRoom({ roomId }: { roomId: string }) {
   const [photoKey, setPhotoKey] = useState<string | null>(null);
   // 처음 들어올 때, 맨 아래 근처에서 새 메시지를 받을 때, 내가 보낼 때 맨 아래로
   const endRef = useScrollToLatest(messages);
-  // 후기를 남겼는지는 끝난 목록으로
-  const { load: closedLoad } = useOwnerClosedJobs();
 
   // 사진은 앱 안에서 크게 본다. 주소가 만료됐으면 새로 받아 바꿔 끼운다
   const showPhoto = (message: ChatMessage) => {
@@ -82,17 +76,16 @@ function OwnerChatRoom({ roomId }: { roomId: string }) {
   const stage = chatWorkStageOf(room);
   // 제안으로 시작한 작업은 채팅방이 제안 id 를 준다
   const kind = typeof room.proposalId === "number" ? "proposal" : "request";
-  const reviewed =
-    isOwnerWorkReviewed(id) ||
-    (closedLoad.status === "loaded" && closedLoad.jobs.some((job) => job.jobId === room.jobId && job.reviewed));
-  // 지금 할 일: 도착한 결과물 확인, 끝났으면 (끝난 목록을 불러온 뒤) 아직 남기지 않은 후기
+  // 후기를 남겼는지: 채팅방이 알려 준 후기 여부, 또는 이 화면을 연 동안 남긴 후기
+  const reviewed = room.reviewed || isOwnerWorkReviewed(id);
+  // 지금 할 일: 도착한 결과물 확인, 끝났으면 아직 남기지 않은 후기
   const action =
     stage === "draftArrived" || stage === "revisionArrived"
       ? {
           label: stage === "draftArrived" ? "초안 확인하기" : "수정안 확인하기",
           onClick: () => navigate(OWNER_PATHS.workCheck(id)),
         }
-      : stage === "completed" && closedLoad.status === "loaded" && !reviewed
+      : stage === "completed" && !reviewed
         ? { label: "후기 남기기", onClick: () => navigate(OWNER_PATHS.workReview(id)) }
         : undefined;
   // 「문제가 있나요?」: 작업 취소는 결과물을 하나도 받기 전에만, 신고는 작업 중에만
@@ -120,7 +113,7 @@ function OwnerChatRoom({ roomId }: { roomId: string }) {
     <SubScreen
       title={
         <span className="owner-chat__partner">
-          <RoleAvatar role="student" size={32} />
+          <RoleAvatar role="student" size={32} src={room.counterpartProfileImageUrl} />
           <span className="owner-chat__partner-text">
             <strong>{partnerName}</strong>
             <small>{room.jobTitle}</small>
@@ -187,7 +180,7 @@ function OwnerChatRoom({ roomId }: { roomId: string }) {
                   </div>
                 ) : (
                   <div className="owner-chat__partner-message">
-                    <RoleAvatar role="student" size={28} />
+                    <RoleAvatar role="student" size={28} src={room.counterpartProfileImageUrl} />
                     <div className="owner-chat__group">
                       <span className="owner-chat__sender">{partnerName}</span>
                       <div className="owner-chat__line">

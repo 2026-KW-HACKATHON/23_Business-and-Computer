@@ -11,7 +11,7 @@ export type OwnerClosedJobsLoad =
   | { status: "loaded"; jobs: OwnerClosedJob[]; paymentSummary?: PaymentSummary };
 
 /**
- * 끝난 내 의뢰 (GET /me/jobs?status=CLOSED). 내 활동 완료 탭 · 홈 끝난 일 · 성사되지 않은 작업 상세가 쓴다.
+ * 끝난 내 의뢰 (GET /me/jobs?status=CLOSED). 내 활동 완료 탭 · 작업 이력 · 채팅 · 성사되지 않은 작업 상세가 쓴다.
  * 실패하면 reload 로 다시 불러온다. 401 은 /login 으로 보낸다 (그동안은 loading).
  * 화면을 떠난 뒤 온 응답은 버린다.
  */

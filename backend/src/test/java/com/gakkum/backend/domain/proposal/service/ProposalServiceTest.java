@@ -126,7 +126,7 @@ class ProposalServiceTest {
         LocalDateTime bound = LocalDateTime.of(2026, 9, 30, 10, 0);
         Proposal first = Proposal.builder().id(32L).build();
         Proposal second = Proposal.builder().id(31L).build();
-        when(proposalRepository.findExploreByLikesInCategory(null, ProposalStatus.CANCELLED, 3L, 5, bound, 40L, Limit.of(21)))
+        when(proposalRepository.findExploreByLikesInCategory(null, List.of(ProposalStatus.CANCELLED), null, 3L, 5, bound, 40L, Limit.of(21)))
                 .thenReturn(List.of(first, second));
         when(proposalSpecialtyRepository.findByProposalIdIn(List.of(32L, 31L))).thenReturn(List.of(
                 ProposalSpecialty.create(31L, 2L),
@@ -142,6 +142,29 @@ class ProposalServiceTest {
     }
 
     @Test
+    @DisplayName("탐색 화면용 조건은 대분류 유무와 무관하게 취소·거절 상태와 조회 학생의 프로필을 제외 조건으로 넘긴다")
+    void passesViewerFiltersToExploreQueries() {
+        LocalDateTime bound = LocalDateTime.of(2026, 9, 30, 10, 0);
+        List<ProposalStatus> excluded = List.of(ProposalStatus.CANCELLED, ProposalStatus.REJECTED);
+
+        proposalService.getExploreProposals(
+                GetExploreProposalsCommand.forViewer(null, 4L, ProposalExploreOrder.LIKES, 5, bound, 9L, 3, 77L));
+        proposalService.getExploreProposals(
+                GetExploreProposalsCommand.forViewer(null, null, ProposalExploreOrder.LATEST, null, bound, 9L, 3, 77L));
+        proposalService.getExploreProposals(
+                GetExploreProposalsCommand.forViewer(null, null, ProposalExploreOrder.OLDEST, null, bound, 9L, 3, null));
+
+        verify(proposalRepository).findExploreByLikesInCategory(null, excluded, 77L, 4L, 5, bound, 9L, Limit.of(3));
+        verify(proposalRepository).findByDemoSessionIdAndStatusNotInAndStudentProfileIdNotAndCreatedAtAndIdLessThanOrderByIdDesc(
+                null, excluded, 77L, bound, 9L, Limit.of(3));
+        verify(proposalRepository).findByDemoSessionIdAndStatusNotInAndStudentProfileIdNotAndCreatedAtLessThanOrderByCreatedAtDescIdDesc(
+                null, excluded, 77L, bound, Limit.of(3));
+        // 학생 프로필이 없어도 거절된 제안은 뺀다
+        verify(proposalRepository).findByDemoSessionIdAndStatusNotInAndStudentProfileIdNotAndCreatedAtAndIdGreaterThanOrderByIdAsc(
+                null, excluded, null, bound, 9L, Limit.of(3));
+    }
+
+    @Test
     @DisplayName("대분류가 있으면 정렬별 분류 쿼리 하나로 읽고, 결과가 없으면 소분류를 조회하지 않는다")
     void usesCategoryQueryPerOrder() {
         LocalDateTime bound = LocalDateTime.of(2026, 9, 30, 10, 0);
@@ -151,9 +174,9 @@ class ProposalServiceTest {
                     GetExploreProposalsCommand.of(null, 4L, order, 5, bound, 9L, 3))).isEmpty();
         }
 
-        verify(proposalRepository).findExploreLatestInCategory(null, ProposalStatus.CANCELLED, 4L, bound, 9L, Limit.of(3));
-        verify(proposalRepository).findExploreOldestInCategory(null, ProposalStatus.CANCELLED, 4L, bound, 9L, Limit.of(3));
-        verify(proposalRepository).findExploreByLikesInCategory(null, ProposalStatus.CANCELLED, 4L, 5, bound, 9L, Limit.of(3));
+        verify(proposalRepository).findExploreLatestInCategory(null, List.of(ProposalStatus.CANCELLED), null, 4L, bound, 9L, Limit.of(3));
+        verify(proposalRepository).findExploreOldestInCategory(null, List.of(ProposalStatus.CANCELLED), null, 4L, bound, 9L, Limit.of(3));
+        verify(proposalRepository).findExploreByLikesInCategory(null, List.of(ProposalStatus.CANCELLED), null, 4L, 5, bound, 9L, Limit.of(3));
         verify(proposalSpecialtyRepository, never()).findByProposalIdIn(any());
     }
 
@@ -163,9 +186,9 @@ class ProposalServiceTest {
         LocalDateTime bound = LocalDateTime.of(2026, 9, 30, 10, 0);
         Proposal sameTime = Proposal.builder().id(8L).build();
         Proposal earlier = Proposal.builder().id(20L).build();
-        when(proposalRepository.findByDemoSessionIdAndStatusNotAndCreatedAtAndIdLessThanOrderByIdDesc(null, ProposalStatus.CANCELLED, bound, 9L, Limit.of(3)))
+        when(proposalRepository.findByDemoSessionIdAndStatusNotInAndStudentProfileIdNotAndCreatedAtAndIdLessThanOrderByIdDesc(null, List.of(ProposalStatus.CANCELLED), null, bound, 9L, Limit.of(3)))
                 .thenReturn(List.of(sameTime));
-        when(proposalRepository.findByDemoSessionIdAndStatusNotAndCreatedAtLessThanOrderByCreatedAtDescIdDesc(null, ProposalStatus.CANCELLED, bound, Limit.of(2)))
+        when(proposalRepository.findByDemoSessionIdAndStatusNotInAndStudentProfileIdNotAndCreatedAtLessThanOrderByCreatedAtDescIdDesc(null, List.of(ProposalStatus.CANCELLED), null, bound, Limit.of(2)))
                 .thenReturn(List.of(earlier));
 
         List<ExploreProposalData> data = proposalService.getExploreProposals(
@@ -178,12 +201,12 @@ class ProposalServiceTest {
     @DisplayName("대분류 없는 오래된순은 경계 시각과 같은 행으로 개수가 차면 경계 이후 구간을 조회하지 않는다")
     void skipsLaterSegmentWhenFilled() {
         LocalDateTime bound = LocalDateTime.of(2026, 9, 30, 10, 0);
-        when(proposalRepository.findByDemoSessionIdAndStatusNotAndCreatedAtAndIdGreaterThanOrderByIdAsc(null, ProposalStatus.CANCELLED, bound, 9L, Limit.of(2)))
+        when(proposalRepository.findByDemoSessionIdAndStatusNotInAndStudentProfileIdNotAndCreatedAtAndIdGreaterThanOrderByIdAsc(null, List.of(ProposalStatus.CANCELLED), null, bound, 9L, Limit.of(2)))
                 .thenReturn(List.of(Proposal.builder().id(10L).build(), Proposal.builder().id(11L).build()));
 
         assertThat(proposalService.getExploreProposals(
                 GetExploreProposalsCommand.of(null, null, ProposalExploreOrder.OLDEST, null, bound, 9L, 2))).hasSize(2);
-        verify(proposalRepository, never()).findByDemoSessionIdAndStatusNotAndCreatedAtGreaterThanOrderByCreatedAtAscIdAsc(any(), any(), any(), any());
+        verify(proposalRepository, never()).findByDemoSessionIdAndStatusNotInAndStudentProfileIdNotAndCreatedAtGreaterThanOrderByCreatedAtAscIdAsc(any(), any(), any(), any(), any());
     }
 
     @Test
@@ -193,11 +216,11 @@ class ProposalServiceTest {
         Proposal first = Proposal.builder().id(1L).build();
         Proposal second = Proposal.builder().id(2L).build();
         Proposal third = Proposal.builder().id(3L).build();
-        when(proposalRepository.findByDemoSessionIdAndStatusNotAndLikeCountAndCreatedAtAndIdLessThanOrderByIdDesc(null, ProposalStatus.CANCELLED, 5, bound, 9L, Limit.of(4)))
+        when(proposalRepository.findByDemoSessionIdAndStatusNotInAndStudentProfileIdNotAndLikeCountAndCreatedAtAndIdLessThanOrderByIdDesc(null, List.of(ProposalStatus.CANCELLED), null, 5, bound, 9L, Limit.of(4)))
                 .thenReturn(List.of(first));
-        when(proposalRepository.findByDemoSessionIdAndStatusNotAndLikeCountAndCreatedAtLessThanOrderByCreatedAtDescIdDesc(null, ProposalStatus.CANCELLED, 5, bound, Limit.of(3)))
+        when(proposalRepository.findByDemoSessionIdAndStatusNotInAndStudentProfileIdNotAndLikeCountAndCreatedAtLessThanOrderByCreatedAtDescIdDesc(null, List.of(ProposalStatus.CANCELLED), null, 5, bound, Limit.of(3)))
                 .thenReturn(List.of(second));
-        when(proposalRepository.findByDemoSessionIdAndStatusNotAndLikeCountLessThanOrderByLikeCountDescCreatedAtDescIdDesc(null, ProposalStatus.CANCELLED, 5, Limit.of(2)))
+        when(proposalRepository.findByDemoSessionIdAndStatusNotInAndStudentProfileIdNotAndLikeCountLessThanOrderByLikeCountDescCreatedAtDescIdDesc(null, List.of(ProposalStatus.CANCELLED), null, 5, Limit.of(2)))
                 .thenReturn(List.of(third));
 
         List<ExploreProposalData> data = proposalService.getExploreProposals(

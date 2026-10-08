@@ -99,5 +99,10 @@ notification:
     batch-size: 100
     poll-interval: 1s
     retry-idle: 30s
+job:
+  auto-completion: # 최신 제출물이 168시간 동안 검토되지 않은 진행 중 의뢰를 자동 완료한다. 알림 Consumer 활성화 여부와 무관하다
+    enabled: ${JOB_AUTO_COMPLETION_ENABLED:true}
+    interval: 1h # 기동 직후 한 번 실행하고, 이후 앞 실행이 끝난 시점부터 이 간격으로 실행한다
 job-submission-file: # 초안·수정안 파일은 s3.image-bucket의 job-submissions/ 경로에 공개로 저장한다
   upload-url-ttl: 10m
+  download-max-concurrency: ${JOB_SUBMISSION_DOWNLOAD_MAX_CONCURRENCY:4} # ZIP 다운로드 동시 처리 수. 넘는 요청은 기다리지 않고 503으로 거절한다

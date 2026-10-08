@@ -1,6 +1,6 @@
 /** 탐색(제안·의뢰 목록 · 의뢰 상세 · 지원) 기능의 공개 입구 — 다른 폴더는 여기서만 import 한다. */
 export { default as ExploreSortSheet } from "./components/ExploreSortSheet";
-export { useExploreFeed, usePopularProposals } from "./hooks/useExplore";
+export { useExploreFeed } from "./hooks/useExplore";
 export { useJobDetail } from "./hooks/useJobDetail";
 export { fetchJobDetail } from "./api/jobApi";
 export { useLoadMoreSentinel } from "./hooks/useLoadMoreSentinel";

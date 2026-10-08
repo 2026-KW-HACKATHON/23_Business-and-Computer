@@ -177,3 +177,45 @@
   font-size: 18px;
   color: var(--text-placeholder);
 }
+
+/* 포트폴리오 내보내기 시트: 전체 선택 → 구분선 → 결과물마다 체크 */
+.student-portfolio__export {
+  display: flex;
+  flex-direction: column;
+  font-family: var(--font-sans);
+}
+
+.student-portfolio__export-all {
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--role-border);
+}
+
+.student-portfolio__export-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin: 0;
+  padding: 14px 0 4px;
+  list-style: none;
+}
+
+.student-portfolio__export-empty {
+  padding: 24px 0;
+  font-size: 14px;
+  color: var(--text-placeholder);
+  text-align: center;
+}
+
+.student-portfolio__export-footer {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.student-portfolio__export-notice {
+  margin: 0;
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--color-danger);
+  text-align: center;
+}

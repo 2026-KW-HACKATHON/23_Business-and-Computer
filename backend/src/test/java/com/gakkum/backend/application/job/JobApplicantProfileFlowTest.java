@@ -102,6 +102,7 @@ class JobApplicantProfileFlowTest {
     private static final Long JOB_ID = 42L;
     private static final Long APPLICATION_ID = 105L;
     private static final Long STUDENT_PROFILE_ID = 7L;
+    private static final String STUDENT_PROFILE_IMAGE_URL = "https://cdn.example.com/students/7/profile.png";
     private static final LocalDateTime REVIEWED_AT = LocalDateTime.of(2026, 9, 30, 23, 30);
 
     private final UserRepository userRepository = mock(UserRepository.class);
@@ -147,7 +148,7 @@ class JobApplicantProfileFlowTest {
     }
 
     @Test
-    @DisplayName("모집 중 의뢰의 대기 지원자에 대해 학생 정보·통계·전체 특기·자격증·포트폴리오·패널티 횟수·리뷰를 응답한다")
+    @DisplayName("모집 중 의뢰의 대기 지원자에 대해 학생 정보(프로필 사진 포함)·통계·전체 특기·자격증·포트폴리오·패널티 횟수·리뷰를 응답한다")
     void returnsApplicantProfile() throws Exception {
         givenOwner();
         givenJob(JobStatus.OPEN, null);
@@ -161,6 +162,7 @@ class JobApplicantProfileFlowTest {
                 .andExpect(jsonPath("$.error").doesNotExist())
                 .andExpect(jsonPath("$.data.student.studentProfileId").value(7))
                 .andExpect(jsonPath("$.data.student.name").value("김가꿈"))
+                .andExpect(jsonPath("$.data.student.profileImageUrl").value(STUDENT_PROFILE_IMAGE_URL))
                 .andExpect(jsonPath("$.data.student.university").value("광운대학교"))
                 .andExpect(jsonPath("$.data.student.major").value("소프트웨어학부"))
                 .andExpect(jsonPath("$.data.student.studentNumber").value("2023000007"))
@@ -230,7 +232,7 @@ class JobApplicantProfileFlowTest {
     }
 
     @Test
-    @DisplayName("특기·자격증·제안·완료 의뢰·리뷰·포트폴리오·패널티가 없으면 빈 배열, 0, null로 응답한다")
+    @DisplayName("프로필 사진·특기·자격증·제안·완료 의뢰·리뷰·포트폴리오·패널티가 없으면 빈 배열, 0, null로 응답한다")
     void returnsDefaultsForStudentWithoutData() throws Exception {
         givenOwner();
         givenJob(JobStatus.OPEN, null);
@@ -240,6 +242,7 @@ class JobApplicantProfileFlowTest {
         getProfile()
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.student.studentProfileId").value(7))
+                .andExpect(jsonPath("$.data.student.profileImageUrl").value(nullValue()))
                 .andExpect(jsonPath("$.data.proposalCount").value(0))
                 .andExpect(jsonPath("$.data.completedJobCount").value(0))
                 .andExpect(jsonPath("$.data.specialtyCategories").isArray())
@@ -604,6 +607,7 @@ class JobApplicantProfileFlowTest {
                 .major("소프트웨어학부")
                 .portfolioUrl(portfolioUrl)
                 .penaltyCount(penaltyCount)
+                .profileImageUrl(STUDENT_PROFILE_IMAGE_URL)
                 .build());
     }
 

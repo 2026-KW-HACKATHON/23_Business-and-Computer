@@ -133,8 +133,8 @@ The shared API layer (ADR 0021) provides `apiData` in `src/api/client.ts`
 
 - New student API calls should use `apiData` and `uploadImage` directly; do
   not reintroduce per-feature token or upload helpers.
-- The sent-proposal list, its detail, the home 「기다리는 중」 proposals, and
-  the 내 정보 count now use `GET /me/proposals` and
-  `GET /proposals/{proposalId}` (ADR 0023).
+- The sent-proposal list, its detail, and the 내 정보 count now use
+  `GET /me/proposals` and `GET /proposals/{proposalId}` (ADR 0023). The home
+  「기다리는 중」 proposals come from GET /me/home (ADR 0065).
 - Signup, profile edit, and 의뢰 등록 1/3 (ADR 0058) read `useSpecialties`
   too; `SPECIALTY_BADGES` is removed.

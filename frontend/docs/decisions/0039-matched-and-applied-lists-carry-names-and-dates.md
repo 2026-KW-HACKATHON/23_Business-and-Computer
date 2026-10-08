@@ -43,7 +43,9 @@ an offset; the received proposal `createdAt` is Korean time.
 - **Owner dates**: the home 「확인할 일」 card reads 「M월 D일까지 확인하지 않으면
   자동으로 완료돼요」, and 작업 확인 reads 「학생 · 초안 도착 M월 D일 · 수정
   n/m」 with 「M월 D일까지 확인해 주세요」 / 「답이 없으면 자동으로 완료돼요」.
-  Without a date they keep 「7일 동안」.
+  Without a date they keep 「7일 동안」. The home card's date is the
+  `autoCompleteOn` of GET /me/home (ADR 0064); 작업 확인 still counts it from
+  the list.
 - **Student data** (`src/features/student/lib/progressJobs.ts`): the store
   name and `submittedOn` come from the list. Only 내 활동
   (`useProgressJobs({ storeAddress: true })`) still calls GET /jobs/{id} per
