@@ -83,3 +83,10 @@ button.summary-card__item {
   font-weight: 700;
   color: var(--color-black);
 }
+
+/* 숫자를 불러오는 동안 숫자 자리의 점 세 개 */
+.summary-card__loading {
+  --loading-dot-size: 6px;
+  --loading-dot-gap: 4px;
+  height: 1lh;
+}
