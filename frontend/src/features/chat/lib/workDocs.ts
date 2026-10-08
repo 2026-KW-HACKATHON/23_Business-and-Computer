@@ -4,10 +4,7 @@ import type { WorkKind } from "../../../types/workKind";
 import type { ChatRoom } from "../types";
 import { chatProgressOf } from "./chatRoom";
 
-/**
- * 채팅방 작업의 단계. 도착한 결과물이 초안인지 수정안인지는 채팅방에 없어서 진행 중 목록
- * (GET /me/jobs?status=MATCHED)의 단계로 정한다. 목록이 아직 없으면 채팅방으로 어림한다 (도착한 결과물은 초안으로)
- */
+/** 채팅방 작업의 단계. 작업 상태 · 마감 종류 · 마지막 결과물의 검토 상태와 종류(submissionType)로 정한다 */
 export type ChatWorkStage =
   | "drafting"
   | "draftArrived"
@@ -16,23 +13,12 @@ export type ChatWorkStage =
   | "completed"
   | "notConcluded";
 
-/** 진행 중 목록에서 읽은 단계. 사장님 · 학생 목록 모두 이 모양을 준다 */
-export interface ChatWorkProgress {
-  stage: "drafting" | "revising" | "submitted";
-  /** 도착한 · 낸 결과물이 수정안이면 true */
-  revisionSubmitted: boolean;
-}
-
-export function chatWorkStageOf(room: ChatRoom, progress?: ChatWorkProgress): ChatWorkStage | undefined {
+export function chatWorkStageOf(room: ChatRoom): ChatWorkStage | undefined {
   if (room.jobStatus === "CLOSED") return "completed";
   if (room.jobStatus === "CANCELLED") return "notConcluded";
-  if (progress) {
-    if (progress.stage === "submitted") return progress.revisionSubmitted ? "revisionArrived" : "draftArrived";
-    return progress.stage;
-  }
   const now = chatProgressOf(room);
   if (now?.type === "making") return now.stage === "초안" ? "drafting" : "revising";
-  if (now?.type === "submitted") return "draftArrived";
+  if (now?.type === "submitted") return room.submissionType === "REVISION" ? "revisionArrived" : "draftArrived";
   return undefined;
 }
 
