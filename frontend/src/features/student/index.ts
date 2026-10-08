@@ -55,6 +55,8 @@ export { useProgressJobs } from "./hooks/useProgressJobs";
 export type { ProgressJobsLoad } from "./hooks/useProgressJobs";
 export { useLatestSubmission } from "./hooks/useLatestSubmission";
 export type { LatestSubmissionLoad } from "./hooks/useLatestSubmission";
+export { useSubmissionHistory } from "./hooks/useSubmissionHistory";
+export type { SubmissionHistoryLoad } from "./hooks/useSubmissionHistory";
 export { isLastRevision, submissionDay } from "./lib/latestSubmission";
 export type { LatestSubmission } from "./lib/latestSubmission";
 export { useFinishedWork, useReceivedReview } from "./hooks/useFinishedWork";

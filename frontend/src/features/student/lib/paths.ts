@@ -37,6 +37,11 @@ export const STUDENT_PATHS = {
   workRevision: (id: string) => `/student/works/${id}/revision`,
   workRevisionSubmit: (id: string) => `/student/works/${id}/revision/submit`,
   workSubmitted: (id: string) => `/student/works/${id}/submitted`,
+  /** 지난 초안 · 수정안 (읽기 전용) */
+  workSubmission: (id: string, submissionId: string) => `/student/works/${id}/submissions/${submissionId}`,
+  /** 지난 결과물에 받은 수정 요청 (읽기 전용) */
+  workSubmissionRequest: (id: string, submissionId: string) =>
+    `/student/works/${id}/submissions/${submissionId}/request`,
   workResult: (id: string) => `/student/works/${id}/result`,
   workReview: (id: string) => `/student/works/${id}/review`,
   workCanceled: (id: string) => `/student/works/${id}/canceled`,

@@ -15,6 +15,7 @@ import {
   OWNER_PATHS,
   OwnerMissing,
   REVIEW_POINTS,
+  REVIEW_RATING_LABELS,
   markOwnerWorkReviewed,
   parsePositiveId,
   sendJobReview,
@@ -24,8 +25,6 @@ import {
 import { useBack } from "../hooks/useBack";
 import { studentTitle } from "../lib/korean";
 import "./OwnerReviewPage.css";
-
-const RATING_LABELS = ["", "별로예요", "아쉬워요", "보통이에요", "좋아요", "최고예요"];
 
 /**
  * 피그마 「후기 작성」. 완료 확인 직후 들어온다. 별점은 꼭 골라야 한다.
@@ -111,7 +110,7 @@ function ReviewScreen({
           <div className="owner-review__rating">
             <StarRating value={rating} onChange={setRating} />
             <span className="owner-review__rating-label">
-              {rating > 0 ? `${rating}.0 · ${RATING_LABELS[rating]}` : "별점을 골라 주세요"}
+              {rating > 0 ? `${rating}.0 · ${REVIEW_RATING_LABELS[rating]}` : "별점을 골라 주세요"}
             </span>
           </div>
 

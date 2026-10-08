@@ -32,8 +32,9 @@ export {
   useApplicantProfile,
   useJobApplications,
   useJobResult,
-  useLatestJobSubmission,
+  useJobSubmissions,
   useOpenJobs,
+  useOwnerJobReview,
   useOwnerStudentProfile,
   usePendingSubmission,
 } from "./hooks/useOwnerJobs";
@@ -45,7 +46,7 @@ export type { OwnerPaymentHistoryLoad } from "./hooks/useOwnerPaymentHistory";
 export { PAYMENT_STATUS_LABEL, paymentDetailText, paymentSummaryOf } from "./lib/paymentHistory";
 export type { OwnerPaymentHistory, OwnerPaymentItem, PaymentHistoryStatus } from "./lib/paymentHistory";
 export { isOwnerWorkReviewed } from "./hooks/useOwnerData";
-export { REVIEW_POINTS, sendJobReview, workHistoryText } from "./lib/closedJobs";
+export { REVIEW_POINTS, REVIEW_RATING_LABELS, sendJobReview, workHistoryText } from "./lib/closedJobs";
 export type { JobResult, JobReviewResult, OwnerClosedJob, OwnerClosedOutcome } from "./lib/closedJobs";
 export { useOwnerProgressJobs } from "./hooks/useOwnerProgressJobs";
 export type { OwnerProgressJobsLoad } from "./hooks/useOwnerProgressJobs";
@@ -128,3 +129,4 @@ export type {
   RequestContent,
   RequestExample,
 } from "./types";
+export type { JobSubmission } from "./lib/ownerJobs";

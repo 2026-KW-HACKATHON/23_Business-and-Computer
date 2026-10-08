@@ -13,7 +13,7 @@ import {
 } from "../components";
 import { chatListStatusText, chatPlanOf, chatWorkFlowIndex, chatWorkStageOf, useChatRooms } from "../features/chat";
 import { categoryNames, jobStatusLabel, jobTaskNames, useJobDetail } from "../features/explore";
-import { STUDENT_PATHS, StoreBox, StudentMissing, flowSteps, useProgressJobs } from "../features/student";
+import { STUDENT_PATHS, StoreBox, StudentMissing, flowSteps } from "../features/student";
 import { useBack } from "../hooks/useBack";
 import { formatMonthDay, formatMonthDayWeekday } from "../lib/date";
 import { formatWon } from "../lib/money";
@@ -121,15 +121,13 @@ function OpenRequestView({ job, onBack }: { job: LoadedJob; onBack: () => void }
 }
 
 /**
- * 내가 맡은 의뢰. 지금 단계는 채팅방(GET /me/chat-rooms)과 진행 중 목록으로, 내 작업계획서는 채팅방의
+ * 내가 맡은 의뢰. 지금 단계는 채팅방(GET /me/chat-rooms)으로, 내 작업계획서는 채팅방의
  * 지원서로 보인다. 채팅방을 못 찾으면 의뢰 상태만 보이고 작업계획서 칸은 숨긴다
  */
 function MyRequestView({ job, onBack }: { job: LoadedJob; onBack: () => void }) {
   const { load: roomsLoad } = useChatRooms();
-  const { load: progressLoad } = useProgressJobs();
   const room = roomsLoad.status === "loaded" ? roomsLoad.rooms.find((r) => r.jobId === job.id) : undefined;
-  const matched = progressLoad.status === "loaded" ? progressLoad.jobs.find((p) => p.jobId === job.id) : undefined;
-  const stage = room && chatWorkStageOf(room, matched);
+  const stage = room && chatWorkStageOf(room);
   const plan = room && chatPlanOf(room);
   const flowIndex = chatWorkFlowIndex(stage);
   const flowSub = stage === "draftArrived" || stage === "revisionArrived" ? "확인 중" : "작업 중";

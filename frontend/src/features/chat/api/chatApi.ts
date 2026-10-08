@@ -34,6 +34,12 @@ export interface ChatRoomResponse {
   /** "2026-10-09" */
   deadlineDate?: string | null;
   submissionReviewStatus?: ChatSubmissionReviewStatus | null;
+  /** 마지막 결과물이 초안인지 수정안인지. 낸 게 없으면 없다 */
+  submissionType?: "DRAFT" | "REVISION" | null;
+  /** 마지막 결과물의 수정 번호 (초안 0). 낸 게 없으면 없다 */
+  revisionNumber?: number | null;
+  /** 제안으로 시작한 작업이면 그 제안 id */
+  proposalId?: number | null;
   budget: number;
   revisionCount: number;
   draftDeadline: string;

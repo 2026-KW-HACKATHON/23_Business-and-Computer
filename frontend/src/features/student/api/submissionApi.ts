@@ -91,6 +91,15 @@ export async function fetchLatestSubmission(jobId: number): Promise<LatestSubmis
   return data;
 }
 
+/**
+ * GET /jobs/{jobId}/submissions — 내가 맡은 의뢰에 낸 모든 초안 · 수정안과 각 수정 요청 (작업 상태와 관계없이).
+ * 낸 게 없으면 빈 배열
+ */
+export async function fetchSubmissionHistory(jobId: number): Promise<LatestSubmissionResponse[]> {
+  const data = await apiData<{ submissions?: LatestSubmissionResponse[] } | undefined>(`/jobs/${jobId}/submissions`);
+  return data?.submissions ?? [];
+}
+
 /** POST /jobs/{jobId}/submission/revisions — 수정 요청을 받은 뒤의 수정안 */
 export async function submitRevision(jobId: number, request: SubmissionRequest): Promise<void> {
   await apiData<unknown>(`/jobs/${jobId}/submission/revisions`, {
