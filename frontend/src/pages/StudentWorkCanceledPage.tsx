@@ -1,13 +1,7 @@
 import { useParams } from "react-router-dom";
 import { Button, LoadNotice, SubScreen } from "../components";
 import { useJobDetail } from "../features/explore";
-import {
-  STUDENT_PATHS,
-  StudentMissing,
-  WorkSummary,
-  useProposalJobIds,
-  useStudentWork,
-} from "../features/student";
+import { STUDENT_PATHS, StudentMissing, WorkSummary, useProposalJobIds } from "../features/student";
 import { useBack } from "../hooks/useBack";
 import { formatMonthDay, koreaDate } from "../lib/date";
 import { formatWon } from "../lib/money";
@@ -31,15 +25,16 @@ interface CanceledView {
 
 /**
  * 피그마 「성사되지 않은 작업 상세 (학생)」. 취소 이유 · 사장님이 남긴 말 · 정산 받은 금액.
- * 주소의 id 가 숫자면 서버 작업(GET /jobs/{id} 의 취소 정보, ADR 0042), 아니면 샘플 작업.
+ * 서버 작업(GET /jobs/{id} 의 취소 정보, ADR 0042). 주소의 id 가 숫자가 아니면 찾을 수 없음.
  */
 function StudentWorkCanceledPage() {
   const { workId = "" } = useParams();
+  const back = useBack(STUDENT_PATHS.home);
   const jobId = Number(workId);
   return Number.isSafeInteger(jobId) && jobId > 0 ? (
     <JobCanceled workId={workId} jobId={jobId} />
   ) : (
-    <SampleCanceled workId={workId} />
+    <StudentMissing title="성사되지 않은 작업" onBack={back} />
   );
 }
 
@@ -93,33 +88,6 @@ function JobCanceled({ workId, jobId }: { workId: string; jobId: number }) {
         reason: declined ? undefined : job.cancelReason?.trim() || undefined,
         message: job.messageToStudent?.trim() || undefined,
         money: paid ? { budget: job.budget, refund: job.refundAmount ?? 0, reward } : undefined,
-      }}
-    />
-  );
-}
-
-/** 샘플 작업 */
-function SampleCanceled({ workId }: { workId: string }) {
-  const back = useBack(STUDENT_PATHS.activity("done"));
-  const work = useStudentWork(workId);
-
-  if (!work?.cancel) return <StudentMissing title="성사되지 않은 작업" onBack={back} />;
-  const { cancel } = work;
-  return (
-    <CanceledScreen
-      onBack={back}
-      view={{
-        kind: work.kind,
-        title: work.title,
-        meta: `${work.store.name}, 사장님이 취소, 작업비 ${formatWon(work.budget)}`,
-        canceledOn: formatMonthDay(cancel.canceledOn),
-        description:
-          cancel.reward > 0
-            ? "사장님 사정으로 취소돼 착수 보상 20%가 정산됐어요."
-            : "작업을 시작하기 전에 취소돼 정산된 금액이 없어요.",
-        reason: cancel.reason,
-        message: cancel.message,
-        money: { budget: work.budget, refund: work.budget - cancel.reward, reward: cancel.reward },
       }}
     />
   );

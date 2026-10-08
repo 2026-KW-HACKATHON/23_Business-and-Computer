@@ -1,7 +1,5 @@
 import type { Field } from "../../types/field";
-import type { StoreCategory } from "../../types/storeCategory";
-import type { WorkKind } from "../../types/workKind";
-import type { ApplicationPlan, WorkPlanContent } from "../../types/workPlan";
+import type { ApplicationPlan } from "../../types/workPlan";
 import type { ExploreProposalCard } from "../explore";
 import type { AppliedJob } from "./lib/appliedJobs";
 import type { FinishedJob } from "./lib/finishedJobs";
@@ -10,14 +8,6 @@ import type { SentProposal } from "./lib/sentProposals";
 
 /** 마감 단계. draft = 초안, final = 최종 */
 export type DeadlineStage = "draft" | "final";
-
-/** 월계1동 가게 (가게 탐색 · 제안 보내기 1/4) */
-export interface Store {
-  id: string;
-  name: string;
-  category: StoreCategory;
-  address: string;
-}
 
 /**
  * GET /explore/stores 의 가게 하나 (사장님 프로필 하나 = 가게 하나).
@@ -31,12 +21,6 @@ export interface ExploreStore {
   address: string;
 }
 
-/** 다른 데이터에서 가게를 가리킬 때 */
-export interface StoreRef {
-  id: string;
-  name: string;
-}
-
 export interface WorkFile {
   name: string;
   /** 「24.1MB」 */
@@ -45,123 +29,8 @@ export interface WorkFile {
   file?: File;
 }
 
-/** 작업 기록 한 줄 */
-export interface WorkHistoryItem {
-  date: string;
-  text: string;
-}
-
-/** 사장님이 남긴 후기 */
-export interface OwnerReview {
-  rating: number;
-  /** 좋았던 점 칩 */
-  points: string[];
-  text: string;
-  date: string;
-}
-
-/**
- * 내 작업 상태.
- * awaitingAgreement = 제안이 수락돼 의뢰서가 왔고 내가 동의하기 전,
- * drafting = 초안 만드는 중, revising = 수정 요청을 받아 수정안 만드는 중,
- * submitted = 초안 · 수정안을 내고 사장님 확인을 기다리는 중
- */
-export type StudentWorkStatus =
-  | "awaitingAgreement"
-  | "drafting"
-  | "revising"
-  | "submitted"
-  | "completed"
-  | "canceled";
-
-/** 사장님의 수정 요청 */
-export interface RevisionRequest {
-  requestedOn: string;
-  text: string;
-  attachments: string[];
-}
-
-/** 내 작업 하나 (의뢰에 선정됐거나 제안이 수락된 뒤). 채팅방도 이 id */
-export interface StudentWork {
-  id: string;
-  /** 의뢰에 뽑혔으면 request, 내 제안이 수락됐으면 proposal */
-  kind: WorkKind;
-  title: string;
-  field: Field;
-  tasks: string[];
-  store: StoreRef;
-  budget: number;
-  draftDue: string;
-  finalDue: string;
-  revisionLimit: number;
-  /** 지금까지 받은 수정 요청 수 */
-  revisionCount: number;
-  /** 내 작업계획서 (의뢰 지원서, 제안으로 시작했으면 제안서의 작업계획서 글) */
-  plan: WorkPlanContent;
-  planSentOn: string;
-  status: StudentWorkStatus;
-  /** 제안에서 시작된 작업이면 그 제안 */
-  proposalId?: string;
-  /** 사장님 의뢰서가 도착한 날 (제안 수락) */
-  requestArrivedOn?: string;
-  /** 의뢰서에 적힌 사장님의 한마디 */
-  ownerMessage?: string;
-  /** 작업이 시작된 날 (안전결제가 끝난 날 · 내가 동의한 날) */
-  startedOn?: string;
-  /** 마지막으로 낸 결과물 (초안 · 수정안) */
-  files: WorkFile[];
-  /** 결과물과 함께 사장님께 남긴 말 */
-  myMessage?: string;
-  /** 마지막으로 결과물을 낸 날 (submitted) */
-  submittedOn?: string;
-  /** 이날까지 사장님 답이 없으면 자동 완료 (submitted) */
-  autoCompleteOn?: string;
-  /** 마지막 수정 요청 (revising) */
-  revisionRequest?: RevisionRequest;
-  completedOn?: string;
-  completedBy?: "owner" | "auto";
-  /** 내 결과물 보기의 최종 수정안 요약 (예: 로고 시안 4장 · 수정 1회 반영) */
-  resultSummary?: string;
-  review?: OwnerReview;
-  history: WorkHistoryItem[];
-  /** 사장님이 취소한 작업. reward = 착수 보상 */
-  cancel?: {
-    canceledOn: string;
-    stage: "beforeStart" | "inProgress";
-    reason: string;
-    message?: string;
-    reward: number;
-  };
-}
-
 /** 지원하기에서 쓰는 작업계획서 */
 export type { ApplicationPlan };
-
-/** 내가 보낸 제안. accepted = 사장님이 의뢰서를 보내 작업(workId)이 생김 */
-export type MyProposalStatus = "waiting" | "accepted";
-
-export interface MyProposal {
-  id: string;
-  title: string;
-  field: Field;
-  /** 제안 보내기 2/4 에서 고른 일 */
-  tasks: string[];
-  store: StoreRef;
-  sentOn: string;
-  empathyCount: number;
-  status: MyProposalStatus;
-  /** 손님 눈으로 본 문제 */
-  problem: string;
-  /** 이렇게 바꿔 드릴게요 */
-  solution: string;
-  plan: string;
-  wishBudget: number;
-  /** 예상 기간 (수락된 날부터) */
-  draftDays: number;
-  finalDays: number;
-  attachments: string[];
-  workId?: string;
-}
 
 /** 홈 「이런 제안은 어때요?」 예시. 누르면 제안 보내기를 이 내용으로 채워 시작한다 */
 export interface ProposalExample {
