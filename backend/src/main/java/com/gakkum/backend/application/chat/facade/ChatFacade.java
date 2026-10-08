@@ -153,7 +153,6 @@ public class ChatFacade {
             Job job = jobsById.get(room.getJobId());
             Counterpart counterpart = counterparts.get(job.getId());
             ChatMessage latest = latestByRoom.get(room.getId());
-            JobSubmission latestSubmission = latestSubmissionByJob.get(job.getId());
             DeadlineType deadlineType = job.getStatus() != JobStatus.MATCHED ? null
                     : approvedDraftJobIds.contains(job.getId()) ? DeadlineType.FINAL : DeadlineType.DRAFT;
             return Room.of(room, job, counterpart.name, counterpart.profileImageUrl,
@@ -161,7 +160,7 @@ public class ChatFacade {
                     deadlineType,
                     deadlineType == null ? null : deadlineType == DeadlineType.DRAFT
                             ? job.getDraftDeadline() : job.getFinalDeadline(),
-                    latestSubmission == null ? null : latestSubmission.getReviewStatus(),
+                    latestSubmissionByJob.get(job.getId()),
                     selectedApplicationByJob.get(job.getId()));
         }).toList();
     }

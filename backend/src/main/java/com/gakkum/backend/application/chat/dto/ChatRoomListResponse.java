@@ -10,7 +10,9 @@ import com.gakkum.backend.domain.chat.entity.ChatRoom;
 import com.gakkum.backend.domain.job.entity.Job;
 import com.gakkum.backend.domain.job.entity.JobApplication;
 import com.gakkum.backend.domain.job.entity.JobStatus;
+import com.gakkum.backend.domain.job.entity.JobSubmission;
 import com.gakkum.backend.domain.job.entity.JobSubmissionReviewStatus;
+import com.gakkum.backend.domain.job.entity.JobSubmissionType;
 import com.gakkum.backend.global.response.KoreaTime;
 
 import lombok.AccessLevel;
@@ -43,6 +45,9 @@ public class ChatRoomListResponse {
         private final DeadlineType deadlineType;
         private final LocalDate deadlineDate;
         private final JobSubmissionReviewStatus submissionReviewStatus;
+        private final JobSubmissionType submissionType;
+        private final Integer revisionNumber;
+        private final Long proposalId;
         private final Long budget;
         private final Integer revisionCount;
         private final LocalDate draftDeadline;
@@ -55,7 +60,7 @@ public class ChatRoomListResponse {
 
         public static Room of(ChatRoom room, Job job, String counterpartName, String counterpartProfileImageUrl,
                 LastMessage lastMessage, long unreadCount, DeadlineType deadlineType, LocalDate deadlineDate,
-                JobSubmissionReviewStatus submissionReviewStatus, JobApplication selectedApplication) {
+                JobSubmission latestSubmission, JobApplication selectedApplication) {
             return Room.builder()
                     .roomId(room.getId())
                     .jobId(job.getId())
@@ -65,7 +70,10 @@ public class ChatRoomListResponse {
                     .counterpartProfileImageUrl(counterpartProfileImageUrl)
                     .deadlineType(deadlineType)
                     .deadlineDate(deadlineDate)
-                    .submissionReviewStatus(submissionReviewStatus)
+                    .submissionReviewStatus(latestSubmission == null ? null : latestSubmission.getReviewStatus())
+                    .submissionType(latestSubmission == null ? null : latestSubmission.getSubmissionType())
+                    .revisionNumber(latestSubmission == null ? null : latestSubmission.getRevisionNumber())
+                    .proposalId(job.getProposalId())
                     .budget(job.getBudget())
                     .revisionCount(job.getRevisionCount())
                     .draftDeadline(job.getDraftDeadline())
