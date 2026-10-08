@@ -131,12 +131,12 @@ function OwnerActivityPage() {
 
   const done = closedJobs.filter((job) => job.outcome === "completed");
   const canceled = closedJobs.filter((job) => job.outcome === "canceled");
-  // 받은 제안을 불러오는 중이거나 실패하면 개수 대신 「-」
-  const counts: Record<ActivityTab, number | string> = {
-    sent: openLoad.status === "loaded" ? requests.length : "-",
-    proposals: proposalsLoad.status === "loaded" ? proposals.length : "-",
-    inProgress: progressLoad.status === "loaded" ? inProgress.length : "-",
-    done: closedLoad.status === "loaded" ? done.length : "-",
+  // 받은 제안을 불러오는 중이거나 실패하면 개수 대신 null (요약 칸은 점 세 개)
+  const counts: Record<ActivityTab, number | null> = {
+    sent: openLoad.status === "loaded" ? requests.length : null,
+    proposals: proposalsLoad.status === "loaded" ? proposals.length : null,
+    inProgress: progressLoad.status === "loaded" ? inProgress.length : null,
+    done: closedLoad.status === "loaded" ? done.length : null,
   };
   const selectedIndex = TABS.findIndex((t) => t.tab === tab);
 
@@ -356,7 +356,7 @@ function OwnerActivityPage() {
     </li>
   );
 
-  const listTitle = (label: string, count: number | string) => (
+  const listTitle = (label: string, count: number | null) => (
     <h2 className="owner-activity__list-title">
       {label} <span>{count}</span>
     </h2>
@@ -390,6 +390,7 @@ function OwnerActivityPage() {
         </ul>
         {tab === "sent" && openLoad.status !== "loaded" && (
           <LoadNotice
+            layout="cards"
             status={openLoad.status === "loading" ? "loading" : "error"}
             loadingText="보낸 의뢰를 불러오는 중이에요"
             errorText="보낸 의뢰를 불러오지 못했어요"
@@ -398,6 +399,7 @@ function OwnerActivityPage() {
         )}
         {tab === "proposals" && proposalsLoad.status !== "loaded" && (
           <LoadNotice
+            layout="cards"
             status={proposalsLoad.status}
             loadingText="받은 제안을 불러오는 중이에요"
             errorText="받은 제안을 불러오지 못했어요"
@@ -406,6 +408,7 @@ function OwnerActivityPage() {
         )}
         {tab === "inProgress" && progressLoad.status !== "loaded" && (
           <LoadNotice
+            layout="cards"
             status={progressLoad.status}
             loadingText="진행 중인 작업을 불러오는 중이에요"
             errorText="진행 중인 작업을 불러오지 못했어요"
@@ -415,6 +418,7 @@ function OwnerActivityPage() {
 
         {tab === "done" && closedLoad.status !== "loaded" && (
           <LoadNotice
+            layout="cards"
             status={closedLoad.status}
             loadingText="끝난 작업을 불러오는 중이에요"
             errorText="끝난 작업을 불러오지 못했어요"

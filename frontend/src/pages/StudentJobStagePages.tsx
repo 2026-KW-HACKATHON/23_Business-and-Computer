@@ -54,6 +54,7 @@ function StageGate({
     return (
       <SubScreen title={title} onBack={back}>
         <LoadNotice
+          layout="page"
           status={load.status}
           loadingText="작업을 불러오는 중이에요"
           errorText="작업을 불러오지 못했어요"
@@ -72,6 +73,7 @@ function StageGate({
 function SubmissionLoadNotice({ load, onRetry }: { load: LatestSubmissionLoad; onRetry: () => void }) {
   return (
     <LoadNotice
+      layout="block"
       status={load.status === "loading" ? "loading" : "error"}
       loadingText="낸 결과물을 불러오는 중이에요"
       errorText={load.status === "notFound" ? "낸 결과물을 찾지 못했어요" : "낸 결과물을 불러오지 못했어요"}

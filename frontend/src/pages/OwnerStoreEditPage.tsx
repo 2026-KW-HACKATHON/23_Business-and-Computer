@@ -42,6 +42,7 @@ function OwnerStoreEditPage() {
   return (
     <SubScreen title="가게 정보 수정" onBack={back}>
       <LoadNotice
+        layout="page"
         status={failed ? "error" : "loading"}
         loadingText="가게 정보를 불러오는 중이에요"
         errorText="가게 정보를 불러오지 못했어요"

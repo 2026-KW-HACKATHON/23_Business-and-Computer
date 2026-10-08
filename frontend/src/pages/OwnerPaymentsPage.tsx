@@ -42,6 +42,7 @@ function OwnerPaymentsPage() {
     return (
       <SubScreen title="결제 내역" onBack={back}>
         <LoadNotice
+          layout="page"
           status={load.status}
           loadingText="결제 내역을 불러오는 중이에요"
           errorText="결제 내역을 불러오지 못했어요"

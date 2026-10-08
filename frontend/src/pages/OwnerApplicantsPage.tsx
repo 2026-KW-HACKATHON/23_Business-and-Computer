@@ -57,6 +57,7 @@ function OwnerApplicantsPage() {
     <SubScreen title="지원자 목록" onBack={back}>
       {!data && (
         <LoadNotice
+          layout="cards"
           status={load.status === "loading" ? "loading" : "error"}
           loadingText="지원자를 불러오는 중이에요"
           errorText="지원자를 불러오지 못했어요"

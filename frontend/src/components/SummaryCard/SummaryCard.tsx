@@ -5,7 +5,7 @@ import "./SummaryCard.css";
 export interface SummaryItem {
   label: string;
   /** 아직 불러오는 중이면 null: 숫자 자리에 점 세 개 */
-  count: number | string | null;
+  count: number | null;
   /** 기본 「건」 */
   unit?: string;
 }

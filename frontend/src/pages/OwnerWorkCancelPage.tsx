@@ -174,6 +174,7 @@ function JobCancel({ jobId }: { jobId: number }) {
     return (
       <SubScreen title="작업 취소" onBack={back}>
         <LoadNotice
+          layout="page"
           status={load.status === "loading" ? "loading" : "error"}
           loadingText="작업을 불러오는 중이에요"
           errorText="작업을 불러오지 못했어요"

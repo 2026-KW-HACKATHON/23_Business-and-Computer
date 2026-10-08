@@ -104,6 +104,7 @@ function StudentNotificationsPage() {
           {load.nextCursor !== null && <div ref={sentinel} aria-hidden="true" />}
           {load.more !== "idle" && (
             <LoadNotice
+              layout="more"
               status={load.more}
               loadingText="더 불러오는 중이에요"
               errorText="더 불러오지 못했어요"

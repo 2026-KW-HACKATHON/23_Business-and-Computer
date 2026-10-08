@@ -42,6 +42,7 @@ function JobCanceled({ workId }: { workId: string }) {
     return (
       <SubScreen title="성사되지 않은 작업" onBack={back}>
         <LoadNotice
+          layout="page"
           status={load.status}
           loadingText="작업을 불러오는 중이에요"
           errorText="작업을 불러오지 못했어요"

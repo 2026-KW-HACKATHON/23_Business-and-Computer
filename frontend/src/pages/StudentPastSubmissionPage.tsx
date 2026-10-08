@@ -40,6 +40,7 @@ function StudentPastSubmissionPage({ view }: { view: "submission" | "request" })
     return (
       <SubScreen title={fallbackTitle} onBack={back}>
         <LoadNotice
+          layout="page"
           status={load.status === "loading" ? "loading" : "error"}
           loadingText="낸 결과물을 불러오는 중이에요"
           errorText="낸 결과물을 불러오지 못했어요"

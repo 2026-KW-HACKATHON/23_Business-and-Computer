@@ -65,6 +65,7 @@ function StudentApplyPage() {
     return (
       <SubScreen title="지원하기" onBack={back}>
         <LoadNotice
+          layout="page"
           status={load.status}
           loadingText="의뢰를 불러오는 중이에요"
           errorText="의뢰를 불러오지 못했어요"

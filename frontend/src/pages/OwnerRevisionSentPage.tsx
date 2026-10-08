@@ -57,6 +57,7 @@ function OwnerRevisionSentPage() {
     >
       {(load.status === "loading" || load.status === "error") && (
         <LoadNotice
+          layout="page"
           status={load.status}
           loadingText="수정 요청을 불러오는 중이에요"
           errorText="수정 요청을 불러오지 못했어요"

@@ -124,6 +124,7 @@ function OwnerRequestCancelPage() {
     >
       {load.status !== "loaded" && (
         <LoadNotice
+          layout="page"
           status={load.status}
           loadingText="의뢰를 불러오는 중이에요"
           errorText="의뢰를 불러오지 못했어요"

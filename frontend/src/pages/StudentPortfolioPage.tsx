@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Button, Dialog, LoadNotice, SubScreen } from "../components";
+import { Button, Dialog, LoadNotice, LoadingDots, SubScreen } from "../components";
 import { STUDENT_PATHS, useFinishedJobs } from "../features/student";
 import { useBack } from "../hooks/useBack";
 import { formatMonthDay } from "../lib/date";
@@ -53,11 +53,11 @@ function StudentPortfolioPage() {
         <dl className="student-portfolio__stats">
           <div>
             <dt>완료한 작업</dt>
-            <dd>{loaded ? `${works.length}건` : "-"}</dd>
+            <dd>{loaded ? `${works.length}건` : <LoadingDots label="완료한 작업 불러오는 중" />}</dd>
           </div>
           <div>
             <dt>함께한 가게</dt>
-            <dd>{loaded ? `${storeCount}곳` : "-"}</dd>
+            <dd>{loaded ? `${storeCount}곳` : <LoadingDots label="함께한 가게 불러오는 중" />}</dd>
           </div>
           <div>
             <dt>받은 평점</dt>

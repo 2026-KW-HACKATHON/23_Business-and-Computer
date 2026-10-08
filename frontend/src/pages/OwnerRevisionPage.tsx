@@ -182,6 +182,7 @@ function JobRevision({ jobId }: { jobId: number }) {
     return (
       <SubScreen title="수정 요청" onBack={back}>
         <LoadNotice
+          layout="page"
           status={failed ? "error" : "loading"}
           loadingText="작업을 불러오는 중이에요"
           errorText="작업을 불러오지 못했어요"

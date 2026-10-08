@@ -179,6 +179,7 @@ function JobReview({ jobId }: { jobId: number }) {
     return (
       <SubScreen title="후기 작성" onBack={back}>
         <LoadNotice
+          layout="page"
           status={load.status === "error" ? "error" : "loading"}
           loadingText="작업을 불러오는 중이에요"
           errorText="작업을 불러오지 못했어요"

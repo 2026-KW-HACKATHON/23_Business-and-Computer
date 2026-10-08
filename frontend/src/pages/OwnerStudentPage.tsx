@@ -23,6 +23,7 @@ function OwnerStudentPage() {
         <OwnerStudentProfileView profile={load.data} />
       ) : (
         <LoadNotice
+          layout="page"
           status={load.status === "loading" ? "loading" : "error"}
           loadingText="프로필을 불러오는 중이에요"
           errorText="프로필을 불러오지 못했어요"

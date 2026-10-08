@@ -54,6 +54,7 @@ function StudentProfileEditPage() {
   return (
     <SubScreen title="프로필 편집" onBack={back}>
       <LoadNotice
+        layout="page"
         status={failed ? "error" : "loading"}
         loadingText="프로필을 불러오는 중이에요"
         errorText="프로필을 불러오지 못했어요"
