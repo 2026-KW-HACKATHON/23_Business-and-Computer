@@ -221,7 +221,9 @@ class ChatControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.messages[0].type").value("TEXT"))
                 .andExpect(jsonPath("$.data.messages[0].contentExpiresAt").hasJsonPath())
-                .andExpect(jsonPath("$.data.messages[0].contentExpiresAt").value(nullValue()));
+                .andExpect(jsonPath("$.data.messages[0].contentExpiresAt").value(nullValue()))
+                .andExpect(jsonPath("$.data.messages[0].attachmentSize").hasJsonPath())
+                .andExpect(jsonPath("$.data.messages[0].attachmentSize").value(nullValue()));
     }
 
     @Test
@@ -558,7 +560,9 @@ class ChatControllerTest {
         ChatMessage attachment = savedAttachment(UUID.randomUUID());
         when(service.getMessages("KAKAO_123", "room-1")).thenReturn(ChatMessageListResponse.from(List.of(
                 MessageResult.text(savedMessage(UUID.randomUUID())),
-                MessageResult.attachment(attachment, "https://view.example", LocalDateTime.of(2026, 9, 26, 12, 45))),
+                MessageResult.attachment(attachment, "https://view.example", LocalDateTime.of(2026, 9, 26, 12, 45),
+                        2100000L),
+                MessageResult.attachment(savedAttachment(UUID.randomUUID()), null, null, null)),
                 "viewer-1"));
 
         mockMvc.perform(get("/chat-rooms/room-1/messages").principal(authentication))
@@ -568,7 +572,12 @@ class ChatControllerTest {
                 .andExpect(jsonPath("$.data.messages[1].type").value("FILE"))
                 .andExpect(jsonPath("$.data.messages[1].content").value("https://view.example"))
                 .andExpect(jsonPath("$.data.messages[1].attachmentName").value("견적서.pdf"))
-                .andExpect(jsonPath("$.data.messages[1].contentExpiresAt").value("2026-09-26T21:45:00+09:00"));
+                .andExpect(jsonPath("$.data.messages[1].attachmentSize").value(2100000))
+                .andExpect(jsonPath("$.data.messages[1].attachmentSize").isNumber())
+                .andExpect(jsonPath("$.data.messages[1].contentExpiresAt").value("2026-09-26T21:45:00+09:00"))
+                // 업로드 정보가 없는 과거 첨부는 필드를 생략하지 않고 null로 내린다
+                .andExpect(jsonPath("$.data.messages[2].attachmentSize").hasJsonPath())
+                .andExpect(jsonPath("$.data.messages[2].attachmentSize").value(nullValue()));
     }
 
     @Test
@@ -576,7 +585,8 @@ class ChatControllerTest {
     void returnsSingleMessage() throws Exception {
         ChatMessage attachment = savedAttachment(UUID.randomUUID());
         when(service.getMessage("KAKAO_123", "room-1", 18L)).thenReturn(ChatMessageListResponse.Message.from(
-                MessageResult.attachment(attachment, "https://view.example/new", LocalDateTime.of(2026, 9, 26, 13, 0))));
+                MessageResult.attachment(attachment, "https://view.example/new", LocalDateTime.of(2026, 9, 26, 13, 0),
+                        1024L)));
 
         mockMvc.perform(get("/chat-rooms/room-1/messages/18").principal(authentication))
                 .andExpect(status().isOk())
@@ -585,6 +595,8 @@ class ChatControllerTest {
                 .andExpect(jsonPath("$.data.type").value("FILE"))
                 .andExpect(jsonPath("$.data.content").value("https://view.example/new"))
                 .andExpect(jsonPath("$.data.attachmentName").value("견적서.pdf"))
+                .andExpect(jsonPath("$.data.attachmentSize").value(1024))
+                .andExpect(jsonPath("$.data.attachmentSize").isNumber())
                 .andExpect(jsonPath("$.data.contentExpiresAt").value("2026-09-26T22:00:00+09:00"))
                 .andExpect(jsonPath("$.data.createdAt").value("2026-09-26T21:30:00+09:00"));
     }
