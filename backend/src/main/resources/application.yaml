@@ -93,7 +93,7 @@ media-image:
   max-size: 10MB
 notification:
   stream:
-    enabled: ${NOTIFICATION_STREAM_ENABLED:false} # Redis가 준비된 환경에서 Consumer를 활성화한다
+    enabled: ${NOTIFICATION_STREAM_ENABLED:true} # Redis가 준비된 환경에서 Consumer를 활성화한다
     key: ${NOTIFICATION_STREAM_KEY:notification-events}
     group: ${NOTIFICATION_STREAM_GROUP:notification-persistence}
     batch-size: 100
