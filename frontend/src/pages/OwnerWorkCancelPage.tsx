@@ -22,7 +22,6 @@ import {
   sendJobCancel,
   startReward,
   useOwnerProgressJobs,
-  useOwnerWork,
 } from "../features/owner";
 import { useBack } from "../hooks/useBack";
 import { studentTitle } from "../lib/korean";
@@ -34,12 +33,13 @@ import "./OwnerWorkCancelPage.css";
  * 피그마 「작업 취소 - 이유·환불 금액」. 학생이 작업을 시작했으면 착수 보상 20%를 뺀
  * 금액을 돌려받고, 결과물을 받은 뒤에는 취소할 수 없다 (노션 「취소·환불 정책」).
  * 취소 이유와 학생에게 남길 말은 둘 다 적어야 한다 (POST /jobs/{id}/cancel).
- * 주소의 id 가 숫자면 서버 작업(ADR 0035), 아니면 샘플 작업(알림 · 채팅의 예시).
+ * 서버 작업(ADR 0035). 주소의 id 가 숫자가 아니면 찾을 수 없음.
  */
 function OwnerWorkCancelPage() {
   const { workId = "" } = useParams();
+  const back = useBack(OWNER_PATHS.home);
   const jobId = parsePositiveId(workId);
-  return jobId !== undefined ? <JobCancel jobId={jobId} /> : <SampleWorkCancel workId={workId} />;
+  return jobId !== undefined ? <JobCancel jobId={jobId} /> : <OwnerMissing title="작업 취소" onBack={back} />;
 }
 
 /** 취소 화면 본문. 취소할 수 있을 때만 이유 · 남길 말 · 환불 금액 · 확인 체크를 보인다 */
@@ -127,73 +127,6 @@ function CancelBody({
         <Checkbox checked={agreed} onChange={onAgreed} label="취소 후에는 되돌릴 수 없다는 걸 확인했어요" />
       )}
     </div>
-  );
-}
-
-/** 샘플 작업의 작업 취소 */
-function SampleWorkCancel({ workId }: { workId: string }) {
-  const navigate = useNavigate();
-  const back = useBack(OWNER_PATHS.activity("inProgress"));
-  const work = useOwnerWork(workId);
-  const [reason, setReason] = useState("");
-  const [message, setMessage] = useState("");
-  const [agreed, setAgreed] = useState(false);
-  const [reportOpen, setReportOpen] = useState(false);
-  const [canceled, setCanceled] = useState(false);
-
-  if (!work) return <OwnerMissing title="작업 취소" onBack={back} />;
-
-  const cancelable = work.status === "inProgress";
-  const reward = startReward(work.budget);
-  const stage = work.revisionCount > 0 ? "수정안 제작 중" : "초안 제작 중";
-
-  return (
-    <SubScreen
-      title="작업 취소"
-      onBack={back}
-      footer={
-        <Button
-          fullWidth
-          disabled={!cancelable || reason.trim() === "" || message.trim() === "" || !agreed}
-          onClick={() => setCanceled(true)}
-        >
-          작업 취소하기
-        </Button>
-      }
-    >
-      <CancelBody
-        kind={work.kind}
-        title={work.title}
-        meta={
-          <>
-            {work.student.name} 학생 · {cancelable ? stage : "결과물 도착"} · 작업비 {formatWon(work.budget)}
-          </>
-        }
-        cancelable={cancelable}
-        budget={work.budget}
-        reason={reason}
-        onReason={setReason}
-        message={message}
-        onMessage={setMessage}
-        agreed={agreed}
-        onAgreed={setAgreed}
-        onReport={() => setReportOpen(true)}
-      />
-
-      <ReportSheet open={reportOpen} workTitle={work.title} onClose={() => setReportOpen(false)} />
-
-      <Dialog
-        open={canceled}
-        image="doneOwner"
-        title="작업을 취소했어요"
-        description={`${formatWon(work.budget - reward)}을 결제한 수단으로 돌려드려요.\n${work.student.name} 학생에게는 착수 보상 ${formatWon(reward)}이 가요.`}
-        actions={
-          <Button fullWidth onClick={() => navigate(OWNER_PATHS.activity("done"), { replace: true })}>
-            확인
-          </Button>
-        }
-      />
-    </SubScreen>
   );
 }
 

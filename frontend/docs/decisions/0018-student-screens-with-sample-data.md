@@ -18,22 +18,14 @@ owner's applicant list).
 
 - Student screens live in `src/features/student` and the `Student*Page`
   files, under /student (see Notion 「페이지 주소 정리」). Screens read data
-  only through the hooks in `src/features/student/hooks/useStudentData.ts` and
-  `useStudentHome.ts`.
-- Sample data has one source per kind: works
-  (`src/features/student/lib/sampleWorks.ts`), my proposals and the home examples
-  (`sampleProposals.ts`), and stores. 알림 reads the backend. 내 정보, the profile, and
-  정산 내역 read the backend (ADR 0041), and so do the finished work lists
-  and screens (ADR 0042).
-- Facts shared with the owner sample keep the same ids and values: work-103
-  and work-090 (치킨플러스). Applications come from the API (ADR 0027).
-  Where the
-  Figma student sample conflicted with the owner sample, the student sample
-  changed (store or title) and Figma was updated to match.
-- Demo state (agree to a request, submit a draft or revision, cancel
-  a proposal, send a proposal, decline a request) lives in
-  `src/features/student/hooks/studentStore.ts` and re-renders readers through
-  `useSyncExternalStore`. A reload resets it.
+  only through the hooks in `src/features/student/hooks`.
+- The home 「이런 제안은 어때요?」 examples live in
+  `src/features/student/lib/sampleProposals.ts`. Everything else reads the
+  backend: the new-proposal flow and 가게 탐색 (ADR 0020), sent proposals
+  (ADR 0023), explore (ADR 0026), applications (ADR 0027), the work screens
+  (ADR 0029, ADR 0032, ADR 0038), 내 정보, the profile, and 정산 내역
+  (ADR 0041), the finished work lists and screens (ADR 0042), and 알림
+  (ADR 0052).
 - 프로필 편집 (`src/pages/StudentProfileEditPage.tsx`) opens from every 「수정」 on the
   profile screen; the section 「수정」 buttons start at their section. Name,
   school, and student number are verified and stay read-only. The 내 정보
@@ -64,30 +56,17 @@ owner's applicant list).
 
 ## Rationale
 
-- One source per kind keeps lists and details in step, and the hooks stay the
-  only place to swap in the API.
-- Matching the owner sample keeps the role switch in the demo believable.
+- Reading only through the hooks keeps a screen's code the same when its
+  data moves to the backend.
 
 ## Alternatives Considered
 
-- One shared sample module for both roles: cleaner, but it would rewrite the
-  owner sample again; the overlap is small and listed above.
+- Calling the API inside each page: each page would repeat the loading and
+  error states the hooks share.
 
 ## Agent Guidance
 
-- When an owner sample fact that the student side also shows changes, change
-  it in both features (ids above) and in Figma and Notion.
 - Login and signup land students on /student (`landingPath` in
   `src/features/auth/lib/session.ts`, ADR 0015).
 - Uploads, portfolio export, and real reporting are frontend-only until the
   backend has student APIs.
-- The new-proposal flow (stores, tasks, photos, send) and 가게 탐색 now call
-  the backend (ADR 0020); its sample stores and the demo `sendProposal` are no
-  longer used there. Sent proposals (내 활동 › 보낸 제안, their detail, the
-  home 「기다리는 중」, the 내 정보 count) call the backend too (ADR 0023);
-  탐색 (the list, the job detail, apply, and the peer-proposal detail) and
-  the home 「다른 학생들의 제안 공감하기」 call the backend too (ADR 0026);
-  내 정보, 프로필 수정 · 편집, and 정산 내역 call the backend too (ADR 0041);
-  내 활동 › 완료, the home 끝난 일, 내 작업물, 내 결과물, 받은 후기, and 성사되지 않은
-  작업 call the backend too (ADR 0042). Other student screens,
-  including the work-start screen, still read the sample data.

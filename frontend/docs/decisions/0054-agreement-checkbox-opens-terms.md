@@ -9,7 +9,7 @@ empty; 「동의해요」 in the sheet checks it.
 ## Context
 
 - The owner's payment section (안전결제 and 제안 수락 · 의뢰서작성·결제) and the
-  student's 작업 시작 (의뢰 and 제안) ask for the same agreement before money
+  student's 작업 시작 (제안) ask for the same agreement before money
   is held or work starts, but the terms behind it could not be read there.
 - The signup 「이용약관 안내 (팝업)」 (Figma node 1198-277, `TermsSheet`) already
   holds the text; only part of it is about payment, cancelling, and results.
@@ -21,8 +21,8 @@ empty; 「동의해요」 in the sheet checks it.
 ## Decision
 
 - **`AgreementCheckbox`** (`src/features/signup/components`, tone, checked,
-  onChange) replaces the plain `Checkbox` in `PaymentSection`,
-  `StudentWorkStartPage`, and `StudentProposalStartPage`.
+  onChange) replaces the plain `Checkbox` in `PaymentSection` and
+  `StudentProposalStartPage`.
   - Empty and tapped: the sheet opens and the box stays empty.
   - 「동의해요」 (role color) checks the box and closes the sheet; the dim area
     closes it without checking.

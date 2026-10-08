@@ -71,7 +71,6 @@ import StudentRequestFullPage from './pages/StudentRequestFullPage'
 import StudentApplyPage from './pages/StudentApplyPage'
 import StudentProposalPage from './pages/StudentProposalPage'
 import StudentPeerProposalPage from './pages/StudentPeerProposalPage'
-import StudentWorkStartPage from './pages/StudentWorkStartPage'
 import StudentProposalStartPage from './pages/StudentProposalStartPage'
 import StudentWorkSubmitPage from './pages/StudentWorkSubmitPage'
 import StudentRevisionPage from './pages/StudentRevisionPage'
@@ -170,7 +169,6 @@ function App() {
       <Route path="/student/explore/proposals/:proposalId" element={<StudentPeerProposalPage />} />
       <Route path="/student/requests/:requestId/full" element={<StudentRequestFullPage />} />
       <Route path="/student/requests/:requestId/apply" element={<StudentApplyPage />} />
-      <Route path="/student/works/:workId/start" element={<StudentWorkStartPage />} />
       <Route path="/student/works/:workId/submit" element={<StudentWorkSubmitPage />} />
       <Route path="/student/works/:workId/revision" element={<StudentRevisionPage />} />
       <Route path="/student/works/:workId/revision/submit" element={<StudentRevisionSubmitPage />} />

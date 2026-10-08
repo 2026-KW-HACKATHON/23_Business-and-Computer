@@ -101,7 +101,7 @@ states.
   - Badges come from `GET /specialties` (loading line, or 「다시 시도」 on
     failure). The draft stores `specialtyIds`; 1–5 picks as before.
     `src/types/specialty.ts` is no longer used for signup (other screens
-    still use it for sample data).
+    still use it).
   - Hidden on this screen: categories with `specialties: []`
     (`selectableCategories`), and categories whose only specialty has the
     category's own name (`implicitSpecialty`). The second rule keeps 「기타」
@@ -185,7 +185,6 @@ states.
 
 ## Agent Guidance
 
-- `landingPath` sends STUDENT to /student; the student home still shows
-  sample data (ADR 0018) until its API is wired.
+- `landingPath` sends STUDENT to /student.
 - Owner step 3 (`POST /auth/owner`) is wired in ADR 0021 with the same
   rules; image upload and the auth header now live in `src/api`.

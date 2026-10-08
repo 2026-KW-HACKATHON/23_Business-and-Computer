@@ -3,8 +3,8 @@
 ## Status
 
 Accepted. 의뢰 등록 3/3 now creates the request on the backend. The owner's
-request list, detail, applicants, and selection still read the sample data of
-ADR 0017 and are wired in later steps.
+request list, detail, applicants, and selection are wired in ADR 0030 and
+ADR 0037.
 
 ## Context
 

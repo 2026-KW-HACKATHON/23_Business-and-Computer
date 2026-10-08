@@ -12,20 +12,7 @@ export { default as StudentMissing } from "./components/StudentMissing";
 export { default as StudentTabScreen } from "./components/StudentTabScreen";
 export { default as StudentTodoCarousel } from "./components/StudentTodoCarousel";
 export { default as WorkSummary } from "./components/WorkSummary";
-export {
-  agreeToWork,
-  declineWork,
-  submitWork,
-} from "./hooks/studentStore";
-export {
-  useMyProposal,
-  useProposalExample,
-  useProposalExamples,
-  useStore,
-  useStores,
-  useStudentWork,
-  useStudentWorks,
-} from "./hooks/useStudentData";
+export { useProposalExample, useProposalExamples } from "./hooks/useStudentData";
 export { useStudentMe, useStudentPhotoChange } from "./hooks/useStudentMe";
 export type { StudentMeLoad } from "./hooks/useStudentMe";
 export { useSettlementHistory } from "./hooks/useSettlementHistory";
@@ -82,14 +69,9 @@ export {
 } from "./lib/submission";
 export type { SubmissionKind, SubmissionResult } from "./lib/submission";
 export type { ProgressJob, ProgressStage } from "./lib/progressJobs";
-export { flowSteps, workFlowSteps } from "./lib/flow";
+export { flowSteps } from "./lib/flow";
 export { studentWorkDocPath, studentWorkDocSub } from "./lib/workDocs";
-export {
-  currentDeadline,
-  deadlineText,
-  peerRecord,
-  workStatusText,
-} from "./lib/format";
+export { deadlineText, peerRecord } from "./lib/format";
 export {
   MAX_PROPOSAL_PHOTOS,
   PROPOSAL_PHOTO_ACCEPT,
@@ -128,11 +110,8 @@ export type { ProfileEditSection, StudentActivityTab } from "./lib/paths";
 export type {
   ApplicationPlan,
   ExploreStore,
-  MyProposal,
   ProposalExample,
-  Store,
   StudentTodo,
   StudentWaitingItem,
-  StudentWork,
   WorkFile,
 } from "./types";

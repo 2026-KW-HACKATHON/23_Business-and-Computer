@@ -79,7 +79,6 @@ The backend (dev) has:
   사장님 평점 (the review average), 전공역량·특기, 자격증 (year) · 포트폴리오,
   and 사장님 후기, with 「이 학생에게 맡기기」 below. The one-line intro shows
   only when the server sends `intro`.
-- 의뢰 등록 (ADR 0028) no longer adds the new request to the sample list.
 
 ## Rationale
 

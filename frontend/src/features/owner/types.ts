@@ -1,6 +1,6 @@
 import type { Field } from "../../types/field";
 import type { WorkKind } from "../../types/workKind";
-import type { ApplicationPlan, WorkPlanContent } from "../../types/workPlan";
+import type { ApplicationPlan } from "../../types/workPlan";
 
 /** 마감 단계. draft = 초안, final = 최종 */
 export type DeadlineStage = "draft" | "final";
@@ -140,60 +140,6 @@ export interface OwnerHome {
   done: OwnerDoneItem[];
 }
 
-/** 내 정보 화면 머리 */
-export type WorkStatus = "inProgress" | "submitted" | "completed" | "canceled";
-
-export interface WorkFile {
-  name: string;
-  /** 「24.1MB」 */
-  size: string;
-}
-
-/** 결과물 보기의 작업 기록 한 줄 */
-export interface WorkHistoryItem {
-  date: string;
-  text: string;
-}
-
-/** 작업 하나 (학생을 고르고 결제한 뒤). 작업 확인 · 결과물 · 채팅방 · 작업계획서가 같이 쓴다 */
-export interface OwnerWork {
-  id: string;
-  /** 안전결제한 날 (결제 내역 · 작업 기록과 같다) */
-  paidOn: string;
-  kind: WorkKind;
-  title: string;
-  field: Field;
-  student: StudentRef;
-  budget: number;
-  draftDue: string;
-  finalDue: string;
-  revisionLimit: number;
-  revisionCount: number;
-  /** 학생 작업계획서 (의뢰 지원서, 제안으로 시작했으면 제안서의 작업계획서 글) */
-  plan: WorkPlanContent;
-  planSentOn: string;
-  status: WorkStatus;
-  /** 초안 · 수정안이 도착한 날 (submitted) */
-  submittedOn?: string;
-  /** 이날까지 확인하지 않으면 자동 완료 (submitted) */
-  autoCompleteOn?: string;
-  completedOn?: string;
-  completedBy?: "owner" | "auto";
-  files: WorkFile[];
-  studentMessage?: string;
-  history: WorkHistoryItem[];
-  /** 후기를 남겼는지 (completed) */
-  reviewed?: boolean;
-  /** 취소된 작업 (canceled). stage = 취소한 때, message = 학생에게 남긴 말 */
-  cancel?: {
-    canceledOn: string;
-    refund: number;
-    stage: "beforeStart" | "inProgress";
-    reason: string;
-    message?: string;
-  };
-}
-
 /** 프로필로 갈 수 있는 학생 */
 export interface StudentProfileRef extends StudentRef {
   id: string;
@@ -212,24 +158,7 @@ export interface Applicant {
   plan: ApplicationPlan;
 }
 
-/** 보낸 의뢰 (모집 중) */
-export interface OwnerRequest {
-  id: string;
-  title: string;
-  field: Field;
-  budget: number;
-  draftDue: string;
-  finalDue: string;
-  revisionLimit: number;
-  /** 할 일 칩 */
-  tasks: string[];
-  /** 맡기고 싶은 일 */
-  description: string;
-  attachments: string[];
-  applicants: Applicant[];
-}
-
-/** 가게 정보 수정 */
+/** 결제 내역 요약 3칸 */
 export interface PaymentSummary {
   thisMonth: number;
   escrowed: number;
@@ -240,33 +169,3 @@ export type PaymentMethod = "kakaoPay" | "card" | "transfer";
 
 /** 결제 진행: idle = 결제 전, redirecting = 결제 창으로 가는 중, success / failed = 결과 팝업 */
 export type PaymentPhase = "idle" | "redirecting" | "success" | "failed";
-
-export interface StudentCertificate {
-  name: string;
-  /** 취득 연도. 서버도 연도만 둔다 (acquiredYear) */
-  acquiredYear: number;
-}
-
-/** 학생이 받은 사장님 후기 */
-export interface StudentReview {
-  storeName: string;
-  workTitle: string;
-  rating: number;
-  text: string;
-  date: string;
-}
-
-/** 학생 프로필 (뱃지 · 자격증 · 후기) */
-export interface StudentProfile extends StudentProfileRef {
-  /** 한 줄 소개 */
-  intro: string;
-  proposalCount: number;
-  noShowCount: number;
-  badges: string[];
-  certificates: StudentCertificate[];
-  /** 「notion.so/…」처럼 https:// 없이 */
-  portfolioUrl?: string;
-  /** 최근 것부터 */
-  reviews: StudentReview[];
-}
-

@@ -20,23 +20,19 @@ work never became completed.
 
 ## Decision
 
-- Single sources: works and requests (and, until ADR 0025, proposals) in
-  `src/features/owner/lib/sampleDetails.ts` and student profiles in
-  `sampleStudents.ts` (탐색 reads the backend, ADR 0026; sent requests,
-  their applicants, and cancel read it too, ADR 0030; in-progress works,
-  ADR 0035). The home and 내 활동 are built from them in
-  `src/features/owner/hooks/useOwnerData.ts` and `useOwnerHome.ts`;
-  결제 내역, its summary, and 내 정보 read the backend (ADR 0040).
-- A work, request, or proposal refers to a student by id. Name, department,
-  year, rating (the average of the profile's reviews), and completed count
-  always come from the profile.
-- Sample dates count from today with `day(offset)` in
-  `src/lib/sampleTime.ts`. Plans say 「초안 마감일까지」
-  instead of a date so they always agree with the request.
+- Single source: the home 「이런 의뢰는 어때요?」 examples live in
+  `src/features/owner/lib/sampleHome.ts`, and `useRequestExample`
+  (`src/features/owner/hooks/useOwnerData.ts`) opens 의뢰 등록 with one of
+  them. Everything else reads the backend: received proposals (ADR 0025),
+  탐색 (ADR 0026), sent requests, their applicants, and cancel (ADR 0030),
+  in-progress works (ADR 0035), finished works (ADR 0036), the student
+  profile (ADR 0038), and 결제 내역, its summary, and 내 정보 (ADR 0040).
+- Example dates count from today with `day(offset)` in
+  `src/lib/sampleTime.ts`.
 - Chat reads the backend (ADR 0034).
-- Demo state: `completeOwnerWork` (완료 확인) and `markOwnerWorkReviewed`
-  (후기 남기기) mark a work in memory, so the result screen, 내 활동 완료, and
-  the home 끝난 일 follow the demo until the page reloads.
+- 「후기 남기기」 marks the work with `markOwnerWorkReviewed` until the page
+  reloads, so 내 활동 완료, 작업 이력, and the chat room show 「후기 작성 완료」
+  before the finished list reloads.
 - `OwnerHome.firstVisit` comes from the home's lists (ADR 0051). When true,
   확인할 일 holds `FirstVisitGuide` (피그마 「사장님 홈 - 처음」) and 학생이 작업
   중, 기다리는 중, and 끝난 일 are hidden.
@@ -48,25 +44,18 @@ work never became completed.
 
 ## Rationale
 
-- Deriving lists from one source keeps a list and its detail screen in step,
-  and the hooks stay the only place to swap in the API.
-- Relative dates keep deadlines, auto-complete dates, and 「이번 달」 sensible
-  on any demo day.
+- One source keeps an example card and the 의뢰 등록 it opens in step, and
+  screens read data only through the hooks.
+- Relative dates keep the example deadlines sensible on any demo day.
 
 ## Alternatives Considered
 
 - Fixing each copy by hand: the copies drift again with the next edit.
-- Persisting demo state in storage: a reload resetting the demo is simpler to
-  present.
+- Keeping the 후기 mark in storage: the finished list's `reviewed` shows it
+  after a reload.
 
 ## Agent Guidance
 
-- Add owner sample data only to the single sources and derive the rest in
-  the hooks. Never copy a student's name or department into a work.
-- Use `day` for new sample dates, not fixed strings.
-- When the API arrives, replace the bodies of the hooks in
-  `useOwnerData.ts` and `useOwnerHome.ts`.
-- Received proposals come from the API (ADR 0025): the list, detail, accept
-  screen summary, home 「새 제안」 cards, and the 내 정보 count. The sample
-  proposals (`SAMPLE_PROPOSALS`, `useOwnerProposal`) were deleted; do not add
-  owner proposal samples back.
+- Add home examples only to `sampleHome.ts`; works, requests, proposals, and
+  student profiles come from the backend.
+- Use `day` for example dates, not fixed strings.

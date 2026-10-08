@@ -4,8 +4,7 @@
 
 Accepted. 내 활동 › 진행 중, the home 「확인할 일」 drafting · revising cards and
 「사장님이 확인 중」 rows, 초안 제출, 수정 요청 확인, 수정안 제출, and 제출한
-초안 read and write the backend for jobs matched to the student. Sample works
-(ids like `work-103`) open the old sample screens.
+초안 read and write the backend for jobs matched to the student.
 
 ## Context
 
@@ -47,7 +46,7 @@ The backend (dev) has:
   중), store line when known, and 초안 제출하기 · 수정안 제출하기 · 문의하기
   (채팅 목록). The count shows 「-」 and `LoadNotice` replaces the list while
   loading or after a failure.
-- **Home**: drafting · revising jobs join 「확인할 일」 (sorted with sample
+- **Home**: drafting · revising jobs join 「확인할 일」 (sorted with the
   agreement cards by deadline); submitted jobs are 「사장님이 확인 중」
   rows. A failed load shows one 「다시 시도」 line.
 - **Submit** (`src/pages/StudentJobSubmitPage.tsx`, routes
@@ -72,13 +71,11 @@ The backend (dev) has:
 
 - Matched jobs are few per student, so one GET /jobs/{id} each for the store
   is cheap until the list carries the store name.
-- Keeping sample works for non-numeric ids keeps the sample screens that
-  open them working.
 
 ## Alternatives Considered
 
-- Removing the sample in-progress works: rejected, sample screens still open
-  them.
+- Waiting for the matched list to carry the store name: rejected, the
+  screens would show no store until then.
 
 ## Agent Guidance
 
