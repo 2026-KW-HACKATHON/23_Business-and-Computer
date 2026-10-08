@@ -18,6 +18,11 @@
   text-align: center;
 }
 
+/* 말풍선 자리를 고를 때 글자 크기를 잰다 */
+.signup-guide__welcome-text {
+  display: inline-block;
+}
+
 /* 밝게 다시 그린 확인할 일 카드. 누를 수 없고 버튼은 흐리게 */
 .signup-guide__card {
   position: absolute;
@@ -45,6 +50,11 @@
   pointer-events: none;
 }
 
+/* 크기는 실제 버튼에서 잰 값. 글자 칸이 남은 폭을 채워야 사파리에서도 글자가 보인다 */
+.signup-guide__fab .fab__label {
+  flex: 1 1 auto;
+}
+
 /* 말풍선 ①②③: 0.5초 간격으로 살짝 올라오며 */
 .signup-guide__tip {
   position: absolute;
@@ -63,6 +73,44 @@
   color: var(--color-black);
   white-space: nowrap;
   animation: guide-rise 0.35s ease-out both;
+  /* 아주 좁은 화면에서도 화면 밖으로 나가지 않는다 */
+  max-width: calc(100% - 16px);
+}
+
+.signup-guide__tip-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 쓸 수 있는 폭보다 길면 정해 준 폭으로 줄을 바꾼다 (signupGuideLayout 의 높이 계산과 같은 여백) */
+.signup-guide__tip--wrap {
+  height: auto;
+  min-height: 42px;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  white-space: normal;
+  word-break: keep-all;
+}
+
+.signup-guide__tip--wrap .signup-guide__tip-text {
+  overflow: visible;
+}
+
+/* 한 줄 폭을 재는 보이지 않는 사본 */
+.signup-guide__measure {
+  position: absolute;
+  top: 0;
+  left: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.signup-guide__measure .signup-guide__tip {
+  position: static;
+  width: max-content;
+  max-width: none;
+  animation: none;
 }
 
 .signup-guide__tip--1 {
