@@ -7,6 +7,17 @@
     <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png" />
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script>
+      // iPhone · iPad 는 글자가 16px 보다 작은 입력칸(채팅 · 검색 · 입력칸 14px)을 누르면 화면을 키우고
+      // 되돌리지 않는다. iOS 에서만 maximum-scale=1 을 붙여 막는다 (iOS 는 그래도 두 손가락 확대가 된다).
+      // 안드로이드는 자동 확대가 없고 이 값을 주면 손가락 확대까지 막혀서 그대로 둔다 (ADR 0066)
+      (function () {
+        var ua = navigator.userAgent;
+        var ios = /iPhone|iPad|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);
+        var viewport = document.querySelector('meta[name="viewport"]');
+        if (ios && viewport) viewport.setAttribute("content", viewport.getAttribute("content") + ", maximum-scale=1");
+      })();
+    </script>
     <!-- 밝은 화면만 쓴다: 기기 다크 모드 · 브라우저 자동 어둡게 하기에서도 그대로 -->
     <meta name="color-scheme" content="only light" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
