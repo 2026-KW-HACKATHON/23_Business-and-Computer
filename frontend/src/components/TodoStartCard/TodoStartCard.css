@@ -1,0 +1,101 @@
+/* 피그마 「확인할 일 카드 넘기기」 현재=처음 (ADR 0051) */
+.todo-start-card {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 20px;
+  border: 1.5px solid var(--color-owner);
+  border-radius: 16px;
+  background: var(--color-white);
+}
+
+.todo-start-card--student {
+  border-color: var(--color-student);
+}
+
+.todo-start-card__top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.todo-start-card__top > img {
+  flex-shrink: 0;
+}
+
+.todo-start-card__text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.todo-start-card__title {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 26px;
+  letter-spacing: normal;
+  color: var(--color-black);
+  white-space: pre-line;
+}
+
+.todo-start-card__description {
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--text-body);
+  white-space: pre-line;
+}
+
+.todo-start-card__divider {
+  height: 1px;
+  background: var(--role-border);
+}
+
+.todo-start-card__steps-title {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 23px;
+  color: var(--color-black);
+}
+
+.todo-start-card__steps {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.todo-start-card__step {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 15px;
+  line-height: 22px;
+  color: var(--color-black);
+}
+
+.todo-start-card__step strong {
+  font-weight: 700;
+}
+
+.todo-start-card__number {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--color-black);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--color-main);
+}

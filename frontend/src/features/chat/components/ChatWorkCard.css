@@ -1,0 +1,108 @@
+/* 피그마 「채팅 작업 카드」 (ADR 0045) */
+.chat-work-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 12px 12px 14px;
+  border: 1px solid var(--role-border);
+  border-radius: 14px;
+}
+
+.chat-work-card__head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.chat-work-card__title {
+  flex: 1;
+  min-width: 0;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 20px;
+  color: var(--color-black);
+}
+
+/* 「이력 상세보기 ›」: 글자 버튼(TextButton)과 같은 모양의 링크 */
+.chat-work-card__history {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 4px;
+  margin: -4px -4px -4px 0;
+  padding: 4px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 16px;
+  color: var(--role-secondary);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.chat-work-card__status {
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 18px;
+  color: var(--color-black);
+}
+
+.chat-work-card__terms {
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--text-placeholder);
+}
+
+.chat-work-card > .button {
+  margin-top: 4px;
+}
+
+/* 맨 아래 「문제가 있나요?」 줄: 내 활동 카드처럼 회색 줄 아래 작은 글자 */
+.chat-work-card__trouble {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 24px;
+  margin-top: 4px;
+  padding-top: 8px;
+  border-top: 1px solid var(--role-muted);
+}
+
+.chat-work-card__trouble-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  margin: -4px auto -4px -4px;
+  padding: 4px;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  font-family: var(--font-sans);
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--text-placeholder);
+  cursor: pointer;
+}
+
+/* 글자 버튼이 오른쪽으로 펼쳐지니 화살표도 옆: 접힘 ›, 펼침 ‹. 14px 상자 가운데를 돌아 자리는 그대로 */
+.chat-work-card__trouble-arrow {
+  display: block;
+  flex-shrink: 0;
+  transition: transform 0.15s ease;
+}
+
+.chat-work-card__trouble-toggle[aria-expanded="true"] .chat-work-card__trouble-arrow {
+  transform: rotate(180deg);
+}
+
+.chat-work-card__trouble-items {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chat-work-card__trouble-arrow {
+    transition: none;
+  }
+}

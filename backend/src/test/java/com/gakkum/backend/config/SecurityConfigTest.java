@@ -80,7 +80,7 @@ import com.gakkum.backend.util.JWTUtil;
         JobController.class, PaymentController.class, MediaController.class, ReviewController.class,
         ProposalController.class, ExploreController.class, BusinessCategoryController.class,
         StudentController.class, OwnerController.class, ChatController.class, NotificationController.class})
-@Import({SecurityConfig.class, RestAuthenticationEntryPoint.class})
+@Import({SecurityConfig.class, FrontendOrigins.class, RestAuthenticationEntryPoint.class})
 @TestPropertySource(properties = "demo-login.enabled=false")
 class SecurityConfigTest {
 
@@ -260,6 +260,14 @@ class SecurityConfigTest {
             .andExpect(status().isUnauthorized())
             .andExpect(jsonPath("$.error.code").value("COMMON_401"));
         mockMvc.perform(get("/jobs/42/submissions/latest"))
+            .andExpect(status().isUnauthorized())
+            .andExpect(jsonPath("$.error.code").value("COMMON_401"));
+    }
+
+    @Test
+    @DisplayName("인증 없이 제출 이력을 조회하면 401을 반환한다")
+    void submissionHistoryRequiresAuthentication() throws Exception {
+        mockMvc.perform(get("/jobs/42/submissions"))
             .andExpect(status().isUnauthorized())
             .andExpect(jsonPath("$.error.code").value("COMMON_401"));
     }

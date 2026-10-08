@@ -40,6 +40,7 @@ export const STUDENT_PATHS = {
   workResult: (id: string) => `/student/works/${id}/result`,
   workReview: (id: string) => `/student/works/${id}/review`,
   workCanceled: (id: string) => `/student/works/${id}/canceled`,
+  workHistory: (id: string) => `/student/works/${id}/history`,
 };
 
 export const STUDENT_TAB_PATHS: Record<MainTab, string> = {

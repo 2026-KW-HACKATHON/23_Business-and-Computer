@@ -18,6 +18,7 @@ import {
   proposalStudentRecord,
   receivedOnText,
   receivedProposalFlowSteps,
+  receivedProposalInProgress,
   receivedProposalStatusLabel,
   studentMetaText,
 } from "../features/owner";
@@ -92,7 +93,11 @@ function OwnerProposalPage() {
               <h2 className="owner-detail__title">{proposal.title}</h2>
             </div>
             <div className="owner-detail__meta owner-proposal__meta">
-              <span className="owner-proposal__chip">
+              <span
+                className={`owner-proposal__chip${
+                  receivedProposalInProgress(proposal.status, jobStatus) ? " owner-proposal__chip--working" : ""
+                }`}
+              >
                 {receivedProposalStatusLabel(proposal.status, jobStatus)}
               </span>
               {proposalBadgeNames(proposal.specialtyCategories).map((name) => (

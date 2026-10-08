@@ -219,6 +219,86 @@ class ChatFacadeTest {
     }
 
     @Test
+    @DisplayName("목록은 검토 상태와 무관하게 수정 번호가 가장 큰 제출물의 유형과 번호, 작업의 제안 ID를 반환한다")
+    void listShowsLatestSubmissionAndProposal() {
+        owner();
+        Job proposalBased = Job.builder().id(4L).title("제안 기반").status(JobStatus.MATCHED).ownerProfileId(10L)
+                .selectedStudentProfileId(20L).proposalId(77L).build();
+        Job completed = Job.builder().id(5L).title("완료").status(JobStatus.CLOSED).ownerProfileId(10L)
+                .selectedStudentProfileId(20L).proposalId(78L).build();
+        when(jobRepository.findByOwnerProfileId(10L)).thenReturn(List.of(
+                job(1L, "제출 전", JobStatus.MATCHED), job(2L, "초안", JobStatus.MATCHED),
+                job(3L, "수정 요청", JobStatus.MATCHED), proposalBased, completed));
+        when(roomRepository.findByJobIdIn(anyList())).thenReturn(List.of(
+                room(1L, LocalDateTime.now()), room(2L, LocalDateTime.now()), room(3L, LocalDateTime.now()),
+                room(4L, LocalDateTime.now()), room(5L, LocalDateTime.now())));
+        when(studentRepository.findAllById(anyList())).thenReturn(List.of(student()));
+        when(userService.getUsersByIds(anyList())).thenReturn(Map.of(STUDENT_ID,
+                User.builder().id(STUDENT_ID).name("학생 이름").build()));
+        // 저장소 반환 순서와 무관하게 최대 수정 번호를 고른다
+        when(submissionRepository.findByJobIdIn(anyList())).thenReturn(List.of(
+                submission(2L, JobSubmissionType.DRAFT, 0, JobSubmissionReviewStatus.PENDING),
+                submission(3L, JobSubmissionType.REVISION, 2, JobSubmissionReviewStatus.REVISION_REQUESTED),
+                submission(3L, JobSubmissionType.DRAFT, 0, JobSubmissionReviewStatus.APPROVED),
+                submission(3L, JobSubmissionType.REVISION, 1, JobSubmissionReviewStatus.REVISION_REQUESTED),
+                submission(4L, JobSubmissionType.REVISION, 1, JobSubmissionReviewStatus.PENDING),
+                submission(4L, JobSubmissionType.REVISION, 3, JobSubmissionReviewStatus.PENDING),
+                submission(4L, JobSubmissionType.DRAFT, 0, JobSubmissionReviewStatus.APPROVED),
+                submission(4L, JobSubmissionType.REVISION, 2, JobSubmissionReviewStatus.REVISION_REQUESTED),
+                submission(5L, JobSubmissionType.DRAFT, 0, JobSubmissionReviewStatus.APPROVED),
+                submission(5L, JobSubmissionType.REVISION, 1, JobSubmissionReviewStatus.APPROVED)));
+
+        Map<Long, ChatRoomListResponse.Room> rooms = service.getMyChatRooms("owner").getRooms().stream()
+                .collect(java.util.stream.Collectors.toMap(ChatRoomListResponse.Room::getJobId,
+                        java.util.function.Function.identity()));
+
+        assertThat(rooms.get(1L).getSubmissionType()).isNull();
+        assertThat(rooms.get(1L).getRevisionNumber()).isNull();
+        assertThat(rooms.get(1L).getProposalId()).isNull();
+        assertThat(rooms.get(2L).getSubmissionType()).isEqualTo(JobSubmissionType.DRAFT);
+        assertThat(rooms.get(2L).getRevisionNumber()).isZero();
+        assertThat(rooms.get(2L).getProposalId()).isNull();
+        assertThat(rooms.get(3L).getSubmissionReviewStatus())
+                .isEqualTo(JobSubmissionReviewStatus.REVISION_REQUESTED);
+        assertThat(rooms.get(3L).getSubmissionType()).isEqualTo(JobSubmissionType.REVISION);
+        assertThat(rooms.get(3L).getRevisionNumber()).isEqualTo(2);
+        assertThat(rooms.get(4L).getSubmissionReviewStatus()).isEqualTo(JobSubmissionReviewStatus.PENDING);
+        assertThat(rooms.get(4L).getSubmissionType()).isEqualTo(JobSubmissionType.REVISION);
+        assertThat(rooms.get(4L).getRevisionNumber()).isEqualTo(3);
+        assertThat(rooms.get(4L).getProposalId()).isEqualTo(77L);
+        // 완료된 작업에서도 최신 제출물 정보와 제안 ID를 유지한다
+        assertThat(rooms.get(5L).getJobStatus()).isEqualTo(JobStatus.CLOSED);
+        assertThat(rooms.get(5L).getSubmissionReviewStatus()).isEqualTo(JobSubmissionReviewStatus.APPROVED);
+        assertThat(rooms.get(5L).getSubmissionType()).isEqualTo(JobSubmissionType.REVISION);
+        assertThat(rooms.get(5L).getRevisionNumber()).isEqualTo(1);
+        assertThat(rooms.get(5L).getProposalId()).isEqualTo(78L);
+    }
+
+    @Test
+    @DisplayName("단건 조회도 최신 제출물의 유형과 번호, 작업의 제안 ID를 반환한다")
+    void singleRoomShowsLatestSubmissionAndProposal() {
+        owner();
+        ChatRoom room = room(4L, LocalDateTime.now());
+        when(roomRepository.findById(room.getId())).thenReturn(Optional.of(room));
+        when(jobRepository.findById(4L)).thenReturn(Optional.of(Job.builder().id(4L).title("제안 기반")
+                .status(JobStatus.MATCHED).ownerProfileId(10L).selectedStudentProfileId(20L)
+                .proposalId(77L).build()));
+        when(studentRepository.findAllById(anyList())).thenReturn(List.of(student()));
+        when(userService.getUsersByIds(anyList())).thenReturn(Map.of(STUDENT_ID,
+                User.builder().id(STUDENT_ID).name("학생 이름").build()));
+        when(submissionRepository.findByJobIdIn(List.of(4L))).thenReturn(List.of(
+                submission(4L, JobSubmissionType.REVISION, 1, JobSubmissionReviewStatus.APPROVED),
+                submission(4L, JobSubmissionType.DRAFT, 0, JobSubmissionReviewStatus.APPROVED)));
+
+        ChatRoomListResponse.Room result = service.getChatRoom("owner", room.getId());
+
+        assertThat(result.getSubmissionReviewStatus()).isEqualTo(JobSubmissionReviewStatus.APPROVED);
+        assertThat(result.getSubmissionType()).isEqualTo(JobSubmissionType.REVISION);
+        assertThat(result.getRevisionNumber()).isEqualTo(1);
+        assertThat(result.getProposalId()).isEqualTo(77L);
+    }
+
+    @Test
     @DisplayName("종료된 의뢰에는 현재 마감 유형과 날짜를 표시하지 않는다")
     void closedJobHasNoActiveDeadline() {
         studentViewer();
@@ -379,6 +459,71 @@ class ChatFacadeTest {
 
         assertThat(result.getViewerUserId()).isEqualTo(STUDENT_ID);
         assertThat(result.getMessages()).isEmpty();
+        verifyNoInteractions(uploadRepository);
+    }
+
+    @Test
+    @DisplayName("여러 첨부의 크기는 업로드를 한 번에 조회해 각 메시지에 연결하고 업로드 정보가 없으면 null로 내린다")
+    void messagesShowAttachmentSizes() {
+        studentViewer();
+        ChatRoom room = room(2L, LocalDateTime.now());
+        when(roomRepository.findById(room.getId())).thenReturn(Optional.of(room));
+        when(jobRepository.findById(2L)).thenReturn(Optional.of(job(2L, "의뢰", JobStatus.MATCHED)));
+        ChatAttachmentUpload fileUpload = upload(room, ChatMessageType.FILE, "견적서.pdf", 2100000L);
+        ChatAttachmentUpload imageUpload = upload(room, ChatMessageType.IMAGE, "시안.png", 482133L);
+        ChatAttachmentUpload keylessUpload = upload(room, ChatMessageType.FILE, "계약서.pdf", 1024L);
+        UUID missingUploadId = UUID.randomUUID();
+        when(messageRepository.findByRoomIdOrderByIdAsc(room.getId())).thenReturn(List.of(
+                message(1L, room.getId(), ChatMessageType.TEXT, "첫 메시지", null, LocalDateTime.now()),
+                ChatMessage.builder().id(2L).roomId(room.getId()).type(ChatMessageType.FILE)
+                        .attachmentKey(fileUpload.getStorageKey()).attachmentName("견적서.pdf")
+                        .attachmentUploadId(fileUpload.getId()).build(),
+                ChatMessage.builder().id(3L).roomId(room.getId()).type(ChatMessageType.IMAGE)
+                        .attachmentKey(imageUpload.getStorageKey()).attachmentName("시안.png")
+                        .attachmentUploadId(imageUpload.getId()).build(),
+                // 업로드 ID가 없는 과거 첨부
+                ChatMessage.builder().id(4L).roomId(room.getId()).type(ChatMessageType.FILE)
+                        .attachmentKey("chat/room/legacy.pdf").attachmentName("과거.pdf").build(),
+                // 연결된 업로드 기록이 없는 첨부
+                ChatMessage.builder().id(5L).roomId(room.getId()).type(ChatMessageType.IMAGE)
+                        .attachmentKey("chat/room/missing.png").attachmentName("없음.png")
+                        .attachmentUploadId(missingUploadId).build(),
+                // 저장소 키가 없어도 조회 가능한 크기는 내린다
+                ChatMessage.builder().id(6L).roomId(room.getId()).type(ChatMessageType.FILE)
+                        .attachmentName("계약서.pdf").attachmentUploadId(keylessUpload.getId()).build()));
+        when(uploadRepository.findAllById(any())).thenReturn(List.of(keylessUpload, imageUpload, fileUpload));
+        when(storageClient.presignView(any(), any(), any()))
+                .thenReturn(new PresignedView("https://view.example", now.plus(Duration.ofMinutes(15))));
+
+        var result = service.getMessages("student", room.getId());
+
+        assertThat(result.getMessages()).extracting(message -> message.getId())
+                .containsExactly(1L, 2L, 3L, 4L, 5L, 6L);
+        assertThat(result.getMessages()).extracting(message -> message.getAttachmentSize())
+                .containsExactly(null, 2100000L, 482133L, null, null, 1024L);
+        assertThat(result.getMessages().get(5).getContent()).isNull();
+        ArgumentCaptor<Iterable<UUID>> uploadIds = ArgumentCaptor.captor();
+        verify(uploadRepository).findAllById(uploadIds.capture());
+        assertThat(uploadIds.getValue()).containsExactlyInAnyOrder(
+                fileUpload.getId(), imageUpload.getId(), missingUploadId, keylessUpload.getId());
+    }
+
+    @Test
+    @DisplayName("텍스트만 있는 대화는 업로드를 조회하지 않고 크기를 null로 내린다")
+    void textOnlyMessagesSkipUploadLookup() {
+        studentViewer();
+        ChatRoom room = room(2L, LocalDateTime.now());
+        when(roomRepository.findById(room.getId())).thenReturn(Optional.of(room));
+        when(jobRepository.findById(2L)).thenReturn(Optional.of(job(2L, "의뢰", JobStatus.MATCHED)));
+        when(messageRepository.findByRoomIdOrderByIdAsc(room.getId())).thenReturn(List.of(
+                message(1L, room.getId(), ChatMessageType.TEXT, "첫 메시지", null, LocalDateTime.now()),
+                message(2L, room.getId(), ChatMessageType.TEXT, "둘째 메시지", null, LocalDateTime.now())));
+
+        var result = service.getMessages("student", room.getId());
+
+        assertThat(result.getMessages()).extracting(message -> message.getAttachmentSize())
+                .containsExactly(null, null);
+        verifyNoInteractions(uploadRepository);
     }
 
     @Test
@@ -396,6 +541,7 @@ class ChatFacadeTest {
         assertThat(result.getMessages()).singleElement().satisfies(message -> {
             assertThat(message.getContent()).isNull();
             assertThat(message.getContentExpiresAt()).isNull();
+            assertThat(message.getAttachmentSize()).isNull();
         });
         verifyNoInteractions(storageClient);
     }
@@ -407,9 +553,12 @@ class ChatFacadeTest {
         ChatRoom room = room(2L, LocalDateTime.now());
         when(roomRepository.findById(room.getId())).thenReturn(Optional.of(room));
         when(jobRepository.findById(2L)).thenReturn(Optional.of(job(2L, "의뢰", JobStatus.MATCHED)));
+        ChatAttachmentUpload upload = upload(room, ChatMessageType.IMAGE, "시안.png", 482133L);
         ChatMessage image = ChatMessage.builder().id(5L).roomId(room.getId()).type(ChatMessageType.IMAGE)
-                .attachmentKey("chat/room/upload.png").attachmentName("시안.png").build();
+                .attachmentKey("chat/room/upload.png").attachmentName("시안.png")
+                .attachmentUploadId(upload.getId()).build();
         when(messageRepository.findById(5L)).thenReturn(Optional.of(image));
+        when(uploadRepository.findAllById(List.of(upload.getId()))).thenReturn(List.of(upload));
         Instant viewExpiresAt = now.plus(Duration.ofMinutes(15));
         when(storageClient.presignView("chat/room/upload.png", ChatMessageType.IMAGE, "시안.png"))
                 .thenReturn(new PresignedView("https://view.example/new", viewExpiresAt));
@@ -418,8 +567,26 @@ class ChatFacadeTest {
 
         assertThat(result.getId()).isEqualTo(5L);
         assertThat(result.getContent()).isEqualTo("https://view.example/new");
+        assertThat(result.getAttachmentSize()).isEqualTo(482133L);
         assertThat(result.getContentExpiresAt())
                 .isEqualTo(OffsetDateTime.parse("2026-09-27T14:15:00+09:00"));
+    }
+
+    @Test
+    @DisplayName("TEXT 메시지 단건은 업로드를 조회하지 않고 크기를 null로 내린다")
+    void singleTextMessageSkipsUploadLookup() {
+        studentViewer();
+        ChatRoom room = room(2L, LocalDateTime.now());
+        when(roomRepository.findById(room.getId())).thenReturn(Optional.of(room));
+        when(jobRepository.findById(2L)).thenReturn(Optional.of(job(2L, "의뢰", JobStatus.MATCHED)));
+        when(messageRepository.findById(7L)).thenReturn(Optional.of(
+                message(7L, room.getId(), ChatMessageType.TEXT, "안녕하세요", null, LocalDateTime.now())));
+
+        var result = service.getMessage("student", room.getId(), 7L);
+
+        assertThat(result.getContent()).isEqualTo("안녕하세요");
+        assertThat(result.getAttachmentSize()).isNull();
+        verifyNoInteractions(uploadRepository);
     }
 
     @ParameterizedTest
@@ -762,6 +929,7 @@ class ChatFacadeTest {
         order.verify(storageClient).markAttached(upload.getStorageKey());
         order.verify(messageRepository).saveAndFlush(any(ChatMessage.class));
         assertThat(upload.getStatus()).isEqualTo(ChatAttachmentUploadStatus.ATTACHED);
+        verify(uploadRepository, never()).findAllById(any());
 
         ChatMessage saved = result.getMessage();
         assertThat(result.isCreated()).isTrue();
@@ -796,7 +964,7 @@ class ChatFacadeTest {
         assertThat(result.isCreated()).isFalse();
         assertThat(result.getMessage()).isSameAs(existing);
         assertThat(result.getContentUrl()).isEqualTo("https://view.example/retry");
-        verify(uploadRepository, never()).findById(any());
+        verifyNoInteractions(uploadRepository);
         verify(storageClient, never()).findObject(any());
         verify(storageClient, never()).markAttached(any());
         verify(messageRepository, never()).saveAndFlush(any(ChatMessage.class));
@@ -929,6 +1097,11 @@ class ChatFacadeTest {
                 LocalDateTime.ofInstant(now.plus(Duration.ofHours(1)), ZoneOffset.UTC));
         when(uploadRepository.findById(upload.getId())).thenReturn(Optional.of(upload));
         return upload;
+    }
+
+    private ChatAttachmentUpload upload(ChatRoom room, ChatMessageType type, String fileName, long fileSize) {
+        return ChatAttachmentUpload.create(room.getId(), OWNER_ID, type, fileName, "application/octet-stream",
+                fileSize, LocalDateTime.ofInstant(now.plus(Duration.ofHours(1)), ZoneOffset.UTC));
     }
 
     private ChatRoom arrangeOwnerUpload() {

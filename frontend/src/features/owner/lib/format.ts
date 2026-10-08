@@ -1,11 +1,9 @@
 import { formatMonthDay } from "../../../lib/date";
 import type {
   DeadlineStage,
-  OwnerWork,
   StudentProfileRef,
   StudentRef,
   WaitingStatus,
-  WorkPlanSheetContent,
 } from "../types";
 import { studentTitle } from "../../../lib/korean";
 
@@ -28,18 +26,4 @@ export const WAITING_STATUS_LABEL: Record<WaitingStatus, string> = {
 export function studentRecord({ rating, completedCount }: StudentProfileRef): string {
   if (completedCount === 0 || rating === undefined) return "첫 작업이에요";
   return `★ ${rating.toFixed(1)} · 완료 ${completedCount}건`;
-}
-
-/** 샘플 작업의 작업계획서 바텀시트 내용 */
-export function ownerWorkPlanContent(work: OwnerWork): WorkPlanSheetContent {
-  return {
-    title: work.title,
-    studentName: work.student.name,
-    sentOn: work.planSentOn,
-    plan: work.plan,
-    budget: work.budget,
-    draftDue: work.draftDue,
-    finalDue: work.finalDue,
-    revisionLimit: work.revisionLimit,
-  };
 }

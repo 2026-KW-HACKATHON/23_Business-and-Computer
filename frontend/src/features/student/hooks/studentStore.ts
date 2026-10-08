@@ -15,7 +15,6 @@ interface Submission {
 
 export const demo = {
   agreedWorkIds: new Set<string>(),
-  readNotificationIds: new Set<string>(),
   declinedWorkIds: new Set<string>(),
   submissions: new Map<string, Submission>(),
 };
@@ -45,12 +44,6 @@ export function useDemoVersion(): number {
 /** 작업 시작 「동의하고 작업 시작하기」 */
 export function agreeToWork(workId: string): void {
   demo.agreedWorkIds.add(workId);
-  changed();
-}
-
-/** 알림을 읽음으로 (알림 화면 · 홈의 안 읽음 점이 같이 본다) */
-export function markNotificationsRead(ids: string[]): void {
-  ids.forEach((id) => demo.readNotificationIds.add(id));
   changed();
 }
 

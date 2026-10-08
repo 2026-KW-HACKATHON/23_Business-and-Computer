@@ -1,6 +1,14 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { CategoryBadge, LoadNotice, SectionHeader, TaskRow } from "../components";
+import {
+  CategoryBadge,
+  DemoGuide,
+  LoadNotice,
+  SectionHeader,
+  SignupGuide,
+  TaskRow,
+  TodoNoneCard,
+} from "../components";
 import {
   PeerProposalRow,
   STUDENT_PATHS,
@@ -13,6 +21,8 @@ import {
 import type { StudentTodo, StudentWaitingItem } from "../features/student";
 import { formatMonthDay } from "../lib/date";
 import { useDragScroll } from "../hooks/useDragScroll";
+import { finishDemoGuide, pendingDemoGuide } from "../lib/demoGuide";
+import { clearSignupGuide, pendingSignupGuide } from "../lib/signupGuide";
 import "./StudentHomePage.css";
 import { useProposalLikes } from "../features/proposal";
 import type { ExploreProposalCard } from "../features/explore";
@@ -20,15 +30,36 @@ import type { ExploreProposalCard } from "../features/explore";
 /**
  * 피그마 「학생 홈 (개선안)」.
  * 확인할 일 → 다른 학생들의 제안 공감하기 → 사장님이 확인 중 → 기다리는 중 → 이런 제안은 어때요? → 끝난 일.
- * 비어 있는 목록은 섹션째 숨긴다. 이력이 하나도 없으면 피그마 「학생 홈 - 처음」처럼
- * 사용법 안내 → 이런 제안은 어때요? → 공감하기만 보인다. 공감하기는 이력으로 세지 않는다.
+ * 비어 있는 목록은 섹션째 숨기되, 확인할 일은 할 일이 없어도 남아 「지금 확인할 일이 없어요」 카드를 보인다.
+ * 이력이 하나도 없으면 피그마 「학생 홈 - 처음」처럼 확인할 일 자리의 첫 제안 안내 → 이런 제안은 어때요? →
+ * 공감하기만 보인다 (ADR 0051). 공감하기는 이력으로 세지 않는다.
  * 공감하기는 GET /explore 공감 많은 순에서 내 제안을 뺀 앞의 2개 (ADR 0026). 불러오는 중이거나
  * 실패하면 섹션째 숨기고 나머지 홈은 그대로 보인다.
  * 기다리는 중의 보낸 제안은 GET /me/proposals (ADR 0023). 작업 · 지원이 없는데 보낸 제안을 아직
  * 못 불러왔으면 처음인지 알 수 없어서, 사용법 안내 대신 불러오는 중 · 「다시 시도」 줄을 보인다.
  */
+/** 가입 후 첫 안내 말풍선: ① 확인할 일 · ② 새 제안 · ③ 알림 */
+const SIGNUP_GUIDE_TIPS = [
+  "진행 상황은 여기 확인할 일에서 봐요",
+  "새 제안은 여기서 써요",
+  "사장님 답이 오면 알림으로 알려 드려요",
+] as const;
+
 function StudentHomePage() {
   const navigate = useNavigate();
+  // 가입하고 처음 들어온 홈이면 한 번만 가입 후 첫 안내 (ADR 0053)
+  const [signupGuide, setSignupGuide] = useState(() => pendingSignupGuide("student"));
+  const firstCardRef = useRef<HTMLDivElement>(null);
+  const closeSignupGuide = () => {
+    clearSignupGuide();
+    setSignupGuide(false);
+  };
+  // 역할 선택에서 둘러보기를 막 시작했으면 둘러보기 첫 안내 (역할 전환 뱃지로 넘어올 때는 없음)
+  const [demoGuide, setDemoGuide] = useState(() => pendingDemoGuide());
+  const closeDemoGuide = () => {
+    finishDemoGuide();
+    setDemoGuide(false);
+  };
   const home = useStudentHome();
   const likes = useProposalLikes();
   // 끝난 일은 접힌 채 최근 1건만 보인다
@@ -155,9 +186,24 @@ function StudentHomePage() {
   if (home.firstVisit) {
     return (
       <StudentTabScreen tab="home" showFab>
-        <StudentFirstVisitGuide onStart={() => navigate(STUDENT_PATHS.newProposal)} />
+        <section className="student-home__section">
+          <SectionHeader title="확인할 일" count={0} />
+          <div ref={firstCardRef}>
+            <StudentFirstVisitGuide onStart={() => navigate(STUDENT_PATHS.newProposal)} />
+          </div>
+        </section>
         {examplesSection}
         {peerSection}
+        {signupGuide && (
+          <SignupGuide
+            tone="student"
+            card={<StudentFirstVisitGuide onStart={() => undefined} />}
+            cardRef={firstCardRef}
+            tips={SIGNUP_GUIDE_TIPS}
+            onClose={closeSignupGuide}
+          />
+        )}
+        {demoGuide && <DemoGuide tone="student" onClose={closeDemoGuide} />}
       </StudentTabScreen>
     );
   }
@@ -175,10 +221,14 @@ function StudentHomePage() {
         </section>
       )}
 
-      {home.todos.length > 0 && (
+      {(home.todos.length > 0 || (home.progress === "loaded" && home.sentProposals === "loaded")) && (
         <section className="student-home__section">
           <SectionHeader title="확인할 일" count={home.todos.length} />
-          <StudentTodoCarousel todos={home.todos} onDetail={openDetail} onAction={openAction} />
+          {home.todos.length > 0 ? (
+            <StudentTodoCarousel todos={home.todos} onDetail={openDetail} onAction={openAction} />
+          ) : (
+            <TodoNoneCard tone="student" />
+          )}
         </section>
       )}
 
@@ -244,6 +294,7 @@ function StudentHomePage() {
           </div>
         </section>
       )}
+      {demoGuide && <DemoGuide tone="student" onClose={closeDemoGuide} />}
     </StudentTabScreen>
   );
 }

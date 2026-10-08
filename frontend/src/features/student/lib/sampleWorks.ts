@@ -1,4 +1,4 @@
-import { day, minutesAgo, yesterdayAt } from "../../../lib/sampleTime";
+import { day } from "../../../lib/sampleTime";
 import type { StudentWork } from "../types";
 
 /*
@@ -377,7 +377,3 @@ export const SAMPLE_WORKS: StudentWork[] = [
     },
   },
 ];
-
-/* 알림 시각과 맞추려고 내보낸다 */
-export const LAST_REVISION_AT = yesterdayAt(18, 40);
-export const ACCEPTED_AT = minutesAgo(120);

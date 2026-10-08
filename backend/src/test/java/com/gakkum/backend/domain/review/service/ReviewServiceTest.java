@@ -96,6 +96,25 @@ class ReviewServiceTest {
     }
 
     @Test
+    @DisplayName("요청한 사장님이 작성한 의뢰 리뷰를 반환한다")
+    void getsOwnerReview() {
+        Review review = Review.builder().id(301L).jobId(42L).ownerProfileId(5L).build();
+        when(reviewRepository.findByJobIdAndOwnerProfileId(42L, 5L)).thenReturn(Optional.of(review));
+
+        assertThat(reviewService.getOwnerReview(42L, 5L)).isSameAs(review);
+    }
+
+    @Test
+    @DisplayName("리뷰가 없거나 다른 사장님이 작성한 리뷰면 REVIEW_404로 거부한다")
+    void rejectsMissingOwnerReview() {
+        when(reviewRepository.findByJobIdAndOwnerProfileId(42L, 6L)).thenReturn(Optional.empty());
+        when(reviewRepository.findByJobIdAndOwnerProfileId(43L, 5L)).thenReturn(Optional.empty());
+
+        assertError(() -> reviewService.getOwnerReview(42L, 6L), ErrorCode.REVIEW_NOT_FOUND);
+        assertError(() -> reviewService.getOwnerReview(43L, 5L), ErrorCode.REVIEW_NOT_FOUND);
+    }
+
+    @Test
     @DisplayName("학생이 받은 리뷰를 작성 시각 내림차순, 같은 시각은 ID 내림차순으로 정렬하고 작성 시각이 없으면 마지막에 둔다")
     void sortsStudentReviewsByLatest() {
         LocalDateTime createdAt = LocalDateTime.of(2026, 9, 30, 12, 0);

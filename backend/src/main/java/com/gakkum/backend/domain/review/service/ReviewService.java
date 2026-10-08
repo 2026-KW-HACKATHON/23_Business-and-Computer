@@ -66,6 +66,19 @@ public class ReviewService {
     }
 
     /**
+     * 사장님이 작성한 의뢰 리뷰 단건 조회.
+     * 의뢰가 없거나, 요청한 사장님이 리뷰 작성자가 아니거나, 리뷰가 없으면 모두 같은 404로 거부한다.
+     * @param jobId
+     * @param ownerProfileId 요청한 사장님 프로필 ID
+     * @return 요청한 사장님이 작성한 리뷰
+     */
+    @Transactional(readOnly = true)
+    public Review getOwnerReview(Long jobId, Long ownerProfileId) {
+        return reviewRepository.findByJobIdAndOwnerProfileId(jobId, ownerProfileId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.REVIEW_NOT_FOUND));
+    }
+
+    /**
      * 학생이 모든 사장님에게 받은 리뷰 전체를 작성 시각 내림차순, 같은 시각은 리뷰 ID 내림차순으로 조회한다.
      * 작성 시각이 없는 기존 데이터는 마지막에 둔다.
      * @param studentProfileId 학생 프로필 ID

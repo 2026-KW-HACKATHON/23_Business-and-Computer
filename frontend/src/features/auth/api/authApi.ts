@@ -4,10 +4,12 @@ import type { SocialProvider } from "../types";
 /**
  * Full backend URL that starts the OAuth2 login flow for a provider. The page
  * navigates the browser here (full redirect), so it is a URL string, not a
- * fetch call.
+ * fetch call. `redirect_origin` tells the backend which frontend (deployed site
+ * or local dev server) to send the browser back to after login.
  */
 export function socialLoginUrl(provider: SocialProvider): string {
-  return `${BACKEND_API_BASE_URL}/oauth2/authorization/${provider}`;
+  const origin = encodeURIComponent(window.location.origin);
+  return `${BACKEND_API_BASE_URL}/oauth2/authorization/${provider}?redirect_origin=${origin}`;
 }
 
 /**

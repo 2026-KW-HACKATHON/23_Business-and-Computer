@@ -5,6 +5,7 @@ import java.util.List;
 import com.gakkum.backend.domain.jwt.service.JwtService;
 import com.gakkum.backend.domain.user.service.UserService;
 import com.gakkum.backend.filter.JWTFilter;
+import com.gakkum.backend.filter.LoginOriginFilter;
 import com.gakkum.backend.handler.RefreshTokenLogoutHandler;
 import com.gakkum.backend.util.JWTUtil;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -18,6 +19,7 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
+import org.springframework.security.oauth2.client.web.OAuth2AuthorizationRequestRedirectFilter;
 import org.springframework.security.web.authentication.logout.LogoutFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
@@ -36,6 +38,7 @@ public class SecurityConfig {
     private final JWTFilter jwtFilter;
     private final JWTUtil jwtUtil;
     private final UserService userService;
+    private final FrontendOrigins frontendOrigins;
     private final boolean demoLoginEnabled;
 
     /**
@@ -47,6 +50,7 @@ public class SecurityConfig {
                           JWTFilter jwtFilter,
                           UserService userService,
                           JWTUtil jwtUtil,
+                          FrontendOrigins frontendOrigins,
                           @Value("${demo-login.enabled:false}") boolean demoLoginEnabled) {
         this.authenticationEntryPoint = authenticationEntryPoint;
         this.socialSuccessHandler = socialSuccessHandler;
@@ -54,6 +58,7 @@ public class SecurityConfig {
         this.jwtFilter = jwtFilter;
         this.userService = userService;
         this.jwtUtil = jwtUtil;
+        this.frontendOrigins = frontendOrigins;
         this.demoLoginEnabled = demoLoginEnabled;
     }
 
@@ -78,6 +83,10 @@ public class SecurityConfig {
 
         http
                 .addFilterBefore(jwtFilter, LogoutFilter.class);
+
+        // 소셜 로그인을 시작한 프론트를 기억해 두었다가 로그인이 끝나면 그쪽으로 돌려보낸다 (SocialSuccessHandler)
+        http
+                .addFilterBefore(new LoginOriginFilter(frontendOrigins), OAuth2AuthorizationRequestRedirectFilter.class);
 
         http
             .authorizeHttpRequests(authorize -> {
@@ -112,7 +121,7 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOriginPatterns(List.of("http://localhost:5173", "http://192.168.*.*:5173", "https://gakkum.hubspacekw.com"));
+        configuration.setAllowedOriginPatterns(frontendOrigins.allowedOriginPatterns());
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));
         configuration.setAllowCredentials(true);

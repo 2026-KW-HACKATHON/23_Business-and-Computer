@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from "react";
 import { Navigate, useNavigate, useParams } from "react-router-dom";
 import {
   Button,
-  Checkbox,
   Dialog,
   FlowBar,
   InfoRows,
@@ -29,6 +28,7 @@ import {
 import { useBack } from "../hooks/useBack";
 import { formatMonthDay, formatMonthDayWeekday, todayIsoDate } from "../lib/date";
 import { formatWon } from "../lib/money";
+import { AgreementCheckbox } from "../features/signup";
 import "./StudentDetailPage.css";
 import "./StudentWorkPage.css";
 
@@ -268,10 +268,10 @@ function StudentProposalStartPage() {
             />
           </section>
 
-          <Checkbox
+          <AgreementCheckbox
+            tone="student"
             checked={agreed}
             onChange={setAgreed}
-            label="책임 약관과 취소·환불 기준에 동의해요 (필수)"
           />
         </div>
       )}

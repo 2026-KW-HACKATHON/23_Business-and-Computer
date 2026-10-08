@@ -8,8 +8,10 @@ Accepted. / became the intro in ADR 0009 and the first screen is chosen by role 
 
 The first product flow is login. The backend uses Spring Security OAuth2: it
 starts a provider flow at `/oauth2/authorization/<provider>`, and on success
-sets an **HTTP-only** JWT cookie and redirects the browser to
-`http://localhost:5173/cookie`. HTTP-only cookies cannot be read from JS, but
+sets an **HTTP-only** JWT cookie and redirects the browser to the /cookie route
+of the frontend that started the login (`socialLoginUrl` sends
+`redirect_origin=<window.location.origin>`; the backend only accepts origins in
+its CORS allow list and otherwise uses the deployed site). HTTP-only cookies cannot be read from JS, but
 the rest of the app expects the JWT pair (access/refresh) in memory/storage the
 way the normal (body-based) login returns them.
 
@@ -53,6 +55,8 @@ This needs (1) client-side routing for the login, cookie, and home routes, and
 - `localStorage` token storage is a known tradeoff (XSS-exposed). If the token
   strategy changes (e.g. in-memory + silent refresh), supersede this record.
 - Keep the /cookie route path in sync with the backend success-redirect URL.
+  A new frontend address (another port or domain) must be added to the backend
+  `frontend.allowed-origin-patterns`, or login returns to the deployed site.
 - Set `VITE_BACKEND_API_BASE_URL` in `.env.local` to
   `https://gakkum-api.hubspacekw.com`, as shown
   in `.env.example`. This applies to API requests and social-login redirects.

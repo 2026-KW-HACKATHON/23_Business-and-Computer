@@ -174,30 +174,6 @@ export interface ProposalExample {
   proposalTitle: string;
 }
 
-export type StudentNotificationType =
-  | "SELECTED"
-  | "NOT_SELECTED"
-  | "PROPOSAL_ACCEPTED"
-  | "EMPATHY_GROWN"
-  | "REVISION_REQUESTED"
-  | "CHAT_MESSAGE"
-  | "SETTLED"
-  | "DUE_SOON"
-  | "REVIEW_RECEIVED"
-  | "WORK_CANCELED";
-
-export interface StudentNotification {
-  id: string;
-  type: StudentNotificationType;
-  title: string;
-  body: string;
-  /** ISO 시각 */
-  createdAt: string;
-  read: boolean;
-  /** 눌렀을 때 갈 작업 · 제안 · 의뢰 id (종류마다 다름) */
-  targetId: string;
-}
-
 /** 정산 요약 3칸 (GET /settlements 의 summary) */
 export interface SettlementSummary {
   /** 이번 달에 결제된 작업의 금액 합 */

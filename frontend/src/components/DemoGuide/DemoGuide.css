@@ -1,0 +1,136 @@
+/* 피그마 「둘러보기 첫 안내」 (ADR 0053). 덮개 · ✕ · 알겠어요는 GuideOverlay */
+.demo-guide__badge {
+  position: absolute;
+  pointer-events: none;
+  animation: guide-fade 0.4s ease-out 0.1s both;
+}
+
+/* 뱃지 아래 흰 말풍선. 꼭지가 뱃지를 가리킨다 */
+.demo-guide__bubble {
+  position: absolute;
+  margin: 0;
+  padding: 10px 14px;
+  border-radius: 21px;
+  background: var(--color-white);
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 17px;
+  color: var(--color-black);
+  white-space: nowrap;
+  animation: guide-rise 0.35s ease-out 1s both;
+}
+
+.demo-guide__bubble::before {
+  content: "";
+  position: absolute;
+  top: -4px;
+  left: 43px;
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+  background: var(--color-white);
+  transform: rotate(45deg);
+}
+
+/* 가운데 반투명 카드 */
+.demo-guide__place {
+  position: absolute;
+  top: calc(50% + 18px);
+  right: 20px;
+  left: 20px;
+  transform: translateY(-50%);
+}
+
+.demo-guide__card {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 24px 22px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.08);
+  animation: guide-rise 0.35s ease-out 0.5s both;
+}
+
+.demo-guide__head {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.demo-guide__title {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 26px;
+  letter-spacing: normal;
+  color: var(--color-white);
+}
+
+.demo-guide__summary {
+  font-size: 15px;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.demo-guide__summary strong {
+  font-weight: 700;
+  color: var(--color-white);
+}
+
+.demo-guide__divider {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.demo-guide__items {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.demo-guide__item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.demo-guide__icon {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+/* 채팅 아이콘은 흰색으로 */
+.demo-guide__icon--chat > img {
+  filter: brightness(0) invert(1);
+}
+
+.demo-guide__item-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.demo-guide__item-text > strong {
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 20px;
+  color: var(--color-white);
+}
+
+.demo-guide__item-text > small {
+  font-size: 13px;
+  line-height: 17px;
+  color: rgba(255, 255, 255, 0.7);
+}

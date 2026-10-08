@@ -121,6 +121,23 @@ class ReviewRepositoryIntegrationTest {
     }
 
     @Test
+    @DisplayName("PostgreSQL에서 의뢰 ID와 리뷰 작성 사장님 프로필 ID가 모두 맞을 때만 리뷰를 찾는다")
+    void findsReviewByJobAndOwner() {
+        Job job = saveClosedJob();
+        Review saved = reviewRepository.saveAndFlush(Review.create(job.getId(), 5L, 7L,
+                List.of(ReviewPositivePoint.KINDNESS), "친절했어요.", 5));
+
+        assertThat(reviewRepository.findByJobIdAndOwnerProfileId(job.getId(), 5L))
+                .get().extracting(Review::getId).isEqualTo(saved.getId());
+        assertThat(reviewRepository.findByJobIdAndOwnerProfileId(job.getId(), 6L)).isEmpty();
+        assertThat(reviewRepository.findByJobIdAndOwnerProfileId(saveClosedJob().getId(), 5L)).isEmpty();
+        assertThat(reviewService.getOwnerReview(job.getId(), 5L).getId()).isEqualTo(saved.getId());
+        assertThatThrownBy(() -> reviewService.getOwnerReview(job.getId(), 6L))
+                .isInstanceOfSatisfying(BusinessException.class, exception ->
+                        assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.REVIEW_NOT_FOUND));
+    }
+
+    @Test
     @DisplayName("PostgreSQL에서 학생별 평균 별점을 집계하고 리뷰가 없으면 null을 반환한다")
     void averagesRatingPerStudent() {
         long student = 987_001L;

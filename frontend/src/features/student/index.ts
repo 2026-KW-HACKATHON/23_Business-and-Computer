@@ -2,7 +2,6 @@
 export { default as ApplicationSheet } from "./components/ApplicationSheet";
 export { default as ExploreTabs } from "./components/ExploreTabs";
 export { default as FilePicker } from "./components/FilePicker";
-export { default as MyPlanSheet } from "./components/MyPlanSheet";
 export { default as PeerProposalCard } from "./components/PeerProposalCard";
 export { default as PeerProposalRow } from "./components/PeerProposalRow";
 export { default as RequestCard } from "./components/RequestCard";
@@ -16,7 +15,6 @@ export { default as WorkSummary } from "./components/WorkSummary";
 export {
   agreeToWork,
   declineWork,
-  markNotificationsRead,
   submitWork,
 } from "./hooks/studentStore";
 export {
@@ -25,7 +23,6 @@ export {
   useProposalExamples,
   useStore,
   useStores,
-  useStudentNotifications,
   useStudentWork,
   useStudentWorks,
 } from "./hooks/useStudentData";
@@ -84,6 +81,7 @@ export {
 export type { SubmissionKind, SubmissionResult } from "./lib/submission";
 export type { ProgressJob, ProgressStage } from "./lib/progressJobs";
 export { flowSteps, workFlowSteps } from "./lib/flow";
+export { studentWorkDocPath, studentWorkDocSub } from "./lib/workDocs";
 export {
   currentDeadline,
   deadlineText,
@@ -113,6 +111,7 @@ export {
   sendProposalCancel,
   sentOnText,
   sentProposalFlowSteps,
+  sentProposalInProgress,
   sentProposalStatusLabel,
   storeAddressText,
 } from "./lib/sentProposals";
@@ -121,7 +120,7 @@ export { appliedStatusLabel } from "./lib/appliedJobs";
 export { sendWorkDecline, sendWorkStart } from "./lib/workStart";
 export type { WorkDeclineResult, WorkStartResult } from "./lib/workStart";
 export type { AppliedJob } from "./lib/appliedJobs";
-export { NOTIFICATION_ICON, notificationPath, notificationState } from "./lib/notifications";
+export { notificationPath } from "./lib/notifications";
 export { STUDENT_PATHS } from "./lib/paths";
 export type { ProfileEditSection, StudentActivityTab } from "./lib/paths";
 export type {
@@ -130,7 +129,6 @@ export type {
   MyProposal,
   ProposalExample,
   Store,
-  StudentNotification,
   StudentTodo,
   StudentWaitingItem,
   StudentWork,

@@ -1,9 +1,8 @@
 import { addDays, todayIsoDate } from "../../../lib/date";
-import { SAMPLE_NOTIFICATIONS } from "../lib/sampleNotifications";
 import { SAMPLE_MY_PROPOSALS, SAMPLE_PROPOSAL_EXAMPLES } from "../lib/sampleProposals";
 import { SAMPLE_STORES } from "../lib/sampleStores";
 import { SAMPLE_WORKS } from "../lib/sampleWorks";
-import type { MyProposal, ProposalExample, Store, StudentNotification, StudentWork } from "../types";
+import type { MyProposal, ProposalExample, Store, StudentWork } from "../types";
 import { demo, useDemoVersion } from "./studentStore";
 
 /*
@@ -90,11 +89,3 @@ export function useStore(storeId: string | undefined): Store | undefined {
   return SAMPLE_STORES.find((s) => s.id === storeId);
 }
 
-// ---- 알림 ----
-
-export function useStudentNotifications(): StudentNotification[] {
-  useDemoVersion();
-  return SAMPLE_NOTIFICATIONS.map((n) => (demo.readNotificationIds.has(n.id) ? { ...n, read: true } : n)).sort(
-    (a, b) => b.createdAt.localeCompare(a.createdAt),
-  );
-}

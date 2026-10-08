@@ -71,6 +71,12 @@ export function koreaDateOfUtc(utcDateTime: string): string {
   return new Date(time + 9 * 3_600_000).toISOString().slice(0, 10);
 }
 
+/** 서버가 오프셋 없이 주는 UTC 시각을 ISO(Z) 로 ("2026-10-07T15:22:05" → "2026-10-07T15:22:05.000Z"). 읽지 못하면 그대로 */
+export function isoOfUtc(utcDateTime: string): string {
+  const time = Date.parse(`${utcDateTime.replace(/(\.\d{3})\d+/, "$1").replace(/Z$/, "")}Z`);
+  return Number.isNaN(time) ? utcDateTime : new Date(time).toISOString();
+}
+
 /** "2026-09-11" → "2026.09.11", "2025-03" → "2025.03" */
 export function formatDotDate(isoDate: string): string {
   return isoDate.split("-").join(".");

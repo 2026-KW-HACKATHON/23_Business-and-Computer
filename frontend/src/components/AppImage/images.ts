@@ -15,6 +15,8 @@ import doneStudent from "../../assets/illustrations/done-student.webp";
 import doneOwnerThumbsUp from "../../assets/illustrations/done-owner-thumbs-up.webp";
 import doneStudentV from "../../assets/illustrations/done-student-v.webp";
 import doneOwnerV from "../../assets/illustrations/done-owner-v.webp";
+import firstVisitOwner from "../../assets/illustrations/first-visit-owner.svg";
+import firstVisitStudent from "../../assets/illustrations/first-visit-student.svg";
 import paymentFailOwner from "../../assets/illustrations/payment-fail-owner.webp";
 import warningStudent from "../../assets/illustrations/warning-student.webp";
 import sorryOwner from "../../assets/illustrations/sorry-owner.webp";
@@ -83,6 +85,9 @@ export const IMAGES = {
   doneOwnerThumbsUp: { src: doneOwnerThumbsUp, width: 120, height: 120, alt: "" },
   doneStudentV: { src: doneStudentV, width: 120, height: 120, alt: "" },
   doneOwnerV: { src: doneOwnerV, width: 56, height: 72, alt: "" },
+  // 확인할 일 「처음」 카드: 원 받침과 손 흔드는 캐릭터
+  firstVisitOwner: { src: firstVisitOwner, width: 100, height: 100, alt: "" },
+  firstVisitStudent: { src: firstVisitStudent, width: 100, height: 100, alt: "" },
   paymentFailOwner: { src: paymentFailOwner, width: 96, height: 101, alt: "" },
   warningStudent: { src: warningStudent, width: 96, height: 104, alt: "" },
   sorryOwner: { src: sorryOwner, width: 96, height: 103, alt: "" },

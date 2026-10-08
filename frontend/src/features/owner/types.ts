@@ -109,19 +109,6 @@ export interface RequestExample {
   content: RequestContent;
 }
 
-/** 「작업계획서 보기」 바텀시트 내용. 모르는 칸은 빼고 보인다 */
-export interface WorkPlanSheetContent {
-  title: string;
-  studentName?: string;
-  /** 지원할 때 보낸 날 */
-  sentOn?: string;
-  plan: WorkPlanContent;
-  budget?: number;
-  draftDue: string;
-  finalDue: string;
-  revisionLimit?: number;
-}
-
 /** 「끝난 일」 한 줄 (id = 작업) */
 export interface OwnerDoneItem {
   id: string;
@@ -133,8 +120,11 @@ export interface OwnerDoneItem {
 
 /** 사장님 홈 한 화면 분량. 날짜는 모두 YYYY-MM-DD */
 export interface OwnerHome {
-  /** 백엔드가 알려 주는 첫 활동 여부. 처음이면 할 일 대신 사용법 안내를 보여 준다 */
-  firstVisit: boolean;
+  /**
+   * 이력이 하나도 없는 계정이면 true: 모집 중 · 받은 제안 · 진행 중 · 끝난 의뢰를 다 불러왔는데 모두 비었을 때.
+   * 하나라도 있거나 불러오지 못했으면 false, 아직 불러오는 중이면 undefined (모름)
+   */
+  firstVisit: boolean | undefined;
   /** 도착한 결과물 → 결정 대기 제안 → 지원자가 생긴 의뢰. 받은 제안은 불러온 뒤에만 들어간다 */
   todos: OwnerTodo[];
   /** 받은 제안(GET /me/received-proposals)을 불러온 상태와 다시 시도 */
@@ -148,30 +138,6 @@ export interface OwnerHome {
   examples: RequestExample[];
   /** 최근 끝난 것부터 */
   done: OwnerDoneItem[];
-}
-
-/** 알림 종류 (notifications.type) */
-export type NotificationType =
-  | "DRAFT_SUBMITTED"
-  | "REVISION_SUBMITTED"
-  | "PROPOSAL_RECEIVED"
-  | "APPLICATION_RECEIVED"
-  | "CHAT_MESSAGE"
-  | "PAYMENT_ESCROWED"
-  | "AUTO_COMPLETE_SOON"
-  | "REVIEW_REQUEST"
-  | "WORK_COMPLETED";
-
-export interface OwnerNotification {
-  id: string;
-  type: NotificationType;
-  title: string;
-  body: string;
-  /** ISO 시각 */
-  createdAt: string;
-  read: boolean;
-  /** 눌렀을 때 갈 작업 · 의뢰 · 제안 id (종류마다 다름) */
-  targetId: string;
 }
 
 /** 내 정보 화면 머리 */

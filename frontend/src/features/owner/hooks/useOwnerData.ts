@@ -5,9 +5,7 @@ import {
 } from "../lib/sampleDetails";
 import { SAMPLE_REQUEST_EXAMPLES } from "../lib/sampleHome";
 import { SAMPLE_STUDENT_PROFILES } from "../lib/sampleStudents";
-import { SAMPLE_NOTIFICATIONS } from "../lib/sampleTabs";
 import type {
-  OwnerNotification,
   OwnerRequest,
   OwnerWork,
   RequestExample,
@@ -15,7 +13,6 @@ import type {
   StudentProfileRef,
   StudentRef,
 } from "../types";
-import { ownerDemo, useOwnerDemoVersion } from "./ownerDemo";
 
 /*
  * 사장님 화면 데이터. 지금은 임시 예시 데이터를 돌려준다.
@@ -102,14 +99,6 @@ const requests = () =>
 
 // ---- 화면별 ----
 
-/** 알림. 최근 것부터. 읽은 알림은 read 로 바꿔 준다 */
-export function useOwnerNotifications(): OwnerNotification[] {
-  useOwnerDemoVersion();
-  return SAMPLE_NOTIFICATIONS.map((n) =>
-    ownerDemo.readNotificationIds.has(n.id) ? { ...n, read: true } : n,
-  );
-}
-
 /** 작업 하나. 없으면 undefined */
 export function useOwnerWork(workId: string | undefined): OwnerWork | undefined {
   return works().find((work) => work.id === workId);
@@ -127,7 +116,6 @@ export function useOwnerWorks(): OwnerWork[] {
 
 /** 보낸 의뢰 전체 (모집 중) */
 export function useOwnerRequests(): OwnerRequest[] {
-  useOwnerDemoVersion();
   return requests();
 }
 

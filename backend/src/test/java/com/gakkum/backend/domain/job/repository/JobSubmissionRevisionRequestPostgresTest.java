@@ -23,6 +23,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
 import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabase;
 
+import com.gakkum.backend.domain.job.dto.JobCommandDto.GetJobSubmissionsCommand;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.GetLatestJobSubmissionCommand;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.RequestJobSubmissionRevisionCommand;
 import com.gakkum.backend.domain.job.entity.Job;
@@ -43,7 +44,7 @@ import jakarta.persistence.EntityManager;
 @DataJpaTest
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @EnabledIfEnvironmentVariable(named = "DATABASE_URL", matches = "jdbc:postgresql://(localhost|127\\.0\\.0\\.1)[:/].*")
-@DisplayName("수정 요청 내용 저장과 학생 최신 제출물 PostgreSQL 조회")
+@DisplayName("수정 요청 내용 저장과 사장님·학생 최신 제출물·제출 이력 PostgreSQL 조회")
 class JobSubmissionRevisionRequestPostgresTest {
 
     private static final long OWNER_PROFILE_ID = 988_301L;
@@ -183,6 +184,105 @@ class JobSubmissionRevisionRequestPostgresTest {
                 ErrorCode.JOB_SUBMISSION_LATEST_NOT_FOUND);
     }
 
+    @Test
+    @DisplayName("의뢰한 사장님의 최신 제출물 조회는 수정 요청 내용이 담긴 초안을, 재제출 뒤에는 수정 요청이 없는 새 수정안을 고른다")
+    void returnsHighestRevisionAsLatestToOwner() {
+        Long jobId = job(JobStatus.MATCHED, 2);
+        Long draft = submission(jobId, 0, JobSubmissionReviewStatus.PENDING);
+        jobService.requestRevision(command(jobId, draft, IMAGES), OWNER_PROFILE_ID);
+        entityManager.flush();
+        entityManager.clear();
+
+        JobSubmission requested = jobService.getLatestSubmission(
+                GetLatestJobSubmissionCommand.ofOwner(jobId, OWNER_PROFILE_ID));
+        assertThat(requested.getId()).isEqualTo(draft);
+        assertThat(requested.getRevisionNumber()).isZero();
+        assertThat(requested.getReviewStatus()).isEqualTo(JobSubmissionReviewStatus.REVISION_REQUESTED);
+        assertThat(requested.getReviewComment()).isEqualTo(MESSAGE);
+        assertThat(requested.getRevisionReferenceImageUrls()).containsExactlyElementsOf(IMAGES);
+        assertThat(requested.getReviewedAt()).isEqualTo(LocalDateTime.ofInstant(NOW, ZoneOffset.UTC));
+
+        Long revision = submission(jobId, 1, JobSubmissionReviewStatus.PENDING);
+        entityManager.clear();
+
+        JobSubmission latest = jobService.getLatestSubmission(
+                GetLatestJobSubmissionCommand.ofOwner(jobId, OWNER_PROFILE_ID));
+        assertThat(latest.getId()).isEqualTo(revision);
+        assertThat(latest.getRevisionNumber()).isEqualTo(1);
+        assertThat(latest.getReviewComment()).isNull();
+        assertThat(latest.getRevisionReferenceImageUrls()).isEmpty();
+    }
+
+    @Test
+    @DisplayName("사장님 최신 제출물 조회는 다른 사장님과 담당 학생 ID를 쓴 사장님을 JOB_404, 제출물이 없는 본인 의뢰를 JOB_SUBMISSION_404_LATEST로 거부한다")
+    void rejectsLatestOfOtherOwnerOrEmptyJob() {
+        Long jobId = job(JobStatus.MATCHED, 2);
+        entityManager.clear();
+
+        assertError(() -> jobService.getLatestSubmission(
+                GetLatestJobSubmissionCommand.ofOwner(jobId, OWNER_PROFILE_ID + 2)), ErrorCode.JOB_NOT_FOUND);
+        assertError(() -> jobService.getLatestSubmission(
+                GetLatestJobSubmissionCommand.ofOwner(jobId, STUDENT_PROFILE_ID)), ErrorCode.JOB_NOT_FOUND);
+        assertError(() -> jobService.getLatestSubmission(
+                GetLatestJobSubmissionCommand.of(jobId, OWNER_PROFILE_ID)), ErrorCode.JOB_NOT_FOUND);
+        assertError(() -> jobService.getLatestSubmission(
+                GetLatestJobSubmissionCommand.ofOwner(jobId, OWNER_PROFILE_ID)),
+                ErrorCode.JOB_SUBMISSION_LATEST_NOT_FOUND);
+    }
+
+    @Test
+    @DisplayName("제출 이력 조회는 저장 순서와 무관하게 수정 번호 오름차순으로 모든 차수를 돌려주고 각 수정 요청을 받은 제출물에 보존하며 다른 의뢰의 제출물은 제외한다")
+    void returnsAllRevisionsInOrderWithOwnRevisionRequests() {
+        Long jobId = job(JobStatus.MATCHED, 2);
+        Long otherJobId = job(JobStatus.MATCHED, 2);
+        Long second = submission(jobId, 2, JobSubmissionReviewStatus.PENDING);
+        Long other = submission(otherJobId, 0, JobSubmissionReviewStatus.PENDING);
+        Long first = requestedSubmission(jobId, 1, LocalDateTime.of(2031, 2, 4, 1, 0), "색을 더 밝게 해주세요.", List.of());
+        Long draft = requestedSubmission(jobId, 0, LocalDateTime.of(2031, 2, 2, 1, 0), MESSAGE, IMAGES);
+        entityManager.clear();
+
+        List<JobSubmission> toOwner = jobService.getSubmissions(
+                GetJobSubmissionsCommand.ofOwner(jobId, OWNER_PROFILE_ID));
+        List<JobSubmission> toStudent = jobService.getSubmissions(
+                GetJobSubmissionsCommand.ofStudent(jobId, STUDENT_PROFILE_ID));
+
+        assertThat(toOwner).extracting(JobSubmission::getId).containsExactly(draft, first, second);
+        assertThat(toStudent).extracting(JobSubmission::getId).containsExactly(draft, first, second);
+        assertThat(toOwner).extracting(JobSubmission::getId).doesNotContain(other);
+        assertThat(toOwner).extracting(JobSubmission::getRevisionNumber).containsExactly(0, 1, 2);
+        assertThat(toOwner).extracting(JobSubmission::getReviewStatus).containsExactly(
+                JobSubmissionReviewStatus.REVISION_REQUESTED,
+                JobSubmissionReviewStatus.REVISION_REQUESTED,
+                JobSubmissionReviewStatus.PENDING);
+        assertThat(toOwner).extracting(JobSubmission::getReviewComment)
+                .containsExactly(MESSAGE, "색을 더 밝게 해주세요.", null);
+        assertThat(toOwner.get(0).getRevisionReferenceImageUrls()).containsExactlyElementsOf(IMAGES);
+        assertThat(toOwner.get(0).getReviewedAt()).isEqualTo(LocalDateTime.of(2031, 2, 2, 1, 0));
+        assertThat(toOwner.get(1).getRevisionReferenceImageUrls()).isEmpty();
+        assertThat(toOwner.get(2).getRevisionReferenceImageUrls()).isEmpty();
+        assertThat(toOwner.get(2).getReviewedAt()).isNull();
+        assertThat(toOwner).allSatisfy(found -> assertThat(found.getFileUrls())
+                .containsExactly("https://example.com/b.png", "https://example.com/a.pdf"));
+    }
+
+    @Test
+    @DisplayName("제출 이력 조회는 제출 전인 본인 의뢰에 빈 목록을 돌려주고 당사자가 아니거나 다른 역할의 프로필 ID를 쓴 조회를 JOB_404로 거부한다")
+    void returnsEmptyHistoryAndRejectsNonParties() {
+        Long jobId = job(JobStatus.MATCHED, 2);
+        entityManager.clear();
+
+        assertThat(jobService.getSubmissions(GetJobSubmissionsCommand.ofOwner(jobId, OWNER_PROFILE_ID))).isEmpty();
+        assertThat(jobService.getSubmissions(GetJobSubmissionsCommand.ofStudent(jobId, STUDENT_PROFILE_ID))).isEmpty();
+        assertError(() -> jobService.getSubmissions(
+                GetJobSubmissionsCommand.ofOwner(jobId, OWNER_PROFILE_ID + 2)), ErrorCode.JOB_NOT_FOUND);
+        assertError(() -> jobService.getSubmissions(
+                GetJobSubmissionsCommand.ofStudent(jobId, STUDENT_PROFILE_ID + 1)), ErrorCode.JOB_NOT_FOUND);
+        assertError(() -> jobService.getSubmissions(
+                GetJobSubmissionsCommand.ofOwner(jobId, STUDENT_PROFILE_ID)), ErrorCode.JOB_NOT_FOUND);
+        assertError(() -> jobService.getSubmissions(
+                GetJobSubmissionsCommand.ofStudent(jobId, OWNER_PROFILE_ID)), ErrorCode.JOB_NOT_FOUND);
+    }
+
     @ParameterizedTest
     @ValueSource(strings = {"null", "'{}'::jsonb", "'\"url\"'::jsonb"})
     @DisplayName("DB는 NULL과 배열이 아닌 수정 요청 참고 사진 JSON을 거부한다")
@@ -246,6 +346,22 @@ class JobSubmissionRevisionRequestPostgresTest {
                 .fileUrls(List.of("https://example.com/b.png", "https://example.com/a.pdf"))
                 .message("제출 메시지")
                 .reviewStatus(reviewStatus)
+                .build()).getId();
+    }
+
+    /** 의뢰당 검토 대기 제출물은 하나만 허용되므로, 이전 차수는 수정 요청을 받은 상태로 저장한다. */
+    private Long requestedSubmission(
+            Long jobId, int revisionNumber, LocalDateTime requestedAt, String message, List<String> images) {
+        return jobSubmissionRepository.saveAndFlush(JobSubmission.builder()
+                .jobId(jobId)
+                .submissionType(revisionNumber == 0 ? JobSubmissionType.DRAFT : JobSubmissionType.REVISION)
+                .revisionNumber(revisionNumber)
+                .fileUrls(List.of("https://example.com/b.png", "https://example.com/a.pdf"))
+                .message("제출 메시지")
+                .reviewStatus(JobSubmissionReviewStatus.REVISION_REQUESTED)
+                .reviewComment(message)
+                .revisionReferenceImageUrls(images)
+                .reviewedAt(requestedAt)
                 .build()).getId();
     }
 

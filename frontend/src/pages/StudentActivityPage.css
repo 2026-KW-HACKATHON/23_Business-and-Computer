@@ -216,6 +216,12 @@
   color: var(--text-body);
 }
 
+/* 작업 중인 제안. 다른 상태(회색)와 구분되게 학생 색으로 칠한다 */
+.student-activity__chip--working {
+  background: color-mix(in srgb, var(--color-student) 12%, var(--color-white));
+  color: var(--color-student);
+}
+
 .student-activity__footer {
   display: flex;
   align-items: center;

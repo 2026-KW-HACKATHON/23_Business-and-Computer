@@ -117,30 +117,18 @@ owner and its selected student may use a room):
   goes there; failure closes the tab and alerts 「파일을 열지 못했어요. 잠시 후
   다시 시도해 주세요」. A message without `content` shows 「열 수 없는
   파일이에요」.
-- **Room card**:
-  - The work icon is the proposal icon when the room's `jobId` is the `jobId`
-    of a received proposal (owner, GET /me/received-proposals) or a sent
-    proposal (student, GET /me/proposals), and the request icon otherwise or
-    when that list fails to load (`useProposalJobIds` in each feature).
-  - The status line comes from `jobStatus` (CLOSED → 완료, CANCELLED → 성사되지
-    않음) or, for a matched job, from the review status and deadline:
-    PENDING → owner 「결과물이 도착했어요, 확인해 주세요」, student
-    「결과물을 보냈어요, 사장님 확인 중」; otherwise 「초안 · 수정안 만드는 중,
-    M월 D일까지 도착 · 제출」. 수정안 is when `deadlineType` is FINAL or a
-    revision was requested, and its date is `finalDeadline`, because
-    `deadlineType` turns FINAL only once a draft is approved and a revising
-    job still has DRAFT with the draft deadline; 초안 uses `deadlineDate`.
-    Unknown → the line is hidden. The list uses the
-    short forms (「초안 만드는 중 (~M월 D일)」, 「결과물을 확인해 주세요」 ·
-    「사장님이 확인 중」).
-  - The room's `jobStatus` decides the work actions: 「작업 취소」 (owner)
-    shows only when it is MATCHED and no submission waits for a check, and
-    goes to `OWNER_PATHS.workCancel(jobId)`; 「문제 신고」 shows only when it
-    is MATCHED.
-  - 「작업계획서 보기」 shows only when all three application fields are
-    present. The room has no sent date: the owner `WorkPlanSheet` (its
-    `content`) reads 「{title}, 지원할 때 보냄」 and the student `MyPlanSheet`
-    shows the work title alone.
+- **Room card**: `ChatWorkCard` with the stage, 「이력 상세보기 ›」, the
+  action, and 「문제가 있나요?」 (ADR 0045). The work is a proposal when the room's `jobId` is the
+  `jobId` of a received proposal (owner, GET /me/received-proposals) or a sent
+  proposal (student, GET /me/proposals), and a request otherwise or when that
+  list fails to load (`useProposalJobIds` in each feature).
+- **List status**: from `jobStatus` (CLOSED → 완료, CANCELLED → 성사되지 않음)
+  or, for a matched job, from the review status and deadline: 「초안 만드는 중
+  (~M월 D일)」, 「결과물을 확인해 주세요」 · 「사장님이 확인 중」. 수정안 is when
+  `deadlineType` is FINAL or a revision was requested, and its date is
+  `finalDeadline`, because `deadlineType` turns FINAL only once a draft is
+  approved and a revising job still has DRAFT with the draft deadline.
+  Unknown → the line is hidden.
 - **List rows**: last message 「사진」, 「파일 · name」, or the text; an empty
   room says 「아직 메시지가 없어요」 with no time.
 - **Errors**: 401 → /login. CHAT_403 → alert 「이 채팅방에는 들어갈 수
@@ -174,6 +162,5 @@ owner and its selected student may use a room):
   `jobStatus` shows the work actions and the 완료 · 성사되지 않음 lines.
 - 「작업 취소」 passes the room's numeric `jobId`, so `OwnerWorkCancelPage`
   cancels through the API (ADR 0035); non-numeric ids there are sample works.
-- The owner home and 내 활동 「문의하기」 · 「채팅하기」, `CHAT_MESSAGE` sample
-  notifications, and the student 수정 요청 확인 「문의하기」 open the chat
-  list, not a room.
+- The owner home and 내 활동 「문의하기」 · 「채팅하기」 and the student 수정
+  요청 확인 「문의하기」 open the chat list, not a room.

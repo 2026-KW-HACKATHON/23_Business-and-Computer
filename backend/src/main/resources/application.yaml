@@ -59,6 +59,9 @@ demo-login: # 로그인 없는 체험용 데모 로그인(POST /demo/login). ena
   max-new-sessions-per-hour: ${DEMO_LOGIN_MAX_NEW_SESSIONS_PER_HOUR:3600000000} # 최근 1시간에 새로 만들 수 있는 데모 계정 쌍 수
 nts-businessman:
   service-key: ${NTS_BUSINESSMAN_SERVICE_KEY}
+frontend: # 프론트 주소. CORS 허용 목록이자 소셜 로그인 뒤 돌아갈 수 있는 주소이고, 로그인은 시작한 프론트로 돌아간다
+  allowed-origin-patterns: ${FRONTEND_ALLOWED_ORIGIN_PATTERNS:http://localhost:5173,http://192.168.*.*:5173,https://gakkum.hubspacekw.com}
+  default-origin: ${FRONTEND_DEFAULT_ORIGIN:https://gakkum.hubspacekw.com} # 시작한 프론트를 알 수 없을 때 돌아갈 주소
 kakao-pay:
   cid: ${KAKAO_PAY_CID:TC0ONETIME}
   secret-key: ${KAKAO_PAY_SECRET_KEY}

@@ -38,6 +38,8 @@ public class ChatMessageListResponse {
         /** TEXT는 본문, IMAGE·FILE은 단기 열람 URL */
         private final String content;
         private final String attachmentName;
+        /** IMAGE·FILE의 byte 단위 크기. TEXT와 업로드 기록이 없는 첨부는 null */
+        private final Long attachmentSize;
         /** IMAGE·FILE 열람 URL의 만료 시각. TEXT는 null */
         private final OffsetDateTime contentExpiresAt;
         private final OffsetDateTime createdAt;
@@ -52,6 +54,7 @@ public class ChatMessageListResponse {
                     .type(message.getType())
                     .content(result.getContent())
                     .attachmentName(message.getAttachmentName())
+                    .attachmentSize(result.getAttachmentSize())
                     .contentExpiresAt(KoreaTime.from(result.getContentExpiresAt()))
                     .createdAt(KoreaTime.from(message.getCreatedAt()))
                     .build();

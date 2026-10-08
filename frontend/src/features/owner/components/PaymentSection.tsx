@@ -1,9 +1,10 @@
 import { useState } from "react";
-import { Checkbox, NumberedSteps, TextButton } from "../../../components";
+import { NumberedSteps, TextButton } from "../../../components";
 import { formatWon } from "../../../lib/money";
 import { PAYMENT_METHODS } from "../lib/payment";
 import type { PaymentMethod } from "../types";
 import RefundGuideSheet from "./RefundGuideSheet";
+import { AgreementCheckbox } from "../../signup";
 import "./PaymentSection.css";
 
 interface PaymentSectionProps {
@@ -121,10 +122,10 @@ function PaymentSection({
         </>
       )}
 
-      <Checkbox
+      <AgreementCheckbox
+        tone="owner"
         checked={agreed}
         onChange={onAgreeChange}
-        label="책임 약관과 취소·환불 기준에 동의해요 (필수)"
       />
 
       <RefundGuideSheet open={guideOpen} amount={amount} onClose={() => setGuideOpen(false)} />

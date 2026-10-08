@@ -15,6 +15,8 @@ public interface ReviewRepository extends JpaRepository<Review, Long> {
 
     Optional<Review> findByJobIdAndStudentProfileId(Long jobId, Long studentProfileId);
 
+    Optional<Review> findByJobIdAndOwnerProfileId(Long jobId, Long ownerProfileId);
+
     List<Review> findByStudentProfileId(Long studentProfileId);
 
     List<Review> findByJobIdIn(Collection<Long> jobIds);
