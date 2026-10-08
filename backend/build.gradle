@@ -61,6 +61,8 @@ tasks.named('test') {
     useJUnitPlatform()
     // 운영 JVM(BackendApplication)과 같이 UTC로 고정한다. Hibernate가 시작 시점의 기본 시간대를 붙잡아 두기 때문에 JVM 옵션으로 준다
     systemProperty 'user.timezone', 'UTC'
+    // 전체 컨텍스트를 띄우는 테스트가 연결된 DB의 의뢰를 자동 완료하지 않도록 끈다. 스케줄러를 검증하는 테스트는 직접 켠다
+    systemProperty 'JOB_AUTO_COMPLETION_ENABLED', 'false'
     testLogging {
         events "passed", "skipped", "failed", "standardOut", "standardError"
         showStandardStreams = true
