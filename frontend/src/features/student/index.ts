@@ -111,6 +111,7 @@ export type {
   ApplicationPlan,
   ExploreStore,
   ProposalExample,
+  StudentPeerProposal,
   StudentTodo,
   StudentWaitingItem,
   WorkFile,
