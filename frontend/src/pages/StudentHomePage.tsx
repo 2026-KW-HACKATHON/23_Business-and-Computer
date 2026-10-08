@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { CategoryBadge, LoadNotice, SectionHeader, TaskRow } from "../components";
+import { CategoryBadge, LoadNotice, SectionHeader, TaskRow, TodoNoneCard } from "../components";
 import {
   PeerProposalRow,
   STUDENT_PATHS,
@@ -20,8 +20,9 @@ import type { ExploreProposalCard } from "../features/explore";
 /**
  * 피그마 「학생 홈 (개선안)」.
  * 확인할 일 → 다른 학생들의 제안 공감하기 → 사장님이 확인 중 → 기다리는 중 → 이런 제안은 어때요? → 끝난 일.
- * 비어 있는 목록은 섹션째 숨긴다. 이력이 하나도 없으면 피그마 「학생 홈 - 처음」처럼
- * 사용법 안내 → 이런 제안은 어때요? → 공감하기만 보인다. 공감하기는 이력으로 세지 않는다.
+ * 비어 있는 목록은 섹션째 숨기되, 확인할 일은 할 일이 없어도 남아 「지금 확인할 일이 없어요」 카드를 보인다.
+ * 이력이 하나도 없으면 피그마 「학생 홈 - 처음」처럼 확인할 일 자리의 첫 제안 안내 → 이런 제안은 어때요? →
+ * 공감하기만 보인다 (ADR 0051). 공감하기는 이력으로 세지 않는다.
  * 공감하기는 GET /explore 공감 많은 순에서 내 제안을 뺀 앞의 2개 (ADR 0026). 불러오는 중이거나
  * 실패하면 섹션째 숨기고 나머지 홈은 그대로 보인다.
  * 기다리는 중의 보낸 제안은 GET /me/proposals (ADR 0023). 작업 · 지원이 없는데 보낸 제안을 아직
@@ -155,7 +156,10 @@ function StudentHomePage() {
   if (home.firstVisit) {
     return (
       <StudentTabScreen tab="home" showFab>
-        <StudentFirstVisitGuide onStart={() => navigate(STUDENT_PATHS.newProposal)} />
+        <section className="student-home__section">
+          <SectionHeader title="확인할 일" count={0} />
+          <StudentFirstVisitGuide onStart={() => navigate(STUDENT_PATHS.newProposal)} />
+        </section>
         {examplesSection}
         {peerSection}
       </StudentTabScreen>
@@ -175,10 +179,14 @@ function StudentHomePage() {
         </section>
       )}
 
-      {home.todos.length > 0 && (
+      {(home.todos.length > 0 || (home.progress === "loaded" && home.sentProposals === "loaded")) && (
         <section className="student-home__section">
           <SectionHeader title="확인할 일" count={home.todos.length} />
-          <StudentTodoCarousel todos={home.todos} onDetail={openDetail} onAction={openAction} />
+          {home.todos.length > 0 ? (
+            <StudentTodoCarousel todos={home.todos} onDetail={openDetail} onAction={openAction} />
+          ) : (
+            <TodoNoneCard tone="student" />
+          )}
         </section>
       )}
 

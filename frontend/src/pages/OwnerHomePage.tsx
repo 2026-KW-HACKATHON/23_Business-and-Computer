@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { CategoryBadge, LoadNotice, SectionHeader, TaskRow } from "../components";
+import { CategoryBadge, LoadNotice, SectionHeader, TaskRow, TodoNoneCard } from "../components";
 import {
   FirstVisitGuide,
   OWNER_PATHS,
@@ -19,8 +19,9 @@ import "./OwnerHomePage.css";
 /**
  * 피그마 「사장님 홈 (개선안)」.
  * 확인할 일 → 학생이 작업 중 → 기다리는 중 → 이런 의뢰는 어때요? → 끝난 일.
- * 비어 있는 목록은 섹션째 숨기고, 「이런 의뢰는 어때요?」는 늘 보인다.
- * 첫 활동 계정(피그마 「사장님 홈 - 처음」)은 할 일 목록 대신 사용법 안내를 보여 준다.
+ * 비어 있는 목록은 섹션째 숨기고, 「이런 의뢰는 어때요?」는 늘 보인다. 확인할 일은 할 일이 없어도 남아
+ * 「지금 확인할 일이 없어요」 카드를, 이력이 하나도 없는 계정(피그마 「사장님 홈 - 처음」)이면 첫 의뢰 안내 카드를
+ * 보인다 (ADR 0051).
  * 확인할 일의 「새 제안」은 GET /me/received-proposals 의 결정 대기 제안 (ADR 0025), 도착한 초안 · 수정안과
  * 「학생이 작업 중」은 GET /me/jobs?status=MATCHED (ADR 0035). 불러오는 중 · 실패면 확인할 일 아래에 안내 줄을
  * 보이고, 개수는 둘 다 불러온 뒤에만 보인다.
@@ -50,12 +51,18 @@ function OwnerHomePage() {
 
   return (
     <OwnerTabScreen tab="home" showFab>
-      {home.firstVisit && <FirstVisitGuide onStart={() => navigate(OWNER_PATHS.newRequest)} />}
+      {home.firstVisit && (
+        <section className="owner-home__section">
+          <SectionHeader title="확인할 일" count={0} />
+          <FirstVisitGuide onStart={() => navigate(OWNER_PATHS.newRequest)} />
+        </section>
+      )}
 
-      {!home.firstVisit && (home.todos.length > 0 || !todosLoaded) && (
+      {!home.firstVisit && (home.todos.length > 0 || !todosLoaded || home.firstVisit === false) && (
         <section className="owner-home__section">
           <SectionHeader title="확인할 일" count={todosLoaded ? home.todos.length : undefined} />
           {home.todos.length > 0 && <TodoCarousel todos={home.todos} onAction={openTodo} />}
+          {home.todos.length === 0 && todosLoaded && home.firstVisit === false && <TodoNoneCard tone="owner" />}
           {home.progress !== "loaded" && (
             <LoadNotice
               status={home.progress}

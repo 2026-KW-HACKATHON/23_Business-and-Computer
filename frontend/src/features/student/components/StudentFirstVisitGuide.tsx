@@ -1,11 +1,4 @@
-import { AppImage, Button } from "../../../components";
-import "./StudentFirstVisitGuide.css";
-
-const STEPS = [
-  "자주 가는 가게에 개선안을 보내거나 올라온 의뢰에 지원해요",
-  "사장님이 받아들이면 작업이 시작돼요",
-  "초안을 내고, 사장님께 수정 요청을 받으면 수정안도 제출해요. 완료되면 작업비가 정산돼요.",
-];
+import { TodoStartCard } from "../../../components";
 
 interface StudentFirstVisitGuideProps {
   /** 「첫 제안 쓰기」 */
@@ -13,31 +6,31 @@ interface StudentFirstVisitGuideProps {
 }
 
 /**
- * 피그마 「학생 홈 - 처음」의 안내. 작업 · 지원 · 제안이 하나도 없는 계정의 홈에서
- * 할 일 목록 대신 보인다. 하나라도 생기면 일반 홈으로 돌아간다.
+ * 피그마 「학생 홈 - 처음」의 확인할 일 카드 (현재=처음, ADR 0051). 작업 · 지원 · 제안이 하나도 없는 계정의
+ * 홈에서 할 일 카드 자리에 보인다. 하나라도 생기면 일반 홈으로 돌아간다
  */
 function StudentFirstVisitGuide({ onStart }: StudentFirstVisitGuideProps) {
   return (
-    <section className="student-first-visit">
-      <AppImage name="roleStudent" width={96} priority alt="" />
-      <h2 className="student-first-visit__title">{"월계1동 가게에\n첫 제안을 보내 볼까요?"}</h2>
-      <div className="student-first-visit__card">
-        <h3 className="student-first-visit__card-title">골목인턴은 이렇게 써요</h3>
-        <ol className="student-first-visit__steps">
-          {STEPS.map((step, i) => (
-            <li key={step} className="student-first-visit__step">
-              <span className="student-first-visit__number" aria-hidden="true">
-                {i + 1}
-              </span>
-              {step}
-            </li>
-          ))}
-        </ol>
-        <Button tone="student" fullWidth onClick={onStart}>
-          첫 제안 쓰기
-        </Button>
-      </div>
-    </section>
+    <TodoStartCard
+      tone="student"
+      title={"첫 제안을\n보내 볼까요?"}
+      description={"제안이나 지원이 생기면\n여기서 확인해요"}
+      steps={[
+        <>
+          가게에 <strong>제안</strong>을 보내거나 <strong>의뢰에 지원</strong>해요
+        </>,
+        <>
+          사장님이 받아들이면 <strong>작업을 시작</strong>해요
+        </>,
+        <>
+          <strong>초안</strong>과 <strong>수정안</strong>을 내고 <strong>완료</strong>되면
+          <br />
+          작업비를 받아요
+        </>,
+      ]}
+      actionLabel="첫 제안 쓰기"
+      onAction={onStart}
+    />
   );
 }
 
