@@ -1,4 +1,5 @@
 .tab-bar {
+  position: relative;
   display: flex;
   box-sizing: border-box;
   width: 100%;
@@ -15,6 +16,7 @@
 }
 
 .tab-bar__tab {
+  position: relative;
   display: flex;
   flex: 1;
   flex-direction: column;
@@ -35,9 +37,62 @@
 }
 
 .tab-bar__tab--current {
-  background: rgba(12, 12, 12, 0.08);
   font-weight: 700;
   color: var(--color-black);
+}
+
+/*
+ * 선택 배경 (ADR 0055). 탭 한 칸 크기로 탭 뒤에 깔리고, 새 탭으로 미끄러진다.
+ * 살짝 튕기며 멈추고, 가는 동안 옆으로 늘어났다 돌아온다
+ */
+.tab-bar__indicator {
+  position: absolute;
+  top: 5px;
+  bottom: 5px;
+  left: 5px;
+  width: calc((100% - 10px) / 3);
+  border-radius: 24px;
+  background: rgba(12, 12, 12, 0.08);
+  translate: calc(var(--tab-index, 0) * 100%) 0;
+  transition: translate 0.38s cubic-bezier(0.34, 1.18, 0.64, 1);
+  pointer-events: none;
+}
+
+.tab-bar__indicator--moving {
+  animation: tab-bar-stretch 0.38s ease-out;
+}
+
+@keyframes tab-bar-stretch {
+  0% {
+    scale: 1 1;
+  }
+
+  40% {
+    scale: 1.16 0.92;
+  }
+
+  100% {
+    scale: 1 1;
+  }
+}
+
+/* 새 탭 아이콘은 선택 배경이 닿을 즈음 한 번 톡 튄다 */
+.tab-bar__tab--arrived .tab-bar__icon {
+  animation: tab-bar-pop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) 0.12s both;
+}
+
+@keyframes tab-bar-pop {
+  0% {
+    scale: 1;
+  }
+
+  45% {
+    scale: 1.2;
+  }
+
+  100% {
+    scale: 1;
+  }
 }
 
 .tab-bar__tab:focus-visible {
@@ -93,4 +148,12 @@
 
 .tab-bar__tab:active {
   transform: scale(0.94);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tab-bar__indicator,
+  .tab-bar__tab--arrived .tab-bar__icon {
+    transition: none;
+    animation: none;
+  }
 }
