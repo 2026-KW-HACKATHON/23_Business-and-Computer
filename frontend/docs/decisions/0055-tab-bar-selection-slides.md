@@ -14,7 +14,7 @@ pill from the old tab to the new one and pops the new tab's icon once.
 - Each main tab is its own route, and every tab screen mounts its own
   `MainTabScreen`, so a tab change draws a new `TabBar` that does not know
   where the pill was.
-- Screens change without a transition. Pressing a tab shrinks it to 94% with
+- Tab changes have no screen transition. Pressing a tab shrinks it to 94% with
   the shared press shade (ADR 0046).
 - Figma: 「하단 탭바 (글래스 · 3칸)」 (node 2107-289) on 「0. 스타일 가이드」;
   its description states the motion.

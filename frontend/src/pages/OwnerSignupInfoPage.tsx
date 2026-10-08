@@ -2,18 +2,20 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { AppBar, Button, Checkbox, Chip, StepIndicator, TextField } from "../components";
 import { TermsSheet, isStoreInfoComplete, useOwnerSignup } from "../features/signup";
+import { usePushed } from "../hooks/usePushed";
 import { STORE_CATEGORIES } from "../types/storeCategory";
 import "./SignupPage.css";
 import "./OwnerSignupInfoPage.css";
 
 /** 피그마 「회원가입 - 프로필 입력(사장님) 1/3」 */
 function OwnerSignupInfoPage() {
+  const pushed = usePushed();
   const navigate = useNavigate();
   const { draft, update } = useOwnerSignup();
   const [termsOpen, setTermsOpen] = useState(false);
 
   return (
-    <div className="signup">
+    <div className={`signup${pushed ? " screen-pushed" : ""}`}>
       <AppBar
         title="가게 정보 입력"
         onBack={() => navigate("/signup/role")}

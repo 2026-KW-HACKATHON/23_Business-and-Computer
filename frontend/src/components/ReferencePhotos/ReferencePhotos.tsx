@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { MouseEvent } from "react";
 import { createPortal } from "react-dom";
 import "./ReferencePhotos.css";
@@ -98,6 +98,9 @@ interface PhotoViewerProps {
   onClose: () => void;
 }
 
+/** 사진 보기가 사라지는 시간(ms). ReferencePhotos.css 의 나가는 전환과 같다 */
+const VIEWER_EXIT_MS = 160;
+
 /**
  * 사진 크게 보기. 앱 화면 폭 안을 덮고, 바깥 · 사진을 누르거나 Esc 로 닫는다.
  * 여러 장이면 양옆 화살표 · 방향키로 넘긴다. 참고 사진 칸 밖(사진 고르는 칸의 썸네일 등)에서도 쓴다
@@ -105,17 +108,27 @@ interface PhotoViewerProps {
 export function PhotoViewer({ photos, index, onIndex, onClose }: PhotoViewerProps) {
   const many = photos.length > 1;
   const photo = photos[index];
+  // 닫을 때는 서서히 사라진 뒤에 부모에게 알린다 (부모는 받자마자 지운다)
+  const [closing, setClosing] = useState(false);
+  const closingRef = useRef(false);
+  const close = useCallback(() => {
+    if (closingRef.current) return;
+    closingRef.current = true;
+    setClosing(true);
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    window.setTimeout(onClose, reduce ? 0 : VIEWER_EXIT_MS);
+  }, [onClose]);
 
   useEffect(() => {
     const step = (delta: number) => onIndex((index + delta + photos.length) % photos.length);
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape") close();
       else if (e.key === "ArrowRight" && photos.length > 1) step(1);
       else if (e.key === "ArrowLeft" && photos.length > 1) step(-1);
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [index, photos.length, onIndex, onClose]);
+  }, [index, photos.length, onIndex, close]);
 
   // 보는 동안 뒤 화면이 스크롤되지 않게
   useEffect(() => {
@@ -135,11 +148,11 @@ export function PhotoViewer({ photos, index, onIndex, onClose }: PhotoViewerProp
 
   return createPortal(
     <div
-      className="photo-viewer"
+      className={`photo-viewer${closing ? " photo-viewer--exit" : ""}`}
       role="dialog"
       aria-modal="true"
       aria-label={`${photo.name} 크게 보기`}
-      onClick={onClose}
+      onClick={close}
     >
       <div className="photo-viewer__top">
         <span className="photo-viewer__name">{photo.name}</span>
@@ -148,7 +161,7 @@ export function PhotoViewer({ photos, index, onIndex, onClose }: PhotoViewerProp
             {index + 1} / {photos.length}
           </span>
         )}
-        <button type="button" className="photo-viewer__close" aria-label="닫기" onClick={onClose}>
+        <button type="button" className="photo-viewer__close" aria-label="닫기" onClick={close}>
           ✕
         </button>
       </div>

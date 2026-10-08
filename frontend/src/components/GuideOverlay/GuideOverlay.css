@@ -9,6 +9,19 @@
   max-width: 390px;
   transform: translateX(-50%);
   cursor: pointer;
+  transition: opacity 0.2s ease;
+}
+
+/* 닫힐 때는 덮개 전체가 서서히 사라진다 */
+.guide-overlay--exit {
+  opacity: 0;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .guide-overlay {
+    transition: none;
+  }
 }
 
 /* 서서히 어두워진다 */

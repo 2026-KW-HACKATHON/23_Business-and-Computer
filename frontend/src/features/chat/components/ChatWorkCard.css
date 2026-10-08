@@ -95,14 +95,27 @@
   transform: rotate(180deg);
 }
 
+/* 펼치면 고를 것이 화살표 쪽에서 밀려 나오며 나타난다 */
 .chat-work-card__trouble-items {
   display: flex;
   align-items: center;
   gap: 12px;
+  animation: chat-work-card-trouble-in 0.2s ease-out;
+}
+
+@keyframes chat-work-card-trouble-in {
+  from {
+    opacity: 0;
+    transform: translateX(-8px);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .chat-work-card__trouble-arrow {
     transition: none;
+  }
+
+  .chat-work-card__trouble-items {
+    animation: none;
   }
 }

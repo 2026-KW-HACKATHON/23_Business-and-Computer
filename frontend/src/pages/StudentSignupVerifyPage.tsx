@@ -15,6 +15,7 @@ import {
   verifyCode,
 } from "../features/signup";
 import type { StudentVerifyReturnState } from "../features/signup";
+import { usePushed } from "../hooks/usePushed";
 import "./SignupPage.css";
 import "./StudentSignupVerifyPage.css";
 
@@ -47,6 +48,7 @@ const NOTICE_TEXT: Record<Exclude<Notice, null>, string> = {
  * 요청 중·재발송 제한·서버 오류·인증 완료(재방문)는 피그마에 없어 버튼 문구와 안내 문구로만 보여준다 (ADR 0019).
  */
 function StudentSignupVerifyPage() {
+  const pushed = usePushed();
   const navigate = useNavigate();
   const returned = useLocation().state as StudentVerifyReturnState | null;
   const { draft, update } = useStudentSignup();
@@ -246,7 +248,7 @@ function StudentSignupVerifyPage() {
   };
 
   return (
-    <div className="signup">
+    <div className={`signup${pushed ? " screen-pushed" : ""}`}>
       <AppBar
         title="학생 인증(메일 인증)"
         onBack={() => navigate("/signup/student/1")}

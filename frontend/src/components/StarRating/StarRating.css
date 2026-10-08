@@ -29,9 +29,21 @@ button.star-rating__star:focus-visible {
   border-radius: 4px;
 }
 
-/* 누를 때 반응: 바탕 대신 별이 커졌다(올림) 작아진다(누름) */
+/* 누를 때 반응: 바탕 대신 별이 커졌다(올림) 작아진다(누름). 고른 별은 노랗게 물들며 톡 커진다 */
 button.star-rating__star {
-  transition: transform 0.12s ease;
+  transition:
+    color 0.15s ease,
+    transform 0.12s ease;
+}
+
+button.star-rating__star--on {
+  animation: star-rating-pop 0.3s cubic-bezier(0.3, 1.4, 0.5, 1);
+}
+
+@keyframes star-rating-pop {
+  50% {
+    transform: scale(1.25);
+  }
 }
 
 button.star-rating__star:hover,
@@ -47,4 +59,14 @@ button.star-rating__star:active {
 
 button.star-rating__star:active {
   transform: scale(0.9);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  button.star-rating__star {
+    transition: none;
+  }
+
+  button.star-rating__star--on {
+    animation: none;
+  }
 }

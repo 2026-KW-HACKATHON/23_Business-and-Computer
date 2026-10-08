@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { AppBar, AppImage, RoleCard } from "../components";
 import { landingPath, startDemo } from "../features/auth";
 import type { DemoLoginResult } from "../features/auth";
+import { usePushed } from "../hooks/usePushed";
 import type { Role } from "../types/role";
 import { markDemoGuide } from "../lib/demoGuide";
 import "./RoleSelectPage.css";
@@ -44,6 +45,7 @@ const ROLES: { role: Role; description: string }[] = [
  * 둘러보기는 POST /demo/login 으로 데모 계정에 들어가 그 역할의 홈으로 간다.
  */
 function RoleSelectPage({ mode }: RoleSelectPageProps) {
+  const pushed = usePushed();
   const navigate = useNavigate();
   const [entering, setEntering] = useState<Role | null>(null);
   const [error, setError] = useState("");
@@ -72,7 +74,7 @@ function RoleSelectPage({ mode }: RoleSelectPageProps) {
   };
 
   return (
-    <div className="role-select">
+    <div className={`role-select${pushed ? " screen-pushed" : ""}`}>
       <AppBar title={TITLES[mode]} onBack={() => navigate("/login")} />
 
       <main className="role-select__content">

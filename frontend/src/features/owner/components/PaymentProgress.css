@@ -11,6 +11,23 @@
   cursor: pointer;
 }
 
+/* 결제 창으로 넘어가는 화면이 갑자기 덮지 않고 서서히 나타난다 */
+.pay-progress {
+  animation: pay-progress-in 0.2s ease-out;
+}
+
+@keyframes pay-progress-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pay-progress {
+    animation: none;
+  }
+}
+
 /* 피그마: 로딩 표시는 화면 위에서 264px */
 .pay-progress__body {
   display: flex;

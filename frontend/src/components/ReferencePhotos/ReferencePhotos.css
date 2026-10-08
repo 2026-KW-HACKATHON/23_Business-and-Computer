@@ -103,6 +103,27 @@
   justify-content: center;
   background: rgba(0, 0, 0, 0.92);
   font-family: var(--font-sans);
+  /* 서서히 나타나고 서서히 사라진다 */
+  animation: photo-viewer-in 0.2s ease-out;
+  transition: opacity 0.16s ease;
+}
+
+.photo-viewer--exit {
+  opacity: 0;
+  pointer-events: none;
+}
+
+@keyframes photo-viewer-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .photo-viewer {
+    animation: none;
+    transition: none;
+  }
 }
 
 .photo-viewer__image {

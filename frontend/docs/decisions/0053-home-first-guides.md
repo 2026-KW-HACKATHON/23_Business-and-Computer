@@ -37,8 +37,9 @@ Accepted. Two guides cover the home once:
   - 「알겠어요」 (role-color button, 20px from the bottom) rising in at
     `okDelay`, with a role-color glow behind it that spreads and fades every
     second;
-  - 알겠어요, ✕, a tap anywhere, or Esc closes it. `prefers-reduced-motion`
-    shows everything at once without the glow.
+  - 알겠어요, ✕, a tap anywhere, or Esc fades it out over 0.2s and then
+    closes it (ADR 0060). `prefers-reduced-motion` shows everything at once
+    without the glow and closes at once.
 - **Places** (`useGuideMeasure`): what stays lit is drawn again at the place
   of the real element, measured every frame for the first second (the app bar
   badge and the demo strip settle late) and again on resize. The elements

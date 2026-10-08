@@ -30,7 +30,29 @@
 .empathy-count--button {
   transition:
     box-shadow 0.15s ease,
+    color 0.15s ease,
     transform 0.12s ease;
+}
+
+/* 공감하면 하트가 톡 커졌다 돌아온다 */
+.empathy-count--pop img {
+  animation: empathy-pop 0.4s cubic-bezier(0.3, 1.5, 0.5, 1);
+}
+
+@keyframes empathy-pop {
+  40% {
+    transform: scale(1.4);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .empathy-count--button {
+    transition: none;
+  }
+
+  .empathy-count--pop img {
+    animation: none;
+  }
 }
 
 .empathy-count--button:active {

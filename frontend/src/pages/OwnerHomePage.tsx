@@ -194,7 +194,7 @@ function OwnerHomePage() {
             expanded={doneExpanded}
             onAction={() => setDoneExpanded((v) => !v)}
           />
-          <div className="owner-home__list">
+          <div className={`owner-home__list${doneExpanded ? " owner-home__list--expanded" : ""}`}>
             {doneRows.map((item) => (
               <TaskRow
                 key={item.id}
