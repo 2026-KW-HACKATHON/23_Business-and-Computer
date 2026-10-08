@@ -55,6 +55,3 @@ export const SAMPLE_REQUEST_EXAMPLES: RequestExample[] = [
       },
     },
   ];
-
-/** 첫 활동 여부. 백엔드가 알려 줄 때까지 예시 계정은 할 일이 있는 계정이다 */
-export const SAMPLE_FIRST_VISIT = false;
