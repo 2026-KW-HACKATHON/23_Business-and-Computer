@@ -26,27 +26,6 @@ export function chatWorkStageOf(room: ChatRoom): ChatWorkStage | undefined {
 export type ChatWorkDoc = "start" | "draft" | "revisionRequest" | "revision" | "result" | "review" | "canceled";
 
 /**
- * 그 단계까지 쌓인 서류 (생긴 순서). 서류 이력(GET /jobs/{id}/submissions)을 불러오기 전 · 불러오지 못했을 때
- * 지금 단계로 어림한다. withReview 면 끝난 작업에 후기를 붙인다
- */
-export function chatWorkDocs(stage: ChatWorkStage | undefined, withReview = false): ChatWorkDoc[] {
-  switch (stage) {
-    case "draftArrived":
-      return ["start", "draft"];
-    case "revising":
-      return ["start", "draft", "revisionRequest"];
-    case "revisionArrived":
-      return ["start", "draft", "revisionRequest", "revision"];
-    case "completed":
-      return withReview ? ["start", "result", "review"] : ["start", "result"];
-    case "notConcluded":
-      return ["start", "canceled"];
-    default:
-      return ["start"];
-  }
-}
-
-/**
  * 이력 줄 하나. round 는 수정이 두 번 이상일 때 수정 요청 · 수정안의 회차(1부터), past 면 지금 서류가 아닌 지난 서류.
  * submissionId 는 서류 이력에서 온 초안 · 수정안의 결과물 (수정 요청은 그 요청을 받은 결과물)
  */
@@ -57,30 +36,7 @@ export interface ChatWorkEntry {
   submissionId?: number;
 }
 
-/**
- * 서류 이력을 불러오기 전의 작업 이력 줄. revisions 는 마지막 결과물의 수정 번호(초안 0)로, 알면 수정 요청 · 수정안을
- * 회차마다 한 줄씩 「수정 요청 1」「수정안 1」… 로 펼치고 지난 회차는 past. 수정이 한 번뿐이거나 번호를 모르면 한 줄씩
- */
-export function chatWorkEntries(
-  stage: ChatWorkStage | undefined,
-  revisions: number | undefined,
-  withReview = false,
-): ChatWorkEntry[] {
-  const docs = chatWorkDocs(stage, withReview).map((doc): ChatWorkEntry => ({ doc }));
-  if (revisions === undefined || (stage !== "revising" && stage !== "revisionArrived")) return docs;
-  // 수정 요청 수: 고치는 중이면 낸 수정안보다 하나 많다
-  const requests = stage === "revising" ? revisions + 1 : revisions;
-  if (requests <= 1) return docs;
-  const rounds: ChatWorkEntry[] = [];
-  for (let round = 1; round <= requests; round++) {
-    const past = round < requests;
-    rounds.push({ doc: "revisionRequest", round, past });
-    if (past || stage === "revisionArrived") rounds.push({ doc: "revision", round, past });
-  }
-  return [{ doc: "start" }, { doc: "draft" }, ...rounds];
-}
-
-/** 서류 이력의 결과물 하나 (GET /jobs/{id}/submissions). 사장님 · 학생 응답이 같은 모양이다 */
+/** 서류 이력의 결과물 하나 (GET /jobs/{id}/work-history 의 submissions). 사장님 · 학생 응답이 같은 모양이다 */
 export interface ChatWorkSubmission {
   submissionId: number;
   /** 초안 0, 수정안은 1부터 */

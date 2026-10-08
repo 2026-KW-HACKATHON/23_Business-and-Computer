@@ -21,11 +21,13 @@ owner and its selected student may use a room):
   `applicationSummary` · `applicationWorkPlan` · `applicationDeliveryMethod`
   (the selected application; null for a job started from a proposal),
   `lastMessage { type, preview, createdAt }`, and `unreadCount`.
-- GET /chat-rooms/{roomId} → one room.
+- GET /chat-rooms/{roomId} → the room entry: every room field at the top
+  level (as in the list), plus `reviewed` (the owner has reviewed the work),
+  `viewerUserId`, and `messages` (the same history as GET …/messages).
 - GET /chat-rooms/{roomId}/messages → `{ viewerUserId, messages }`, the whole
   history in id order with no paging. `viewerUserId` is the logged-in user's
-  `User.id`, on every history answer; the one-message and send answers do not
-  carry it. A message has `id` (number), `roomId`, `clientMessageId`,
+  `User.id`, on every history answer and on the room entry; the one-message
+  and send answers do not carry it. A message has `id` (number), `roomId`, `clientMessageId`,
   `senderUserId`, `type` (TEXT · IMAGE · FILE), `content` (the text, or a
   view URL valid for 15 minutes), `attachmentName`, `contentExpiresAt`, and
   `createdAt`.
@@ -73,12 +75,16 @@ owner and its selected student may use a room):
   mine. Until the first history answer arrives (or if one lacks
   `viewerUserId`), only messages this screen sent are mine.
 - **Refresh**: the list loads on entry and again when the tab becomes visible
-  (a failed refresh keeps the current list). The room loads the room and the
-  history together, then reloads the history every 3 seconds while
-  `document.visibilityState` is visible. When the tab becomes visible again it
-  reloads the history at once and the room card too. A merge keeps a view URL
-  that is valid for more than one more minute, so photos are not downloaded on
-  every reload.
+  (a failed refresh keeps the current list). Entering the room is one
+  request: GET /chat-rooms/{roomId} brings the room, the whole history with
+  `viewerUserId`, and `reviewed`, and `useChatRoom` feeds its messages into the
+  same merge as a history reload. The history then reloads (GET …/messages)
+  every 3 seconds while `document.visibilityState` is visible. When the tab
+  becomes visible again, the same one request reloads the room card and the
+  history at once, with no extra GET …/messages; if a history reload is
+  already running then, the room request runs beside it. A merge keeps a view
+  URL that is valid for more than one more minute, so photos are not
+  downloaded on every reload.
 - **Read**: whenever the last stored message id grows (entering the room or
   receiving a message), PUT /read with that id. A failed read is sent again
   with the next new message. `src/features/chat/lib/readSync.ts` tracks each

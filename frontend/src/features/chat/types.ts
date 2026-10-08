@@ -3,6 +3,9 @@ import type { ChatMessageType, ChatRoomResponse } from "./api/chatApi";
 /** 채팅방 하나 (GET /me/chat-rooms · GET /chat-rooms/{roomId}) */
 export type ChatRoom = ChatRoomResponse;
 
+/** 채팅방 화면의 방 (GET /chat-rooms/{roomId}). reviewed = 이 작업에 사장님 후기가 등록됐는지 */
+export type ChatRoomEntry = ChatRoom & { reviewed: boolean };
+
 /** 화면에 그리는 메시지 하나. 보내는 중 · 보내지 못한 글도 같은 모양이다 */
 export interface ChatMessage {
   /** 서버 id. 아직 저장되지 않은 글은 없다 */

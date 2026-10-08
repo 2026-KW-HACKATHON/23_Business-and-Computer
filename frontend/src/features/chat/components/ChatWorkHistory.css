@@ -105,9 +105,3 @@
   line-height: 1;
   color: var(--text-placeholder);
 }
-
-.chat-work-history__note {
-  font-size: 12px;
-  line-height: 16px;
-  color: var(--text-placeholder);
-}
