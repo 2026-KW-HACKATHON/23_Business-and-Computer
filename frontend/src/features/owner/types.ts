@@ -120,8 +120,11 @@ export interface OwnerDoneItem {
 
 /** 사장님 홈 한 화면 분량. 날짜는 모두 YYYY-MM-DD */
 export interface OwnerHome {
-  /** 백엔드가 알려 주는 첫 활동 여부. 처음이면 할 일 대신 사용법 안내를 보여 준다 */
-  firstVisit: boolean;
+  /**
+   * 이력이 하나도 없는 계정이면 true: 모집 중 · 받은 제안 · 진행 중 · 끝난 의뢰를 다 불러왔는데 모두 비었을 때.
+   * 하나라도 있거나 불러오지 못했으면 false, 아직 불러오는 중이면 undefined (모름)
+   */
+  firstVisit: boolean | undefined;
   /** 도착한 결과물 → 결정 대기 제안 → 지원자가 생긴 의뢰. 받은 제안은 불러온 뒤에만 들어간다 */
   todos: OwnerTodo[];
   /** 받은 제안(GET /me/received-proposals)을 불러온 상태와 다시 시도 */

@@ -20,6 +20,7 @@ import type {
 import { implicitSpecialty, selectableCategories, useSpecialties } from "../features/specialty";
 import { useObjectUrls } from "../hooks/useObjectUrls";
 import { MAX_SPECIALTY_BADGES } from "../types/specialty";
+import { markSignupGuide } from "../lib/signupGuide";
 import "./SignupPage.css";
 import "./StudentSignupProfilePage.css";
 
@@ -193,6 +194,8 @@ function StudentSignupProfilePage() {
       case "registered":
         // 뒤로 가기로 돌아오지 않게 교체한다
         update({ completed: true });
+        // 가입 후 첫 홈에서 한 번 안내한다 (ADR 0053)
+        markSignupGuide("student");
         navigate("/signup/student/done", { replace: true });
         break;
       case "studentNumberTaken":

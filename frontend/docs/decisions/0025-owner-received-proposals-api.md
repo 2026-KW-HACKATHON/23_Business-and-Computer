@@ -77,7 +77,7 @@ The owner side read `SAMPLE_PROPOSALS`, so a proposal a student sent
   - Home: only PENDING proposals become 「새 제안」 cards. The card badge is
     the first category name, and the student line shows `major`. While the
     list loads or after a failure, 확인할 일 shows `LoadNotice` and no count.
-  - `firstVisit` comes from the sample flag.
+  - `firstVisit` comes from the home's lists, this one included (ADR 0051).
 - **Status chip** (`receivedProposalStatusLabel`):
   - PENDING 「결정 대기」, AWAITING_START 「결제 완료」, ACCEPTED 「작업 중」,
     REJECTED · CANCELLED 「성사되지 않음」.

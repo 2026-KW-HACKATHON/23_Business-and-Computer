@@ -6,8 +6,7 @@
 }
 
 /* 섹션 사이 8px 회색 띠 */
-.student-home__section + .student-home__section,
-.student-first-visit + .student-home__section {
+.student-home__section + .student-home__section {
   border-top: 8px solid var(--role-muted);
 }
 
