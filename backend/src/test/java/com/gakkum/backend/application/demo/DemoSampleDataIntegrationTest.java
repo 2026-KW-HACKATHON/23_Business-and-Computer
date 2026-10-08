@@ -10,6 +10,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -372,6 +373,25 @@ class DemoSampleDataIntegrationTest {
                 .contains("튀김은 세트 칸으로 따로 빼 볼게요.", "두 시안 중에 골라 주세요.");
         assertThat(read(studentToken, "/me/chat-rooms"))
                 .contains("네! 내일 오후 3시 괜찮으세요?", "세트 주문이 많이 들어왔으면 좋겠어요.");
+    }
+
+    @Test
+    @DisplayName("채팅방은 마지막 메시지를 받는 쪽이 아직 읽지 않은 방에만 안 읽은 메시지가 하나 남는다")
+    void seedsUnreadChatMessages() throws Exception {
+        assertThat(unreadRooms(ownerToken)).isEqualTo(Map.of("메뉴판 디자인 변경", 1L, "단골 쿠폰·도장카드 디자인", 1L,
+                "배달앱 리뷰 분석 리포트", 1L, "가게 소개글 다시 쓰기", 1L));
+        assertThat(unreadRooms(studentToken)).isEqualTo(Map.of("가게 소개 릴스 영상 편집", 1L));
+    }
+
+    /** 안 읽은 메시지가 있는 채팅방의 의뢰 제목 → 안 읽은 메시지 수 */
+    private Map<String, Long> unreadRooms(String token) throws Exception {
+        Map<String, Long> unread = new HashMap<>();
+        for (JsonNode room : data(read(token, "/me/chat-rooms")).get("rooms")) {
+            if (room.get("unreadCount").asLong() > 0) {
+                unread.put(room.get("jobTitle").asString(), room.get("unreadCount").asLong());
+            }
+        }
+        return unread;
     }
 
     private JobStatus status(String title) {
