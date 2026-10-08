@@ -3,6 +3,8 @@ package com.gakkum.backend.domain.job.dto;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -30,7 +32,15 @@ import lombok.Getter;
 
 public final class JobQueryDto {
 
+    // 완료 날짜를 내리는 기준 시간대
+    private static final ZoneId COMPLETED_DATE_ZONE = ZoneId.of("Asia/Seoul");
+
     private JobQueryDto() {
+    }
+
+    // 완료 시각은 UTC로 저장되어 있어 한국 시간으로 옮긴 뒤 날짜를 뽑는다
+    private static LocalDate completedDate(LocalDateTime completedAt) {
+        return completedAt.atOffset(ZoneOffset.UTC).atZoneSameInstant(COMPLETED_DATE_ZONE).toLocalDate();
     }
 
     @Getter
@@ -129,6 +139,23 @@ public final class JobQueryDto {
         }
     }
 
+    /** 제출물 파일 하나. 크기를 기록하기 전에 제출된 파일은 size가 null이다. */
+    @Getter
+    @AllArgsConstructor(access = AccessLevel.PRIVATE)
+    public static class SubmissionFileResult {
+
+        private final String fileUrl;
+        private final Long size;
+
+        /** fileUrls 순서대로 제출 시점에 저장한 바이트 크기를 연결한다. */
+        public static List<SubmissionFileResult> listOf(JobSubmission submission) {
+            Map<String, Long> fileSizes = submission.getFileSizes();
+            return submission.getFileUrls().stream()
+                    .map(fileUrl -> new SubmissionFileResult(fileUrl, fileSizes.get(fileUrl)))
+                    .toList();
+        }
+    }
+
     @Getter
     @AllArgsConstructor(access = AccessLevel.PRIVATE)
     public static class JobSubmissionDetailData {
@@ -151,6 +178,7 @@ public final class JobQueryDto {
         private final String studentName;
         private final String submissionType;
         private final List<String> fileUrls;
+        private final List<SubmissionFileResult> files;
         private final String message;
         private final Integer revisionNumber;
 
@@ -162,6 +190,7 @@ public final class JobQueryDto {
                     .studentName(student.getName())
                     .submissionType(submission.getSubmissionType().name())
                     .fileUrls(List.copyOf(submission.getFileUrls()))
+                    .files(SubmissionFileResult.listOf(submission))
                     .message(submission.getMessage())
                     .revisionNumber(submission.getRevisionNumber())
                     .build();
@@ -178,6 +207,7 @@ public final class JobQueryDto {
         private final String submissionType;
         private final Integer revisionNumber;
         private final List<String> fileUrls;
+        private final List<SubmissionFileResult> files;
         private final String message;
         private final String reviewStatus;
         private final LocalDateTime submittedAt;
@@ -190,6 +220,7 @@ public final class JobQueryDto {
                     .submissionType(submission.getSubmissionType().name())
                     .revisionNumber(submission.getRevisionNumber())
                     .fileUrls(List.copyOf(submission.getFileUrls()))
+                    .files(SubmissionFileResult.listOf(submission))
                     .message(submission.getMessage())
                     .reviewStatus(submission.getReviewStatus().name())
                     .submittedAt(submission.getCreatedAt())
@@ -245,18 +276,19 @@ public final class JobQueryDto {
         private final boolean normalCompleted;
         private final Long workFee;
         private final List<String> fileUrls;
+        private final List<SubmissionFileResult> files;
         private final String message;
         private final List<WorkHistoryResult> workHistory;
 
         /**
-         * 결과물과 작업 이력을 만든다. 날짜는 서버 로컬 시각 기준이다.
+         * 결과물과 작업 이력을 만든다. 완료 날짜는 UTC로 저장된 완료 시각의 한국 날짜이고, 제출·수정 요청 날짜는 저장된 시각의 날짜 그대로다.
          * 이력은 시작 → 제출물별(제출, 수정 요청) → 완료 순이며, 요청 시각이 기록되지 않은 과거 수정 요청은 날짜가 null이다.
          * @param startedAt 작업 시작일. 일반 의뢰는 결제 승인일, 제안 의뢰는 학생이 작업을 시작한 날
          */
         public static JobResultResult of(JobResultData data, User student, LocalDate startedAt) {
             Job job = data.getJob();
             JobSubmission approved = data.getApprovedSubmission();
-            LocalDate completedAt = job.getCompletedAt().toLocalDate();
+            LocalDate completedAt = completedDate(job.getCompletedAt());
 
             List<WorkHistoryResult> workHistory = new ArrayList<>();
             workHistory.add(WorkHistoryResult.of(JobWorkHistoryType.STARTED, startedAt));
@@ -280,6 +312,7 @@ public final class JobQueryDto {
                     .normalCompleted(true)
                     .workFee(job.getBudget())
                     .fileUrls(List.copyOf(approved.getFileUrls()))
+                    .files(SubmissionFileResult.listOf(approved))
                     .message(approved.getMessage())
                     .workHistory(List.copyOf(workHistory))
                     .build();
@@ -476,7 +509,7 @@ public final class JobQueryDto {
                     .title(job.getTitle())
                     .specialtyCategories(specialtyCategories)
                     .matchedWorker(student == null ? null : MatchedWorkerResult.of(student.getId(), worker.getName()))
-                    .completedAt(job.getCompletedAt().toLocalDate())
+                    .completedAt(completedDate(job.getCompletedAt()))
                     .progressStage(data.getProgressStage())
                     .reviewed(reviewed)
                     .build();

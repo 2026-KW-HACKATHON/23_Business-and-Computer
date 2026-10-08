@@ -1,5 +1,7 @@
 package com.gakkum.backend.application.student.facade;
 
+import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.LinkedHashSet;
@@ -59,8 +61,10 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class StudentFacade {
 
-    // 내 정보에 함께 내리는 최신 리뷰·정산 완료 내역의 최대 개수
-    private static final int ME_PREVIEW_SIZE = 3;
+    // 내 정보에 함께 내리는 최신 정산 완료 내역의 최대 개수
+    private static final int ME_SETTLEMENT_PREVIEW_SIZE = 3;
+    // 정산 날짜의 기준 시간대
+    private static final ZoneId SETTLED_DATE_ZONE = ZoneId.of("Asia/Seoul");
 
     private final UserService userService;
     private final StudentService studentService;
@@ -105,9 +109,9 @@ public class StudentFacade {
     }
 
     /**
-     * 학생 본인의 정보와 활동 요약. 리뷰 수와 평균 별점은 받은 전체 리뷰 기준이고, 리뷰와 정산 완료 내역은 최신 세 개만 내린다.
+     * 학생 본인의 정보와 활동 요약. 리뷰는 받은 전체를 최신순으로 내리고, 정산 완료 내역은 최신 세 개만 내린다.
      * 리뷰와 정산에 필요한 의뢰·매장은 합쳐서 한 번씩만 조회하고, 리뷰 의뢰의 소분류와 학생 특기의 분류 상세도 한 번에 조회한다.
-     * 매장 이름과 분류는 조회 시점의 현재 값이다. 학생 프로필이나 참조하는 데이터가 없으면 500으로 거부한다.
+     * 의뢰 제목·매장 이름·분류는 조회 시점의 현재 값이다. 학생 프로필이나 참조하는 데이터가 없으면 500으로 거부한다.
      */
     @Transactional(readOnly = true)
     public StudentMeResult getMe(String username) {
@@ -118,8 +122,9 @@ public class StudentFacade {
         Student student = studentService.findStudentProfileByUserId(user.getId())
                 .orElseThrow(() -> new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR));
 
-        List<Review> reviews = reviewService.getLatestStudentReviews(student.getId(), ME_PREVIEW_SIZE);
-        List<SettlementHistoryData> payments = paymentService.getLatestSettledPayments(student.getId(), ME_PREVIEW_SIZE);
+        List<Review> reviews = reviewService.getStudentReviews(student.getId());
+        List<SettlementHistoryData> payments = paymentService.getLatestSettledPayments(
+                student.getId(), ME_SETTLEMENT_PREVIEW_SIZE);
 
         Set<Long> reviewJobIds = reviews.stream()
                 .map(Review::getJobId)
@@ -156,12 +161,16 @@ public class StudentFacade {
                 certificateService.getStudentCertificates(student.getId()),
                 reviewService.countStudentReviews(student.getId()),
                 reviews.stream()
-                        .map(review -> StudentReceivedReviewResult.of(
-                                review,
-                                storeNamesByOwnerProfileId.get(jobsById.get(review.getJobId()).getOwnerProfileId()),
-                                groupSpecialties(
-                                        specialtyIdsByJobId.getOrDefault(review.getJobId(), List.of()),
-                                        specialtiesById)))
+                        .map(review -> {
+                            Job job = jobsById.get(review.getJobId());
+                            return StudentReceivedReviewResult.of(
+                                    review,
+                                    job.getTitle(),
+                                    storeNamesByOwnerProfileId.get(job.getOwnerProfileId()),
+                                    groupSpecialties(
+                                            specialtyIdsByJobId.getOrDefault(review.getJobId(), List.of()),
+                                            specialtiesById));
+                        })
                         .toList(),
                 payments.stream()
                         .map(payment -> settledItem(payment, jobsById.get(payment.getJobId()), student,
@@ -255,7 +264,7 @@ public class StudentFacade {
         }
     }
 
-    // 정산 내역 조회와 같은 무결성 기준으로 확인한다. 금액은 저장된 결제 금액, 정산일은 의뢰 완료일이다
+    // 정산 내역 조회와 같은 무결성 기준으로 확인한다. 금액은 저장된 결제 금액, 정산일은 UTC로 저장된 의뢰 완료 시각의 한국 날짜다
     private SettlementHistoryItemResult settledItem(
             SettlementHistoryData payment, Job job, Student student, Map<Long, JobApplication> applicationsById,
             Map<Long, String> storeNamesByOwnerProfileId) {
@@ -280,7 +289,8 @@ public class StudentFacade {
             throw new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR);
         }
         return SettlementHistoryItemResult.of(job.getId(), job.getTitle(), payment.getAmount(),
-                job.getCompletedAt().toLocalDate(), storeNamesByOwnerProfileId.get(job.getOwnerProfileId()),
+                job.getCompletedAt().atOffset(ZoneOffset.UTC).atZoneSameInstant(SETTLED_DATE_ZONE).toLocalDate(),
+                storeNamesByOwnerProfileId.get(job.getOwnerProfileId()),
                 SettlementHistoryStatus.SETTLED);
     }
 

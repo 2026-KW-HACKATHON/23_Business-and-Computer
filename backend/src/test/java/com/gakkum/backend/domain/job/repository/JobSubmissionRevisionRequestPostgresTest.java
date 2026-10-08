@@ -9,7 +9,9 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.util.List;
+import java.util.Map;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -97,7 +99,7 @@ class JobSubmissionRevisionRequestPostgresTest {
         assertThat(found.getReviewStatus()).isEqualTo(JobSubmissionReviewStatus.REVISION_REQUESTED);
         assertThat(found.getReviewComment()).isEqualTo(MESSAGE);
         assertThat(found.getRevisionReferenceImageUrls()).containsExactlyElementsOf(IMAGES);
-        assertThat(found.getReviewedAt()).isEqualTo(LocalDateTime.ofInstant(NOW, ZoneId.systemDefault()));
+        assertThat(found.getReviewedAt()).isEqualTo(LocalDateTime.ofInstant(NOW, ZoneOffset.UTC));
         assertThat(found.getMessage()).isEqualTo("제출 메시지");
         assertThat(found.getFileUrls()).containsExactly("https://example.com/b.png", "https://example.com/a.pdf");
     }
@@ -189,6 +191,36 @@ class JobSubmissionRevisionRequestPostgresTest {
 
         assertThatThrownBy(() -> entityManager.createNativeQuery(
                         "update job_submissions set revision_reference_image_urls = " + sqlValue + " where id = :id")
+                .setParameter("id", id).executeUpdate()).isInstanceOf(Exception.class);
+    }
+
+    @Test
+    @DisplayName("파일 크기를 넘기지 않은 제출물은 빈 JSONB 객체로, 넘긴 제출물은 URL별 바이트 크기로 저장되고 재조회된다")
+    void savesAndReloadsFileSizes() {
+        Long legacyId = submission(job(JobStatus.MATCHED, 2), 0, JobSubmissionReviewStatus.PENDING);
+        Map<String, Long> fileSizes = Map.of("https://example.com/b.png", 2048L, "https://example.com/a.pdf", 5_368_709_120L);
+        Long sizedId = jobSubmissionRepository.saveAndFlush(JobSubmission.create(
+                job(JobStatus.MATCHED, 2), JobSubmissionType.DRAFT, 0,
+                List.of("https://example.com/b.png", "https://example.com/a.pdf"), fileSizes, "제출 메시지")).getId();
+        entityManager.clear();
+
+        assertThat(jobSubmissionRepository.findById(legacyId).orElseThrow().getFileSizes()).isEmpty();
+        JobSubmission sized = jobSubmissionRepository.findById(sizedId).orElseThrow();
+        assertThat(sized.getFileSizes()).containsExactlyInAnyOrderEntriesOf(fileSizes);
+        assertThat(sized.getFileUrls()).containsExactly("https://example.com/b.png", "https://example.com/a.pdf");
+        assertThat(entityManager.createNativeQuery(
+                        "select jsonb_typeof(file_sizes) from job_submissions where id = :id")
+                .setParameter("id", legacyId).getSingleResult()).isEqualTo("object");
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"null", "'[]'::jsonb", "'1'::jsonb"})
+    @DisplayName("DB는 NULL과 객체가 아닌 파일 크기 JSON을 거부한다")
+    void rejectsNonObjectFileSizes(String sqlValue) {
+        Long id = submission(job(JobStatus.MATCHED, 2), 0, JobSubmissionReviewStatus.PENDING);
+
+        assertThatThrownBy(() -> entityManager.createNativeQuery(
+                        "update job_submissions set file_sizes = " + sqlValue + " where id = :id")
                 .setParameter("id", id).executeUpdate()).isInstanceOf(Exception.class);
     }
 

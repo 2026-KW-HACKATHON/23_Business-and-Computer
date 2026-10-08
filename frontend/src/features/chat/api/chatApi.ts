@@ -125,3 +125,54 @@ export async function sendChatText(
   if (!data) throw new Error("Chat send response has no data");
   return data;
 }
+
+/** POST /chat-rooms/{roomId}/attachments/uploads 의 답 (PrepareAttachmentUploadResponse) */
+export interface ChatAttachmentUploadResponse {
+  uploadId: string;
+  /** 저장소에 바로 PUT 하는 주소 (10분) */
+  uploadUrl: string;
+  /** 업로드 주소 서명에 들어간 헤더 (content-type · x-amz-tagging). PUT 에 그대로 붙인다 */
+  uploadHeaders: Record<string, string>;
+  uploadUrlExpiresAt: string;
+}
+
+/**
+ * POST /chat-rooms/{roomId}/attachments/uploads — 사진 · 파일 하나를 올릴 준비. 준비한 업로드는
+ * 1시간 안에 메시지로 보내야 한다
+ */
+export async function prepareChatAttachmentUpload(
+  roomId: string,
+  request: { type: "IMAGE" | "FILE"; fileName: string; contentType: string; size: number },
+): Promise<ChatAttachmentUploadResponse> {
+  const data = await apiData<ChatAttachmentUploadResponse | undefined>(
+    `/chat-rooms/${encodeURIComponent(roomId)}/attachments/uploads`,
+    { method: "POST", body: JSON.stringify(request) },
+  );
+  if (!data) throw new Error("Chat attachment upload response has no data");
+  return data;
+}
+
+/**
+ * 준비한 주소로 파일을 올린다. 저장소는 백엔드가 아니라서 apiFetch(쿠키 · JSON 헤더)가 아닌
+ * fetch 를 직접 쓰고, 서명된 헤더만 그대로 붙인다. 실패하면 던진다
+ */
+export async function putChatAttachment(upload: ChatAttachmentUploadResponse, file: File): Promise<void> {
+  const put = await fetch(upload.uploadUrl, { method: "PUT", headers: upload.uploadHeaders, body: file });
+  if (!put.ok) throw new Error(`Chat attachment upload failed (${put.status})`);
+}
+
+/**
+ * POST /chat-rooms/{roomId}/messages/attachments — 올린 사진 · 파일을 메시지로 보낸다. 같은
+ * clientMessageId · uploadId 로 다시 보내면 처음 저장한 메시지를 돌려준다
+ */
+export async function sendChatAttachment(
+  roomId: string,
+  request: { clientMessageId: string; type: "IMAGE" | "FILE"; uploadId: string },
+): Promise<ChatMessageResponse> {
+  const data = await apiData<ChatMessageResponse | undefined>(
+    `/chat-rooms/${encodeURIComponent(roomId)}/messages/attachments`,
+    { method: "POST", body: JSON.stringify(request) },
+  );
+  if (!data) throw new Error("Chat attachment send response has no data");
+  return data;
+}

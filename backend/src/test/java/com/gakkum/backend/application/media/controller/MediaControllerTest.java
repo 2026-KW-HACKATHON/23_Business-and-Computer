@@ -66,7 +66,7 @@ class MediaControllerTest {
                 .andExpect(jsonPath("$.data.uploadUrl").value(
                         "https://bucket.s3.ap-northeast-2.amazonaws.com/images/store/u/1.png?X-Amz-Signature=abc"))
                 .andExpect(jsonPath("$.data.uploadHeaders.content-type").value("image/png"))
-                .andExpect(jsonPath("$.data.uploadUrlExpiresAt").value("2026-09-27T12:10:00"))
+                .andExpect(jsonPath("$.data.uploadUrlExpiresAt").value("2026-09-27T21:10:00+09:00"))
                 .andExpect(jsonPath("$.data.imageUrl").value(
                         "https://bucket.s3.ap-northeast-2.amazonaws.com/images/store/u/1.png"));
 

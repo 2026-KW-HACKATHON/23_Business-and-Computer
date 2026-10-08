@@ -1,26 +1,29 @@
 import { useState } from "react";
-import type { FormEvent, MouseEvent } from "react";
+import type { ChangeEvent, FormEvent, MouseEvent } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { LoadNotice, ReportSheet, RoleAvatar, SubScreen } from "../components";
 import {
-  LoadNotice,
-  ReportSheet,
-  RoleAvatar,
-  SubScreen,
-  TextButton,
-  WorkKindIcon,
-} from "../components";
-import {
+  ChatPhotoViewer,
+  ChatWorkCard,
   canCancelChatWork,
   canReportChatWork,
-  chatPlanOf,
-  chatSummaryText,
+  chatWorkStageOf,
+  chatWorkStatusText,
+  attachmentDetailText,
   isAttachmentExpired,
   useChatRoom,
   useScrollToLatest,
 } from "../features/chat";
-import type { ChatMessage } from "../features/chat";
-import { OWNER_PATHS, WorkPlanSheet, useProposalJobIds } from "../features/owner";
+import type { ChatMessage, ChatWorkTroubleItem } from "../features/chat";
+import {
+  OWNER_PATHS,
+  isOwnerWorkReviewed,
+  useOwnerClosedJobs,
+  useOwnerProgressJobs,
+  useProposalJobIds,
+} from "../features/owner";
 import { useBack } from "../hooks/useBack";
+import { ATTACHMENT_ACCEPT } from "../lib/attachmentFormats";
 import { formatDayChip, formatMonthDay } from "../lib/date";
 import { studentTitle } from "../lib/korean";
 import { formatWon } from "../lib/money";
@@ -42,17 +45,27 @@ function OwnerChatRoomPage() {
 function OwnerChatRoom({ roomId }: { roomId: string }) {
   const navigate = useNavigate();
   const back = useBack(OWNER_PATHS.chats);
-  const { load, messages, reload, send, resend, openExpiredAttachment } = useChatRoom(
-    roomId,
+  const { load, messages, reload, send, sendAttachment, resend, openExpiredAttachment, refreshAttachment } =
+    useChatRoom(roomId,
     OWNER_PATHS.chats,
   );
   const [draft, setDraft] = useState("");
-  const [planOpen, setPlanOpen] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
+  // 크게 보는 사진 (메시지의 clientMessageId)
+  const [photoKey, setPhotoKey] = useState<string | null>(null);
   // 처음 들어올 때, 맨 아래 근처에서 새 메시지를 받을 때, 내가 보낼 때 맨 아래로
   const endRef = useScrollToLatest(messages);
-  // 받은 · 보낸 제안의 의뢰면 제안에서 시작한 작업
+  // 받은 제안의 의뢰면 제안에서 시작한 작업 (값은 제안 id)
   const proposalJobIds = useProposalJobIds();
+  // 도착한 결과물이 초안인지 수정안인지는 진행 중 목록으로, 후기를 남겼는지는 끝난 목록으로
+  const { load: progressLoad } = useOwnerProgressJobs();
+  const { load: closedLoad } = useOwnerClosedJobs();
+
+  // 사진은 앱 안에서 크게 본다. 주소가 만료됐으면 새로 받아 바꿔 끼운다
+  const showPhoto = (message: ChatMessage) => {
+    if (isAttachmentExpired(message)) refreshAttachment(message);
+    setPhotoKey(message.clientMessageId);
+  };
 
   if (load.status !== "loaded") {
     return (
@@ -68,11 +81,30 @@ function OwnerChatRoom({ roomId }: { roomId: string }) {
   }
 
   const { room } = load;
-  const plan = chatPlanOf(room);
-  const summary = chatSummaryText(room, "owner");
-  const canCancel = canCancelChatWork(room);
-  const canReport = canReportChatWork(room);
   const partnerName = studentTitle(room.counterpartName);
+  const id = String(room.jobId);
+  const matched = progressLoad.status === "loaded" ? progressLoad.jobs.find((job) => job.jobId === room.jobId) : undefined;
+  const stage = chatWorkStageOf(room, matched);
+  const proposalId = proposalJobIds.get(room.jobId);
+  const kind = proposalId !== undefined ? "proposal" : "request";
+  const reviewed =
+    isOwnerWorkReviewed(id) ||
+    (closedLoad.status === "loaded" && closedLoad.jobs.some((job) => job.jobId === room.jobId && job.reviewed));
+  // 지금 할 일: 도착한 결과물 확인, 끝났으면 (끝난 목록을 불러온 뒤) 아직 남기지 않은 후기
+  const action =
+    stage === "draftArrived" || stage === "revisionArrived"
+      ? {
+          label: stage === "draftArrived" ? "초안 확인하기" : "수정안 확인하기",
+          onClick: () => navigate(OWNER_PATHS.workCheck(id)),
+        }
+      : stage === "completed" && closedLoad.status === "loaded" && !reviewed
+        ? { label: "후기 남기기", onClick: () => navigate(OWNER_PATHS.workReview(id)) }
+        : undefined;
+  // 「문제가 있나요?」: 작업 취소는 결과물을 하나도 받기 전에만, 신고는 작업 중에만
+  const trouble: ChatWorkTroubleItem[] = [
+    ...(canCancelChatWork(room) ? [{ label: "작업 취소", onSelect: () => navigate(OWNER_PATHS.workCancel(id)) }] : []),
+    ...(canReportChatWork(room) ? [{ label: "문제 신고", onSelect: () => setReportOpen(true) }] : []),
+  ];
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
@@ -80,6 +112,13 @@ function OwnerChatRoom({ roomId }: { roomId: string }) {
     if (!text) return;
     send(text);
     setDraft("");
+  };
+
+  // 한 번에 하나. 같은 파일을 다시 고를 수 있게 고른 값은 바로 비운다
+  const handleFile = (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (file) sendAttachment(file);
   };
 
   return (
@@ -96,6 +135,10 @@ function OwnerChatRoom({ roomId }: { roomId: string }) {
       onBack={back}
       footer={
         <form className="owner-chat__composer" onSubmit={handleSubmit}>
+          <label className="owner-chat__attach">
+            <span aria-hidden="true">+</span>
+            <input type="file" accept={ATTACHMENT_ACCEPT} aria-label="사진·파일 보내기" onChange={handleFile} />
+          </label>
           <input
             className="owner-chat__input"
             value={draft}
@@ -111,39 +154,24 @@ function OwnerChatRoom({ roomId }: { roomId: string }) {
       }
     >
       <div className="owner-chat">
-        <div className="owner-chat__work">
-          <div className="owner-chat__work-head">
-            <WorkKindIcon kind={proposalJobIds.has(room.jobId) ? "proposal" : "request"} size={20} />
-            <strong className="owner-chat__work-title">{room.jobTitle}</strong>
-            {plan && <TextButton onClick={() => setPlanOpen(true)}>작업계획서 보기</TextButton>}
-          </div>
-          {summary && <p className="owner-chat__work-progress">{summary}</p>}
-          <p className="owner-chat__work-terms">
-            {`${formatWon(room.budget)}, 수정 ${room.revisionCount}회, 최종 마감 ${formatMonthDay(room.finalDeadline)}`}
-          </p>
-          {/* 작업 상태를 알 때만: 취소는 확인할 결과물이 없는 작업 중에만, 신고는 작업 중에만 */}
-          {(canCancel || canReport) && (
-            <div className="owner-chat__work-actions">
-              {canCancel && (
-                <TextButton
-                  showChevron={false}
-                  onClick={() => navigate(OWNER_PATHS.workCancel(String(room.jobId)))}
-                >
-                  작업 취소
-                </TextButton>
-              )}
-              {canReport && (
-                <TextButton showChevron={false} onClick={() => setReportOpen(true)}>
-                  문제 신고
-                </TextButton>
-              )}
-            </div>
-          )}
-        </div>
+        <ChatWorkCard
+          role="owner"
+          kind={kind}
+          title={room.jobTitle}
+          status={chatWorkStatusText(stage, room, "owner")}
+          terms={`${formatWon(room.budget)}, 수정 ${room.revisionCount}회, 최종 마감 ${formatMonthDay(room.finalDeadline)}`}
+          historyTo={OWNER_PATHS.workHistory(id)}
+          action={action}
+          trouble={trouble}
+        />
 
         <p className="owner-chat__notice">
           <span aria-hidden="true">ⓘ</span>
-          채팅은 작업 질문·자료 요청용이에요. 내용·금액·마감 같은 작업 조건은 채팅으로 바뀌지 않아요.
+          <span>
+            채팅은 작업 질문·자료 요청용이에요.
+            <br />
+            작업 조건(내용·금액·마감)은 바꿀 수 없어요.
+          </span>
         </p>
 
         <ol className="owner-chat__messages">
@@ -155,7 +183,12 @@ function OwnerChatRoom({ roomId }: { roomId: string }) {
                 {message.mine ? (
                   <div className="owner-chat__line owner-chat__line--mine">
                     <SendState message={message} onResend={resend} />
-                    <MessageBody message={message} mine onOpenExpired={openExpiredAttachment} />
+                    <MessageBody
+                      message={message}
+                      mine
+                      onOpenExpired={openExpiredAttachment}
+                      onShowPhoto={showPhoto}
+                    />
                   </div>
                 ) : (
                   <div className="owner-chat__partner-message">
@@ -163,7 +196,12 @@ function OwnerChatRoom({ roomId }: { roomId: string }) {
                     <div className="owner-chat__group">
                       <span className="owner-chat__sender">{partnerName}</span>
                       <div className="owner-chat__line">
-                        <MessageBody message={message} mine={false} onOpenExpired={openExpiredAttachment} />
+                        <MessageBody
+                          message={message}
+                          mine={false}
+                          onOpenExpired={openExpiredAttachment}
+                          onShowPhoto={showPhoto}
+                        />
                         <time className="owner-chat__time">{timeOf(message.createdAt)}</time>
                       </div>
                     </div>
@@ -176,22 +214,13 @@ function OwnerChatRoom({ roomId }: { roomId: string }) {
         <div ref={endRef} />
       </div>
 
-      <WorkPlanSheet
-        content={
-          planOpen && plan
-            ? {
-                title: room.jobTitle,
-                studentName: room.counterpartName,
-                plan,
-                budget: room.budget,
-                draftDue: room.draftDeadline,
-                finalDue: room.finalDeadline,
-                revisionLimit: room.revisionCount,
-              }
-            : undefined
-        }
-        onClose={() => setPlanOpen(false)}
+      <ChatPhotoViewer
+        messages={messages}
+        openKey={photoKey}
+        onShow={showPhoto}
+        onClose={() => setPhotoKey(null)}
       />
+
       <ReportSheet open={reportOpen} workTitle={room.jobTitle} onClose={() => setReportOpen(false)} />
     </SubScreen>
   );
@@ -212,6 +241,7 @@ function SendState({
     return (
       <span className="owner-chat__failed">
         <span>보내지 못했어요</span>
+        {message.failureReason && <span>{message.failureReason}</span>}
         <button
           type="button"
           className="owner-chat__resend"
@@ -225,15 +255,18 @@ function SendState({
   return <time className="owner-chat__time">{timeOf(message.createdAt)}</time>;
 }
 
-/** 글 · 사진 · 파일 말풍선. 열람 주소가 만료됐으면 새 주소를 받아 연다 */
+/** 글 · 사진 · 파일 말풍선. 열람 주소가 만료됐으면 새 주소를 받아 연다. 보낸 파일은 크기도 보인다 */
 function MessageBody({
   message,
   mine,
   onOpenExpired,
+  onShowPhoto,
 }: {
   message: ChatMessage;
   mine: boolean;
   onOpenExpired: (message: ChatMessage) => void;
+  /** 보낸 사진을 앱 안에서 크게 본다 */
+  onShowPhoto: (message: ChatMessage) => void;
 }) {
   if (message.type === "TEXT") {
     return (
@@ -244,6 +277,28 @@ function MessageBody({
   }
 
   const name = message.attachmentName ?? (message.type === "IMAGE" ? "사진" : "파일");
+  const detail = attachmentDetailText(message);
+  const fileBody = (
+    <>
+      <span aria-hidden="true">📄</span>
+      <span className="owner-chat__file-info">
+        <strong>{name}</strong>
+        {detail && <small>{detail}</small>}
+      </span>
+    </>
+  );
+
+  // 보내는 중 · 보내지 못한 첨부: 사진은 고른 파일 미리보기, 파일은 이름과 크기
+  if (message.status !== "sent") {
+    return message.type === "IMAGE" && message.content ? (
+      <span className="owner-chat__image">
+        <img src={message.content} alt={name} />
+      </span>
+    ) : (
+      <span className="owner-chat__file">{fileBody}</span>
+    );
+  }
+
   if (!message.content) {
     return (
       <span className="owner-chat__file">
@@ -269,7 +324,10 @@ function MessageBody({
         href={message.content}
         target="_blank"
         rel="noopener noreferrer"
-        onClick={handleClick}
+        onClick={(e) => {
+          e.preventDefault();
+          onShowPhoto(message);
+        }}
       >
         <img src={message.content} alt={name} />
       </a>
@@ -283,10 +341,7 @@ function MessageBody({
       rel="noopener noreferrer"
       onClick={handleClick}
     >
-      <span aria-hidden="true">📄</span>
-      <span className="owner-chat__file-info">
-        <strong>{name}</strong>
-      </span>
+      {fileBody}
     </a>
   );
 }

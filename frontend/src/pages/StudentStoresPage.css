@@ -54,7 +54,7 @@
 }
 
 .student-stores__chip:focus-visible {
-  outline: 2px solid var(--color-black);
+  outline: 2px solid var(--role-focus);
   outline-offset: 2px;
 }
 

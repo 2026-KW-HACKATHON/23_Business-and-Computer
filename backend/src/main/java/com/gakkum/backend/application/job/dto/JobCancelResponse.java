@@ -1,8 +1,9 @@
 package com.gakkum.backend.application.job.dto;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 
 import com.gakkum.backend.domain.job.dto.JobQueryDto.JobCancelResult;
+import com.gakkum.backend.global.response.KoreaTime;
 
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -19,7 +20,7 @@ public class JobCancelResponse {
     private final Long paidAmount;
     private final Long studentCompensationAmount;
     private final Long refundAmount;
-    private final LocalDateTime cancelledAt;
+    private final OffsetDateTime cancelledAt;
     private final String cancelReason;
     private final String messageToStudent;
 
@@ -30,7 +31,7 @@ public class JobCancelResponse {
                 .paidAmount(result.getPaidAmount())
                 .studentCompensationAmount(result.getStudentCompensationAmount())
                 .refundAmount(result.getRefundAmount())
-                .cancelledAt(result.getCancelledAt())
+                .cancelledAt(KoreaTime.from(result.getCancelledAt()))
                 .cancelReason(result.getCancelReason())
                 .messageToStudent(result.getMessageToStudent())
                 .build();

@@ -66,11 +66,12 @@ public final class PaymentQueryDto {
         private final Long studentCompensationAmount;
         private final PaymentStatus status;
         private final Instant approvedAt;
+        private final Instant refundedAt;
 
         public static PaymentHistoryData from(Payment payment) {
             return new PaymentHistoryData(payment.getJobId(), payment.getJobApplicationId(), payment.getProposalId(),
                     payment.getAmount(), payment.getRefundAmount(), payment.getStudentCompensationAmount(),
-                    payment.getStatus(), payment.getApprovedAt());
+                    payment.getStatus(), payment.getApprovedAt(), payment.getRefundedAt());
         }
 
         /** 저장된 환불액이 결제 금액 전액이고 학생 보상금이 0원인 환불인지. 환불되지 않은 결제는 false다. */
@@ -129,11 +130,15 @@ public final class PaymentQueryDto {
         private final Instant approvedAt;
         private final String studentName;
         private final PaymentHistoryStatus status;
+        // 정산 완료만 값이 있다
+        private final LocalDate settledDate;
+        // 부분·전액 환불만 값이 있다
+        private final LocalDate refundedDate;
 
         public static PaymentHistoryItemResult of(PaymentHistoryData data, String title, Long refundAmount,
-                String studentName, PaymentHistoryStatus status) {
+                String studentName, PaymentHistoryStatus status, LocalDate settledDate, LocalDate refundedDate) {
             return new PaymentHistoryItemResult(data.getJobId(), title, data.getAmount(), refundAmount,
-                    data.getApprovedAt(), studentName, status);
+                    data.getApprovedAt(), studentName, status, settledDate, refundedDate);
         }
     }
 

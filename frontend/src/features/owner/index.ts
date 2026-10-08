@@ -5,9 +5,9 @@ export { default as PaymentProgress } from "./components/PaymentProgress";
 export { default as PaymentSection } from "./components/PaymentSection";
 export { default as PaymentSummaryBox } from "./components/PaymentSummaryBox";
 export { default as RefundBreakdown } from "./components/RefundBreakdown";
+export { default as StudentBox } from "./components/StudentBox";
 export { default as OwnerTabScreen } from "./components/OwnerTabScreen";
 export { default as TodoCarousel } from "./components/TodoCarousel";
-export { default as WorkPlanSheet } from "./components/WorkPlanSheet";
 export {
   completeOwnerWork,
   markOwnerWorkReviewed,
@@ -29,6 +29,7 @@ export {
   useApplicantProfile,
   useJobApplications,
   useJobResult,
+  useLatestJobSubmission,
   useOpenJobs,
   useOwnerStudentProfile,
   usePendingSubmission,
@@ -45,7 +46,8 @@ export { REVIEW_POINTS, sendJobReview, workHistoryText } from "./lib/closedJobs"
 export type { JobResult, JobReviewResult, OwnerClosedJob, OwnerClosedOutcome } from "./lib/closedJobs";
 export { useOwnerProgressJobs } from "./hooks/useOwnerProgressJobs";
 export type { OwnerProgressJobsLoad } from "./hooks/useOwnerProgressJobs";
-export { useProgressPlanSheet } from "./hooks/useProgressPlanSheet";
+export { useAssignedWork } from "./hooks/useAssignedWork";
+export type { AssignedWorkLoad } from "./hooks/useAssignedWork";
 export {
   ownerAutoCompleteOn,
   ownerProgressDeadline,
@@ -76,15 +78,16 @@ export {
   proposalStudentRecord,
   receivedOnText,
   receivedProposalFlowSteps,
+  receivedProposalInProgress,
   receivedProposalStatusLabel,
   studentMetaText,
 } from "./lib/receivedProposals";
 export type { ReceivedProposal } from "./lib/receivedProposals";
 export { flowSteps } from "./lib/flow";
+export { ownerWorkDocPath, ownerWorkDocSub } from "./lib/workDocs";
 export {
   WAITING_STATUS_LABEL,
   deadlineText,
-  ownerWorkPlanContent,
   studentLabel,
   studentRecord,
 } from "./lib/format";
@@ -121,5 +124,4 @@ export type {
   PickedTask,
   RequestContent,
   RequestExample,
-  WorkPlanSheetContent,
 } from "./types";

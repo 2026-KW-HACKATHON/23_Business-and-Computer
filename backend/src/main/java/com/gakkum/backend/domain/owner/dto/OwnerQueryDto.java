@@ -20,8 +20,11 @@ public final class OwnerQueryDto {
 
         private final Long ownerProfileId;
         private final String profileImageUrl;
-        // 사업자등록상 대표자명이 아닌 가입자 이름
+        // 사업자등록상 대표자명이 아닌 가입자 이름. 대표자명은 representativeName
         private final String name;
+        // 저장된 대표자 이름이 없으면 가입자 이름으로 대체된 값
+        private final String representativeName;
+        private final String businessNumber;
         private final String storeName;
         private final String storeAddress;
         private final Long categoryId;
@@ -35,6 +38,7 @@ public final class OwnerQueryDto {
         public static OwnerMeResult of(
                 Owner owner,
                 User user,
+                String representativeName,
                 long sentJobCount,
                 long receivedProposalCount,
                 long inProgressJobCount,
@@ -43,6 +47,8 @@ public final class OwnerQueryDto {
                     .ownerProfileId(owner.getId())
                     .profileImageUrl(owner.getProfileImageUrl())
                     .name(user.getName())
+                    .representativeName(representativeName)
+                    .businessNumber(owner.getBusinessNumber())
                     .storeName(owner.getStoreName())
                     .storeAddress(owner.getStoreAddress())
                     .categoryId(owner.getCategoryId())

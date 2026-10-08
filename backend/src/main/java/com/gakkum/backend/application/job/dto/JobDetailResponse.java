@@ -1,7 +1,7 @@
 package com.gakkum.backend.application.job.dto;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -11,6 +11,7 @@ import com.gakkum.backend.domain.job.dto.JobQueryDto.JobResultResult;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.WorkHistoryResult;
 import com.gakkum.backend.domain.job.entity.JobApplicationStatus;
 import com.gakkum.backend.domain.job.entity.JobProgressStage;
+import com.gakkum.backend.global.response.KoreaTime;
 
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -50,7 +51,7 @@ public final class JobDetailResponse {
         private final String messageToStudent;
         private final Long refundAmount;
         private final Long studentCompensationAmount;
-        private final LocalDateTime cancelledAt;
+        private final OffsetDateTime cancelledAt;
 
         public static Detail from(JobDetailResult result) {
             return Detail.builder()
@@ -75,7 +76,7 @@ public final class JobDetailResponse {
                     .messageToStudent(result.getMessageToStudent())
                     .refundAmount(result.getRefundAmount())
                     .studentCompensationAmount(result.getStudentCompensationAmount())
-                    .cancelledAt(result.getCancelledAt())
+                    .cancelledAt(KoreaTime.from(result.getCancelledAt()))
                     .build();
         }
     }
@@ -92,6 +93,7 @@ public final class JobDetailResponse {
         private final boolean normalCompleted;
         private final Long workFee;
         private final List<String> fileUrls;
+        private final List<JobSubmissionResponse.File> files;
         private final String message;
         private final List<WorkHistory> workHistory;
 
@@ -104,6 +106,7 @@ public final class JobDetailResponse {
                     .normalCompleted(result.isNormalCompleted())
                     .workFee(result.getWorkFee())
                     .fileUrls(result.getFileUrls())
+                    .files(JobSubmissionResponse.File.listFrom(result.getFiles()))
                     .message(result.getMessage())
                     .workHistory(result.getWorkHistory().stream()
                             .map(WorkHistory::from)

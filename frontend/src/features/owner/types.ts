@@ -1,7 +1,6 @@
 import type { Field } from "../../types/field";
 import type { WorkKind } from "../../types/workKind";
 import type { ApplicationPlan, WorkPlanContent } from "../../types/workPlan";
-import type { OwnerProgressJob } from "./lib/progressJobs";
 
 /** 마감 단계. draft = 초안, final = 최종 */
 export type DeadlineStage = "draft" | "final";
@@ -52,7 +51,7 @@ export interface ApplicantsTodo extends TodoBase {
 /** 「확인할 일」 카드 한 장. 종류마다 문구와 버튼이 다르다 */
 export type OwnerTodo = DraftArrivedTodo | ProposalArrivedTodo | ApplicantsTodo;
 
-/** 「학생이 작업 중」 한 줄 (id = 작업). 누르면 지원서 바텀시트, 제안으로 시작했으면 받은 제안 */
+/** 「학생이 작업 중」 한 줄 (id = 작업). 누르면 보낸 의뢰 상세, 제안으로 시작했으면 받은 제안 상세 */
 export interface OwnerWorkingItem {
   id: string;
   kind: WorkKind;
@@ -60,8 +59,6 @@ export interface OwnerWorkingItem {
   student: StudentRef;
   stage: DeadlineStage;
   due: string;
-  /** 의뢰에 지원해 맡은 작업. 누르면 이 작업의 지원서를 불러와 바텀시트로 */
-  planJob?: OwnerProgressJob;
   proposalId?: string;
 }
 
@@ -112,19 +109,6 @@ export interface RequestExample {
   content: RequestContent;
 }
 
-/** 「작업계획서 보기」 바텀시트 내용. 모르는 칸은 빼고 보인다 */
-export interface WorkPlanSheetContent {
-  title: string;
-  studentName?: string;
-  /** 지원할 때 보낸 날 */
-  sentOn?: string;
-  plan: WorkPlanContent;
-  budget?: number;
-  draftDue: string;
-  finalDue: string;
-  revisionLimit?: number;
-}
-
 /** 「끝난 일」 한 줄 (id = 작업) */
 export interface OwnerDoneItem {
   id: string;
@@ -136,8 +120,11 @@ export interface OwnerDoneItem {
 
 /** 사장님 홈 한 화면 분량. 날짜는 모두 YYYY-MM-DD */
 export interface OwnerHome {
-  /** 백엔드가 알려 주는 첫 활동 여부. 처음이면 할 일 대신 사용법 안내를 보여 준다 */
-  firstVisit: boolean;
+  /**
+   * 이력이 하나도 없는 계정이면 true: 모집 중 · 받은 제안 · 진행 중 · 끝난 의뢰를 다 불러왔는데 모두 비었을 때.
+   * 하나라도 있거나 불러오지 못했으면 false, 아직 불러오는 중이면 undefined (모름)
+   */
+  firstVisit: boolean | undefined;
   /** 도착한 결과물 → 결정 대기 제안 → 지원자가 생긴 의뢰. 받은 제안은 불러온 뒤에만 들어간다 */
   todos: OwnerTodo[];
   /** 받은 제안(GET /me/received-proposals)을 불러온 상태와 다시 시도 */

@@ -7,7 +7,8 @@ import type { JobSpecialtyCategory } from "../api/jobApi";
 import { fetchMyChatRooms, fetchOwnerMatchedJobs } from "../api/progressApi";
 import type { OwnerMatchedJobResponse } from "../api/progressApi";
 import { fetchReceivedProposals } from "../api/receivedProposalApi";
-import type { DeadlineStage, WorkPlanSheetContent } from "../types";
+import type { ReceivedProposalResponse } from "../api/receivedProposalApi";
+import type { DeadlineStage } from "../types";
 import { flowSteps } from "./flow";
 
 /**
@@ -32,6 +33,8 @@ export interface OwnerProgressJob {
   revisionSubmitted: boolean;
   /** 도착한 결과물 id (submitted 일 때만) */
   pendingSubmissionId?: number;
+  /** 도착한 결과물의 수정 번호, 초안 0 (submitted 일 때만) */
+  revisionNumber?: number;
   /** 도착한 결과물이 온 한국 날짜 "2026-10-07" (submitted 일 때만) */
   arrivedOn?: string;
   student: {
@@ -88,19 +91,6 @@ export function ownerAutoCompleteOn(job: OwnerProgressJob): string | undefined {
   return job.arrivedOn && addDays(job.arrivedOn, 7);
 }
 
-/** 의뢰에 지원해 맡은 작업의 작업계획서 바텀시트 내용 (지원서는 loadProgressPlan 으로) */
-export function progressWorkPlanContent(job: OwnerProgressJob, plan: ApplicationPlan): WorkPlanSheetContent {
-  return {
-    title: job.title,
-    studentName: job.student.name,
-    plan,
-    budget: job.budget,
-    draftDue: job.draftDeadline,
-    finalDue: job.finalDeadline,
-    revisionLimit: job.revisionLimit,
-  };
-}
-
 export type OwnerProgressJobsResult =
   | { status: "loaded"; jobs: OwnerProgressJob[] }
   | { status: "unauthorized" }
@@ -116,22 +106,53 @@ function applicationPlan(
   return { summary, method: workPlan, deliverable: deliveryMethod };
 }
 
-export type ProgressPlanResult =
-  | { status: "loaded"; plan: ApplicationPlan }
+/** 진행 중 목록의 의뢰 하나. 받은 제안이 있으면 제안에서 시작한 작업이다 */
+function toProgressJob(job: OwnerMatchedJobResponse, proposal?: ReceivedProposalResponse): OwnerProgressJob {
+  const name = job.studentName?.trim() || proposal?.student.name.trim() || undefined;
+  return {
+    jobId: job.jobId,
+    kind: proposal ? "proposal" : "request",
+    proposalId: proposal?.proposalId,
+    title: job.title,
+    specialtyCategories: job.specialtyCategories,
+    draftDeadline: job.draftDeadline,
+    finalDeadline: job.finalDeadline,
+    stage: ownerProgressStageOf(job),
+    revisionSubmitted: job.submissionType === "REVISION",
+    pendingSubmissionId: job.pendingSubmissionId ?? undefined,
+    revisionNumber: job.pendingSubmissionId ? (job.revisionNumber ?? undefined) : undefined,
+    arrivedOn: job.pendingSubmissionId && job.submittedAt ? koreaDateOfUtc(job.submittedAt) : undefined,
+    student: {
+      profileId: job.studentProfileId,
+      name,
+      studentNumber: job.studentNumber ?? undefined,
+      major: job.major?.trim() || undefined,
+    },
+    budget: job.budget ?? undefined,
+    revisionLimit: job.revisionCount ?? undefined,
+  };
+}
+
+export type AssignedWorkResult =
+  /** work 는 진행 중 목록에 없으면, plan 은 채팅방에 지원서가 없으면 undefined */
+  | { status: "loaded"; work?: OwnerProgressJob; plan?: ApplicationPlan }
   | { status: "unauthorized" }
-  /** 채팅방에 그 작업의 지원서가 없음 */
-  | { status: "missing" }
   | { status: "error" };
 
 /**
- * 의뢰에 지원해 맡은 작업의 지원서. 진행 중 목록에는 없어서 바텀시트를 열 때 채팅방
- * (GET /me/chat-rooms, 결제한 의뢰마다 하나)에서 찾는다.
+ * 의뢰로 맡긴 작업의 맡은 학생 · 단계(GET /me/jobs?status=MATCHED)와 학생이 지원할 때 보낸 지원서
+ * (GET /me/chat-rooms, 결제한 의뢰마다 하나). 채팅방은 실패해도 지원서만 빼고 보인다.
  */
-export async function loadProgressPlan(jobId: number): Promise<ProgressPlanResult> {
+export async function loadAssignedWork(jobId: number): Promise<AssignedWorkResult> {
   try {
-    const room = (await fetchMyChatRooms()).find((r) => r.jobId === jobId);
-    const plan = room && applicationPlan(room.applicationSummary, room.applicationWorkPlan, room.applicationDeliveryMethod);
-    return plan ? { status: "loaded", plan } : { status: "missing" };
+    const [matched, rooms] = await Promise.all([fetchOwnerMatchedJobs(), fetchMyChatRooms().catch(() => [])]);
+    const job = matched.find((j) => j.jobId === jobId);
+    const room = rooms.find((r) => r.jobId === jobId);
+    return {
+      status: "loaded",
+      work: job && toProgressJob(job),
+      plan: room && applicationPlan(room.applicationSummary, room.applicationWorkPlan, room.applicationDeliveryMethod),
+    };
   } catch (error) {
     if (error instanceof ApiError && error.status === 401) return { status: "unauthorized" };
     return { status: "error" };
@@ -160,30 +181,6 @@ export async function loadOwnerProgressJobs(): Promise<OwnerProgressJobsResult> 
 
   return {
     status: "loaded",
-    jobs: matched.map((job) => {
-      const proposal = proposalByJob.get(job.jobId);
-      const name = job.studentName?.trim() || proposal?.student.name.trim() || undefined;
-      return {
-        jobId: job.jobId,
-        kind: proposal ? "proposal" : "request",
-        proposalId: proposal?.proposalId,
-        title: job.title,
-        specialtyCategories: job.specialtyCategories,
-        draftDeadline: job.draftDeadline,
-        finalDeadline: job.finalDeadline,
-        stage: ownerProgressStageOf(job),
-        revisionSubmitted: job.submissionType === "REVISION",
-        pendingSubmissionId: job.pendingSubmissionId ?? undefined,
-        arrivedOn: job.pendingSubmissionId && job.submittedAt ? koreaDateOfUtc(job.submittedAt) : undefined,
-        student: {
-          profileId: job.studentProfileId,
-          name,
-          studentNumber: job.studentNumber ?? undefined,
-          major: job.major?.trim() || undefined,
-        },
-        budget: job.budget ?? undefined,
-        revisionLimit: job.revisionCount ?? undefined,
-      };
-    }),
+    jobs: matched.map((job) => toProgressJob(job, proposalByJob.get(job.jobId))),
   };
 }

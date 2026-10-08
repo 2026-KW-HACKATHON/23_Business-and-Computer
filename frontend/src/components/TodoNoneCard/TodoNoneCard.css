@@ -1,0 +1,74 @@
+/* 피그마 「확인할 일 카드 넘기기」 현재=없음 (ADR 0051) */
+.todo-none-card {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  box-sizing: border-box;
+  min-height: 229px;
+  padding: 0 10px 0 22px;
+  border: 1.5px solid var(--color-owner);
+  border-radius: 16px;
+  background: var(--color-white);
+}
+
+.todo-none-card--student {
+  border-color: var(--color-student);
+}
+
+.todo-none-card__text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  padding: 22px 0;
+}
+
+.todo-none-card__title {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 26px;
+  letter-spacing: normal;
+  color: var(--color-black);
+  white-space: pre-line;
+}
+
+.todo-none-card__description {
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--text-body);
+  white-space: pre-line;
+}
+
+/* 112px 받침 원 위에 100px 캐릭터 */
+.todo-none-card__picture {
+  position: relative;
+  flex-shrink: 0;
+  align-self: stretch;
+  width: 124px;
+}
+
+.todo-none-card__picture::before {
+  content: "";
+  position: absolute;
+  top: calc(50% + 2px);
+  left: 50%;
+  width: 112px;
+  height: 112px;
+  border-radius: 50%;
+  background: var(--color-main);
+  transform: translate(-50%, -50%);
+}
+
+.todo-none-card--student .todo-none-card__picture::before {
+  background: rgba(152, 39, 76, 0.1);
+}
+
+.todo-none-card__picture > img {
+  position: absolute;
+  top: calc(50% + 6px);
+  left: 50%;
+  transform: translate(-50%, -50%);
+}

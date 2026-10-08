@@ -11,6 +11,7 @@ import com.gakkum.backend.domain.job.entity.JobStatus;
 import com.gakkum.backend.domain.owner.entity.Owner;
 import com.gakkum.backend.domain.payment.dto.PaymentQueryDto.RefundedPaymentData;
 import com.gakkum.backend.domain.proposal.entity.Proposal;
+import com.gakkum.backend.domain.proposal.entity.ProposalRejectedBy;
 import com.gakkum.backend.domain.proposal.entity.ProposalStatus;
 import com.gakkum.backend.domain.student.entity.Student;
 import com.gakkum.backend.domain.user.entity.User;
@@ -75,6 +76,23 @@ public final class ProposalQueryDto {
         }
     }
 
+    /** 사장님의 제안 거절 결과. 반복 요청에도 같은 값을 내린다. */
+    @Getter
+    @Builder(access = AccessLevel.PRIVATE)
+    @AllArgsConstructor(access = AccessLevel.PRIVATE)
+    public static class ProposalRejectResult {
+
+        private final Long proposalId;
+        private final ProposalStatus status;
+
+        public static ProposalRejectResult from(Proposal proposal) {
+            return ProposalRejectResult.builder()
+                    .proposalId(proposal.getId())
+                    .status(proposal.getStatus())
+                    .build();
+        }
+    }
+
     /** 제안과 제안에 선택된 소분류 ID */
     @Getter
     @AllArgsConstructor(access = AccessLevel.PRIVATE)
@@ -131,6 +149,9 @@ public final class ProposalQueryDto {
         private final JobStatus jobStatus;
         // 저장된 원본 생성 시각(UTC)
         private final LocalDateTime createdAt;
+        // 거절한 주체와 저장된 원본 거절 시각(UTC). 거절되지 않았거나 기록 전에 거절된 제안은 null
+        private final ProposalRejectedBy rejectedBy;
+        private final LocalDateTime rejectedAt;
 
         public static MyProposalResult of(Proposal proposal, Owner owner,
                 List<SpecialtyCategoryResult> specialtyCategories, Job job) {
@@ -145,6 +166,8 @@ public final class ProposalQueryDto {
                     .proposedSolution(proposal.getProposedSolution())
                     .store(ProposalStoreResult.of(owner))
                     .createdAt(proposal.getCreatedAt())
+                    .rejectedBy(proposal.getRejectedBy())
+                    .rejectedAt(proposal.getRejectedAt())
                     .build();
         }
     }
@@ -179,6 +202,9 @@ public final class ProposalQueryDto {
         private final JobStatus jobStatus;
         // 저장된 원본 생성 시각(UTC)
         private final LocalDateTime createdAt;
+        // 거절한 주체와 저장된 원본 거절 시각(UTC). 거절되지 않았거나 기록 전에 거절된 제안은 null
+        private final ProposalRejectedBy rejectedBy;
+        private final LocalDateTime rejectedAt;
 
         public static ReceivedProposalResult of(Proposal proposal, Student student, User studentUser,
                 List<SpecialtyCategoryResult> specialtyCategories, Job job) {
@@ -193,6 +219,8 @@ public final class ProposalQueryDto {
                     .proposedSolution(proposal.getProposedSolution())
                     .student(ReceivedProposalStudentResult.of(student, studentUser))
                     .createdAt(proposal.getCreatedAt())
+                    .rejectedBy(proposal.getRejectedBy())
+                    .rejectedAt(proposal.getRejectedAt())
                     .build();
         }
     }
@@ -251,6 +279,9 @@ public final class ProposalQueryDto {
         private final List<String> referenceImageUrls;
         // 저장된 원본 생성 시각(UTC)
         private final LocalDateTime createdAt;
+        // 거절한 주체와 저장된 원본 거절 시각(UTC). 거절되지 않았거나 기록 전에 거절된 제안은 null
+        private final ProposalRejectedBy rejectedBy;
+        private final LocalDateTime rejectedAt;
         private final ProposalStatus status;
         // 결제 전(PENDING)에만 채우는 예상 마감일. 실제 마감일은 결제 승인 시 확정한다
         private final LocalDate estimatedDraftDeadline;
@@ -293,6 +324,8 @@ public final class ProposalQueryDto {
                     .finalDays(proposal.getFinalDays())
                     .referenceImageUrls(List.copyOf(proposal.getReferenceImageUrls()))
                     .createdAt(proposal.getCreatedAt())
+                    .rejectedBy(proposal.getRejectedBy())
+                    .rejectedAt(proposal.getRejectedAt())
                     .build();
         }
     }

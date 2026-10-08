@@ -1,11 +1,12 @@
 package com.gakkum.backend.application.explore.dto;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.List;
 
 import com.gakkum.backend.application.explore.dto.ExploreQueryDto.BusinessCategoryResult;
 import com.gakkum.backend.application.explore.dto.ExploreQueryDto.StoreExploreResult;
 import com.gakkum.backend.application.explore.dto.ExploreQueryDto.StoreItemResult;
+import com.gakkum.backend.global.response.KoreaTime;
 
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -38,7 +39,7 @@ public class StoreExploreResponse {
         private final BusinessCategory businessCategory;
         private final String storeAddress;
         private final Long ownerProfileId;
-        private final LocalDateTime createdAt;
+        private final OffsetDateTime createdAt;
 
         public static Item from(StoreItemResult result) {
             return Item.builder()
@@ -47,7 +48,7 @@ public class StoreExploreResponse {
                     .businessCategory(BusinessCategory.from(result.getBusinessCategory()))
                     .storeAddress(result.getStoreAddress())
                     .ownerProfileId(result.getOwnerProfileId())
-                    .createdAt(result.getCreatedAt())
+                    .createdAt(KoreaTime.from(result.getCreatedAt()))
                     .build();
         }
     }

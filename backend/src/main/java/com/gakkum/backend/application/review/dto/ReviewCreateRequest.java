@@ -11,7 +11,6 @@ import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Digits;
-import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.AccessLevel;
@@ -31,7 +30,7 @@ public class ReviewCreateRequest {
     @Size(max = 5)
     private List<@NotNull ReviewPositivePoint> positivePoints;
 
-    @NotBlank
+    // 생략·null·공백만 입력하면 글 없는 리뷰로 보고 null로 저장한다
     @Size(max = 5000)
     private String content;
 
@@ -56,6 +55,10 @@ public class ReviewCreateRequest {
     }
 
     public CreateReviewCommand toCommand(String username, Long jobId) {
-        return CreateReviewCommand.of(username, jobId, positivePoints, content.trim(), rating.intValueExact());
+        return CreateReviewCommand.of(username, jobId, positivePoints, normalizedContent(), rating.intValueExact());
+    }
+
+    private String normalizedContent() {
+        return content == null || content.isBlank() ? null : content.trim();
     }
 }

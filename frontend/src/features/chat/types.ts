@@ -21,6 +21,12 @@ export interface ChatMessage {
   mine: boolean;
   /** sent = 서버에 저장됨, sending = 보내는 중, failed = 보내지 못함 */
   status: "sent" | "sending" | "failed";
+  /** 이 화면에서 보낸 사진 · 파일의 크기 (바이트). 서버는 주지 않는다 */
+  fileSize?: number;
+  /** 보내지 못한 첨부의 까닭 (「보내지 못했어요」 아래 한 줄) */
+  failureReason?: string;
+  /** 보내는 중 · 보내지 못한 첨부의 원본 (사진 미리보기 · 다시 올리기) */
+  file?: File;
 }
 
 /** 채팅 목록 · 작업 카드의 진행 상태 */

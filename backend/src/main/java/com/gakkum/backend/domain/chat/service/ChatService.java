@@ -2,7 +2,7 @@ package com.gakkum.backend.domain.chat.service;
 
 import java.time.Clock;
 import java.time.LocalDateTime;
-import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -149,6 +149,6 @@ public class ChatService {
 
     // createdAt과 같은 JVM 기본 시간대를 써서 업로드 만료 비교 기준을 맞춘다
     private LocalDateTime now() {
-        return LocalDateTime.ofInstant(clock.instant(), ZoneId.systemDefault());
+        return LocalDateTime.ofInstant(clock.instant(), ZoneOffset.UTC);
     }
 }

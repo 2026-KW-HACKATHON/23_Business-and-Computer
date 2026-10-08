@@ -1,4 +1,4 @@
-import { SAMPLE_FIRST_VISIT, SAMPLE_REQUEST_EXAMPLES } from "../lib/sampleHome";
+import { SAMPLE_REQUEST_EXAMPLES } from "../lib/sampleHome";
 import type { OwnerHome, OwnerTodo, StudentRef } from "../types";
 import { proposalBadgeNames } from "../../proposal";
 import { useOwnerClosedJobs } from "./useOwnerClosedJobs";
@@ -24,7 +24,7 @@ const studentRef = (job: OwnerProgressJob): StudentRef => ({
  * 상세와 내용이 같다. 백엔드를 연동할 때 홈 API 로 바꿔도 화면은 그대로 쓴다.
  * 받은 제안(GET /me/received-proposals, ADR 0025), 모집 중인 의뢰(GET /me/jobs?status=OPEN, ADR 0030),
  * 진행 중 작업(GET /me/jobs?status=MATCHED, ADR 0035), 끝난 일(GET /me/jobs?status=CLOSED, ADR 0036)은 API 다.
- * 끝난 일은 불러오지 못하면 섹션째 숨는다.
+ * 끝난 일은 불러오지 못하면 섹션째 숨는다. 첫 활동인지는 백엔드 값 없이 이 네 목록으로 정한다 (ADR 0051).
  */
 export function useOwnerHome(): OwnerHome {
   // 끝난 내 의뢰 (완료한 것만, 끝난 날 최신순)
@@ -79,8 +79,21 @@ export function useOwnerHome(): OwnerHome {
       })),
   ];
 
+  // 이력이 하나도 없는 계정: 네 목록이 모두 비었을 때. 하나라도 있거나 실패하면 일반 홈
+  const lists = [openLoad, proposalsLoad, progressLoad, closedLoad];
+  const hasHistory =
+    requests.length > 0 ||
+    proposals.length > 0 ||
+    progress.length > 0 ||
+    (closedLoad.status === "loaded" && closedLoad.jobs.length > 0);
+  const firstVisit = hasHistory
+    ? false
+    : lists.some((list) => list.status === "loading")
+      ? undefined
+      : lists.every((list) => list.status === "loaded");
+
   return {
-    firstVisit: SAMPLE_FIRST_VISIT,
+    firstVisit,
     todos,
     receivedProposals: proposalsLoad.status,
     reloadReceivedProposals,
@@ -97,7 +110,6 @@ export function useOwnerHome(): OwnerHome {
           student: studentRef(job),
           stage: deadline.stage,
           due: deadline.due,
-          planJob: job.kind === "request" ? job : undefined,
           proposalId: job.proposalId !== undefined ? String(job.proposalId) : undefined,
         };
       }),

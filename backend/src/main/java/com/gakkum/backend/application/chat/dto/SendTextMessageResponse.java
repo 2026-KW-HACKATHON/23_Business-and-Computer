@@ -1,11 +1,12 @@
 package com.gakkum.backend.application.chat.dto;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.UUID;
 
 import com.gakkum.backend.domain.chat.dto.ChatQueryDto.SendMessageResult;
 import com.gakkum.backend.domain.chat.entity.ChatMessage;
 import com.gakkum.backend.domain.chat.entity.ChatMessageType;
+import com.gakkum.backend.global.response.KoreaTime;
 
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -23,7 +24,7 @@ public class SendTextMessageResponse {
     private final String senderUserId;
     private final ChatMessageType type;
     private final String content;
-    private final LocalDateTime createdAt;
+    private final OffsetDateTime createdAt;
 
     public static SendTextMessageResponse from(SendMessageResult result) {
         ChatMessage message = result.getMessage();
@@ -34,7 +35,7 @@ public class SendTextMessageResponse {
                 .senderUserId(message.getSenderUserId())
                 .type(message.getType())
                 .content(message.getContent())
-                .createdAt(message.getCreatedAt())
+                .createdAt(KoreaTime.from(message.getCreatedAt()))
                 .build();
     }
 }

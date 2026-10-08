@@ -8,8 +8,9 @@ Accepted
 
 The owner home (ADR 0012) links to thirteen screens in Figma 「2. 사장님」:
 the tabs 탐색 and 채팅, 알림 and 내 정보 from the app bar, 작업 확인 · 받은
-제안 상세 · 지원자 목록 from the 확인할 일 cards, 채팅방 and the 작업계획서
-sheet from 학생이 작업 중, 보낸 의뢰 상세 from 기다리는 중, 지난 결과물 보기
+제안 상세 · 지원자 목록 from the 확인할 일 cards, 채팅방 (its work card opens
+the work's documents, ADR 0045), 보낸 의뢰 상세 from 학생이 작업 중 and 기다리는 중
+(ADR 0049), 지난 결과물 보기
 from 끝난 일, and 의뢰 등록 1/3 from 「+ 새 의뢰」 and the example cards. The
 Notion 「화면 상태 전환표」 fixes their routes. The backend has no API for
 them yet.
@@ -31,8 +32,6 @@ them yet.
 - A missing id shows `OwnerMissing` instead of an empty screen.
 - The home rows of 학생이 작업 중, 기다리는 중, and 끝난 일 are whole-row
   buttons with a ›; `TaskRow` takes `onClick` for this.
-- 작업계획서 보기 is a bottom sheet (`WorkPlanSheet`) opened from the home
-  and the chat room, not a route. From the home it adds 「채팅하기」.
 - A picked profile photo lives only in the screen until the backend is
   wired. Chat (ADR 0034) and 알림 read and write the backend.
 - 의뢰 등록 1/3 starts empty from the FAB and with the example's field and
@@ -56,7 +55,6 @@ them yet.
 
 - Leaving the home buttons on the earlier paths: rejected, Notion is the
   source of truth for routes.
-- A route for the 작업계획서 sheet: rejected, Notion lists it as a popup.
 
 ## Agent Guidance
 

@@ -461,7 +461,7 @@ class JobDetailFlowTest {
                 // 현재 보상 비율(20%)로 다시 계산한 값이 아니라 저장된 값이어야 한다
                 .andExpect(jsonPath("$.data.refundAmount").value(70_000))
                 .andExpect(jsonPath("$.data.studentCompensationAmount").value(30_000))
-                .andExpect(jsonPath("$.data.cancelledAt").value("2026-10-04T12:00:00"));
+                .andExpect(jsonPath("$.data.cancelledAt").value("2026-10-04T21:00:00+09:00"));
     }
 
     private void expectHiddenCancellationInfo() throws Exception {
@@ -648,7 +648,7 @@ class JobDetailFlowTest {
                 .andExpect(jsonPath("$.data.messageToStudent").value(nullValue()))
                 .andExpect(jsonPath("$.data.refundAmount").value(100_000))
                 .andExpect(jsonPath("$.data.studentCompensationAmount").value(0))
-                .andExpect(jsonPath("$.data.cancelledAt").value("2026-10-04T12:00:00"))
+                .andExpect(jsonPath("$.data.cancelledAt").value("2026-10-04T21:00:00+09:00"))
                 // 작업 조건은 그대로 남는다
                 .andExpect(jsonPath("$.data.budget").value(100_000))
                 .andExpect(jsonPath("$.data.draftDeadline").value("2026-10-10"))

@@ -12,6 +12,7 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
 
@@ -40,7 +41,7 @@ class JobSubmissionCompleteServiceTest {
     private static final List<JobStatus> CLOSED_STATUSES = List.of(JobStatus.CLOSED, JobStatus.CANCELLED);
 
     private static final Instant NOW = Instant.parse("2026-09-28T03:15:30Z");
-    private static final LocalDateTime EXPECTED_COMPLETED_AT = LocalDateTime.ofInstant(NOW, ZoneId.systemDefault());
+    private static final LocalDateTime EXPECTED_COMPLETED_AT = LocalDateTime.ofInstant(NOW, ZoneOffset.UTC);
 
     private final JobRepository jobRepository = mock(JobRepository.class);
     private final JobSubmissionRepository jobSubmissionRepository = mock(JobSubmissionRepository.class);

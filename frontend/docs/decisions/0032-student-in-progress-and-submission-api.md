@@ -53,7 +53,8 @@ The backend (dev) has:
 - **Submit** (`src/pages/StudentJobSubmitPage.tsx`, routes
   /student/works/:id/submit and /student/works/:id/revision/submit when the
   id is a number):
-  files go through `FilePicker` (`accept` lists the formats; files that do not
+  files go through `FilePicker` (`accept` lists the formats of
+  `src/lib/attachmentFormats.ts`, shared with chat attachments; files that do not
   fit and files past 10 are dropped with one notice), the message is required
   (「꼭 적어 주세요」), then `sendSubmission` uploads each file and submits.
   「보내는 중...」 while sending, one request per press. Success opens the

@@ -77,7 +77,7 @@ The owner side read `SAMPLE_PROPOSALS`, so a proposal a student sent
   - Home: only PENDING proposals become 「새 제안」 cards. The card badge is
     the first category name, and the student line shows `major`. While the
     list loads or after a failure, 확인할 일 shows `LoadNotice` and no count.
-  - `firstVisit` comes from the sample flag.
+  - `firstVisit` comes from the home's lists, this one included (ADR 0051).
 - **Status chip** (`receivedProposalStatusLabel`):
   - PENDING 「결정 대기」, AWAITING_START 「결제 완료」, ACCEPTED 「작업 중」,
     REJECTED · CANCELLED 「성사되지 않음」.
@@ -85,9 +85,14 @@ The owner side read `SAMPLE_PROPOSALS`, so a proposal a student sent
   - A CANCELLED job status overrides them with 「성사되지 않음」. On the detail that
     comes from `agreement.jobStatus`; list cards use `jobStatus` only when
     the server sends it.
+  - A CLOSED job status shows 「완료」: the server keeps a finished proposal at
+    ACCEPTED and only the job closes.
+  - 「작업 중」 (ACCEPTED with the job neither CLOSED nor CANCELLED,
+    `receivedProposalInProgress`) uses the owner color (`--color-main`) so it
+    stands apart from the grey chips, on the 받은 제안 list and the detail.
 - **Flow bar** (`receivedProposalFlowSteps`): PENDING → 제안 「결정해 주세요」,
-  AWAITING_START → 시작 「학생 시작 전」, ACCEPTED → 초안 「작업 중」. Cancelled,
-  rejected, and unknown statuses have no bar.
+  AWAITING_START → 시작 「학생 시작 전」, ACCEPTED → 초안 「작업 중」, a CLOSED job →
+  every step done. Cancelled, rejected, and unknown statuses have no bar.
 - **Student line** (`studentMetaText`): 「24학번 · 전공」. A 10-digit number
   becomes its third and fourth digits; a two-digit number is used as is.
   Missing parts are left out.

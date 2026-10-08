@@ -2,7 +2,7 @@ package com.gakkum.backend.application.demo.facade;
 
 import java.time.Clock;
 import java.time.LocalDateTime;
-import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Locale;
 
@@ -92,7 +92,7 @@ public class DemoFacade {
 
     /** 인증 없이 호출마다 행이 생기므로 최근 1시간에 만든 세션 수가 상한에 닿으면 새로 만들지 않는다. */
     private User createSession(UserRole requestedRole) {
-        LocalDateTime oneHourAgo = LocalDateTime.ofInstant(clock.instant(), ZoneId.systemDefault()).minusHours(1);
+        LocalDateTime oneHourAgo = LocalDateTime.ofInstant(clock.instant(), ZoneOffset.UTC).minusHours(1);
         if (userService.countDemoSessionsCreatedAfter(oneHourAgo) >= maxNewSessionsPerHour) {
             throw new BusinessException(ErrorCode.DEMO_SESSION_LIMIT_EXCEEDED);
         }
@@ -111,7 +111,8 @@ public class DemoFacade {
                 "[데모] 가꿈 분식",
                 businessCategoryService.getFirstCategoryId(),
                 "서울 노원구 광운로 20",
-                "광운대 앞에서 10년째 운영 중인 분식집입니다. 체험용 데모 매장입니다.",
+                "광운대 정문 앞에서 10년째 떡볶이와 김밥을 파는 분식집이에요. 학생 손님이 많고, 시험 기간에는 밤늦게까지 "
+                        + "문을 열어요. 체험용 데모 매장이에요.",
                 null,
                 List.of()), demoSessionId);
         Student profile = studentService.createStudentProfile(CreateStudentProfileCommand.of(
@@ -120,7 +121,8 @@ public class DemoFacade {
                 DemoStudentNumbers.next(studentService, VISITOR_ADMISSION_YEAR),
                 "소프트웨어학부",
                 null,
-                "디자인과 SNS 홍보에 관심이 많은 체험용 데모 학생입니다.",
+                "개발 공부를 하면서 동네 가게의 SNS 게시물과 짧은 영상 편집을 도와 왔어요. 사진 보정과 카드뉴스 만들기를 "
+                        + "좋아해요. 체험용 데모 학생이에요.",
                 null));
         for (Long specialtyId : specialtyIds) {
             specialtyService.addStudentSpecialty(AddStudentSpecialtyCommand.of(profile.getId(), specialtyId));

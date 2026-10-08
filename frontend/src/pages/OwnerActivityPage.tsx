@@ -16,7 +16,6 @@ import {
 import {
   OWNER_PATHS,
   PaymentSummaryBox,
-  WorkPlanSheet,
   admissionYearText,
   deadlineText,
   isOwnerWorkReviewed,
@@ -24,13 +23,13 @@ import {
   ownerProgressNoun,
   ownerProgressStatusText,
   receivedOnText,
+  receivedProposalInProgress,
   receivedProposalStatusLabel,
   jobCategoryNames,
   studentMetaText,
   useOpenJobs,
   useOwnerClosedJobs,
   useOwnerProgressJobs,
-  useProgressPlanSheet,
   useReceivedProposals,
 } from "../features/owner";
 import type {
@@ -120,8 +119,6 @@ function OwnerActivityPage() {
   const { load: closedLoad, reload: reloadClosed } = useOwnerClosedJobs();
   const closedJobs = closedLoad.status === "loaded" ? closedLoad.jobs : [];
   const paymentSummary = closedLoad.status === "loaded" ? closedLoad.paymentSummary : undefined;
-  // 진행 중 카드의 「상세보기」 = 지원서 바텀시트 (누를 때 불러옴)
-  const planSheet = useProgressPlanSheet();
   const [reportTitle, setReportTitle] = useState<string>();
   const openStudent = (studentProfileId: number) => navigate(OWNER_PATHS.student(String(studentProfileId)));
 
@@ -182,7 +179,11 @@ function OwnerActivityPage() {
           title={proposal.title}
           right={
             <>
-              <span className="owner-activity__chip">
+              <span
+                className={`owner-activity__chip${
+                  receivedProposalInProgress(proposal.status, proposal.jobStatus) ? " owner-activity__chip--working" : ""
+                }`}
+              >
                 {receivedProposalStatusLabel(proposal.status, proposal.jobStatus)}
               </span>
               <EmpathyCount count={proposal.likeCount} empathized />
@@ -217,20 +218,21 @@ function OwnerActivityPage() {
     );
   };
 
-  // 학생이 맡아 진행 중인 내 의뢰 (서버). 만드는 중이면 상세보기 = 지원서 바텀시트 또는 받은 제안
+  // 학생이 맡아 진행 중인 내 의뢰 (서버). 「상세보기」는 도착했으면 작업 확인, 만드는 중이면 보낸 의뢰 · 받은 제안 상세
   const inProgressCard = (job: OwnerProgressJob) => {
     const id = String(job.jobId);
     const submitted = job.stage === "submitted";
     const noun = ownerProgressNoun(job);
     const deadline = ownerProgressDeadline(job);
     const proposalId = job.proposalId;
-    const openDetail = submitted
-      ? () => navigate(OWNER_PATHS.workCheck(id))
-      : job.kind === "request"
-        ? () => planSheet.open(job)
-        : proposalId !== undefined
-          ? () => navigate(OWNER_PATHS.proposal(String(proposalId)))
-          : undefined;
+    const openDetail = () =>
+      navigate(
+        submitted
+          ? OWNER_PATHS.workCheck(id)
+          : proposalId !== undefined
+            ? OWNER_PATHS.proposal(String(proposalId))
+            : OWNER_PATHS.request(id),
+      );
     return (
       <li key={job.jobId} className="owner-activity__card">
         <CardHead kind={job.kind} title={job.title} />
@@ -243,7 +245,7 @@ function OwnerActivityPage() {
         <div className="owner-activity__box">
           <span className="owner-activity__dot" aria-hidden="true" />
           <span className="owner-activity__status">{ownerProgressStatusText(job)}</span>
-          {openDetail && <TextButton onClick={openDetail}>상세보기</TextButton>}
+          <TextButton onClick={openDetail}>상세보기</TextButton>
         </div>
         <div className="owner-activity__divider" />
         <StudentLine
@@ -263,11 +265,17 @@ function OwnerActivityPage() {
             </div>
           </>
         ) : (
-          <div className="owner-activity__trouble">
-            <span>문제가 있나요?</span>
-            <TextButton onClick={() => navigate(OWNER_PATHS.workCancel(id))}>작업 취소</TextButton>
-            <TextButton onClick={() => setReportTitle(job.title)}>문제 신고</TextButton>
-          </div>
+          <>
+            <div className="owner-activity__divider" />
+            <div className="owner-activity__trouble">
+              <span>문제가 있나요?</span>
+              {/* 결과물을 하나라도 받으면 취소할 수 없다 (서버도 막는다) */}
+              {job.stage === "drafting" && (
+                <TextButton onClick={() => navigate(OWNER_PATHS.workCancel(id))}>작업 취소</TextButton>
+              )}
+              <TextButton onClick={() => setReportTitle(job.title)}>문제 신고</TextButton>
+            </div>
+          </>
         )}
       </li>
     );
@@ -410,11 +418,6 @@ function OwnerActivityPage() {
         )}
       </div>
 
-      <WorkPlanSheet
-        content={planSheet.content}
-        onClose={planSheet.close}
-        onChat={() => navigate(OWNER_PATHS.chats)}
-      />
       <ReportSheet
         open={reportTitle !== undefined}
         workTitle={reportTitle ?? ""}

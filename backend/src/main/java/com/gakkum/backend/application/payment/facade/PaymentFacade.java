@@ -4,6 +4,7 @@ import java.time.Clock;
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -61,7 +62,7 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 public class PaymentFacade {
 
-    // 결제·정산 내역을 묶는 월의 기준 시간대
+    // 결제·정산 내역을 묶는 월과 정산 날짜의 기준 시간대
     private static final ZoneId HISTORY_ZONE = ZoneId.of("Asia/Seoul");
 
     private final PaymentPreparationService preparationService;
@@ -187,7 +188,8 @@ public class PaymentFacade {
             YearMonth approvedMonth = YearMonth.from(payment.getApprovedAt().atZone(HISTORY_ZONE));
             itemsByMonth.computeIfAbsent(approvedMonth, month -> new ArrayList<>())
                     .add(PaymentHistoryItemResult.of(payment, job.getTitle(), refundAmount(payment),
-                            studentUsersById.get(student.getUserId()).getName(), status));
+                            studentUsersById.get(student.getUserId()).getName(), status,
+                            paymentSettledDate(job, status), paymentRefundedDate(payment, status)));
 
             if (approvedMonth.equals(thisMonth)) {
                 thisMonthPaymentAmount += payment.getAmount();
@@ -319,7 +321,7 @@ public class PaymentFacade {
         return payment.getStudentCompensationAmount();
     }
 
-    // 정산 예정은 날짜가 없다. 정산 완료는 의뢰 완료일, 착수 보상과 환불은 한국 시간 기준 환불 처리일이다
+    // 정산 예정은 날짜가 없다. 정산 완료는 UTC로 저장된 의뢰 완료 시각의 한국 날짜, 착수 보상과 환불은 한국 시간 기준 환불 처리일이다
     private LocalDate settledDate(SettlementHistoryData payment, Job job, SettlementHistoryStatus status) {
         if (status == SettlementHistoryStatus.SCHEDULED) {
             return null;
@@ -328,7 +330,7 @@ public class PaymentFacade {
             if (job.getCompletedAt() == null) {
                 throw new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR);
             }
-            return job.getCompletedAt().toLocalDate();
+            return job.getCompletedAt().atOffset(ZoneOffset.UTC).atZoneSameInstant(HISTORY_ZONE).toLocalDate();
         }
         if (payment.getRefundedAt() == null) {
             throw new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR);
@@ -354,6 +356,28 @@ public class PaymentFacade {
                     : PaymentHistoryStatus.PARTIALLY_REFUNDED;
         }
         throw new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR);
+    }
+
+    // 정산 완료만 날짜가 있다. 정산 내역과 같이 UTC로 저장된 의뢰 완료 시각의 한국 날짜다
+    private LocalDate paymentSettledDate(Job job, PaymentHistoryStatus status) {
+        if (status != PaymentHistoryStatus.SETTLED) {
+            return null;
+        }
+        if (job.getCompletedAt() == null) {
+            throw new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR);
+        }
+        return job.getCompletedAt().atOffset(ZoneOffset.UTC).atZoneSameInstant(HISTORY_ZONE).toLocalDate();
+    }
+
+    // 부분·전액 환불만 날짜가 있다. 한국 시간 기준 환불 처리일이다
+    private LocalDate paymentRefundedDate(PaymentHistoryData payment, PaymentHistoryStatus status) {
+        if (status != PaymentHistoryStatus.PARTIALLY_REFUNDED && status != PaymentHistoryStatus.FULLY_REFUNDED) {
+            return null;
+        }
+        if (payment.getRefundedAt() == null) {
+            throw new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR);
+        }
+        return payment.getRefundedAt().atZone(HISTORY_ZONE).toLocalDate();
     }
 
     // 결제된 의뢰를 담당하는 학생. 일반 결제는 결제한 지원서의 학생, 제안 결제는 제안한 학생(의뢰의 담당 학생)이다

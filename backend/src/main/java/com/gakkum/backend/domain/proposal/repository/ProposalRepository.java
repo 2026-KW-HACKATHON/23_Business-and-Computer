@@ -23,7 +23,7 @@ import jakarta.persistence.LockModeType;
  */
 public interface ProposalRepository extends JpaRepository<Proposal, Long> {
 
-    /** 결제 승인·작업 시작·공감 변경·취소가 같은 제안을 순서대로 처리하도록 제안 행을 잠근다. */
+    /** 결제 승인·작업 시작·공감 변경·취소·거절이 같은 제안을 순서대로 처리하도록 제안 행을 잠근다. */
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     Optional<Proposal> findLockedById(Long proposalId);
 

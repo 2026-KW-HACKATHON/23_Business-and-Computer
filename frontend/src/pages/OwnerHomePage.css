@@ -6,8 +6,7 @@
 }
 
 /* 섹션 사이 8px 회색 띠 */
-.owner-home__section + .owner-home__section,
-.first-visit + .owner-home__section {
+.owner-home__section + .owner-home__section {
   border-top: 8px solid var(--role-muted);
 }
 
@@ -61,7 +60,7 @@
 }
 
 .owner-home__example:focus-visible {
-  outline: 2px solid var(--color-black);
+  outline: 2px solid var(--role-focus);
   outline-offset: 2px;
 }
 

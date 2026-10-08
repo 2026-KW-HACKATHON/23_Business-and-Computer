@@ -1,10 +1,11 @@
 package com.gakkum.backend.application.proposal.dto;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 
 import com.gakkum.backend.domain.job.entity.JobStatus;
 import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.ProposalJobDeclineResult;
 import com.gakkum.backend.domain.proposal.entity.ProposalStatus;
+import com.gakkum.backend.global.response.KoreaTime;
 
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -22,7 +23,7 @@ public class ProposalJobDeclineResponse {
     private final Long paidAmount;
     private final Long studentCompensationAmount;
     private final Long refundAmount;
-    private final LocalDateTime declinedAt;
+    private final OffsetDateTime declinedAt;
 
     public static ProposalJobDeclineResponse from(ProposalJobDeclineResult result) {
         return ProposalJobDeclineResponse.builder()
@@ -32,7 +33,7 @@ public class ProposalJobDeclineResponse {
                 .paidAmount(result.getPaidAmount())
                 .studentCompensationAmount(result.getStudentCompensationAmount())
                 .refundAmount(result.getRefundAmount())
-                .declinedAt(result.getDeclinedAt())
+                .declinedAt(KoreaTime.from(result.getDeclinedAt()))
                 .build();
     }
 }

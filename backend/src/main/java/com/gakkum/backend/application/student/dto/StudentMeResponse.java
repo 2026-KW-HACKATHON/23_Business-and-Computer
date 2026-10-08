@@ -26,6 +26,7 @@ public class StudentMeResponse {
     private final String name;
     private final String university;
     private final String studentNumber;
+    private final String major;
     private final String introduction;
     private final String portfolioUrl;
     private final Long proposalCount;
@@ -46,6 +47,7 @@ public class StudentMeResponse {
                 .name(result.getName())
                 .university(result.getUniversity())
                 .studentNumber(result.getStudentNumber())
+                .major(result.getMajor())
                 .introduction(result.getIntroduction())
                 .portfolioUrl(result.getPortfolioUrl())
                 .proposalCount(result.getProposalCount())
@@ -117,6 +119,7 @@ public class StudentMeResponse {
     @AllArgsConstructor(access = AccessLevel.PRIVATE)
     public static class Review {
 
+        private final String jobTitle;
         private final String storeName;
         private final List<SpecialtyCategory> specialtyCategories;
         private final Integer rating;
@@ -125,6 +128,7 @@ public class StudentMeResponse {
 
         public static Review from(StudentReceivedReviewResult result) {
             return Review.builder()
+                    .jobTitle(result.getJobTitle())
                     .storeName(result.getStoreName())
                     .specialtyCategories(result.getSpecialtyCategories().stream()
                             .map(SpecialtyCategory::from)

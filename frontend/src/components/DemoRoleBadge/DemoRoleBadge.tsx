@@ -12,7 +12,7 @@ function DemoRoleBadge({ role, onClick }: DemoRoleBadgeProps) {
   const target = role === "owner" ? "학생" : "사장님";
 
   return (
-    <button type="button" className="demo-role-badge" onClick={onClick}>
+    <button type="button" className="demo-role-badge" onClick={onClick} data-guide="demo-badge">
       <span className="demo-role-badge__dot" aria-hidden="true" />
       <span className="demo-role-badge__switch">{target}으로 보기 ⇄</span>
     </button>

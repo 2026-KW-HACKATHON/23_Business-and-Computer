@@ -12,6 +12,7 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
 
@@ -68,7 +69,7 @@ class JobSubmissionRevisionRequestServiceTest {
 
         jobService.requestRevision(command(81L), 5L);
 
-        assertThat(submission.getReviewedAt()).isEqualTo(LocalDateTime.ofInstant(NOW, ZoneId.systemDefault()));
+        assertThat(submission.getReviewedAt()).isEqualTo(LocalDateTime.ofInstant(NOW, ZoneOffset.UTC));
     }
 
     @Test

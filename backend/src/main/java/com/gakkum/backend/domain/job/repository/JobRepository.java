@@ -107,23 +107,24 @@ public interface JobRepository extends JpaRepository<Job, Long> {
     List<Job> findBySelectedStudentProfileId(Long studentProfileId);
 
     /*
-     * 탐색 목록용 의뢰. excludedStatus(취소)를 빼고, 커서 경계는 정렬 키 튜플 (createdAt, id)의 대소 비교다.
+     * 탐색 목록용 의뢰. excludedStatus(취소)와 제안으로 만든 의뢰(proposalId가 있는 행)를 빼고,
+     * 커서 경계는 정렬 키 튜플 (createdAt, id)의 대소 비교다. 제안으로 만든 의뢰는 상태와 무관하게 뺀다.
      * 대분류 없는 조회는 경계 뒤를 정렬 순서상 연속된 두 구간(경계 시각과 같은 행 → 경계 시각 이전·이후)으로 나눈
      * 메서드 이름 쿼리로 읽고 서비스가 이어 붙인다. 각 구간은 (created_at, id) 인덱스의 연속 범위다.
      * idBound에 Long 최솟값·최댓값을 넣어 경계 시각과 같은 행 전체를 빼거나 포함한다.
      * demoSessionId가 조회자와 같은 의뢰만 고른다. 실제 사용자는 null이고 메서드 이름 쿼리는 null을 IS NULL로 비교한다.
      */
 
-    List<Job> findByDemoSessionIdAndStatusNotAndCreatedAtAndIdLessThanOrderByIdDesc(
+    List<Job> findByDemoSessionIdAndStatusNotAndProposalIdIsNullAndCreatedAtAndIdLessThanOrderByIdDesc(
             String demoSessionId, JobStatus excludedStatus, LocalDateTime createdAt, Long idBound, Limit limit);
 
-    List<Job> findByDemoSessionIdAndStatusNotAndCreatedAtLessThanOrderByCreatedAtDescIdDesc(
+    List<Job> findByDemoSessionIdAndStatusNotAndProposalIdIsNullAndCreatedAtLessThanOrderByCreatedAtDescIdDesc(
             String demoSessionId, JobStatus excludedStatus, LocalDateTime createdAt, Limit limit);
 
-    List<Job> findByDemoSessionIdAndStatusNotAndCreatedAtAndIdGreaterThanOrderByIdAsc(
+    List<Job> findByDemoSessionIdAndStatusNotAndProposalIdIsNullAndCreatedAtAndIdGreaterThanOrderByIdAsc(
             String demoSessionId, JobStatus excludedStatus, LocalDateTime createdAt, Long idBound, Limit limit);
 
-    List<Job> findByDemoSessionIdAndStatusNotAndCreatedAtGreaterThanOrderByCreatedAtAscIdAsc(
+    List<Job> findByDemoSessionIdAndStatusNotAndProposalIdIsNullAndCreatedAtGreaterThanOrderByCreatedAtAscIdAsc(
             String demoSessionId, JobStatus excludedStatus, LocalDateTime createdAt, Limit limit);
 
     /*
@@ -135,6 +136,7 @@ public interface JobRepository extends JpaRepository<Job, Long> {
             select j from Job j
             where j.demoSessionId is not distinct from :demoSessionId
               and j.status <> :excludedStatus
+              and j.proposalId is null
               and j.createdAt is not null
               and (j.createdAt, j.id) < (:createdAt, :idBound)
               and exists (
@@ -151,6 +153,7 @@ public interface JobRepository extends JpaRepository<Job, Long> {
             select j from Job j
             where j.demoSessionId is not distinct from :demoSessionId
               and j.status <> :excludedStatus
+              and j.proposalId is null
               and j.createdAt is not null
               and (j.createdAt, j.id) > (:createdAt, :idBound)
               and exists (

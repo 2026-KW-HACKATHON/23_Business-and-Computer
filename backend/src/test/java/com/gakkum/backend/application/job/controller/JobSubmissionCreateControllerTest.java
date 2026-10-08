@@ -74,7 +74,7 @@ class JobSubmissionCreateControllerTest {
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.uploadUrl").value(FILE_URL + "?X-Amz-Signature=abc"))
                 .andExpect(jsonPath("$.data.uploadHeaders.content-type").value("application/pdf"))
-                .andExpect(jsonPath("$.data.uploadUrlExpiresAt").value("2026-09-27T21:10:00"))
+                .andExpect(jsonPath("$.data.uploadUrlExpiresAt").value("2026-09-28T06:10:00+09:00"))
                 .andExpect(jsonPath("$.data.fileUrl").value(FILE_URL));
 
         ArgumentCaptor<PrepareSubmissionFileUploadCommand> captor =

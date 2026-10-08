@@ -1,15 +1,22 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useObjectUrls } from "../../../hooks/useObjectUrls";
+import type { AttachmentType } from "../../../lib/attachmentFormats";
 import {
   fetchChatMessage,
   fetchChatMessages,
   fetchChatRoom,
   markChatRead,
+  prepareChatAttachmentUpload,
+  putChatAttachment,
+  sendChatAttachment,
   sendChatText,
 } from "../api/chatApi";
 import {
   CHAT_LEAVE_MESSAGE,
+  attachmentFailureOf,
   chatFailureOf,
+  checkAttachment,
   isAttachmentExpired,
   mergeMessages,
   newClientMessageId,
@@ -18,6 +25,14 @@ import {
 } from "../lib/messages";
 import { trackRead } from "../lib/readSync";
 import type { ChatFailure, ChatMessage, ChatRoom } from "../types";
+
+/** 보내는 중 · 보내지 못한 첨부. uploadId 가 있으면 저장소에 올리기까지 끝났다 */
+interface AttachmentJob {
+  file: File;
+  type: AttachmentType;
+  contentType: string;
+  uploadId?: string;
+}
 
 /** 채팅방 안에서 대화 내역을 다시 불러오는 간격 */
 const POLL_MS = 3_000;
@@ -34,10 +49,20 @@ export interface ChatRoomState {
   reload: () => void;
   /** 글 보내기. 보내는 동안 말풍선을 먼저 보인다 */
   send: (text: string) => void;
-  /** 보내지 못한 글을 같은 clientMessageId 로 다시 보낸다 */
+  /**
+   * 사진 · 파일 하나 보내기. 형식 · 크기가 안 맞으면 알림만 띄운다.
+   * 준비(POST uploads) → 저장소 PUT → POST messages/attachments 동안 말풍선을 먼저 보인다
+   */
+  sendAttachment: (file: File) => void;
+  /**
+   * 보내지 못한 글 · 첨부를 다시 보낸다. 글과 저장소에 올리기까지 끝난 첨부는 같은
+   * clientMessageId 로 보내기만 다시, 그 전에 실패한 첨부는 새 clientMessageId 로 준비부터
+   */
   resend: (clientMessageId: string) => void;
   /** 만료된 사진 · 파일 주소를 새로 받아 새 탭에서 연다 */
   openExpiredAttachment: (message: ChatMessage) => void;
+  /** 만료된 사진 주소를 새로 받아 말풍선 · 크게 보기에 바꿔 끼운다 */
+  refreshAttachment: (message: ChatMessage) => void;
 }
 
 /**
@@ -57,6 +82,10 @@ export function useChatRoom(roomId: string, listPath: string): ChatRoomState {
   const viewerUserId = useRef<string | undefined>(undefined);
   /** 이 화면에서 보낸 글. viewerUserId 를 모를 때만 이것으로 내 메시지를 정한다 */
   const mineIds = useRef(new Set<string>());
+  /** 보내는 중 · 보내지 못한 첨부 (clientMessageId 별) */
+  const attachments = useRef(new Map<string, AttachmentJob>());
+  /** 이 화면에서 보낸 첨부의 크기. 서버 메시지에는 크기가 없어 보낸 뒤에도 이것으로 보인다 */
+  const sentSizes = useRef(new Map<string, number>());
   const mounted = useRef(true);
   const left = useRef(false);
   const lastRead = useRef(0);
@@ -82,14 +111,24 @@ export function useChatRoom(roomId: string, listPath: string): ChatRoomState {
     [navigate, listPath],
   );
 
-  /** 받은 대화 내역을 합치고, 그 안에 저장된 보내는 중 · 실패 글은 뺀다 */
-  const receive = useCallback((page: Awaited<ReturnType<typeof fetchChatMessages>>) => {
-    if (page.viewerUserId !== undefined) viewerUserId.current = page.viewerUserId;
-    const viewer = viewerUserId.current;
-    setSaved((current) => mergeMessages(current, page.messages, viewer, mineIds.current));
-    const savedIds = new Set(page.messages.map((message) => message.clientMessageId));
-    setOutgoing((current) => current.filter((message) => !savedIds.has(message.clientMessageId)));
+  /** 이 화면에서 보낸 첨부면 크기를 붙인다 */
+  const withSentSize = useCallback((message: ChatMessage): ChatMessage => {
+    const size = sentSizes.current.get(message.clientMessageId);
+    return size === undefined || message.fileSize !== undefined ? message : { ...message, fileSize: size };
   }, []);
+
+  /** 받은 대화 내역을 합치고, 그 안에 저장된 보내는 중 · 실패 글은 뺀다 */
+  const receive = useCallback(
+    (page: Awaited<ReturnType<typeof fetchChatMessages>>) => {
+      if (page.viewerUserId !== undefined) viewerUserId.current = page.viewerUserId;
+      const viewer = viewerUserId.current;
+      setSaved((current) => mergeMessages(current, page.messages, viewer, mineIds.current).map(withSentSize));
+      const savedIds = new Set(page.messages.map((message) => message.clientMessageId));
+      savedIds.forEach((id) => attachments.current.delete(id));
+      setOutgoing((current) => current.filter((message) => !savedIds.has(message.clientMessageId)));
+    },
+    [withSentSize],
+  );
 
   // 처음 불러오기
   useEffect(() => {
@@ -226,19 +265,127 @@ export function useChatRoom(roomId: string, listPath: string): ChatRoomState {
     [deliver],
   );
 
+  /** 보내는 중 · 보내지 못한 말풍선 하나를 바꾼다 */
+  const patchOutgoing = useCallback((clientMessageId: string, patch: Partial<ChatMessage>) => {
+    setOutgoing((current) =>
+      current.map((m) => (m.clientMessageId === clientMessageId ? { ...m, ...patch } : m)),
+    );
+  }, []);
+
+  /** 첨부 하나: 아직 안 올렸으면 준비 → 저장소 PUT, 그다음 메시지로 보낸다 */
+  const deliverAttachment = useCallback(
+    async (clientMessageId: string) => {
+      const job = attachments.current.get(clientMessageId);
+      if (!job) return;
+      try {
+        if (job.uploadId === undefined) {
+          const upload = await prepareChatAttachmentUpload(roomId, {
+            type: job.type,
+            fileName: job.file.name,
+            contentType: job.contentType,
+            size: job.file.size,
+          });
+          await putChatAttachment(upload, job.file);
+          job.uploadId = upload.uploadId;
+        }
+        const response = await sendChatAttachment(roomId, {
+          clientMessageId,
+          type: job.type,
+          uploadId: job.uploadId,
+        });
+        attachments.current.delete(clientMessageId);
+        if (!mounted.current) return;
+        setSaved((current) =>
+          upsertMessage(current, withSentSize(toChatMessage(response, viewerUserId.current, true))),
+        );
+        setOutgoing((current) => current.filter((m) => m.clientMessageId !== clientMessageId));
+      } catch (error) {
+        const failure = chatFailureOf(error);
+        if (failure !== "error") {
+          leave(failure);
+          return;
+        }
+        const next = attachmentFailureOf(error);
+        if (next.action === "drop") {
+          attachments.current.delete(clientMessageId);
+          if (!mounted.current) return;
+          setOutgoing((current) => current.filter((m) => m.clientMessageId !== clientMessageId));
+          window.alert(next.message);
+          return;
+        }
+        // 올린 파일을 다시 쓸 수 없으면 다시 보낼 때 준비부터 한다
+        if (next.restart) job.uploadId = undefined;
+        if (!mounted.current) return;
+        patchOutgoing(clientMessageId, { status: "failed", failureReason: next.reason });
+      }
+    },
+    [roomId, leave, withSentSize, patchOutgoing],
+  );
+
+  const sendAttachment = useCallback(
+    (file: File) => {
+      const check = checkAttachment(file);
+      if (!check.ok) {
+        window.alert(check.message);
+        return;
+      }
+      const clientMessageId = newClientMessageId();
+      mineIds.current.add(clientMessageId);
+      sentSizes.current.set(clientMessageId, file.size);
+      attachments.current.set(clientMessageId, { file, type: check.type, contentType: check.contentType });
+      setOutgoing((current) => [
+        ...current,
+        {
+          id: undefined,
+          clientMessageId,
+          type: check.type,
+          content: undefined,
+          attachmentName: file.name,
+          contentExpiresAt: undefined,
+          createdAt: new Date().toISOString(),
+          mine: true,
+          status: "sending",
+          fileSize: file.size,
+          file,
+        },
+      ]);
+      void deliverAttachment(clientMessageId);
+    },
+    [deliverAttachment],
+  );
+
   const resend = useCallback(
     (clientMessageId: string) => {
       const failed = outgoing.find(
         (m) => m.clientMessageId === clientMessageId && m.status === "failed",
       );
-      if (!failed?.content) return;
+      if (!failed) return;
+
+      const job = attachments.current.get(clientMessageId);
+      if (job) {
+        if (job.uploadId !== undefined) {
+          // 저장소에 올리기까지 끝났으면 같은 clientMessageId 로 보내기만 다시
+          patchOutgoing(clientMessageId, { status: "sending", failureReason: undefined });
+          void deliverAttachment(clientMessageId);
+          return;
+        }
+        // 그 전에 실패했으면 새 clientMessageId 로 준비부터
+        const nextId = newClientMessageId();
+        attachments.current.delete(clientMessageId);
+        attachments.current.set(nextId, job);
+        mineIds.current.add(nextId);
+        sentSizes.current.set(nextId, job.file.size);
+        patchOutgoing(clientMessageId, { clientMessageId: nextId, status: "sending", failureReason: undefined });
+        void deliverAttachment(nextId);
+        return;
+      }
+
+      if (!failed.content) return;
       const text = failed.content;
-      setOutgoing((current) =>
-        current.map((m) => (m.clientMessageId === clientMessageId ? { ...m, status: "sending" } : m)),
-      );
+      patchOutgoing(clientMessageId, { status: "sending" });
       void deliver(clientMessageId, text);
     },
-    [outgoing, deliver],
+    [outgoing, deliver, deliverAttachment, patchOutgoing],
   );
 
   const openExpiredAttachment = useCallback(
@@ -269,12 +416,45 @@ export function useChatRoom(roomId: string, listPath: string): ChatRoomState {
     [roomId, leave],
   );
 
+  const refreshAttachment = useCallback(
+    (message: ChatMessage) => {
+      if (message.id === undefined) return;
+      void fetchChatMessage(roomId, message.id).then(
+        (response) => {
+          const fresh = toChatMessage(response, viewerUserId.current, message.mine);
+          if (mounted.current) setSaved((current) => upsertMessage(current, fresh));
+        },
+        (error: unknown) => {
+          const failure = chatFailureOf(error);
+          if (failure !== "error") leave(failure);
+        },
+      );
+    },
+    [roomId, leave],
+  );
+
   const reload = useCallback(() => {
     setLoad({ status: "loading" });
     setRequest((n) => n + 1);
   }, []);
 
-  const messages = useMemo(() => [...saved, ...outgoing], [saved, outgoing]);
+  // 보내는 중 · 보내지 못한 사진은 고른 파일로 미리 보인다
+  const outgoingImages = useMemo(
+    () =>
+      outgoing.flatMap((m) => (m.type === "IMAGE" && m.file ? [{ id: m.clientMessageId, file: m.file }] : [])),
+    [outgoing],
+  );
+  const imageFiles = useMemo(() => outgoingImages.map((image) => image.file), [outgoingImages]);
+  const previewUrls = useObjectUrls(imageFiles);
 
-  return { load, messages, reload, send, resend, openExpiredAttachment };
+  const messages = useMemo(() => {
+    const previews = new Map(outgoingImages.map((image, i) => [image.id, previewUrls[i]]));
+    const pending = outgoing.map((m) => {
+      const preview = previews.get(m.clientMessageId);
+      return preview ? { ...m, content: preview } : m;
+    });
+    return [...saved, ...pending];
+  }, [saved, outgoing, outgoingImages, previewUrls]);
+
+  return { load, messages, reload, send, sendAttachment, resend, openExpiredAttachment, refreshAttachment };
 }
