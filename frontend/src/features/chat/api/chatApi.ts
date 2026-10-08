@@ -113,6 +113,53 @@ export async function fetchChatMessages(
   return { viewerUserId: data?.viewerUserId ?? undefined, messages: data?.messages ?? [] };
 }
 
+/** 작업 이력의 결과물 하나 (JobSubmissionResponse.Latest). GET /jobs/{id}/submissions 의 결과물과 같은 모양 */
+export interface ChatWorkSubmissionResponse {
+  submissionId: number;
+  submissionType: "DRAFT" | "REVISION";
+  /** 초안 0, 수정안은 1부터 */
+  revisionNumber: number;
+  fileUrls: string[];
+  files?: { fileUrl: string; size?: number | null }[] | null;
+  message?: string | null;
+  reviewStatus: ChatSubmissionReviewStatus;
+  /** 한국 시각 (+09:00) */
+  submittedAt: string;
+  /** 이 결과물에 받은 수정 요청. 받지 않았으면 없음 */
+  revisionRequest?: {
+    message?: string | null;
+    referenceImageUrls?: string[] | null;
+    requestedAt: string;
+  } | null;
+}
+
+/** GET /jobs/{jobId}/work-history 의 답 (ChatWorkHistoryResponse) */
+export interface ChatWorkHistoryResponse {
+  /** 그 작업의 채팅방 (GET /me/chat-rooms 의 방 하나와 같은 모양) */
+  room: ChatRoomResponse;
+  /** 수정 번호 오름차순. 낸 게 없으면 빈 배열 */
+  submissions?: ChatWorkSubmissionResponse[] | null;
+  /** 이 작업에 사장님 후기가 등록됐는지 */
+  reviewed?: boolean | null;
+}
+
+/** 작업 이력 한 번에: 그 작업의 채팅방, 모든 초안 · 수정안과 각 수정 요청, 후기 여부 */
+export interface ChatWorkHistoryData {
+  room: ChatRoomResponse;
+  submissions: ChatWorkSubmissionResponse[];
+  reviewed: boolean;
+}
+
+/**
+ * GET /jobs/{jobId}/work-history — 채팅 작업 카드 「이력 상세보기 ›」. 그 작업의 사장님 · 맡은 학생만.
+ * 작업 · 채팅방이 없으면 404 (JOB_404 · CHAT_ROOM_404), 참여자가 아니면 403 (CHAT_403)
+ */
+export async function fetchWorkHistory(jobId: number): Promise<ChatWorkHistoryData> {
+  const data = await apiData<ChatWorkHistoryResponse | undefined>(`/jobs/${jobId}/work-history`);
+  if (!data?.room) throw new Error("Work history response has no room");
+  return { room: data.room, submissions: data.submissions ?? [], reviewed: data.reviewed === true };
+}
+
 /** GET /chat-rooms/{roomId}/messages/{messageId} — 메시지 하나. 첨부 열람 주소를 새로 받는다 */
 export async function fetchChatMessage(roomId: string, messageId: number): Promise<ChatMessageResponse> {
   const data = await apiData<ChatMessageResponse | undefined>(

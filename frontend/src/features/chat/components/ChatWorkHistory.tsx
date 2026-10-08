@@ -24,15 +24,13 @@ interface ChatWorkHistoryProps {
   /** 없으면 흐름 막대를 숨긴다 (성사되지 않은 작업) */
   steps?: FlowStep[];
   rows: ChatWorkHistoryRow[];
-  /** 목록 아래 회색 안내 (지난 서류를 불러오지 못했을 때) */
-  note?: string;
 }
 
 /**
  * 피그마 「작업 이력」 (ADR 0045). 작업 이름과 흐름 막대 아래에 그 작업에 쌓인 서류를 생긴 순서대로
  * 보인다 (날짜 없음). 줄을 누르면 그 서류 화면으로 간다
  */
-function ChatWorkHistory({ role, kind, title, badge, meta, steps, rows, note }: ChatWorkHistoryProps) {
+function ChatWorkHistory({ role, kind, title, badge, meta, steps, rows }: ChatWorkHistoryProps) {
   return (
     <div className="chat-work-history">
       <div className="chat-work-history__work">
@@ -77,7 +75,6 @@ function ChatWorkHistory({ role, kind, title, badge, meta, steps, rows, note }: 
           );
         })}
       </ul>
-      {note && <p className="chat-work-history__note">{note}</p>}
     </div>
   );
 }

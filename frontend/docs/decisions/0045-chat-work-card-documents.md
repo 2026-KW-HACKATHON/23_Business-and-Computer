@@ -23,6 +23,13 @@ sheet.
   `submissionType` (DRAFT · REVISION), and `revisionNumber`, and the
   `proposalId` of a job started from a proposal. GET /chat-rooms/{id} also
   carries `reviewed`, whether the owner has reviewed the work.
+- GET /jobs/{id}/work-history → `{ room, submissions, reviewed }` gives the
+  owner and the assigned student the work's room (the same shape as a list
+  room), every submission in revision order (the same items as GET
+  /jobs/{id}/submissions; an empty list before the first submission), and
+  whether the owner has reviewed the work, in one request. JOB_404 ·
+  CHAT_ROOM_404 when the work or its room is missing, CHAT_403 for anyone
+  else.
 - GET /jobs/{id}/submissions → `{ submissions [{ submissionId,
   submissionType, revisionNumber, fileUrls, files, message, reviewStatus,
   submittedAt, revisionRequest { message, referenceImageUrls, requestedAt }
@@ -52,11 +59,8 @@ sheet.
   did not go through ends with 취소 내역. With two or more revision requests,
   수정 요청 and 수정안 carry the round, 「수정 요청 1」「수정안 1」「수정 요청 2」….
   While the work goes on, the last row (the waiting submission, or the request
-  being worked on) is the current document; every other row is past.
-- **Before the history loads** (`chatWorkDocs`, `chatWorkEntries`): rows
-  guessed from the stage and the room's `revisionNumber`; past rows have no
-  screen and are grey. If the history fails, 「지난 서류를 불러오지 못했어요」
-  shows under the list. Both roles use the same labels.
+  being worked on) is the current document; every other row is past. Both
+  roles use the same labels.
 - **Card** (`ChatWorkCard`, both chat rooms):
   - the title row: the work icon, the title, and 「이력 상세보기 ›」 (작업
     이력);
@@ -88,10 +92,14 @@ sheet.
 - **작업 이력** (/owner/works/:id/history and /student/works/:id/history,
   `ChatWorkHistory`): the work (title, 작업 중 · 완료 · 성사되지 않음, the other
   side, 작업비 · 수정 n회), a flow bar (hidden when not concluded), and one row
-  per document with a gray line and no date. The room comes from GET
-  /me/chat-rooms by job id. The owner's 후기 row shows once the owner reviewed
-  (the closed list's `reviewed`, or a review left in this session); the
-  student's always shows for a completed work.
+  per document with a gray line and no date. One request, GET
+  /jobs/{id}/work-history (`useWorkHistory`), brings the room, the
+  submissions, and `reviewed`; `LoadNotice` 「작업 이력을 불러오는 중이에요」 ·
+  「작업 이력을 불러오지 못했어요」 with 「다시 시도」 shows until it answers,
+  401 goes to /login, and 403 · 404 show the missing-work screen. The owner's
+  후기 row shows once the owner reviewed (the history's `reviewed`, or a
+  review left in this session); the student's always shows for a completed
+  work.
 - **지난 초안 · 지난 수정안** (owner, /owner/works/:id/submissions/:submissionId,
   `OwnerPastSubmissionPage`): 「신고」 at the top right, the work box (「박지은
   학생 · 초안 도착 9월 22일 · 수정 1/2」), the flow bar at the work's current
@@ -133,7 +141,9 @@ sheet.
 - The same names on both sides, and every document opens a screen, so the
   chat never mixes sheets and screens.
 - The room's fields and the history answer the stage, the proposal, and the
-  rounds, so the chat and the history need no matched or proposal lists.
+  rounds, so the chat and the history need no matched or proposal lists; the
+  `reviewed` flag comes with them, so neither reads the closed list, and 작업
+  이력 is one request instead of the whole chat list plus the submissions.
 
 ## Alternatives Considered
 
