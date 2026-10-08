@@ -6,9 +6,13 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.List;
 import java.util.Map;
 
 import org.junit.jupiter.api.AfterEach;
@@ -22,10 +26,14 @@ import com.gakkum.backend.global.exception.ErrorCode;
 
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
+import software.amazon.awssdk.core.ResponseInputStream;
 import software.amazon.awssdk.core.exception.SdkClientException;
+import software.amazon.awssdk.http.AbortableInputStream;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.S3Utilities;
+import software.amazon.awssdk.services.s3.model.GetObjectRequest;
+import software.amazon.awssdk.services.s3.model.GetObjectResponse;
 import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
 import software.amazon.awssdk.services.s3.model.HeadObjectResponse;
 import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
@@ -48,7 +56,7 @@ class JobSubmissionFileStorageClientTest {
                 AwsBasicCredentials.create("AKIAEXAMPLE", "secret"));
         s3Client = S3Client.builder().region(Region.AP_NORTHEAST_2).credentialsProvider(credentials).build();
         s3Presigner = S3Presigner.builder().region(Region.AP_NORTHEAST_2).credentialsProvider(credentials).build();
-        client = new JobSubmissionFileStorageClient(s3Client, s3Presigner, BUCKET, Duration.ofMinutes(10));
+        client = new JobSubmissionFileStorageClient(s3Client, s3Presigner, BUCKET, Duration.ofMinutes(10), 2);
     }
 
     @AfterEach
@@ -114,7 +122,7 @@ class JobSubmissionFileStorageClientTest {
     void findsObjectSize() {
         S3Client headClient = mockHeadClient();
         JobSubmissionFileStorageClient headChecking =
-                new JobSubmissionFileStorageClient(headClient, s3Presigner, BUCKET, Duration.ofMinutes(10));
+                new JobSubmissionFileStorageClient(headClient, s3Presigner, BUCKET, Duration.ofMinutes(10), 2);
         when(headClient.headObject(HeadObjectRequest.builder().bucket(BUCKET).key("found").build()))
                 .thenReturn(HeadObjectResponse.builder().contentLength(1048576L).build());
         when(headClient.headObject(HeadObjectRequest.builder().bucket(BUCKET).key("missing").build()))
@@ -129,7 +137,7 @@ class JobSubmissionFileStorageClientTest {
     void rejectsWhenHeadFails() {
         S3Client headClient = mockHeadClient();
         JobSubmissionFileStorageClient headChecking =
-                new JobSubmissionFileStorageClient(headClient, s3Presigner, BUCKET, Duration.ofMinutes(10));
+                new JobSubmissionFileStorageClient(headClient, s3Presigner, BUCKET, Duration.ofMinutes(10), 2);
         when(headClient.headObject(any(HeadObjectRequest.class)))
                 .thenThrow(S3Exception.builder().statusCode(403).build())
                 .thenThrow(SdkClientException.create("timeout"));
@@ -139,6 +147,55 @@ class JobSubmissionFileStorageClientTest {
                     .isInstanceOfSatisfying(BusinessException.class, exception -> assertThat(exception.getErrorCode())
                             .isEqualTo(ErrorCode.JOB_SUBMISSION_FILE_UNAVAILABLE));
         }
+    }
+
+    @Test
+    @DisplayName("객체 본문을 읽는 스트림을 열고, 객체가 없으면 JOB_SUBMISSION_404_FILE, 그 밖의 S3 오류나 연결 오류는 JOB_SUBMISSION_502로 거부한다")
+    void opensObjectContent() throws IOException {
+        S3Client getClient = mockHeadClient();
+        JobSubmissionFileStorageClient reading =
+                new JobSubmissionFileStorageClient(getClient, s3Presigner, BUCKET, Duration.ofMinutes(10), 2);
+        when(getClient.getObject(GetObjectRequest.builder().bucket(BUCKET).key("found").build()))
+                .thenReturn(new ResponseInputStream<>(GetObjectResponse.builder().build(),
+                        AbortableInputStream.create(new ByteArrayInputStream(new byte[] { 1, 2, 3 }))));
+        when(getClient.getObject(GetObjectRequest.builder().bucket(BUCKET).key("missing").build()))
+                .thenThrow(NoSuchKeyException.builder().statusCode(404).build());
+        when(getClient.getObject(GetObjectRequest.builder().bucket(BUCKET).key("denied").build()))
+                .thenThrow(S3Exception.builder().statusCode(403).build());
+        when(getClient.getObject(GetObjectRequest.builder().bucket(BUCKET).key("unreachable").build()))
+                .thenThrow(SdkClientException.create("timeout"));
+
+        try (InputStream content = reading.open("found")) {
+            assertThat(content.readAllBytes()).containsExactly(1, 2, 3);
+        }
+        assertThatThrownBy(() -> reading.open("missing"))
+                .isInstanceOfSatisfying(BusinessException.class, exception -> assertThat(exception.getErrorCode())
+                        .isEqualTo(ErrorCode.JOB_SUBMISSION_FILE_NOT_FOUND));
+        for (String key : List.of("denied", "unreachable")) {
+            assertThatThrownBy(() -> reading.open(key))
+                    .isInstanceOfSatisfying(BusinessException.class, exception -> assertThat(exception.getErrorCode())
+                            .isEqualTo(ErrorCode.JOB_SUBMISSION_FILE_UNAVAILABLE));
+        }
+    }
+
+    @Test
+    @DisplayName("ZIP 다운로드는 동시 처리 한도까지만 시작하고 넘으면 기다리지 않고 JOB_SUBMISSION_503_DOWNLOAD로 거부하며, 닫으면 다시 시작할 수 있다")
+    void limitsConcurrentArchiveDownloads() {
+        JobSubmissionArchive first = client.startArchive(List.of());
+        JobSubmissionArchive second = client.startArchive(List.of());
+
+        assertThatThrownBy(() -> client.startArchive(List.of()))
+                .isInstanceOfSatisfying(BusinessException.class, exception -> assertThat(exception.getErrorCode())
+                        .isEqualTo(ErrorCode.JOB_SUBMISSION_DOWNLOAD_BUSY));
+
+        // 같은 다운로드를 여러 번 닫아도 슬롯은 하나만 돌아온다
+        first.close();
+        first.close();
+        JobSubmissionArchive third = client.startArchive(List.of());
+        assertThatThrownBy(() -> client.startArchive(List.of())).isInstanceOf(BusinessException.class);
+
+        second.close();
+        third.close();
     }
 
     private S3Client mockHeadClient() {

@@ -9,6 +9,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.UUID;
+import java.util.concurrent.Semaphore;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -18,8 +19,11 @@ import com.gakkum.backend.global.exception.BusinessException;
 import com.gakkum.backend.global.exception.ErrorCode;
 
 import lombok.extern.slf4j.Slf4j;
+import software.amazon.awssdk.core.ResponseInputStream;
 import software.amazon.awssdk.core.exception.SdkException;
 import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.GetObjectRequest;
+import software.amazon.awssdk.services.s3.model.GetObjectResponse;
 import software.amazon.awssdk.services.s3.model.GetUrlRequest;
 import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
@@ -31,6 +35,7 @@ import software.amazon.awssdk.services.s3.presigner.model.PresignedPutObjectRequ
  * 의뢰 작업물(초안·수정안) 파일을 공개 이미지 버킷의 job-submissions/ 경로에 올릴 URL을 발급하고,
  * 제출된 공개 URL이 해당 의뢰·학생용으로 발급한 경로인지와 업로드 여부를 확인한다.
  * 공개 읽기는 버킷 정책이 담당하므로 URL을 아는 누구나 파일을 열람할 수 있다.
+ * 여러 파일을 ZIP으로 내려받을 때는 서버가 객체를 직접 읽어 전달하며, 동시에 처리하는 다운로드 수를 제한한다.
  */
 @Slf4j
 @Component
@@ -46,16 +51,19 @@ public class JobSubmissionFileStorageClient {
     private final S3Presigner s3Presigner;
     private final String bucket;
     private final Duration uploadUrlTtl;
+    private final Semaphore downloadSlots;
 
     public JobSubmissionFileStorageClient(
             S3Client s3Client,
             S3Presigner s3Presigner,
             @Value("${s3.image-bucket}") String bucket,
-            @Value("${job-submission-file.upload-url-ttl}") Duration uploadUrlTtl) {
+            @Value("${job-submission-file.upload-url-ttl}") Duration uploadUrlTtl,
+            @Value("${job-submission-file.download-max-concurrency}") int downloadMaxConcurrency) {
         this.s3Client = s3Client;
         this.s3Presigner = s3Presigner;
         this.bucket = bucket;
         this.uploadUrlTtl = uploadUrlTtl;
+        this.downloadSlots = new Semaphore(downloadMaxConcurrency);
     }
 
     /** 원래 파일명이 공개 URL과 내려받는 파일명에 남도록 UUID 폴더 아래에 그대로 둔다. */
@@ -124,6 +132,34 @@ public class JobSubmissionFileStorageClient {
             throw unavailable("head", key, exception);
         } catch (SdkException exception) {
             throw unavailable("head", key, exception);
+        }
+    }
+
+    /**
+     * 동시 처리 한도 안에서 ZIP 다운로드 한 건을 시작한다. 기다리지 않고, 한도를 넘으면 JOB_SUBMISSION_503_DOWNLOAD로 거부한다.
+     * 반환한 다운로드는 전송이 끝나거나 시작하지 못하게 되면 반드시 close 해 처리 슬롯을 돌려줘야 한다.
+     */
+    public JobSubmissionArchive startArchive(List<JobSubmissionArchive.File> files) {
+        if (!downloadSlots.tryAcquire()) {
+            throw new BusinessException(ErrorCode.JOB_SUBMISSION_DOWNLOAD_BUSY);
+        }
+        return new JobSubmissionArchive(this, files, downloadSlots::release);
+    }
+
+    /**
+     * 객체 본문을 읽는 스트림을 연다. 객체가 없으면 JOB_SUBMISSION_404_FILE이다.
+     * 다 읽었으면 close, 중간에 그만두면 abort로 남은 본문을 받지 않고 연결을 끊어야 한다.
+     */
+    public ResponseInputStream<GetObjectResponse> open(String key) {
+        try {
+            return s3Client.getObject(GetObjectRequest.builder().bucket(bucket).key(key).build());
+        } catch (S3Exception exception) {
+            if (exception.statusCode() == 404) {
+                throw new BusinessException(ErrorCode.JOB_SUBMISSION_FILE_NOT_FOUND);
+            }
+            throw unavailable("get", key, exception);
+        } catch (SdkException exception) {
+            throw unavailable("get", key, exception);
         }
     }
 

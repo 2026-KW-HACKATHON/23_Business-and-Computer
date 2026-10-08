@@ -393,6 +393,39 @@ public final class JobCommandDto {
         }
     }
 
+    /** 여러 의뢰에서 고른 제출 파일의 ZIP 다운로드 요청. 의뢰와 파일은 요청한 순서를 유지한다. */
+    @Getter
+    @Builder(access = AccessLevel.PRIVATE)
+    @AllArgsConstructor(access = AccessLevel.PRIVATE)
+    public static class DownloadJobSubmissionFilesCommand {
+
+        private final String username;
+        private final List<JobFiles> jobs;
+
+        public static DownloadJobSubmissionFilesCommand of(String username, List<JobFiles> jobs) {
+            return DownloadJobSubmissionFilesCommand.builder()
+                    .username(username)
+                    .jobs(List.copyOf(jobs))
+                    .build();
+        }
+
+        @Getter
+        @Builder(access = AccessLevel.PRIVATE)
+        @AllArgsConstructor(access = AccessLevel.PRIVATE)
+        public static class JobFiles {
+
+            private final Long jobId;
+            private final List<String> fileUrls;
+
+            public static JobFiles of(Long jobId, List<String> fileUrls) {
+                return JobFiles.builder()
+                        .jobId(jobId)
+                        .fileUrls(List.copyOf(fileUrls))
+                        .build();
+            }
+        }
+    }
+
     @Getter
     @Builder(access = AccessLevel.PRIVATE)
     @AllArgsConstructor(access = AccessLevel.PRIVATE)

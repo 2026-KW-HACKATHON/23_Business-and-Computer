@@ -6,11 +6,13 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
@@ -26,6 +28,7 @@ import com.gakkum.backend.domain.certificate.service.CertificateService;
 import com.gakkum.backend.domain.chat.entity.ChatMessageType;
 import com.gakkum.backend.domain.chat.service.ChatAttachmentPolicy;
 import com.gakkum.backend.domain.chat.service.ChatRoomService;
+import com.gakkum.backend.domain.job.client.JobSubmissionArchive;
 import com.gakkum.backend.domain.job.client.JobSubmissionFileStorageClient;
 import com.gakkum.backend.domain.job.client.JobSubmissionFileStorageClient.PresignedFileUpload;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.CancelJobCommand;
@@ -33,6 +36,8 @@ import com.gakkum.backend.domain.job.dto.JobCommandDto.CompleteJobSubmissionComm
 import com.gakkum.backend.domain.job.dto.JobCommandDto.CreateJobApplicationCommand;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.CreateJobCommand;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.CreateJobSubmissionCommand;
+import com.gakkum.backend.domain.job.dto.JobCommandDto.DownloadJobSubmissionFilesCommand;
+import com.gakkum.backend.domain.job.dto.JobCommandDto.DownloadJobSubmissionFilesCommand.JobFiles;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.GetClosedJobsCommand;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.GetJobApplicantProfileCommand;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.GetJobApplicationsCommand;
@@ -267,6 +272,52 @@ public class JobFacade {
     }
 
     /**
+     * 여러 의뢰에서 고른 제출 파일의 ZIP 다운로드를 준비한다. 의뢰마다 제출물 조회와 같은 당사자 확인을 하고,
+     * 고른 URL이 그 의뢰의 제출물에 등록된 저장소 파일인지와 파일이 실제로 있는지를 모두 확인한 뒤에만 다운로드를 돌려준다.
+     * 저장소 확인과 전송이 DB 트랜잭션과 커넥션을 붙잡지 않도록 트랜잭션은 JobService의 조회에만 둔다.
+     * 돌려준 다운로드는 처리 슬롯을 쥐고 있으므로 호출한 쪽이 전송하거나 close 해야 한다.
+     */
+    public JobSubmissionArchive prepareSubmissionDownload(DownloadJobSubmissionFilesCommand command) {
+        User user = userService.getActiveUser(command.getUsername());
+        Long ownerProfileId = null;
+        Long studentProfileId = null;
+        if (user.getRole() == UserRole.OWNER) {
+            ownerProfileId = ownerService.findOwnerProfileByUserId(user.getId()).map(Owner::getId)
+                    .orElseThrow(() -> new BusinessException(ErrorCode.JOB_SUBMISSION_VIEW_FORBIDDEN));
+        } else if (user.getRole() == UserRole.STUDENT) {
+            studentProfileId = studentService.findStudentProfileByUserId(user.getId()).map(Student::getId)
+                    .orElseThrow(() -> new BusinessException(ErrorCode.JOB_SUBMISSION_VIEW_FORBIDDEN));
+        } else {
+            throw new BusinessException(ErrorCode.JOB_SUBMISSION_VIEW_FORBIDDEN);
+        }
+        Map<Long, Job> jobsById = jobService.getSubmissionDownloadJobs(command, ownerProfileId, studentProfileId);
+
+        List<JobSubmissionArchive.File> files = new ArrayList<>();
+        for (JobFiles jobFiles : command.getJobs()) {
+            Job job = jobsById.get(jobFiles.getJobId());
+            for (String fileUrl : jobFiles.getFileUrls()) {
+                String key = jobSubmissionFileStorageClient
+                        .findKey(fileUrl, job.getId(), job.getSelectedStudentProfileId())
+                        .orElseThrow(() -> new BusinessException(ErrorCode.JOB_SUBMISSION_FILE_URL_INVALID));
+                files.add(new JobSubmissionArchive.File(job.getId(), key));
+            }
+        }
+
+        // 파일 수만큼 나가는 저장소 확인도 동시 처리 한도 안에서 하도록 슬롯부터 잡는다
+        JobSubmissionArchive archive = jobSubmissionFileStorageClient.startArchive(files);
+        try {
+            for (JobSubmissionArchive.File file : files) {
+                jobSubmissionFileStorageClient.findSize(file.key())
+                        .orElseThrow(() -> new BusinessException(ErrorCode.JOB_SUBMISSION_FILE_NOT_FOUND));
+            }
+            return archive;
+        } catch (RuntimeException exception) {
+            archive.close();
+            throw exception;
+        }
+    }
+
+    /**
      * 완료된 의뢰의 결과물을 의뢰한 사장님 또는 담당 학생에게 보여준다.
      * 작업 시작일은 일반 의뢰는 결제 승인일, 제안 의뢰는 학생이 실제로 작업을 시작한 날이다.
      */
@@ -383,7 +434,25 @@ public class JobFacade {
         User user = userService.getActiveUser(username);
         Owner owner = ownerService.getOwnerProfile(user.getId());
         Job job = jobService.completeSubmission(CompleteJobSubmissionCommand.of(jobId, submissionId, owner.getId()));
+        publishCompleted(job, owner);
+    }
 
+    /**
+     * 검토 없이 자동 완료 기간이 지난 의뢰를 종료하고 수동 완료와 같은 알림을 발행한다.
+     * 의뢰마다 별도 트랜잭션으로 처리해, 알림 준비까지 실패하면 그 의뢰의 완료만 롤백한다.
+     * @param jobId
+     * @param referenceTime 만료를 판단하는 기준 시각(UTC)
+     * @return 완료했으면 true, 대상 조회 뒤 조건이 바뀌어 건너뛰었으면 false
+     */
+    @Transactional
+    public boolean autoCompleteSubmission(Long jobId, LocalDateTime referenceTime) {
+        Optional<Job> completed = jobService.autoCompleteSubmission(jobId, referenceTime);
+        completed.ifPresent(job -> publishCompleted(job, ownerService.getOwnerProfileById(job.getOwnerProfileId())));
+        return completed.isPresent();
+    }
+
+    /** 완료된 의뢰의 사장님에게 후기 요청 알림을, 결제 완료 기록이 있으면 담당 학생에게 정산 내역 알림을 발행한다. */
+    private void publishCompleted(Job job, Owner owner) {
         Student student = studentService.getStudentProfile(job.getSelectedStudentProfileId());
         User studentUser = userService.getUser(student.getUserId());
         eventPublisher.publishEvent(NotificationEventFactory.jobReviewRequested(

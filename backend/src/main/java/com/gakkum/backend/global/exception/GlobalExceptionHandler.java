@@ -8,6 +8,7 @@ import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.context.request.async.AsyncRequestNotUsableException;
 import org.springframework.web.method.annotation.HandlerMethodValidationException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.servlet.NoHandlerFoundException;
@@ -15,6 +16,7 @@ import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import com.gakkum.backend.global.response.ApiResponse;
 
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -27,6 +29,26 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(BusinessException.class)
     public ResponseEntity<ApiResponse<Void>> handleBusinessException(BusinessException exception) {
         return createErrorResponse(exception.getErrorCode());
+    }
+
+    /**
+     * 파일 전송 실패. 전송을 시작하기 전이면 정의된 에러 코드로 응답하고,
+     * 시작한 뒤면 응답에 오류 본문을 덧붙이지 않고 그대로 던져 컨테이너가 연결을 끊게 한다(받는 쪽이 전송 실패로 인식)
+     */
+    @ExceptionHandler(DownloadAbortedException.class)
+    public ResponseEntity<ApiResponse<Void>> handleDownloadAbortedException(
+            DownloadAbortedException exception, HttpServletResponse response) {
+        if (response.isCommitted()) {
+            throw exception;
+        }
+        return createErrorResponse(exception.getErrorCode());
+    }
+
+    /**
+     * 받는 쪽이 연결을 끊었거나 응답이 이미 끝난 뒤의 쓰기 실패. 응답할 곳이 없으므로 서버 오류로 기록하거나 응답을 쓰지 않는다
+     */
+    @ExceptionHandler(AsyncRequestNotUsableException.class)
+    public void handleAsyncRequestNotUsableException(AsyncRequestNotUsableException exception) {
     }
 
     /**

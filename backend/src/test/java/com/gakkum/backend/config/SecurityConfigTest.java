@@ -638,6 +638,34 @@ class SecurityConfigTest {
     }
 
     @Test
+    @DisplayName("인증 없이 작업물 ZIP 다운로드를 요청하면 401을 반환하고 컨트롤러에 도달하지 않는다")
+    void submissionDownloadRequiresAuthentication() throws Exception {
+        mockMvc.perform(post("/jobs/submissions/download")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"jobs\":[{\"jobId\":42,\"fileUrls\":[\"https://example.com/a.png\"]}]}"))
+            .andExpect(status().isUnauthorized())
+            .andExpect(jsonPath("$.error.code").value("COMMON_401"));
+        verifyNoInteractions(jobFacade);
+    }
+
+    @Test
+    @DisplayName("Content-Disposition 헤더는 작업물 ZIP 다운로드 경로에서만 브라우저에 노출하고 허용 출처는 다른 경로와 같다")
+    void exposesContentDispositionOnlyOnSubmissionDownload() throws Exception {
+        mockMvc.perform(post("/jobs/submissions/download").header(HttpHeaders.ORIGIN, "http://localhost:5173"))
+            .andExpect(status().isUnauthorized())
+            .andExpect(header().string(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, "http://localhost:5173"))
+            .andExpect(header().string(HttpHeaders.ACCESS_CONTROL_ALLOW_CREDENTIALS, "true"))
+            .andExpect(header().string(HttpHeaders.ACCESS_CONTROL_EXPOSE_HEADERS, "Content-Disposition"));
+        mockMvc.perform(post("/jobs/submissions/download").header(HttpHeaders.ORIGIN, "https://other.example.com"))
+            .andExpect(status().isForbidden())
+            .andExpect(header().doesNotExist(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN));
+        mockMvc.perform(get("/jobs/42/submissions").header(HttpHeaders.ORIGIN, "http://localhost:5173"))
+            .andExpect(status().isUnauthorized())
+            .andExpect(header().string(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, "http://localhost:5173"))
+            .andExpect(header().doesNotExist(HttpHeaders.ACCESS_CONTROL_EXPOSE_HEADERS));
+    }
+
+    @Test
     @DisplayName("localhost 프론트 Origin의 preflight는 credentials와 함께 허용된다")
     void allowsLocalhostOriginWithCredentials() throws Exception {
         mockMvc.perform(options("/refresh")
