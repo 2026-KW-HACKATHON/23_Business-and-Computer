@@ -1,6 +1,14 @@
 import { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { CategoryBadge, LoadNotice, SectionHeader, SignupGuide, TaskRow, TodoNoneCard } from "../components";
+import {
+  CategoryBadge,
+  DemoGuide,
+  LoadNotice,
+  SectionHeader,
+  SignupGuide,
+  TaskRow,
+  TodoNoneCard,
+} from "../components";
 import {
   FirstVisitGuide,
   OWNER_PATHS,
@@ -14,6 +22,7 @@ import {
 import type { OwnerTodo, OwnerWorkingItem } from "../features/owner";
 import { formatMonthDay } from "../lib/date";
 import { useDragScroll } from "../hooks/useDragScroll";
+import { finishDemoGuide, pendingDemoGuide } from "../lib/demoGuide";
 import { clearSignupGuide, pendingSignupGuide } from "../lib/signupGuide";
 import "./OwnerHomePage.css";
 
@@ -42,6 +51,12 @@ function OwnerHomePage() {
   const closeSignupGuide = () => {
     clearSignupGuide();
     setSignupGuide(false);
+  };
+  // 역할 선택에서 둘러보기를 막 시작했으면 둘러보기 첫 안내 (역할 전환 뱃지로 넘어올 때는 없음)
+  const [demoGuide, setDemoGuide] = useState(() => pendingDemoGuide());
+  const closeDemoGuide = () => {
+    finishDemoGuide();
+    setDemoGuide(false);
   };
   const home = useOwnerHome();
   // 끝난 일은 접힌 채 최근 1건만 보인다
@@ -168,6 +183,7 @@ function OwnerHomePage() {
           onClose={closeSignupGuide}
         />
       )}
+      {demoGuide && <DemoGuide tone="owner" onClose={closeDemoGuide} />}
 
       {!home.firstVisit && home.done.length > 0 && (
         <section className="owner-home__section">

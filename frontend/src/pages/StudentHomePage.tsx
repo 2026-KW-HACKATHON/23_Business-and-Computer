@@ -1,6 +1,14 @@
 import { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { CategoryBadge, LoadNotice, SectionHeader, SignupGuide, TaskRow, TodoNoneCard } from "../components";
+import {
+  CategoryBadge,
+  DemoGuide,
+  LoadNotice,
+  SectionHeader,
+  SignupGuide,
+  TaskRow,
+  TodoNoneCard,
+} from "../components";
 import {
   PeerProposalRow,
   STUDENT_PATHS,
@@ -13,6 +21,7 @@ import {
 import type { StudentTodo, StudentWaitingItem } from "../features/student";
 import { formatMonthDay } from "../lib/date";
 import { useDragScroll } from "../hooks/useDragScroll";
+import { finishDemoGuide, pendingDemoGuide } from "../lib/demoGuide";
 import { clearSignupGuide, pendingSignupGuide } from "../lib/signupGuide";
 import "./StudentHomePage.css";
 import { useProposalLikes } from "../features/proposal";
@@ -44,6 +53,12 @@ function StudentHomePage() {
   const closeSignupGuide = () => {
     clearSignupGuide();
     setSignupGuide(false);
+  };
+  // 역할 선택에서 둘러보기를 막 시작했으면 둘러보기 첫 안내 (역할 전환 뱃지로 넘어올 때는 없음)
+  const [demoGuide, setDemoGuide] = useState(() => pendingDemoGuide());
+  const closeDemoGuide = () => {
+    finishDemoGuide();
+    setDemoGuide(false);
   };
   const home = useStudentHome();
   const likes = useProposalLikes();
@@ -188,6 +203,7 @@ function StudentHomePage() {
             onClose={closeSignupGuide}
           />
         )}
+        {demoGuide && <DemoGuide tone="student" onClose={closeDemoGuide} />}
       </StudentTabScreen>
     );
   }
@@ -278,6 +294,7 @@ function StudentHomePage() {
           </div>
         </section>
       )}
+      {demoGuide && <DemoGuide tone="student" onClose={closeDemoGuide} />}
     </StudentTabScreen>
   );
 }

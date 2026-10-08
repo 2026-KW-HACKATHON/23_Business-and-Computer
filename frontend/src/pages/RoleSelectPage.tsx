@@ -4,6 +4,7 @@ import { AppBar, AppImage, RoleCard } from "../components";
 import { landingPath, startDemo } from "../features/auth";
 import type { DemoLoginResult } from "../features/auth";
 import type { Role } from "../types/role";
+import { markDemoGuide } from "../lib/demoGuide";
 import "./RoleSelectPage.css";
 
 type RoleSelectMode = "signup" | "demo";
@@ -61,7 +62,11 @@ function RoleSelectPage({ mode }: RoleSelectPageProps) {
     void startDemo(role).then((result) => {
       inFlight.current = false;
       setEntering(null);
-      if (result === "ok") navigate(landingPath(), { replace: true });
+      if (result === "ok") {
+        // 둘러보기를 새로 시작했으니 홈에서 둘러보기 첫 안내 (이 탭에서 이미 봤으면 없음, ADR 0053)
+        markDemoGuide();
+        navigate(landingPath(), { replace: true });
+      }
       else setError(DEMO_ERRORS[result] ?? DEMO_ERRORS.failed ?? "");
     });
   };
