@@ -103,6 +103,7 @@ export type { NewRequestState, RequestChoice } from "./lib/newRequest";
 export { notificationPath } from "./lib/notifications";
 export { OWNER_PATHS } from "./lib/paths";
 export { startReward } from "./lib/payment";
+export { readProposalAcceptDraft, saveProposalAcceptDraft } from "./lib/proposalAccept";
 export type { ActivityTab } from "./lib/paths";
 export type {
   DueDates,
