@@ -167,7 +167,7 @@ class AuthServiceTest {
         ArgumentCaptor<MimeMessage> captor = ArgumentCaptor.forClass(MimeMessage.class);
         verify(mailSender).send(captor.capture());
         MimeMessage message = captor.getValue();
-        assertThat(message.getSubject()).isEqualTo("[가꿈] 학생 이메일 인증번호");
+        assertThat(message.getSubject()).isEqualTo("[골목인턴] 학생 이메일 인증번호");
         assertThat(message.getAllRecipients()).extracting(Object::toString).containsExactly(EMAIL);
         assertThat(message.getFrom()).extracting(Object::toString).containsExactly("sender@example.com");
 
