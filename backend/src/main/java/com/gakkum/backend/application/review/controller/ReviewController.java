@@ -39,15 +39,15 @@ public class ReviewController {
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(response));
     }
 
-    /** 담당 학생이 완료한 의뢰에서 받은 리뷰 단건 조회 API */
+    /** 완료한 의뢰의 리뷰 단건 조회 API. 리뷰를 작성한 사장님과 리뷰를 받은 담당 학생만 조회한다. */
     @GetMapping("/jobs/{jobId}/review")
-    public ResponseEntity<ApiResponse<StudentReviewResponse>> getStudentReview(
+    public ResponseEntity<ApiResponse<StudentReviewResponse>> getJobReview(
             Authentication authentication, @PathVariable Long jobId) {
         if (jobId <= 0) {
             throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE);
         }
         StudentReviewResponse response = StudentReviewResponse.from(
-                reviewFacade.getStudentReview(authentication.getName(), jobId));
+                reviewFacade.getJobReview(authentication.getName(), jobId));
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 }

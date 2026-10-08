@@ -48,22 +48,29 @@ public class ReviewFacade {
     }
 
     /**
-     * 담당 학생이 받은 의뢰 리뷰를 조회한다. 매장 이름은 리뷰 작성 당시가 아닌 현재 사장님 프로필 값을 쓴다.
-     * 학생 프로필이 없는 사용자(사장님 포함)는 403으로 거부한다.
+     * 의뢰 리뷰를 조회한다. 사장님은 본인이 작성한 리뷰만, 학생은 본인이 받은 리뷰만 볼 수 있고
+     * 그 밖의 리뷰는 없는 리뷰와 같은 404로 거부한다. 매장 이름은 리뷰 작성 당시가 아닌 현재 사장님 프로필 값을 쓴다.
+     * 사장님 프로필이 없는 사장님과, 학생 프로필이 없거나 역할이 정해지지 않은 사용자는 403으로 거부한다.
      */
     @Transactional(readOnly = true)
-    public StudentReviewResult getStudentReview(String username, Long jobId) {
+    public StudentReviewResult getJobReview(String username, Long jobId) {
         User user = userService.getActiveUser(username);
-        if (user.getRole() != UserRole.STUDENT) {
-            throw new BusinessException(ErrorCode.REVIEW_STUDENT_REQUIRED);
-        }
-        Student student = studentService.findStudentProfileByUserId(user.getId())
-                .orElseThrow(() -> new BusinessException(ErrorCode.REVIEW_STUDENT_REQUIRED));
+        Review review = user.getRole() == UserRole.OWNER
+                ? reviewService.getOwnerReview(jobId, ownerService.getOwnerProfile(user.getId()).getId())
+                : reviewService.getStudentReview(jobId, getStudentProfileId(user));
 
-        Review review = reviewService.getStudentReview(jobId, student.getId());
         ReviewedJobData data = jobService.getReviewedJob(review.getJobId());
         Owner owner = ownerService.getOwnerProfileById(data.getJob().getOwnerProfileId());
         return StudentReviewResult.of(
                 review, data.getApprovedSubmission().getId(), data.getJob().getTitle(), owner.getStoreName());
+    }
+
+    private Long getStudentProfileId(User user) {
+        if (user.getRole() != UserRole.STUDENT) {
+            throw new BusinessException(ErrorCode.REVIEW_STUDENT_REQUIRED);
+        }
+        return studentService.findStudentProfileByUserId(user.getId())
+                .map(Student::getId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.REVIEW_STUDENT_REQUIRED));
     }
 }
