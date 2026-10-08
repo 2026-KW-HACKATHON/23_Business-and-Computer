@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { MainTabScreen } from "../../../components";
 import { useDemoRoleSwitch } from "../../auth";
 import { useChatUnread } from "../../chat";
-import { useStudentNotifications } from "../hooks/useStudentData";
+import { useNotificationUnread } from "../../notification";
 import type { MainTab } from "../../../components";
 import { STUDENT_PATHS, STUDENT_TAB_PATHS } from "../lib/paths";
 
@@ -24,7 +24,7 @@ function StudentTabScreen({ tab, title, showFab = false, children }: StudentTabS
   // 홈 · 탐색 · 채팅 어느 탭에서든 안 읽은 알림이 있으면 종에 점
   // 탭바 「채팅」 점: 안 읽은 채팅 메시지가 있는지
   const hasUnreadChat = useChatUnread();
-  const hasUnread = useStudentNotifications().some((n) => !n.read);
+  const hasUnread = useNotificationUnread();
 
   return (
     <MainTabScreen

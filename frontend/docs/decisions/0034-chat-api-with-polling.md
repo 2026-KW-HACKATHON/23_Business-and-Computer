@@ -162,6 +162,5 @@ owner and its selected student may use a room):
   `jobStatus` shows the work actions and the 완료 · 성사되지 않음 lines.
 - 「작업 취소」 passes the room's numeric `jobId`, so `OwnerWorkCancelPage`
   cancels through the API (ADR 0035); non-numeric ids there are sample works.
-- The owner home and 내 활동 「문의하기」 · 「채팅하기」, `CHAT_MESSAGE` sample
-  notifications, and the student 수정 요청 확인 「문의하기」 open the chat
-  list, not a room.
+- The owner home and 내 활동 「문의하기」 · 「채팅하기」 and the student 수정
+  요청 확인 「문의하기」 open the chat list, not a room.

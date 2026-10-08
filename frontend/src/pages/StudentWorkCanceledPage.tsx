@@ -1,6 +1,5 @@
-import { useState } from "react";
-import { useLocation, useNavigate, useParams } from "react-router-dom";
-import { Button, Dialog, LoadNotice, SubScreen } from "../components";
+import { useParams } from "react-router-dom";
+import { Button, LoadNotice, SubScreen } from "../components";
 import { useJobDetail } from "../features/explore";
 import {
   STUDENT_PATHS,
@@ -28,13 +27,10 @@ interface CanceledView {
   message?: string;
   /** 결제한 작업만: 작업비 · 사장님에게 환불 · 착수 보상 */
   money?: { budget: number; refund: number; reward: number };
-  /** 「사장님이 작업을 취소했어요」 팝업 설명 */
-  noticeText: string;
 }
 
 /**
  * 피그마 「성사되지 않은 작업 상세 (학생)」. 취소 이유 · 사장님이 남긴 말 · 정산 받은 금액.
- * 알림 「사장님이 작업을 취소했어요」로 들어오면 먼저 「의뢰 취소 알림 - 사장님 사정」 팝업.
  * 주소의 id 가 숫자면 서버 작업(GET /jobs/{id} 의 취소 정보, ADR 0042), 아니면 샘플 작업.
  */
 function StudentWorkCanceledPage() {
@@ -97,14 +93,12 @@ function JobCanceled({ workId, jobId }: { workId: string; jobId: number }) {
         reason: declined ? undefined : job.cancelReason?.trim() || undefined,
         message: job.messageToStudent?.trim() || undefined,
         money: paid ? { budget: job.budget, refund: job.refundAmount ?? 0, reward } : undefined,
-        noticeText:
-          reward > 0 ? "사장님 사정으로 취소돼 착수 보상이 정산돼요." : "작업을 시작하기 전에 취소됐어요.",
       }}
     />
   );
 }
 
-/** 샘플 작업 (알림 · 채팅의 예시) */
+/** 샘플 작업 */
 function SampleCanceled({ workId }: { workId: string }) {
   const back = useBack(STUDENT_PATHS.activity("done"));
   const work = useStudentWork(workId);
@@ -126,24 +120,12 @@ function SampleCanceled({ workId }: { workId: string }) {
         reason: cancel.reason,
         message: cancel.message,
         money: { budget: work.budget, refund: work.budget - cancel.reward, reward: cancel.reward },
-        noticeText:
-          cancel.reward > 0 ? "사장님 사정으로 취소돼 착수 보상이 정산돼요." : "작업을 시작하기 전에 취소됐어요.",
       }}
     />
   );
 }
 
 function CanceledScreen({ view, onBack }: { view: CanceledView; onBack: () => void }) {
-  const location = useLocation();
-  const navigate = useNavigate();
-  const fromNotice = (location.state as { notice?: boolean } | null)?.notice === true;
-  const [noticeOpen, setNoticeOpen] = useState(fromNotice);
-
-  const closeNotice = () => {
-    setNoticeOpen(false);
-    navigate(location.pathname, { replace: true, state: null });
-  };
-
   return (
     <SubScreen
       title="성사되지 않은 작업"
@@ -202,19 +184,6 @@ function CanceledScreen({ view, onBack }: { view: CanceledView; onBack: () => vo
           </section>
         )}
       </div>
-
-      <Dialog
-        open={noticeOpen}
-        image="warningStudent"
-        title="사장님이 작업을 취소했어요"
-        description={view.noticeText}
-        onClose={closeNotice}
-        actions={
-          <Button tone="student" fullWidth onClick={closeNotice}>
-            확인
-          </Button>
-        }
-      />
     </SubScreen>
   );
 }

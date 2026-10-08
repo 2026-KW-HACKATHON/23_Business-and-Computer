@@ -26,16 +26,14 @@ them yet.
   (`src/features/owner/lib/paths.ts`); 「더 보기 ›」 goes to 탐색.
 - Every screen reads sample data through hooks in
   `src/features/owner/hooks/useOwnerData.ts`. The sample lives in
-  `src/features/owner/lib/sampleTabs.ts` and `sampleDetails.ts` and shares
-  ids with the home sample, so a work id opens the same work everywhere.
-  Chat and notification times count back from now
-  (`src/lib/sampleTime.ts`) so 「10분 전」 and 「어제」 read
-  naturally.
+  `src/features/owner/lib/sampleDetails.ts` and shares ids with the home
+  sample, so a work id opens the same work everywhere. Sample dates count
+  from today (`src/lib/sampleTime.ts`).
 - A missing id shows `OwnerMissing` instead of an empty screen.
 - The home rows of 학생이 작업 중, 기다리는 중, and 끝난 일 are whole-row
   buttons with a ›; `TaskRow` takes `onClick` for this.
-- 알림 read state and a picked profile photo live only in the screen until
-  the backend is wired. Chat reads and writes the backend (ADR 0034).
+- A picked profile photo lives only in the screen until the backend is
+  wired. Chat (ADR 0034) and 알림 read and write the backend.
 - 의뢰 등록 1/3 starts empty from the FAB and with the example's field and
   task picked when opened from an example card (`exampleId` in router
   state). Tasks per field reuse `SPECIALTY_BADGES`.
@@ -62,6 +60,5 @@ them yet.
 
 - The screens one level further (registration 2/3 · 3/3, payment,
   revision, review, cancel, explore details) are in ADR 0014.
-- Backend integration: replace the hooks in `useOwnerData.ts`, mark
-  notifications read on the server, and serve files through signed URLs for
-  「받기」. Chat is wired (ADR 0034).
+- Backend integration: replace the hooks in `useOwnerData.ts`, and serve
+  files through signed URLs for 「받기」. Chat (ADR 0034) and 알림 are wired.

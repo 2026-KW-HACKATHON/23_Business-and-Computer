@@ -140,30 +140,6 @@ export interface OwnerHome {
   done: OwnerDoneItem[];
 }
 
-/** 알림 종류 (notifications.type) */
-export type NotificationType =
-  | "DRAFT_SUBMITTED"
-  | "REVISION_SUBMITTED"
-  | "PROPOSAL_RECEIVED"
-  | "APPLICATION_RECEIVED"
-  | "CHAT_MESSAGE"
-  | "PAYMENT_ESCROWED"
-  | "AUTO_COMPLETE_SOON"
-  | "REVIEW_REQUEST"
-  | "WORK_COMPLETED";
-
-export interface OwnerNotification {
-  id: string;
-  type: NotificationType;
-  title: string;
-  body: string;
-  /** ISO 시각 */
-  createdAt: string;
-  read: boolean;
-  /** 눌렀을 때 갈 작업 · 의뢰 · 제안 id (종류마다 다름) */
-  targetId: string;
-}
-
 /** 내 정보 화면 머리 */
 export type WorkStatus = "inProgress" | "submitted" | "completed" | "canceled";
 

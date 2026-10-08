@@ -1,48 +1,29 @@
-import type { WorkKind } from "../../../types/workKind";
-import type { StudentNotification, StudentNotificationType } from "../types";
+import { isKnownNotificationType, numericTargetId } from "../../notification";
+import type { NotificationItem } from "../../notification";
 import { STUDENT_PATHS } from "./paths";
 
-/** 알림 동그라미 안 아이콘: 종류 아이콘 또는 이모지 */
-export const NOTIFICATION_ICON: Record<StudentNotificationType, WorkKind | string> = {
-  SELECTED: "request",
-  NOT_SELECTED: "request",
-  PROPOSAL_ACCEPTED: "proposal",
-  EMPATHY_GROWN: "proposal",
-  REVISION_REQUESTED: "request",
-  CHAT_MESSAGE: "💬",
-  SETTLED: "💳",
-  DUE_SOON: "⏰",
-  REVIEW_RECEIVED: "⭐",
-  WORK_CANCELED: "request",
-};
-
-/** 알림을 누르면 가는 화면 (피그마 「알림 (학생)」 프로토타입 연결) */
-export function notificationPath({ type, targetId }: StudentNotification): string {
-  switch (type) {
-    case "SELECTED":
-    case "DUE_SOON":
-      // 초안 제출 화면이 작업 상태에 맞는 화면(수정 요청 확인 등)으로 보낸다
-      return STUDENT_PATHS.workSubmit(targetId);
-    case "NOT_SELECTED":
-      return STUDENT_PATHS.activity("applied");
-    case "PROPOSAL_ACCEPTED":
-      return STUDENT_PATHS.workStart(targetId);
-    case "EMPATHY_GROWN":
-      return STUDENT_PATHS.proposal(targetId);
-    case "REVISION_REQUESTED":
-      return STUDENT_PATHS.workRevision(targetId);
-    case "CHAT_MESSAGE":
-      return STUDENT_PATHS.chats;
-    case "SETTLED":
-      return STUDENT_PATHS.settlements;
-    case "REVIEW_RECEIVED":
-      return STUDENT_PATHS.workReview(targetId);
-    case "WORK_CANCELED":
-      return STUDENT_PATHS.workCanceled(targetId);
+/**
+ * 학생이 알림을 누르면 가는 화면. 종류에 맞는 화면을 먼저 보고, 없으면 대상 종류로 간다.
+ * 모르는 종류 · 대상이거나 id 가 맞지 않으면 undefined (목록에 보이되 이동하지 않는다).
+ */
+export function notificationPath(item: NotificationItem): string | undefined {
+  if (!isKnownNotificationType(item.type)) return undefined;
+  const id = numericTargetId(item);
+  if (item.type === "JOB_COMPLETED" && item.targetType === "JOB" && id) {
+    return STUDENT_PATHS.workResult(id);
   }
-}
-
-/** 알림에서 들어갈 때 넘길 router state (취소 알림은 팝업부터 띄운다) */
-export function notificationState({ type }: StudentNotification): unknown {
-  return type === "WORK_CANCELED" ? { notice: true } : undefined;
+  switch (item.targetType) {
+    case "JOB":
+      // 초안 제출 화면이 진행 중 작업의 단계(수정 요청 · 확인 중)에 맞는 화면으로 보낸다
+      return id ? STUDENT_PATHS.workSubmit(id) : undefined;
+    case "PROPOSAL":
+      return id ? STUDENT_PATHS.proposal(id) : undefined;
+    case "CHAT_ROOM":
+      return item.targetId ? STUDENT_PATHS.chat(item.targetId) : undefined;
+    case "PAYMENT":
+      // 결제 하나를 여는 화면이 없어 정산 내역으로
+      return STUDENT_PATHS.settlements;
+    default:
+      return undefined;
+  }
 }

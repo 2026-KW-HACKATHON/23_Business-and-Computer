@@ -15,7 +15,6 @@ export { default as WorkSummary } from "./components/WorkSummary";
 export {
   agreeToWork,
   declineWork,
-  markNotificationsRead,
   submitWork,
 } from "./hooks/studentStore";
 export {
@@ -24,7 +23,6 @@ export {
   useProposalExamples,
   useStore,
   useStores,
-  useStudentNotifications,
   useStudentWork,
   useStudentWorks,
 } from "./hooks/useStudentData";
@@ -122,7 +120,7 @@ export { appliedStatusLabel } from "./lib/appliedJobs";
 export { sendWorkDecline, sendWorkStart } from "./lib/workStart";
 export type { WorkDeclineResult, WorkStartResult } from "./lib/workStart";
 export type { AppliedJob } from "./lib/appliedJobs";
-export { NOTIFICATION_ICON, notificationPath, notificationState } from "./lib/notifications";
+export { notificationPath } from "./lib/notifications";
 export { STUDENT_PATHS } from "./lib/paths";
 export type { ProfileEditSection, StudentActivityTab } from "./lib/paths";
 export type {
@@ -131,7 +129,6 @@ export type {
   MyProposal,
   ProposalExample,
   Store,
-  StudentNotification,
   StudentTodo,
   StudentWaitingItem,
   StudentWork,
