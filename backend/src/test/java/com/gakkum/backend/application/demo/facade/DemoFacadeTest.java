@@ -78,10 +78,10 @@ class DemoFacadeTest {
         DemoLoginResponse response = facade.login(DemoLoginRequest.of(role, null));
 
         ArgumentCaptor<String> sessionCaptor = ArgumentCaptor.forClass(String.class);
-        verify(userService).createDemoUser(sessionCaptor.capture(), eq(UserRole.OWNER), eq("데모 사장님"), eq(null));
+        verify(userService).createDemoUser(sessionCaptor.capture(), eq(UserRole.OWNER), eq("김골목"), eq(null));
         String session = sessionCaptor.getValue();
         assertThat(session).matches("^[0-9A-Z]{26}$");
-        verify(userService).createDemoUser(session, UserRole.STUDENT, "데모 학생",
+        verify(userService).createDemoUser(session, UserRole.STUDENT, "이인턴",
                 "demo-" + session.toLowerCase() + "@example.com");
 
         String username = "DEMO_" + session + "_" + role.name();
@@ -103,6 +103,7 @@ class DemoFacadeTest {
         CreateOwnerProfileCommand store = ownerCaptor.getValue();
         assertThat(store.getUserId()).isEqualTo("owner-user-" + session);
         assertThat(store.getStoreName()).startsWith("[데모]");
+        assertThat(store.getRepresentativeName()).isEqualTo("김골목");
         assertThat(store.getBusinessNumber()).isEqualTo("DEMO-" + session);
         assertThat(store.getCategoryId()).isEqualTo(3L);
 

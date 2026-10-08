@@ -229,7 +229,7 @@ function SendState({
         {message.failureReason && <span>{message.failureReason}</span>}
         <button
           type="button"
-          className="student-chat__resend"
+          className="student-chat__resend press-text"
           onClick={() => onResend(message.clientMessageId)}
         >
           다시 보내기

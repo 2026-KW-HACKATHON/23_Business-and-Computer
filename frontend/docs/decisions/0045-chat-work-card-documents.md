@@ -104,8 +104,9 @@ sheet.
   submission's, or the last one sent; without one, 「보낸 수정 요청이 없어요」.
 - **남긴 후기** (owner, /owner/works/:id/review/view, `OwnerReviewViewPage`):
   「박지은 학생에게 남긴 후기」, 「다른 사장님들이 학생을 고를 때 이 후기를 봐요」,
-  the stars and 「5.0 · 최고예요」, the 좋았던 점 chips with the chosen ones
-  filled, the text when written, and 「확인」. The student name comes from GET
+  the stars and 「5.0 · 최고예요」, only the chosen 좋았던 점 chips (no 좋았던 점
+  when none was chosen), the text as plain text (not in an input box) when
+  written, and 「확인」. The student name comes from GET
   /jobs/{id}/result.
 - **Student past documents** (/student/works/:id/submissions/:submissionId and
   .../request, `StudentPastSubmissionPage`): 제출한 초안 · 수정안 shows the work

@@ -13,7 +13,7 @@ function ResendButton({ sent, onClick, disabled = false }: ResendButtonProps) {
   return (
     <button
       type="button"
-      className={`resend-button${sent ? " resend-button--sent" : ""}`}
+      className={`resend-button press-text${sent ? " resend-button--sent" : ""}`}
       onClick={onClick}
       disabled={disabled}
       aria-live="polite"

@@ -43,6 +43,8 @@ import com.gakkum.backend.domain.notification.dto.NotificationQueryDto.Notificat
 import com.gakkum.backend.domain.notification.dto.NotificationQueryDto.NotificationReadAllResult;
 import com.gakkum.backend.domain.notification.dto.NotificationQueryDto.NotificationReadResult;
 import com.gakkum.backend.domain.notification.dto.NotificationQueryDto.NotificationResult;
+import com.gakkum.backend.domain.notification.entity.NotificationTargetType;
+import com.gakkum.backend.domain.notification.entity.NotificationType;
 import com.gakkum.backend.domain.notification.service.NotificationService;
 import com.gakkum.backend.domain.user.entity.User;
 import com.gakkum.backend.domain.user.entity.UserRole;
@@ -71,6 +73,9 @@ class NotificationPersistenceIntegrationTest {
 
     @Autowired
     private NotificationFacade notificationFacade;
+
+    @Autowired
+    private NotificationService notificationService;
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
@@ -265,6 +270,31 @@ class NotificationPersistenceIntegrationTest {
     }
 
     @Test
+    @DisplayName("PostgreSQL에서 대상별 읽음은 본인의 그 대상·그 종류 미읽음만 바꾸고 이미 읽은 시각·다른 대상·다른 종류·다른 사용자는 그대로 둔다")
+    void marksOnlyMatchingTargetRead() {
+        long target = insertTyped(MY_USER_ID, "JOB_REVIEW_REQUESTED", "42", null);
+        long alreadyRead = insertTyped(MY_USER_ID, "JOB_REVIEW_REQUESTED", "42", EARLIER_READ_AT);
+        long otherJob = insertTyped(MY_USER_ID, "JOB_REVIEW_REQUESTED", "43", null);
+        long otherType = insert(MY_USER_ID, BASE, null);
+        long others = insertTyped(OTHER_USER_ID, "JOB_REVIEW_REQUESTED", "42", null);
+
+        int updated = notificationService.markTargetRead(MY_USER_ID, NotificationType.JOB_REVIEW_REQUESTED,
+                NotificationTargetType.JOB, "42");
+
+        assertThat(updated).isEqualTo(1);
+        assertThat(readAt(target)).isNotNull();
+        assertThat(readAt(alreadyRead)).isEqualTo(EARLIER_READ_AT);
+        assertThat(readAt(otherJob)).isNull();
+        assertThat(readAt(otherType)).isNull();
+        assertThat(readAt(others)).isNull();
+        // 반복 호출은 아무것도 바꾸지 않는다
+        LocalDateTime firstReadAt = readAt(target);
+        assertThat(notificationService.markTargetRead(MY_USER_ID, NotificationType.JOB_REVIEW_REQUESTED,
+                NotificationTargetType.JOB, "42")).isZero();
+        assertThat(readAt(target)).isEqualTo(firstReadAt);
+    }
+
+    @Test
     @DisplayName("PostgreSQL에서 처리할 알림이 없는 사용자의 모두 읽음은 변경 수 0으로 성공한다")
     void marksNothingWithoutUnreadNotifications() {
         insert(OTHER_USER_ID, BASE, null);
@@ -402,6 +432,16 @@ class NotificationPersistenceIntegrationTest {
                     cast(? as timestamp), ?)
                 returning id
                 """, Long.class, UUID.randomUUID().toString(), recipientUserId, readAt, createdAt);
+        return id == null ? 0 : id;
+    }
+
+    private long insertTyped(String recipientUserId, String type, String targetId, LocalDateTime readAt) {
+        Long id = jdbcTemplate.queryForObject("""
+                insert into notifications
+                    (event_id, recipient_user_id, type, title, body, target_type, target_id, read_at, created_at)
+                values (cast(? as uuid), ?, ?, '제목', '본문', 'JOB', ?, cast(? as timestamp), ?)
+                returning id
+                """, Long.class, UUID.randomUUID().toString(), recipientUserId, type, targetId, readAt, BASE);
         return id == null ? 0 : id;
     }
 

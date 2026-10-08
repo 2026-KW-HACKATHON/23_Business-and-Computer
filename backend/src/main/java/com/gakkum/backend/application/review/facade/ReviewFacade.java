@@ -8,6 +8,9 @@ import com.gakkum.backend.domain.job.dto.JobQueryDto.ReviewedJobData;
 import com.gakkum.backend.domain.job.entity.Job;
 import com.gakkum.backend.domain.job.service.JobService;
 import com.gakkum.backend.domain.notification.dto.NotificationEventFactory;
+import com.gakkum.backend.domain.notification.entity.NotificationTargetType;
+import com.gakkum.backend.domain.notification.entity.NotificationType;
+import com.gakkum.backend.domain.notification.service.NotificationService;
 import com.gakkum.backend.domain.owner.entity.Owner;
 import com.gakkum.backend.domain.owner.service.OwnerService;
 import com.gakkum.backend.domain.review.dto.ReviewCommandDto.CreateReviewCommand;
@@ -34,12 +37,14 @@ public class ReviewFacade {
     private final StudentService studentService;
     private final JobService jobService;
     private final ReviewService reviewService;
+    private final NotificationService notificationService;
     private final ApplicationEventPublisher eventPublisher;
 
     /**
      * 사장님 본인의 완료된 의뢰에 담당 학생 리뷰를 한 번 작성한다. 리뷰 대상은 의뢰에 선택된 학생이다.
      * 의뢰 행 잠금과 리뷰 저장을 한 트랜잭션으로 묶어 같은 의뢰의 동시 작성을 순서대로 처리한다.
-     * 저장에 성공하면 담당 학생에게 후기 도착 알림을 발행한다.
+     * 저장에 성공하면 사장님에게 남은 이 의뢰의 「후기를 남겨 주세요」 알림을 읽음 처리하고, 담당 학생에게 후기 도착 알림을 발행한다.
+     * 후기 요청 알림은 완료 때 비동기로 저장되므로, 완료 직후 그 알림이 저장되기 전에 후기를 남기면 읽음 처리되지 않을 수 있다.
      */
     @Transactional
     public ReviewCreateResult createReview(CreateReviewCommand command) {
@@ -48,6 +53,8 @@ public class ReviewFacade {
         Job job = jobService.getReviewableJobForUpdate(command.getJobId(), owner.getId());
 
         Review review = reviewService.createReview(command, owner.getId(), job.getSelectedStudentProfileId());
+        notificationService.markTargetRead(owner.getUserId(), NotificationType.JOB_REVIEW_REQUESTED,
+                NotificationTargetType.JOB, job.getId().toString());
         Student student = studentService.getStudentProfile(job.getSelectedStudentProfileId());
         eventPublisher.publishEvent(NotificationEventFactory.jobReviewReceived(
                 student.getUserId(), review.getId(), job.getId(), job.getTitle(), owner.getStoreName()));

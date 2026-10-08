@@ -10,6 +10,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -118,7 +119,7 @@ class DemoSampleDataIntegrationTest {
     @Test
     @DisplayName("방문자 가게에 모집 중·지원자 있음·작업 중·초안 도착·수정 중·수정안 도착·완료·취소 의뢰와 모든 상태의 받은 제안이 생긴다")
     void seedsEveryOwnerJobState() {
-        assertThat(status("봄 신메뉴 전단지")).isEqualTo(JobStatus.OPEN);
+        assertThat(status("가을 신메뉴 전단지")).isEqualTo(JobStatus.OPEN);
         assertThat(status("신메뉴 인스타그램 홍보 게시물")).isEqualTo(JobStatus.OPEN);
         assertThat(status("메뉴판 디자인 변경")).isEqualTo(JobStatus.MATCHED);
         assertThat(status("단골 쿠폰·도장카드 디자인")).isEqualTo(JobStatus.MATCHED);
@@ -297,7 +298,7 @@ class DemoSampleDataIntegrationTest {
     @Test
     @DisplayName("사장님 홈·내 활동·결제 내역·채팅·탐색 API가 예시 데이터를 오류 없이 돌려준다")
     void ownerScreensReadSeededData() throws Exception {
-        assertThat(read(ownerToken, "/me/jobs?status=OPEN")).contains("봄 신메뉴 전단지", "신메뉴 인스타그램 홍보 게시물");
+        assertThat(read(ownerToken, "/me/jobs?status=OPEN")).contains("가을 신메뉴 전단지", "신메뉴 인스타그램 홍보 게시물");
         assertThat(read(ownerToken, "/me/jobs?status=MATCHED"))
                 .contains("메뉴판 디자인 변경", "단골 쿠폰·도장카드 디자인", "가게 소개 릴스 영상 편집", "배달앱 리뷰 분석 리포트",
                         "가게 소개글 다시 쓰기");
@@ -372,6 +373,25 @@ class DemoSampleDataIntegrationTest {
                 .contains("튀김은 세트 칸으로 따로 빼 볼게요.", "두 시안 중에 골라 주세요.");
         assertThat(read(studentToken, "/me/chat-rooms"))
                 .contains("네! 내일 오후 3시 괜찮으세요?", "세트 주문이 많이 들어왔으면 좋겠어요.");
+    }
+
+    @Test
+    @DisplayName("채팅방은 마지막 메시지를 받는 쪽이 아직 읽지 않은 방에만 안 읽은 메시지가 하나 남는다")
+    void seedsUnreadChatMessages() throws Exception {
+        assertThat(unreadRooms(ownerToken)).isEqualTo(Map.of("메뉴판 디자인 변경", 1L, "단골 쿠폰·도장카드 디자인", 1L,
+                "배달앱 리뷰 분석 리포트", 1L, "가게 소개글 다시 쓰기", 1L));
+        assertThat(unreadRooms(studentToken)).isEqualTo(Map.of("가게 소개 릴스 영상 편집", 1L));
+    }
+
+    /** 안 읽은 메시지가 있는 채팅방의 의뢰 제목 → 안 읽은 메시지 수 */
+    private Map<String, Long> unreadRooms(String token) throws Exception {
+        Map<String, Long> unread = new HashMap<>();
+        for (JsonNode room : data(read(token, "/me/chat-rooms")).get("rooms")) {
+            if (room.get("unreadCount").asLong() > 0) {
+                unread.put(room.get("jobTitle").asString(), room.get("unreadCount").asLong());
+            }
+        }
+        return unread;
     }
 
     private JobStatus status(String title) {

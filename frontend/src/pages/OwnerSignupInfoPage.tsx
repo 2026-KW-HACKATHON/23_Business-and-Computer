@@ -74,7 +74,7 @@ function OwnerSignupInfoPage() {
             />
             <button
               type="button"
-              className="signup__terms-view"
+              className="signup__terms-view press-text"
               onClick={() => setTermsOpen(true)}
             >
               보기

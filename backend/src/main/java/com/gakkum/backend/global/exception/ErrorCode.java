@@ -103,6 +103,7 @@ public enum ErrorCode {
     STUDENT_PROFILE_NOT_FOUND(HttpStatus.NOT_FOUND, "STUDENT_PROFILE_404", "존재하지 않는 학생입니다."),
     DUPLICATE_STUDENT_NUMBER(HttpStatus.CONFLICT, "STUDENT_409_NUMBER", "이미 사용 중인 학번입니다."),
     DUPLICATE_BUSINESS_NUMBER(HttpStatus.CONFLICT, "OWNER_409_BUSINESS_NUMBER", "이미 사용 중인 사업자등록번호입니다."),
+    HOME_ROLE_REQUIRED(HttpStatus.FORBIDDEN, "HOME_403", "가입을 완료한 사장님 또는 학생만 홈을 조회할 수 있습니다."),
     DEMO_SESSION_LIMIT_EXCEEDED(HttpStatus.TOO_MANY_REQUESTS, "DEMO_429", "지금은 데모 계정을 더 만들 수 없습니다. 잠시 후 다시 시도해 주세요."),
     NOT_FOUND(HttpStatus.NOT_FOUND, "COMMON_404", "요청한 경로를 찾을 수 없습니다."),
     METHOD_NOT_ALLOWED(HttpStatus.METHOD_NOT_ALLOWED, "COMMON_405", "지원하지 않는 HTTP 메서드입니다."),

@@ -3,21 +3,23 @@
   flex-direction: column;
   box-sizing: border-box;
   width: 100%;
-  padding: 0 12px 0 16px;
+  overflow: hidden;
   border: 1px solid var(--role-border);
   border-radius: 16px;
   background: var(--color-white);
   font-family: var(--font-sans);
 }
 
+/* 좌우 여백은 줄 안쪽에 둔다: 누를 때 바탕이 테두리 끝까지 찬다 (ADR 0061) */
 .menu-list__item {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
   box-sizing: border-box;
   width: 100%;
-  padding: 13px 0;
+  padding: 13px 12px 13px 16px;
   border: none;
   background: none;
   font-family: var(--font-sans);
@@ -28,8 +30,30 @@
   text-align: left;
 }
 
+/* 줄 사이 구분선은 글자 시작 위치부터. 선 두께만큼 위 여백을 늘려 줄 높이는 그대로 */
 .menu-list__item + .menu-list__item {
-  border-top: 1px solid var(--role-muted);
+  padding-top: 14px;
+}
+
+.menu-list__item + .menu-list__item::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 12px;
+  left: 16px;
+  height: 1px;
+  background: var(--role-muted);
+}
+
+/* 첫 줄 · 마지막 줄은 상자의 둥근 모서리를 따른다 (포커스 테두리도) */
+.menu-list__item:first-child {
+  border-top-left-radius: 15px;
+  border-top-right-radius: 15px;
+}
+
+.menu-list__item:last-child {
+  border-bottom-left-radius: 15px;
+  border-bottom-right-radius: 15px;
 }
 
 button.menu-list__item {
@@ -39,7 +63,6 @@ button.menu-list__item {
 button.menu-list__item:focus-visible {
   outline: 2px solid var(--role-focus);
   outline-offset: -2px;
-  border-radius: 8px;
 }
 
 .menu-list__item--danger {

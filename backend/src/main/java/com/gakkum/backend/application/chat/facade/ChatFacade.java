@@ -15,10 +15,12 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.gakkum.backend.application.chat.dto.ChatRoomEntryResponse;
 import com.gakkum.backend.application.chat.dto.ChatRoomListResponse;
 import com.gakkum.backend.application.chat.dto.ChatRoomListResponse.LastMessage;
 import com.gakkum.backend.application.chat.dto.ChatRoomListResponse.Room;
 import com.gakkum.backend.application.chat.dto.ChatMessageListResponse;
+import com.gakkum.backend.application.chat.dto.ChatWorkHistoryResponse;
 import com.gakkum.backend.application.chat.dto.DeadlineType;
 import com.gakkum.backend.domain.chat.client.ChatAttachmentStorageClient;
 import com.gakkum.backend.domain.chat.client.ChatAttachmentStorageClient.PresignedUpload;
@@ -36,6 +38,7 @@ import com.gakkum.backend.domain.chat.dto.ChatQueryDto.MessageResult;
 import com.gakkum.backend.domain.chat.dto.ChatQueryDto.PrepareAttachmentUploadResult;
 import com.gakkum.backend.domain.chat.dto.ChatQueryDto.SendAttachmentMessageResult;
 import com.gakkum.backend.domain.chat.dto.ChatQueryDto.SendMessageResult;
+import com.gakkum.backend.domain.job.dto.JobQueryDto.JobSubmissionHistoryResult;
 import com.gakkum.backend.domain.job.entity.Job;
 import com.gakkum.backend.domain.job.entity.JobApplication;
 import com.gakkum.backend.domain.job.entity.JobApplicationStatus;
@@ -48,6 +51,7 @@ import com.gakkum.backend.domain.job.repository.JobRepository;
 import com.gakkum.backend.domain.job.repository.JobSubmissionRepository;
 import com.gakkum.backend.domain.owner.entity.Owner;
 import com.gakkum.backend.domain.owner.repository.OwnerRepository;
+import com.gakkum.backend.domain.review.service.ReviewService;
 import com.gakkum.backend.domain.student.entity.Student;
 import com.gakkum.backend.domain.student.repository.StudentRepository;
 import com.gakkum.backend.domain.user.entity.User;
@@ -70,6 +74,7 @@ public class ChatFacade {
     private final JobSubmissionRepository jobSubmissionRepository;
     private final ChatService chatService;
     private final ChatAttachmentStorageClient chatAttachmentStorageClient;
+    private final ReviewService reviewService;
 
     @Transactional(readOnly = true)
     public ChatRoomListResponse getMyChatRooms(String username) {
@@ -91,14 +96,33 @@ public class ChatFacade {
         return ChatRoomListResponse.of(toRooms(viewer, jobsById, rooms));
     }
 
+    /** 채팅방 입장 정보. 방 정보와 대화 내역, 후기 여부를 한 번에 내린다. */
     @Transactional(readOnly = true)
-    public Room getChatRoom(String username, String roomId) {
+    public ChatRoomEntryResponse getChatRoom(String username, String roomId) {
         User viewer = userService.getActiveUser(username);
         ChatRoom room = chatService.findRoom(roomId);
         Job job = jobRepository.findById(room.getJobId())
                 .orElseThrow(() -> new BusinessException(ErrorCode.JOB_NOT_FOUND));
         requireParticipant(viewer, job);
-        return toRooms(viewer, Map.of(job.getId(), job), List.of(room)).get(0);
+        return ChatRoomEntryResponse.of(toRooms(viewer, Map.of(job.getId(), job), List.of(room)).get(0),
+                isReviewed(job), toMessageList(viewer, roomId));
+    }
+
+    /**
+     * 채팅 작업 카드의 작업 이력. 작업의 채팅방 정보와 모든 제출물, 후기 여부를 한 번에 내린다.
+     * 참여자 확인을 채팅방 조회보다 먼저 해, 참여자가 아닌 사용자에게 채팅방이 있는지 드러내지 않는다.
+     */
+    @Transactional(readOnly = true)
+    public ChatWorkHistoryResponse getWorkHistory(String username, Long jobId) {
+        User viewer = userService.getActiveUser(username);
+        Job job = jobRepository.findById(jobId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.JOB_NOT_FOUND));
+        requireParticipant(viewer, job);
+        ChatRoom room = chatService.findRoomByJobId(jobId);
+        List<JobSubmission> submissions = jobSubmissionRepository.findByJobIdOrderByRevisionNumberAsc(jobId);
+        return ChatWorkHistoryResponse.of(
+                toRooms(viewer, Map.of(jobId, job), List.of(room), submissions).get(0),
+                JobSubmissionHistoryResult.from(submissions), isReviewed(job));
     }
 
     @Transactional(readOnly = true)
@@ -108,11 +132,7 @@ public class ChatFacade {
         Job job = jobRepository.findById(room.getJobId())
                 .orElseThrow(() -> new BusinessException(ErrorCode.JOB_NOT_FOUND));
         requireParticipant(viewer, job);
-        List<ChatMessage> messages = chatService.findMessages(roomId);
-        Map<UUID, Long> attachmentSizes = chatService.findAttachmentSizes(messages);
-        return ChatMessageListResponse.from(messages.stream()
-                .map(message -> toMessageResult(message, attachmentSizes))
-                .toList(), viewer.getId());
+        return toMessageList(viewer, roomId);
     }
 
     @Transactional(readOnly = true)
@@ -127,7 +147,26 @@ public class ChatFacade {
                 toMessageResult(message, chatService.findAttachmentSizes(List.of(message))));
     }
 
+    private ChatMessageListResponse toMessageList(User viewer, String roomId) {
+        List<ChatMessage> messages = chatService.findMessages(roomId);
+        Map<UUID, Long> attachmentSizes = chatService.findAttachmentSizes(messages);
+        return ChatMessageListResponse.from(messages.stream()
+                .map(message -> toMessageResult(message, attachmentSizes))
+                .toList(), viewer.getId());
+    }
+
+    private boolean isReviewed(Job job) {
+        return reviewService.getReviewedJobIds(List.of(job.getId())).contains(job.getId());
+    }
+
     private List<Room> toRooms(User viewer, Map<Long, Job> jobsById, List<ChatRoom> rooms) {
+        return toRooms(viewer, jobsById, rooms, jobSubmissionRepository.findByJobIdIn(
+                rooms.stream().map(ChatRoom::getJobId).toList()));
+    }
+
+    /** submissions는 rooms의 작업들에 딸린 제출물 전체. 이미 읽은 호출자가 다시 조회하지 않도록 받는다. */
+    private List<Room> toRooms(User viewer, Map<Long, Job> jobsById, List<ChatRoom> rooms,
+            List<JobSubmission> submissions) {
         List<Job> roomJobs = rooms.stream().map(room -> jobsById.get(room.getJobId())).toList();
         List<Long> jobIds = roomJobs.stream().map(Job::getId).toList();
         Map<Long, Counterpart> counterparts = findCounterparts(viewer.getRole(), roomJobs);
@@ -136,7 +175,6 @@ public class ChatFacade {
                 .filter(application -> application.getStudentProfileId()
                         .equals(jobsById.get(application.getJobId()).getSelectedStudentProfileId()))
                 .collect(Collectors.toMap(JobApplication::getJobId, Function.identity()));
-        List<JobSubmission> submissions = jobSubmissionRepository.findByJobIdIn(jobIds);
         Map<Long, JobSubmission> latestSubmissionByJob = submissions.stream()
                 .collect(Collectors.toMap(JobSubmission::getJobId, Function.identity(),
                         (left, right) -> left.getRevisionNumber() > right.getRevisionNumber() ? left : right));

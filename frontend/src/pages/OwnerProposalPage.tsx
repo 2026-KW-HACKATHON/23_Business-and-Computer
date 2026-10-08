@@ -125,9 +125,11 @@ function OwnerProposalPage() {
               <strong className="owner-proposal__empathy-title">
                 학생 손님 {proposal.likeCount}명이 공감했어요
               </strong>
-              <p className="owner-proposal__empathy-sub">
-                가게를 이용하는 학생들도 필요하다고 느낀 제안이에요
-              </p>
+              {proposal.likeCount > 0 && (
+                <p className="owner-proposal__empathy-sub">
+                  가게를 이용하는 학생들도 필요하다고 느낀 제안이에요
+                </p>
+              )}
             </div>
           </div>
 

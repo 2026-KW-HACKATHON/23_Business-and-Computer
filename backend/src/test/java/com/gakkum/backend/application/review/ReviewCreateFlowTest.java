@@ -39,6 +39,9 @@ import com.gakkum.backend.domain.job.service.JobService;
 import com.gakkum.backend.domain.jwt.service.JwtService;
 import com.gakkum.backend.domain.notification.dto.NotificationEvent;
 import com.gakkum.backend.domain.notification.dto.NotificationEventFactory;
+import com.gakkum.backend.domain.notification.entity.NotificationTargetType;
+import com.gakkum.backend.domain.notification.entity.NotificationType;
+import com.gakkum.backend.domain.notification.service.NotificationService;
 import com.gakkum.backend.domain.owner.entity.Owner;
 import com.gakkum.backend.domain.owner.repository.OwnerRepository;
 import com.gakkum.backend.domain.owner.service.OwnerService;
@@ -71,6 +74,7 @@ class ReviewCreateFlowTest {
     private final ReviewRepository reviewRepository = mock(ReviewRepository.class);
     private final StudentRepository studentRepository = mock(StudentRepository.class);
     private final ApplicationEventPublisher eventPublisher = mock(ApplicationEventPublisher.class);
+    private final NotificationService notificationService = mock(NotificationService.class);
     private final UsernamePasswordAuthenticationToken authentication =
             new UsernamePasswordAuthenticationToken(USERNAME, null);
 
@@ -82,7 +86,7 @@ class ReviewCreateFlowTest {
                 mock(JobApplicationRepository.class), mock(JobSubmissionRepository.class), Clock.systemUTC());
         ReviewFacade facade = new ReviewFacade(new UserService(userRepository, mock(JwtService.class)),
                 new OwnerService(ownerRepository), new StudentService(studentRepository), jobService,
-                new ReviewService(reviewRepository), eventPublisher);
+                new ReviewService(reviewRepository), notificationService, eventPublisher);
         when(studentRepository.findById(7L)).thenReturn(Optional.of(
                 Student.builder().id(7L).userId(STUDENT_USER_ID).build()));
         mockMvc = MockMvcBuilders.standaloneSetup(new ReviewController(facade))
@@ -91,7 +95,7 @@ class ReviewCreateFlowTest {
     }
 
     @Test
-    @DisplayName("본인의 완료된 의뢰에 리뷰를 쓰면 201을 반환하고 의뢰의 담당 학생을 리뷰 대상으로 저장한 뒤 그 학생에게 후기 도착을 알린다")
+    @DisplayName("본인의 완료된 의뢰에 리뷰를 쓰면 201을 반환하고 의뢰의 담당 학생을 리뷰 대상으로 저장한 뒤 사장님의 이 의뢰 후기 요청 알림을 읽음 처리하고 그 학생에게 후기 도착을 알린다")
     void createsReviewForSelectedStudent() throws Exception {
         givenActiveUser(UserRole.OWNER);
         givenOwnedJob(JobStatus.CLOSED);
@@ -114,6 +118,8 @@ class ReviewCreateFlowTest {
         assertThat(captor.getValue().getPositivePoints()).containsExactly(ReviewPositivePoint.FAST_COMMUNICATION);
         assertThat(captor.getValue().getContent()).isEqualTo("소통이 빨라 좋았어요.");
         assertThat(captor.getValue().getRating()).isEqualTo(5);
+        verify(notificationService).markTargetRead(
+                OWNER_USER_ID, NotificationType.JOB_REVIEW_REQUESTED, NotificationTargetType.JOB, "42");
         ArgumentCaptor<NotificationEvent> event = ArgumentCaptor.forClass(NotificationEvent.class);
         verify(eventPublisher).publishEvent(event.capture());
         assertThat(event.getValue()).isEqualTo(NotificationEventFactory.jobReviewReceived(
@@ -157,7 +163,7 @@ class ReviewCreateFlowTest {
         perform()
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.error.code").value("JOB_404"));
-        verifyNoInteractions(reviewRepository, eventPublisher);
+        verifyNoInteractions(reviewRepository, notificationService, eventPublisher);
     }
 
     @Test
@@ -169,7 +175,7 @@ class ReviewCreateFlowTest {
         perform()
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.error.code").value("REVIEW_409_STATUS"));
-        verifyNoInteractions(reviewRepository, eventPublisher);
+        verifyNoInteractions(reviewRepository, notificationService, eventPublisher);
     }
 
     @Test
@@ -183,7 +189,7 @@ class ReviewCreateFlowTest {
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.error.code").value("REVIEW_409_DUPLICATE"));
         verify(reviewRepository, never()).saveAndFlush(any());
-        verifyNoInteractions(eventPublisher);
+        verifyNoInteractions(notificationService, eventPublisher);
     }
 
     @Test

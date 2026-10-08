@@ -285,7 +285,7 @@ function StudentSignupVerifyPage() {
               alreadyVerified || sent ? (
                 <button
                   type="button"
-                  className="student-signup-verify__change"
+                  className="student-signup-verify__change press-text"
                   disabled={pending !== null}
                   onClick={handleChangeEmail}
                 >

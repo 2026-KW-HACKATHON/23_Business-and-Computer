@@ -10,9 +10,10 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.gakkum.backend.application.chat.dto.ChatRoomEntryResponse;
 import com.gakkum.backend.application.chat.dto.ChatRoomListResponse;
-import com.gakkum.backend.application.chat.dto.ChatRoomListResponse.Room;
 import com.gakkum.backend.application.chat.dto.ChatMessageListResponse;
+import com.gakkum.backend.application.chat.dto.ChatWorkHistoryResponse;
 import com.gakkum.backend.application.chat.dto.PrepareAttachmentUploadRequest;
 import com.gakkum.backend.application.chat.dto.PrepareAttachmentUploadResponse;
 import com.gakkum.backend.application.chat.dto.ReadChatRoomRequest;
@@ -23,6 +24,8 @@ import com.gakkum.backend.application.chat.dto.SendTextMessageResponse;
 import com.gakkum.backend.application.chat.facade.ChatFacade;
 import com.gakkum.backend.domain.chat.dto.ChatQueryDto.SendAttachmentMessageResult;
 import com.gakkum.backend.domain.chat.dto.ChatQueryDto.SendMessageResult;
+import com.gakkum.backend.global.exception.BusinessException;
+import com.gakkum.backend.global.exception.ErrorCode;
 import com.gakkum.backend.global.response.ApiResponse;
 
 import jakarta.validation.Valid;
@@ -42,11 +45,21 @@ public class ChatController {
         return ResponseEntity.ok(ApiResponse.success(chatFacade.getMyChatRooms(authentication.getName())));
     }
 
-    /** 채팅방 입장 정보 조회 API */
+    /** 채팅방 입장 정보 조회 API. 방 정보와 대화 내역, 후기 등록 여부를 한 번에 반환한다. */
     @GetMapping("/chat-rooms/{roomId}")
-    public ResponseEntity<ApiResponse<Room>> getChatRoom(
+    public ResponseEntity<ApiResponse<ChatRoomEntryResponse>> getChatRoom(
             Authentication authentication, @PathVariable String roomId) {
         return ResponseEntity.ok(ApiResponse.success(chatFacade.getChatRoom(authentication.getName(), roomId)));
+    }
+
+    /** 채팅 작업 카드의 작업 이력 조회 API. 작업의 채팅방 정보와 모든 제출물, 후기 등록 여부를 한 번에 반환한다. */
+    @GetMapping("/jobs/{jobId}/work-history")
+    public ResponseEntity<ApiResponse<ChatWorkHistoryResponse>> getWorkHistory(
+            Authentication authentication, @PathVariable Long jobId) {
+        if (jobId <= 0) {
+            throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE);
+        }
+        return ResponseEntity.ok(ApiResponse.success(chatFacade.getWorkHistory(authentication.getName(), jobId)));
     }
 
     /** 채팅방 대화 내역 조회 API */

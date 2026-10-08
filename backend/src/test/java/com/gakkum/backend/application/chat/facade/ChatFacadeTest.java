@@ -23,6 +23,7 @@ import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.TimeZone;
 import java.util.UUID;
 
@@ -36,7 +37,9 @@ import org.mockito.InOrder;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.util.unit.DataSize;
 
+import com.gakkum.backend.application.chat.dto.ChatRoomEntryResponse;
 import com.gakkum.backend.application.chat.dto.ChatRoomListResponse;
+import com.gakkum.backend.application.chat.dto.ChatWorkHistoryResponse;
 import com.gakkum.backend.application.chat.dto.DeadlineType;
 import com.gakkum.backend.domain.chat.client.ChatAttachmentStorageClient;
 import com.gakkum.backend.domain.chat.client.ChatAttachmentStorageClient.PresignedUpload;
@@ -71,6 +74,7 @@ import com.gakkum.backend.domain.job.repository.JobRepository;
 import com.gakkum.backend.domain.job.repository.JobSubmissionRepository;
 import com.gakkum.backend.domain.owner.entity.Owner;
 import com.gakkum.backend.domain.owner.repository.OwnerRepository;
+import com.gakkum.backend.domain.review.service.ReviewService;
 import com.gakkum.backend.domain.student.entity.Student;
 import com.gakkum.backend.domain.student.repository.StudentRepository;
 import com.gakkum.backend.domain.user.entity.User;
@@ -94,12 +98,14 @@ class ChatFacadeTest {
     private final ChatMessageRepository messageRepository = mock(ChatMessageRepository.class);
     private final ChatAttachmentUploadRepository uploadRepository = mock(ChatAttachmentUploadRepository.class);
     private final ChatAttachmentStorageClient storageClient = mock(ChatAttachmentStorageClient.class);
+    private final ReviewService reviewService = mock(ReviewService.class);
     private final Instant now = Instant.parse("2026-09-27T05:00:00Z");
     private final ChatService chatService = new ChatService(roomRepository, messageRepository, uploadRepository,
             new ChatAttachmentPolicy(DataSize.ofMegabytes(10), DataSize.ofMegabytes(50), Duration.ofHours(1)),
             storageClient, Clock.fixed(now, ZoneOffset.UTC));
     private final ChatFacade service = new ChatFacade(userService, ownerRepository, studentRepository,
-            jobRepository, applicationRepository, submissionRepository, chatService, storageClient);
+            jobRepository, applicationRepository, submissionRepository, chatService, storageClient,
+            reviewService);
 
     @BeforeEach
     void setUp() {
@@ -290,7 +296,7 @@ class ChatFacadeTest {
                 submission(4L, JobSubmissionType.REVISION, 1, JobSubmissionReviewStatus.APPROVED),
                 submission(4L, JobSubmissionType.DRAFT, 0, JobSubmissionReviewStatus.APPROVED)));
 
-        ChatRoomListResponse.Room result = service.getChatRoom("owner", room.getId());
+        ChatRoomListResponse.Room result = service.getChatRoom("owner", room.getId()).getRoom();
 
         assertThat(result.getSubmissionReviewStatus()).isEqualTo(JobSubmissionReviewStatus.APPROVED);
         assertThat(result.getSubmissionType()).isEqualTo(JobSubmissionType.REVISION);
@@ -332,7 +338,7 @@ class ChatFacadeTest {
                         acceptedApplication(2L, 99L, "다른 학생"),
                         acceptedApplication(2L, 20L, "선택된 학생")));
 
-        ChatRoomListResponse.Room result = service.getChatRoom("owner", room.getId());
+        ChatRoomListResponse.Room result = service.getChatRoom("owner", room.getId()).getRoom();
 
         assertThat(result.getRoomId()).isEqualTo(room.getId());
         assertThat(result.getJobTitle()).isEqualTo("의뢰");
@@ -363,7 +369,7 @@ class ChatFacadeTest {
         Map<Long, JobStatus> statuses = service.getMyChatRooms("owner").getRooms().stream()
                 .collect(java.util.stream.Collectors.toMap(ChatRoomListResponse.Room::getJobId,
                         ChatRoomListResponse.Room::getJobStatus));
-        ChatRoomListResponse.Room single = service.getChatRoom("owner", cancelledRoom.getId());
+        ChatRoomListResponse.Room single = service.getChatRoom("owner", cancelledRoom.getId()).getRoom();
 
         assertThat(statuses).containsEntry(1L, JobStatus.MATCHED)
                 .containsEntry(2L, JobStatus.CLOSED)
@@ -385,6 +391,147 @@ class ChatFacadeTest {
         assertCode(ErrorCode.CHAT_FORBIDDEN, () -> service.getChatRoom("owner", room.getId()));
         assertCode(ErrorCode.CHAT_FORBIDDEN, () -> service.getMessages("owner", room.getId()));
         verify(messageRepository, never()).findByRoomIdOrderByIdAsc(room.getId());
+    }
+
+    @Test
+    @DisplayName("채팅방 입장은 방 정보와 대화 내역, 조회자 식별자, 후기 여부를 한 번에 반환한다")
+    void entryReturnsRoomMessagesAndReviewed() {
+        owner();
+        ChatRoom room = room(2L, LocalDateTime.now());
+        when(roomRepository.findById(room.getId())).thenReturn(Optional.of(room));
+        when(jobRepository.findById(2L)).thenReturn(Optional.of(job(2L, "의뢰", JobStatus.CLOSED)));
+        when(studentRepository.findAllById(anyList())).thenReturn(List.of(student()));
+        when(userService.getUsersByIds(anyList())).thenReturn(Map.of(STUDENT_ID,
+                User.builder().id(STUDENT_ID).name("학생 이름").build()));
+        ChatMessage file = ChatMessage.builder().id(2L).roomId(room.getId()).senderUserId(STUDENT_ID)
+                .type(ChatMessageType.FILE).attachmentKey("chat/room/upload.pdf").attachmentName("견적서.pdf")
+                .build();
+        when(messageRepository.findByRoomIdOrderByIdAsc(room.getId())).thenReturn(List.of(
+                ChatMessage.builder().id(1L).roomId(room.getId()).senderUserId(OWNER_ID)
+                        .type(ChatMessageType.TEXT).content("첫 메시지").build(), file));
+        when(storageClient.presignView("chat/room/upload.pdf", ChatMessageType.FILE, "견적서.pdf"))
+                .thenReturn(new PresignedView("https://view.example", now.plus(Duration.ofMinutes(15))));
+        when(reviewService.getReviewedJobIds(List.of(2L))).thenReturn(Set.of(2L));
+
+        ChatRoomEntryResponse result = service.getChatRoom("owner", room.getId());
+
+        assertThat(result.getRoom().getRoomId()).isEqualTo(room.getId());
+        assertThat(result.getRoom().getJobStatus()).isEqualTo(JobStatus.CLOSED);
+        assertThat(result.getRoom().getCounterpartName()).isEqualTo("학생 이름");
+        assertThat(result.isReviewed()).isTrue();
+        assertThat(result.getViewerUserId()).isEqualTo(OWNER_ID);
+        assertThat(result.getMessages()).extracting(message -> message.getId()).containsExactly(1L, 2L);
+        assertThat(result.getMessages().get(0).getContent()).isEqualTo("첫 메시지");
+        assertThat(result.getMessages().get(1).getContent()).isEqualTo("https://view.example");
+        // 방과 작업, 사용자는 방 정보와 대화 내역이 나눠 쓰고 다시 읽지 않는다
+        verify(userService).getActiveUser("owner");
+        verify(roomRepository).findById(room.getId());
+        verify(jobRepository).findById(2L);
+    }
+
+    @Test
+    @DisplayName("후기가 없는 작업의 채팅방 입장은 후기 여부를 false로, 메시지가 없으면 빈 배열로 반환한다")
+    void entryWithoutReviewAndMessages() {
+        studentViewer();
+        ChatRoom room = room(2L, LocalDateTime.now());
+        when(roomRepository.findById(room.getId())).thenReturn(Optional.of(room));
+        when(jobRepository.findById(2L)).thenReturn(Optional.of(job(2L, "의뢰", JobStatus.MATCHED)));
+        when(ownerRepository.findAllById(anyList())).thenReturn(List.of(
+                Owner.builder().id(10L).storeName("가게 이름").profileImageUrl("store.png").build()));
+
+        ChatRoomEntryResponse result = service.getChatRoom("student", room.getId());
+
+        assertThat(result.getRoom().getCounterpartName()).isEqualTo("가게 이름");
+        assertThat(result.isReviewed()).isFalse();
+        assertThat(result.getViewerUserId()).isEqualTo(STUDENT_ID);
+        assertThat(result.getMessages()).isEmpty();
+    }
+
+    @Test
+    @DisplayName("작업 이력은 채팅방 정보와 수정 번호순 제출물 전체, 후기 여부를 한 번에 반환한다")
+    void workHistoryReturnsRoomSubmissionsAndReviewed() {
+        owner();
+        ChatRoom room = room(4L, LocalDateTime.now());
+        when(jobRepository.findById(4L)).thenReturn(Optional.of(Job.builder().id(4L).title("제안 기반")
+                .status(JobStatus.CLOSED).ownerProfileId(10L).selectedStudentProfileId(20L)
+                .proposalId(77L).budget(300000L).revisionCount(2).build()));
+        when(roomRepository.findByJobId(4L)).thenReturn(Optional.of(room));
+        when(studentRepository.findAllById(anyList())).thenReturn(List.of(student()));
+        when(userService.getUsersByIds(anyList())).thenReturn(Map.of(STUDENT_ID,
+                User.builder().id(STUDENT_ID).name("학생 이름").build()));
+        JobSubmission draft = JobSubmission.builder().id(31L).jobId(4L).submissionType(JobSubmissionType.DRAFT)
+                .revisionNumber(0).fileUrls(List.of("https://files.example/draft.pdf")).message("초안입니다")
+                .reviewStatus(JobSubmissionReviewStatus.REVISION_REQUESTED).reviewComment("색을 바꿔 주세요")
+                .reviewedAt(LocalDateTime.of(2026, 9, 23, 3, 0))
+                .createdAt(LocalDateTime.of(2026, 9, 22, 3, 0)).build();
+        JobSubmission revision = JobSubmission.builder().id(32L).jobId(4L)
+                .submissionType(JobSubmissionType.REVISION).revisionNumber(1)
+                .fileUrls(List.of("https://files.example/revision.pdf")).message("수정안입니다")
+                .reviewStatus(JobSubmissionReviewStatus.APPROVED)
+                .createdAt(LocalDateTime.of(2026, 9, 24, 3, 0)).build();
+        when(submissionRepository.findByJobIdOrderByRevisionNumberAsc(4L)).thenReturn(List.of(draft, revision));
+        when(reviewService.getReviewedJobIds(List.of(4L))).thenReturn(Set.of(4L));
+
+        ChatWorkHistoryResponse result = service.getWorkHistory("owner", 4L);
+
+        assertThat(result.getRoom().getRoomId()).isEqualTo(room.getId());
+        assertThat(result.getRoom().getJobTitle()).isEqualTo("제안 기반");
+        assertThat(result.getRoom().getCounterpartName()).isEqualTo("학생 이름");
+        assertThat(result.getRoom().getProposalId()).isEqualTo(77L);
+        // 방의 최신 제출물도 같은 제출물 목록에서 고른다
+        assertThat(result.getRoom().getSubmissionType()).isEqualTo(JobSubmissionType.REVISION);
+        assertThat(result.getRoom().getRevisionNumber()).isEqualTo(1);
+        assertThat(result.getSubmissions()).extracting(submission -> submission.getSubmissionId())
+                .containsExactly(31L, 32L);
+        assertThat(result.getSubmissions().get(0).getRevisionRequest().getMessage()).isEqualTo("색을 바꿔 주세요");
+        assertThat(result.getSubmissions().get(0).getFileUrls())
+                .containsExactly("https://files.example/draft.pdf");
+        assertThat(result.getSubmissions().get(1).getRevisionRequest()).isNull();
+        assertThat(result.isReviewed()).isTrue();
+        // 제출물은 한 번만 읽어 방 정보와 이력이 나눠 쓴다
+        verify(submissionRepository, never()).findByJobIdIn(anyList());
+    }
+
+    @Test
+    @DisplayName("제출물과 후기가 없는 작업 이력은 빈 제출물 배열과 후기 여부 false를 반환한다")
+    void workHistoryWithoutSubmissions() {
+        studentViewer();
+        when(jobRepository.findById(2L)).thenReturn(Optional.of(job(2L, "의뢰", JobStatus.MATCHED)));
+        when(roomRepository.findByJobId(2L)).thenReturn(Optional.of(room(2L, LocalDateTime.now())));
+        when(ownerRepository.findAllById(anyList())).thenReturn(List.of(
+                Owner.builder().id(10L).storeName("가게 이름").profileImageUrl("store.png").build()));
+        when(submissionRepository.findByJobIdOrderByRevisionNumberAsc(2L)).thenReturn(List.of());
+
+        ChatWorkHistoryResponse result = service.getWorkHistory("student", 2L);
+
+        assertThat(result.getRoom().getCounterpartName()).isEqualTo("가게 이름");
+        assertThat(result.getRoom().getDeadlineType()).isEqualTo(DeadlineType.DRAFT);
+        assertThat(result.getRoom().getSubmissionType()).isNull();
+        assertThat(result.getSubmissions()).isEmpty();
+        assertThat(result.isReviewed()).isFalse();
+    }
+
+    @Test
+    @DisplayName("없는 작업, 비참여자, 채팅방이 없는 작업의 작업 이력 조회는 거부하고 비참여자에게는 채팅방을 조회하지 않는다")
+    void rejectsInvalidWorkHistoryLookup() {
+        when(userService.getActiveUser("owner")).thenReturn(User.builder()
+                .id(OWNER_ID).role(UserRole.OWNER).build());
+        when(ownerRepository.findByUserId(OWNER_ID))
+                .thenReturn(Optional.of(Owner.builder().id(99L).build()));
+        when(jobRepository.findById(404L)).thenReturn(Optional.empty());
+        when(jobRepository.findById(2L)).thenReturn(Optional.of(job(2L, "남의 의뢰", JobStatus.MATCHED)));
+
+        assertCode(ErrorCode.JOB_NOT_FOUND, () -> service.getWorkHistory("owner", 404L));
+        assertCode(ErrorCode.CHAT_FORBIDDEN, () -> service.getWorkHistory("owner", 2L));
+        verifyNoInteractions(roomRepository, submissionRepository, reviewService);
+
+        // 내 의뢰지만 아직 채팅방이 없다
+        when(ownerRepository.findByUserId(OWNER_ID))
+                .thenReturn(Optional.of(Owner.builder().id(10L).build()));
+        when(jobRepository.findById(1L)).thenReturn(Optional.of(job(1L, "모집 중 의뢰", JobStatus.OPEN)));
+        when(roomRepository.findByJobId(1L)).thenReturn(Optional.empty());
+
+        assertCode(ErrorCode.CHAT_ROOM_NOT_FOUND, () -> service.getWorkHistory("owner", 1L));
     }
 
     @Test
