@@ -25,6 +25,7 @@ import {
   useProgressJobs,
 } from "../features/student";
 import type { LatestSubmissionLoad, ProgressJob, ProgressStage } from "../features/student";
+import { useOpenJobChat } from "../features/chat";
 import { useBack } from "../hooks/useBack";
 import { addDays, formatMonthDay } from "../lib/date";
 import { fileNameFromUrl } from "../lib/fileUrl";
@@ -103,7 +104,7 @@ function SentFiles({ urls, note }: { urls: string[]; note?: string }) {
 /**
  * 피그마 「수정 요청 확인」 (서버 작업, ADR 0032 · 0038). 사장님이 적은 고칠 곳 · 참고 사진과
  * 내가 보낸 초안 · 수정안 파일 (GET /jobs/{id}/submissions/latest).
- * 「수정안 작성하기」 → 수정안 제출, 「문의하기」 → 채팅.
+ * 「수정안 작성하기」 → 수정안 제출, 「문의하기」 → 이 작업의 채팅방 (못 찾으면 채팅 목록).
  */
 export function StudentJobRevisionPage({ jobId }: { jobId: number }) {
   return (
@@ -115,6 +116,7 @@ export function StudentJobRevisionPage({ jobId }: { jobId: number }) {
 
 function RevisionScreen({ job, back }: { job: ProgressJob; back: () => void }) {
   const navigate = useNavigate();
+  const openJobChat = useOpenJobChat(STUDENT_PATHS.chat, STUDENT_PATHS.chats);
   const { load, reload } = useLatestSubmission(job.jobId);
   const latest = load.status === "loaded" ? load.submission : undefined;
   const request = latest?.revisionRequest;
@@ -129,7 +131,7 @@ function RevisionScreen({ job, back }: { job: ProgressJob; back: () => void }) {
       onBack={back}
       footer={
         <div className="student-detail__actions">
-          <Button variant="secondary" onClick={() => navigate(STUDENT_PATHS.chats)}>
+          <Button variant="secondary" onClick={() => openJobChat(job.jobId)}>
             문의하기
           </Button>
           <Button tone="student" onClick={() => navigate(STUDENT_PATHS.workRevisionSubmit(String(job.jobId)))}>

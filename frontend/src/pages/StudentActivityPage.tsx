@@ -31,6 +31,7 @@ import {
   useFinishedJobs,
   useSettlementHistory,
 } from "../features/student";
+import { useOpenJobChat } from "../features/chat";
 import { proposalBadgeNames } from "../features/proposal";
 import type {
   AppliedJob,
@@ -85,6 +86,8 @@ function StoreLine({ name, address }: { name: string; address?: string }) {
  */
 function StudentActivityPage() {
   const navigate = useNavigate();
+  // 「문의하기」는 그 작업의 채팅방으로 (못 찾으면 채팅 목록)
+  const openJobChat = useOpenJobChat(STUDENT_PATHS.chat, STUDENT_PATHS.chats);
   const back = useBack(STUDENT_PATHS.me);
   const [params, setParams] = useSearchParams();
   const tab = TABS.find((t) => t.tab === params.get("tab"))?.tab ?? "applied";
@@ -250,7 +253,7 @@ function StudentActivityPage() {
           </Button>
         )}
         {job.stage === "submitted" && (
-          <Button tone="student" size="medium" fullWidth onClick={() => navigate(STUDENT_PATHS.chats)}>
+          <Button tone="student" size="medium" fullWidth onClick={() => openJobChat(job.jobId)}>
             문의하기
           </Button>
         )}

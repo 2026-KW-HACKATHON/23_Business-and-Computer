@@ -9,6 +9,7 @@ export type { ChatWorkHistoryRow } from "./components/ChatWorkHistory";
 export { useChatRoom } from "./hooks/useChatRoom";
 export type { ChatRoomLoad, ChatRoomState } from "./hooks/useChatRoom";
 export { useChatRooms } from "./hooks/useChatRooms";
+export { findJobChatRoomId, useOpenJobChat } from "./hooks/useOpenJobChat";
 export type { ChatRoomsLoad } from "./hooks/useChatRooms";
 export { useChatUnread } from "./hooks/useChatUnread";
 export { useScrollToLatest } from "./hooks/useScrollToLatest";
