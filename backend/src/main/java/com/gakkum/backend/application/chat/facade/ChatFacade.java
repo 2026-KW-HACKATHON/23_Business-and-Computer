@@ -8,6 +8,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -107,8 +108,10 @@ public class ChatFacade {
         Job job = jobRepository.findById(room.getJobId())
                 .orElseThrow(() -> new BusinessException(ErrorCode.JOB_NOT_FOUND));
         requireParticipant(viewer, job);
-        return ChatMessageListResponse.from(chatService.findMessages(roomId).stream()
-                .map(this::toMessageResult)
+        List<ChatMessage> messages = chatService.findMessages(roomId);
+        Map<UUID, Long> attachmentSizes = chatService.findAttachmentSizes(messages);
+        return ChatMessageListResponse.from(messages.stream()
+                .map(message -> toMessageResult(message, attachmentSizes))
                 .toList(), viewer.getId());
     }
 
@@ -119,7 +122,9 @@ public class ChatFacade {
         Job job = jobRepository.findById(room.getJobId())
                 .orElseThrow(() -> new BusinessException(ErrorCode.JOB_NOT_FOUND));
         requireParticipant(viewer, job);
-        return ChatMessageListResponse.Message.from(toMessageResult(chatService.findMessage(room, messageId)));
+        ChatMessage message = chatService.findMessage(room, messageId);
+        return ChatMessageListResponse.Message.from(
+                toMessageResult(message, chatService.findAttachmentSizes(List.of(message))));
     }
 
     private List<Room> toRooms(User viewer, Map<Long, Job> jobsById, List<ChatRoom> rooms) {
@@ -215,7 +220,8 @@ public class ChatFacade {
 
         SendMessageResult result = chatService.sendAttachmentMessage(room, sender.getId(),
                 command.getClientMessageId(), command.getType(), command.getUploadId());
-        MessageResult message = toMessageResult(result.getMessage());
+        // 전송 응답은 크기를 내리지 않으므로 업로드를 다시 조회하지 않는다
+        MessageResult message = toMessageResult(result.getMessage(), Map.of());
         return SendAttachmentMessageResult.of(result.getMessage(), result.isCreated(), message.getContent(),
                 message.getContentExpiresAt());
     }
@@ -307,14 +313,19 @@ public class ChatFacade {
         return LastMessage.of(message.getType(), preview, message.getCreatedAt());
     }
 
-    private MessageResult toMessageResult(ChatMessage message) {
-        // 저장소 키가 없는 첨부 행 하나 때문에 대화 내역 전체가 실패하지 않도록 URL 없이 내린다
-        if (message.getType() == ChatMessageType.TEXT || message.getAttachmentKey() == null) {
+    private MessageResult toMessageResult(ChatMessage message, Map<UUID, Long> attachmentSizes) {
+        if (message.getType() == ChatMessageType.TEXT) {
             return MessageResult.text(message);
+        }
+        Long attachmentSize = message.getAttachmentUploadId() == null ? null
+                : attachmentSizes.get(message.getAttachmentUploadId());
+        // 저장소 키가 없는 첨부 행 하나 때문에 대화 내역 전체가 실패하지 않도록 URL 없이 내린다
+        if (message.getAttachmentKey() == null) {
+            return MessageResult.attachment(message, message.getContent(), null, attachmentSize);
         }
         PresignedView view = chatAttachmentStorageClient.presignView(
                 message.getAttachmentKey(), message.getType(), message.getAttachmentName());
-        return MessageResult.attachment(message, view.url(), toLocalDateTime(view.expiresAt()));
+        return MessageResult.attachment(message, view.url(), toLocalDateTime(view.expiresAt()), attachmentSize);
     }
 
     // 응답 DTO가 UTC로 해석해 한국 시각으로 바꾸므로 JVM 기본 시간대와 무관하게 UTC로 내린다

@@ -5,6 +5,7 @@ import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -70,6 +71,21 @@ public class ChatService {
         return chatMessageRepository.findById(messageId)
                 .filter(found -> room.getId().equals(found.getRoomId()))
                 .orElseThrow(() -> new BusinessException(ErrorCode.CHAT_MESSAGE_NOT_FOUND));
+    }
+
+    /** 첨부 메시지의 업로드 ID별 byte 단위 크기를 한 번에 조회한다. 업로드 기록이 없는 첨부는 결과에 없다. */
+    public Map<UUID, Long> findAttachmentSizes(List<ChatMessage> messages) {
+        List<UUID> uploadIds = messages.stream()
+                .filter(message -> message.getType() != ChatMessageType.TEXT)
+                .map(ChatMessage::getAttachmentUploadId)
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
+        if (uploadIds.isEmpty()) {
+            return Map.of();
+        }
+        return chatAttachmentUploadRepository.findAllById(uploadIds).stream()
+                .collect(Collectors.toMap(ChatAttachmentUpload::getId, ChatAttachmentUpload::getFileSize));
     }
 
     /**
