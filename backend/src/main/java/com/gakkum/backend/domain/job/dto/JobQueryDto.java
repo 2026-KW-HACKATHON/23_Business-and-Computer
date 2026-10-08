@@ -231,6 +231,20 @@ public final class JobQueryDto {
         }
     }
 
+    /** 의뢰의 모든 제출물을 수정 번호 오름차순으로 담는다. 수정 요청은 그 요청을 받은 제출물에 붙는다. */
+    @Getter
+    @AllArgsConstructor(access = AccessLevel.PRIVATE)
+    public static class JobSubmissionHistoryResult {
+
+        private final List<JobLatestSubmissionResult> submissions;
+
+        public static JobSubmissionHistoryResult from(List<JobSubmission> submissions) {
+            return new JobSubmissionHistoryResult(submissions.stream()
+                    .map(JobLatestSubmissionResult::from)
+                    .toList());
+        }
+    }
+
     @Getter
     @Builder(access = AccessLevel.PRIVATE)
     @AllArgsConstructor(access = AccessLevel.PRIVATE)

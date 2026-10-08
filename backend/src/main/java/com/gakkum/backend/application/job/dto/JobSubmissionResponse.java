@@ -7,6 +7,7 @@ import java.util.Map;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.JobLatestSubmissionResult;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.JobSubmissionCreateResult;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.JobSubmissionDetailResult;
+import com.gakkum.backend.domain.job.dto.JobQueryDto.JobSubmissionHistoryResult;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.PrepareSubmissionFileUploadResult;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.RevisionRequestResult;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.SubmissionFileResult;
@@ -102,6 +103,20 @@ public final class JobSubmissionResponse {
                             ? null
                             : RevisionRequest.from(result.getRevisionRequest()))
                     .build();
+        }
+    }
+
+    /** 제출물이 없는 의뢰는 submissions를 빈 배열로 내린다. */
+    @Getter
+    @AllArgsConstructor(access = AccessLevel.PRIVATE)
+    public static class History {
+
+        private final List<Latest> submissions;
+
+        public static History from(JobSubmissionHistoryResult result) {
+            return new History(result.getSubmissions().stream()
+                    .map(Latest::from)
+                    .toList());
         }
     }
 

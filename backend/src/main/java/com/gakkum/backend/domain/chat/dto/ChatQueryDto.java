@@ -61,13 +61,16 @@ public final class ChatQueryDto {
         private final ChatMessage message;
         private final String content;
         private final LocalDateTime contentExpiresAt;
+        /** IMAGE·FILE의 byte 단위 크기. 업로드 기록이 없으면 null */
+        private final Long attachmentSize;
 
         public static MessageResult text(ChatMessage message) {
-            return new MessageResult(message, message.getContent(), null);
+            return new MessageResult(message, message.getContent(), null, null);
         }
 
-        public static MessageResult attachment(ChatMessage message, String contentUrl, LocalDateTime contentExpiresAt) {
-            return new MessageResult(message, contentUrl, contentExpiresAt);
+        public static MessageResult attachment(ChatMessage message, String contentUrl, LocalDateTime contentExpiresAt,
+                Long attachmentSize) {
+            return new MessageResult(message, contentUrl, contentExpiresAt, attachmentSize);
         }
     }
 }

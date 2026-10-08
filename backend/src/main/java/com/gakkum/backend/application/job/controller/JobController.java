@@ -107,7 +107,7 @@ public class JobController {
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
-    /** 담당 학생이 본인 의뢰의 최신 제출물과 그 제출물에 받은 수정 요청 내용을 조회하는 API(완료·취소 후에도 조회 가능) */
+    /** 의뢰한 사장님 또는 담당 학생이 본인 의뢰의 최신 제출물과 그 제출물의 수정 요청 내용을 조회하는 API(완료·취소 후에도 조회 가능) */
     @GetMapping("/jobs/{jobId}/submissions/latest")
     public ResponseEntity<ApiResponse<JobSubmissionResponse.Latest>> getLatestSubmission(
             Authentication authentication, @PathVariable Long jobId) {
@@ -116,6 +116,18 @@ public class JobController {
         }
         JobSubmissionResponse.Latest response = JobSubmissionResponse.Latest.from(
                 jobFacade.getLatestSubmission(authentication.getName(), jobId));
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    /** 의뢰한 사장님 또는 담당 학생이 본인 의뢰의 모든 초안·수정안과 각 제출물의 수정 요청 내용을 조회하는 API(작업 상태와 무관하게 조회 가능) */
+    @GetMapping("/jobs/{jobId}/submissions")
+    public ResponseEntity<ApiResponse<JobSubmissionResponse.History>> getSubmissions(
+            Authentication authentication, @PathVariable Long jobId) {
+        if (jobId <= 0) {
+            throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE);
+        }
+        JobSubmissionResponse.History response = JobSubmissionResponse.History.from(
+                jobFacade.getSubmissions(authentication.getName(), jobId));
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 

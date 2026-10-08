@@ -168,11 +168,47 @@ public final class JobCommandDto {
     @Getter
     @Builder(access = AccessLevel.PRIVATE)
     @AllArgsConstructor(access = AccessLevel.PRIVATE)
+    public static class GetJobSubmissionsCommand {
+
+        private final Long jobId;
+        private final Long ownerProfileId;
+        private final Long studentProfileId;
+
+        /** 의뢰한 사장님으로 제출 이력을 조회한다. */
+        public static GetJobSubmissionsCommand ofOwner(Long jobId, Long ownerProfileId) {
+            return GetJobSubmissionsCommand.builder()
+                    .jobId(jobId)
+                    .ownerProfileId(ownerProfileId)
+                    .build();
+        }
+
+        /** 담당 학생으로 제출 이력을 조회한다. */
+        public static GetJobSubmissionsCommand ofStudent(Long jobId, Long studentProfileId) {
+            return GetJobSubmissionsCommand.builder()
+                    .jobId(jobId)
+                    .studentProfileId(studentProfileId)
+                    .build();
+        }
+    }
+
+    @Getter
+    @Builder(access = AccessLevel.PRIVATE)
+    @AllArgsConstructor(access = AccessLevel.PRIVATE)
     public static class GetLatestJobSubmissionCommand {
 
         private final Long jobId;
+        private final Long ownerProfileId;
         private final Long studentProfileId;
 
+        /** 의뢰한 사장님으로 최신 제출물을 조회한다. */
+        public static GetLatestJobSubmissionCommand ofOwner(Long jobId, Long ownerProfileId) {
+            return GetLatestJobSubmissionCommand.builder()
+                    .jobId(jobId)
+                    .ownerProfileId(ownerProfileId)
+                    .build();
+        }
+
+        /** 담당 학생으로 최신 제출물을 조회한다. */
         public static GetLatestJobSubmissionCommand of(Long jobId, Long studentProfileId) {
             return GetLatestJobSubmissionCommand.builder()
                     .jobId(jobId)
