@@ -44,7 +44,7 @@ The backend (dev) has:
 - **내 활동 › 진행 중**: cards sorted by that deadline, with category badges,
   status (초안 제작 중 · 수정 요청이 왔어요 · 초안/수정안 제출, 사장님 확인
   중), store line when known, and 초안 제출하기 · 수정안 제출하기 · 문의하기
-  (채팅 목록). The count shows 「-」 and `LoadNotice` replaces the list while
+  (그 작업의 채팅방, ADR 0057). The count shows 「-」 and `LoadNotice` replaces the list while
   loading or after a failure.
 - **Home**: drafting · revising jobs join 「확인할 일」 (sorted with the
   agreement cards by deadline); submitted jobs are 「사장님이 확인 중」

@@ -41,6 +41,7 @@ import type {
   OwnerProgressJob,
   ReceivedProposal,
 } from "../features/owner";
+import { useOpenJobChat } from "../features/chat";
 import { proposalBadgeNames } from "../features/proposal";
 import { useBack } from "../hooks/useBack";
 import { formatMonthDay } from "../lib/date";
@@ -104,6 +105,8 @@ function CardHead({ kind, title, right }: { kind: WorkKind; title: string; right
  */
 function OwnerActivityPage() {
   const navigate = useNavigate();
+  // 「문의하기」는 그 작업의 채팅방으로 (못 찾으면 채팅 목록)
+  const openJobChat = useOpenJobChat(OWNER_PATHS.chat, OWNER_PATHS.chats);
   const back = useBack(OWNER_PATHS.me);
   const [params, setParams] = useSearchParams();
   const tab = TABS.find((t) => t.tab === params.get("tab"))?.tab ?? "sent";
@@ -268,7 +271,7 @@ function OwnerActivityPage() {
             <div className="owner-activity__divider" />
             <div className="owner-activity__actions">
               <Button onClick={() => navigate(OWNER_PATHS.workCheck(id))}>{noun} 확인하기</Button>
-              <Button variant="secondary" size="medium" onClick={() => navigate(OWNER_PATHS.chats)}>
+              <Button variant="secondary" size="medium" onClick={() => openJobChat(job.jobId)}>
                 문의하기
               </Button>
             </div>
