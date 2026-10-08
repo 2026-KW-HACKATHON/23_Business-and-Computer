@@ -10,11 +10,13 @@ import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
@@ -66,6 +68,7 @@ import com.gakkum.backend.domain.user.service.UserService;
 
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
+import jakarta.persistence.Query;
 import lombok.RequiredArgsConstructor;
 
 /**
@@ -112,8 +115,11 @@ public class DemoSampleDataSeeder {
     public record Visitor(String demoSessionId, Owner store, Student student) {
     }
 
-    /** 예시 데이터를 다 만든 뒤 바꿀 시각 한 칸. at 은 칼럼 타입에 맞춘 값이다 */
-    private record TimelineUpdate(String sql, Object at, Long id) {
+    /**
+     * 예시 데이터를 다 만든 뒤 시각을 바꿀 칼럼 하나. keyColumn 으로 행을 찾고, atType 은 칼럼 타입이다.
+     * condition 은 행을 더 거르는 조건이고 없으면 빈 문자열이다 (표는 t 로 부른다)
+     */
+    private record TimelineColumn(String table, String column, String keyColumn, String atType, String condition) {
     }
 
     /** 채팅방 대화 한 줄. fromOwner 면 사장님이, 아니면 학생이 보낸 메시지다 */
@@ -141,7 +147,8 @@ public class DemoSampleDataSeeder {
         private final LocalDate today;
         private final Map<String, Long> specialtyIds;
         private final Map<String, Long> categoryIds;
-        private final List<TimelineUpdate> timeline = new ArrayList<>();
+        // 칼럼마다 행 키 → 옮길 시각. at 은 칼럼 타입에 맞춘 값이고, 같은 행을 두 번 적으면 나중 시각이 남는다
+        private final Map<TimelineColumn, Map<Long, Object>> timeline = new LinkedHashMap<>();
         // 알림 내용을 만들 때 쓴다 (프로필 id → 가게 · 학생, 사용자 id → 이름)
         private final Map<Long, Owner> stores = new HashMap<>();
         private final Map<Long, Student> students = new HashMap<>();
@@ -1005,34 +1012,45 @@ public class DemoSampleDataSeeder {
          * TIMESTAMP 칼럼은 서비스의 now() 처럼 UTC 시각으로 저장한다.
          */
         private void backdate(String table, String column, Long id, Instant at) {
-            timeline.add(new TimelineUpdate("update " + table + " set " + column + " = :at where id = :id",
-                    LocalDateTime.ofInstant(at, ZoneOffset.UTC), id));
+            backdate(new TimelineColumn(table, column, "id", "timestamp", ""),
+                    id, LocalDateTime.ofInstant(at, ZoneOffset.UTC));
         }
 
         private void backdateByJob(String table, String column, Long jobId, Instant at) {
-            timeline.add(new TimelineUpdate("update " + table + " set " + column + " = :at where job_id = :id",
-                    LocalDateTime.ofInstant(at, ZoneOffset.UTC), jobId));
+            backdate(new TimelineColumn(table, column, "job_id", "timestamp", ""),
+                    jobId, LocalDateTime.ofInstant(at, ZoneOffset.UTC));
         }
 
         // 환불 시각은 TIMESTAMP WITH TIME ZONE 칼럼이다
         private void backdateRefund(Long jobId, Instant at) {
-            timeline.add(new TimelineUpdate(
-                    "update payments set refunded_at = :at where job_id = :id and refunded_at is not null",
-                    at.atOffset(ZoneOffset.UTC), jobId));
+            backdate(new TimelineColumn("payments", "refunded_at", "job_id", "timestamp with time zone",
+                    " and t.refunded_at is not null"), jobId, at.atOffset(ZoneOffset.UTC));
+        }
+
+        private void backdate(TimelineColumn column, Long key, Object at) {
+            timeline.computeIfAbsent(column, added -> new LinkedHashMap<>()).put(key, at);
         }
 
         /**
-         * 적어 둔 시각을 DB 에 옮긴다. 영속성 컨텍스트의 엔티티는 옮기기 전 시각을 들고 있어서,
-         * 같은 트랜잭션의 다음 조회가 DB 값을 읽도록 비운다.
+         * 적어 둔 시각을 DB 에 옮긴다. 행마다 쿼리를 보내면 DB 왕복이 수백 번이라 칼럼마다 한 번에 옮긴다.
+         * 영속성 컨텍스트의 엔티티는 옮기기 전 시각을 들고 있어서, 같은 트랜잭션의 다음 조회가 DB 값을 읽도록 비운다.
          */
         private void applyTimeline() {
             entityManager.flush();
-            for (TimelineUpdate update : timeline) {
-                entityManager.createNativeQuery(update.sql())
-                        .setParameter("at", update.at())
-                        .setParameter("id", update.id())
-                        .executeUpdate();
-            }
+            timeline.forEach((column, rows) -> {
+                List<Long> keys = List.copyOf(rows.keySet());
+                String values = IntStream.range(0, keys.size())
+                        .mapToObj(i -> "(cast(:key" + i + " as bigint), cast(:at" + i + " as " + column.atType() + "))")
+                        .collect(Collectors.joining(", "));
+                Query query = entityManager.createNativeQuery("update " + column.table() + " t set " + column.column()
+                        + " = v.at from (values " + values + ") as v(key, at) where t." + column.keyColumn()
+                        + " = v.key" + column.condition());
+                for (int i = 0; i < keys.size(); i++) {
+                    query.setParameter("key" + i, keys.get(i));
+                    query.setParameter("at" + i, rows.get(keys.get(i)));
+                }
+                query.executeUpdate();
+            });
             entityManager.clear();
         }
 
