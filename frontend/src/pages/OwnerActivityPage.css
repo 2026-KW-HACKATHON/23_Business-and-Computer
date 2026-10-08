@@ -79,6 +79,7 @@
 
 .owner-activity__meta {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 8px;
   font-size: 13px;
