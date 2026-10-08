@@ -156,7 +156,7 @@ function StudentActivityPage() {
 
   const proposalCard = (proposal: SentProposal) => {
     const openDetail = () => navigate(STUDENT_PATHS.proposal(String(proposal.proposalId)));
-    const sentOn = sentOnText(proposal.createdAt);
+    const sentOn = sentOnText(proposal.createdAt, proposal.rejectedAt);
     return (
       <li key={proposal.proposalId} className="student-activity__card">
         <CardHead

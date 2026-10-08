@@ -1,0 +1,8 @@
+/* 확인 팝업 설명 아래 실패 안내 */
+.proposal-reject__error {
+  margin: 0;
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--color-danger);
+  word-break: keep-all;
+}

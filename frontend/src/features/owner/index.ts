@@ -4,6 +4,7 @@ export { default as OwnerMissing } from "./components/OwnerMissing";
 export { default as PaymentProgress } from "./components/PaymentProgress";
 export { default as PaymentSection } from "./components/PaymentSection";
 export { default as PaymentSummaryBox } from "./components/PaymentSummaryBox";
+export { default as ProposalRejectDialogs } from "./components/ProposalRejectDialogs";
 export { default as RefundBreakdown } from "./components/RefundBreakdown";
 export { default as StudentBox } from "./components/StudentBox";
 export { default as OwnerTabScreen } from "./components/OwnerTabScreen";
@@ -24,6 +25,8 @@ export type { OwnerMeLoad, StoreCategoriesLoad } from "./hooks/useOwnerMe";
 export { ownerMeChanges, ownerStoreForm, saveOwnerMe, storeAddressOf, storeCategoryId } from "./lib/ownerMe";
 export type { OwnerMe, OwnerMeChanges, OwnerMeSaveResult, OwnerStoreForm } from "./lib/ownerMe";
 export { useProposalJobIds } from "./hooks/useProposalJobIds";
+export { useProposalReject } from "./hooks/useProposalReject";
+export type { ProposalReject } from "./hooks/useProposalReject";
 export { useReceivedProposals } from "./hooks/useReceivedProposals";
 export {
   useApplicantProfile,

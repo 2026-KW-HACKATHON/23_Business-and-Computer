@@ -70,7 +70,7 @@ function StudentProposalPage() {
   const showAgreement =
     agreement && (proposal?.status === "AWAITING_START" || proposal?.status === "ACCEPTED");
   const photos = proposal?.referenceImageUrls ?? [];
-  const sentOn = proposal && sentOnText(proposal.createdAt);
+  const sentOn = proposal && sentOnText(proposal.createdAt, proposal.rejectedAt);
   const accepted = proposal?.status === "AWAITING_START" || proposal?.status === "ACCEPTED";
   const cancellable = pending && jobStatus !== "CANCELLED";
   // 사장님이 결제해 의뢰서가 왔으면 조건을 확인하고 작업을 시작한다

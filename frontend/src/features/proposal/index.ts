@@ -1,6 +1,7 @@
 /** 제안 상세(GET /proposals/{id}) · 공감의 공개 입구 — 학생 · 사장님 기능이 여기서만 import 한다. */
 export type {
   ProposalJobStatus,
+  ProposalRejectedBy,
   ProposalSpecialtyCategory,
   ProposalStatus,
   ProposalStudentResponse,

@@ -1,8 +1,13 @@
 import { apiData } from "../../../api/client";
 
-/** 제안 상태. REJECTED 는 백엔드 코드에서 아직 쓰지 않는다 */
-/** REJECTED = 학생이 의뢰서를 거절함, CANCELLED = 결제 전에 학생이 제안을 취소함 */
+/**
+ * 제안 상태. REJECTED = 받은 사장님이 결제 전에 거절했거나 결제 뒤 학생이 의뢰서를 거절함,
+ * CANCELLED = 결제 전에 학생이 제안을 취소함
+ */
 export type ProposalStatus = "PENDING" | "AWAITING_START" | "ACCEPTED" | "REJECTED" | "CANCELLED";
+
+/** REJECTED 제안을 누가 거절했는지. OWNER = 결제 전 사장님, STUDENT = 결제 뒤 학생(의뢰서 거절) */
+export type ProposalRejectedBy = "OWNER" | "STUDENT";
 
 /** 제안에 묶인 의뢰(job) 상태. 취소 · 거절되면 CANCELLED */
 export type ProposalJobStatus = "OPEN" | "AWAITING_START" | "MATCHED" | "CLOSED" | "CANCELLED";
@@ -61,6 +66,10 @@ export interface ProposalDetailResponse {
   /** 한국 시각, 오프셋 없음 "2026-10-05T14:03:11.123" */
   createdAt?: string | null;
   status: ProposalStatus;
+  /** REJECTED 일 때만. 거절 주체를 기록하기 전에 거절된 제안은 없음 */
+  rejectedBy?: ProposalRejectedBy | null;
+  /** REJECTED 일 때만. 한국 시각 "2026-10-06T00:30:00+09:00" */
+  rejectedAt?: string | null;
   /** PENDING 일 때만. 오늘(한국 날짜) 수락하면 생기는 마감일 "2026-10-12" */
   estimatedDraftDeadline?: string | null;
   estimatedFinalDeadline?: string | null;
