@@ -119,6 +119,18 @@ public class JobController {
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
+    /** 의뢰한 사장님 또는 담당 학생이 본인 의뢰의 모든 초안·수정안과 각 제출물의 수정 요청 내용을 조회하는 API(작업 상태와 무관하게 조회 가능) */
+    @GetMapping("/jobs/{jobId}/submissions")
+    public ResponseEntity<ApiResponse<JobSubmissionResponse.History>> getSubmissions(
+            Authentication authentication, @PathVariable Long jobId) {
+        if (jobId <= 0) {
+            throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE);
+        }
+        JobSubmissionResponse.History response = JobSubmissionResponse.History.from(
+                jobFacade.getSubmissions(authentication.getName(), jobId));
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
     /** 완료된 의뢰의 최종 결과물과 작업 이력 조회 API(의뢰한 사장님과 담당 학생만 조회 가능) */
     @GetMapping("/jobs/{jobId}/result")
     public ResponseEntity<ApiResponse<JobDetailResponse.Result>> getJobResult(

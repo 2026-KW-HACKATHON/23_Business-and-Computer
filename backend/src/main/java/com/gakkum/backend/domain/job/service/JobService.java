@@ -31,6 +31,7 @@ import com.gakkum.backend.domain.job.dto.JobCommandDto.GetJobApplicantProfileCom
 import com.gakkum.backend.domain.job.dto.JobCommandDto.GetJobApplicationsCommand;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.GetJobResultCommand;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.GetJobSubmissionCommand;
+import com.gakkum.backend.domain.job.dto.JobCommandDto.GetJobSubmissionsCommand;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.GetLatestJobSubmissionCommand;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.GetMatchedJobsCommand;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.GetOpenJobsCommand;
@@ -537,18 +538,31 @@ public class JobService {
     @Transactional(readOnly = true)
     public JobSubmission getLatestSubmission(GetLatestJobSubmissionCommand command) {
         Job job = jobRepository.findById(command.getJobId())
-                .filter(found -> isLatestSubmissionViewer(found, command))
+                .filter(found -> isSubmissionViewer(found, command.getOwnerProfileId(), command.getStudentProfileId()))
                 .orElseThrow(() -> new BusinessException(ErrorCode.JOB_NOT_FOUND));
         return jobSubmissionRepository.findFirstByJobIdOrderByRevisionNumberDesc(job.getId())
                 .orElseThrow(() -> new BusinessException(ErrorCode.JOB_SUBMISSION_LATEST_NOT_FOUND));
     }
 
-    private boolean isLatestSubmissionViewer(Job job, GetLatestJobSubmissionCommand command) {
-        if (command.getOwnerProfileId() != null) {
-            return command.getOwnerProfileId().equals(job.getOwnerProfileId());
+    /**
+     * 의뢰한 사장님 또는 담당 학생 본인 의뢰의 모든 제출물(초안·수정안)을 수정 번호 오름차순으로 조회. 작업 상태를 제한하지 않는다.
+     * 존재하지 않거나 당사자가 아닌 의뢰는 같은 404로 거부하고, 제출물이 없는 본인 의뢰는 빈 목록을 반환한다.
+     * @param command
+     * @return 수정 번호 오름차순 제출물 목록
+     */
+    @Transactional(readOnly = true)
+    public List<JobSubmission> getSubmissions(GetJobSubmissionsCommand command) {
+        Job job = jobRepository.findById(command.getJobId())
+                .filter(found -> isSubmissionViewer(found, command.getOwnerProfileId(), command.getStudentProfileId()))
+                .orElseThrow(() -> new BusinessException(ErrorCode.JOB_NOT_FOUND));
+        return jobSubmissionRepository.findByJobIdOrderByRevisionNumberAsc(job.getId());
+    }
+
+    private boolean isSubmissionViewer(Job job, Long ownerProfileId, Long studentProfileId) {
+        if (ownerProfileId != null) {
+            return ownerProfileId.equals(job.getOwnerProfileId());
         }
-        return command.getStudentProfileId() != null
-                && command.getStudentProfileId().equals(job.getSelectedStudentProfileId());
+        return studentProfileId != null && studentProfileId.equals(job.getSelectedStudentProfileId());
     }
 
     /**

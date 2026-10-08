@@ -35,6 +35,7 @@ import com.gakkum.backend.domain.job.dto.JobCommandDto.GetJobApplicantProfileCom
 import com.gakkum.backend.domain.job.dto.JobCommandDto.GetJobApplicationsCommand;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.GetJobResultCommand;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.GetJobSubmissionCommand;
+import com.gakkum.backend.domain.job.dto.JobCommandDto.GetJobSubmissionsCommand;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.GetLatestJobSubmissionCommand;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.GetMatchedJobsCommand;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.GetOpenJobsCommand;
@@ -63,6 +64,7 @@ import com.gakkum.backend.domain.job.dto.JobQueryDto.JobResultResult;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.JobSubmissionCreateResult;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.JobSubmissionDetailData;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.JobSubmissionDetailResult;
+import com.gakkum.backend.domain.job.dto.JobQueryDto.JobSubmissionHistoryResult;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.MatchedJobData;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.MatchedJobListResult;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.MatchedJobResult;
@@ -215,6 +217,31 @@ public class JobFacade {
         User user = userService.getActiveUser(username);
         return JobLatestSubmissionResult.from(
                 jobService.getLatestSubmission(toLatestSubmissionCommand(user, jobId)));
+    }
+
+    /**
+     * 의뢰한 사장님 또는 담당 학생 본인 의뢰의 모든 제출물을 각각의 수정 요청 내용과 함께 조회한다.
+     * 사장님·학생이 아니거나 해당 역할의 프로필이 없으면 의뢰를 조회하기 전에 거부한다.
+     */
+    @Transactional(readOnly = true)
+    public JobSubmissionHistoryResult getSubmissions(String username, Long jobId) {
+        User user = userService.getActiveUser(username);
+        return JobSubmissionHistoryResult.from(jobService.getSubmissions(toSubmissionsCommand(user, jobId)));
+    }
+
+    /** 로그인 역할에 해당하는 프로필 ID만 전달해, 다른 역할의 프로필 ID와 숫자가 같아도 당사자로 보지 않게 한다. */
+    private GetJobSubmissionsCommand toSubmissionsCommand(User user, Long jobId) {
+        if (user.getRole() == UserRole.OWNER) {
+            Owner owner = ownerService.findOwnerProfileByUserId(user.getId())
+                    .orElseThrow(() -> new BusinessException(ErrorCode.JOB_SUBMISSION_VIEW_FORBIDDEN));
+            return GetJobSubmissionsCommand.ofOwner(jobId, owner.getId());
+        }
+        if (user.getRole() == UserRole.STUDENT) {
+            Student student = studentService.findStudentProfileByUserId(user.getId())
+                    .orElseThrow(() -> new BusinessException(ErrorCode.JOB_SUBMISSION_VIEW_FORBIDDEN));
+            return GetJobSubmissionsCommand.ofStudent(jobId, student.getId());
+        }
+        throw new BusinessException(ErrorCode.JOB_SUBMISSION_VIEW_FORBIDDEN);
     }
 
     /** 로그인 역할에 해당하는 프로필 ID만 전달해, 다른 역할의 프로필 ID와 숫자가 같아도 당사자로 보지 않게 한다. */
