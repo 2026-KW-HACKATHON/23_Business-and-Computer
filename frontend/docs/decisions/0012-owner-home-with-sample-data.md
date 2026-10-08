@@ -49,8 +49,8 @@ no API for this screen yet, and the same screens will later serve the demo
 
 ## Agent Guidance
 
-- Backend integration still to do: replace `useOwnerHome` with an API call
-  (with loading and error states) and design empty states for a new owner.
+- `useOwnerHome` now reads GET /me/home with loading and error states (ADR
+  0064); the empty states for a new owner are in ADR 0051.
 - The example card passes `exampleId` in router state to /owner/requests/new;
   the request form should prefill from it when it is built.
 - Add new owner screens to `src/App.tsx` above the /owner fallback.

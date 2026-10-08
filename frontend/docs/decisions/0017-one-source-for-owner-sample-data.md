@@ -33,7 +33,7 @@ work never became completed.
 - 「후기 남기기」 marks the work with `markOwnerWorkReviewed` until the page
   reloads, so 내 활동 완료, 작업 이력, and the chat room show 「후기 작성 완료」
   before the finished list reloads.
-- `OwnerHome.firstVisit` comes from the home's lists (ADR 0051). When true,
+- `OwnerHome.firstVisit` comes from GET /me/home (ADR 0051, 0064). When true,
   확인할 일 holds `FirstVisitGuide` (피그마 「사장님 홈 - 처음」) and 학생이 작업
   중, 기다리는 중, and 끝난 일 are hidden.
 - 보낸 의뢰 and 진행 중 in 내 활동 are sorted by 초안 마감, earliest first.
