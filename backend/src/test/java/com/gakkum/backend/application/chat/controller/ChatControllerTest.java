@@ -29,7 +29,9 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
+import com.gakkum.backend.application.chat.dto.ChatRoomEntryResponse;
 import com.gakkum.backend.application.chat.dto.ChatRoomListResponse;
+import com.gakkum.backend.application.chat.dto.ChatWorkHistoryResponse;
 import com.gakkum.backend.application.chat.dto.ChatMessageListResponse;
 import com.gakkum.backend.application.chat.dto.DeadlineType;
 import com.gakkum.backend.application.chat.dto.ChatRoomListResponse.LastMessage;
@@ -47,6 +49,7 @@ import com.gakkum.backend.domain.chat.dto.ChatCommandDto.SendTextMessageCommand;
 import com.gakkum.backend.domain.chat.dto.ChatQueryDto.SendMessageResult;
 import com.gakkum.backend.domain.chat.entity.ChatMessage;
 import com.gakkum.backend.domain.chat.entity.ChatRoom;
+import com.gakkum.backend.domain.job.dto.JobQueryDto.JobSubmissionHistoryResult;
 import com.gakkum.backend.domain.job.entity.Job;
 import com.gakkum.backend.domain.job.entity.JobApplication;
 import com.gakkum.backend.domain.job.entity.JobStatus;
@@ -108,7 +111,7 @@ class ChatControllerTest {
     @DisplayName("채팅방 단건 조회는 목록과 같은 방 정보를 반환한다")
     void returnsChatRoom() throws Exception {
         when(service.getChatRoom("KAKAO_123", "01K58M6PJV8VAJMXHBHJ2PNB5C"))
-                .thenReturn(roomResponse());
+                .thenReturn(entryResponse(roomResponse()));
 
         mockMvc.perform(get("/chat-rooms/01K58M6PJV8VAJMXHBHJ2PNB5C").principal(authentication))
                 .andExpect(status().isOk())
@@ -130,7 +133,7 @@ class ChatControllerTest {
     void returnsExplicitNullWithoutSubmissionAndProposal() throws Exception {
         Room room = roomResponse(JobStatus.MATCHED, null, null);
         when(service.getMyChatRooms("KAKAO_123")).thenReturn(ChatRoomListResponse.of(List.of(room)));
-        when(service.getChatRoom("KAKAO_123", "01K58M6PJV8VAJMXHBHJ2PNB5C")).thenReturn(room);
+        when(service.getChatRoom("KAKAO_123", "01K58M6PJV8VAJMXHBHJ2PNB5C")).thenReturn(entryResponse(room));
 
         mockMvc.perform(get("/me/chat-rooms").principal(authentication))
                 .andExpect(status().isOk())
@@ -156,7 +159,8 @@ class ChatControllerTest {
     @DisplayName("초안 제출물은 수정 번호 0을 숫자로 반환한다")
     void returnsDraftRevisionNumberZero() throws Exception {
         when(service.getChatRoom("KAKAO_123", "01K58M6PJV8VAJMXHBHJ2PNB5C"))
-                .thenReturn(roomResponse(JobStatus.MATCHED, submission(JobSubmissionType.DRAFT, 0), null));
+                .thenReturn(entryResponse(
+                        roomResponse(JobStatus.MATCHED, submission(JobSubmissionType.DRAFT, 0), null)));
 
         mockMvc.perform(get("/chat-rooms/01K58M6PJV8VAJMXHBHJ2PNB5C").principal(authentication))
                 .andExpect(status().isOk())
@@ -171,7 +175,7 @@ class ChatControllerTest {
         when(service.getMyChatRooms("KAKAO_123")).thenReturn(ChatRoomListResponse.of(
                 List.of(roomResponse(JobStatus.CLOSED), roomResponse(JobStatus.CANCELLED))));
         when(service.getChatRoom("KAKAO_123", "01K58M6PJV8VAJMXHBHJ2PNB5C"))
-                .thenReturn(roomResponse(JobStatus.CANCELLED));
+                .thenReturn(entryResponse(roomResponse(JobStatus.CANCELLED)));
 
         mockMvc.perform(get("/me/chat-rooms").principal(authentication))
                 .andExpect(status().isOk())
@@ -224,6 +228,128 @@ class ChatControllerTest {
                 .andExpect(jsonPath("$.data.messages[0].contentExpiresAt").value(nullValue()))
                 .andExpect(jsonPath("$.data.messages[0].attachmentSize").hasJsonPath())
                 .andExpect(jsonPath("$.data.messages[0].attachmentSize").value(nullValue()));
+    }
+
+    @Test
+    @DisplayName("채팅방 입장은 방 정보를 감싸지 않고 후기 여부, 조회자 식별자, 대화 내역과 함께 반환한다")
+    void returnsChatRoomEntry() throws Exception {
+        when(service.getChatRoom("KAKAO_123", "01K58M6PJV8VAJMXHBHJ2PNB5C"))
+                .thenReturn(ChatRoomEntryResponse.of(roomResponse(JobStatus.CLOSED), true,
+                        ChatMessageListResponse.from(
+                                List.of(MessageResult.text(savedMessage(UUID.randomUUID()))), "viewer-1")));
+
+        mockMvc.perform(get("/chat-rooms/01K58M6PJV8VAJMXHBHJ2PNB5C").principal(authentication))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.room").doesNotExist())
+                .andExpect(jsonPath("$.data.roomId").value("01K58M6PJV8VAJMXHBHJ2PNB5C"))
+                .andExpect(jsonPath("$.data.jobId").value(11))
+                .andExpect(jsonPath("$.data.jobStatus").value("CLOSED"))
+                .andExpect(jsonPath("$.data.counterpartName").value("학생 이름"))
+                .andExpect(jsonPath("$.data.lastMessage.preview").value("안녕하세요"))
+                .andExpect(jsonPath("$.data.unreadCount").value(3))
+                .andExpect(jsonPath("$.data.reviewed").value(true))
+                .andExpect(jsonPath("$.data.viewerUserId").value("viewer-1"))
+                .andExpect(jsonPath("$.data.messages[0].id").value(17))
+                .andExpect(jsonPath("$.data.messages[0].senderUserId").value("sender-1"))
+                .andExpect(jsonPath("$.data.messages[0].content").value("안녕하세요"))
+                .andExpect(jsonPath("$.data.messages[0].createdAt").value("2026-09-26T21:30:00+09:00"));
+    }
+
+    @Test
+    @DisplayName("메시지와 후기가 없는 채팅방 입장은 빈 메시지 배열과 후기 여부 false를 반환한다")
+    void returnsChatRoomEntryWithoutMessages() throws Exception {
+        when(service.getChatRoom("KAKAO_123", "01K58M6PJV8VAJMXHBHJ2PNB5C"))
+                .thenReturn(entryResponse(roomResponse()));
+
+        mockMvc.perform(get("/chat-rooms/01K58M6PJV8VAJMXHBHJ2PNB5C").principal(authentication))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.reviewed").value(false))
+                .andExpect(jsonPath("$.data.viewerUserId").value("viewer-1"))
+                .andExpect(jsonPath("$.data.messages").isArray())
+                .andExpect(jsonPath("$.data.messages").isEmpty());
+    }
+
+    @Test
+    @DisplayName("작업 이력은 채팅방 정보와 제출물 배열, 후기 여부를 반환한다")
+    void returnsWorkHistory() throws Exception {
+        JobSubmission draft = JobSubmission.builder().id(31L).jobId(11L)
+                .submissionType(JobSubmissionType.DRAFT).revisionNumber(0)
+                .fileUrls(List.of("https://files.example/draft.pdf")).message("초안입니다")
+                .reviewStatus(JobSubmissionReviewStatus.REVISION_REQUESTED).reviewComment("색을 바꿔 주세요")
+                .reviewedAt(LocalDateTime.of(2026, 9, 23, 3, 0))
+                .createdAt(LocalDateTime.of(2026, 9, 22, 3, 0)).build();
+        JobSubmission revision = JobSubmission.builder().id(32L).jobId(11L)
+                .submissionType(JobSubmissionType.REVISION).revisionNumber(1)
+                .fileUrls(List.of("https://files.example/revision.pdf")).message("수정안입니다")
+                .reviewStatus(JobSubmissionReviewStatus.PENDING)
+                .createdAt(LocalDateTime.of(2026, 9, 24, 3, 0)).build();
+        when(service.getWorkHistory("KAKAO_123", 11L)).thenReturn(ChatWorkHistoryResponse.of(
+                roomResponse(), JobSubmissionHistoryResult.from(List.of(draft, revision)), true));
+
+        mockMvc.perform(get("/jobs/11/work-history").principal(authentication))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.room.roomId").value("01K58M6PJV8VAJMXHBHJ2PNB5C"))
+                .andExpect(jsonPath("$.data.room.jobTitle").value("의뢰 제목"))
+                .andExpect(jsonPath("$.data.room.counterpartName").value("학생 이름"))
+                .andExpect(jsonPath("$.data.room.proposalId").value(31))
+                .andExpect(jsonPath("$.data.room.budget").value(300000))
+                .andExpect(jsonPath("$.data.room.revisionCount").value(2))
+                .andExpect(jsonPath("$.data.submissions[0].submissionId").value(31))
+                .andExpect(jsonPath("$.data.submissions[0].submissionType").value("DRAFT"))
+                .andExpect(jsonPath("$.data.submissions[0].revisionNumber").value(0))
+                .andExpect(jsonPath("$.data.submissions[0].fileUrls[0]").value("https://files.example/draft.pdf"))
+                .andExpect(jsonPath("$.data.submissions[0].reviewStatus").value("REVISION_REQUESTED"))
+                .andExpect(jsonPath("$.data.submissions[0].submittedAt").value("2026-09-22T12:00:00+09:00"))
+                .andExpect(jsonPath("$.data.submissions[0].revisionRequest.message").value("색을 바꿔 주세요"))
+                .andExpect(jsonPath("$.data.submissions[1].submissionId").value(32))
+                .andExpect(jsonPath("$.data.submissions[1].revisionRequest").hasJsonPath())
+                .andExpect(jsonPath("$.data.submissions[1].revisionRequest").value(nullValue()))
+                .andExpect(jsonPath("$.data.reviewed").value(true));
+    }
+
+    @Test
+    @DisplayName("제출물이 없는 작업 이력은 빈 제출물 배열을 반환한다")
+    void returnsWorkHistoryWithoutSubmissions() throws Exception {
+        when(service.getWorkHistory("KAKAO_123", 11L)).thenReturn(ChatWorkHistoryResponse.of(
+                roomResponse(JobStatus.MATCHED, null, null), JobSubmissionHistoryResult.from(List.of()), false));
+
+        mockMvc.perform(get("/jobs/11/work-history").principal(authentication))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.room.submissionType").value(nullValue()))
+                .andExpect(jsonPath("$.data.submissions").isArray())
+                .andExpect(jsonPath("$.data.submissions").isEmpty())
+                .andExpect(jsonPath("$.data.reviewed").value(false));
+    }
+
+    @Test
+    @DisplayName("작업 이력은 양수가 아니거나 숫자가 아닌 작업 ID를 400으로 거부하고 서비스를 호출하지 않는다")
+    void rejectsInvalidWorkHistoryJobId() throws Exception {
+        for (String jobId : List.of("0", "-1", "abc")) {
+            mockMvc.perform(get("/jobs/" + jobId + "/work-history").principal(authentication))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.error.code").value("COMMON_400"));
+        }
+
+        verifyNoInteractions(service);
+    }
+
+    @Test
+    @DisplayName("작업 이력은 없는 작업과 채팅방을 404로, 비참여자를 403으로 반환한다")
+    void rejectsWorkHistoryLookup() throws Exception {
+        when(service.getWorkHistory("KAKAO_123", 404L)).thenThrow(new BusinessException(ErrorCode.JOB_NOT_FOUND));
+        when(service.getWorkHistory("KAKAO_123", 1L))
+                .thenThrow(new BusinessException(ErrorCode.CHAT_ROOM_NOT_FOUND));
+        when(service.getWorkHistory("KAKAO_123", 2L)).thenThrow(new BusinessException(ErrorCode.CHAT_FORBIDDEN));
+
+        mockMvc.perform(get("/jobs/404/work-history").principal(authentication))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.error.code").value("JOB_404"));
+        mockMvc.perform(get("/jobs/1/work-history").principal(authentication))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.error.code").value("CHAT_ROOM_404"));
+        mockMvc.perform(get("/jobs/2/work-history").principal(authentication))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.error.code").value("CHAT_403"));
     }
 
     @Test
@@ -633,6 +759,10 @@ class ChatControllerTest {
         return ChatMessage.builder().id(17L).roomId("room-1").clientMessageId(clientMessageId)
                 .senderUserId("sender-1").type(ChatMessageType.TEXT).content("안녕하세요")
                 .createdAt(LocalDateTime.of(2026, 9, 26, 12, 30)).build();
+    }
+
+    private ChatRoomEntryResponse entryResponse(Room room) {
+        return ChatRoomEntryResponse.of(room, false, ChatMessageListResponse.from(List.of(), "viewer-1"));
     }
 
     private Room roomResponse() {
