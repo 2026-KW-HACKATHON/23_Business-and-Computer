@@ -21,6 +21,7 @@ export { default as DownloadButton } from "./DownloadButton/DownloadButton";
 export { default as EmpathyCount } from "./EmpathyCount/EmpathyCount";
 export { default as ExploreCard } from "./ExploreCard/ExploreCard";
 export { default as Fab } from "./Fab/Fab";
+export { default as GuideOverlay } from "./GuideOverlay/GuideOverlay";
 export {
   BudgetField,
   DueDateFields,

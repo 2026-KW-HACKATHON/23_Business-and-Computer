@@ -1,9 +1,9 @@
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import type { CSSProperties, ReactNode, RefObject } from "react";
-import { createPortal } from "react-dom";
+import { useGuideMeasure } from "../../hooks/useGuideMeasure";
 import type { Role } from "../../types/role";
 import AppImage from "../AppImage/AppImage";
-import Button from "../Button/Button";
+import GuideOverlay from "../GuideOverlay/GuideOverlay";
 import "./SignupGuide.css";
 
 interface SignupGuideProps {
@@ -49,41 +49,27 @@ function Tip({ n, text, style }: { n: number; text: string; style: CSSProperties
 }
 
 /**
- * 피그마 「사장님 홈 · 학생 홈 - 가입 후 첫 안내」 (ADR 0053). 홈 위를 어둡게 덮고 확인할 일 카드 · 알림 종 ·
- * 새 의뢰(새 제안) 버튼만 밝게 다시 그린 뒤, 카드 위에 환영 문구, 말풍선 ①②③을 0.5초 간격으로 올리고 마지막에
- * 반짝이는 「알겠어요」를 보인다. 알겠어요 · 닫기(✕) · 아무 곳이나 누르기 · Esc 로 닫는다
+ * 피그마 「사장님 홈 · 학생 홈 - 가입 후 첫 안내」 (ADR 0053). 첫 안내 덮개(`GuideOverlay`) 위에 확인할 일 카드 ·
+ * 알림 종 · 새 의뢰(새 제안) 버튼만 밝게 다시 그린 뒤, 카드 위에 환영 문구, 말풍선 ①②③을 0.5초 간격으로 올리고
+ * 2초에 반짝이는 「알겠어요」를 보인다
  */
 function SignupGuide({ tone, card, cardRef, tips, onClose }: SignupGuideProps) {
   const rootRef = useRef<HTMLDivElement>(null);
   const [boxes, setBoxes] = useState<Boxes>();
 
   // 화면의 카드 · 종 · 플로팅 버튼 자리를 재서 그 위에 겹친다
-  useLayoutEffect(() => {
-    const measure = () => {
-      const root = rootRef.current?.getBoundingClientRect();
-      if (!root) return;
-      setBoxes({
-        width: root.width,
-        card: boxOf(cardRef.current, root),
-        bell: boxOf(document.querySelector('[data-guide="bell"]'), root),
-        fab: boxOf(document.querySelector(".main-tab-screen__fab"), root),
-      });
+  const measure = useCallback(() => {
+    const root = rootRef.current?.getBoundingClientRect();
+    if (!root) return;
+    const next: Boxes = {
+      width: root.width,
+      card: boxOf(cardRef.current, root),
+      bell: boxOf(document.querySelector('[data-guide="bell"]'), root),
+      fab: boxOf(document.querySelector(".main-tab-screen__fab"), root),
     };
-    const frame = requestAnimationFrame(measure);
-    window.addEventListener("resize", measure);
-    return () => {
-      cancelAnimationFrame(frame);
-      window.removeEventListener("resize", measure);
-    };
+    setBoxes((prev) => (JSON.stringify(prev) === JSON.stringify(next) ? prev : next));
   }, [cardRef]);
-
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [onClose]);
+  useGuideMeasure(measure);
 
   const fabLabel = tone === "owner" ? "새 의뢰" : "새 제안";
   const bellCenter = boxes?.bell && {
@@ -91,15 +77,8 @@ function SignupGuide({ tone, card, cardRef, tips, onClose }: SignupGuideProps) {
     y: boxes.bell.top + boxes.bell.height / 2,
   };
 
-  return createPortal(
-    <div
-      ref={rootRef}
-      className={`signup-guide signup-guide--${tone}`}
-      role="dialog"
-      aria-modal="true"
-      aria-label="가입 후 첫 안내"
-      onClick={onClose}
-    >
+  return (
+    <GuideOverlay tone={tone} label="가입 후 첫 안내" okDelay={2} rootRef={rootRef} onClose={onClose}>
       {boxes?.card && (
         <>
           <p className="signup-guide__welcome" style={{ top: boxes.card.top - 43 }}>
@@ -144,16 +123,7 @@ function SignupGuide({ tone, card, cardRef, tips, onClose }: SignupGuideProps) {
           <Tip n={3} text={tips[2]} style={{ top: bellCenter.y - 21, right: boxes.width - bellCenter.x + 22 + 8 }} />
         </>
       )}
-      <button type="button" className="signup-guide__close" aria-label="닫기" onClick={onClose}>
-        ✕
-      </button>
-      <div className="signup-guide__ok">
-        <Button tone={tone} fullWidth onClick={onClose}>
-          알겠어요
-        </Button>
-      </div>
-    </div>,
-    document.body,
+    </GuideOverlay>
   );
 }
 

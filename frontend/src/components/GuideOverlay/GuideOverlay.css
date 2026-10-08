@@ -1,0 +1,111 @@
+/* 첫 안내 덮개 (ADR 0053). 앱 화면 폭 안을 덮는다 */
+.guide-overlay {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  z-index: 150;
+  width: 100%;
+  max-width: 390px;
+  transform: translateX(-50%);
+  cursor: pointer;
+}
+
+/* 서서히 어두워진다 */
+.guide-overlay__dim {
+  position: absolute;
+  inset: 0;
+  background: rgba(12, 12, 12, 0.78);
+  animation: guide-fade 0.4s ease-out 0.1s both;
+}
+
+.guide-overlay--blur .guide-overlay__dim {
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+}
+
+/* 웹에는 상태바가 없어 ✕가 흐려진 앱바 아이콘 위에 온다. 아래가 비치지 않게 진하게, 잘 보이게 크고 굵게 */
+.guide-overlay__close {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: #3a3a3a;
+  color: var(--color-white);
+  cursor: pointer;
+}
+
+.guide-overlay__close > svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* 마지막에 반짝이는 「알겠어요」: 뒤의 역할 색 빛이 1초 동안 퍼지며 사라지기를 되풀이 */
+.guide-overlay__ok {
+  position: absolute;
+  right: 20px;
+  bottom: calc(20px + env(safe-area-inset-bottom));
+  left: 20px;
+  animation: guide-rise 0.35s ease-out var(--guide-ok-delay) both;
+}
+
+.guide-overlay__glow {
+  position: absolute;
+  inset: 0;
+  border-radius: 14px;
+  background: var(--color-owner);
+  opacity: 0.6;
+  animation: guide-glow 1s ease-out calc(var(--guide-ok-delay) + 0.35s) infinite;
+}
+
+.guide-overlay--student .guide-overlay__glow {
+  background: var(--color-student);
+}
+
+.guide-overlay__ok > .button {
+  position: relative;
+}
+
+@keyframes guide-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes guide-rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+@keyframes guide-glow {
+  from {
+    inset: 0;
+    border-radius: 14px;
+    opacity: 0.6;
+  }
+
+  to {
+    inset: -12px;
+    border-radius: 26px;
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .guide-overlay * {
+    animation: none !important;
+  }
+
+  .guide-overlay__glow {
+    display: none;
+  }
+}
