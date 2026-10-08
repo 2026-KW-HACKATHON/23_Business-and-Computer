@@ -18,6 +18,17 @@ import jakarta.persistence.LockModeType;
 /** 모든 조회·변경은 수신자 조건을 포함해 본인 알림만 다룬다. */
 public interface NotificationRepository extends JpaRepository<Notification, Long> {
 
+    /** 동시 재전달도 예외 없이 무시하려면 PostgreSQL의 원자적 충돌 처리가 필요하다. 기존 내용·읽음 시각은 보존한다. */
+    @Modifying
+    @Query(value = """
+            insert into notifications (event_id, recipient_user_id, type, title, body, target_type, target_id, created_at)
+            values (:#{#notification.eventId}, :#{#notification.recipientUserId}, :#{#notification.type.name()},
+                    :#{#notification.title}, :#{#notification.body}, :#{#notification.targetType.name()},
+                    :#{#notification.targetId}, CURRENT_TIMESTAMP AT TIME ZONE 'UTC')
+            on conflict (event_id, recipient_user_id) do nothing
+            """, nativeQuery = true)
+    int insertIfAbsent(@Param("notification") Notification notification);
+
     /** 수신자의 알림 첫 페이지를 최신순으로 읽는다. */
     List<Notification> findByRecipientUserIdOrderByCreatedAtDescIdDesc(String recipientUserId, Limit limit);
 

@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.gakkum.backend.domain.notification.dto.NotificationCommandDto.GetNotificationsCommand;
+import com.gakkum.backend.domain.notification.dto.NotificationEvent;
 import com.gakkum.backend.domain.notification.entity.Notification;
 import com.gakkum.backend.domain.notification.repository.NotificationRepository;
 import com.gakkum.backend.global.exception.BusinessException;
@@ -24,6 +25,12 @@ public class NotificationService {
 
     private final NotificationRepository notificationRepository;
     private final Clock clock;
+
+    /** Stream 재전달은 같은 이벤트·수신자 조합으로 저장하지 않는다. 반환 전에 트랜잭션이 커밋되어야 ACK할 수 있다. */
+    @Transactional
+    public int storeEvent(NotificationEvent event) {
+        return notificationRepository.insertIfAbsent(event.toEntity());
+    }
 
     /**
      * 수신자의 알림을 읽음 여부와 무관하게 최신순으로 읽는다. 커서가 있으면 그 알림 뒤부터 읽는다.
