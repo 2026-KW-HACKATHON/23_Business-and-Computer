@@ -136,8 +136,6 @@ owner and its selected student may use a room):
   list. A failed first load shows `LoadNotice` 「채팅방을 불러오지 못했어요」 ·
   「채팅 목록을 불러오지 못했어요」 with 「다시 시도」. Failed background reloads
   are ignored.
-- The sample chat threads, their hooks and types, and the student demo
-  `agreedAt` are removed.
 
 ## Rationale
 
@@ -161,6 +159,6 @@ owner and its selected student may use a room):
   `src/features/chat/api/chatApi.ts`; `viewerUserId` sides a bubble, and
   `jobStatus` shows the work actions and the 완료 · 성사되지 않음 lines.
 - 「작업 취소」 passes the room's numeric `jobId`, so `OwnerWorkCancelPage`
-  cancels through the API (ADR 0035); non-numeric ids there are sample works.
+  cancels through the API (ADR 0035).
 - The owner home and 내 활동 「문의하기」 · 「채팅하기」 and the student 수정
   요청 확인 「문의하기」 open the chat list, not a room.

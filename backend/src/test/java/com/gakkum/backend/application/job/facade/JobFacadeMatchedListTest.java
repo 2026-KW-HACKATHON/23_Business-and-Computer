@@ -26,6 +26,7 @@ import org.mockito.ArgumentCaptor;
 import org.springframework.context.ApplicationEventPublisher;
 
 import com.gakkum.backend.application.job.dto.JobListResponse;
+import com.gakkum.backend.domain.chat.service.ChatRoomService;
 import com.gakkum.backend.domain.media.service.MediaService;
 import com.gakkum.backend.domain.certificate.service.CertificateService;
 import com.gakkum.backend.domain.chat.service.ChatAttachmentPolicy;
@@ -54,6 +55,7 @@ import com.gakkum.backend.domain.user.service.UserService;
 import com.gakkum.backend.global.exception.BusinessException;
 import com.gakkum.backend.global.exception.ErrorCode;
 import com.gakkum.backend.global.response.ApiResponse;
+import com.gakkum.backend.global.transaction.ImmediateTransactionTemplate;
 
 import tools.jackson.databind.ObjectMapper;
 
@@ -72,7 +74,8 @@ class JobFacadeMatchedListTest {
             userService, ownerService, jobService, specialtyCategoryService,
             mock(SpecialtyService.class), studentService,
             mock(JobSubmissionFileStorageClient.class), mock(ChatAttachmentPolicy.class), mock(PaymentService.class),
-                mock(ReviewService.class), mock(CertificateService.class), mock(ProposalService.class), mock(MediaService.class), mock(ApplicationEventPublisher.class));
+                mock(ReviewService.class), mock(CertificateService.class), mock(ProposalService.class), mock(MediaService.class), mock(ApplicationEventPublisher.class),
+                new ImmediateTransactionTemplate(), mock(ChatRoomService.class));
 
     @Test
     @DisplayName("사업주의 MATCHED 의뢰를 학생 정보와 특기, 제출물 정보로 조립한다")

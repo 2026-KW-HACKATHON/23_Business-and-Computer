@@ -60,7 +60,7 @@ The backend (dev) has:
   취소할 수 없어요」 and the detail reloads; 401 → /login; 403 → an alert and
   `landingPath()`.
 - **「성사되지 않음」**: a REJECTED or CANCELLED proposal, a proposal whose job
-  is CANCELLED, a CANCELLED job in explore, and a cancelled sample work all
+  is CANCELLED, and a CANCELLED job in explore all
   show 「성사되지 않음」, whoever ended it. 내 활동 › 완료 groups them as
   「성사되지 않은 일」 with 「상세보기」, and the detail screen is titled
   「성사되지 않은 작업」. The detail still says who cancelled and what was

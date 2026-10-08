@@ -3,6 +3,7 @@ package com.gakkum.backend.application.payment.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -12,14 +13,20 @@ import static org.mockito.Mockito.when;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InOrder;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.test.util.ReflectionTestUtils;
 
+import com.gakkum.backend.domain.chat.entity.ChatRoom;
 import com.gakkum.backend.domain.job.entity.Job;
 import com.gakkum.backend.domain.chat.service.ChatRoomService;
 import com.gakkum.backend.domain.job.entity.JobApplication;
@@ -29,6 +36,11 @@ import com.gakkum.backend.domain.job.repository.JobApplicationRepository;
 import com.gakkum.backend.domain.job.repository.JobRepository;
 import com.gakkum.backend.domain.job.service.JobService;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.CreateProposalJobCommand;
+import com.gakkum.backend.domain.notification.dto.NotificationEvent;
+import com.gakkum.backend.domain.notification.dto.NotificationEventFactory;
+import com.gakkum.backend.domain.notification.entity.NotificationType;
+import com.gakkum.backend.domain.owner.entity.Owner;
+import com.gakkum.backend.domain.owner.service.OwnerService;
 import com.gakkum.backend.domain.proposal.entity.Proposal;
 import com.gakkum.backend.domain.proposal.entity.ProposalStatus;
 import com.gakkum.backend.domain.proposal.service.ProposalService;
@@ -39,6 +51,8 @@ import com.gakkum.backend.domain.payment.entity.Payment;
 import com.gakkum.backend.domain.payment.entity.PaymentStatus;
 import com.gakkum.backend.domain.payment.repository.PaymentRepository;
 import com.gakkum.backend.domain.payment.repository.PaymentRepository.OrderTargetProjection;
+import com.gakkum.backend.domain.student.entity.Student;
+import com.gakkum.backend.domain.student.service.StudentService;
 import com.gakkum.backend.domain.user.entity.User;
 import com.gakkum.backend.domain.user.entity.UserRole;
 import com.gakkum.backend.domain.user.service.UserService;
@@ -48,6 +62,7 @@ import com.gakkum.backend.global.exception.ErrorCode;
 class PaymentApprovalServiceTest {
 
     private static final String OWNER_ID = "01K58M6PJV8VAJMXHBHJ2PNB5C";
+    private static final String CHAT_ROOM_ID = "01K58M6PJV8VAJMXHBHJ2CHAT1";
     private static final String TID = "T1234567890123456789";
     private static final Instant APPROVED_AT = Instant.parse("2026-09-26T03:00:00Z");
 
@@ -59,20 +74,30 @@ class PaymentApprovalServiceTest {
     private final ChatRoomService chatRoomService = mock(ChatRoomService.class);
     private final ProposalService proposalService = mock(ProposalService.class);
     private final JobService jobService = mock(JobService.class);
+    private final StudentService studentService = mock(StudentService.class);
+    private final OwnerService ownerService = mock(OwnerService.class);
+    private final ApplicationEventPublisher eventPublisher = mock(ApplicationEventPublisher.class);
     private final PaymentApprovalService service =
             new PaymentApprovalService(userService, jobRepository, jobApplicationRepository,
-                    paymentRepository, kakaoPayClient, chatRoomService, proposalService, jobService);
+                    paymentRepository, kakaoPayClient, chatRoomService, proposalService, jobService,
+                    studentService, ownerService, eventPublisher);
     private Job job;
     private JobApplication application;
 
     private Payment pending() {
         Payment payment = Payment.pending(11L, 21L, OWNER_ID, "order-123", 100_000L, Instant.EPOCH);
         payment.recordKakaoTid(TID);
+        ReflectionTestUtils.setField(payment, "id", 91L);
         return payment;
     }
 
     private void arrange(Payment payment) {
-        job = Job.builder().id(11L).status(JobStatus.OPEN).build();
+        job = Job.builder().id(11L).ownerProfileId(7L).title("메뉴판 디자인")
+                .finalDeadline(LocalDate.of(2026, 10, 15)).status(JobStatus.OPEN).build();
+        ChatRoom chatRoom = ChatRoom.create(11L);
+        ReflectionTestUtils.setField(chatRoom, "id", CHAT_ROOM_ID);
+        when(chatRoomService.getOrCreate(11L)).thenReturn(chatRoom);
+        givenNotificationParties();
         application = JobApplication.builder().id(21L).jobId(11L).studentProfileId(31L)
                 .status(JobApplicationStatus.PENDING).build();
         when(userService.getActiveUser("KAKAO_123"))
@@ -87,15 +112,43 @@ class PaymentApprovalServiceTest {
         when(kakaoPayClient.cid()).thenReturn("TC0ONETIME");
     }
 
+    /** 알림 수신자를 찾을 때 읽는 학생 프로필(사용자 ID는 student-{프로필 ID})과 의뢰한 사장님의 매장. */
+    private void givenNotificationParties() {
+        when(studentService.getStudentProfilesByIds(any())).thenAnswer(invocation -> {
+            Collection<Long> ids = invocation.getArgument(0);
+            return ids.stream().collect(Collectors.toMap(Function.identity(), PaymentApprovalServiceTest::student));
+        });
+        when(studentService.getStudentProfile(31L)).thenReturn(student(31L));
+        when(ownerService.getOwnerProfileById(7L)).thenReturn(
+                Owner.builder().id(7L).userId(OWNER_ID).storeName("가꿈 카페").build());
+    }
+
+    private static Student student(Long studentProfileId) {
+        return Student.builder().id(studentProfileId).userId("student-" + studentProfileId).build();
+    }
+
+    private List<NotificationEvent> publishedEvents() {
+        ArgumentCaptor<NotificationEvent> captor = ArgumentCaptor.forClass(NotificationEvent.class);
+        verify(eventPublisher, atLeastOnce()).publishEvent(captor.capture());
+        return captor.getAllValues();
+    }
+
     private PaymentResult providerResult(String status) {
         return new PaymentResult(TID, "TC0ONETIME", "order-123", OWNER_ID, 100_000L, status, APPROVED_AT);
     }
 
     @Test
-    @DisplayName("승인 결과가 일치하면 PAID와 선택 지원서 및 의뢰 매칭을 함께 기록한다")
+    @DisplayName("승인 결과가 일치하면 PAID와 선택 지원서 및 의뢰 매칭을 함께 기록하고 선정 학생과 나머지 대기 지원자에게 결과를 알린다")
     void approvesMatchingPayment() {
         Payment payment = pending();
         arrange(payment);
+        JobApplication second = JobApplication.builder().id(22L).jobId(11L).studentProfileId(32L)
+                .status(JobApplicationStatus.PENDING).build();
+        JobApplication third = JobApplication.builder().id(23L).jobId(11L).studentProfileId(33L)
+                .status(JobApplicationStatus.PENDING).build();
+        // 선정된 지원서가 대기 목록에 함께 조회되어도 미선정으로 알리지 않는다
+        when(jobApplicationRepository.findByJobIdInAndStatus(List.of(11L), JobApplicationStatus.PENDING))
+                .thenReturn(List.of(application, second, third));
         when(kakaoPayClient.order(TID)).thenReturn(providerResult("READY"));
         when(kakaoPayClient.approve(TID, "order-123", OWNER_ID, "pg-123")).thenReturn(providerResult(null));
 
@@ -105,7 +158,15 @@ class PaymentApprovalServiceTest {
         assertThat(payment.getApprovedAt()).isEqualTo(APPROVED_AT);
         assertMatched();
         assertThat(result.amount()).isEqualTo(100_000L);
-        verify(chatRoomService).createIfAbsent(11L);
+        verify(chatRoomService).getOrCreate(11L);
+        assertThat(publishedEvents()).containsExactly(
+                NotificationEventFactory.jobApplicationSelected("student-31", 91L, CHAT_ROOM_ID, "메뉴판 디자인",
+                        "가꿈 카페", LocalDate.of(2026, 10, 15)),
+                NotificationEventFactory.jobApplicationRejected("student-32", 91L, 11L, "메뉴판 디자인", "가꿈 카페"),
+                NotificationEventFactory.jobApplicationRejected("student-33", 91L, 11L, "메뉴판 디자인", "가꿈 카페"));
+        // 알림 때문에 미선정 지원서의 상태를 바꾸지 않는다
+        assertThat(second.getStatus()).isEqualTo(JobApplicationStatus.PENDING);
+        assertThat(third.getStatus()).isEqualTo(JobApplicationStatus.PENDING);
         InOrder locks = inOrder(jobRepository, paymentRepository);
         locks.verify(paymentRepository).findProjectedByOrderId("order-123");
         locks.verify(jobRepository).findLockedById(11L);
@@ -126,6 +187,8 @@ class PaymentApprovalServiceTest {
         verify(chatRoomService).createIfAbsent(11L);
         verify(kakaoPayClient, never()).order(TID);
         verify(kakaoPayClient, never()).approve(TID, "order-123", OWNER_ID, "pg-123");
+        // 이미 승인된 주문의 재요청은 알림을 다시 발행하지 않는다
+        verifyNoInteractions(eventPublisher);
     }
 
     @Test
@@ -200,6 +263,9 @@ class PaymentApprovalServiceTest {
         assertThat(payment.getStatus()).isEqualTo(PaymentStatus.PAID);
         assertMatched();
         verify(kakaoPayClient, never()).approve(TID, "order-123", OWNER_ID, "pg-123");
+        // 조회 결과로 최초 상태 전환을 완료한 요청이므로 선정을 알린다
+        assertThat(publishedEvents()).containsExactly(NotificationEventFactory.jobApplicationSelected(
+                "student-31", 91L, CHAT_ROOM_ID, "메뉴판 디자인", "가꿈 카페", LocalDate.of(2026, 10, 15)));
     }
 
     @Test
@@ -216,6 +282,7 @@ class PaymentApprovalServiceTest {
         assertMatched();
         verify(chatRoomService).createIfAbsent(11L);
         verify(kakaoPayClient, never()).order(TID);
+        verifyNoInteractions(eventPublisher);
     }
 
     @Test
@@ -264,6 +331,7 @@ class PaymentApprovalServiceTest {
         assertThat(payment.getStatus()).isEqualTo(PaymentStatus.PENDING);
         assertUnmatched();
         verify(kakaoPayClient, never()).approve(TID, "order-123", OWNER_ID, "pg-123");
+        verifyNoInteractions(eventPublisher);
     }
 
     @Test
@@ -303,6 +371,7 @@ class PaymentApprovalServiceTest {
         assertCode(ErrorCode.PAYMENT_APPROVAL_UNAVAILABLE);
         assertThat(payment.getStatus()).isEqualTo(PaymentStatus.PENDING);
         assertUnmatched();
+        verifyNoInteractions(eventPublisher);
     }
 
     // 제안 5번(학생 31, 사장님 프로필 7, 희망 금액 100,000원, 초안 3일·최종 7일)을 사장님이 120,000원으로 결제하는 주문
@@ -310,6 +379,7 @@ class PaymentApprovalServiceTest {
         Payment payment = Payment.pendingForProposal(
                 5L, OWNER_ID, "order-123", 120_000L, 2, "매장 분위기에 맞춰 주세요.", Instant.EPOCH);
         payment.recordKakaoTid(TID);
+        ReflectionTestUtils.setField(payment, "id", 92L);
         return payment;
     }
 
@@ -335,12 +405,15 @@ class PaymentApprovalServiceTest {
                 .thenAnswer(invocation -> {
                     CreateProposalJobCommand command = invocation.getArgument(0);
                     return Job.builder().id(42L).status(JobStatus.AWAITING_START)
+                            .ownerProfileId(command.getOwnerProfileId())
+                            .title(command.getTitle())
                             .proposalId(command.getProposalId())
                             .selectedStudentProfileId(command.getStudentProfileId())
                             .draftDeadline(command.getDraftDeadline())
                             .finalDeadline(command.getFinalDeadline())
                             .build();
                 });
+        givenNotificationParties();
         return proposal;
     }
 
@@ -351,7 +424,7 @@ class PaymentApprovalServiceTest {
     }
 
     @Test
-    @DisplayName("제안 결제를 승인하면 결제 기록·수락 대기 의뢰·제안 상태를 함께 저장하고 지원서와 채팅방은 만들지 않는다")
+    @DisplayName("제안 결제를 승인하면 결제 기록·수락 대기 의뢰·제안 상태를 함께 저장하고 지원서와 채팅방은 만들지 않으며 제안한 학생에게 수락만 알린다")
     void approvesProposalPayment() {
         Payment payment = proposalPending();
         Proposal proposal = arrangeProposal(payment, ProposalStatus.PENDING);
@@ -385,6 +458,9 @@ class PaymentApprovalServiceTest {
         assertThat(command.getAcceptanceMessage()).isEqualTo("매장 분위기에 맞춰 주세요.");
         assertThat(command.getSpecialtyIds()).containsExactly(3L, 11L);
         verifyNoInteractions(chatRoomService, jobApplicationRepository, jobRepository);
+        // 학생이 시작에 동의하기 전이라 작업 시작 알림은 없다. 대상은 결제로 만들어진 의뢰다
+        assertThat(publishedEvents()).containsExactly(NotificationEventFactory.proposalAccepted(
+                "student-31", 92L, 42L, "메뉴판 개선 제안", "가꿈 카페", LocalDate.of(2026, 10, 3)));
     }
 
     @Test
@@ -449,6 +525,7 @@ class PaymentApprovalServiceTest {
         assertThat(payment.getStatus()).isEqualTo(PaymentStatus.PENDING);
         assertThat(proposal.getStatus()).isEqualTo(ProposalStatus.PENDING);
         verify(jobService, never()).createAwaitingStartJob(any());
+        verifyNoInteractions(eventPublisher);
     }
 
     @Test
@@ -472,7 +549,7 @@ class PaymentApprovalServiceTest {
         assertThat(started.getDraftDeadline()).isEqualTo(LocalDate.of(2026, 9, 29));
         verify(jobService, never()).createAwaitingStartJob(any());
         verify(kakaoPayClient, never()).order(TID);
-        verifyNoInteractions(chatRoomService);
+        verifyNoInteractions(chatRoomService, eventPublisher);
     }
 
     @Test
@@ -538,6 +615,9 @@ class PaymentApprovalServiceTest {
         assertThat(proposal.getStatus()).isEqualTo(ProposalStatus.AWAITING_START);
         assertThat(createdJobCommand().getBudget()).isEqualTo(120_000L);
         verify(kakaoPayClient, never()).approve(any(), any(), any(), any());
+        // 복구가 최초 상태 전환을 완료했으므로 수락을 알린다
+        assertThat(publishedEvents()).extracting(NotificationEvent::type)
+                .containsExactly(NotificationType.PROPOSAL_ACCEPTED);
     }
 
     @Test

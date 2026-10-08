@@ -1,5 +1,7 @@
 package com.gakkum.backend.application.proposal.facade;
 
+import com.gakkum.backend.domain.notification.dto.NotificationEvent;
+import com.gakkum.backend.domain.notification.dto.NotificationEventFactory;
 import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.ProposalJobDeclineResult;
 import com.gakkum.backend.domain.payment.dto.PaymentQueryDto.RefundedPaymentData;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -9,6 +11,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
@@ -32,8 +35,10 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InOrder;
+import org.springframework.context.ApplicationEventPublisher;
 
 import com.gakkum.backend.domain.media.dto.ImagePurpose;
 import com.gakkum.backend.domain.chat.entity.ChatRoom;
@@ -44,6 +49,7 @@ import com.gakkum.backend.domain.job.service.JobService;
 import com.gakkum.backend.domain.payment.entity.Payment;
 import com.gakkum.backend.domain.payment.service.PaymentService;
 import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.ProposalCancelResult;
+import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.ProposalLikeData;
 import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.ProposalRejectResult;
 import com.gakkum.backend.domain.proposal.entity.ProposalRejectedBy;
 import com.gakkum.backend.domain.proposal.dto.ProposalCommandDto.StartProposalJobCommand;
@@ -77,6 +83,7 @@ import com.gakkum.backend.domain.user.entity.UserRole;
 import com.gakkum.backend.domain.user.service.UserService;
 import com.gakkum.backend.global.exception.BusinessException;
 import com.gakkum.backend.global.exception.ErrorCode;
+import com.gakkum.backend.global.transaction.ImmediateTransactionTemplate;
 
 class ProposalFacadeTest {
 
@@ -105,23 +112,28 @@ class ProposalFacadeTest {
     private final ChatRoomService chatRoomService = mock(ChatRoomService.class);
     // 한국 시간 2026-10-05 08:00. UTC 날짜(10-04)와 달라 예상 마감일이 한국 날짜 기준인지 드러난다
     private final Clock clock = Clock.fixed(Instant.parse("2026-10-04T23:00:00Z"), ZoneOffset.UTC);
+    private final ApplicationEventPublisher eventPublisher = mock(ApplicationEventPublisher.class);
     private final ProposalFacade proposalFacade = new ProposalFacade(
             userService, studentService, ownerService, specialtyService, specialtyCategoryService, mediaService,
-            proposalService, reviewService, jobService, paymentService, chatRoomService, clock);
+            proposalService, reviewService, jobService, paymentService, chatRoomService, clock, eventPublisher,
+            new ImmediateTransactionTemplate());
 
     @Test
-    @DisplayName("학생이 존재하는 사장님과 소분류, 업로드된 본인 사진으로 제안을 보내면 저장하고 제안 ID를 반환한다")
+    @DisplayName("학생이 존재하는 사장님과 소분류, 업로드된 본인 사진으로 제안을 보내면 저장하고 제안 ID를 반환하며 받은 사장님에게 제안 도착을 알린다")
     void createsProposal() {
         givenUser(UserRole.STUDENT);
         givenStudentProfile();
+        givenJobOwner();
         givenIssuedImage(IMAGE_URL_1, KEY_1, true);
         givenIssuedImage(IMAGE_URL_2, KEY_2, true);
         CreateProposalCommand command = command(List.of(IMAGE_URL_1, IMAGE_URL_2));
-        when(proposalService.createProposal(command, 7L, null)).thenReturn(Proposal.builder().id(31L).build());
+        when(proposalService.createProposal(command, 7L, null)).thenReturn(createdProposal(31L));
 
         ProposalCreateResult result = proposalFacade.createProposal(command);
 
         assertThat(result.getProposalId()).isEqualTo(31L);
+        assertThat(publishedEvents()).containsExactly(
+                NotificationEventFactory.proposalReceived(OWNER_USER_ID, 31L, "메뉴판 개선 제안", "김학생"));
         verify(ownerService).validateOwnerProfileExists(5L, null);
         verify(specialtyService).validateSpecialtyIds(List.of(1L, 2L));
         verify(mediaService).isImageUploaded(KEY_1);
@@ -133,8 +145,9 @@ class ProposalFacadeTest {
     void createsProposalWithoutImages() {
         givenUser(UserRole.STUDENT);
         givenStudentProfile();
+        givenJobOwner();
         CreateProposalCommand command = command(List.of());
-        when(proposalService.createProposal(command, 7L, null)).thenReturn(Proposal.builder().id(32L).build());
+        when(proposalService.createProposal(command, 7L, null)).thenReturn(createdProposal(32L));
 
         assertThat(proposalFacade.createProposal(command).getProposalId()).isEqualTo(32L);
         verifyNoInteractions(mediaService);
@@ -168,6 +181,19 @@ class ProposalFacadeTest {
 
         assertError(() -> proposalFacade.createProposal(command(List.of())), ErrorCode.OWNER_NOT_FOUND);
         verifyNoInteractions(proposalService);
+    }
+
+    @Test
+    @DisplayName("제안 저장이 실패하면 알림을 발행하지 않는다")
+    void doesNotNotifyWhenProposalSaveFails() {
+        givenUser(UserRole.STUDENT);
+        givenStudentProfile();
+        CreateProposalCommand command = command(List.of());
+        when(proposalService.createProposal(command, 7L, null))
+                .thenThrow(new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR));
+
+        assertError(() -> proposalFacade.createProposal(command), ErrorCode.INTERNAL_SERVER_ERROR);
+        verifyNoInteractions(eventPublisher);
     }
 
     @Test
@@ -217,9 +243,10 @@ class ProposalFacadeTest {
     void validatesBeforeSaving() {
         givenUser(UserRole.STUDENT);
         givenStudentProfile();
+        givenJobOwner();
         givenIssuedImage(IMAGE_URL_1, KEY_1, true);
         CreateProposalCommand command = command(List.of(IMAGE_URL_1));
-        when(proposalService.createProposal(command, 7L, null)).thenReturn(Proposal.builder().id(31L).build());
+        when(proposalService.createProposal(command, 7L, null)).thenReturn(createdProposal(31L));
 
         proposalFacade.createProposal(command);
 
@@ -339,7 +366,18 @@ class ProposalFacadeTest {
 
     private void givenUser(UserRole role) {
         when(userService.getActiveUser(USERNAME)).thenReturn(
-                User.builder().id(USER_ID).username(USERNAME).role(role).build());
+                User.builder().id(USER_ID).username(USERNAME).name("김학생").role(role).build());
+    }
+
+    // 저장된 제안. 받은 사장님 프로필(5번)에게 도착 알림을 보낸다
+    private Proposal createdProposal(Long id) {
+        return Proposal.builder().id(id).ownerProfileId(5L).title("메뉴판 개선 제안").build();
+    }
+
+    private List<NotificationEvent> publishedEvents() {
+        ArgumentCaptor<NotificationEvent> captor = ArgumentCaptor.forClass(NotificationEvent.class);
+        verify(eventPublisher, atLeastOnce()).publishEvent(captor.capture());
+        return captor.getAllValues();
     }
 
     private void givenStore() {
@@ -731,7 +769,7 @@ class ProposalFacadeTest {
     void likesProposal() {
         givenStartingStudent();
         when(proposalService.likeProposal(31L, 7L, null))
-                .thenReturn(Proposal.builder().id(31L).likeCount(5).build());
+                .thenReturn(ProposalLikeData.of(Proposal.builder().id(31L).likeCount(5).build(), true));
 
         ProposalLikeResult result = proposalFacade.likeProposal(USERNAME, 31L);
 
@@ -739,6 +777,80 @@ class ProposalFacadeTest {
         assertThat(result.getLikeCount()).isEqualTo(5);
         assertThat(result.isLikedByMe()).isTrue();
         verify(proposalService, never()).unlikeProposal(anyLong(), anyLong(), any());
+        // 기준 인원이 아니면 알리지 않는다
+        verifyNoInteractions(eventPublisher);
+    }
+
+    @ParameterizedTest(name = "공감 {0}명")
+    @ValueSource(ints = { 10, 30, 50 })
+    @DisplayName("새 공감으로 공감 수가 10·30·50명이 되면 받은 사장님과 제안한 학생에게 각각 기준 인원을 알린다")
+    void notifiesLikeMilestone(int likeCount) {
+        givenStartingStudent();
+        givenJobOwner();
+        when(studentService.getStudentProfile(8L)).thenReturn(
+                Student.builder().id(8L).userId(STUDENT_USER_ID).build());
+        when(proposalService.likeProposal(31L, 7L, null)).thenReturn(ProposalLikeData.of(likedProposal(likeCount), true));
+
+        proposalFacade.likeProposal(USERNAME, 31L);
+
+        assertThat(publishedEvents()).containsExactly(
+                NotificationEventFactory.proposalLikeMilestoneReachedForOwner(
+                        OWNER_USER_ID, 31L, "메뉴판 개선 제안", likeCount),
+                NotificationEventFactory.proposalLikeMilestoneReachedForStudent(
+                        STUDENT_USER_ID, 31L, "메뉴판 개선 제안", likeCount));
+    }
+
+    @ParameterizedTest(name = "공감 {0}명")
+    @ValueSource(ints = { 1, 9, 11, 20, 29, 31, 40, 49, 51, 60, 100 })
+    @DisplayName("새 공감이어도 공감 수가 10·30·50명이 아니면 알리지 않는다")
+    void doesNotNotifyOutsideLikeMilestones(int likeCount) {
+        givenStartingStudent();
+        when(proposalService.likeProposal(31L, 7L, null)).thenReturn(ProposalLikeData.of(likedProposal(likeCount), true));
+
+        proposalFacade.likeProposal(USERNAME, 31L);
+
+        verifyNoInteractions(eventPublisher, ownerService);
+    }
+
+    @ParameterizedTest(name = "공감 {0}명")
+    @ValueSource(ints = { 10, 30, 50 })
+    @DisplayName("이미 공감한 제안의 재요청은 공감 수가 기준 인원이어도 알리지 않는다")
+    void doesNotNotifyDuplicateLikeAtMilestone(int likeCount) {
+        givenStartingStudent();
+        when(proposalService.likeProposal(31L, 7L, null)).thenReturn(ProposalLikeData.of(likedProposal(likeCount), false));
+
+        assertThat(proposalFacade.likeProposal(USERNAME, 31L).getLikeCount()).isEqualTo(likeCount);
+
+        verifyNoInteractions(eventPublisher, ownerService);
+    }
+
+    @Test
+    @DisplayName("10명에서 9명으로 내려갔다 다시 10명이 되면 같은 이벤트 ID로 발행해 수신자별 저장이 한 번으로 남게 한다")
+    void republishesSameEventIdWhenMilestoneIsReachedAgain() {
+        givenStartingStudent();
+        givenJobOwner();
+        when(studentService.getStudentProfile(8L)).thenReturn(
+                Student.builder().id(8L).userId(STUDENT_USER_ID).build());
+        when(proposalService.likeProposal(31L, 7L, null)).thenReturn(ProposalLikeData.of(likedProposal(10), true));
+        when(proposalService.unlikeProposal(31L, 7L, null)).thenReturn(likedProposal(9));
+
+        proposalFacade.likeProposal(USERNAME, 31L);
+        proposalFacade.unlikeProposal(USERNAME, 31L);
+        proposalFacade.likeProposal(USERNAME, 31L);
+
+        List<NotificationEvent> events = publishedEvents();
+        assertThat(events).hasSize(4);
+        assertThat(events.get(2)).isEqualTo(events.get(0));
+        assertThat(events.get(3)).isEqualTo(events.get(1));
+        // 같은 사건이어도 저장 유일성 키는 (eventId, 수신자)라 두 수신자가 각각 한 건씩 받는다
+        assertThat(events.get(0).eventId()).isEqualTo(events.get(1).eventId());
+        assertThat(events.get(0).recipientUserId()).isNotEqualTo(events.get(1).recipientUserId());
+    }
+
+    // 사장님 프로필 5번이 받은, 학생 프로필 8번의 제안
+    private Proposal likedProposal(int likeCount) {
+        return Proposal.builder().id(31L).ownerProfileId(5L).studentProfileId(8L).title("메뉴판 개선 제안")
+                .likeCount(likeCount).build();
     }
 
     @Test
@@ -754,6 +866,7 @@ class ProposalFacadeTest {
         assertThat(result.getLikeCount()).isEqualTo(4);
         assertThat(result.isLikedByMe()).isFalse();
         verify(proposalService, never()).likeProposal(anyLong(), anyLong(), any());
+        verifyNoInteractions(eventPublisher);
     }
 
     @Test
@@ -763,7 +876,7 @@ class ProposalFacadeTest {
                 .id(USER_ID).username(USERNAME).role(UserRole.STUDENT).demoSessionId(DEMO_SESSION_A).build());
         givenStudentProfile();
         Proposal proposal = Proposal.builder().id(31L).likeCount(1).demoSessionId(DEMO_SESSION_A).build();
-        when(proposalService.likeProposal(31L, 7L, DEMO_SESSION_A)).thenReturn(proposal);
+        when(proposalService.likeProposal(31L, 7L, DEMO_SESSION_A)).thenReturn(ProposalLikeData.of(proposal, true));
         when(proposalService.unlikeProposal(31L, 7L, DEMO_SESSION_A)).thenReturn(proposal);
 
         assertThat(proposalFacade.likeProposal(USERNAME, 31L).isLikedByMe()).isTrue();
@@ -850,12 +963,14 @@ class ProposalFacadeTest {
     }
 
     @Test
-    @DisplayName("제안한 학생이 작업을 시작하면 제안을 수락으로, 의뢰를 진행 중으로 넘기고 채팅방을 만들어 확정 마감일과 함께 반환한다")
+    @DisplayName("제안한 학생이 작업을 시작하면 제안을 수락으로, 의뢰를 진행 중으로 넘기고 채팅방을 만들어 확정 마감일과 함께 반환하며 의뢰한 사장님에게 작업 시작을 알린다")
     void startsProposalJob() {
         givenStartingStudent();
+        givenJobOwner();
         Proposal proposal = detailProposal(ProposalStatus.AWAITING_START);
         LocalDateTime startedAt = LocalDateTime.of(2026, 10, 6, 9, 30);
-        Job started = Job.builder().id(42L).proposalId(31L).status(JobStatus.MATCHED).startedAt(startedAt)
+        Job started = Job.builder().id(42L).ownerProfileId(5L).title("메뉴판 개선 제안").proposalId(31L)
+                .status(JobStatus.MATCHED).startedAt(startedAt)
                 .draftDeadline(LocalDate.of(2026, 10, 8)).finalDeadline(LocalDate.of(2026, 10, 12)).build();
         when(jobService.getStartableProposalId(42L, 7L)).thenReturn(31L);
         when(proposalService.getStartableProposalForUpdate(31L, 7L)).thenReturn(proposal);
@@ -878,6 +993,8 @@ class ProposalFacadeTest {
         order.verify(proposalService).getStartableProposalForUpdate(31L, 7L);
         order.verify(jobService).startJob(42L, 31L, 7L);
         order.verify(chatRoomService).getOrCreate(42L);
+        assertThat(publishedEvents()).containsExactly(NotificationEventFactory.jobStarted(
+                OWNER_USER_ID, 42L, result.getChatRoomId(), "메뉴판 개선 제안", "김학생"));
     }
 
     @Test
@@ -899,6 +1016,8 @@ class ProposalFacadeTest {
         assertThat(second.getStartedAt()).isEqualTo(first.getStartedAt()).isEqualTo(startedAt);
         assertThat(second.getChatRoomId()).isEqualTo(first.getChatRoomId()).isEqualTo(existingRoom.getId());
         assertThat(second.getProposalStatus()).isEqualTo(ProposalStatus.ACCEPTED);
+        // 이미 시작한 작업은 다시 알리지 않는다
+        verifyNoInteractions(eventPublisher);
     }
 
     @Test
@@ -950,9 +1069,9 @@ class ProposalFacadeTest {
         when(userService.getActiveUser(USERNAME)).thenReturn(User.builder()
                 .id(USER_ID).username(USERNAME).role(UserRole.STUDENT).demoSessionId(DEMO_SESSION_A).build());
         givenStudentProfile();
+        givenJobOwner();
         CreateProposalCommand command = command(List.of());
-        when(proposalService.createProposal(command, 7L, DEMO_SESSION_A))
-                .thenReturn(Proposal.builder().id(33L).build());
+        when(proposalService.createProposal(command, 7L, DEMO_SESSION_A)).thenReturn(createdProposal(33L));
 
         assertThat(proposalFacade.createProposal(command).getProposalId()).isEqualTo(33L);
         verify(ownerService).validateOwnerProfileExists(5L, DEMO_SESSION_A);
@@ -1008,11 +1127,12 @@ class ProposalFacadeTest {
     }
 
     @Test
-    @DisplayName("제안한 학생이 결제 대기 주문이 없는 결제 전 제안을 취소하면 제안을 잠근 뒤 취소하고 취소 상태를 반환한다")
+    @DisplayName("제안한 학생이 결제 대기 주문이 없는 결제 전 제안을 취소하면 제안을 잠근 뒤 취소하고 취소 상태를 반환하며 받은 사장님에게 취소를 알린다")
     void cancelsPendingProposal() {
         givenStartingStudent();
-        Proposal proposal = Proposal.builder().id(31L).studentProfileId(7L).status(ProposalStatus.PENDING)
-                .likeCount(2).build();
+        givenJobOwner();
+        Proposal proposal = Proposal.builder().id(31L).studentProfileId(7L).ownerProfileId(5L)
+                .title("메뉴판 개선 제안").status(ProposalStatus.PENDING).likeCount(2).build();
         when(proposalService.getCancellableProposalForUpdate(31L, 7L, null)).thenReturn(proposal);
         when(paymentService.findPendingProposalPayment(31L)).thenReturn(Optional.empty());
         org.mockito.Mockito.doAnswer(invocation -> {
@@ -1029,7 +1149,9 @@ class ProposalFacadeTest {
         order.verify(proposalService).getCancellableProposalForUpdate(31L, 7L, null);
         order.verify(paymentService).findPendingProposalPayment(31L);
         order.verify(proposalService).cancelProposal(proposal);
-        verifyNoInteractions(jobService, chatRoomService, ownerService);
+        verifyNoInteractions(jobService, chatRoomService);
+        assertThat(publishedEvents()).containsExactly(
+                NotificationEventFactory.proposalCancelled(OWNER_USER_ID, 31L, "메뉴판 개선 제안", "김학생"));
     }
 
     @Test
@@ -1045,7 +1167,7 @@ class ProposalFacadeTest {
         assertThat(result.getProposalId()).isEqualTo(31L);
         assertThat(result.getStatus()).isEqualTo(ProposalStatus.CANCELLED);
         verify(proposalService, never()).cancelProposal(any());
-        verifyNoInteractions(paymentService);
+        verifyNoInteractions(paymentService, eventPublisher);
     }
 
     @Test
@@ -1061,6 +1183,7 @@ class ProposalFacadeTest {
         assertThat(proposal.getStatus()).isEqualTo(ProposalStatus.PENDING);
         assertThat(proposal.getLikeCount()).isEqualTo(2);
         verify(proposalService, never()).cancelProposal(any());
+        verifyNoInteractions(eventPublisher);
     }
 
     @Test
@@ -1069,8 +1192,9 @@ class ProposalFacadeTest {
         when(userService.getActiveUser(USERNAME)).thenReturn(User.builder()
                 .id(USER_ID).username(USERNAME).role(UserRole.STUDENT).demoSessionId(DEMO_SESSION_A).build());
         givenStudentProfile();
-        Proposal proposal = Proposal.builder().id(31L).studentProfileId(7L).status(ProposalStatus.PENDING)
-                .likeCount(0).demoSessionId(DEMO_SESSION_A).build();
+        givenJobOwner();
+        Proposal proposal = Proposal.builder().id(31L).studentProfileId(7L).ownerProfileId(5L)
+                .status(ProposalStatus.PENDING).likeCount(0).demoSessionId(DEMO_SESSION_A).build();
         when(proposalService.getCancellableProposalForUpdate(31L, 7L, DEMO_SESSION_A)).thenReturn(proposal);
         when(paymentService.findPendingProposalPayment(31L)).thenReturn(Optional.empty());
 
@@ -1124,11 +1248,12 @@ class ProposalFacadeTest {
     }
 
     @Test
-    @DisplayName("받은 사장님이 결제 대기 주문이 없는 결제 전 제안을 거절하면 제안을 잠근 뒤 거절 주체와 UTC 시각을 남기고 거절 상태를 반환한다")
+    @DisplayName("받은 사장님이 결제 대기 주문이 없는 결제 전 제안을 거절하면 제안을 잠근 뒤 거절 주체와 UTC 시각을 남기고 거절 상태를 반환하며 제안한 학생에게 거절을 알린다")
     void rejectsPendingProposal() {
         givenRejectingOwner(null);
-        Proposal proposal = Proposal.builder().id(31L).ownerProfileId(5L).status(ProposalStatus.PENDING)
-                .likeCount(2).build();
+        givenProposer();
+        Proposal proposal = Proposal.builder().id(31L).ownerProfileId(5L).studentProfileId(7L)
+                .title("메뉴판 개선 제안").status(ProposalStatus.PENDING).likeCount(2).build();
         when(proposalService.getRejectableProposalForUpdate(31L, 5L, null)).thenReturn(proposal);
         when(paymentService.findPendingProposalPayment(31L)).thenReturn(Optional.empty());
 
@@ -1146,7 +1271,9 @@ class ProposalFacadeTest {
         // 환불 같은 결제 변경과 공감 기록 삭제, 의뢰·채팅 변경은 하지 않는다
         verify(paymentService, never()).refundOnDecline(anyLong(), anyLong(), anyString());
         verify(proposalService, never()).cancelProposal(any());
-        verifyNoInteractions(jobService, chatRoomService, studentService);
+        verifyNoInteractions(jobService, chatRoomService);
+        assertThat(publishedEvents()).containsExactly(
+                NotificationEventFactory.proposalRejected(STUDENT_USER_ID, 31L, "메뉴판 개선 제안", "가게 이름"));
     }
 
     @Test
@@ -1163,7 +1290,7 @@ class ProposalFacadeTest {
         assertThat(result.getProposalId()).isEqualTo(31L);
         assertThat(result.getStatus()).isEqualTo(ProposalStatus.REJECTED);
         assertThat(proposal.getRejectedAt()).isEqualTo(firstRejectedAt);
-        verifyNoInteractions(paymentService);
+        verifyNoInteractions(paymentService, eventPublisher);
     }
 
     @Test
@@ -1179,14 +1306,16 @@ class ProposalFacadeTest {
         assertThat(proposal.getStatus()).isEqualTo(ProposalStatus.PENDING);
         assertThat(proposal.getRejectedBy()).isNull();
         assertThat(proposal.getRejectedAt()).isNull();
+        verifyNoInteractions(eventPublisher);
     }
 
     @Test
     @DisplayName("데모 사장님의 제안 거절은 자기 데모 세션 ID를 격리 범위로 전달한다")
     void passesDemoSessionForReject() {
         givenRejectingOwner(DEMO_SESSION_A);
-        Proposal proposal = Proposal.builder().id(31L).ownerProfileId(5L).status(ProposalStatus.PENDING)
-                .likeCount(0).demoSessionId(DEMO_SESSION_A).build();
+        givenProposer();
+        Proposal proposal = Proposal.builder().id(31L).ownerProfileId(5L).studentProfileId(7L)
+                .status(ProposalStatus.PENDING).likeCount(0).demoSessionId(DEMO_SESSION_A).build();
         when(proposalService.getRejectableProposalForUpdate(31L, 5L, DEMO_SESSION_A)).thenReturn(proposal);
         when(paymentService.findPendingProposalPayment(31L)).thenReturn(Optional.empty());
 
@@ -1275,7 +1404,13 @@ class ProposalFacadeTest {
         when(userService.getActiveUser(USERNAME)).thenReturn(User.builder()
                 .id(USER_ID).username(USERNAME).role(UserRole.OWNER).demoSessionId(demoSessionId).build());
         when(ownerService.findOwnerProfileByUserId(USER_ID))
-                .thenReturn(Optional.of(Owner.builder().id(5L).userId(USER_ID).build()));
+                .thenReturn(Optional.of(Owner.builder().id(5L).userId(USER_ID).storeName("가게 이름").build()));
+    }
+
+    // 거절 알림을 받는 제안한 학생(프로필 7번)
+    private void givenProposer() {
+        when(studentService.getStudentProfile(7L)).thenReturn(
+                Student.builder().id(7L).userId(STUDENT_USER_ID).build());
     }
 
     @Test
@@ -1309,19 +1444,19 @@ class ProposalFacadeTest {
     }
 
     @Test
-    @DisplayName("제안한 학생이 의뢰서를 거절하면 제안을 거절로, 의뢰를 취소로 넘기고 전액 환불 기록을 반환하며 채팅방은 만들지 않는다")
+    @DisplayName("제안한 학생이 의뢰서를 거절하면 제안을 거절로, 의뢰를 취소로 넘기고 전액 환불 기록을 반환하며 채팅방은 만들지 않고 결제한 사장님에게 환불 내역을 알린다")
     void declinesProposalJob() {
         givenStartingStudent();
         Proposal proposal = detailProposal(ProposalStatus.AWAITING_START);
         LocalDateTime declinedAt = LocalDateTime.of(2026, 10, 6, 12, 0);
-        Job declined = Job.builder().id(42L).ownerProfileId(5L).proposalId(31L).status(JobStatus.CANCELLED)
-                .completedAt(declinedAt).build();
+        Job declined = Job.builder().id(42L).ownerProfileId(5L).title("메뉴판 개선 제안").proposalId(31L)
+                .status(JobStatus.CANCELLED).completedAt(declinedAt).build();
         givenJobOwner();
         when(jobService.getDeclinableProposalId(42L, 7L, null)).thenReturn(31L);
         when(proposalService.getDeclinableProposalForUpdate(31L, 7L)).thenReturn(proposal);
         when(jobService.declineJob(42L, 31L, 7L)).thenReturn(declined);
         when(paymentService.refundOnDecline(42L, 31L, OWNER_USER_ID)).thenReturn(
-                new RefundedPaymentData(100_000L, 0L, 100_000L, Instant.parse("2026-10-06T03:00:00Z")));
+                new RefundedPaymentData(91L, 100_000L, 0L, 100_000L, Instant.parse("2026-10-06T03:00:00Z")));
 
         ProposalJobDeclineResult result = proposalFacade.declineProposalJob(USERNAME, 42L);
 
@@ -1343,6 +1478,9 @@ class ProposalFacadeTest {
         order.verify(jobService).declineJob(42L, 31L, 7L);
         order.verify(paymentService).refundOnDecline(42L, 31L, OWNER_USER_ID);
         verifyNoInteractions(chatRoomService);
+        // 진행 중 작업 취소가 아니므로 환불 내역만 알린다
+        assertThat(publishedEvents()).containsExactly(
+                NotificationEventFactory.paymentRefunded(OWNER_USER_ID, 91L, "메뉴판 개선 제안", 100_000L));
     }
 
     @Test
@@ -1438,6 +1576,7 @@ class ProposalFacadeTest {
                 .thenThrow(new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR));
 
         assertError(() -> proposalFacade.declineProposalJob(USERNAME, 42L), ErrorCode.INTERNAL_SERVER_ERROR);
+        verifyNoInteractions(eventPublisher);
     }
 
     @Test

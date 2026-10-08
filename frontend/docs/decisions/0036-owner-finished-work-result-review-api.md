@@ -5,7 +5,7 @@
 Accepted. 내 활동 › 완료 (완료 · 성사되지 않은 일), the home 「끝난 일」, 지난
 결과물 보기, 후기 작성 · 후기 완료, and 성사되지 않은 작업 상세 read and write
 the backend for the owner's finished jobs. 「완료 확인」 on 작업 확인 now goes
-to 후기 작성. Sample works (ids like `work-090`) still open the sample screens.
+to 후기 작성.
 The payment summary above the 완료 list and 결제 내역 read GET /payments
 (ADR 0040).
 

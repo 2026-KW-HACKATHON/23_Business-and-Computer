@@ -20,7 +20,6 @@ import {
   parsePositiveId,
   sendJobReview,
   useJobResult,
-  useOwnerWork,
 } from "../features/owner";
 import { useBack } from "../hooks/useBack";
 import { studentTitle } from "../lib/korean";
@@ -28,15 +27,16 @@ import "./OwnerReviewPage.css";
 
 /**
  * 피그마 「후기 작성」. 완료 확인 직후 들어온다. 별점은 꼭 골라야 한다.
- * 주소의 id 가 숫자면 서버 작업(POST /jobs/{id}/reviews, ADR 0036), 아니면 샘플 작업.
+ * 서버 작업(POST /jobs/{id}/reviews, ADR 0036). 주소의 id 가 숫자가 아니면 찾을 수 없음.
  */
 function OwnerReviewPage() {
   const { workId = "" } = useParams();
+  const back = useBack(OWNER_PATHS.home);
   const jobId = parsePositiveId(workId);
-  return jobId !== undefined ? <JobReview jobId={jobId} /> : <SampleReview workId={workId} />;
+  return jobId !== undefined ? <JobReview jobId={jobId} /> : <OwnerMissing title="후기 작성" onBack={back} />;
 }
 
-/** 별점 · 좋았던 점 · 남길 말 (샘플 · 서버 작업이 같이 쓴다) */
+/** 별점 · 좋았던 점 · 남길 말 */
 function useReviewForm() {
   const [rating, setRating] = useState(0);
   const [points, setPoints] = useState<string[]>([]);
@@ -139,31 +139,6 @@ function ReviewScreen({
         </section>
       </div>
     </SubScreen>
-  );
-}
-
-/** 샘플 작업의 후기 작성 */
-function SampleReview({ workId }: { workId: string }) {
-  const navigate = useNavigate();
-  const back = useBack(OWNER_PATHS.home);
-  const work = useOwnerWork(workId);
-  const form = useReviewForm();
-
-  if (!work) return <OwnerMissing title="후기 작성" onBack={back} />;
-
-  return (
-    <ReviewScreen
-      studentName={work.student.name}
-      form={form}
-      onResult={() => navigate(OWNER_PATHS.workResult(work.id))}
-      onSkip={() => navigate(OWNER_PATHS.home, { replace: true })}
-      submitLabel="후기 남기기"
-      submitDisabled={form.rating === 0}
-      onSubmit={() => {
-        markOwnerWorkReviewed(work.id);
-        navigate(OWNER_PATHS.workReviewDone(work.id), { replace: true, state: { rating: form.rating } });
-      }}
-    />
   );
 }
 

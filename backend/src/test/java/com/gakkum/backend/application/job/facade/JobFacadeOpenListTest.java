@@ -20,6 +20,7 @@ import org.mockito.ArgumentCaptor;
 
 import org.springframework.context.ApplicationEventPublisher;
 
+import com.gakkum.backend.domain.chat.service.ChatRoomService;
 import com.gakkum.backend.domain.media.service.MediaService;
 import com.gakkum.backend.domain.certificate.service.CertificateService;
 import com.gakkum.backend.domain.chat.service.ChatAttachmentPolicy;
@@ -44,6 +45,7 @@ import com.gakkum.backend.domain.user.entity.User;
 import com.gakkum.backend.domain.user.service.UserService;
 import com.gakkum.backend.global.exception.BusinessException;
 import com.gakkum.backend.global.exception.ErrorCode;
+import com.gakkum.backend.global.transaction.ImmediateTransactionTemplate;
 
 class JobFacadeOpenListTest {
 
@@ -59,7 +61,8 @@ class JobFacadeOpenListTest {
             userService, ownerService, jobService, specialtyCategoryService,
             mock(SpecialtyService.class), mock(StudentService.class),
             mock(JobSubmissionFileStorageClient.class), mock(ChatAttachmentPolicy.class), mock(PaymentService.class),
-                mock(ReviewService.class), mock(CertificateService.class), mock(ProposalService.class), mock(MediaService.class), mock(ApplicationEventPublisher.class));
+                mock(ReviewService.class), mock(CertificateService.class), mock(ProposalService.class), mock(MediaService.class), mock(ApplicationEventPublisher.class),
+                new ImmediateTransactionTemplate(), mock(ChatRoomService.class));
 
     @Test
     @DisplayName("인증된 사업주의 OPEN 의뢰에 특기를 대분류별로 묶어 반환한다")

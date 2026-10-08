@@ -9,14 +9,7 @@ export { default as RefundBreakdown } from "./components/RefundBreakdown";
 export { default as StudentBox } from "./components/StudentBox";
 export { default as OwnerTabScreen } from "./components/OwnerTabScreen";
 export { default as TodoCarousel } from "./components/TodoCarousel";
-export {
-  completeOwnerWork,
-  markOwnerWorkReviewed,
-  useOwnerRequests,
-  useOwnerWork,
-  useOwnerWorks,
-  useRequestExample,
-} from "./hooks/useOwnerData";
+export { markOwnerWorkReviewed, useRequestExample } from "./hooks/useOwnerData";
 export { useJobAssignment } from "./hooks/useJobAssignment";
 export type { JobAssignment } from "./hooks/useJobAssignment";
 export { useOwnerHome } from "./hooks/useOwnerHome";
@@ -89,12 +82,7 @@ export {
 export type { ReceivedProposal } from "./lib/receivedProposals";
 export { flowSteps } from "./lib/flow";
 export { ownerWorkDocPath, ownerWorkDocSub } from "./lib/workDocs";
-export {
-  WAITING_STATUS_LABEL,
-  deadlineText,
-  studentLabel,
-  studentRecord,
-} from "./lib/format";
+export { WAITING_STATUS_LABEL, deadlineText, studentLabel } from "./lib/format";
 export {
   MAX_REQUEST_PHOTOS,
   REQUEST_PHOTO_ACCEPT,
@@ -118,10 +106,8 @@ export type {
   DueDates,
   OwnerDoneItem,
   OwnerHome,
-  OwnerRequest,
   OwnerTodo,
   OwnerWaitingItem,
-  OwnerWork,
   OwnerWorkingItem,
   PaymentMethod,
   PaymentPhase,

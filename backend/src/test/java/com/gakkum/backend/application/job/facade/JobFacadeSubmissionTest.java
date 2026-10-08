@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -24,9 +25,12 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
+import org.mockito.ArgumentCaptor;
 import org.springframework.context.ApplicationEventPublisher;
 
 import com.gakkum.backend.application.job.dto.JobSubmissionResponse;
+import com.gakkum.backend.domain.chat.service.ChatRoomService;
+import com.gakkum.backend.domain.job.entity.Job;
 import com.gakkum.backend.domain.media.service.MediaService;
 import com.gakkum.backend.domain.chat.entity.ChatMessageType;
 import com.gakkum.backend.domain.certificate.service.CertificateService;
@@ -42,6 +46,9 @@ import com.gakkum.backend.domain.job.entity.JobSubmission;
 import com.gakkum.backend.domain.job.entity.JobSubmissionReviewStatus;
 import com.gakkum.backend.domain.job.entity.JobSubmissionType;
 import com.gakkum.backend.domain.job.service.JobService;
+import com.gakkum.backend.domain.notification.dto.NotificationEvent;
+import com.gakkum.backend.domain.notification.dto.NotificationEventFactory;
+import com.gakkum.backend.domain.owner.entity.Owner;
 import com.gakkum.backend.domain.owner.service.OwnerService;
 import com.gakkum.backend.domain.payment.service.PaymentService;
 import com.gakkum.backend.domain.proposal.service.ProposalService;
@@ -55,11 +62,13 @@ import com.gakkum.backend.domain.user.entity.UserRole;
 import com.gakkum.backend.domain.user.service.UserService;
 import com.gakkum.backend.global.exception.BusinessException;
 import com.gakkum.backend.global.exception.ErrorCode;
+import com.gakkum.backend.global.transaction.ImmediateTransactionTemplate;
 
 class JobFacadeSubmissionTest {
 
     private static final String USERNAME = "KAKAO_12345";
     private static final String USER_ID = "01K58M6PJV8VAJMXHBHJ2PNB5C";
+    private static final String OWNER_USER_ID = "01K58M6PJV8VAJMXHBHJ2PNB5F";
     private static final String FILE_URL = "https://bucket.s3.ap-northeast-2.amazonaws.com/job-submissions/42/7/f/a.pdf";
     private static final String KEY = "job-submissions/42/7/f/a.pdf";
     private static final String SECOND_FILE_URL =
@@ -71,11 +80,14 @@ class JobFacadeSubmissionTest {
     private final StudentService studentService = mock(StudentService.class);
     private final JobSubmissionFileStorageClient storageClient = mock(JobSubmissionFileStorageClient.class);
     private final ChatAttachmentPolicy chatAttachmentPolicy = mock(ChatAttachmentPolicy.class);
+    private final OwnerService ownerService = mock(OwnerService.class);
+    private final ApplicationEventPublisher eventPublisher = mock(ApplicationEventPublisher.class);
     private final JobFacade jobFacade = new JobFacade(
-            userService, mock(OwnerService.class), jobService, mock(SpecialtyCategoryService.class),
+            userService, ownerService, jobService, mock(SpecialtyCategoryService.class),
             mock(SpecialtyService.class), studentService,
             storageClient, chatAttachmentPolicy, mock(PaymentService.class),
-                mock(ReviewService.class), mock(CertificateService.class), mock(ProposalService.class), mock(MediaService.class), mock(ApplicationEventPublisher.class));
+                mock(ReviewService.class), mock(CertificateService.class), mock(ProposalService.class), mock(MediaService.class), eventPublisher,
+                new ImmediateTransactionTemplate(), mock(ChatRoomService.class));
 
     @Test
     @DisplayName("업로드 준비는 채팅 첨부 규칙으로 검증한 형식으로 서명하고 공개 파일 URL을 반환한다")
@@ -163,9 +175,10 @@ class JobFacadeSubmissionTest {
     }
 
     @Test
-    @DisplayName("URL과 업로드를 확인한 뒤 초안을 저장하고 제출 결과를 반환한다")
+    @DisplayName("URL과 업로드를 확인한 뒤 초안을 저장하고 제출 결과를 반환하며 의뢰한 사장님에게 초안 도착을 알린다")
     void submitsDraft() {
         givenStudent(UserRole.STUDENT);
+        givenJobOwner();
         when(storageClient.findKey(FILE_URL, 42L, 7L)).thenReturn(Optional.of(KEY));
         when(storageClient.findKey(SECOND_FILE_URL, 42L, 7L)).thenReturn(Optional.of(SECOND_KEY));
         when(storageClient.findSize(KEY)).thenReturn(Optional.of(1048576L));
@@ -187,6 +200,8 @@ class JobFacadeSubmissionTest {
         assertThat(result.getSubmissionType()).isEqualTo("DRAFT");
         assertThat(result.getRevisionNumber()).isZero();
         assertThat(result.getReviewStatus()).isEqualTo("PENDING");
+        assertThat(publishedEvents()).containsExactly(NotificationEventFactory.jobDraftSubmitted(
+                OWNER_USER_ID, 81L, 42L, "메뉴판 디자인", "김학생"));
     }
 
     @Test
@@ -212,6 +227,21 @@ class JobFacadeSubmissionTest {
         assertError(() -> jobFacade.submitDraft(command(List.of(FILE_URL))),
                 ErrorCode.JOB_SUBMISSION_FILE_NOT_UPLOADED);
         verify(jobService, never()).submitDraft(any(), anyLong(), any());
+        verifyNoInteractions(eventPublisher);
+    }
+
+    @Test
+    @DisplayName("초안 저장이 실패하면 알림을 발행하지 않는다")
+    void doesNotNotifyWhenDraftSaveFails() {
+        givenStudent(UserRole.STUDENT);
+        when(storageClient.findKey(FILE_URL, 42L, 7L)).thenReturn(Optional.of(KEY));
+        when(storageClient.findSize(KEY)).thenReturn(Optional.of(1048576L));
+        when(jobService.submitDraft(any(), anyLong(), any()))
+                .thenThrow(new BusinessException(ErrorCode.JOB_SUBMISSION_ALREADY_EXISTS));
+
+        assertError(() -> jobFacade.submitDraft(command(List.of(FILE_URL))),
+                ErrorCode.JOB_SUBMISSION_ALREADY_EXISTS);
+        verifyNoInteractions(eventPublisher, ownerService);
     }
 
     @Test
@@ -227,9 +257,10 @@ class JobFacadeSubmissionTest {
     }
 
     @Test
-    @DisplayName("수정안도 URL과 업로드를 확인한 뒤 저장하고 REVISION 결과를 반환한다")
+    @DisplayName("수정안도 URL과 업로드를 확인한 뒤 저장하고 REVISION 결과를 반환하며 의뢰한 사장님에게 수정안 도착을 알린다")
     void submitsRevision() {
         givenStudent(UserRole.STUDENT);
+        givenJobOwner();
         when(storageClient.findKey(FILE_URL, 42L, 7L)).thenReturn(Optional.of(KEY));
         when(storageClient.findKey(SECOND_FILE_URL, 42L, 7L)).thenReturn(Optional.of(SECOND_KEY));
         when(storageClient.findSize(KEY)).thenReturn(Optional.of(1048576L));
@@ -250,6 +281,30 @@ class JobFacadeSubmissionTest {
         assertThat(result.getSubmissionType()).isEqualTo("REVISION");
         assertThat(result.getRevisionNumber()).isEqualTo(1);
         assertThat(result.getReviewStatus()).isEqualTo("PENDING");
+        assertThat(publishedEvents()).containsExactly(NotificationEventFactory.jobRevisionSubmitted(
+                OWNER_USER_ID, 82L, 42L, "메뉴판 디자인", "김학생"));
+    }
+
+    @Test
+    @DisplayName("수정안을 여러 차수 제출하면 차수마다 서로 다른 이벤트로 알린다")
+    void notifiesEachRevisionSeparately() {
+        givenStudent(UserRole.STUDENT);
+        givenJobOwner();
+        when(storageClient.findKey(FILE_URL, 42L, 7L)).thenReturn(Optional.of(KEY));
+        when(storageClient.findSize(KEY)).thenReturn(Optional.of(1048576L));
+        CreateJobSubmissionCommand command = command(List.of(FILE_URL));
+        when(jobService.submitRevision(command, 7L, Map.of(FILE_URL, 1048576L)))
+                .thenReturn(revision(82L, 1))
+                .thenReturn(revision(83L, 2));
+
+        jobFacade.submitRevision(command);
+        jobFacade.submitRevision(command);
+
+        List<NotificationEvent> events = publishedEvents();
+        assertThat(events).containsExactly(
+                NotificationEventFactory.jobRevisionSubmitted(OWNER_USER_ID, 82L, 42L, "메뉴판 디자인", "김학생"),
+                NotificationEventFactory.jobRevisionSubmitted(OWNER_USER_ID, 83L, 42L, "메뉴판 디자인", "김학생"));
+        assertThat(events.get(0).eventId()).isNotEqualTo(events.get(1).eventId());
     }
 
     @Test
@@ -262,6 +317,7 @@ class JobFacadeSubmissionTest {
                 ErrorCode.JOB_SUBMISSION_FILE_URL_INVALID);
         verify(storageClient, never()).findSize(anyString());
         verify(jobService, never()).submitRevision(any(), anyLong(), any());
+        verifyNoInteractions(eventPublisher);
     }
 
     @Test
@@ -287,9 +343,28 @@ class JobFacadeSubmissionTest {
 
     private void givenStudent(UserRole role) {
         when(userService.getActiveUser(USERNAME)).thenReturn(
-                User.builder().id(USER_ID).username(USERNAME).role(role).build());
+                User.builder().id(USER_ID).username(USERNAME).name("김학생").role(role).build());
         when(studentService.findStudentProfileByUserId(USER_ID))
                 .thenReturn(Optional.of(Student.builder().id(7L).userId(USER_ID).build()));
+    }
+
+    /** 제출 저장 뒤 알림 수신자를 찾을 때 읽는 의뢰와 의뢰한 사장님. */
+    private void givenJobOwner() {
+        when(jobService.getJobsByIds(List.of(42L))).thenReturn(Map.of(42L,
+                Job.builder().id(42L).ownerProfileId(5L).title("메뉴판 디자인").build()));
+        when(ownerService.getOwnerProfileById(5L)).thenReturn(
+                Owner.builder().id(5L).userId(OWNER_USER_ID).storeName("가꿈 카페").build());
+    }
+
+    private JobSubmission revision(Long id, int revisionNumber) {
+        return JobSubmission.builder().id(id).jobId(42L).submissionType(JobSubmissionType.REVISION)
+                .revisionNumber(revisionNumber).reviewStatus(JobSubmissionReviewStatus.PENDING).build();
+    }
+
+    private List<NotificationEvent> publishedEvents() {
+        ArgumentCaptor<NotificationEvent> captor = ArgumentCaptor.forClass(NotificationEvent.class);
+        verify(eventPublisher, atLeastOnce()).publishEvent(captor.capture());
+        return captor.getAllValues();
     }
 
     private CreateJobSubmissionCommand command(List<String> fileUrls) {

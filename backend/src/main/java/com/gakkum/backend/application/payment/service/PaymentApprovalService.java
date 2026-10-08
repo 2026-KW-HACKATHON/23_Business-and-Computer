@@ -2,12 +2,17 @@ package com.gakkum.backend.application.payment.service;
 
 import java.time.LocalDate;
 import java.time.ZoneId;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Stream;
 
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.gakkum.backend.domain.job.entity.Job;
+import com.gakkum.backend.domain.chat.entity.ChatRoom;
 import com.gakkum.backend.domain.chat.service.ChatRoomService;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.CreateProposalJobCommand;
 import com.gakkum.backend.domain.job.entity.JobApplication;
@@ -16,6 +21,8 @@ import com.gakkum.backend.domain.job.entity.JobStatus;
 import com.gakkum.backend.domain.job.repository.JobApplicationRepository;
 import com.gakkum.backend.domain.job.repository.JobRepository;
 import com.gakkum.backend.domain.job.service.JobService;
+import com.gakkum.backend.domain.notification.dto.NotificationEventFactory;
+import com.gakkum.backend.domain.owner.service.OwnerService;
 import com.gakkum.backend.domain.payment.client.KakaoPayClient;
 import com.gakkum.backend.domain.payment.client.KakaoPayClient.PaymentResult;
 import com.gakkum.backend.domain.payment.dto.PaymentQueryDto.ApprovedOrderData;
@@ -26,6 +33,8 @@ import com.gakkum.backend.domain.payment.repository.PaymentRepository.OrderTarge
 import com.gakkum.backend.domain.proposal.entity.Proposal;
 import com.gakkum.backend.domain.proposal.entity.ProposalStatus;
 import com.gakkum.backend.domain.proposal.service.ProposalService;
+import com.gakkum.backend.domain.student.entity.Student;
+import com.gakkum.backend.domain.student.service.StudentService;
 import com.gakkum.backend.domain.user.entity.User;
 import com.gakkum.backend.domain.user.entity.UserRole;
 import com.gakkum.backend.domain.user.service.UserService;
@@ -49,7 +58,14 @@ public class PaymentApprovalService {
     private final ChatRoomService chatRoomService;
     private final ProposalService proposalService;
     private final JobService jobService;
+    private final StudentService studentService;
+    private final OwnerService ownerService;
+    private final ApplicationEventPublisher eventPublisher;
 
+    /**
+     * 결제 승인. 주문을 처음 승인으로 전환한 요청만 알림을 발행하고, 이미 승인된 주문의 재요청은 발행하지 않는다.
+     * 일반 결제는 선정 학생과 나머지 대기 지원자에게, 제안 결제는 제안한 학생에게 알린다.
+     */
     @Transactional
     public ApprovedOrderData approve(String username, String orderId, String pgToken) {
         User user = userService.getActiveUser(username);
@@ -147,6 +163,12 @@ public class PaymentApprovalService {
         proposal.awaitStart();
         payment.approve(confirmed.approvedAt());
         payment.linkJob(job.getId());
+
+        // 학생이 작업을 시작하기 전이므로 작업 시작 알림은 보내지 않는다
+        Student student = studentService.getStudentProfile(proposal.getStudentProfileId());
+        eventPublisher.publishEvent(NotificationEventFactory.proposalAccepted(
+                student.getUserId(), payment.getId(), job.getId(), job.getTitle(),
+                ownerService.getOwnerProfileById(job.getOwnerProfileId()).getStoreName(), job.getFinalDeadline()));
         return result(payment, job);
     }
 
@@ -201,8 +223,35 @@ public class PaymentApprovalService {
         job.match(application.getStudentProfileId());
         application.accept();
         payment.approve(result.approvedAt());
-        chatRoomService.createIfAbsent(job.getId());
+        ChatRoom chatRoom = chatRoomService.getOrCreate(job.getId());
+        publishSelectionResult(job, application, payment, chatRoom.getId());
         return result(payment, job);
+    }
+
+    /**
+     * 선정 학생에게 선정을, 같은 의뢰의 나머지 대기 중(PENDING) 지원자 전체에게 미선정을 알린다.
+     * 미선정 지원서의 상태는 바꾸지 않는다.
+     */
+    private void publishSelectionResult(Job job, JobApplication selected, Payment payment, String chatRoomId) {
+        List<JobApplication> rejected = jobApplicationRepository
+                .findByJobIdInAndStatus(List.of(job.getId()), JobApplicationStatus.PENDING).stream()
+                .filter(application -> !application.getId().equals(selected.getId()))
+                .toList();
+        Map<Long, Student> studentsById = studentService.getStudentProfilesByIds(
+                Stream.concat(Stream.of(selected), rejected.stream())
+                        .map(JobApplication::getStudentProfileId)
+                        .distinct()
+                        .toList());
+        String storeName = ownerService.getOwnerProfileById(job.getOwnerProfileId()).getStoreName();
+
+        eventPublisher.publishEvent(NotificationEventFactory.jobApplicationSelected(
+                studentsById.get(selected.getStudentProfileId()).getUserId(), payment.getId(), chatRoomId,
+                job.getTitle(), storeName, job.getFinalDeadline()));
+        for (JobApplication application : rejected) {
+            eventPublisher.publishEvent(NotificationEventFactory.jobApplicationRejected(
+                    studentsById.get(application.getStudentProfileId()).getUserId(), payment.getId(), job.getId(),
+                    job.getTitle(), storeName));
+        }
     }
 
     private void match(Job job, Payment payment) {

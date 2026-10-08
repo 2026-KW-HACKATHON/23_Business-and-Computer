@@ -42,10 +42,8 @@ read-only explore details. The backend has no API for them yet.
   only, without the street or address. The read-only details hide budget
   and deadlines, and 「우리 가게에도 비슷한 의뢰 만들기」 opens registration
   with the same field and tasks picked.
-- Sample data stays behind the hooks in
-  `src/features/owner/hooks/useOwnerData.ts`; student profiles live in
-  `src/features/owner/lib/sampleStudents.ts`. 탐색 reads the backend
-  (ADR 0026).
+- 탐색 reads the backend (ADR 0026), and so does the student profile
+  (ADR 0038).
 - New shared components: `Dialog`, `DoneScreen`, `NumberedSteps`,
   `StarRating`, and `TrustChips`. `Chip` takes `tone` so an outlined chip
   turns owner yellow when picked.

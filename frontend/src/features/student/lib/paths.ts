@@ -32,7 +32,6 @@ export const STUDENT_PATHS = {
   proposal: (id: string) => `/student/proposals/${id}`,
   /** 수락돼 의뢰서가 온 제안의 작업 시작 (조건 확인 · 동의) */
   proposalStart: (id: string) => `/student/proposals/${id}/start`,
-  workStart: (id: string) => `/student/works/${id}/start`,
   workSubmit: (id: string) => `/student/works/${id}/submit`,
   workRevision: (id: string) => `/student/works/${id}/revision`,
   workRevisionSubmit: (id: string) => `/student/works/${id}/revision/submit`,

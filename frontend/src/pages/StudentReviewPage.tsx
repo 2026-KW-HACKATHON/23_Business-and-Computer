@@ -1,12 +1,6 @@
 import { useNavigate, useParams } from "react-router-dom";
 import { AppImage, Button, LabelChip, LoadNotice, StarRating, SubScreen, TextButton } from "../components";
-import {
-  REVIEW_POINT_LABEL,
-  STUDENT_PATHS,
-  StudentMissing,
-  useReceivedReview,
-  useStudentWork,
-} from "../features/student";
+import { REVIEW_POINT_LABEL, STUDENT_PATHS, StudentMissing, useReceivedReview } from "../features/student";
 import { useBack } from "../hooks/useBack";
 import { formatMonthDay } from "../lib/date";
 import "./StudentDetailPage.css";
@@ -29,15 +23,16 @@ interface ReviewView {
 
 /**
  * 피그마 「받은 후기 보기」. 작업이 끝나 정산된 뒤 사장님이 남긴 후기.
- * 주소의 id 가 숫자면 서버 작업(GET /jobs/{id}/review, ADR 0042), 아니면 샘플 작업.
+ * 서버 작업(GET /jobs/{id}/review, ADR 0042). 주소의 id 가 숫자가 아니면 찾을 수 없음.
  */
 function StudentReviewPage() {
   const { workId = "" } = useParams();
+  const back = useBack(STUDENT_PATHS.home);
   const jobId = Number(workId);
   return Number.isSafeInteger(jobId) && jobId > 0 ? (
     <JobReview jobId={jobId} />
   ) : (
-    <SampleReview workId={workId} />
+    <StudentMissing title="받은 후기" onBack={back} />
   );
 }
 
@@ -73,28 +68,6 @@ function JobReview({ jobId }: { jobId: number }) {
         rating: review.rating,
         points: review.positivePoints.map((point) => REVIEW_POINT_LABEL[point]),
         text: review.content?.trim() || undefined,
-      }}
-    />
-  );
-}
-
-/** 샘플 작업의 후기 (알림 · 채팅의 예시) */
-function SampleReview({ workId }: { workId: string }) {
-  const back = useBack(STUDENT_PATHS.home);
-  const work = useStudentWork(workId);
-
-  if (!work?.review) return <StudentMissing title="받은 후기" onBack={back} message="아직 받은 후기가 없어요" />;
-  return (
-    <ReviewScreen
-      onBack={back}
-      review={{
-        workId: work.id,
-        storeName: work.store.name,
-        workTitle: work.title,
-        date: work.review.date,
-        rating: work.review.rating,
-        points: work.review.points,
-        text: work.review.text,
       }}
     />
   );

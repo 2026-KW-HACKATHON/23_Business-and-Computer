@@ -4,14 +4,13 @@
 
 Accepted. A proposal the owner accepted and paid for (AWAITING_START) opens a
 work-start screen that reads GET /proposals/{id} and starts the work with
-POST /jobs/{jobId}/start. The sample work-start screen for sample works
-(/student/works/:id/start, ADR 0018) stays until student works are wired.
+POST /jobs/{jobId}/start.
 
 ## Context
 
 - 「조건 확인하기」 (보낸 제안서 상세, 내 활동 보낸 제안) and the home 「제안이
-  받아들여졌어요 · 조건 확인」 card led to the sample work-start screen, which
-  cannot open a real proposal. They were missing after ADR 0023.
+  받아들여졌어요 · 조건 확인」 card had no screen that opens a real proposal
+  after ADR 0023.
 - GET /proposals/{id} has `jobId` and, for the proposal's owner and student
   after payment, `agreement` (`jobStatus`, `budget`, `draftDeadline`,
   `finalDeadline`, `revisionCount`, `messageToStudent`, `paidAt`,

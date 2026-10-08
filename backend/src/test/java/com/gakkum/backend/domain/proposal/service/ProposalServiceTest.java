@@ -32,6 +32,7 @@ import com.gakkum.backend.domain.proposal.dto.ProposalCommandDto.GetReceivedProp
 import com.gakkum.backend.domain.proposal.dto.ProposalExploreOrder;
 import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.ExploreProposalData;
 import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.ProposalDetailData;
+import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.ProposalLikeData;
 import com.gakkum.backend.domain.proposal.entity.Proposal;
 import com.gakkum.backend.domain.proposal.entity.ProposalLike;
 import com.gakkum.backend.domain.proposal.entity.ProposalRejectedBy;
@@ -335,8 +336,10 @@ class ProposalServiceTest {
         when(proposalRepository.findLockedById(31L)).thenReturn(Optional.of(proposal));
         when(proposalLikeRepository.findByProposalIdAndStudentProfileId(31L, 77L)).thenReturn(Optional.empty());
 
-        Proposal result = proposalService.likeProposal(31L, 77L, null);
+        ProposalLikeData liked = proposalService.likeProposal(31L, 77L, null);
 
+        Proposal result = liked.getProposal();
+        assertThat(liked.isAdded()).isTrue();
         assertThat(result).isSameAs(proposal);
         assertThat(result.getLikeCount()).isEqualTo(5);
         ArgumentCaptor<ProposalLike> captor = ArgumentCaptor.forClass(ProposalLike.class);
@@ -358,7 +361,10 @@ class ProposalServiceTest {
         when(proposalLikeRepository.findByProposalIdAndStudentProfileId(31L, 77L))
                 .thenReturn(Optional.of(ProposalLike.create(31L, 77L)));
 
-        assertThat(proposalService.likeProposal(31L, 77L, null).getLikeCount()).isEqualTo(4);
+        ProposalLikeData liked = proposalService.likeProposal(31L, 77L, null);
+
+        assertThat(liked.isAdded()).isFalse();
+        assertThat(liked.getProposal().getLikeCount()).isEqualTo(4);
         verify(proposalLikeRepository, never()).save(any());
     }
 
@@ -402,7 +408,7 @@ class ProposalServiceTest {
                 .thenReturn(Optional.empty())
                 .thenReturn(Optional.of(ProposalLike.create(31L, 77L)));
 
-        assertThat(proposalService.likeProposal(31L, 77L, null).getLikeCount()).isEqualTo(1);
+        assertThat(proposalService.likeProposal(31L, 77L, null).getProposal().getLikeCount()).isEqualTo(1);
         assertThat(proposalService.unlikeProposal(31L, 77L, null).getLikeCount()).isZero();
         assertThat(proposal.getStatus()).isEqualTo(status);
     }
@@ -535,8 +541,8 @@ class ProposalServiceTest {
         when(proposalRepository.findLockedById(31L)).thenReturn(Optional.of(proposal));
         when(proposalLikeRepository.findByProposalIdAndStudentProfileId(31L, 77L)).thenReturn(Optional.empty());
 
-        assertThat(proposalService.likeProposal(31L, 77L, "01K6DEMO00000000000000000A").getLikeCount())
-                .isEqualTo(1);
+        assertThat(proposalService.likeProposal(31L, 77L, "01K6DEMO00000000000000000A").getProposal()
+                .getLikeCount()).isEqualTo(1);
     }
 
     @ParameterizedTest(name = "거절 주체 {0}")

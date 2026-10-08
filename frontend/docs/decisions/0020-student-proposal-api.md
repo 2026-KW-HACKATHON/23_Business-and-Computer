@@ -8,7 +8,7 @@ the in-memory send of the new-proposal flow in ADR 0018.
 ## Context
 
 The student new-proposal flow (/student/proposals/new → 2 → 3 → 4 → done) ran
-on sample data: stores from `sampleStores.ts`, tasks by name from
+on sample data: a fixed store list, tasks by name from
 `SPECIALTY_BADGES`, photos kept as names only, and 「제안 보내기」 added the
 proposal to the demo store. The backend (dev) has:
 
@@ -135,5 +135,5 @@ The shared API layer (ADR 0021) provides `apiData` in `src/api/client.ts`
 - The sent-proposal list, its detail, the home 「기다리는 중」 proposals, and
   the 내 정보 count now use `GET /me/proposals` and
   `GET /proposals/{proposalId}` (ADR 0023).
-- Other screens still use `SPECIALTY_BADGES` (request writing, profile edit,
-  sample data); move them to `useSpecialties` in the follow-up issue.
+- Other screens still use `SPECIALTY_BADGES` (request writing, the profile,
+  and profile edit); move them to `useSpecialties` in the follow-up issue.

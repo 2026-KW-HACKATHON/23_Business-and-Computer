@@ -1,6 +1,7 @@
 package com.gakkum.backend.application.job;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -15,6 +16,7 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
+import java.util.List;
 import java.util.TimeZone;
 import java.util.Optional;
 import java.util.stream.Stream;
@@ -27,9 +29,11 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.mockito.ArgumentCaptor;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
@@ -37,9 +41,13 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import com.gakkum.backend.application.job.controller.JobController;
 import com.gakkum.backend.application.job.facade.JobFacade;
 import com.gakkum.backend.domain.certificate.service.CertificateService;
+import com.gakkum.backend.domain.chat.entity.ChatRoom;
 import com.gakkum.backend.domain.chat.service.ChatAttachmentPolicy;
+import com.gakkum.backend.domain.chat.service.ChatRoomService;
 import com.gakkum.backend.domain.job.client.JobSubmissionFileStorageClient;
 import com.gakkum.backend.domain.job.entity.Job;
+import com.gakkum.backend.domain.job.entity.JobApplication;
+import com.gakkum.backend.domain.job.entity.JobApplicationStatus;
 import com.gakkum.backend.domain.job.entity.JobStatus;
 import com.gakkum.backend.domain.job.repository.JobApplicationRepository;
 import com.gakkum.backend.domain.job.repository.JobRepository;
@@ -48,6 +56,8 @@ import com.gakkum.backend.domain.job.repository.JobSubmissionRepository;
 import com.gakkum.backend.domain.job.service.JobService;
 import com.gakkum.backend.domain.jwt.service.JwtService;
 import com.gakkum.backend.domain.media.service.MediaService;
+import com.gakkum.backend.domain.notification.dto.NotificationEvent;
+import com.gakkum.backend.domain.notification.dto.NotificationEventFactory;
 import com.gakkum.backend.domain.owner.entity.Owner;
 import com.gakkum.backend.domain.owner.repository.OwnerRepository;
 import com.gakkum.backend.domain.owner.service.OwnerService;
@@ -59,6 +69,7 @@ import com.gakkum.backend.domain.proposal.service.ProposalService;
 import com.gakkum.backend.domain.review.service.ReviewService;
 import com.gakkum.backend.domain.specialty.service.SpecialtyCategoryService;
 import com.gakkum.backend.domain.specialty.service.SpecialtyService;
+import com.gakkum.backend.domain.student.entity.Student;
 import com.gakkum.backend.domain.student.repository.StudentRepository;
 import com.gakkum.backend.domain.student.service.StudentService;
 import com.gakkum.backend.domain.user.entity.User;
@@ -66,12 +77,18 @@ import com.gakkum.backend.domain.user.entity.UserRole;
 import com.gakkum.backend.domain.user.repository.UserRepository;
 import com.gakkum.backend.domain.user.service.UserService;
 import com.gakkum.backend.global.exception.GlobalExceptionHandler;
+import com.gakkum.backend.global.transaction.ImmediateTransactionTemplate;
 
 @DisplayName("사장님 의뢰 취소 전체 흐름 (POST /jobs/{jobId}/cancel)")
 class JobCancelFlowTest {
 
     private static final String USERNAME = "KAKAO_12345";
     private static final String OWNER_USER_ID = "01K58M6PJV8VAJMXHBHJ2PNB5C";
+    private static final String STUDENT_USER_ID = "01K58M6PJV8VAJMXHBHJ2PNB5D";
+    private static final String OTHER_STUDENT_USER_ID = "01K58M6PJV8VAJMXHBHJ2PNB5E";
+    private static final String CHAT_ROOM_ID = "01K58M6PJV8VAJMXHBHJ2CHAT1";
+    private static final String JOB_TITLE = "메뉴판 디자인";
+    private static final String STORE_NAME = "가꿈 카페";
     private static final Instant NOW = Instant.parse("2026-09-29T03:15:30Z");
     private static final String URL = "/jobs/42/cancel";
     private static final String CANCEL_REASON = "매장 일정이 변경되어 작업이 필요 없어졌습니다.";
@@ -83,6 +100,10 @@ class JobCancelFlowTest {
     private final JobRepository jobRepository = mock(JobRepository.class);
     private final JobSubmissionRepository jobSubmissionRepository = mock(JobSubmissionRepository.class);
     private final PaymentRepository paymentRepository = mock(PaymentRepository.class);
+    private final JobApplicationRepository jobApplicationRepository = mock(JobApplicationRepository.class);
+    private final StudentRepository studentRepository = mock(StudentRepository.class);
+    private final ChatRoomService chatRoomService = mock(ChatRoomService.class);
+    private final ApplicationEventPublisher eventPublisher = mock(ApplicationEventPublisher.class);
     private final UsernamePasswordAuthenticationToken authentication =
             new UsernamePasswordAuthenticationToken(USERNAME, null);
 
@@ -93,12 +114,18 @@ class JobCancelFlowTest {
         Clock clock = Clock.fixed(NOW, ZoneId.of("UTC"));
         UserService userService = new UserService(userRepository, mock(JwtService.class));
         JobService jobService = new JobService(jobRepository, mock(JobSpecialtyRepository.class),
-                mock(JobApplicationRepository.class), jobSubmissionRepository, clock);
+                jobApplicationRepository, jobSubmissionRepository, clock);
         JobFacade facade = new JobFacade(userService, new OwnerService(ownerRepository), jobService,
-                mock(SpecialtyCategoryService.class), mock(SpecialtyService.class), new StudentService(mock(StudentRepository.class)),
+                mock(SpecialtyCategoryService.class), mock(SpecialtyService.class), new StudentService(studentRepository),
                 mock(JobSubmissionFileStorageClient.class), mock(ChatAttachmentPolicy.class),
                 new PaymentService(paymentRepository, clock),
-                mock(ReviewService.class), mock(CertificateService.class), mock(ProposalService.class), mock(MediaService.class), mock(ApplicationEventPublisher.class));
+                mock(ReviewService.class), mock(CertificateService.class), mock(ProposalService.class), mock(MediaService.class), eventPublisher,
+                new ImmediateTransactionTemplate(), chatRoomService);
+        when(studentRepository.findById(7L)).thenReturn(Optional.of(
+                Student.builder().id(7L).userId(STUDENT_USER_ID).build()));
+        ChatRoom chatRoom = ChatRoom.create(42L);
+        ReflectionTestUtils.setField(chatRoom, "id", CHAT_ROOM_ID);
+        when(chatRoomService.getOrCreate(42L)).thenReturn(chatRoom);
         mockMvc = MockMvcBuilders.standaloneSetup(new JobController(facade))
                 .setControllerAdvice(new GlobalExceptionHandler())
                 .build();
@@ -149,6 +176,11 @@ class JobCancelFlowTest {
         assertThat(job.getCompletedAt()).isEqualTo(LocalDateTime.ofInstant(NOW, ZoneOffset.UTC));
         assertThat(payment.getStatus()).isEqualTo(PaymentStatus.REFUNDED);
         assertThat(payment.getRefundedAt()).isEqualTo(NOW);
+        // 담당 학생에게 취소를 채팅방 대상으로, 사장님에게 기록된 환불 금액을 결제 대상으로 알린다
+        assertThat(publishedEvents()).containsExactly(
+                NotificationEventFactory.jobCancelledByOwner(STUDENT_USER_ID, 42L, CHAT_ROOM_ID, JOB_TITLE, STORE_NAME),
+                NotificationEventFactory.paymentRefunded(OWNER_USER_ID, 91L, JOB_TITLE, 80_000L));
+        verifyNoInteractions(jobApplicationRepository);
     }
 
     @Test
@@ -171,7 +203,7 @@ class JobCancelFlowTest {
         // 검토 상태로 걸러 읽지 않고 제출 이력 유무만 확인한다
         verify(jobSubmissionRepository).existsByJobId(42L);
         verifyNoMoreInteractions(jobSubmissionRepository);
-        verifyNoInteractions(paymentRepository);
+        verifyNoInteractions(paymentRepository, eventPublisher);
     }
 
     @Test
@@ -191,7 +223,31 @@ class JobCancelFlowTest {
         assertThat(job.getStatus()).isEqualTo(JobStatus.CANCELLED);
         assertThat(job.getCancelReason()).isEqualTo(CANCEL_REASON);
         assertThat(job.getMessageToStudent()).isEqualTo(MESSAGE_TO_STUDENT);
-        verifyNoInteractions(paymentRepository);
+        // 지원자가 없으면 알릴 대상도 없다
+        verifyNoInteractions(paymentRepository, eventPublisher, chatRoomService);
+    }
+
+    @Test
+    @DisplayName("모집 중 의뢰를 취소하면 대기 중 지원자 전체에게 모집 취소를 알리고 지원서 상태와 결제는 건드리지 않는다")
+    void notifiesPendingApplicantsWhenOpenJobIsCancelled() throws Exception {
+        givenActiveOwner();
+        givenOwnedJob(JobStatus.OPEN);
+        JobApplication first = pendingApplication(301L, 7L);
+        JobApplication second = pendingApplication(302L, 8L);
+        when(jobApplicationRepository.findByJobIdInAndStatus(List.of(42L), JobApplicationStatus.PENDING))
+                .thenReturn(List.of(first, second));
+        when(studentRepository.findAllById(List.of(7L, 8L))).thenReturn(List.of(
+                Student.builder().id(7L).userId(STUDENT_USER_ID).build(),
+                Student.builder().id(8L).userId(OTHER_STUDENT_USER_ID).build()));
+
+        mockMvc.perform(cancelRequest(VALID_BODY)).andExpect(status().isOk());
+
+        assertThat(publishedEvents()).containsExactly(
+                NotificationEventFactory.jobRecruitmentCancelled(STUDENT_USER_ID, 42L, JOB_TITLE, STORE_NAME),
+                NotificationEventFactory.jobRecruitmentCancelled(OTHER_STUDENT_USER_ID, 42L, JOB_TITLE, STORE_NAME));
+        assertThat(first.getStatus()).isEqualTo(JobApplicationStatus.PENDING);
+        assertThat(second.getStatus()).isEqualTo(JobApplicationStatus.PENDING);
+        verifyNoInteractions(paymentRepository, chatRoomService);
     }
 
     @Test
@@ -269,7 +325,7 @@ class JobCancelFlowTest {
         assertThat(job.getCompletedAt()).isEqualTo(cancelledAt);
         assertThat(job.getCancelReason()).isEqualTo("기존 이유");
         assertThat(job.getMessageToStudent()).isEqualTo("기존 남길 말");
-        verifyNoInteractions(paymentRepository);
+        verifyNoInteractions(paymentRepository, eventPublisher);
     }
 
     @Test
@@ -284,7 +340,7 @@ class JobCancelFlowTest {
         assertThat(job.getStatus()).isEqualTo(JobStatus.CLOSED);
         assertThat(job.getCancelReason()).isNull();
         assertThat(job.getMessageToStudent()).isNull();
-        verifyNoInteractions(paymentRepository);
+        verifyNoInteractions(paymentRepository, eventPublisher);
     }
 
     @Test
@@ -296,7 +352,7 @@ class JobCancelFlowTest {
         mockMvc.perform(cancelRequest(VALID_BODY))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.error.code").value("JOB_404"));
-        verifyNoInteractions(paymentRepository);
+        verifyNoInteractions(paymentRepository, eventPublisher);
     }
 
     @Test
@@ -309,7 +365,7 @@ class JobCancelFlowTest {
         mockMvc.perform(cancelRequest(VALID_BODY))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.error.code").value("OWNER_403"));
-        verifyNoInteractions(jobRepository, paymentRepository);
+        verifyNoInteractions(jobRepository, paymentRepository, eventPublisher);
     }
 
     @Test
@@ -338,13 +394,15 @@ class JobCancelFlowTest {
     private void givenActiveOwner() {
         when(userRepository.findByUsernameAndIsLock(USERNAME, false)).thenReturn(Optional.of(
                 User.builder().id(OWNER_USER_ID).role(UserRole.OWNER).build()));
-        when(ownerRepository.findByUserId(OWNER_USER_ID)).thenReturn(Optional.of(Owner.builder().id(5L).build()));
+        when(ownerRepository.findByUserId(OWNER_USER_ID)).thenReturn(Optional.of(
+                Owner.builder().id(5L).userId(OWNER_USER_ID).storeName(STORE_NAME).build()));
     }
 
     private Job givenOwnedJob(JobStatus status) {
         Job job = Job.builder()
                 .id(42L)
                 .ownerProfileId(5L)
+                .title(JOB_TITLE)
                 .status(status)
                 .selectedStudentProfileId(status == JobStatus.OPEN ? null : 7L)
                 .build();
@@ -356,7 +414,19 @@ class JobCancelFlowTest {
         Payment payment = Payment.pending(42L, 21L, OWNER_USER_ID, "order-123", amount, NOW);
         payment.recordKakaoTid("T1234567890123456789");
         payment.approve(NOW);
+        ReflectionTestUtils.setField(payment, "id", 91L);
         when(paymentRepository.findByJobIdAndStatus(42L, PaymentStatus.PAID)).thenReturn(Optional.of(payment));
         return payment;
+    }
+
+    private JobApplication pendingApplication(Long id, Long studentProfileId) {
+        return JobApplication.builder().id(id).jobId(42L).studentProfileId(studentProfileId)
+                .status(JobApplicationStatus.PENDING).build();
+    }
+
+    private List<NotificationEvent> publishedEvents() {
+        ArgumentCaptor<NotificationEvent> captor = ArgumentCaptor.forClass(NotificationEvent.class);
+        verify(eventPublisher, atLeastOnce()).publishEvent(captor.capture());
+        return captor.getAllValues();
     }
 }

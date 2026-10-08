@@ -4,60 +4,105 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="color-scheme" content="light">
-  <title>[가꿈] 학생 이메일 인증번호</title>
+  <meta name="supported-color-schemes" content="light">
+  <title>[골목인턴] 학생 이메일 인증번호</title>
 </head>
-<body style="margin:0; padding:0; background-color:#f3f6f4; -webkit-text-size-adjust:100%;">
-  <div style="display:none; max-height:0; overflow:hidden; opacity:0;">
-    가꿈 학생 이메일 인증번호는 {{code}}입니다. 10분 안에 입력해 주세요.
+<body style="margin:0; padding:0; background-color:#f9fafb; -webkit-text-size-adjust:100%; -ms-text-size-adjust:100%;">
+  <!-- 받은편지함 미리보기 줄 -->
+  <div style="display:none; max-height:0; max-width:0; overflow:hidden; opacity:0; mso-hide:all;">
+    골목인턴 학생 인증번호는 {{code}}이에요. 10분 안에 가입 화면에 입력해 주세요.
   </div>
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#f3f6f4;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#f9fafb;">
     <tr>
       <td align="center" style="padding:40px 16px;">
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"
-               style="max-width:480px; background-color:#ffffff; border-radius:16px; overflow:hidden; box-shadow:0 2px 12px rgba(31,61,46,0.08);">
+               style="max-width:480px; background-color:#ffffff; border:1px solid #e5e8eb; border-radius:20px; overflow:hidden;">
+
+          <!-- 머리: 앱 아이콘 + 골목인턴 글자 로고, 아래에 한 줄 소개 로고 (그림은 메일에 같이 붙여 보낸다: AuthService) -->
           <tr>
-            <td style="background-color:#2f7d5b; padding:28px 32px;">
-              <span style="font-family:'Apple SD Gothic Neo','Malgun Gothic',sans-serif; font-size:22px; font-weight:700; color:#ffffff; letter-spacing:-0.3px;">가꿈</span>
+            <td align="center" style="padding:28px 32px 22px 32px; background-color:#ffffff; border-bottom:4px solid #fef0b5;">
+              <table role="presentation" align="center" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td valign="middle" style="width:52px;">
+                    <img src="cid:golmok-app-icon" width="52" height="52" alt="골목인턴 앱 아이콘"
+                         style="display:block; width:52px; height:52px; border:0; border-radius:12px;">
+                  </td>
+                  <td valign="middle" style="padding-left:12px;">
+                    <img src="cid:golmok-logo" width="116" height="34" alt="골목인턴"
+                         style="display:block; width:116px; height:34px; border:0;">
+                  </td>
+                </tr>
+              </table>
+              <img src="cid:golmok-tagline" width="240" height="42" alt="제안과 의뢰로 함께 만들어 가는 월계1동 골목상권"
+                   style="display:block; margin:14px auto 0 auto; width:240px; height:42px; border:0;">
             </td>
           </tr>
+
+          <!-- 제목과 안내 -->
           <tr>
-            <td style="padding:36px 32px 8px 32px; font-family:'Apple SD Gothic Neo','Malgun Gothic',sans-serif;">
-              <h1 style="margin:0 0 12px 0; font-size:20px; font-weight:700; color:#1f2a24; letter-spacing:-0.3px;">학생 이메일 인증</h1>
-              <p style="margin:0; font-size:15px; line-height:1.6; color:#4a5750;">
-                아래 인증번호를 가꿈 화면에 입력해 주세요.
+            <td style="padding:28px 32px 0 32px; word-break:keep-all; font-family:'Apple SD Gothic Neo','Malgun Gothic','Noto Sans KR',sans-serif;">
+              <div style="display:inline-block; padding:4px 10px; border-radius:999px; background-color:#f5e9ed; font-size:12px; line-height:16px; font-weight:700; color:#98274c;">학생 가입 · 학교 메일 인증</div>
+              <h1 style="margin:14px 0 8px 0; font-size:22px; line-height:30px; font-weight:700; color:#191f28; letter-spacing:-0.4px;">학교 메일 인증번호예요</h1>
+              <p style="margin:0; font-size:15px; line-height:24px; color:#4e5968;">
+                골목인턴 학생 가입 화면에 아래 인증번호 6자리를 입력해 주세요.
               </p>
             </td>
           </tr>
+
+          <!-- 인증번호 -->
           <tr>
-            <td style="padding:24px 32px;">
+            <td style="padding:24px 32px 0 32px;">
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"
-                     style="background-color:#eef6f1; border:1px solid #cfe5d8; border-radius:12px;">
+                     style="background-color:#f5e9ed; border-radius:16px;">
                 <tr>
-                  <td align="center" style="padding:24px 16px;">
-                    <div style="font-family:'Apple SD Gothic Neo','Malgun Gothic',sans-serif; font-size:13px; color:#2f7d5b; font-weight:600; margin-bottom:8px;">인증번호</div>
-                    <div style="font-family:'SFMono-Regular',Menlo,Consolas,monospace; font-size:34px; font-weight:700; letter-spacing:8px; color:#1f2a24;">{{code}}</div>
+                  <td align="center" style="padding:26px 16px 24px 16px; word-break:keep-all; font-family:'Apple SD Gothic Neo','Malgun Gothic','Noto Sans KR',sans-serif;">
+                    <div style="font-size:13px; line-height:18px; font-weight:700; color:#98274c;">인증번호</div>
+                    <div style="margin-top:10px; font-family:'SFMono-Regular',Menlo,Consolas,'Courier New',monospace; font-size:36px; line-height:44px; font-weight:700; letter-spacing:10px; padding-left:10px; color:#191f28;">{{code}}</div>
+                    <div style="margin-top:10px; font-size:13px; line-height:18px; color:#4e5968;">
+                      <strong style="color:#98274c;">10분</strong> 안에 입력해 주세요
+                    </div>
                   </td>
                 </tr>
               </table>
             </td>
           </tr>
+
+          <!-- 알아 두면 좋은 것 -->
           <tr>
-            <td style="padding:0 32px 32px 32px; font-family:'Apple SD Gothic Neo','Malgun Gothic',sans-serif;">
-              <p style="margin:0 0 6px 0; font-size:14px; line-height:1.6; color:#4a5750;">
-                인증번호는 <strong style="color:#1f2a24;">10분</strong> 동안만 유효합니다.
+            <td style="padding:24px 32px 32px 32px; word-break:keep-all; font-family:'Apple SD Gothic Neo','Malgun Gothic','Noto Sans KR',sans-serif;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td valign="top" style="width:16px; padding-top:9px;">
+                    <div style="width:4px; height:4px; border-radius:2px; background-color:#8b95a1;"></div>
+                  </td>
+                  <td style="padding-bottom:8px; font-size:14px; line-height:22px; color:#4e5968;">
+                    시간이 지났거나 여러 번 틀렸다면 가입 화면에서 인증번호를 다시 받아 주세요.
+                  </td>
+                </tr>
+                <tr>
+                  <td valign="top" style="width:16px; padding-top:9px;">
+                    <div style="width:4px; height:4px; border-radius:2px; background-color:#8b95a1;"></div>
+                  </td>
+                  <td style="font-size:14px; line-height:22px; color:#4e5968;">
+                    직접 요청하지 않았다면 이 메일은 무시해도 괜찮아요. 다른 분이 메일 주소를 잘못 적었을 수 있어요.
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- 바닥글 -->
+          <tr>
+            <td style="padding:20px 32px 24px 32px; background-color:#f9fafb; border-top:1px solid #e5e8eb; word-break:keep-all; font-family:'Apple SD Gothic Neo','Malgun Gothic','Noto Sans KR',sans-serif;">
+              <p style="margin:0; font-size:12px; line-height:18px; color:#8b95a1;">
+                이 메일은 보내기 전용이에요. 답장을 보내셔도 받을 수 없어요.
               </p>
-              <p style="margin:0; font-size:14px; line-height:1.6; color:#4a5750;">
-                본인이 요청하지 않았다면 이 메일을 무시해 주세요.
+              <p style="margin:6px 0 0 0; font-size:12px; line-height:18px; font-weight:700; color:#8b95a1;">
+                골목인턴 · 동네 가게와 광운대 학생을 잇는 곳
               </p>
             </td>
           </tr>
-          <tr>
-            <td style="padding:20px 32px; border-top:1px solid #edf0ee; font-family:'Apple SD Gothic Neo','Malgun Gothic',sans-serif;">
-              <p style="margin:0; font-size:12px; line-height:1.6; color:#8a968f;">
-                이 메일은 발신 전용입니다. 회신하셔도 답변을 받을 수 없습니다.
-              </p>
-            </td>
-          </tr>
+
         </table>
       </td>
     </tr>

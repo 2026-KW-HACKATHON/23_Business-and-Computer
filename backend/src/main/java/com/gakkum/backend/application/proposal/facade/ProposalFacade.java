@@ -15,8 +15,10 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
 
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import com.gakkum.backend.domain.chat.entity.ChatRoom;
 import com.gakkum.backend.domain.chat.service.ChatRoomService;
@@ -24,6 +26,7 @@ import com.gakkum.backend.domain.job.entity.Job;
 import com.gakkum.backend.domain.job.service.JobService;
 import com.gakkum.backend.domain.media.dto.ImagePurpose;
 import com.gakkum.backend.domain.media.service.MediaService;
+import com.gakkum.backend.domain.notification.dto.NotificationEventFactory;
 import com.gakkum.backend.domain.owner.service.OwnerService;
 import com.gakkum.backend.domain.owner.entity.Owner;
 import com.gakkum.backend.domain.proposal.dto.ProposalCommandDto.CreateProposalCommand;
@@ -36,6 +39,7 @@ import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.ProposalAgreement
 import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.ProposalCancelResult;
 import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.ProposalJobDeclineResult;
 import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.ProposalJobStartResult;
+import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.ProposalLikeData;
 import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.ProposalLikeResult;
 import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.ProposalRejectResult;
 import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.ExploreProposalData;
@@ -71,6 +75,8 @@ public class ProposalFacade {
 
     // 결제 전 예상 마감일을 계산하는 기준 시간대. 결제 승인 시 마감일을 확정하는 시간대와 같다
     private static final ZoneId DEADLINE_ZONE = ZoneId.of("Asia/Seoul");
+    // 새 공감으로 이 인원에 도달했을 때만 공감 알림을 보낸다
+    private static final Set<Integer> LIKE_MILESTONES = Set.of(10, 30, 50);
 
     private final UserService userService;
     private final StudentService studentService;
@@ -84,10 +90,12 @@ public class ProposalFacade {
     private final PaymentService paymentService;
     private final ChatRoomService chatRoomService;
     private final Clock clock;
+    private final ApplicationEventPublisher eventPublisher;
+    private final TransactionTemplate transactionTemplate;
 
     /**
-     * 학생의 제안 전송. 역할·대상 사장님·소분류·사진을 검증한 뒤 저장한다.
-     * 사진 저장소 확인이 DB 트랜잭션과 커넥션을 붙잡지 않도록 이 메서드에는 트랜잭션을 두지 않는다.
+     * 학생의 제안 전송. 역할·대상 사장님·소분류·사진을 검증한 뒤 저장하고 받은 사장님에게 제안 도착 알림을 발행한다.
+     * 사진 저장소 확인이 DB 트랜잭션과 커넥션을 붙잡지 않도록 저장과 알림 준비만 트랜잭션으로 묶는다.
      */
     public ProposalCreateResult createProposal(CreateProposalCommand command) {
         User user = userService.getActiveUser(command.getUsername());
@@ -96,8 +104,13 @@ public class ProposalFacade {
         specialtyService.validateSpecialtyIds(command.getSpecialtyIds());
         validateUploadedImages(command.getReferenceImageUrls(), user.getId());
 
-        Proposal proposal = proposalService.createProposal(command, student.getId(), user.getDemoSessionId());
-        return ProposalCreateResult.from(proposal);
+        return transactionTemplate.execute(status -> {
+            Proposal proposal = proposalService.createProposal(command, student.getId(), user.getDemoSessionId());
+            Owner owner = ownerService.getOwnerProfileById(proposal.getOwnerProfileId());
+            eventPublisher.publishEvent(NotificationEventFactory.proposalReceived(
+                    owner.getUserId(), proposal.getId(), proposal.getTitle(), user.getName()));
+            return ProposalCreateResult.from(proposal);
+        });
     }
 
     /**
@@ -141,12 +154,23 @@ public class ProposalFacade {
     /**
      * 학생이 제안에 공감한다. 본인 제안과 취소·거절되지 않은 모든 상태의 제안에 공감할 수 있다.
      * 학생 검증과 공감 기록·공감 수 변경을 한 트랜잭션으로 처리하고, 이미 공감한 제안의 재요청은 공감 수를 바꾸지 않는다.
+     * 새로 추가된 공감으로 공감 수가 10·30·50명이 되면 받은 사장님과 제안한 학생에게 각각 알린다.
+     * 공감 취소 뒤 같은 기준에 다시 도달해도 같은 이벤트로 발행하므로 알림은 수신자별로 한 번만 저장된다.
      */
     @Transactional
     public ProposalLikeResult likeProposal(String username, Long proposalId) {
         User user = userService.getActiveUser(username);
         Student student = getLikingStudent(user);
-        Proposal proposal = proposalService.likeProposal(proposalId, student.getId(), user.getDemoSessionId());
+        ProposalLikeData liked = proposalService.likeProposal(proposalId, student.getId(), user.getDemoSessionId());
+        Proposal proposal = liked.getProposal();
+        if (liked.isAdded() && LIKE_MILESTONES.contains(proposal.getLikeCount())) {
+            Owner owner = ownerService.getOwnerProfileById(proposal.getOwnerProfileId());
+            Student proposer = studentService.getStudentProfile(proposal.getStudentProfileId());
+            eventPublisher.publishEvent(NotificationEventFactory.proposalLikeMilestoneReachedForOwner(
+                    owner.getUserId(), proposal.getId(), proposal.getTitle(), proposal.getLikeCount()));
+            eventPublisher.publishEvent(NotificationEventFactory.proposalLikeMilestoneReachedForStudent(
+                    proposer.getUserId(), proposal.getId(), proposal.getTitle(), proposal.getLikeCount()));
+        }
         return ProposalLikeResult.of(proposal, true);
     }
 
@@ -167,6 +191,7 @@ public class ProposalFacade {
      * 제안 행을 잠근 채 격리 범위 → 작성자 → 상태 → 결제 대기 주문 순서로 확인하고,
      * 상태 전환·공감 기록 삭제·공감 수 초기화를 한 트랜잭션으로 처리한다. 결제·의뢰 데이터는 바꾸지 않는다.
      * 결제 준비도 같은 제안 행을 잠그므로 취소와 결제 준비는 순서대로 처리되고, 결제 대기 주문이 남아 있으면 409다.
+     * 처음 취소로 전환한 요청만 받은 사장님에게 취소 알림을 발행한다.
      */
     @Transactional
     public ProposalCancelResult cancelProposal(String username, Long proposalId) {
@@ -179,6 +204,9 @@ public class ProposalFacade {
                 throw new BusinessException(ErrorCode.PROPOSAL_CANCEL_PAYMENT_PENDING);
             }
             proposalService.cancelProposal(proposal);
+            Owner owner = ownerService.getOwnerProfileById(proposal.getOwnerProfileId());
+            eventPublisher.publishEvent(NotificationEventFactory.proposalCancelled(
+                    owner.getUserId(), proposal.getId(), proposal.getTitle(), user.getName()));
         }
         return ProposalCancelResult.from(proposal);
     }
@@ -188,6 +216,7 @@ public class ProposalFacade {
      * 제안 행을 잠근 채 격리 범위 → 받은 사장님 → 상태 → 결제 대기 주문 순서로 확인하고, 거절 주체와 시각을 함께 저장한다.
      * 공감 기록·공감 수와 결제 데이터는 바꾸지 않고 외부 결제 호출도 하지 않는다.
      * 결제 준비·승인도 같은 제안 행을 잠그므로 거절과 순서대로 처리되고, 카카오 거래번호와 무관하게 결제 대기 주문이 남아 있으면 409다.
+     * 처음 거절로 전환한 요청만 제안한 학생에게 거절 알림을 발행한다.
      */
     @Transactional
     public ProposalRejectResult rejectProposal(String username, Long proposalId) {
@@ -200,6 +229,9 @@ public class ProposalFacade {
                 throw new BusinessException(ErrorCode.PROPOSAL_REJECT_PAYMENT_PENDING);
             }
             proposal.rejectByOwner(now());
+            Student proposer = studentService.getStudentProfile(proposal.getStudentProfileId());
+            eventPublisher.publishEvent(NotificationEventFactory.proposalRejected(
+                    proposer.getUserId(), proposal.getId(), proposal.getTitle(), owner.getStoreName()));
         }
         return ProposalRejectResult.from(proposal);
     }
@@ -209,6 +241,7 @@ public class ProposalFacade {
      * 제안의 수락 전환, 의뢰의 진행 중 전환, 시작 시각 기록, 채팅방 생성을 한 트랜잭션으로 처리한다.
      * 잠금 순서는 결제 승인과 같이 제안 → 의뢰다. 의뢰의 제안 ID를 먼저 읽고, 잠근 뒤 연결 관계를 다시 확인한다.
      * 이미 시작한 의뢰의 재요청은 기존 시작 시각과 채팅방을 그대로 반환한다.
+     * 처음 시작한 요청만 의뢰한 사장님에게 작업 시작 알림을 발행한다.
      */
     @Transactional
     public ProposalJobStartResult startProposalJob(StartProposalJobCommand command) {
@@ -221,9 +254,16 @@ public class ProposalFacade {
 
         Long proposalId = jobService.getStartableProposalId(command.getJobId(), student.getId());
         Proposal proposal = proposalService.getStartableProposalForUpdate(proposalId, student.getId());
+        // 잠근 제안이 수락 대기면 이 요청이 작업을 처음 시작한다
+        boolean firstStart = proposal.getStatus() == ProposalStatus.AWAITING_START;
         Job job = jobService.startJob(command.getJobId(), proposalId, student.getId());
         proposal.accept();
         ChatRoom chatRoom = chatRoomService.getOrCreate(job.getId());
+        if (firstStart) {
+            Owner owner = ownerService.getOwnerProfileById(job.getOwnerProfileId());
+            eventPublisher.publishEvent(NotificationEventFactory.jobStarted(
+                    owner.getUserId(), job.getId(), chatRoom.getId(), job.getTitle(), user.getName()));
+        }
         return ProposalJobStartResult.of(job, proposal, chatRoom.getId());
     }
 
@@ -233,6 +273,7 @@ public class ProposalFacade {
      * 잠금 순서는 제안 → 의뢰 → 결제다. 의뢰의 제안 ID를 먼저 읽고, 잠근 뒤 연결 관계·작성자·상태를 다시 확인한다.
      * 이미 시작·거절·종료된 의뢰의 재요청은 409로 거부해 환불을 다시 처리하지 않는다.
      * 결제 완료 주문이 없거나 주문의 제안·결제한 사장님이 의뢰와 맞지 않으면 500으로 전체 변경을 되돌린다.
+     * 환불 기록을 저장하면 결제한 사장님에게 환불 내역 알림을 발행한다.
      */
     @Transactional
     public ProposalJobDeclineResult declineProposalJob(String username, Long jobId) {
@@ -250,6 +291,8 @@ public class ProposalFacade {
         // 환불 대상 결제가 이 의뢰의 사장님이 결제한 주문인지 확인하도록 의뢰한 사장님을 넘긴다
         Owner owner = ownerService.getOwnerProfileById(job.getOwnerProfileId());
         RefundedPaymentData refund = paymentService.refundOnDecline(jobId, proposalId, owner.getUserId());
+        eventPublisher.publishEvent(NotificationEventFactory.paymentRefunded(
+                owner.getUserId(), refund.paymentId(), job.getTitle(), refund.refundAmount()));
         return ProposalJobDeclineResult.of(job, proposal, refund);
     }
 
