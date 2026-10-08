@@ -29,6 +29,9 @@ It runs, in order:
    `harness-starter-kit/` clone).
 2. `npm run lint` — ESLint including `react-hooks` rules.
 3. `npm run build` — `tsc -b` type check + Vite production build.
+4. `npm run test:notifications` — `node scripts/check_notification_paths.mjs`
+   loads the notification routing modules through Vite and checks where every
+   backend notification type leads, for owners and students.
 
 Other useful scripts:
 
@@ -82,8 +85,10 @@ rules that must hold:
 - Create a directory only when it gets its first real file; do not commit empty
   placeholder folders.
 
-Tests: none yet. When added, prefer Vitest + React Testing Library, colocate
-`*.test.tsx`, and wire the runner into `npm run check`.
+Tests: no test runner yet; `scripts/check_notification_paths.mjs` checks the
+notification routing with `node:assert` through the installed Vite. When a
+runner is added, prefer Vitest + React Testing Library, colocate `*.test.tsx`,
+and wire the runner into `npm run check`.
 
 Generated/ignored (never edit): `dist/`, `node_modules/`, `.vite/`. Other
 coding conventions that lint/tsc do not enforce live in

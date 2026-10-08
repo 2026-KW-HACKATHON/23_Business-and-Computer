@@ -88,16 +88,18 @@ export {
   REQUEST_PHOTO_ACCEPT,
   addRequestPhotos,
   dueDatesReady,
+  exampleRequestChoice,
+  fitRequestChoice,
   photoSizeText,
   readNewRequestState,
-  requestSpecialtyIds,
+  requestCategoryNames,
   sendJobCreate,
   similarRequestState,
   taskSummary,
   toJobCreateRequest,
   uploadRequestPhoto,
 } from "./lib/newRequest";
-export type { NewRequestState } from "./lib/newRequest";
+export type { NewRequestState, RequestChoice } from "./lib/newRequest";
 export { notificationPath } from "./lib/notifications";
 export { OWNER_PATHS } from "./lib/paths";
 export { startReward } from "./lib/payment";

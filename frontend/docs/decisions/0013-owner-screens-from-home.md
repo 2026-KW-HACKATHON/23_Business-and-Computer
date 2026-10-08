@@ -34,7 +34,7 @@ them yet.
   wired. Chat (ADR 0034) and 알림 read and write the backend.
 - 의뢰 등록 1/3 starts empty from the FAB and with the example's field and
   task picked when opened from an example card (`exampleId` in router
-  state). Tasks per field reuse `SPECIALTY_BADGES`.
+  state). Fields and tasks come from GET /specialties (ADR 0058).
 - New shared components: `SubScreen` (← title app bar, scroll body, fixed
   footer), `MenuList`, `ExploreCard`, `ChatRow`, `NotificationRow`,
   `InfoRows`, `LabelChip`, `AttachmentTiles`, `NoteBox`, and `WorkPlan`.

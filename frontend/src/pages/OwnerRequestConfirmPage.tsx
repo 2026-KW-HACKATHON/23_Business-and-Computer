@@ -14,15 +14,13 @@ import { landingPath } from "../features/auth";
 import {
   OWNER_PATHS,
   readNewRequestState,
-  requestSpecialtyIds,
+  requestCategoryNames,
   sendJobCreate,
   taskSummary,
   toJobCreateRequest,
   uploadRequestPhoto,
 } from "../features/owner";
 import type { NewRequestState } from "../features/owner";
-import { fetchSpecialties } from "../features/specialty";
-import type { SpecialtyCategory } from "../features/specialty";
 import { useBack } from "../hooks/useBack";
 import { useFinishFlow } from "../hooks/useFlowHistory";
 import { useObjectUrls } from "../hooks/useObjectUrls";
@@ -46,7 +44,7 @@ const SEND_ERROR_TEXT: Record<SendError, string> = {
 
 /**
  * 피그마 「의뢰 등록 3/3 - 확인」. 2/3 에서 적은 내용을 의뢰서 모양으로 보여 주고, 「의뢰 등록하기」에서
- * 고른 할 일을 서버 특기 id 로 바꾸고(GET /specialties) 참고 사진을 올린 뒤 POST /jobs 로 등록한다 (ADR 0028).
+ * 참고 사진을 올린 뒤 1/3 에서 고른 특기 id 로 POST /jobs 등록한다 (ADR 0028, ADR 0058).
  */
 function OwnerRequestConfirmPage() {
   const navigate = useNavigate();
@@ -72,13 +70,15 @@ function OwnerRequestConfirmPage() {
     };
   }, []);
 
-  if (!state?.content) return <Navigate to={OWNER_PATHS.newRequest} replace />;
+  if (!state?.content || state.picked.length === 0) {
+    return <Navigate to={OWNER_PATHS.newRequest} replace />;
+  }
   const { content } = state;
 
   // 할 일 목록이 바뀌었으면 1/3 부터 다시 고른다
   const backToTasks = () => {
     window.alert("할 일 목록이 바뀌었어요. 다시 골라 주세요");
-    const next: NewRequestState = { ...state, fields: [], picked: [] };
+    const next: NewRequestState = { ...state, categoryIds: [], picked: [] };
     navigate(OWNER_PATHS.newRequest, { replace: true, state: next });
   };
 
@@ -86,23 +86,6 @@ function OwnerRequestConfirmPage() {
     const id = ++requestId.current;
     setSending(true);
     setSendError(null);
-
-    let categories: SpecialtyCategory[];
-    try {
-      categories = await fetchSpecialties();
-    } catch {
-      if (id !== requestId.current) return;
-      setSending(false);
-      setSendError("retry");
-      return;
-    }
-    if (id !== requestId.current) return;
-    const specialtyIds = requestSpecialtyIds(state, categories);
-    if (!specialtyIds) {
-      setSending(false);
-      backToTasks();
-      return;
-    }
 
     const imageUrls: string[] = [];
     for (const photo of content.photos) {
@@ -126,7 +109,7 @@ function OwnerRequestConfirmPage() {
       imageUrls.push(upload.imageUrl);
     }
 
-    const result = await sendJobCreate(toJobCreateRequest(content, specialtyIds, imageUrls));
+    const result = await sendJobCreate(toJobCreateRequest(content, state.picked, imageUrls));
     if (id !== requestId.current) return;
     setSending(false);
 
@@ -202,8 +185,8 @@ function OwnerRequestConfirmPage() {
             <h3 className="owner-confirm__title">{content.title}</h3>
           </div>
           <div className="owner-confirm__badges">
-            {state.fields.map((field) => (
-              <CategoryBadge key={field} field={field} />
+            {requestCategoryNames(state).map((name) => (
+              <CategoryBadge key={name} field={name} />
             ))}
           </div>
           <InfoRows

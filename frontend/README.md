@@ -10,6 +10,6 @@ npm run dev
 npm run check
 ```
 
-`npm run check` is the normal completion gate. It checks for tracked local/generated files, runs ESLint, and builds with TypeScript and Vite. There is no automated browser test or frontend CI workflow yet. Changes involving user flows should also be checked in the browser; API changes require a running backend and a contract check against its implementation.
+`npm run check` is the normal completion gate. It checks for tracked local/generated files, runs ESLint, builds with TypeScript and Vite, and checks where each notification type leads (`npm run test:notifications`). There is no automated browser test or frontend CI workflow yet. Changes involving user flows should also be checked in the browser; API changes require a running backend and a contract check against its implementation.
 
 See `AGENTS.md` for coding-agent work boundaries and verification expectations.

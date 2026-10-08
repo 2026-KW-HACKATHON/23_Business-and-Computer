@@ -1,8 +1,6 @@
 import { ApiError } from "../../../api/client";
 import { IMAGE_UPLOAD_EXTENSIONS, MAX_IMAGE_UPLOAD_BYTES, uploadImage } from "../../../api/media";
 import { todayIsoDate } from "../../../lib/date";
-import type { Field } from "../../../types/field";
-import { SPECIALTY_BADGES } from "../../../types/specialty";
 import { findSpecialtyByName, implicitSpecialty } from "../../specialty";
 import type { SpecialtyCategory } from "../../specialty";
 import { createJob } from "../api/jobApi";
@@ -16,7 +14,8 @@ import type { DueDates, PickedTask, RequestContent } from "../types";
 export interface NewRequestState {
   /** 홈 예시 카드로 들어왔을 때 그 예시 id */
   exampleId?: string;
-  fields: Field[];
+  /** 1/3 에서 펼친 대분류 id (← 로 돌아왔을 때 그대로 보이게) */
+  categoryIds: number[];
   picked: PickedTask[];
   /** 2/3 에서 적은 내용 */
   content?: RequestContent;
@@ -26,13 +25,18 @@ export interface NewRequestState {
 export function readNewRequestState(state: unknown): NewRequestState | undefined {
   if (!state || typeof state !== "object") return undefined;
   const value = state as Partial<NewRequestState>;
-  if (!Array.isArray(value.fields) || !Array.isArray(value.picked)) return undefined;
+  if (!Array.isArray(value.categoryIds) || !Array.isArray(value.picked)) return undefined;
   return value as NewRequestState;
 }
 
-/** 의뢰서 「할 일」 줄. 고른 일이 없으면 (기타만 고른 경우) 분야 이름 */
-export function taskSummary({ fields, picked }: NewRequestState): string {
-  return picked.length > 0 ? picked.map((p) => p.task).join(", ") : fields.join(", ");
+/** 의뢰서 「할 일」 줄 */
+export function taskSummary({ picked }: NewRequestState): string {
+  return picked.map((p) => p.name).join(", ");
+}
+
+/** 고른 일의 대분류 이름 (겹치지 않게, 고른 순서대로) */
+export function requestCategoryNames({ picked }: NewRequestState): string[] {
+  return [...new Set(picked.map((p) => p.categoryName))];
 }
 
 /** 두 마감일을 다 고르고 최종 마감이 초안 마감보다 앞서지 않는지 */
@@ -80,46 +84,92 @@ export function photoSizeText(bytes: number): string {
     : `${Math.max(1, Math.round(bytes / 1024))}KB`;
 }
 
-/** 「우리 가게에도 비슷한 의뢰 만들기」: 같은 분야 · 같은 일이 골라진 의뢰 등록 1/3 */
-export function similarRequestState(field: Field, tasks: string[] = []): NewRequestState {
-  const known = SPECIALTY_BADGES.find((group) => group.field === field)?.badges ?? [];
+/** 의뢰 등록 1/3 에서 고른 분야 · 일 */
+export type RequestChoice = Pick<NewRequestState, "categoryIds" | "picked">;
+
+/**
+ * 「우리 가게에도 비슷한 의뢰 만들기」: 의뢰서 · 제안서의 대분류(GET /jobs/{id} · GET /proposals/{id} 의
+ * specialtyCategories)가 골라진 의뢰 등록 1/3. withTasks 면 그 안의 특기도 골라 둔다.
+ */
+export function similarRequestState(
+  categories: SpecialtyCategory[],
+  { withTasks }: { withTasks: boolean },
+): NewRequestState {
   return {
-    fields: [field],
-    picked: tasks.filter((task) => known.includes(task)).map((task) => ({ field, task })),
+    categoryIds: categories.map((category) => category.id),
+    picked: withTasks
+      ? categories.flatMap((category) =>
+          category.specialties.map((specialty) => ({
+            specialtyId: specialty.id,
+            name: specialty.name,
+            categoryId: category.id,
+            categoryName: category.name,
+          })),
+        )
+      : [],
   };
 }
 
 /**
- * 고른 분야 · 할 일을 서버 특기 id 로 바꾼다. 할 일은 분야 이름 + 할 일 이름으로 찾고, 할 일을 고르지
- * 않은 분야(「기타」)는 그 분야에 하나뿐인 특기를 쓴다. 하나라도 서버에 없으면 undefined (목록이 바뀜).
+ * 홈 예시의 분야 · 일 이름을 서버 목록에서 찾아 고른 값으로. 이름이 서버에 없으면 아무것도 고르지 않는다
+ * (학생 제안 예시와 같은 규칙).
  */
-export function requestSpecialtyIds(
-  { fields, picked }: NewRequestState,
+export function exampleRequestChoice(
   categories: SpecialtyCategory[],
-): number[] | undefined {
-  const ids: number[] = [];
-  for (const { field, task } of picked) {
-    const found = findSpecialtyByName(categories, field, task);
-    if (!found) return undefined;
-    ids.push(found.specialty.id);
+  example: { field: string; task: string },
+): RequestChoice {
+  const found = findSpecialtyByName(categories, example.field, example.task);
+  if (!found) return { categoryIds: [], picked: [] };
+  return {
+    categoryIds: [found.category.id],
+    picked: [
+      {
+        specialtyId: found.specialty.id,
+        name: found.specialty.name,
+        categoryId: found.category.id,
+        categoryName: found.category.name,
+      },
+    ],
+  };
+}
+
+/**
+ * 들고 온 분야 · 일을 지금 서버 목록에 맞춘다. 목록에 없는 분류 · 특기는 빼고, 「기타」처럼 카드로 정해지는
+ * 분류는 그 특기를 골라 둔다.
+ */
+export function fitRequestChoice(categories: SpecialtyCategory[], choice: RequestChoice): RequestChoice {
+  const shown = categories.filter((category) => choice.categoryIds.includes(category.id));
+  const picked: PickedTask[] = [];
+  const add = (category: SpecialtyCategory, specialty: { id: number; name: string }) => {
+    if (picked.some((p) => p.specialtyId === specialty.id)) return;
+    picked.push({
+      specialtyId: specialty.id,
+      name: specialty.name,
+      categoryId: category.id,
+      categoryName: category.name,
+    });
+  };
+  // 고른 순서를 지킨다
+  for (const task of choice.picked) {
+    const category = shown.find((c) => c.id === task.categoryId);
+    const specialty = category?.specialties.find((s) => s.id === task.specialtyId);
+    if (category && specialty) add(category, specialty);
   }
-  for (const field of fields.filter((f) => !picked.some((p) => p.field === f))) {
-    const category = categories.find((c) => c.name === field);
-    const only = category && implicitSpecialty(category);
-    if (!only) return undefined;
-    ids.push(only.id);
+  for (const category of shown) {
+    const only = implicitSpecialty(category);
+    if (only) add(category, only);
   }
-  return ids.length > 0 ? [...new Set(ids)] : undefined;
+  return { categoryIds: shown.map((category) => category.id), picked };
 }
 
 /** 3/3 에서 보낼 POST /jobs 본문 */
 export function toJobCreateRequest(
   content: RequestContent,
-  specialtyIds: number[],
+  picked: PickedTask[],
   referenceImageUrls: string[],
 ): JobCreateRequest {
   return {
-    specialtyIds,
+    specialtyIds: [...new Set(picked.map((p) => p.specialtyId))],
     title: content.title.trim(),
     description: content.description.trim(),
     budget: content.budget,
