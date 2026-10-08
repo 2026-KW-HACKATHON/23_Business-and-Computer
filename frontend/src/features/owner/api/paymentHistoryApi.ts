@@ -15,6 +15,10 @@ export interface PaymentHistoryItem {
   approvedAt?: string | null;
   studentName?: string | null;
   status: PaymentHistoryStatus;
+  /** 정산한 날 (한국 날짜 "2026-10-06"). 정산 완료일 때만 */
+  settledDate?: string | null;
+  /** 환불한 날 (한국 날짜). 부분 · 전액 환불일 때만 */
+  refundedDate?: string | null;
 }
 
 /** GET /payments 의 답. 요약과 달마다 묶은 결제 */
