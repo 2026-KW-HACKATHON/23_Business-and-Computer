@@ -96,7 +96,7 @@ public class AuthService {
             MimeMessageHelper helper = new MimeMessageHelper(message, true, StandardCharsets.UTF_8.name());
             helper.setFrom(senderAddress);
             helper.setTo(email);
-            helper.setSubject("[가꿈] 학생 이메일 인증번호");
+            helper.setSubject("[골목인턴] 학생 이메일 인증번호");
             helper.setText(
                     "학생 이메일 인증번호는 " + code + "입니다. 10분 안에 입력해 주세요.",
                     verificationMailTemplate.replace("{{code}}", code));
