@@ -645,7 +645,7 @@ public class JobFacade {
         return userService.getActiveUser(username).getRole() == UserRole.STUDENT;
     }
 
-    /** 학생 본인과 매칭된 진행 중 의뢰를 최신 제출물 상태, 의뢰한 사장님의 현재 매장 이름과 함께 조회한다. */
+    /** 학생 본인과 매칭된 진행 중 의뢰를 최신 제출물 상태, 의뢰한 사장님의 현재 매장 이름·사진과 함께 조회한다. */
     @Transactional(readOnly = true)
     public StudentMatchedJobListResult getStudentMatchedJobs(String username) {
         User user = userService.getActiveUser(username);
@@ -665,14 +665,14 @@ public class JobFacade {
                 .flatMap(job -> job.getSpecialtyIds().stream())
                 .collect(Collectors.toSet());
         Map<Long, SpecialtyDetail> specialtiesById = specialtyCategoryService.getSpecialtyDetails(specialtyIds);
-        Map<Long, String> storeNames = ownerService.getStoreNames(jobs.stream()
+        Map<Long, Owner> ownersById = ownerService.getOwnerProfilesByIds(jobs.stream()
                 .map(job -> job.getJob().getOwnerProfileId())
                 .collect(Collectors.toSet()));
 
         return StudentMatchedJobListResult.of(jobs.stream()
                 .map(job -> StudentMatchedJobResult.of(
                         job,
-                        storeNames.get(job.getJob().getOwnerProfileId()),
+                        ownersById.get(job.getJob().getOwnerProfileId()),
                         groupSpecialties(job.getSpecialtyIds(), specialtiesById)))
                 .toList());
     }

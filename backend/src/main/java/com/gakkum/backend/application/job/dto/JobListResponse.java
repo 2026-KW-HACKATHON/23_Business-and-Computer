@@ -152,6 +152,8 @@ public final class JobListResponse {
         private final Long pendingSubmissionId;
         private final JobProgressStage progressStage;
         private final String studentName;
+        // 선정 학생의 프로필 사진. 사진이 없으면 null
+        private final String studentProfileImageUrl;
         private final Long budget;
         private final Integer revisionCount;
         private final Integer revisionNumber;
@@ -173,6 +175,7 @@ public final class JobListResponse {
                     .pendingSubmissionId(result.getPendingSubmissionId())
                     .progressStage(result.getProgressStage())
                     .studentName(result.getStudentName())
+                    .studentProfileImageUrl(result.getStudentProfileImageUrl())
                     .budget(result.getBudget())
                     .revisionCount(result.getRevisionCount())
                     .revisionNumber(result.getRevisionNumber())
@@ -210,6 +213,8 @@ public final class JobListResponse {
         private final String reviewStatus;
         private final JobProgressStage progressStage;
         private final String storeName;
+        // 매장 대표 사진(사장님 프로필 사진). 사진이 없으면 null
+        private final String storeProfileImageUrl;
         private final OffsetDateTime submittedAt;
 
         public static StudentMatchedJob from(StudentMatchedJobResult result) {
@@ -227,6 +232,7 @@ public final class JobListResponse {
                     .reviewStatus(result.getReviewStatus())
                     .progressStage(result.getProgressStage())
                     .storeName(result.getStoreName())
+                    .storeProfileImageUrl(result.getStoreProfileImageUrl())
                     .submittedAt(KoreaTime.from(result.getSubmittedAt()))
                     .build();
         }

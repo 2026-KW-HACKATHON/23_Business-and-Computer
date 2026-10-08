@@ -72,10 +72,12 @@ public class ReceivedProposalListResponse {
         private final String name;
         private final String studentNumber;
         private final String major;
+        // 학생 프로필 사진. 사진이 없으면 null
+        private final String profileImageUrl;
 
         public static ReceivedProposalStudent from(ReceivedProposalStudentResult result) {
-            return new ReceivedProposalStudent(
-                    result.getStudentProfileId(), result.getName(), result.getStudentNumber(), result.getMajor());
+            return new ReceivedProposalStudent(result.getStudentProfileId(), result.getName(),
+                    result.getStudentNumber(), result.getMajor(), result.getProfileImageUrl());
         }
     }
 }

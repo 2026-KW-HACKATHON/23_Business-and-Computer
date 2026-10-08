@@ -105,7 +105,7 @@ class JobControllerTest {
     }
 
     @Test
-    @DisplayName("MATCHED 상태이면 학생 정보·계약 조건과 대기 중 제출물을 응답한다")
+    @DisplayName("MATCHED 상태이면 학생 정보(프로필 사진 포함)·계약 조건과 대기 중 제출물을 응답한다")
     void returnsMatchedJobList() throws Exception {
         Job job = Job.builder()
                 .id(42L)
@@ -130,6 +130,7 @@ class JobControllerTest {
                         .id(7L)
                         .studentNumber("2023123456")
                         .major("컴퓨터정보공학부")
+                        .profileImageUrl("https://cdn.example.com/students/7/profile.png")
                         .build(),
                 User.builder().name("홍길동").build(),
                 List.of(SpecialtyCategoryResult.of(1L, "개발", List.of(
@@ -152,6 +153,8 @@ class JobControllerTest {
                 .andExpect(jsonPath("$.data.jobs[0].pendingSubmissionId").value(81))
                 .andExpect(jsonPath("$.data.jobs[0].progressStage").value("DRAFT"))
                 .andExpect(jsonPath("$.data.jobs[0].studentName").value("홍길동"))
+                .andExpect(jsonPath("$.data.jobs[0].studentProfileImageUrl")
+                        .value("https://cdn.example.com/students/7/profile.png"))
                 .andExpect(jsonPath("$.data.jobs[0].budget").value(300000))
                 .andExpect(jsonPath("$.data.jobs[0].revisionCount").value(2))
                 .andExpect(jsonPath("$.data.jobs[0].revisionNumber").value(0))
@@ -171,7 +174,7 @@ class JobControllerTest {
     }
 
     @Test
-    @DisplayName("대기 중 제출물이 없는 MATCHED 의뢰는 제출물 필드를 null로 응답한다")
+    @DisplayName("대기 중 제출물이 없는 MATCHED 의뢰는 제출물 필드를, 사진이 없는 학생은 프로필 사진을 null로 응답한다")
     void returnsNullSubmissionFields() throws Exception {
         Job job = Job.builder()
                 .id(44L)
@@ -197,6 +200,7 @@ class JobControllerTest {
                 .andExpect(jsonPath("$.data.jobs[0].revisionNumber").value(nullValue()))
                 .andExpect(jsonPath("$.data.jobs[0].submittedAt").value(nullValue()))
                 .andExpect(jsonPath("$.data.jobs[0].studentName").value("김철수"))
+                .andExpect(jsonPath("$.data.jobs[0].studentProfileImageUrl").value(nullValue()))
                 .andExpect(jsonPath("$.data.jobs[0].progressStage").value("STARTED"));
     }
 
