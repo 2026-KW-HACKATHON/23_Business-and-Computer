@@ -44,6 +44,12 @@
   color: var(--text-body);
 }
 
+/* 학생이 작업 중인 제안. 다른 상태(회색)와 구분되게 사장님 색으로 칠한다 */
+.owner-proposal__chip--working {
+  background: var(--color-main);
+  color: var(--color-black);
+}
+
 .owner-proposal__message-title {
   margin: 4px 0 0;
   font-size: 14px;

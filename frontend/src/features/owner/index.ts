@@ -80,6 +80,7 @@ export {
   proposalStudentRecord,
   receivedOnText,
   receivedProposalFlowSteps,
+  receivedProposalInProgress,
   receivedProposalStatusLabel,
   studentMetaText,
 } from "./lib/receivedProposals";

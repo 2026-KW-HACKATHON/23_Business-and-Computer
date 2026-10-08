@@ -23,6 +23,7 @@ import {
   ownerProgressNoun,
   ownerProgressStatusText,
   receivedOnText,
+  receivedProposalInProgress,
   receivedProposalStatusLabel,
   jobCategoryNames,
   studentMetaText,
@@ -178,7 +179,11 @@ function OwnerActivityPage() {
           title={proposal.title}
           right={
             <>
-              <span className="owner-activity__chip">
+              <span
+                className={`owner-activity__chip${
+                  receivedProposalInProgress(proposal.status, proposal.jobStatus) ? " owner-activity__chip--working" : ""
+                }`}
+              >
                 {receivedProposalStatusLabel(proposal.status, proposal.jobStatus)}
               </span>
               <EmpathyCount count={proposal.likeCount} empathized />

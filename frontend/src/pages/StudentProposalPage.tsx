@@ -20,6 +20,7 @@ import {
   sendProposalCancel,
   sentOnText,
   sentProposalFlowSteps,
+  sentProposalInProgress,
   sentProposalStatusLabel,
   storeAddressText,
 } from "../features/student";
@@ -163,7 +164,11 @@ function StudentProposalPage() {
               <h2 className="student-detail__title">{proposal.title}</h2>
             </div>
             <div className="student-detail__meta student-proposal__meta">
-              <span className="student-proposal__chip">
+              <span
+                className={`student-proposal__chip${
+                  sentProposalInProgress(proposal.status, jobStatus) ? " student-proposal__chip--working" : ""
+                }`}
+              >
                 {sentProposalStatusLabel(proposal.status, jobStatus)}
               </span>
               {proposalBadgeNames(proposal.specialtyCategories).map((name) => (

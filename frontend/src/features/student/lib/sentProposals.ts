@@ -11,13 +11,15 @@ export type SentProposal = MyProposalResponse;
 
 /**
  * 상태 칩 글자. 거절 · 취소된 제안과 의뢰가 취소된 제안(목록 jobStatus · 상세 agreement.jobStatus 가
- * CANCELLED)은 누가 했든 「성사되지 않음」.
+ * CANCELLED)은 누가 했든 「성사되지 않음」, 제안으로 시작한 일이 끝났으면(jobStatus CLOSED,
+ * 제안은 ACCEPTED 그대로) 「완료」.
  */
 export function sentProposalStatusLabel(
   status: ProposalStatus,
   jobStatus?: ProposalJobStatus | null,
 ): string {
   if (jobStatus === "CANCELLED") return "성사되지 않음";
+  if (jobStatus === "CLOSED") return "완료";
   switch (status) {
     case "PENDING":
       return "수락 대기 중";
@@ -31,15 +33,24 @@ export function sentProposalStatusLabel(
   }
 }
 
+/** 작업 중인 제안. 칩을 다른 상태와 다른 색으로 보인다 */
+export function sentProposalInProgress(
+  status: ProposalStatus,
+  jobStatus?: ProposalJobStatus | null,
+): boolean {
+  return status === "ACCEPTED" && jobStatus !== "CLOSED" && jobStatus !== "CANCELLED";
+}
+
 /**
  * 흐름 막대 (제안 → 시작 → 초안 → 수정 → 완료). 수락 대기 = 제안, 수락됨(결제 완료) = 시작,
- * 작업 중 = 초안. 성사되지 않은 제안은 막대를 보이지 않는다 (undefined).
+ * 작업 중 = 초안, 끝난 일 = 모든 단계 완료. 성사되지 않은 제안은 막대를 보이지 않는다 (undefined).
  */
 export function sentProposalFlowSteps(
   status: ProposalStatus,
   jobStatus?: ProposalJobStatus | null,
 ): FlowStep[] | undefined {
   if (jobStatus === "CANCELLED") return undefined;
+  if (jobStatus === "CLOSED") return flowSteps("제안", 5);
   switch (status) {
     case "PENDING":
       return flowSteps("제안", 0, "수락 대기");

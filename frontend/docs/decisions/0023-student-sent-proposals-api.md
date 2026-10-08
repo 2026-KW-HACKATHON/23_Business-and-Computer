@@ -79,11 +79,16 @@ student screen, which still read `sampleProposals.ts`. The backend (dev) has:
     REJECTED · CANCELLED 「성사되지 않음」.
   - A CANCELLED job status overrides all of them with 「성사되지 않음」: the
     list's `jobStatus` on cards, `agreement.jobStatus` on the detail.
+  - A CLOSED job status shows 「완료」: the server keeps a finished proposal at
+    ACCEPTED and only the job closes.
+  - 「작업 중」 (ACCEPTED with the job neither CLOSED nor CANCELLED,
+    `sentProposalInProgress`) uses a light student color so it stands apart
+    from the grey chips, on the 보낸 제안 list and the detail.
   - Every status stays in the list. The detail has the same chip in its
     heading.
 - **Flow bar** (`sentProposalFlowSteps`): PENDING → 제안 「수락 대기」,
-  AWAITING_START → 시작 「시작 전」, ACCEPTED → 초안 「작업 중」. A cancelled or
-  rejected proposal shows no bar.
+  AWAITING_START → 시작 「시작 전」, ACCEPTED → 초안 「작업 중」, a CLOSED job →
+  every step done. A cancelled or rejected proposal shows no bar.
 - **List card**:
   - Shows the chip, `likeCount`, one badge per category name, the solution
     excerpt, 「M월 D일 보냄」, and the store name and address.

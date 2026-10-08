@@ -21,6 +21,7 @@ import {
   progressDeadline,
   progressStatusText,
   sentOnText,
+  sentProposalInProgress,
   sentProposalStatusLabel,
   appliedStatusLabel,
   storeAddressText,
@@ -163,7 +164,13 @@ function StudentActivityPage() {
           title={proposal.title}
           right={
             <>
-              <span className="student-activity__chip">{sentProposalStatusLabel(proposal.status, proposal.jobStatus)}</span>
+              <span
+                className={`student-activity__chip${
+                  sentProposalInProgress(proposal.status, proposal.jobStatus) ? " student-activity__chip--working" : ""
+                }`}
+              >
+                {sentProposalStatusLabel(proposal.status, proposal.jobStatus)}
+              </span>
               <EmpathyCount count={proposal.likeCount} empathized />
             </>
           }

@@ -113,6 +113,7 @@ export {
   sendProposalCancel,
   sentOnText,
   sentProposalFlowSteps,
+  sentProposalInProgress,
   sentProposalStatusLabel,
   storeAddressText,
 } from "./lib/sentProposals";
