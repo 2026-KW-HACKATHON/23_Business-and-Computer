@@ -6,6 +6,7 @@ import {
   loadJobApplications,
   loadJobResult,
   loadJobSubmissions,
+  loadOwnerJobReview,
   loadOpenJobs,
   loadPendingSubmission,
   loadStudentProfile,
@@ -17,6 +18,7 @@ import type {
   JobSubmission,
   OpenJob,
   OwnerJobResult,
+  OwnerJobReview,
 } from "../lib/ownerJobs";
 import type { JobResult } from "../lib/closedJobs";
 import type { PendingSubmission } from "../lib/submissionReview";
@@ -147,5 +149,14 @@ export function useJobResult(jobId: number | undefined): { load: OwnerJobLoad<Jo
     jobId === undefined ? undefined : String(jobId),
     () => loadJobResult(jobId ?? 0),
     "내 의뢰의 결과물만 볼 수 있어요",
+  );
+}
+
+/** 완료된 내 작업에 내가 남긴 후기 (GET /jobs/{id}/review). 남기지 않았으면 notFound */
+export function useOwnerJobReview(jobId: number | undefined): { load: OwnerJobLoad<OwnerJobReview>; reload: () => void } {
+  return useOwnerJobLoad(
+    jobId === undefined ? undefined : String(jobId),
+    () => loadOwnerJobReview(jobId ?? 0),
+    "내 작업의 후기만 볼 수 있어요",
   );
 }

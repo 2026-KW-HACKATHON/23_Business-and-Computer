@@ -7,7 +7,8 @@ import {
   fetchOpenJobs,
   fetchStudentProfile,
 } from "../api/jobApi";
-import { fetchJobResult } from "../api/closedApi";
+import { fetchJobResult, fetchOwnerJobReview } from "../api/closedApi";
+import type { OwnerJobReviewResponse } from "../api/closedApi";
 import { fetchJobSubmissions, fetchPendingSubmission } from "../api/progressApi";
 import type { JobSubmissionResponse } from "../api/progressApi";
 import type {
@@ -26,6 +27,8 @@ export type ApplicantProfile = ApplicantProfileResponse;
 export type { JobApplicationSort };
 /** 서류 이력의 결과물 하나 (GET /jobs/{id}/submissions) */
 export type JobSubmission = JobSubmissionResponse;
+/** 내가 남긴 후기 (GET /jobs/{id}/review) */
+export type OwnerJobReview = OwnerJobReviewResponse;
 
 /** 사장님 의뢰 API 를 불러온 결과 (화면이 고른다) */
 export type OwnerJobResult<T> =
@@ -62,6 +65,7 @@ export const loadStudentProfile = (studentProfileId: number) =>
 export const loadPendingSubmission = (jobId: number) => attempt(() => fetchPendingSubmission(jobId));
 export const loadJobResult = (jobId: number) => attempt(() => fetchJobResult(jobId));
 export const loadJobSubmissions = (jobId: number) => attempt(() => fetchJobSubmissions(jobId));
+export const loadOwnerJobReview = (jobId: number) => attempt(() => fetchOwnerJobReview(jobId));
 
 /** 주소의 id 가 양의 정수인지. 아니면 undefined (요청하지 않는다) */
 export function parsePositiveId(id: string | undefined): number | undefined {

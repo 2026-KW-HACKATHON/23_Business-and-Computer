@@ -14,9 +14,11 @@ import {
   OWNER_PATHS,
   OwnerMissing,
   flowSteps,
+  isOwnerWorkReviewed,
   ownerWorkDocPath,
   ownerWorkDocSub,
   parsePositiveId,
+  useOwnerClosedJobs,
   useJobSubmissions,
 } from "../features/owner";
 import { useBack } from "../hooks/useBack";
@@ -26,7 +28,8 @@ import { formatWon } from "../lib/money";
 /**
  * 피그마 「작업 이력 (사장님)」 (ADR 0045). 채팅 작업 카드 「이력 상세보기 ›」. 그 작업의 채팅방(GET /me/chat-rooms)과
  * 서류 이력(GET /jobs/{id}/submissions)으로 쌓인 서류를 생긴 순서대로 보인다. 줄마다 그 서류 화면으로 가고,
- * 지난 초안 · 수정 요청 · 수정안도 열린다. 이력을 불러오기 전에는 지금 단계로 어림한 줄을 보인다
+ * 지난 초안 · 수정 요청 · 수정안도 열린다. 이력을 불러오기 전에는 지금 단계로 어림한 줄을 보인다.
+ * 후기를 남겼으면(끝난 목록의 reviewed · 이 화면을 연 동안 남긴 후기) 끝에 「후기」 줄
  */
 function OwnerWorkHistoryPage() {
   const { workId } = useParams();
@@ -34,6 +37,7 @@ function OwnerWorkHistoryPage() {
   const back = useBack(OWNER_PATHS.chats);
   const { load, reload } = useChatRooms();
   const { load: submissionsLoad } = useJobSubmissions(jobId);
+  const { load: closedLoad } = useOwnerClosedJobs();
 
   const room = load.status === "loaded" ? load.rooms.find((r) => r.jobId === jobId) : undefined;
   if (jobId === undefined || (load.status === "loaded" && !room)) {
@@ -55,10 +59,13 @@ function OwnerWorkHistoryPage() {
   const stage = chatWorkStageOf(room);
   const proposalId = room.proposalId ?? undefined;
   const kind = proposalId !== undefined ? "proposal" : "request";
+  const reviewed =
+    isOwnerWorkReviewed(String(jobId)) ||
+    (closedLoad.status === "loaded" && closedLoad.jobs.some((job) => job.jobId === jobId && job.reviewed));
   const entries =
     submissionsLoad.status === "loaded"
-      ? chatWorkEntriesFromSubmissions(stage, submissionsLoad.data)
-      : chatWorkEntries(stage, room.revisionNumber ?? undefined);
+      ? chatWorkEntriesFromSubmissions(stage, submissionsLoad.data, reviewed)
+      : chatWorkEntries(stage, room.revisionNumber ?? undefined, reviewed);
   const flowIndex = chatWorkFlowIndex(stage);
   const flowSub = stage === "draftArrived" || stage === "revisionArrived" ? "확인해 주세요" : "작업 중";
 

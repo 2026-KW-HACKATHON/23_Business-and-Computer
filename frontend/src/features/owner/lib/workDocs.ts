@@ -29,7 +29,7 @@ export function ownerWorkDocPath(
     case "result":
       return OWNER_PATHS.workResult(id);
     case "review":
-      return undefined;
+      return OWNER_PATHS.workReviewView(id);
     case "canceled":
       return OWNER_PATHS.workCanceled(id);
   }

@@ -42,6 +42,7 @@ import OwnerRevisionSentPage from './pages/OwnerRevisionSentPage'
 import OwnerPastSubmissionPage from './pages/OwnerPastSubmissionPage'
 import OwnerReviewPage from './pages/OwnerReviewPage'
 import OwnerReviewDonePage from './pages/OwnerReviewDonePage'
+import OwnerReviewViewPage from './pages/OwnerReviewViewPage'
 import OwnerWorkCancelPage from './pages/OwnerWorkCancelPage'
 import OwnerWorkCanceledPage from './pages/OwnerWorkCanceledPage'
 import OwnerExploreProposalPage from './pages/OwnerExploreProposalPage'
@@ -141,6 +142,7 @@ function App() {
       <Route path="/owner/works/:workId/submissions/:submissionId" element={<OwnerPastSubmissionPage />} />
       <Route path="/owner/works/:workId/review" element={<OwnerReviewPage />} />
       <Route path="/owner/works/:workId/review/done" element={<OwnerReviewDonePage />} />
+      <Route path="/owner/works/:workId/review/view" element={<OwnerReviewViewPage />} />
       <Route path="/owner/works/:workId/cancel" element={<OwnerWorkCancelPage />} />
       <Route path="/owner/works/:workId/canceled" element={<OwnerWorkCanceledPage />} />
       <Route path="/explore/proposals/:proposalId" element={<OwnerExploreProposalPage />} />

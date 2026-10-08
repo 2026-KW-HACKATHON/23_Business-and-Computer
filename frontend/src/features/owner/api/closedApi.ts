@@ -78,6 +78,27 @@ export interface JobReviewRequest {
   content?: string;
 }
 
+/** GET /jobs/{jobId}/review 의 답. 완료된 내 작업에 내가 남긴 후기 */
+export interface OwnerJobReviewResponse {
+  submissionId: number;
+  jobTitle: string;
+  storeName?: string | null;
+  /** 1 ~ 5 */
+  rating: number;
+  /** 후기를 남긴 날 "2026-10-06" */
+  createdAt: string;
+  positivePoints: ReviewPositivePoint[];
+  /** 글 없는 후기는 null */
+  content?: string | null;
+}
+
+/** GET /jobs/{jobId}/review — 내가 남긴 후기. 남기지 않았거나 내 작업이 아니면 404 REVIEW_404 */
+export async function fetchOwnerJobReview(jobId: number): Promise<OwnerJobReviewResponse> {
+  const data = await apiData<OwnerJobReviewResponse | undefined>(`/jobs/${jobId}/review`);
+  if (!data) throw new Error("Owner job review response has no data");
+  return data;
+}
+
 /** POST /jobs/{jobId}/reviews — 완료된 내 작업의 학생에게 후기를 한 번 남긴다 */
 export async function createJobReview(jobId: number, request: JobReviewRequest): Promise<void> {
   await apiData<unknown>(`/jobs/${jobId}/reviews`, { method: "POST", body: JSON.stringify(request) });

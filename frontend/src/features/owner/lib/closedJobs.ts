@@ -117,6 +117,9 @@ export const REVIEW_POINTS: { label: string; value: ReviewPositivePoint }[] = [
   { label: "수정을 잘 반영해요", value: "REVISION_FEEDBACK" },
 ];
 
+/** 별점 말 (1 ~ 5점, 0 은 비움) */
+export const REVIEW_RATING_LABELS = ["", "별로예요", "아쉬워요", "보통이에요", "좋아요", "최고예요"];
+
 /** 후기 결과 */
 export type JobReviewResult =
   | { status: "done" }
