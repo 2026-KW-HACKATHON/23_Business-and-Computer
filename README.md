@@ -35,6 +35,23 @@
 
 그 밖에 카카오 로그인, 광운대 메일 인증(학생)과 사업자 진위 확인(사장님), 알림, 취소·환불 기준, 노쇼 패널티가 있습니다.
 
+## 기획 문서
+
+| 문서 | 내용 |
+| --- | --- |
+| [서비스 기획](docs/service-plan.md) | 서비스 개요·배경, 핵심 아이디어, 핵심 기능 요약, 타겟층·페르소나, 문제 정의, 제안·의뢰·공감·작업 흐름 |
+| [핵심 기능](docs/core-features.md) | 6개 분야별 제안·의뢰 범위, 학과 인증, 전공역량·특기 뱃지, 받지 않는 일, 책임 약관 항목 |
+| [취소·환불 정책](docs/cancel-refund-policy.md) | 시점별 취소 기준, 착수 보상·환불 금액 계산, 학생 문제 신고 절차 |
+
+### 취소·환불 한눈에 보기
+
+| 시점 | 학생 정산 | 사장님 환불 |
+| --- | --- | --- |
+| 학생 선택 전 · 결제 후 작업 시작 전 | 0원 | 전액 |
+| 작업 중 (초안 제출 전) | 착수 보상 20% | 80% |
+| 초안 제출 후 | 전액 (취소 불가) | - |
+| 학생 문제 신고 (운영자 판단) | 인정 시 0원 / 불인정 시 20% | 인정 시 전액 / 불인정 시 80% |
+
 ## 서비스 흐름
 
 ```mermaid
@@ -72,7 +89,7 @@ flowchart LR
 .
 ├── frontend/   React 앱 (화면, API 연동, 설계 결정 기록)
 ├── backend/    Spring Boot API 서버 (Flyway 마이그레이션 포함)
-├── docs/       README 이미지
+├── docs/       기획 문서(서비스 기획·핵심 기능·취소·환불 정책)와 README 이미지
 └── .github/    이슈·PR 템플릿, 백엔드 CI/CD 워크플로
 ```
 
@@ -120,6 +137,7 @@ DB 스키마는 시작할 때 Flyway가 `db/migration`의 SQL을 적용합니다
 
 ## 문서
 
+- [서비스 기획](docs/service-plan.md) · [핵심 기능](docs/core-features.md) · [취소·환불 정책](docs/cancel-refund-policy.md): 기획 문서
 - [frontend/README.md](frontend/README.md): 프론트엔드 실행·검사 방법
 - [frontend/docs/decisions](frontend/docs/decisions): 화면·구조 설계 결정 기록
 - [frontend/docs/conventions](frontend/docs/conventions): 코드·폴더 규칙
