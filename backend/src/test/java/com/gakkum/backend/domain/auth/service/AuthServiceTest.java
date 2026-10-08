@@ -175,7 +175,11 @@ class AuthServiceTest {
         assertThat(lastSentPart("text/html"))
                 .startsWith("<!DOCTYPE html>")
                 .contains(code)
+                .contains("cid:golmok-app-icon", "cid:golmok-logo", "cid:golmok-tagline")
                 .doesNotContain("{{code}}");
+        for (String id : java.util.List.of("golmok-app-icon", "golmok-logo", "golmok-tagline")) {
+            assertThat(hasInlinePart(message.getContent(), "<" + id + ">", "image/png")).as(id).isTrue();
+        }
         assertThat(new BCryptPasswordEncoder().matches(code, stored.get().getCodeHash())).isTrue();
     }
 
@@ -232,5 +236,22 @@ class AuthServiceTest {
         assertThatThrownBy(action::run)
                 .isInstanceOfSatisfying(BusinessException.class,
                         exception -> assertThat(exception.getErrorCode()).isEqualTo(expected));
+    }
+
+    /** 메일 안에서 Content-ID 와 형식이 맞는 붙임 파트(본문 그림)를 찾는다. */
+    private static boolean hasInlinePart(Object content, String contentId, String type) throws Exception {
+        if (content instanceof jakarta.mail.Multipart multipart) {
+            for (int i = 0; i < multipart.getCount(); i++) {
+                jakarta.mail.BodyPart part = multipart.getBodyPart(i);
+                String[] ids = part.getHeader("Content-ID");
+                if (ids != null && ids.length > 0 && ids[0].equals(contentId) && part.isMimeType(type)) {
+                    return true;
+                }
+                if (hasInlinePart(part.getContent(), contentId, type)) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 }
