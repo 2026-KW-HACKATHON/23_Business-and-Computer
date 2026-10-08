@@ -178,8 +178,15 @@ function SubmitForm({
               {SEND_ERROR_TEXT[sendError]}
             </p>
           )}
-          <Button tone="student" fullWidth disabled={!canSend} onClick={() => void send()}>
-            {sending ? "보내는 중..." : draft ? "초안 제출하기" : "수정안 제출하기"}
+          <Button
+            loading={sending}
+            loadingLabel="보내는 중"
+            tone="student"
+            fullWidth
+            disabled={!canSend}
+            onClick={() => void send()}
+          >
+            {draft ? "초안 제출하기" : "수정안 제출하기"}
           </Button>
         </>
       }

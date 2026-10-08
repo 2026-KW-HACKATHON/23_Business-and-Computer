@@ -259,11 +259,13 @@ function JobRevision({ jobId }: { jobId: number }) {
             </p>
           )}
           <Button
+            loading={sending}
+            loadingLabel="보내는 중"
             fullWidth
             disabled={remaining === 0 || detail.trim() === "" || sending || sent}
             onClick={() => void send()}
           >
-            {sending ? "보내는 중..." : "수정 요청 보내기"}
+            수정 요청 보내기
           </Button>
         </>
       }

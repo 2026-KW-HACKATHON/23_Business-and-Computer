@@ -237,8 +237,14 @@ function JobCancel({ jobId }: { jobId: number }) {
               {CANCEL_ERROR_TEXT[cancelError]}
             </p>
           )}
-          <Button fullWidth disabled={!ready || sending || canceled !== undefined} onClick={() => void cancel()}>
-            {sending ? "취소하는 중..." : "작업 취소하기"}
+          <Button
+            loading={sending}
+            loadingLabel="취소하는 중"
+            fullWidth
+            disabled={!ready || sending || canceled !== undefined}
+            onClick={() => void cancel()}
+          >
+            작업 취소하기
           </Button>
         </>
       }

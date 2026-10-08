@@ -152,8 +152,13 @@ function OwnerJobCheckPage({ jobId }: { jobId: number }) {
                 수정 요청
               </Button>
             )}
-            <Button disabled={completing} onClick={() => void complete()}>
-              {completing ? "완료하는 중..." : "완료 확인"}
+            <Button
+              loading={completing}
+              loadingLabel="완료하는 중"
+              disabled={completing}
+              onClick={() => void complete()}
+            >
+              완료 확인
             </Button>
           </div>
         </>

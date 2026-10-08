@@ -53,7 +53,7 @@ function ReviewScreen({
   form,
   onResult,
   onSkip,
-  submitLabel,
+  submitting,
   submitDisabled,
   onSubmit,
   error,
@@ -62,7 +62,8 @@ function ReviewScreen({
   form: ReturnType<typeof useReviewForm>;
   onResult: () => void;
   onSkip: () => void;
-  submitLabel: string;
+  /** 후기를 보내는 중이면 버튼에 점 세 개 */
+  submitting: boolean;
   submitDisabled: boolean;
   onSubmit: () => void;
   error?: string | null;
@@ -83,8 +84,14 @@ function ReviewScreen({
             <Button variant="secondary" className="owner-review__skip" onClick={onSkip}>
               건너뛰기
             </Button>
-            <Button className="owner-review__submit" disabled={submitDisabled} onClick={onSubmit}>
-              {submitLabel}
+            <Button
+              className="owner-review__submit"
+              disabled={submitDisabled}
+              loading={submitting}
+              loadingLabel="보내는 중"
+              onClick={onSubmit}
+            >
+              후기 남기기
             </Button>
           </div>
         </>
@@ -243,7 +250,7 @@ function JobReview({ jobId }: { jobId: number }) {
       form={form}
       onResult={() => navigate(OWNER_PATHS.workResult(id))}
       onSkip={() => navigate(OWNER_PATHS.home, { replace: true })}
-      submitLabel={sending ? "보내는 중..." : "후기 남기기"}
+      submitting={sending}
       submitDisabled={form.rating === 0 || sending}
       onSubmit={() => void send()}
       error={sendError}

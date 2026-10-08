@@ -318,7 +318,11 @@ function StudentSignupProfilePage() {
           {specialtyLoad.status === "error" && (
             <div className="student-signup-profile__status" role="alert">
               <span>특기 목록을 불러오지 못했어요</span>
-              <button type="button" className="student-signup-profile__retry" onClick={reloadSpecialties}>
+              <button
+                type="button"
+                className="student-signup-profile__retry"
+                onClick={reloadSpecialties}
+              >
                 다시 시도
               </button>
             </div>
@@ -399,8 +403,15 @@ function StudentSignupProfilePage() {
             {SUBMIT_ERROR_TEXT[submitError]}
           </p>
         )}
-        <Button fullWidth tone="student" disabled={!canSubmit} onClick={() => void handleComplete()}>
-          {submitting ? "가입 중..." : "회원가입 완료"}
+        <Button
+          loading={submitting}
+          loadingLabel="가입 중"
+          fullWidth
+          tone="student"
+          disabled={!canSubmit}
+          onClick={() => void handleComplete()}
+        >
+          회원가입 완료
         </Button>
       </footer>
     </div>

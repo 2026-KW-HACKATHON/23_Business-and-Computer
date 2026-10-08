@@ -57,7 +57,7 @@ function OwnerStoreEditPage() {
 
 /**
  * 불러온 값으로 채운 입력 칸. 새 사진은 「저장하기」를 누를 때 올린다.
- * 보내는 동안 「저장하는 중...」, 성공하면 내 정보로 돌아간다.
+ * 보내는 동안 버튼에 점 세 개가 움직이고, 성공하면 내 정보로 돌아간다.
  */
 function StoreForm({
   me,
@@ -138,8 +138,14 @@ function StoreForm({
               {saveError}
             </p>
           )}
-          <Button fullWidth disabled={!filled || saving} onClick={() => void save()}>
-            {saving ? "저장하는 중..." : "저장하기"}
+          <Button
+            loading={saving}
+            loadingLabel="저장하는 중"
+            fullWidth
+            disabled={!filled || saving}
+            onClick={() => void save()}
+          >
+            저장하기
           </Button>
         </>
       }

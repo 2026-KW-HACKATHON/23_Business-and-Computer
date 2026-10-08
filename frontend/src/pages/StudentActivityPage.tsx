@@ -238,7 +238,12 @@ function StudentActivityPage() {
         )}
         <div className="student-activity__divider" />
         {job.stage === "drafting" && (
-          <Button tone="student" size="medium" fullWidth onClick={() => navigate(STUDENT_PATHS.workSubmit(id))}>
+          <Button
+            tone="student"
+            size="medium"
+            fullWidth
+            onClick={() => navigate(STUDENT_PATHS.workSubmit(id))}
+          >
             초안 제출하기
           </Button>
         )}

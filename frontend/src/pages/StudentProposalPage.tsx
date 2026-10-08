@@ -273,10 +273,22 @@ function StudentProposalPage() {
         onClose={() => setCancelStep("closed")}
         actions={
           <>
-            <Button tone="student" fullWidth disabled={cancelling} onClick={() => void cancel()}>
-              {cancelling ? "취소하는 중..." : "제안 취소하기"}
+            <Button
+              loading={cancelling}
+              loadingLabel="취소하는 중"
+              tone="student"
+              fullWidth
+              disabled={cancelling}
+              onClick={() => void cancel()}
+            >
+              제안 취소하기
             </Button>
-            <Button variant="secondary" fullWidth disabled={cancelling} onClick={() => setCancelStep("closed")}>
+            <Button
+              variant="secondary"
+              fullWidth
+              disabled={cancelling}
+              onClick={() => setCancelStep("closed")}
+            >
               돌아가기
             </Button>
           </>

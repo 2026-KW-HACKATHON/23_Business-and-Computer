@@ -136,7 +136,10 @@ function RevisionScreen({ job, back }: { job: ProgressJob; back: () => void }) {
           <Button variant="secondary" onClick={() => openJobChat(job.jobId)}>
             문의하기
           </Button>
-          <Button tone="student" onClick={() => navigate(STUDENT_PATHS.workRevisionSubmit(String(job.jobId)))}>
+          <Button
+            tone="student"
+            onClick={() => navigate(STUDENT_PATHS.workRevisionSubmit(String(job.jobId)))}
+          >
             수정안 작성하기
           </Button>
         </div>
