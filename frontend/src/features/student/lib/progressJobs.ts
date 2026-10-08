@@ -37,6 +37,8 @@ export interface ProgressJob {
   submittedOn?: string;
   /** 가게 이름 (목록). 없으면 그 줄을 숨긴다 */
   storeName?: string;
+  /** 가게 사진. 없으면 가게 아이콘 */
+  storePhoto?: string;
   /** 가게 주소. 목록에 없어서 storeAddress 를 부탁한 화면만 GET /jobs/{id} 로 채운다 */
   storeAddress?: string;
 }
@@ -117,13 +119,13 @@ export async function loadProgressJobs({
       ? Promise.all(matched.map((job) => fetchJobDetail(job.jobId).catch(() => undefined)))
       : [],
   ]);
-  const proposalJobIds = new Set(proposals.map((proposal) => proposal.jobId));
+  const proposalByJob = new Map(proposals.map((proposal) => [proposal.jobId, proposal] as const));
 
   return {
     status: "loaded",
     jobs: matched.map((job, i) => ({
       jobId: job.jobId,
-      kind: proposalJobIds.has(job.jobId) ? "proposal" : "request",
+      kind: proposalByJob.has(job.jobId) ? "proposal" : "request",
       title: job.title,
       specialtyCategories: job.specialtyCategories,
       budget: job.budget,
@@ -135,6 +137,11 @@ export async function loadProgressJobs({
       submittedOn: job.submittedAt ? koreaDate(job.submittedAt) : undefined,
       storeName: job.storeName?.trim() || details[i]?.storeName?.trim() || undefined,
       storeAddress: details[i]?.storeAddress?.trim() || undefined,
+      storePhoto:
+        job.storeProfileImageUrl ||
+        details[i]?.storeProfileImageUrl ||
+        proposalByJob.get(job.jobId)?.store.profileImageUrl ||
+        undefined,
     })),
   };
 }

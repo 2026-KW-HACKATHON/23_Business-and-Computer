@@ -135,6 +135,7 @@ function OwnerProposalPage() {
 
           <StudentBox
             name={student.name}
+            photo={student.profileImageUrl}
             lines={[studentMeta, proposalStudentRecord(student)]}
             onProfile={() => navigate(OWNER_PATHS.student(String(student.studentProfileId)))}
           />

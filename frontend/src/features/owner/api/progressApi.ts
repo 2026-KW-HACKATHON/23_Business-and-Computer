@@ -24,6 +24,8 @@ export interface OwnerMatchedJobResponse {
   progressStage?: string | null;
   /** 맡은 학생 이름 */
   studentName?: string | null;
+  /** 맡은 학생이 올린 프로필 사진. 없으면 없음 */
+  studentProfileImageUrl?: string | null;
   /** 작업비(원) */
   budget?: number | null;
   /** 사장님이 정한 수정 횟수 */
@@ -46,6 +48,8 @@ export interface ChatRoomResponse {
   jobId: number;
   /** 사장님에게는 맡은 학생 이름 */
   counterpartName?: string | null;
+  /** 사장님에게는 맡은 학생이 올린 프로필 사진 */
+  counterpartProfileImageUrl?: string | null;
   /** 작업비(원) */
   budget?: number | null;
   /** 사장님이 정한 수정 횟수 */

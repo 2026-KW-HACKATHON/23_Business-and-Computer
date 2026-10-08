@@ -17,6 +17,8 @@ export interface ReceivedProposalResponse {
   student: {
     studentProfileId: number;
     name: string;
+    /** 학생이 올린 프로필 사진. 없으면 없음 */
+    profileImageUrl?: string | null;
     /** 10자리 학번 (상세는 입학년도 두 자리) */
     studentNumber?: string | null;
     major?: string | null;

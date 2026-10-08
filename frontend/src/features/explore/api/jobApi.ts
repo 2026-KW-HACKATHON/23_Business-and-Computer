@@ -27,6 +27,8 @@ export interface JobDetail {
   storeName?: string | null;
   /** 가게 주소. 서버가 주면 가게 상자에 주소 줄이 보인다 */
   storeAddress?: string | null;
+  /** 사장님이 올린 가게 사진. 없으면 없음 */
+  storeProfileImageUrl?: string | null;
   /** 내 지원서 상태. 지원한 적이 없으면 오지 않고, 오면 「지원했어요」로 바뀐다 */
   applied?: JobApplicationStatus | null;
   /*
