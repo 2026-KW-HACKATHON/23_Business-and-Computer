@@ -18,7 +18,7 @@ function OwnerStudentProfileView({ profile }: { profile: ApplicantProfile }) {
   return (
     <div className="owner-student">
       <header className="owner-student__head">
-        <RoleAvatar role="student" size={80} />
+        <RoleAvatar role="student" size={80} src={profile.student.profileImageUrl} />
         <h2 className="owner-student__name">{studentTitle(profile.student.name)}</h2>
         <p className="owner-student__school">
           {[

@@ -99,6 +99,8 @@ export interface ApplicantProfileResponse {
   student: {
     studentProfileId: number;
     name: string;
+    /** 학생이 올린 프로필 사진. 없으면 없음 */
+    profileImageUrl?: string | null;
     university?: string | null;
     major?: string | null;
     studentNumber?: string | null;

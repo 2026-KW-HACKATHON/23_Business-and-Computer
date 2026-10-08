@@ -38,6 +38,7 @@ export async function fetchAllExploreStores(): Promise<ExploreStore[]> {
         name: item.storeName,
         category: item.businessCategory.name,
         address: item.storeAddress,
+        photo: item.profileImageUrl,
       });
     }
     if (!data?.hasNext || !data.nextCursor) break;

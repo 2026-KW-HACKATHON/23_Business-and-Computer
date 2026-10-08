@@ -196,6 +196,7 @@ function StudentProposalPage() {
           <StoreBox
             name={proposal.storeName}
             address={storeAddressText(proposal.storeAddress)}
+            photo={proposal.storeProfileImageUrl}
             note={storeNote}
           />
 

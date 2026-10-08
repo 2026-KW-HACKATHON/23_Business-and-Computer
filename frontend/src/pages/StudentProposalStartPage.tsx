@@ -208,6 +208,7 @@ function StudentProposalStartPage() {
           <StoreBox
             name={proposal.storeName}
             address={storeAddressText(proposal.storeAddress)}
+            photo={proposal.storeProfileImageUrl}
             note={paidOn ? `의뢰서 ${formatMonthDay(paidOn)} 도착` : undefined}
           />
 

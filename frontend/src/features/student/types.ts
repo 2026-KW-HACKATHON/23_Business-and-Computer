@@ -19,6 +19,8 @@ export interface ExploreStore {
   /** 백엔드 업종 이름 (예: 음식점) */
   category: string;
   address: string;
+  /** 사장님이 올린 가게 사진. 없으면 없다 */
+  photo?: string | null;
 }
 
 export interface WorkFile {

@@ -113,7 +113,7 @@ function OwnerApplicantsPage() {
                 return (
                   <li key={applicant.jobApplicationId} className="owner-applicants__card">
                     <div className="owner-applicants__student">
-                      <RoleAvatar role="student" />
+                      <RoleAvatar role="student" src={applicant.profileImageUrl} />
                       <div className="owner-applicants__student-info">
                         <span className="owner-applicants__name-row">
                           <strong>{studentTitle(applicant.name)}</strong>

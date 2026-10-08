@@ -31,6 +31,7 @@ function OwnerChatsPage() {
               <ChatRow
                 tone="owner"
                 partnerRole="student"
+                partnerPhoto={room.counterpartProfileImageUrl}
                 name={studentTitle(room.counterpartName)}
                 workTitle={room.jobTitle}
                 status={chatListStatusText(room, "owner")}

@@ -42,6 +42,8 @@ export interface OwnerProgressJob {
     profileId: number;
     /** 목록에서, 없으면 받은 제안에서 채운다. 둘 다 없으면 없음 */
     name?: string;
+    /** 학생이 올린 프로필 사진. 없으면 학생 아이콘 */
+    photo?: string;
     studentNumber?: string;
     major?: string;
   };
@@ -125,6 +127,7 @@ function toProgressJob(job: OwnerMatchedJobResponse, proposal?: ReceivedProposal
     student: {
       profileId: job.studentProfileId,
       name,
+      photo: job.studentProfileImageUrl || proposal?.student.profileImageUrl || undefined,
       studentNumber: job.studentNumber ?? undefined,
       major: job.major?.trim() || undefined,
     },
@@ -148,9 +151,14 @@ export async function loadAssignedWork(jobId: number): Promise<AssignedWorkResul
     const [matched, rooms] = await Promise.all([fetchOwnerMatchedJobs(), fetchMyChatRooms().catch(() => [])]);
     const job = matched.find((j) => j.jobId === jobId);
     const room = rooms.find((r) => r.jobId === jobId);
+    const work = job && toProgressJob(job);
+    // 목록에 사진이 없으면 채팅방의 상대 사진으로 채운다
+    if (work && !work.student.photo && room?.counterpartProfileImageUrl) {
+      work.student.photo = room.counterpartProfileImageUrl;
+    }
     return {
       status: "loaded",
-      work: job && toProgressJob(job),
+      work,
       plan: room && applicationPlan(room.applicationSummary, room.applicationWorkPlan, room.applicationDeliveryMethod),
     };
   } catch (error) {

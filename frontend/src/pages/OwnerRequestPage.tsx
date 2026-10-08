@@ -146,6 +146,7 @@ function OwnerRequestPage() {
           {work && (
             <StudentBox
               name={work.student.name}
+              photo={work.student.photo}
               lines={[studentMetaText(work.student.studentNumber, work.student.major)]}
               onProfile={() => navigate(OWNER_PATHS.student(String(work.student.profileId)))}
             />
