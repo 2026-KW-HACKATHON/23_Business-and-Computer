@@ -12,6 +12,7 @@ import {
   workHistoryText,
 } from "../features/owner";
 import { useBack } from "../hooks/useBack";
+import { fileSizeOfUrl } from "../lib/attachmentFormats";
 import { formatMonthDay } from "../lib/date";
 import { studentTitle } from "../lib/korean";
 import { formatWon } from "../lib/money";
@@ -29,7 +30,7 @@ function OwnerWorkResultPage() {
 }
 
 /**
- * 서버 작업의 결과물. 파일 크기는 서버가 주지 않아 이름만 보인다. 제안으로 시작했는지는
+ * 서버 작업의 결과물. 파일마다 이름과 크기(files)를 보인다. 제안으로 시작했는지는
  * 받은 제안(GET /me/received-proposals)의 jobId 로 본다.
  */
 function JobResultView({ jobId }: { jobId: number }) {
@@ -80,6 +81,7 @@ function JobResultView({ jobId }: { jobId: number }) {
           <ul className="owner-result__files">
             {result.fileUrls.map((url) => {
               const name = submissionFileName(url);
+              const size = fileSizeOfUrl(result.files, url);
               return (
                 <li key={url} className="owner-result__file">
                   <span className="owner-result__file-icon" aria-hidden="true">
@@ -87,6 +89,7 @@ function JobResultView({ jobId }: { jobId: number }) {
                   </span>
                   <span className="owner-result__file-info">
                     <span className="owner-result__file-name">{name}</span>
+                    {size && <span className="owner-result__file-size">{size}</span>}
                   </span>
                   <DownloadButton href={url} aria-label={`${name} 받기`} />
                 </li>

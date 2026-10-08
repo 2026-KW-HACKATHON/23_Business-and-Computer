@@ -46,6 +46,8 @@ export interface JobResultResponse {
   workFee: number;
   /** 파일 주소. 끝 경로가 학생이 올린 파일 이름 */
   fileUrls: string[];
+  /** 파일마다 주소와 크기(바이트). 크기를 기록하기 전에 낸 파일은 size 가 null */
+  files?: { fileUrl: string; size?: number | null }[] | null;
   message: string;
   /** 오래된 것부터 */
   workHistory: { type: WorkHistoryType; date: string }[];
