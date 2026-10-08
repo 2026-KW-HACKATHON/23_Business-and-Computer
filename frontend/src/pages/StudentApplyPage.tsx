@@ -65,6 +65,7 @@ function StudentApplyPage() {
     return (
       <SubScreen title="지원하기" onBack={back}>
         <LoadNotice
+          layout="page"
           status={load.status}
           loadingText="의뢰를 불러오는 중이에요"
           errorText="의뢰를 불러오지 못했어요"
@@ -148,8 +149,15 @@ function StudentApplyPage() {
               {SEND_ERROR_TEXT[shownError]}
             </p>
           )}
-          <Button tone="student" fullWidth disabled={!canSend} onClick={() => void send()}>
-            {sending ? "보내는 중..." : "지원서 보내기"}
+          <Button
+            loading={sending}
+            loadingLabel="보내는 중"
+            tone="student"
+            fullWidth
+            disabled={!canSend}
+            onClick={() => void send()}
+          >
+            지원서 보내기
           </Button>
         </>
       }

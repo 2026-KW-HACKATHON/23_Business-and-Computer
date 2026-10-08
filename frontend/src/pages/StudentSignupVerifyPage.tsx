@@ -356,21 +356,25 @@ function StudentSignupVerifyPage() {
           </Button>
         ) : sent ? (
           <Button
+            loading={pending === "verify"}
+            loadingLabel="확인 중"
             fullWidth
             tone="student"
             disabled={code.length !== 6 || pending !== null}
             onClick={() => void once(handleVerify)}
           >
-            {pending === "verify" ? "확인 중..." : "인증 완료"}
+            인증 완료
           </Button>
         ) : (
           <Button
+            loading={pending === "send"}
+            loadingLabel="보내는 중"
             fullWidth
             tone="student"
             disabled={email.trim() === "" || emailError !== null || pending !== null || coolingDown}
             onClick={() => void once(() => send(false))}
           >
-            {pending === "send" ? "보내는 중..." : "인증번호 발송"}
+            인증번호 발송
           </Button>
         )}
       </footer>

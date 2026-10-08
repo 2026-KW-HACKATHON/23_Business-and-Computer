@@ -35,6 +35,7 @@ function StudentSettlementsPage() {
     return (
       <SubScreen title="정산 내역" onBack={back}>
         <LoadNotice
+          layout="page"
           status={load.status}
           loadingText="정산 내역을 불러오는 중이에요"
           errorText="정산 내역을 불러오지 못했어요"

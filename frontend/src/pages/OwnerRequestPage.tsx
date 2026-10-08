@@ -108,6 +108,7 @@ function OwnerRequestPage() {
     >
       {load.status !== "loaded" && (
         <LoadNotice
+          layout="page"
           status={load.status}
           loadingText="의뢰서를 불러오는 중이에요"
           errorText="의뢰서를 불러오지 못했어요"
@@ -135,6 +136,7 @@ function OwnerRequestPage() {
 
           {(assigned.status === "loading" || assigned.status === "error") && (
             <LoadNotice
+              layout="block"
               status={assigned.status}
               loadingText="맡은 학생을 불러오는 중이에요"
               errorText="맡은 학생을 불러오지 못했어요"

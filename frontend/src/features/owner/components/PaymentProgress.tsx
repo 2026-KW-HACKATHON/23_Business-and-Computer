@@ -1,5 +1,5 @@
 import { createPortal } from "react-dom";
-import { Button, Dialog } from "../../../components";
+import { Button, Dialog, LoaderArt } from "../../../components";
 import { PAYMENT_METHODS } from "../lib/payment";
 import type { PaymentMethod, PaymentPhase } from "../types";
 import "./PaymentProgress.css";
@@ -37,7 +37,7 @@ function PaymentProgress({
     return createPortal(
       <div className="pay-progress" role="status" aria-live="polite" onClick={onCancel}>
         <div className="pay-progress__body">
-          <span className="pay-progress__spinner" aria-hidden="true" />
+          <LoaderArt tone="owner" />
           <p className="pay-progress__title">{title}</p>
           <p className="pay-progress__description">
             {redirectDescription ??

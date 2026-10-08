@@ -37,8 +37,7 @@ The backend (dev) has:
   「사업자 인증 완료」, and the 받은 제안 · 진행 중 · 완료 counts come from GET
   /owners/me. 보낸 의뢰 counts GET /me/jobs?status=OPEN like 내 활동 (ADR
   0042).
-  While loading or after a failure the store part shows `LoadNotice` and the
-  counts 「-」. Choosing a photo checks its format and size as in signup,
+  While loading or after a failure the store part shows `LoadNotice` and the counts show loading dots (ADR 0059). Choosing a photo checks its format and size as in signup,
   uploads it as PROFILE, and saves it with PUT /owners/me with the current
   values; the new photo shows while uploading, and a failure shows an alert.
 - **가게 정보 수정** (`src/pages/OwnerStoreEditPage.tsx`,
@@ -46,8 +45,8 @@ The backend (dev) has:
   and the selected chip from GET /business-categories. The server has one
   address field, so the address fills 「가게 주소」, 「상세 주소」 starts empty,
   and saving joins them with a space. 「저장하기」 needs a store name, an
-  address, and a category; a new photo is uploaded first. 「저장하는 중...」,
-  then back to 내 정보; a failure shows above the button. The locked business
+  address, and a category; a new photo is uploaded first. the button shows loading dots (ADR 0059), then back to 내
+  정보; a failure shows above the button. The locked business
   box shows 「대표자 이새빛 · 사업자번호 123-45-67890」 (`businessInfoText`, the
   number with dashes); with neither value it shows 「사업자 인증 완료」.
 - **결제 내역** (`src/pages/OwnerPaymentsPage.tsx`,

@@ -87,7 +87,8 @@ function RoleSelectPage({ mode }: RoleSelectPageProps) {
               key={role}
               role={role}
               description={description}
-              actionLabel={entering === role ? "들어가는 중..." : ACTIONS[mode]}
+              actionLabel={ACTIONS[mode]}
+              loading={entering === role}
               disabled={entering !== null}
               onSelect={() => select(role)}
             />

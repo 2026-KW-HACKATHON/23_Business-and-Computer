@@ -1,0 +1,89 @@
+/* 불러오는 동안의 회색 틀. 진짜 목록과 비슷한 자리를 잡고 천천히 밝아졌다 어두워진다 */
+.skeleton-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 8px 0;
+}
+
+.skeleton-list--rows {
+  gap: 4px;
+}
+
+.skeleton-list__item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.skeleton-list--rows .skeleton-list__item {
+  padding: 12px 0;
+}
+
+.skeleton-list--cards .skeleton-list__item,
+.skeleton-list--block .skeleton-list__item {
+  box-sizing: border-box;
+  padding: 20px;
+  border: 1px solid var(--role-border);
+  border-radius: 16px;
+  background: var(--color-white);
+}
+
+.skeleton-list__lines {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.skeleton {
+  display: block;
+  background: var(--role-muted);
+  animation: skeleton-pulse 1.6s ease-in-out infinite;
+}
+
+.skeleton--icon {
+  flex: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+}
+
+.skeleton--line {
+  width: 72%;
+  height: 16px;
+  border-radius: 4px;
+}
+
+.skeleton--short {
+  width: 44%;
+}
+
+.skeleton--button {
+  width: 100%;
+  height: 40px;
+  margin-top: 8px;
+  border-radius: 12px;
+}
+
+@keyframes skeleton-pulse {
+  50% {
+    opacity: 0.5;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton {
+    animation: none;
+  }
+}
+
+.skeleton-list__sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}

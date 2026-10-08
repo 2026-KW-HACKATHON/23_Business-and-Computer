@@ -21,30 +21,6 @@
   padding: 0 32px;
 }
 
-.pay-progress__spinner {
-  box-sizing: border-box;
-  width: 56px;
-  height: 56px;
-  margin-bottom: 8px;
-  border: 6px solid var(--role-muted);
-  border-top-color: var(--color-owner);
-  border-right-color: var(--color-owner);
-  border-radius: 999px;
-  animation: pay-progress-spin 0.9s linear infinite;
-}
-
-@keyframes pay-progress-spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .pay-progress__spinner {
-    animation-duration: 2.4s;
-  }
-}
-
 .pay-progress__title {
   font-size: 22px;
   font-weight: 700;

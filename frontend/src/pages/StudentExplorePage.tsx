@@ -98,6 +98,7 @@ function StudentExplorePage() {
 
         {feed.status !== "loaded" ? (
           <LoadNotice
+            layout="cards"
             status={feed.status}
             loadingText="의뢰·제안을 불러오는 중이에요"
             errorText="의뢰·제안을 불러오지 못했어요"
@@ -140,6 +141,7 @@ function StudentExplorePage() {
             {feed.hasNext && <div ref={sentinel} aria-hidden="true" />}
             {feed.more !== "idle" && (
               <LoadNotice
+                layout="more"
                 status={feed.more}
                 loadingText="더 불러오는 중이에요"
                 errorText="더 불러오지 못했어요"

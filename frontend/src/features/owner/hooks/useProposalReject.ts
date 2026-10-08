@@ -8,7 +8,7 @@ export type ProposalRejectStep = "closed" | "confirm" | "done";
 
 export interface ProposalReject {
   step: ProposalRejectStep;
-  /** 보내는 중 (「거절하는 중...」) */
+  /** 보내는 중 (거절하기 버튼에 점 세 개) */
   rejecting: boolean;
   /** 확인 팝업 설명 아래 실패 안내 */
   error: string | null;

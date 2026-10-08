@@ -1,10 +1,11 @@
 import { Fragment } from "react";
+import LoadingDots from "../LoadingDots/LoadingDots";
 import "./SummaryCard.css";
 
 export interface SummaryItem {
   label: string;
-  /** 아직 불러오는 중이면 「-」 같은 글자 */
-  count: number | string;
+  /** 아직 불러오는 중이면 null: 숫자 자리에 점 세 개 */
+  count: number | null;
   /** 기본 「건」 */
   unit?: string;
 }
@@ -33,8 +34,14 @@ function SummaryCard({ items, onSelect, selectedIndex, className = "" }: Summary
           <>
             <span className="summary-card__label">{label}</span>
             <span className="summary-card__value">
-              <strong className="summary-card__count">{count}</strong>
-              <span className="summary-card__unit">{unit}</span>
+              {count === null ? (
+                <LoadingDots className="summary-card__loading" label={`${label} 불러오는 중`} />
+              ) : (
+                <>
+                  <strong className="summary-card__count">{count}</strong>
+                  <span className="summary-card__unit">{unit}</span>
+                </>
+              )}
             </span>
           </>
         );

@@ -54,6 +54,7 @@ function StudentProfileEditPage() {
   return (
     <SubScreen title="프로필 편집" onBack={back}>
       <LoadNotice
+        layout="page"
         status={failed ? "error" : "loading"}
         loadingText="프로필을 불러오는 중이에요"
         errorText="프로필을 불러오지 못했어요"
@@ -68,7 +69,7 @@ function StudentProfileEditPage() {
 
 /**
  * 불러온 값으로 채운 입력 칸. 새 사진은 「저장하기」를 누를 때 올린다.
- * 보내는 동안 「저장하는 중...」, 성공하면 프로필 수정으로 돌아간다.
+ * 보내는 동안 버튼에 점 세 개가 움직이고, 성공하면 프로필 수정으로 돌아간다.
  */
 function ProfileForm({
   me,
@@ -204,8 +205,15 @@ function ProfileForm({
               {saveError}
             </p>
           )}
-          <Button fullWidth tone="student" disabled={!canSave || saving} onClick={() => void save()}>
-            {saving ? "저장하는 중..." : "저장하기"}
+          <Button
+            loading={saving}
+            loadingLabel="저장하는 중"
+            fullWidth
+            tone="student"
+            disabled={!canSave || saving}
+            onClick={() => void save()}
+          >
+            저장하기
           </Button>
         </>
       }

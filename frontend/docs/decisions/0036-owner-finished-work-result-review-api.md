@@ -48,7 +48,7 @@ The backend (dev) has:
 - **내 활동 › 완료**: 완료 cards (category badges, 「○○ 학생, 10월 6일 완료」,
   「작업비 ○원 정산 완료」, 결과물 보기 · 후기 남기기) and 「성사되지 않은 일」
   cards (「작업비 ○원 중 ○원 환불」 when paid, 상세보기). A request cancelled
-  while recruiting shows only the date. The count shows 「-」 and `LoadNotice`
+  while recruiting shows only the date. The count shows loading dots (ADR 0059) and `LoadNotice`
   replaces the list while loading or after a failure. 「후기 작성 완료」 shows
   when the list says `reviewed`, or for a job reviewed in this session
   (`isOwnerWorkReviewed`) before the list reloads.

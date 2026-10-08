@@ -1,5 +1,6 @@
 import type { Role } from "../../types/role";
 import AppImage from "../AppImage/AppImage";
+import LoadingDots from "../LoadingDots/LoadingDots";
 import "../Button/Button.css";
 import "./RoleCard.css";
 
@@ -12,6 +13,8 @@ interface RoleCardProps {
   onSelect: () => void;
   /** 요청 중에는 눌리지 않게 */
   disabled?: boolean;
+  /** 이 카드로 들어가는 중: 버튼 글자 자리에 점 세 개 */
+  loading?: boolean;
 }
 
 const ROLE_INFO = {
@@ -20,7 +23,14 @@ const ROLE_INFO = {
 } as const;
 
 /** 역할 선택 카드. 카드 어디를 눌러도 같은 곳으로 간다 */
-function RoleCard({ role, description, actionLabel, onSelect, disabled = false }: RoleCardProps) {
+function RoleCard({
+  role,
+  description,
+  actionLabel,
+  onSelect,
+  disabled = false,
+  loading = false,
+}: RoleCardProps) {
   const { name, character } = ROLE_INFO[role];
 
   return (
@@ -30,7 +40,19 @@ function RoleCard({ role, description, actionLabel, onSelect, disabled = false }
       </span>
       <strong className="role-card__name">{name}</strong>
       <span className="role-card__description">{description}</span>
-      <span className={`button button--${role} button--full role-card__action`}>{actionLabel}</span>
+      <span
+        className={`button button--${role} button--full role-card__action${loading ? " button--loading" : ""}`}
+        aria-busy={loading || undefined}
+      >
+        {loading ? (
+          <>
+            <span className="button__label">{actionLabel}</span>
+            <LoadingDots tone="current" className="button__dots" label="들어가는 중" />
+          </>
+        ) : (
+          actionLabel
+        )}
+      </span>
     </button>
   );
 }

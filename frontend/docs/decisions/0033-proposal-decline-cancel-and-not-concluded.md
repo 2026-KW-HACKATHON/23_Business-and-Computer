@@ -47,14 +47,14 @@ The backend (dev) has:
 ## Decision
 
 - **Decline** (`sendWorkDecline` in
-  `src/features/student/lib/workStart.ts`): 「거절하기」 shows 「거절하는
-  중...」 and sends once per press. Success goes to 내 활동 › 보낸 제안. 401 →
+  `src/features/student/lib/workStart.ts`): 「거절하기」 shows
+  loading dots (ADR 0059) and sends once per press. Success goes to 내 활동 › 보낸 제안. 401 →
   /login; 403 → an alert and `landingPath()`; 404 · 409 → 「지금은 의뢰서를
   거절할 수 없어요…」 above the buttons; anything else → 「잠시 후 다시 시도해
   주세요」.
 - **Cancel** (`sendProposalCancel` in
   `src/features/student/lib/sentProposals.ts`): 「제안 취소하기」 shows
-  「취소하는 중...」 and sends once per press. Success opens 「제안을
+  loading dots (ADR 0059) and sends once per press. Success opens 「제안을
   취소했어요」 → 내 활동 › 보낸 제안. Payment pending → 「사장님이 결제하는
   중이라 지금은 취소할 수 없어요」; 404 · 409 → 「이미 수락됐거나 끝난 제안이라
   취소할 수 없어요」 and the detail reloads; 401 → /login; 403 → an alert and
@@ -72,7 +72,7 @@ The backend (dev) has:
   proposal shows 「자세히 보고 수락하기」 · 「거절하기」 on its 내 활동 card and
   「거절하기」 · 「수락하기」 under its detail. 「거절하기」 opens 「제안을
   거절할까요?」 (「거절하면 되돌릴 수 없어요.」, 「거절하기」 · 「돌아가기」);
-  its 「거절하기」 shows 「거절하는 중...」 and sends once per press. Success
+  its 「거절하기」 shows loading dots (ADR 0059) and sends once per press. Success
   opens 「학생의 제안을 거절했어요」 (「학생에게는 성사되지 않은 제안으로
   보여요.」) and reloads the screen; 확인 or outside closes it on the card
   and goes back from the detail. Payment pending → 「결제를 진행하는 중이라

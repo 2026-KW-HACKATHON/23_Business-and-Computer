@@ -45,6 +45,7 @@ function OwnerPayPage() {
     return (
       <SubScreen title="안전결제" onBack={back}>
         <LoadNotice
+          layout="page"
           status={load.status}
           loadingText="결제할 의뢰를 불러오는 중이에요"
           errorText="결제할 의뢰를 불러오지 못했어요"

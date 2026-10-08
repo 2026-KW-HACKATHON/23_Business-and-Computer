@@ -169,8 +169,15 @@ function StudentProposalConfirmPage() {
               {SEND_ERROR_TEXT[sendError]}
             </p>
           )}
-          <Button tone="student" fullWidth disabled={sending} onClick={() => void send()}>
-            {sending ? "보내는 중..." : "제안 보내기"}
+          <Button
+            loading={sending}
+            loadingLabel="보내는 중"
+            tone="student"
+            fullWidth
+            disabled={sending}
+            onClick={() => void send()}
+          >
+            제안 보내기
           </Button>
         </>
       }

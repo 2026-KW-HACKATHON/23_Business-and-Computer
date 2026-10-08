@@ -48,6 +48,7 @@ function JobReview({ jobId }: { jobId: number }) {
     return (
       <SubScreen title="받은 후기" onBack={back}>
         <LoadNotice
+          layout="page"
           status={load.status}
           loadingText="후기를 불러오는 중이에요"
           errorText="후기를 불러오지 못했어요"

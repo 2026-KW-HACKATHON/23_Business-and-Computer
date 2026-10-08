@@ -1,0 +1,53 @@
+/* 화면 가운데 캐릭터 로딩. 본문 높이가 낮아도 화면 가운데쯤 오도록 높이를 잡는다 */
+.loader {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  box-sizing: border-box;
+  min-height: min(420px, 55svh);
+  padding: 32px 24px;
+  text-align: center;
+}
+
+.loader--overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 120;
+  min-height: 0;
+  background: var(--color-white);
+}
+
+.loader-art img {
+  display: block;
+  width: 120px;
+  height: 87px;
+}
+
+.loader__label {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text-placeholder);
+  word-break: keep-all;
+}
+
+.loader .loader-art,
+.loader__label {
+  animation: loader-fade-in 0.2s ease-out both;
+}
+
+@keyframes loader-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .loader .loader-art,
+  .loader__label {
+    animation: none;
+  }
+}

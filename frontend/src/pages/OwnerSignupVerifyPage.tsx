@@ -134,8 +134,14 @@ function OwnerSignupVerifyPage() {
             다음
           </Button>
         ) : (
-          <Button fullWidth disabled={!filled || checking} onClick={() => void handleVerify()}>
-            {checking ? "인증 중..." : "인증하기"}
+          <Button
+            loading={checking}
+            loadingLabel="인증 중"
+            fullWidth
+            disabled={!filled || checking}
+            onClick={() => void handleVerify()}
+          >
+            인증하기
           </Button>
         )}
       </footer>

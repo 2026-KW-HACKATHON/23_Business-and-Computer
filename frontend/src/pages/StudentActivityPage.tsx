@@ -112,12 +112,12 @@ function StudentActivityPage() {
   const finished = finishedLoad.status === "loaded" ? finishedLoad.jobs : [];
   const done = finished.filter((job) => job.outcome === "completed");
   const canceled = finished.filter((job) => job.outcome === "canceled");
-  // 지원한 의뢰 · 보낸 제안을 불러오는 중이거나 실패하면 개수 대신 「-」
-  const counts: Record<StudentActivityTab, number | string> = {
-    applied: appliedLoad.status === "loaded" ? applied.length : "-",
-    proposals: proposalsLoad.status === "loaded" ? proposals.length : "-",
-    inProgress: progressLoad.status === "loaded" ? inProgress.length : "-",
-    done: finishedLoad.status === "loaded" ? done.length : "-",
+  // 지원한 의뢰 · 보낸 제안을 불러오는 중이거나 실패하면 개수 대신 null (요약 칸은 점 세 개)
+  const counts: Record<StudentActivityTab, number | null> = {
+    applied: appliedLoad.status === "loaded" ? applied.length : null,
+    proposals: proposalsLoad.status === "loaded" ? proposals.length : null,
+    inProgress: progressLoad.status === "loaded" ? inProgress.length : null,
+    done: finishedLoad.status === "loaded" ? done.length : null,
   };
   const selectedIndex = TABS.findIndex((t) => t.tab === tab);
 
@@ -238,7 +238,12 @@ function StudentActivityPage() {
         )}
         <div className="student-activity__divider" />
         {job.stage === "drafting" && (
-          <Button tone="student" size="medium" fullWidth onClick={() => navigate(STUDENT_PATHS.workSubmit(id))}>
+          <Button
+            tone="student"
+            size="medium"
+            fullWidth
+            onClick={() => navigate(STUDENT_PATHS.workSubmit(id))}
+          >
             초안 제출하기
           </Button>
         )}
@@ -313,7 +318,7 @@ function StudentActivityPage() {
     </li>
   );
 
-  const listTitle = (label: string, count: number | string) => (
+  const listTitle = (label: string, count: number | null) => (
     <h2 className="student-activity__list-title">
       {label} <span>{count}</span>
     </h2>
@@ -349,6 +354,7 @@ function StudentActivityPage() {
         </ul>
         {tab === "applied" && appliedLoad.status !== "loaded" && (
           <LoadNotice
+            layout="cards"
             status={appliedLoad.status}
             loadingText="지원한 의뢰를 불러오는 중이에요"
             errorText="지원한 의뢰를 불러오지 못했어요"
@@ -357,6 +363,7 @@ function StudentActivityPage() {
         )}
         {tab === "inProgress" && progressLoad.status !== "loaded" && (
           <LoadNotice
+            layout="cards"
             status={progressLoad.status}
             loadingText="진행 중인 작업을 불러오는 중이에요"
             errorText="진행 중인 작업을 불러오지 못했어요"
@@ -365,6 +372,7 @@ function StudentActivityPage() {
         )}
         {tab === "proposals" && proposalsLoad.status !== "loaded" && (
           <LoadNotice
+            layout="cards"
             status={proposalsLoad.status}
             loadingText="보낸 제안을 불러오는 중이에요"
             errorText="보낸 제안을 불러오지 못했어요"
@@ -373,6 +381,7 @@ function StudentActivityPage() {
         )}
         {tab === "done" && finishedLoad.status !== "loaded" && (
           <LoadNotice
+            layout="cards"
             status={finishedLoad.status}
             loadingText="끝난 작업을 불러오는 중이에요"
             errorText="끝난 작업을 불러오지 못했어요"

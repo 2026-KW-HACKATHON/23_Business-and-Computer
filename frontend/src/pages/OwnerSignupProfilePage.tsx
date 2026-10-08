@@ -304,8 +304,14 @@ function OwnerSignupProfilePage() {
             {SUBMIT_ERROR_TEXT[submitError]}
           </p>
         )}
-        <Button fullWidth disabled={submitting} onClick={() => void handleComplete()}>
-          {submitting ? "가입 중..." : "회원가입 완료"}
+        <Button
+          loading={submitting}
+          loadingLabel="가입 중"
+          fullWidth
+          disabled={submitting}
+          onClick={() => void handleComplete()}
+        >
+          회원가입 완료
         </Button>
       </footer>
     </div>
