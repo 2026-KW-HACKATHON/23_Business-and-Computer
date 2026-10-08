@@ -62,8 +62,10 @@ The backend (dev) has:
   `clientMessageId`, as for text.
 - **Bubbles**: a photo being sent shows the picked file through
   `useObjectUrls`; a file shows the file icon, its name, and 「PDF · 2.1MB」
-  (`attachmentDetailText`). Files sent from this screen keep the size line
-  after they are stored; other files show the name only.
+  (`attachmentDetailText`). The size is the message's `attachmentSize` (bytes,
+  in GET messages); a file sent from this screen shows the picked file's size
+  until the stored message carries one, and an attachment stored before
+  sizes were recorded shows the name only.
 - **Viewing photos** (`ChatPhotoViewer`): tapping a stored photo opens it
   large inside the app with the shared `PhotoViewer` used for 참고 사진: the
   file name (「사진」 when there is none), 「n / 전체」, ✕, and ‹ › through the

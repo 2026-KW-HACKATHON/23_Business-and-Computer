@@ -13,8 +13,9 @@ The backend (dev) has:
 
 - GET /owners/me → `{ ownerProfileId, profileImageUrl, name, storeName,
   storeAddress, categoryId, description, sentJobCount,
-  receivedProposalCount, inProgressJobCount, completedJobCount }`. It has no
-  representative name or business number.
+  receivedProposalCount, inProgressJobCount, completedJobCount,
+  representativeName, businessNumber }`. `businessNumber` is ten digits
+  without dashes; either may be missing.
 - PUT /owners/me with `{ storeName (required, ≤ 255), categoryId (required),
   profileImageUrl (http(s) URL or empty), storeAddress (≤ 255), description
   }`. Every field is overwritten, so a missing one is cleared. An unknown
@@ -23,9 +24,10 @@ The backend (dev) has:
   category chips used at signup.
 - GET /payments → `{ summary { thisMonthPaymentAmount, heldAmount,
   totalSettledAmount }, months [{ yearMonth, payments [{ jobId, title,
-  amount, refundAmount, approvedAt, studentName, status }] }] }`, status
-  HELD · SETTLED · PARTIALLY_REFUNDED · FULLY_REFUNDED. `approvedAt` is UTC;
-  there is no settle or refund date.
+  amount, refundAmount, approvedAt, studentName, status, settledDate,
+  refundedDate }] }] }`, status HELD · SETTLED · PARTIALLY_REFUNDED ·
+  FULLY_REFUNDED. `approvedAt` is Korean time (+09:00); `settledDate`
+  (SETTLED) and `refundedDate` (refunds) are Korean dates.
 
 ## Decision
 
@@ -46,13 +48,14 @@ The backend (dev) has:
   and saving joins them with a space. 「저장하기」 needs a store name, an
   address, and a category; a new photo is uploaded first. 「저장하는 중...」,
   then back to 내 정보; a failure shows above the button. The locked business
-  box shows 「사업자 인증 완료」.
+  box shows 「대표자 이새빛 · 사업자번호 123-45-67890」 (`businessInfoText`, the
+  number with dashes); with neither value it shows 「사업자 인증 완료」.
 - **결제 내역** (`src/pages/OwnerPaymentsPage.tsx`,
   `src/features/owner/lib/paymentHistory.ts`): the summary, then the months
-  in server order. Rows read 「학생 · M월 D일」 (보관 중), 「학생 · M월 D일
-  결제」 (정산 완료), 「학생 · 작업 중 취소 · N원 환불」 (부분 환불), and
-  「학생 · N원 환불」 (전액 환불); the date is the Korean date of
-  `approvedAt`. A row opens 내 활동 › 진행 중, 결과물 보기, or 성사되지 않은
+  in server order. Rows read 「학생 · M월 D일」 (보관 중, the Korean date of
+  `approvedAt`), 「학생 · M월 D일 정산」 (정산 완료, `settledDate`), 「학생 ·
+  M월 D일 작업 중 취소 · N원 환불」 (부분 환불, `refundedDate`), and 「학생 ·
+  M월 D일 · N원 환불」 (전액 환불). A row opens 내 활동 › 진행 중, 결과물 보기, or 성사되지 않은
   작업. No payments → 「아직 결제한 의뢰가 없어요」.
 - **내 활동 › 완료 summary**: `loadOwnerClosedJobs` sends GET /payments
   together with the closed list and also returns its summary; the box hides
@@ -72,7 +75,5 @@ The backend (dev) has:
 
 ## Agent Guidance
 
-- When GET /owners/me carries the representative name and business number,
-  show them in the locked box as in Figma.
-- When GET /payments carries settle and refund dates, show 「M월 D일 정산」
-  and 「M월 D일 작업 중 취소」 as in Figma.
+- When GET /payments says a job completed automatically, show 「M월 D일 자동
+  완료 정산」 as in Figma.

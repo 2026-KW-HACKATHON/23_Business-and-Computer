@@ -15,10 +15,10 @@ The backend (dev) has:
   studentNumber, introduction, portfolioUrl, proposalCount, completedJobCount,
   penaltyCount, averageRating, specialtyCategories [{ id, name, specialties
   [{ id, name }] }], certificates [{ certificateName, acquiredYear }],
-  reviewCount, reviews, settlements }`. `studentNumber` is the two-digit
-  admission year, there is no major, `reviews` are the latest three (store
-  name, the job's specialties, rating, content, date; no job title), and
-  `settlements` are the latest three settled rows. A non-student gets 403.
+  reviewCount, reviews, settlements, major }`. `studentNumber` is the
+  two-digit admission year, `reviews` are every received review, newest
+  first (job title, store name, the job's specialties, rating, content when
+  written, date), and `settlements` are the latest three settled rows. A non-student gets 403.
 - PUT /students/me with `{ profileImageUrl, introduction, specialtyIds,
   certificates [{ certificateName, acquiredYear }], portfolioUrl }`. Every
   field is overwritten, and the specialties and certificates are replaced.
@@ -39,7 +39,7 @@ The backend (dev) has:
   `src/features/student/lib/settlements.ts`, `useSettlementHistory`): 401 goes
   to /login; 403 shows an alert and goes to `landingPath()`.
 - **내 정보** (`src/pages/StudentMePage.tsx`): name (`studentTitle`), 「광운대학교
-  24학번」, the specialty categories (「디자인 / 홍보」), and the photo come from
+  경영학부 24학번」 (the major is left out when missing), the specialty categories (「디자인 / 홍보」), and the photo come from
   GET /students/me, and so does the 완료 count. 진행 중 counts the matched list
   (ADR 0032) instead of sample works. While loading or after a failure the
   profile part shows `LoadNotice` and the counts 「-」.
@@ -48,10 +48,10 @@ The backend (dev) has:
   /students/me with the current values; the new photo shows while uploading,
   and a failure shows an alert.
 - **프로필 수정** (`src/pages/StudentProfilePage.tsx`): every part reads GET
-  /students/me. Reviews show the store, the job's specialty names in place of
-  the job title, the rating, the text when there is one, and the date;
-  「받은 후기」 counts all reviews and 「전체 보기」 opens the three the server
-  sends. The rating is 「-」 without reviews. Empty certificates and portfolio
+  /students/me. The school line is 「광운대 경영학부 24학번」. Reviews show the
+  store, the job title (the job's specialty names when it is missing), the
+  rating, the text when there is one, and the date; 「받은 후기」 counts all
+  reviews, two show, and 「전체 보기」 opens the rest. The rating is 「-」 without reviews. Empty certificates and portfolio
   show 「아직 올린 자격증·포트폴리오가 없어요」. The portfolio shows without
   「https://」.
 - **프로필 편집** (`src/pages/StudentProfileEditPage.tsx`): the form waits for
@@ -74,7 +74,7 @@ The backend (dev) has:
 ## Rationale
 
 - One GET /students/me fills 내 정보, 프로필 수정, and 프로필 편집, including
-  the latest reviews and settlements.
+  the reviews and the latest settlements.
 - Showing every server settlement keeps each month's rows matching its
   summary, including the 0원 row of a declined request.
 
@@ -85,7 +85,4 @@ The backend (dev) has:
 
 ## Agent Guidance
 
-- When GET /students/me carries the major, show 「광운대학교 경영학부 24학번」
-  as in Figma; when reviews carry the job title, show it in place of the
-  specialty names.
 - Show 「자동 완료 정산」 when the server says a job completed automatically.
