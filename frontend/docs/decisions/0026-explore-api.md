@@ -94,9 +94,10 @@ The backend (dev) has:
   - Proposal: the heart pill (`EmpathyCount` with `onToggle`) likes the
     proposal, and a second tap takes the like back. The footer row shows
     「하트를 눌러 공감」 or 「공감했어요」. 「내 제안이에요」 when the id is in
-    `useSentProposals` (GET /me/proposals); mine has a heart that cannot be
-    pressed. Mine opens the sent-proposal detail, others the peer-proposal
-    route.
+    `useSentProposals` (GET /me/proposals). The heart shows only when it can
+    be pressed: mine and a proposal that is not PENDING (수락됨 and the
+    like) show no heart. Mine opens the sent-proposal detail, others the
+    peer-proposal route.
 - **Optional fields**: the card types keep the newer fields optional, and
   the screen shows each only when the server sends it, never a guess:
   - job `budget` → the 「예산」 line; job `applied` (any status) →
@@ -174,8 +175,8 @@ The backend (dev) has:
     and 「학생 손님 N명이 공감했어요」 follow the same values.
   - Only PENDING proposals take likes. AWAITING_START or ACCEPTED shows a
     disabled 「수락된 제안이에요」, REJECTED a disabled 「끝난 제안이에요」, and
-    the like note is hidden. Explore cards and home rows do not toggle the
-    heart for them either (a card with no `status` still can).
+    the like note is hidden. Explore cards and home rows show no heart for
+    them (a card with no `status` still has one).
 - **Home 「다른 학생들의 제안 공감하기」**: the `peerProposals` of GET
   /me/home (ADR 0065). The server takes the top 5 of the likes order (the
   same as GET /explore?type=PROPOSAL&sort=LIKES), drops my proposals, and
@@ -184,8 +185,8 @@ The backend (dev) has:
     While the home loads, or after the section fails, it is hidden and the
     rest of the home shows as before. 401 goes to /login.
   - `PeerProposalRow` shows the title, 「○○ 학생 → 가게」 when `studentName`
-    is sent (otherwise the store name), and the heart pill, which likes and
-    takes back like the explore card. A row opens the peer-proposal detail;
+    is sent (otherwise the store name), and, for a PENDING proposal, the
+    heart pill, which likes and takes back like the explore card. A row opens the peer-proposal detail;
     「전체 ›」 opens 탐색.
   - The section does not count as the student's own activity, so the
     「학생 홈 - 처음」 check (ADR 0023) is unchanged; the first-visit home

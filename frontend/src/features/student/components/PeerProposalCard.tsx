@@ -19,13 +19,14 @@ interface PeerProposalCardProps {
 
 /**
  * 학생 탐색의 제안 카드 (GET /explore 의 PROPOSAL). 하트를 누르면 공감하고, 다시 누르면 취소한다.
- * 수락 대기가 아닌 제안은 하트를 누를 수 없다.
- * 내 제안은 하트를 누를 수 없고 「내 제안이에요」. 학생 이름 · 상태 · 해결 미리보기는
+ * 하트(공감 뱃지)는 누를 수 있을 때만 보인다: 수락 대기가 아닌 제안(수락됨 등)과 내 제안에는 없다.
+ * 내 제안은 「내 제안이에요」. 학생 이름 · 상태 · 해결 미리보기는
  * 서버가 studentName · status · proposedSolution 을 줄 때만 보인다.
  */
 function PeerProposalCard({ proposal, mine, like, onToggleLike, onOpen }: PeerProposalCardProps) {
   // 공감은 수락 대기 제안만 (상태를 모르면 누를 수 있게 둔다)
   const open = !proposal.status || proposal.status === "PENDING";
+  const toggle = mine || !open ? undefined : onToggleLike;
   const hint = mine
     ? "내 제안이에요"
     : like.likedByMe
@@ -40,11 +41,7 @@ function PeerProposalCard({ proposal, mine, like, onToggleLike, onOpen }: PeerPr
         <button type="button" className="student-card__title" onClick={onOpen}>
           {proposal.title}
         </button>
-        <EmpathyCount
-          count={like.likeCount}
-          empathized={like.likedByMe}
-          onToggle={mine || !open ? undefined : onToggleLike}
-        />
+        {toggle && <EmpathyCount count={like.likeCount} empathized={like.likedByMe} onToggle={toggle} />}
       </div>
       <div className="student-card__meta">
         {categoryNames(proposal.specialtyCategories).map((name) => (
