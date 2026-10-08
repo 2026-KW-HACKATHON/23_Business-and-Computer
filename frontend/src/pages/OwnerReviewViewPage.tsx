@@ -14,8 +14,8 @@ import { studentTitle } from "../lib/korean";
 import "./OwnerReviewPage.css";
 
 /**
- * 피그마 「남긴 후기 보기 (사장님)」 (ADR 0045). 작업 이력의 「후기」 줄. 후기 작성 화면을 읽기만 한다:
- * 고른 별점 · 좋았던 점 · 쓴 글 (GET /jobs/{id}/review). 학생 이름은 결과물(GET /jobs/{id}/result)에서 읽는다
+ * 피그마 「남긴 후기 보기 (사장님)」 (ADR 0045). 작업 이력의 「후기」 줄. 남긴 후기를 읽기만 한다:
+ * 고른 별점, 고른 좋았던 점만, 쓴 글은 입력칸이 아닌 글로 (GET /jobs/{id}/review). 학생 이름은 결과물(GET /jobs/{id}/result)에서 읽는다
  */
 function OwnerReviewViewPage() {
   const { workId } = useParams();
@@ -44,6 +44,8 @@ function OwnerReviewViewPage() {
   const review = load.data;
   const name = resultLoad.status === "loaded" ? resultLoad.data.studentName.trim() : "";
   const text = review.content?.trim();
+  // 고른 좋았던 점만, 후기 작성 화면과 같은 순서로
+  const points = REVIEW_POINTS.filter(({ value }) => review.positivePoints.includes(value));
 
   return (
     <SubScreen
@@ -69,28 +71,18 @@ function OwnerReviewViewPage() {
             </span>
           </div>
 
-          <div className="owner-review__points">
-            <h3 className="owner-review__points-title">좋았던 점</h3>
-            <div className="owner-review__chips">
-              {REVIEW_POINTS.map(({ label, value }) => (
-                <Chip
-                  key={value}
-                  variant="outlined"
-                  tone="owner"
-                  label={label}
-                  selected={review.positivePoints.includes(value)}
-                  tabIndex={-1}
-                  aria-disabled
-                />
-              ))}
-            </div>
-          </div>
-
-          {text && (
-            <div className="request-field__textarea-box">
-              <p className="owner-review__written">{text}</p>
+          {points.length > 0 && (
+            <div className="owner-review__points">
+              <h3 className="owner-review__points-title">좋았던 점</h3>
+              <div className="owner-review__chips">
+                {points.map(({ label, value }) => (
+                  <Chip key={value} variant="outlined" tone="owner" label={label} selected tabIndex={-1} aria-disabled />
+                ))}
+              </div>
             </div>
           )}
+
+          {text && <p className="owner-review__written">{text}</p>}
         </section>
       </div>
     </SubScreen>
