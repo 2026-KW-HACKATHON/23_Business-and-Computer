@@ -12,6 +12,8 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import com.gakkum.backend.domain.notification.entity.Notification;
+import com.gakkum.backend.domain.notification.entity.NotificationTargetType;
+import com.gakkum.backend.domain.notification.entity.NotificationType;
 
 import jakarta.persistence.LockModeType;
 
@@ -61,4 +63,18 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
             where n.recipientUserId = :recipientUserId and n.readAt is null
             """)
     int markAllRead(@Param("recipientUserId") String recipientUserId, @Param("readAt") LocalDateTime readAt);
+
+    /*
+     * 수신자의 한 대상에 대한 한 종류의 미읽음 알림만 UPDATE 한 번으로 읽음 처리한다 (예: 후기를 남긴 의뢰의 후기 요청).
+     * 읽음 시각이 비어 있는 행만 바꾸므로 먼저 기록된 읽음 시각은 덮어쓰지 않는다. 바꾼 행 수를 반환한다.
+     */
+    @Modifying
+    @Query("""
+            update Notification n set n.readAt = :readAt
+            where n.recipientUserId = :recipientUserId and n.type = :type
+              and n.targetType = :targetType and n.targetId = :targetId and n.readAt is null
+            """)
+    int markTargetRead(@Param("recipientUserId") String recipientUserId, @Param("type") NotificationType type,
+            @Param("targetType") NotificationTargetType targetType, @Param("targetId") String targetId,
+            @Param("readAt") LocalDateTime readAt);
 }

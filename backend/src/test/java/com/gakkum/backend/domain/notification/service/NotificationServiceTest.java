@@ -137,6 +137,20 @@ class NotificationServiceTest {
         verify(notificationRepository, never()).findByRecipientUserIdOrderByCreatedAtDescIdDesc(any(), any());
     }
 
+    @Test
+    @DisplayName("대상별 읽음은 수신자의 한 대상·한 종류 미읽음 알림만 서버 시각으로 한 번에 갱신하고 변경한 행 수를 반환한다")
+    void marksTargetUnreadAtOnce() {
+        when(notificationRepository.markTargetRead(RECIPIENT, NotificationType.JOB_REVIEW_REQUESTED,
+                NotificationTargetType.JOB, "42", NOW_LOCAL)).thenReturn(1, 0);
+
+        assertThat(service.markTargetRead(RECIPIENT, NotificationType.JOB_REVIEW_REQUESTED,
+                NotificationTargetType.JOB, "42")).isEqualTo(1);
+        assertThat(service.markTargetRead(RECIPIENT, NotificationType.JOB_REVIEW_REQUESTED,
+                NotificationTargetType.JOB, "42")).isZero();
+        verify(notificationRepository, never()).findLockedByIdAndRecipientUserId(any(), any());
+        verify(notificationRepository, never()).markAllRead(any(), any());
+    }
+
     private static Notification notification(Long id) {
         Notification notification = Notification.create(UUID.randomUUID(), RECIPIENT,
                 NotificationType.JOB_APPLICATION_RECEIVED, "새 지원자가 있어요", "본문",

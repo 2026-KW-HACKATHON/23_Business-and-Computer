@@ -13,6 +13,8 @@ import org.springframework.transaction.annotation.Transactional;
 import com.gakkum.backend.domain.notification.dto.NotificationCommandDto.GetNotificationsCommand;
 import com.gakkum.backend.domain.notification.dto.NotificationEvent;
 import com.gakkum.backend.domain.notification.entity.Notification;
+import com.gakkum.backend.domain.notification.entity.NotificationTargetType;
+import com.gakkum.backend.domain.notification.entity.NotificationType;
 import com.gakkum.backend.domain.notification.repository.NotificationRepository;
 import com.gakkum.backend.global.exception.BusinessException;
 import com.gakkum.backend.global.exception.ErrorCode;
@@ -81,6 +83,16 @@ public class NotificationService {
     @Transactional
     public int markAllRead(String recipientUserId) {
         return notificationRepository.markAllRead(recipientUserId, now());
+    }
+
+    /**
+     * 수신자가 알림 없이 할 일을 끝냈을 때 그 대상의 한 종류 미읽음 알림을 읽음 처리하고 바꾼 행 수를 반환한다
+     * (예: 후기를 남긴 의뢰의 「후기를 남겨 주세요」). 이미 읽은 알림의 시각은 바꾸지 않는다.
+     */
+    @Transactional
+    public int markTargetRead(String recipientUserId, NotificationType type, NotificationTargetType targetType,
+            String targetId) {
+        return notificationRepository.markTargetRead(recipientUserId, type, targetType, targetId, now());
     }
 
     // createdAt과 같은 JVM 기본 시간대로 읽음 시각을 기록한다.
