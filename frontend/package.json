@@ -8,8 +8,9 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "typecheck": "tsc -b",
-    "check": "python3 scripts/check_structure.py && npm run lint && npm run build",
+    "check": "python3 scripts/check_structure.py && npm run lint && npm run build && npm run test:notifications",
     "check:docs": "python3 scripts/check_docs_drift.py",
+    "test:notifications": "node scripts/check_notification_paths.mjs",
     "preview": "vite preview"
   },
   "dependencies": {

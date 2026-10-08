@@ -1,8 +1,9 @@
 import { apiData } from "../../../api/client";
 
 /**
- * 알림 종류 (NotificationType). 서버가 늘릴 수 있어 모르는 값도 문자열로 받는다
- * (목록에 보이고, 누르면 대상 종류의 기본 화면으로 간다)
+ * 알림 종류 (백엔드 NotificationType 21종). 서버가 늘릴 수 있어 모르는 값도 문자열로 받는다
+ * (목록에 보이고, 누르면 대상 종류의 기본 화면으로 간다). CHAT_MESSAGE_RECEIVED · PAYMENT_COMPLETED ·
+ * JOB_COMPLETED 는 저장된 알림 호환용으로 서버가 더 만들지 않는다
  */
 export type NotificationType =
   | "JOB_DRAFT_SUBMITTED"
@@ -11,7 +12,21 @@ export type NotificationType =
   | "CHAT_MESSAGE_RECEIVED"
   | "PAYMENT_COMPLETED"
   | "JOB_COMPLETED"
-  | "PROPOSAL_LIKE_MILESTONE_REACHED";
+  | "PROPOSAL_LIKE_MILESTONE_REACHED"
+  | "JOB_APPLICATION_SELECTED"
+  | "JOB_APPLICATION_REJECTED"
+  | "PROPOSAL_REJECTED"
+  | "PROPOSAL_CANCELLED"
+  | "PROPOSAL_ACCEPTED"
+  | "JOB_STARTED"
+  | "JOB_REVISION_REQUESTED"
+  | "JOB_REVISION_SUBMITTED"
+  | "JOB_REVIEW_REQUESTED"
+  | "JOB_REVIEW_RECEIVED"
+  | "JOB_RECRUITMENT_CANCELLED"
+  | "JOB_CANCELLED_BY_OWNER"
+  | "PAYMENT_REFUNDED"
+  | "PAYMENT_SETTLED";
 
 /** 누르면 갈 대상의 종류 (NotificationTargetType) */
 export type NotificationTargetType = "JOB" | "PROPOSAL" | "CHAT_ROOM" | "PAYMENT";
