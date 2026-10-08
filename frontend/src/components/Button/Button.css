@@ -81,3 +81,39 @@
     background: color-mix(in srgb, var(--role-muted) 70%, var(--input-border));
   }
 }
+
+/* 보내는 중: 역할 색은 그대로 두고 글자 자리에서 점 세 개가 움직인다 (너비는 글자 기준 그대로) */
+.button--loading {
+  position: relative;
+  cursor: progress;
+}
+
+.button--loading.button--owner:disabled {
+  background: var(--color-owner);
+  color: var(--color-black);
+  box-shadow: 0 4px 0 var(--color-owner-shadow);
+}
+
+.button--loading.button--student:disabled {
+  background: var(--color-student);
+  color: var(--color-white);
+  box-shadow: 0 4px 0 var(--color-student-shadow);
+}
+
+.button--loading.button--secondary:disabled {
+  background: var(--role-muted);
+  color: var(--color-black);
+  box-shadow: 0 4px 0 var(--input-border);
+}
+
+.button__label {
+  visibility: hidden;
+}
+
+.button__dots {
+  position: absolute;
+  inset: 0;
+  justify-content: center;
+  --loading-dot-size: 8px;
+  --loading-dot-gap: 6px;
+}

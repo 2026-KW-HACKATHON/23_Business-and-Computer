@@ -45,6 +45,7 @@ function JobResultView({ jobId }: { jobId: number }) {
     return (
       <SubScreen title="지난 결과물 보기" onBack={back}>
         <LoadNotice
+          layout="page"
           status={load.status}
           loadingText="결과물을 불러오는 중이에요"
           errorText="결과물을 불러오지 못했어요"

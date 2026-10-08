@@ -41,7 +41,7 @@ not show in any student screen. The backend (dev) has:
   「선택됐어요」, REJECTED 「선택되지 않았어요」) after the store name when it is
   sent, 「초안 마감 : M월 D일」, and for PENDING 「의뢰서 보기」 (→ 의뢰서 전체
   보기) and 「내 지원서 보기」; otherwise 「지원 결과 보기」. While the list
-  loads or after a failure the count shows 「-」 and `LoadNotice` replaces the
+  loads or after a failure the count shows loading dots (ADR 0059) and `LoadNotice` replaces the
   list, with 「다시 시도」.
 - **Sheet** (`src/features/student/components/ApplicationSheet.tsx`): the
   title 「내 지원서」 (「지원 결과」 for REJECTED), 「제목, M월 D일 지원할 때
@@ -54,7 +54,8 @@ not show in any student screen. The backend (dev) has:
   with the draft deadline; a row opens 의뢰서 전체 보기. The first-visit check
   is false when there are works, applications, or sent proposals; otherwise it
   is true only once both lists have loaded.
-- **내 정보**: the 지원한 의뢰 count, or 「-」 while loading or after a failure.
+- **내 정보**: the 지원한 의뢰 count, or loading dots while loading or after a
+  failure (ADR 0059).
 - **Optional fields**: `storeName`, `summary`, `workPlan`, and
   `deliveryMethod` are optional on `AppliedJobResponse` and shown only when
   the server sends them.

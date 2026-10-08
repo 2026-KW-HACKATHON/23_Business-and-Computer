@@ -1,4 +1,4 @@
-/* 목록 불러오는 중 · 실패: 빈 목록 문구와 같은 자리·색 */
+/* 불러오지 못했을 때 · 목록 끝 더 불러오기: 빈 목록 문구와 같은 자리·색 */
 .load-notice {
   display: flex;
   align-items: center;

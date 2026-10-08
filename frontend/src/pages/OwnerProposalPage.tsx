@@ -87,6 +87,7 @@ function OwnerProposalPage() {
     >
       {load.status !== "loaded" && (
         <LoadNotice
+          layout="page"
           status={load.status}
           loadingText="제안을 불러오는 중이에요"
           errorText="제안을 불러오지 못했어요"

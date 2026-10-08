@@ -19,6 +19,7 @@ import type {
 } from "../features/signup";
 import { implicitSpecialty, selectableCategories, useSpecialties } from "../features/specialty";
 import { useObjectUrls } from "../hooks/useObjectUrls";
+import { usePushed } from "../hooks/usePushed";
 import { MAX_SPECIALTY_BADGES } from "../types/specialty";
 import { markSignupGuide } from "../lib/signupGuide";
 import "./SignupPage.css";
@@ -49,6 +50,7 @@ function admissionYear(studentNumber: string): string {
  * 특기 불러오기·가입 중·서버 오류는 피그마에 없어 안내 문구로만 보여준다 (ADR 0019).
  */
 function StudentSignupProfilePage() {
+  const pushed = usePushed();
   const navigate = useNavigate();
   const { draft, update } = useStudentSignup();
   const [limitReached, setLimitReached] = useState(false);
@@ -233,7 +235,7 @@ function StudentSignupProfilePage() {
   const guideAlert = limitReached || specialtyReset;
 
   return (
-    <div className="signup">
+    <div className={`signup${pushed ? " screen-pushed" : ""}`}>
       <AppBar
         title="프로필 입력"
         onBack={() => navigate("/signup/student/2")}
@@ -318,7 +320,11 @@ function StudentSignupProfilePage() {
           {specialtyLoad.status === "error" && (
             <div className="student-signup-profile__status" role="alert">
               <span>특기 목록을 불러오지 못했어요</span>
-              <button type="button" className="student-signup-profile__retry" onClick={reloadSpecialties}>
+              <button
+                type="button"
+                className="student-signup-profile__retry"
+                onClick={reloadSpecialties}
+              >
                 다시 시도
               </button>
             </div>
@@ -399,8 +405,15 @@ function StudentSignupProfilePage() {
             {SUBMIT_ERROR_TEXT[submitError]}
           </p>
         )}
-        <Button fullWidth tone="student" disabled={!canSubmit} onClick={() => void handleComplete()}>
-          {submitting ? "가입 중..." : "회원가입 완료"}
+        <Button
+          loading={submitting}
+          loadingLabel="가입 중"
+          fullWidth
+          tone="student"
+          disabled={!canSubmit}
+          onClick={() => void handleComplete()}
+        >
+          회원가입 완료
         </Button>
       </footer>
     </div>

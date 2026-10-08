@@ -45,6 +45,7 @@ function StudentWorkHistoryPage() {
     return (
       <SubScreen title="작업 이력" onBack={back}>
         <LoadNotice
+          layout="page"
           status={load.status === "error" ? "error" : "loading"}
           loadingText="작업 이력을 불러오는 중이에요"
           errorText="작업 이력을 불러오지 못했어요"

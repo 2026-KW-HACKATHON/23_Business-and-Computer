@@ -36,10 +36,10 @@ function StudentMePage() {
   const [termsOpen, setTermsOpen] = useState(false);
 
   const counts = [
-    appliedLoad.status === "loaded" ? appliedLoad.jobs.length : "-",
-    proposalsLoad.status === "loaded" ? proposalsLoad.proposals.length : "-",
-    progressLoad.status === "loaded" ? progressLoad.jobs.length : "-",
-    me ? me.completedJobCount : "-",
+    appliedLoad.status === "loaded" ? appliedLoad.jobs.length : null,
+    proposalsLoad.status === "loaded" ? proposalsLoad.proposals.length : null,
+    progressLoad.status === "loaded" ? progressLoad.jobs.length : null,
+    me ? me.completedJobCount : null,
   ];
   const openActivity = (tab: StudentActivityTab) => navigate(STUDENT_PATHS.activity(tab));
 
@@ -55,6 +55,7 @@ function StudentMePage() {
           <MeHead me={me} />
         ) : (
           <LoadNotice
+            layout="block"
             status={load.status === "loading" ? "loading" : "error"}
             loadingText="내 정보를 불러오는 중이에요"
             errorText="내 정보를 불러오지 못했어요"

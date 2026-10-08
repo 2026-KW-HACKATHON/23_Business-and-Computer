@@ -82,7 +82,8 @@ The shared API layer (ADR 0021) provides `apiData` in `src/api/client.ts`
   「초안 뒤 최종까지」 (days after the draft deadline, at least 1) and sends
   `finalDays` = 초안 + that; screens show 「수락 후 초안 N일 · 최종 M일」.
 - **4/4** 「제안 보내기」 uploads the photos one by one, then sends
-  `POST /proposals`. The button reads 「보내는 중...」; an `inFlight` ref
+  `POST /proposals`. The button shows
+  loading dots (ADR 0059); an `inFlight` ref
   blocks double sends and a `requestId` ref drops responses after leaving.
   Photos already uploaded are reused on retry. Results:
   - sent → done screen (history replaced) with `{ proposalId }` in router

@@ -115,8 +115,14 @@ function OwnerRequestCancelPage() {
                 {CANCEL_ERROR_TEXT[cancelError]}
               </p>
             )}
-            <Button fullWidth disabled={!ready || sending || canceled} onClick={() => void cancel()}>
-              {sending ? "취소하는 중..." : "의뢰 취소하기"}
+            <Button
+              loading={sending}
+              loadingLabel="취소하는 중"
+              fullWidth
+              disabled={!ready || sending || canceled}
+              onClick={() => void cancel()}
+            >
+              의뢰 취소하기
             </Button>
           </>
         )
@@ -124,6 +130,7 @@ function OwnerRequestCancelPage() {
     >
       {load.status !== "loaded" && (
         <LoadNotice
+          layout="page"
           status={load.status}
           loadingText="의뢰를 불러오는 중이에요"
           errorText="의뢰를 불러오지 못했어요"

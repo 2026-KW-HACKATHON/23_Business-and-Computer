@@ -57,7 +57,7 @@ The backend (dev) has:
   목록) or, under a gray line, 「문제가 있나요?」 with 작업 취소 (only while
   drafting, ADR 0045) · 문제 신고. 「상세보기」 opens the work check when
   something arrived, otherwise 보낸 의뢰 for a request or the received
-  proposal for a proposal (ADR 0049). The count shows 「-」 and `LoadNotice` replaces
+  proposal for a proposal (ADR 0049). The count shows loading dots (ADR 0059) and `LoadNotice` replaces
   the list while loading or after a failure.
 - **Home**: arrived submissions are 「확인할 일」 cards (「초안/수정안이
   도착했어요」, 「M월 D일까지 확인하지 않으면 자동으로 완료돼요」, ADR 0039); drafting ·
@@ -70,12 +70,12 @@ The backend (dev) has:
   0039), the
   files with 「받기」 links (the name comes from the URL), and the student's
   message. 「수정 요청」 is hidden when no revision is left. 「완료 확인」
-  completes (「완료하는 중...」, one request per press) and goes to 후기 작성
+  completes (loading dots, ADR 0059; one request per press) and goes to 후기 작성
   (ADR 0036).
 - **수정 요청** (/owner/works/:id/revision with a numeric id): the text is
   required; up to 4 reference photos (JPG · PNG · WEBP, 10MB each; others
   are dropped with a notice) are uploaded as JOB images first, then sent
-  with the text. 「보내는 중...」, then the done popup → 내 활동 › 진행 중.
+  with the text. Loading dots while sending (ADR 0059), then the done popup → 내 활동 › 진행 중.
   Limit reached → 「남은 수정 요청이 없어요…」; already reviewed or no longer
   in progress → 「이미 확인했거나 끝난 작업이에요…」; a photo that fails →
   「참고 사진을 올리지 못했어요…」.

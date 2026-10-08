@@ -8,6 +8,7 @@ import {
   useOwnerSignup,
 } from "../features/signup";
 import type { BusinessInfo } from "../features/signup";
+import { usePushed } from "../hooks/usePushed";
 import "./SignupPage.css";
 import "./OwnerSignupVerifyPage.css";
 
@@ -17,6 +18,7 @@ import "./OwnerSignupVerifyPage.css";
  * 인증 중·서버 오류는 피그마에 없어 버튼 문구와 안내 문구로만 보여준다 (ADR 0016).
  */
 function OwnerSignupVerifyPage() {
+  const pushed = usePushed();
   const navigate = useNavigate();
   const { draft, update } = useOwnerSignup();
   const { business } = draft;
@@ -71,7 +73,7 @@ function OwnerSignupVerifyPage() {
   };
 
   return (
-    <div className="signup">
+    <div className={`signup${pushed ? " screen-pushed" : ""}`}>
       <AppBar
         title="사장님 인증"
         onBack={() => navigate("/signup/owner/1")}
@@ -134,8 +136,14 @@ function OwnerSignupVerifyPage() {
             다음
           </Button>
         ) : (
-          <Button fullWidth disabled={!filled || checking} onClick={() => void handleVerify()}>
-            {checking ? "인증 중..." : "인증하기"}
+          <Button
+            loading={checking}
+            loadingLabel="인증 중"
+            fullWidth
+            disabled={!filled || checking}
+            onClick={() => void handleVerify()}
+          >
+            인증하기
           </Button>
         )}
       </footer>

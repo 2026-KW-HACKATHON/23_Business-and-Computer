@@ -163,8 +163,14 @@ function OwnerRequestConfirmPage() {
               {SEND_ERROR_TEXT[sendError]}
             </p>
           )}
-          <Button fullWidth disabled={sending} onClick={() => void register()}>
-            {sending ? "등록하는 중..." : "의뢰 등록하기"}
+          <Button
+            loading={sending}
+            loadingLabel="등록하는 중"
+            fullWidth
+            disabled={sending}
+            onClick={() => void register()}
+          >
+            의뢰 등록하기
           </Button>
         </>
       }

@@ -14,6 +14,7 @@ import {
 } from "../features/signup";
 import type { PhotoUploadResult } from "../features/signup";
 import { useObjectUrls } from "../hooks/useObjectUrls";
+import { usePushed } from "../hooks/usePushed";
 import { markSignupGuide } from "../lib/signupGuide";
 import "./SignupPage.css";
 import "./OwnerSignupProfilePage.css";
@@ -50,6 +51,7 @@ const SUBMIT_ERROR_TEXT: Record<Exclude<SubmitError, null>, string> = {
  * 요청 중·실패는 피그마에 없어 버튼 문구와 아래 안내 문구로만 보여준다 (학생 가입과 같은 규칙, ADR 0019).
  */
 function OwnerSignupProfilePage() {
+  const pushed = usePushed();
   const navigate = useNavigate();
   const { draft, update } = useOwnerSignup();
   const profileFiles = useMemo(
@@ -221,7 +223,7 @@ function OwnerSignupProfilePage() {
   );
 
   return (
-    <div className="signup">
+    <div className={`signup${pushed ? " screen-pushed" : ""}`}>
       <AppBar
         title="프로필 입력"
         onBack={() => navigate("/signup/owner/2")}
@@ -304,8 +306,14 @@ function OwnerSignupProfilePage() {
             {SUBMIT_ERROR_TEXT[submitError]}
           </p>
         )}
-        <Button fullWidth disabled={submitting} onClick={() => void handleComplete()}>
-          {submitting ? "가입 중..." : "회원가입 완료"}
+        <Button
+          loading={submitting}
+          loadingLabel="가입 중"
+          fullWidth
+          disabled={submitting}
+          onClick={() => void handleComplete()}
+        >
+          회원가입 완료
         </Button>
       </footer>
     </div>

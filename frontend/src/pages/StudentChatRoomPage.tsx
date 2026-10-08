@@ -58,6 +58,7 @@ function StudentChatRoom({ roomId }: { roomId: string }) {
     return (
       <SubScreen title="채팅" onBack={back}>
         <LoadNotice
+          layout="page"
           status={load.status}
           loadingText="채팅방을 불러오는 중이에요"
           errorText="채팅방을 불러오지 못했어요"

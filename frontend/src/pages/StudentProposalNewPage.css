@@ -409,6 +409,20 @@
 .student-new__radio svg {
   width: 12px;
   height: 12px;
+  /* 고르면 체크가 톡 나타난다 */
+  animation: student-new-check-in 0.2s cubic-bezier(0.3, 1.4, 0.5, 1);
+}
+
+@keyframes student-new-check-in {
+  from {
+    transform: scale(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .student-new__radio svg {
+    animation: none;
+  }
 }
 
 /* 3/4 예상 기간 두 칸 */

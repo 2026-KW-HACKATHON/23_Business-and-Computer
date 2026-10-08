@@ -50,11 +50,11 @@ The backend (dev) has:
 - **내 활동 › 보낸 의뢰** (`src/pages/OwnerActivityPage.tsx`): open requests by
   draft deadline, one `CategoryBadge` per category name, 「지원자 N명」 or
   「아직 지원자가 없어요」, 「상세 보기」, 「초안 마감 : M월 D일」, and
-  「지원자 보기」 when anyone applied. The count shows 「-」 and `LoadNotice`
+  「지원자 보기」 when anyone applied. The count shows loading dots (ADR 0059) and `LoadNotice`
   replaces the list while loading or after a failure.
 - **Home** (`useOwnerHome`): an open request with applicants is a 「학생
   고르기」 card with the category badge only (no budget line), one without is
-  a 「기다리는 중」 row. **내 정보** counts open requests, or 「-」.
+  a 「기다리는 중」 row. **내 정보** counts open requests, or shows loading dots (ADR 0059).
 - **보낸 의뢰서 상세** (`src/pages/OwnerRequestPage.tsx`, GET /jobs/{id}): the
   title, category badges, 「모집 중, 지원자 N명」 (count from the applicant
   list) or the status label, the flow bar, the terms, 「의뢰 취소」 while OPEN,
@@ -63,7 +63,8 @@ The backend (dev) has:
   applicant list), otherwise 「확인」. While a student works on it the screen
   shows the stage, the student, and the application (ADR 0049).
 - **의뢰 취소** (`src/pages/OwnerRequestCancelPage.tsx`): sends both texts
-  trimmed; 「취소하는 중...」 while sending, one request per press; success
+  trimmed; loading dots (ADR 0059) while sending, one request
+  per press; success
   opens 「의뢰를 취소했어요」; 409 or 404 → 「지금은 취소할 수 없는 의뢰예요…」,
   400 → 「입력한 내용을 다시 확인해 주세요」, anything else → 「잠시 후 다시
   시도해 주세요」. A request that is not OPEN goes back to the detail.

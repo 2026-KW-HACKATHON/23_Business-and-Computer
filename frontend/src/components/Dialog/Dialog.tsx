@@ -1,8 +1,10 @@
 import { useEffect, useId } from "react";
 import type { ReactNode } from "react";
 import { createPortal } from "react-dom";
+import { usePresence } from "../../hooks/usePresence";
 import AppImage from "../AppImage/AppImage";
 import type { ImageName } from "../AppImage/images";
+import Frozen from "../Frozen/Frozen";
 import "./Dialog.css";
 
 interface DialogProps {
@@ -20,9 +22,13 @@ interface DialogProps {
   children?: ReactNode;
 }
 
-/** 화면 가운데 알림 팝업 (결제 완료 · 취소 확인 등). 뒤 배경은 검정 45% */
+/** 작아지며 사라지는 시간(ms). Dialog.css 의 나가는 전환과 같다 */
+const EXIT_MS = 160;
+
+/** 화면 가운데 알림 팝업 (결제 완료 · 취소 확인 등). 뒤 배경은 검정 45%. 살짝 커지며 나타나고 작아지며 사라진다 */
 function Dialog({ open, image, title, description, actions, onClose, children }: DialogProps) {
   const titleId = useId();
+  const { mounted, exiting } = usePresence(open, EXIT_MS);
 
   useEffect(() => {
     if (!open) return;
@@ -38,24 +44,26 @@ function Dialog({ open, image, title, description, actions, onClose, children }:
     };
   }, [open, onClose]);
 
-  if (!open) return null;
+  if (!mounted) return null;
 
   return createPortal(
-    <div className="dialog__overlay" onClick={onClose}>
+    <div className={`dialog__overlay${exiting ? " dialog__overlay--exit" : ""}`} onClick={exiting ? undefined : onClose}>
       <section
-        className="dialog"
+        className={`dialog${exiting ? " dialog--exit" : ""}`}
         role="alertdialog"
         aria-modal="true"
         aria-labelledby={titleId}
         onClick={(e) => e.stopPropagation()}
       >
-        {image && <AppImage name={image} width={96} priority />}
-        <h2 id={titleId} className="dialog__title">
-          {title}
-        </h2>
-        {description && <div className="dialog__description">{description}</div>}
-        {children}
-        <div className="dialog__actions">{actions}</div>
+        <Frozen live={open}>
+          {image && <AppImage name={image} width={96} priority />}
+          <h2 id={titleId} className="dialog__title">
+            {title}
+          </h2>
+          {description && <div className="dialog__description">{description}</div>}
+          {children}
+          <div className="dialog__actions">{actions}</div>
+        </Frozen>
       </section>
     </div>,
     document.body,

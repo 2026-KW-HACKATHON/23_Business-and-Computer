@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
+import { Loader } from "../components";
 import {
   clearDemoSession,
   exchangeCookieForAccessToken,
@@ -40,7 +41,7 @@ function CookiePage() {
     void run();
   }, [navigate]);
 
-  return <p style={{ textAlign: "center", marginTop: "4rem" }}>로그인 처리 중입니다...</p>;
+  return <Loader label="로그인하는 중이에요" overlay />;
 }
 
 export default CookiePage;

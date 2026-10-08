@@ -64,8 +64,8 @@ student screen, which still read `sampleProposals.ts`. The backend (dev) has:
     tokens when that fails. The hooks only send the user to /login.
 - **One hook for four screens**: 내 활동 › 보낸 제안, the home 「기다리는 중」,
   and the 내 정보 count all use `useSentProposals`.
-  - 내 활동 and 내 정보: the summary count reads 「-」 while loading or after a
-    failure. 내 활동 shows `LoadNotice` in place of the list, with
+  - 내 활동 and 내 정보: the summary count shows loading dots while loading or after a
+    failure (ADR 0059). 내 활동 shows `LoadNotice` in place of the list, with
     「다시 시도」 on failure. 「아직 없어요」 shows only for a loaded empty list.
   - Home: 「기다리는 중」 lists PENDING proposals. While the list loads or
     after a failure, that section shows `LoadNotice` with no count.
@@ -129,7 +129,7 @@ student screen, which still read `sampleProposals.ts`. The backend (dev) has:
 - **After sending**: 4/4 passes `{ proposalId }` to the done screen
   (`ProposalDoneState`). 「확인」 then replaces the history entry with
   /student/proposals/{id}. Without that state it goes to 내 활동 › 보낸 제안.
-- `SummaryCard` counts accept a string, used for the 「-」.
+- `SummaryCard` counts take `null` while loading and show loading dots (ADR 0059).
 
 ## Rationale
 

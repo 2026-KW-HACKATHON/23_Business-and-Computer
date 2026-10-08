@@ -169,8 +169,14 @@ function StudentProposalStartPage() {
               <Button variant="secondary" onClick={() => setPopup("decline")}>
                 이 조건은 어려워요
               </Button>
-              <Button tone="student" disabled={!agreed || starting} onClick={() => void start()}>
-                {starting ? "시작하는 중..." : "동의하고 작업 시작하기"}
+              <Button
+                loading={starting}
+                loadingLabel="시작하는 중"
+                tone="student"
+                disabled={!agreed || starting}
+                onClick={() => void start()}
+              >
+                동의하고 작업 시작하기
               </Button>
             </div>
           </>
@@ -179,6 +185,7 @@ function StudentProposalStartPage() {
     >
       {load.status !== "loaded" && (
         <LoadNotice
+          layout="page"
           status={load.status}
           loadingText="의뢰서를 불러오는 중이에요"
           errorText="의뢰서를 불러오지 못했어요"
@@ -299,8 +306,15 @@ function StudentProposalStartPage() {
         onClose={() => setPopup("none")}
         actions={
           <>
-            <Button tone="student" fullWidth disabled={declining} onClick={() => void decline()}>
-              {declining ? "거절하는 중..." : "거절하기"}
+            <Button
+              loading={declining}
+              loadingLabel="거절하는 중"
+              tone="student"
+              fullWidth
+              disabled={declining}
+              onClick={() => void decline()}
+            >
+              거절하기
             </Button>
             <Button variant="secondary" fullWidth disabled={declining} onClick={() => setPopup("none")}>
               돌아가기

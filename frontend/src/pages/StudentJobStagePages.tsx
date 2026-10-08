@@ -54,6 +54,7 @@ function StageGate({
     return (
       <SubScreen title={title} onBack={back}>
         <LoadNotice
+          layout="page"
           status={load.status}
           loadingText="작업을 불러오는 중이에요"
           errorText="작업을 불러오지 못했어요"
@@ -72,6 +73,7 @@ function StageGate({
 function SubmissionLoadNotice({ load, onRetry }: { load: LatestSubmissionLoad; onRetry: () => void }) {
   return (
     <LoadNotice
+      layout="block"
       status={load.status === "loading" ? "loading" : "error"}
       loadingText="낸 결과물을 불러오는 중이에요"
       errorText={load.status === "notFound" ? "낸 결과물을 찾지 못했어요" : "낸 결과물을 불러오지 못했어요"}
@@ -134,7 +136,10 @@ function RevisionScreen({ job, back }: { job: ProgressJob; back: () => void }) {
           <Button variant="secondary" onClick={() => openJobChat(job.jobId)}>
             문의하기
           </Button>
-          <Button tone="student" onClick={() => navigate(STUDENT_PATHS.workRevisionSubmit(String(job.jobId)))}>
+          <Button
+            tone="student"
+            onClick={() => navigate(STUDENT_PATHS.workRevisionSubmit(String(job.jobId)))}
+          >
             수정안 작성하기
           </Button>
         </div>

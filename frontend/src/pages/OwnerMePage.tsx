@@ -38,10 +38,10 @@ function OwnerMePage() {
   };
 
   const counts = [
-    openLoad.status === "loaded" ? openLoad.data.length : "-",
-    me ? me.receivedProposalCount : "-",
-    me ? me.inProgressJobCount : "-",
-    me ? me.completedJobCount : "-",
+    openLoad.status === "loaded" ? openLoad.data.length : null,
+    me ? me.receivedProposalCount : null,
+    me ? me.inProgressJobCount : null,
+    me ? me.completedJobCount : null,
   ];
 
   return (
@@ -51,6 +51,7 @@ function OwnerMePage() {
           <StoreHead me={me} />
         ) : (
           <LoadNotice
+            layout="block"
             status={load.status === "loading" ? "loading" : "error"}
             loadingText="가게 정보를 불러오는 중이에요"
             errorText="가게 정보를 불러오지 못했어요"

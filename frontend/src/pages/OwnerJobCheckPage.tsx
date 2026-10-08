@@ -61,6 +61,7 @@ function OwnerJobCheckPage({ jobId }: { jobId: number }) {
     return (
       <SubScreen title="작업 확인" onBack={back}>
         <LoadNotice
+          layout="page"
           status={failed ? "error" : "loading"}
           loadingText="결과물을 불러오는 중이에요"
           errorText="결과물을 불러오지 못했어요"
@@ -151,8 +152,13 @@ function OwnerJobCheckPage({ jobId }: { jobId: number }) {
                 수정 요청
               </Button>
             )}
-            <Button disabled={completing} onClick={() => void complete()}>
-              {completing ? "완료하는 중..." : "완료 확인"}
+            <Button
+              loading={completing}
+              loadingLabel="완료하는 중"
+              disabled={completing}
+              onClick={() => void complete()}
+            >
+              완료 확인
             </Button>
           </div>
         </>

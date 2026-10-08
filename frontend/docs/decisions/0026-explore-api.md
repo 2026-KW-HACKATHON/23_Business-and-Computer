@@ -135,7 +135,7 @@ The backend (dev) has:
   workPlan, 결과물 → deliveryMethod, with deadlineAndPenaltyAgreed true.
   The inputs stop at 255 / 500 / 500 characters. A double tap sends once
   (in-flight ref), a response after leaving the screen is dropped, and the
-  button reads 「보내는 중...」 while sending. Success opens the 「지원서를
+  button shows loading dots (ADR 0059) while sending. Success opens the 「지원서를
   보냈어요」 popup. Errors:
   - 409 JOB_APPLICATION_409_DUPLICATE → 「이미 지원한 의뢰예요」;
     409 JOB_APPLICATION_409_STATUS → 「모집이 끝난 의뢰예요」. Both keep the

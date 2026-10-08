@@ -48,6 +48,23 @@
   color: var(--color-student);
 }
 
+/* 고르면 체크가 톡 나타난다 */
+.student-stores__chip-check {
+  animation: student-stores-check-in 0.2s cubic-bezier(0.3, 1.4, 0.5, 1);
+}
+
+@keyframes student-stores-check-in {
+  from {
+    transform: scale(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .student-stores__chip-check {
+    animation: none;
+  }
+}
+
 .student-stores__chip-check svg {
   width: 10px;
   height: 10px;

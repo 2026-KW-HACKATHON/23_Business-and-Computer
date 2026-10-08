@@ -1,0 +1,71 @@
+/*
+ * 골목인턴 로딩 v7 의 점: 세 점이 2.4초마다 0 · 0.8 · 1.6초에 차례로 가장 커지고 진해진다
+ * (불투명도 24~82%, 크기 80~100%). 크기는 --loading-dot-size, 간격은 --loading-dot-gap 으로 바꾼다
+ */
+.loading-dots {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--loading-dot-gap, 0.3em);
+  vertical-align: middle;
+}
+
+.loading-dots--gray {
+  color: var(--loading-dot-color);
+}
+
+.loading-dots--current {
+  color: inherit;
+}
+
+.loading-dots__dot {
+  width: var(--loading-dot-size, 0.45em);
+  height: var(--loading-dot-size, 0.45em);
+  border-radius: 50%;
+  background: currentColor;
+  animation: loading-dot-breath 2.4s ease-in-out infinite;
+}
+
+/* 음수 지연으로 처음부터 차례가 어긋난 채 시작한다 */
+.loading-dots__dot:nth-child(2) {
+  animation-delay: -1.6s;
+}
+
+.loading-dots__dot:nth-child(3) {
+  animation-delay: -0.8s;
+}
+
+@keyframes loading-dot-breath {
+  0%,
+  100% {
+    opacity: 0.82;
+    transform: scale(1);
+  }
+
+  50% {
+    opacity: 0.24;
+    transform: scale(0.8);
+  }
+}
+
+/* 동작 줄이기: 움직이지 않고 첫 점만 진하게 */
+@media (prefers-reduced-motion: reduce) {
+  .loading-dots__dot {
+    animation: none;
+    opacity: 0.24;
+    transform: scale(0.8);
+  }
+
+  .loading-dots__dot:first-child {
+    opacity: 0.82;
+    transform: none;
+  }
+}
+
+.loading-dots__sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}

@@ -68,8 +68,8 @@ states.
   「다음」 stays disabled. If signup later answers `STUDENT_409_NUMBER`, the
   draft keeps that number in `takenStudentNumber` and step 1 shows
   「이미 가입된 학번이에요」 until the number changes.
-- Step 2: send, resend, and verify call the API; buttons read
-  「보내는 중...」 / 「확인 중...」 and inputs are read-only while a request runs.
+- Step 2: send, resend, and verify call the API; buttons show
+  loading dots (ADR 0059) and inputs are read-only while a request runs.
   - Resend countdown: every successful send or resend starts a 60 s
     countdown at once; send and resend stay disabled and a grey line reads
     「N초 뒤에 다시 보낼 수 있어요」. A 429 shows the same text in red; its end
@@ -135,7 +135,7 @@ states.
     refused with a message. On submit the photo is uploaded first; its
     `imageUrl` is reused if the same file is submitted again. If the upload
     fails, signup stops with 「사진을 올리지 못했어요. 다시 시도해 주세요」.
-  - While saving, the button reads 「가입 중...」.
+  - While saving, the button shows loading dots (ADR 0059).
   - Errors: `STUDENT_409_NUMBER` → step 1; `STUDENT_EMAIL_403` → step 2 with
     「메일 인증을 다시 해 주세요」; `USER_409_EMAIL` → step 2 with the taken-mail
     error (both through router state `StudentVerifyReturnState`);

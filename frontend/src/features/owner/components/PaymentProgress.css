@@ -11,6 +11,23 @@
   cursor: pointer;
 }
 
+/* 결제 창으로 넘어가는 화면이 갑자기 덮지 않고 서서히 나타난다 */
+.pay-progress {
+  animation: pay-progress-in 0.2s ease-out;
+}
+
+@keyframes pay-progress-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pay-progress {
+    animation: none;
+  }
+}
+
 /* 피그마: 로딩 표시는 화면 위에서 264px */
 .pay-progress__body {
   display: flex;
@@ -19,30 +36,6 @@
   gap: 16px;
   margin-top: min(264px, 31svh);
   padding: 0 32px;
-}
-
-.pay-progress__spinner {
-  box-sizing: border-box;
-  width: 56px;
-  height: 56px;
-  margin-bottom: 8px;
-  border: 6px solid var(--role-muted);
-  border-top-color: var(--color-owner);
-  border-right-color: var(--color-owner);
-  border-radius: 999px;
-  animation: pay-progress-spin 0.9s linear infinite;
-}
-
-@keyframes pay-progress-spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .pay-progress__spinner {
-    animation-duration: 2.4s;
-  }
 }
 
 .pay-progress__title {

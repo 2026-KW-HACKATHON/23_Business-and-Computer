@@ -22,8 +22,14 @@ function ProposalRejectDialogs({ reject, onDone }: ProposalRejectDialogsProps) {
         onClose={reject.close}
         actions={
           <>
-            <Button fullWidth disabled={reject.rejecting} onClick={() => void reject.confirm()}>
-              {reject.rejecting ? "거절하는 중..." : "거절하기"}
+            <Button
+              loading={reject.rejecting}
+              loadingLabel="거절하는 중"
+              fullWidth
+              disabled={reject.rejecting}
+              onClick={() => void reject.confirm()}
+            >
+              거절하기
             </Button>
             <Button variant="secondary" fullWidth disabled={reject.rejecting} onClick={reject.close}>
               돌아가기

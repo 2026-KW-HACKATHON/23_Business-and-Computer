@@ -56,6 +56,7 @@ function StudentJobSubmitPage({ jobId, kind }: { jobId: number; kind: Submission
     return (
       <SubScreen title={title} onBack={back}>
         <LoadNotice
+          layout="page"
           status={load.status}
           loadingText="작업을 불러오는 중이에요"
           errorText="작업을 불러오지 못했어요"
@@ -83,6 +84,7 @@ function RevisionRequestQuote({ job }: { job: ProgressJob }) {
         </>
       ) : (
         <LoadNotice
+          layout="block"
           status={load.status === "loading" ? "loading" : "error"}
           loadingText="수정 요청을 불러오는 중이에요"
           errorText="수정 요청을 불러오지 못했어요"
@@ -176,8 +178,15 @@ function SubmitForm({
               {SEND_ERROR_TEXT[sendError]}
             </p>
           )}
-          <Button tone="student" fullWidth disabled={!canSend} onClick={() => void send()}>
-            {sending ? "보내는 중..." : draft ? "초안 제출하기" : "수정안 제출하기"}
+          <Button
+            loading={sending}
+            loadingLabel="보내는 중"
+            tone="student"
+            fullWidth
+            disabled={!canSend}
+            onClick={() => void send()}
+          >
+            {draft ? "초안 제출하기" : "수정안 제출하기"}
           </Button>
         </>
       }

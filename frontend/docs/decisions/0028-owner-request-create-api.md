@@ -35,7 +35,7 @@ ADR 0037. 1/3 picks from GET /specialties and carries the ids (ADR 0058).
   uploaded with purpose JOB before POST /jobs; a retry reuses the URLs already
   uploaded, and a JOB_400_IMAGE_URL / JOB_409_IMAGE_NOT_UPLOADED answer drops
   them so the next press uploads again.
-- **3/3 button** (`src/pages/OwnerRequestConfirmPage.tsx`): 「등록하는 중...」
+- **3/3 button** (`src/pages/OwnerRequestConfirmPage.tsx`): loading dots (ADR 0059)
   while sending; a double press sends once; an answer after leaving the
   screen is dropped. Errors above the button: photo upload 「사진을 올리지
   못했어요. 다시 시도해 주세요」, other 400 「입력한 내용을 다시 확인해

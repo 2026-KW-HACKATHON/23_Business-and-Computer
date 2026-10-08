@@ -52,6 +52,7 @@ function OwnerAssignPage() {
     return (
       <SubScreen title="이 학생에게 맡기기" onBack={back}>
         <LoadNotice
+          layout="page"
           status={load.status}
           loadingText="지원자를 불러오는 중이에요"
           errorText="지원자를 불러오지 못했어요"
