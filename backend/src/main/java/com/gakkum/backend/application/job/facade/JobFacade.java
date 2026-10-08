@@ -207,19 +207,29 @@ public class JobFacade {
     }
 
     /**
-     * 담당 학생 본인 의뢰의 최신 제출물을 수정 요청 내용과 함께 조회한다.
-     * 학생이 아니거나 학생 프로필이 없으면 의뢰를 조회하기 전에 거부한다.
+     * 의뢰한 사장님 또는 담당 학생 본인 의뢰의 최신 제출물을 수정 요청 내용과 함께 조회한다.
+     * 사장님·학생이 아니거나 해당 역할의 프로필이 없으면 의뢰를 조회하기 전에 거부한다.
      */
     @Transactional(readOnly = true)
     public JobLatestSubmissionResult getLatestSubmission(String username, Long jobId) {
         User user = userService.getActiveUser(username);
-        if (user.getRole() != UserRole.STUDENT) {
-            throw new BusinessException(ErrorCode.JOB_SUBMISSION_VIEW_FORBIDDEN);
-        }
-        Student student = studentService.findStudentProfileByUserId(user.getId())
-                .orElseThrow(() -> new BusinessException(ErrorCode.JOB_SUBMISSION_VIEW_FORBIDDEN));
         return JobLatestSubmissionResult.from(
-                jobService.getLatestSubmission(GetLatestJobSubmissionCommand.of(jobId, student.getId())));
+                jobService.getLatestSubmission(toLatestSubmissionCommand(user, jobId)));
+    }
+
+    /** 로그인 역할에 해당하는 프로필 ID만 전달해, 다른 역할의 프로필 ID와 숫자가 같아도 당사자로 보지 않게 한다. */
+    private GetLatestJobSubmissionCommand toLatestSubmissionCommand(User user, Long jobId) {
+        if (user.getRole() == UserRole.OWNER) {
+            Owner owner = ownerService.findOwnerProfileByUserId(user.getId())
+                    .orElseThrow(() -> new BusinessException(ErrorCode.JOB_SUBMISSION_VIEW_FORBIDDEN));
+            return GetLatestJobSubmissionCommand.ofOwner(jobId, owner.getId());
+        }
+        if (user.getRole() == UserRole.STUDENT) {
+            Student student = studentService.findStudentProfileByUserId(user.getId())
+                    .orElseThrow(() -> new BusinessException(ErrorCode.JOB_SUBMISSION_VIEW_FORBIDDEN));
+            return GetLatestJobSubmissionCommand.of(jobId, student.getId());
+        }
+        throw new BusinessException(ErrorCode.JOB_SUBMISSION_VIEW_FORBIDDEN);
     }
 
     /**

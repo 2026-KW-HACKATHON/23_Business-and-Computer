@@ -529,18 +529,26 @@ public class JobService {
     }
 
     /**
-     * 담당 학생 본인 의뢰의 최신 제출물(수정 번호가 가장 큰 초안 또는 수정안) 조회. 완료·취소된 의뢰도 조회할 수 있다.
-     * 존재하지 않거나 다른 학생이 담당한 의뢰는 같은 404, 제출물이 없는 본인 의뢰는 JOB_SUBMISSION_404_LATEST로 거부한다.
+     * 의뢰한 사장님 또는 담당 학생 본인 의뢰의 최신 제출물(수정 번호가 가장 큰 초안 또는 수정안) 조회. 완료·취소된 의뢰도 조회할 수 있다.
+     * 존재하지 않거나 당사자가 아닌 의뢰는 같은 404, 제출물이 없는 본인 의뢰는 JOB_SUBMISSION_404_LATEST로 거부한다.
      * @param command
      * @return 최신 제출물
      */
     @Transactional(readOnly = true)
     public JobSubmission getLatestSubmission(GetLatestJobSubmissionCommand command) {
         Job job = jobRepository.findById(command.getJobId())
-                .filter(found -> command.getStudentProfileId().equals(found.getSelectedStudentProfileId()))
+                .filter(found -> isLatestSubmissionViewer(found, command))
                 .orElseThrow(() -> new BusinessException(ErrorCode.JOB_NOT_FOUND));
         return jobSubmissionRepository.findFirstByJobIdOrderByRevisionNumberDesc(job.getId())
                 .orElseThrow(() -> new BusinessException(ErrorCode.JOB_SUBMISSION_LATEST_NOT_FOUND));
+    }
+
+    private boolean isLatestSubmissionViewer(Job job, GetLatestJobSubmissionCommand command) {
+        if (command.getOwnerProfileId() != null) {
+            return command.getOwnerProfileId().equals(job.getOwnerProfileId());
+        }
+        return command.getStudentProfileId() != null
+                && command.getStudentProfileId().equals(job.getSelectedStudentProfileId());
     }
 
     /**

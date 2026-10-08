@@ -107,7 +107,7 @@ public class JobController {
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
-    /** 담당 학생이 본인 의뢰의 최신 제출물과 그 제출물에 받은 수정 요청 내용을 조회하는 API(완료·취소 후에도 조회 가능) */
+    /** 의뢰한 사장님 또는 담당 학생이 본인 의뢰의 최신 제출물과 그 제출물의 수정 요청 내용을 조회하는 API(완료·취소 후에도 조회 가능) */
     @GetMapping("/jobs/{jobId}/submissions/latest")
     public ResponseEntity<ApiResponse<JobSubmissionResponse.Latest>> getLatestSubmission(
             Authentication authentication, @PathVariable Long jobId) {
