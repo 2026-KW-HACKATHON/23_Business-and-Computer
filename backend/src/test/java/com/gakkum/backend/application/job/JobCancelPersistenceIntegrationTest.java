@@ -2,6 +2,10 @@ package com.gakkum.backend.application.job;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -16,12 +20,15 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
+import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import com.gakkum.backend.application.job.facade.JobFacade;
+import com.gakkum.backend.domain.chat.repository.ChatRoomRepository;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.CancelJobCommand;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.JobCancelResult;
 import com.gakkum.backend.domain.job.entity.Job;
@@ -31,11 +38,16 @@ import com.gakkum.backend.domain.job.entity.JobSubmissionReviewStatus;
 import com.gakkum.backend.domain.job.entity.JobSubmissionType;
 import com.gakkum.backend.domain.job.repository.JobRepository;
 import com.gakkum.backend.domain.job.repository.JobSubmissionRepository;
+import com.gakkum.backend.domain.notification.client.NotificationEventPublisher;
+import com.gakkum.backend.domain.notification.dto.NotificationEvent;
+import com.gakkum.backend.domain.notification.dto.NotificationEventFactory;
 import com.gakkum.backend.domain.owner.entity.Owner;
 import com.gakkum.backend.domain.owner.repository.OwnerRepository;
 import com.gakkum.backend.domain.payment.entity.Payment;
 import com.gakkum.backend.domain.payment.entity.PaymentStatus;
 import com.gakkum.backend.domain.payment.repository.PaymentRepository;
+import com.gakkum.backend.domain.student.entity.Student;
+import com.gakkum.backend.domain.student.repository.StudentRepository;
 import com.gakkum.backend.domain.user.entity.User;
 import com.gakkum.backend.domain.user.entity.UserRole;
 import com.gakkum.backend.domain.user.repository.UserRepository;
@@ -71,11 +83,23 @@ class JobCancelPersistenceIntegrationTest {
     @Autowired
     private TransactionTemplate transactionTemplate;
 
+    @Autowired
+    private StudentRepository studentRepository;
+
+    @Autowired
+    private ChatRoomRepository chatRoomRepository;
+
+    // 실제 커밋·롤백에 따른 발행 여부만 확인하고 로컬 Redis에는 테스트 이벤트를 남기지 않는다
+    @MockitoBean
+    private NotificationEventPublisher notificationEventPublisher;
+
     private final List<Long> jobIds = new ArrayList<>();
     private final List<Long> paymentIds = new ArrayList<>();
     private String username;
     private String userId;
     private Long ownerProfileId;
+    private Long studentProfileId;
+    private String studentUserId;
 
     @BeforeEach
     void setUp() {
@@ -87,6 +111,10 @@ class JobCancelPersistenceIntegrationTest {
         ownerProfileId = ownerRepository.saveAndFlush(Owner.builder()
                 .userId(userId).businessNumber("TEST-" + unique).storeName("취소 테스트 매장").categoryId(1L).build())
                 .getId();
+        // 진행 중 의뢰의 담당 학생. 취소 알림의 수신자다
+        studentUserId = ("S" + unique).substring(0, 26);
+        studentProfileId = studentRepository.saveAndFlush(Student.create(
+                studentUserId, "테스트대", "TEST-" + unique, "테스트 전공", null, null, null)).getId();
     }
 
     @AfterEach
@@ -94,7 +122,9 @@ class JobCancelPersistenceIntegrationTest {
         transactionTemplate.executeWithoutResult(status -> {
             paymentRepository.deleteAllById(paymentIds);
             jobSubmissionRepository.deleteAll(jobSubmissionRepository.findByJobIdIn(jobIds));
+            jobIds.forEach(jobId -> chatRoomRepository.findByJobId(jobId).ifPresent(chatRoomRepository::delete));
             jobRepository.deleteAllById(jobIds);
+            studentRepository.deleteById(studentProfileId);
             ownerRepository.deleteById(ownerProfileId);
             userRepository.deleteById(userId);
         });
@@ -118,7 +148,7 @@ class JobCancelPersistenceIntegrationTest {
     }
 
     @Test
-    @DisplayName("PostgreSQL에서 진행 중 의뢰를 취소하면 취소 입력과 결제 환불 기록이 함께 저장된다")
+    @DisplayName("PostgreSQL에서 진행 중 의뢰를 취소하면 취소 입력과 결제 환불 기록이 함께 저장되고 커밋 뒤 담당 학생과 사장님에게 알림을 발행한다")
     void persistsCancellationDetailsAndRefundForMatchedJob() {
         Job job = saveJob(true);
         Payment payment = savePaidPayment(job.getId(), 100_000L);
@@ -133,6 +163,13 @@ class JobCancelPersistenceIntegrationTest {
                 .isEqualTo(PaymentStatus.REFUNDED);
         assertThat(result.getStudentCompensationAmount()).isEqualTo(20_000L);
         assertThat(result.getRefundAmount()).isEqualTo(80_000L);
+        String chatRoomId = chatRoomRepository.findByJobId(job.getId()).orElseThrow().getId();
+        ArgumentCaptor<NotificationEvent> events = ArgumentCaptor.forClass(NotificationEvent.class);
+        verify(notificationEventPublisher, times(2)).publishCommitted(events.capture());
+        assertThat(events.getAllValues()).containsExactly(
+                NotificationEventFactory.jobCancelledByOwner(
+                        studentUserId, job.getId(), chatRoomId, "취소 테스트 의뢰", "취소 테스트 매장"),
+                NotificationEventFactory.paymentRefunded(userId, payment.getId(), "취소 테스트 의뢰", 80_000L));
     }
 
     @Test
@@ -149,6 +186,8 @@ class JobCancelPersistenceIntegrationTest {
         assertThat(found.getCompletedAt()).isNull();
         assertThat(found.getCancelReason()).isNull();
         assertThat(found.getMessageToStudent()).isNull();
+        // 롤백된 취소는 알림을 발행하지 않는다
+        verify(notificationEventPublisher, never()).publishCommitted(any());
     }
 
     /** 제출 이후 취소를 시도하는 시점의 제출 이력. */
@@ -206,7 +245,7 @@ class JobCancelPersistenceIntegrationTest {
         Job job = Job.create(ownerProfileId, "취소 테스트 의뢰", "설명", 100_000L,
                 LocalDate.now(), LocalDate.now().plusDays(3), 2, null);
         if (matched) {
-            job.match(7L);
+            job.match(studentProfileId);
         }
         Job saved = jobRepository.saveAndFlush(job);
         jobIds.add(saved.getId());

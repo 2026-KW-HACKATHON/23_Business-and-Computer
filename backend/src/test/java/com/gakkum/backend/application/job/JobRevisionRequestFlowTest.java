@@ -22,6 +22,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.mockito.ArgumentCaptor;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -34,6 +35,7 @@ import com.gakkum.backend.application.job.controller.JobController;
 import com.gakkum.backend.application.job.facade.JobFacade;
 import com.gakkum.backend.domain.certificate.service.CertificateService;
 import com.gakkum.backend.domain.chat.service.ChatAttachmentPolicy;
+import com.gakkum.backend.domain.chat.service.ChatRoomService;
 import com.gakkum.backend.domain.job.client.JobSubmissionFileStorageClient;
 import com.gakkum.backend.domain.job.entity.Job;
 import com.gakkum.backend.domain.job.entity.JobStatus;
@@ -50,6 +52,8 @@ import com.gakkum.backend.domain.job.service.JobService;
 import com.gakkum.backend.domain.jwt.service.JwtService;
 import com.gakkum.backend.domain.media.client.MediaImageStorageClient;
 import com.gakkum.backend.domain.media.service.MediaService;
+import com.gakkum.backend.domain.notification.dto.NotificationEvent;
+import com.gakkum.backend.domain.notification.dto.NotificationEventFactory;
 import com.gakkum.backend.domain.owner.entity.Owner;
 import com.gakkum.backend.domain.owner.repository.OwnerRepository;
 import com.gakkum.backend.domain.owner.service.OwnerService;
@@ -58,6 +62,7 @@ import com.gakkum.backend.domain.proposal.service.ProposalService;
 import com.gakkum.backend.domain.review.service.ReviewService;
 import com.gakkum.backend.domain.specialty.service.SpecialtyCategoryService;
 import com.gakkum.backend.domain.specialty.service.SpecialtyService;
+import com.gakkum.backend.domain.student.entity.Student;
 import com.gakkum.backend.domain.student.repository.StudentRepository;
 import com.gakkum.backend.domain.student.service.StudentService;
 import com.gakkum.backend.domain.user.entity.User;
@@ -67,12 +72,14 @@ import com.gakkum.backend.domain.user.service.UserService;
 import com.gakkum.backend.global.exception.BusinessException;
 import com.gakkum.backend.global.exception.ErrorCode;
 import com.gakkum.backend.global.exception.GlobalExceptionHandler;
+import com.gakkum.backend.global.transaction.ImmediateTransactionTemplate;
 
 @DisplayName("사장님 수정 요청 전체 흐름 (POST /jobs/{jobId}/submissions/{submissionId}/revision-request)")
 class JobRevisionRequestFlowTest {
 
     private static final String USERNAME = "KAKAO_12345";
     private static final String OWNER_USER_ID = "01K58M6PJV8VAJMXHBHJ2PNB5C";
+    private static final String STUDENT_USER_ID = "01K58M6PJV8VAJMXHBHJ2PNB5D";
     private static final String URL = "/jobs/42/submissions/81/revision-request";
     private static final String MESSAGE = "로고를 조금 더 크게 해주세요.";
     private static final String KEY_PREFIX = "images/job/" + OWNER_USER_ID + "/";
@@ -82,6 +89,8 @@ class JobRevisionRequestFlowTest {
     private final JobRepository jobRepository = mock(JobRepository.class);
     private final JobSubmissionRepository jobSubmissionRepository = mock(JobSubmissionRepository.class);
     private final MediaImageStorageClient imageStorageClient = mock(MediaImageStorageClient.class);
+    private final StudentRepository studentRepository = mock(StudentRepository.class);
+    private final ApplicationEventPublisher eventPublisher = mock(ApplicationEventPublisher.class);
     private final UsernamePasswordAuthenticationToken authentication =
             new UsernamePasswordAuthenticationToken(USERNAME, null);
 
@@ -94,17 +103,20 @@ class JobRevisionRequestFlowTest {
                 mock(JobApplicationRepository.class), jobSubmissionRepository,
                 Clock.systemUTC());
         JobFacade facade = new JobFacade(userService, new OwnerService(ownerRepository), jobService,
-                mock(SpecialtyCategoryService.class), mock(SpecialtyService.class), new StudentService(mock(StudentRepository.class)),
+                mock(SpecialtyCategoryService.class), mock(SpecialtyService.class), new StudentService(studentRepository),
                 mock(JobSubmissionFileStorageClient.class), mock(ChatAttachmentPolicy.class), mock(PaymentService.class),
                 mock(ReviewService.class), mock(CertificateService.class), mock(ProposalService.class),
-                new MediaService(imageStorageClient, DataSize.ofMegabytes(10)), mock(ApplicationEventPublisher.class));
+                new MediaService(imageStorageClient, DataSize.ofMegabytes(10)), eventPublisher,
+                new ImmediateTransactionTemplate(), mock(ChatRoomService.class));
+        when(studentRepository.findById(7L)).thenReturn(Optional.of(
+                Student.builder().id(7L).userId(STUDENT_USER_ID).build()));
         mockMvc = MockMvcBuilders.standaloneSetup(new JobController(facade))
                 .setControllerAdvice(new GlobalExceptionHandler())
                 .build();
     }
 
     @Test
-    @DisplayName("요청 내용과 참고 사진을 남겨 수정을 요청하면 200과 data 없는 성공 응답을 반환하고 내용·사진·시각을 함께 기록한다")
+    @DisplayName("요청 내용과 참고 사진을 남겨 수정을 요청하면 200과 data 없는 성공 응답을 반환하고 내용·사진·시각을 함께 기록한 뒤 담당 학생에게 알린다")
     void requestsRevision() throws Exception {
         givenActiveOwner();
         givenOwnedJob(JobStatus.MATCHED);
@@ -123,6 +135,10 @@ class JobRevisionRequestFlowTest {
         assertThat(submission.getReviewedAt()).isNotNull();
         assertThat(submission.getMessage()).isEqualTo("초안입니다.");
         assertThat(submission.getFileUrls()).containsExactly("https://example.com/draft.pdf");
+        ArgumentCaptor<NotificationEvent> event = ArgumentCaptor.forClass(NotificationEvent.class);
+        verify(eventPublisher).publishEvent(event.capture());
+        assertThat(event.getValue()).isEqualTo(NotificationEventFactory.jobRevisionRequested(
+                STUDENT_USER_ID, 81L, 42L, "메뉴판 디자인", "가꿈 카페"));
     }
 
     @Test
@@ -292,7 +308,7 @@ class JobRevisionRequestFlowTest {
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.error.code").value("JOB_SUBMISSION_409_REVIEWED"));
         assertThat(submission.getReviewComment()).isEqualTo("기존 요청");
-        verifyNoInteractions(imageStorageClient);
+        verifyNoInteractions(imageStorageClient, eventPublisher);
         verify(jobRepository, never()).findByIdAndOwnerProfileId(any(), any());
     }
 
@@ -309,6 +325,7 @@ class JobRevisionRequestFlowTest {
                 .andExpect(jsonPath("$.error.code").value("JOB_SUBMISSION_409_REVIEWED"));
         assertThat(submission.getReviewComment()).isEqualTo("먼저 처리된 요청");
         verify(jobRepository).findByIdAndOwnerProfileId(42L, 5L);
+        verifyNoInteractions(eventPublisher);
     }
 
     @Test
@@ -322,6 +339,7 @@ class JobRevisionRequestFlowTest {
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.error.code").value("JOB_SUBMISSION_409_REVISION_LIMIT"));
         assertUnchanged(submission);
+        verifyNoInteractions(eventPublisher);
     }
 
     @Test
@@ -424,7 +442,8 @@ class JobRevisionRequestFlowTest {
     private void givenActiveOwner() {
         when(userRepository.findByUsernameAndIsLock(USERNAME, false)).thenReturn(Optional.of(
                 User.builder().id(OWNER_USER_ID).role(UserRole.OWNER).build()));
-        when(ownerRepository.findByUserId(OWNER_USER_ID)).thenReturn(Optional.of(Owner.builder().id(5L).build()));
+        when(ownerRepository.findByUserId(OWNER_USER_ID)).thenReturn(Optional.of(
+                Owner.builder().id(5L).userId(OWNER_USER_ID).storeName("가꿈 카페").build()));
     }
 
     /** 잠금 전 사전 확인(프로젝션)과 잠금 후 조회(엔티티)가 같은 의뢰를 보게 한다. */
@@ -436,6 +455,7 @@ class JobRevisionRequestFlowTest {
         when(jobRepository.findByIdAndOwnerProfileId(42L, 5L)).thenReturn(Optional.of(Job.builder()
                 .id(42L)
                 .ownerProfileId(5L)
+                .title("메뉴판 디자인")
                 .status(status)
                 .selectedStudentProfileId(7L)
                 .revisionCount(2)

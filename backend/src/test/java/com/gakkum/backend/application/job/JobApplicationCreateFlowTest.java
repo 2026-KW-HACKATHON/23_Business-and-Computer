@@ -38,6 +38,7 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import com.gakkum.backend.application.job.controller.JobController;
 import com.gakkum.backend.application.job.facade.JobFacade;
+import com.gakkum.backend.domain.chat.service.ChatRoomService;
 import com.gakkum.backend.domain.media.service.MediaService;
 import com.gakkum.backend.domain.certificate.service.CertificateService;
 import com.gakkum.backend.domain.chat.service.ChatAttachmentPolicy;
@@ -52,6 +53,7 @@ import com.gakkum.backend.domain.job.repository.JobSpecialtyRepository;
 import com.gakkum.backend.domain.job.repository.JobSubmissionRepository;
 import com.gakkum.backend.domain.job.service.JobService;
 import com.gakkum.backend.domain.jwt.service.JwtService;
+import com.gakkum.backend.domain.notification.dto.NotificationEventFactory;
 import com.gakkum.backend.domain.owner.repository.OwnerRepository;
 import com.gakkum.backend.domain.owner.entity.Owner;
 import com.gakkum.backend.domain.notification.dto.NotificationEvent;
@@ -71,6 +73,7 @@ import com.gakkum.backend.domain.user.entity.UserRole;
 import com.gakkum.backend.domain.user.repository.UserRepository;
 import com.gakkum.backend.domain.user.service.UserService;
 import com.gakkum.backend.global.exception.GlobalExceptionHandler;
+import com.gakkum.backend.global.transaction.ImmediateTransactionTemplate;
 
 @DisplayName("학생 의뢰 지원 전체 흐름 (POST /jobs/{jobId}/applications)")
 class JobApplicationCreateFlowTest {
@@ -111,7 +114,8 @@ class JobApplicationCreateFlowTest {
                 new StudentService(studentRepository),
                 mock(JobSubmissionFileStorageClient.class), mock(ChatAttachmentPolicy.class),
                 mock(PaymentService.class),
-                mock(ReviewService.class), mock(CertificateService.class), mock(ProposalService.class), mock(MediaService.class), eventPublisher);
+                mock(ReviewService.class), mock(CertificateService.class), mock(ProposalService.class), mock(MediaService.class), eventPublisher,
+                new ImmediateTransactionTemplate(), mock(ChatRoomService.class));
         mockMvc = MockMvcBuilders.standaloneSetup(new JobController(facade))
                 .setControllerAdvice(new GlobalExceptionHandler())
                 .build();
@@ -143,8 +147,8 @@ class JobApplicationCreateFlowTest {
         assertThat(job.getSelectedStudentProfileId()).isNull();
         ArgumentCaptor<NotificationEvent> event = ArgumentCaptor.forClass(NotificationEvent.class);
         verify(eventPublisher).publishEvent(event.capture());
-        assertThat(event.getValue().eventId()).isNotNull();
-        assertThat(event.getValue().recipientUserId()).isEqualTo(OWNER_USER_ID);
+        assertThat(event.getValue()).isEqualTo(NotificationEventFactory.jobApplicationReceived(
+                OWNER_USER_ID, APPLICATION_ID, JOB_ID, "메뉴판 디자인", "김학생"));
         assertThat(event.getValue().type()).isEqualTo(NotificationType.JOB_APPLICATION_RECEIVED);
         assertThat(event.getValue().targetType()).isEqualTo(NotificationTargetType.JOB);
         assertThat(event.getValue().targetId()).isEqualTo(Long.toString(JOB_ID));
@@ -373,7 +377,7 @@ class JobApplicationCreateFlowTest {
 
     private void givenActiveStudent() {
         when(userRepository.findByUsernameAndIsLock(USERNAME, false)).thenReturn(Optional.of(
-                User.builder().id(STUDENT_USER_ID).role(UserRole.STUDENT).build()));
+                User.builder().id(STUDENT_USER_ID).name("김학생").role(UserRole.STUDENT).build()));
         when(studentRepository.findByUserId(STUDENT_USER_ID)).thenReturn(Optional.of(
                 Student.builder().id(STUDENT_PROFILE_ID).userId(STUDENT_USER_ID).build()));
     }
@@ -391,7 +395,7 @@ class JobApplicationCreateFlowTest {
 
     private void givenSaveAssignsId() {
         when(jobRepository.findAllById(List.of(JOB_ID))).thenReturn(List.of(
-                Job.builder().id(JOB_ID).ownerProfileId(5L).build()));
+                Job.builder().id(JOB_ID).ownerProfileId(5L).title("메뉴판 디자인").build()));
         when(jobApplicationRepository.saveAndFlush(any())).thenAnswer(invocation -> {
             JobApplication application = invocation.getArgument(0);
             return JobApplication.builder()

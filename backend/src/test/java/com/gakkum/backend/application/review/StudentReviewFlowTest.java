@@ -20,6 +20,7 @@ import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
@@ -79,7 +80,7 @@ class StudentReviewFlowTest {
                 mock(JobApplicationRepository.class), jobSubmissionRepository, Clock.systemUTC());
         ReviewFacade facade = new ReviewFacade(new UserService(userRepository, mock(JwtService.class)),
                 new OwnerService(ownerRepository), new StudentService(studentRepository), jobService,
-                new ReviewService(reviewRepository));
+                new ReviewService(reviewRepository), mock(ApplicationEventPublisher.class));
         mockMvc = MockMvcBuilders.standaloneSetup(new ReviewController(facade))
                 .setControllerAdvice(new GlobalExceptionHandler())
                 .build();

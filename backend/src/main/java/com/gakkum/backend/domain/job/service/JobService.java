@@ -480,6 +480,16 @@ public class JobService {
     }
 
     /**
+     * 의뢰의 대기 중(PENDING) 지원서 전체 조회. 미선정·모집 취소 알림의 수신자를 찾는 데 쓰고 지원서 상태는 바꾸지 않는다.
+     * @param jobId
+     * @return 대기 중 지원서, 없으면 빈 목록
+     */
+    @Transactional(readOnly = true)
+    public List<JobApplication> getPendingApplications(Long jobId) {
+        return jobApplicationRepository.findByJobIdInAndStatus(List.of(jobId), JobApplicationStatus.PENDING);
+    }
+
+    /**
      * 사장님이 학생 프로필을 볼 수 있는 본인 의뢰의 지원서를 조회한다. 조회만 하므로 의뢰 행을 잠그지 않는다.
      * 모집 중(OPEN)에는 대기 중(PENDING) 지원서, 매칭·완료(MATCHED·CLOSED) 후에는 선정된 학생의 지원서만 허용한다.
      * 존재하지 않거나 다른 사장님의 의뢰는 같은 404, 취소된 본인 의뢰는 지원서를 확인하기 전에 409로 거부한다.
@@ -679,9 +689,10 @@ public class JobService {
      * 요청 후 학생이 낼 수정안 번호(현재 번호 + 1)가 수정 가능 횟수를 넘으면 거부한다.
      * @param command
      * @param ownerProfileId
+     * @return 수정을 요청한 진행 중(MATCHED) 의뢰
      */
     @Transactional
-    public void requestRevision(RequestJobSubmissionRevisionCommand command, Long ownerProfileId) {
+    public Job requestRevision(RequestJobSubmissionRevisionCommand command, Long ownerProfileId) {
         Job job = jobRepository.findByIdAndOwnerProfileId(command.getJobId(), ownerProfileId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.JOB_NOT_FOUND));
         JobSubmission submission = jobSubmissionRepository.findById(command.getSubmissionId())
@@ -690,6 +701,7 @@ public class JobService {
         validateRevisionRequestable(
                 job.getStatus(), job.getRevisionCount(), submission.getReviewStatus(), submission.getRevisionNumber());
         submission.requestRevision(now(), command.getMessage(), command.getReferenceImageUrls());
+        return job;
     }
 
     private void validateRevisionRequestable(JobStatus jobStatus, Integer revisionCount,
@@ -709,9 +721,10 @@ public class JobService {
      * 사장님이 검토 대기(PENDING) 초안 또는 수정안을 최종 결과로 수락하고 의뢰를 즉시 종료한다.
      * 의뢰 행을 잠가 같은 의뢰의 수정 요청·수정안 제출과 순서대로 처리한다.
      * @param command
+     * @return 종료된(CLOSED) 의뢰
      */
     @Transactional
-    public void completeSubmission(CompleteJobSubmissionCommand command) {
+    public Job completeSubmission(CompleteJobSubmissionCommand command) {
         Job job = jobRepository.findByIdAndOwnerProfileId(command.getJobId(), command.getOwnerProfileId())
                 .orElseThrow(() -> new BusinessException(ErrorCode.JOB_NOT_FOUND));
         JobSubmission submission = jobSubmissionRepository.findById(command.getSubmissionId())
@@ -722,6 +735,7 @@ public class JobService {
         }
         submission.approve();
         job.complete(now());
+        return job;
     }
 
     /**

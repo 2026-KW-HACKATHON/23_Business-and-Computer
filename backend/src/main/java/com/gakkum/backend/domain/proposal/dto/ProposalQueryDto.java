@@ -59,6 +59,19 @@ public final class ProposalQueryDto {
         }
     }
 
+    /** 공감 요청을 처리한 제안과, 이 요청으로 공감 기록이 새로 저장됐는지. 이미 공감한 제안의 재요청은 false다. */
+    @Getter
+    @AllArgsConstructor(access = AccessLevel.PRIVATE)
+    public static class ProposalLikeData {
+
+        private final Proposal proposal;
+        private final boolean added;
+
+        public static ProposalLikeData of(Proposal proposal, boolean added) {
+            return new ProposalLikeData(proposal, added);
+        }
+    }
+
     /** 제안 취소 결과. 반복 요청에도 같은 값을 내린다. */
     @Getter
     @Builder(access = AccessLevel.PRIVATE)

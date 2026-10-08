@@ -49,6 +49,7 @@ import com.gakkum.backend.domain.certificate.entity.StudentCertificate;
 import com.gakkum.backend.domain.certificate.repository.StudentCertificateRepository;
 import com.gakkum.backend.domain.certificate.service.CertificateService;
 import com.gakkum.backend.domain.chat.service.ChatAttachmentPolicy;
+import com.gakkum.backend.domain.chat.service.ChatRoomService;
 import com.gakkum.backend.domain.job.client.JobSubmissionFileStorageClient;
 import com.gakkum.backend.domain.job.entity.Job;
 import com.gakkum.backend.domain.job.entity.JobApplication;
@@ -88,6 +89,7 @@ import com.gakkum.backend.domain.user.entity.UserRole;
 import com.gakkum.backend.domain.user.repository.UserRepository;
 import com.gakkum.backend.domain.user.service.UserService;
 import com.gakkum.backend.global.exception.GlobalExceptionHandler;
+import com.gakkum.backend.global.transaction.ImmediateTransactionTemplate;
 
 @DisplayName("의뢰 지원자 프로필 조회 전체 흐름 (GET /jobs/{jobId}/applications/{jobApplicationId}/profile)")
 class JobApplicantProfileFlowTest {
@@ -136,7 +138,8 @@ class JobApplicantProfileFlowTest {
                 new CertificateService(studentCertificateRepository),
                 new ProposalService(proposalRepository, mock(ProposalSpecialtyRepository.class),
                         mock(ProposalLikeRepository.class)),
-                mock(MediaService.class), mock(ApplicationEventPublisher.class));
+                mock(MediaService.class), mock(ApplicationEventPublisher.class),
+                new ImmediateTransactionTemplate(), mock(ChatRoomService.class));
 
         mockMvc = MockMvcBuilders.standaloneSetup(new JobController(facade))
                 .setControllerAdvice(new GlobalExceptionHandler())

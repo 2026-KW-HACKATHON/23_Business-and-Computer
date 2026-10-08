@@ -54,6 +54,7 @@ import com.gakkum.backend.config.ClockConfig;
 import com.gakkum.backend.config.NotificationStreamConfig;
 import com.gakkum.backend.domain.certificate.service.CertificateService;
 import com.gakkum.backend.domain.chat.service.ChatAttachmentPolicy;
+import com.gakkum.backend.domain.chat.service.ChatRoomService;
 import com.gakkum.backend.domain.job.client.JobSubmissionFileStorageClient;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.CreateJobApplicationCommand;
 import com.gakkum.backend.domain.job.entity.Job;
@@ -163,6 +164,9 @@ class NotificationStreamIntegrationTest {
 
     @MockitoBean
     private MediaService mediaService;
+
+    @MockitoBean
+    private ChatRoomService chatRoomService;
 
     private NotificationStreamProperties properties;
     private NotificationEventPublisher publisher;
@@ -425,7 +429,7 @@ class NotificationStreamIntegrationTest {
         applicationJobId = jobRepository.saveAndFlush(Job.create(ownerProfileId, "지원 알림 테스트", "의뢰 설명",
                 10000L, LocalDate.now().plusDays(1), LocalDate.now().plusDays(2), 0, null)).getId();
         when(userService.getActiveUser(APPLICANT)).thenReturn(
-                User.builder().id(OTHER).username(APPLICANT).role(UserRole.STUDENT).build());
+                User.builder().id(OTHER).username(APPLICANT).name("김학생").role(UserRole.STUDENT).build());
         when(userService.getActiveUser(USERNAME)).thenReturn(
                 User.builder().id(RECIPIENT).username(USERNAME).role(UserRole.OWNER).build());
     }

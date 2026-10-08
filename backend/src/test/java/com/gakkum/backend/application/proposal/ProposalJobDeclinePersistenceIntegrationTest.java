@@ -196,6 +196,7 @@ class ProposalJobDeclinePersistenceIntegrationTest {
         Student student = Student.builder().id(STUDENT_PROFILE_ID).userId(STUDENT_USER_ID).build();
         when(studentService.findStudentProfileByUserId(STUDENT_USER_ID)).thenReturn(Optional.of(student));
         when(studentService.getStudentProfilesByIds(any())).thenReturn(Map.of(STUDENT_PROFILE_ID, student));
+        when(studentService.getStudentProfile(STUDENT_PROFILE_ID)).thenReturn(student);
         when(userService.getUsersByIds(any())).thenReturn(Map.of(STUDENT_USER_ID,
                 User.builder().id(STUDENT_USER_ID).name("김학생").role(UserRole.STUDENT).build()));
         when(kakaoPayClient.cid()).thenReturn("TC0ONETIME");
