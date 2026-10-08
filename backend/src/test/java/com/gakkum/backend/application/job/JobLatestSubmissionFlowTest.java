@@ -19,6 +19,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.test.web.servlet.MockMvc;
@@ -41,6 +42,7 @@ import com.gakkum.backend.domain.job.repository.JobSubmissionRepository;
 import com.gakkum.backend.domain.job.service.JobService;
 import com.gakkum.backend.domain.jwt.service.JwtService;
 import com.gakkum.backend.domain.media.service.MediaService;
+import com.gakkum.backend.domain.owner.entity.Owner;
 import com.gakkum.backend.domain.owner.repository.OwnerRepository;
 import com.gakkum.backend.domain.owner.service.OwnerService;
 import com.gakkum.backend.domain.payment.service.PaymentService;
@@ -57,17 +59,19 @@ import com.gakkum.backend.domain.user.repository.UserRepository;
 import com.gakkum.backend.domain.user.service.UserService;
 import com.gakkum.backend.global.exception.GlobalExceptionHandler;
 
-@DisplayName("학생 최신 제출물 조회 전체 흐름 (GET /jobs/{jobId}/submissions/latest)")
+@DisplayName("사장님·학생 최신 제출물 조회 전체 흐름 (GET /jobs/{jobId}/submissions/latest)")
 class JobLatestSubmissionFlowTest {
 
     private static final String USERNAME = "KAKAO_12345";
     private static final String STUDENT_USER_ID = "01K58M6PJV8VAJMXHBHJ2PNB6D";
+    private static final String OWNER_USER_ID = "01K58M6PJV8VAJMXHBHJ2PNB6E";
     private static final String URL = "/jobs/42/submissions/latest";
     private static final LocalDateTime SUBMITTED_AT = LocalDateTime.of(2026, 10, 1, 9, 30, 0);
     private static final LocalDateTime REQUESTED_AT = LocalDateTime.of(2026, 10, 2, 14, 5, 30);
 
     private final UserRepository userRepository = mock(UserRepository.class);
     private final StudentRepository studentRepository = mock(StudentRepository.class);
+    private final OwnerRepository ownerRepository = mock(OwnerRepository.class);
     private final JobRepository jobRepository = mock(JobRepository.class);
     private final JobSubmissionRepository jobSubmissionRepository = mock(JobSubmissionRepository.class);
     private final UsernamePasswordAuthenticationToken authentication =
@@ -83,7 +87,7 @@ class JobLatestSubmissionFlowTest {
         JobService jobService = new JobService(jobRepository, mock(JobSpecialtyRepository.class),
                 mock(JobApplicationRepository.class), jobSubmissionRepository,
                 Clock.systemUTC());
-        JobFacade facade = new JobFacade(userService, new OwnerService(mock(OwnerRepository.class)), jobService,
+        JobFacade facade = new JobFacade(userService, new OwnerService(ownerRepository), jobService,
                 mock(SpecialtyCategoryService.class), mock(SpecialtyService.class), new StudentService(studentRepository),
                 storageClient, mock(ChatAttachmentPolicy.class), mock(PaymentService.class),
                 mock(ReviewService.class), mock(CertificateService.class), mock(ProposalService.class), mock(MediaService.class));
@@ -245,11 +249,143 @@ class JobLatestSubmissionFlowTest {
                 .andExpect(jsonPath("$.data.revisionRequest").value(nullValue()));
     }
 
+    @ParameterizedTest
+    @CsvSource({ "DRAFT, 0", "REVISION, 1" })
+    @DisplayName("의뢰한 사장님은 수정 요청 내용·참고 사진 순서·요청 시각을 초안 0, 첫 수정안 1의 수정 번호와 함께 조회한다")
+    void returnsRevisionRequestToOwner(JobSubmissionType type, int revisionNumber) throws Exception {
+        givenOwner(5L);
+        givenJob(JobStatus.MATCHED, 7L);
+        givenLatest(submission(type, revisionNumber, JobSubmissionReviewStatus.REVISION_REQUESTED)
+                .reviewComment("로고를 조금 더 크게 해주세요.")
+                .revisionReferenceImageUrls(List.of("https://images.example.com/b.png", "https://images.example.com/a.png"))
+                .reviewedAt(REQUESTED_AT)
+                .build());
+
+        mockMvc.perform(get(URL).principal(authentication))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.submissionId").value(81))
+                .andExpect(jsonPath("$.data.submissionType").value(type.name()))
+                .andExpect(jsonPath("$.data.revisionNumber").value(revisionNumber))
+                .andExpect(jsonPath("$.data.fileUrls[0]").value("https://example.com/draft.pdf"))
+                .andExpect(jsonPath("$.data.message").value("제출합니다."))
+                .andExpect(jsonPath("$.data.reviewStatus").value("REVISION_REQUESTED"))
+                .andExpect(jsonPath("$.data.submittedAt").value("2026-10-01T18:30:00+09:00"))
+                .andExpect(jsonPath("$.data.revisionRequest.message").value("로고를 조금 더 크게 해주세요."))
+                .andExpect(jsonPath("$.data.revisionRequest.referenceImageUrls.length()").value(2))
+                .andExpect(jsonPath("$.data.revisionRequest.referenceImageUrls[0]")
+                        .value("https://images.example.com/b.png"))
+                .andExpect(jsonPath("$.data.revisionRequest.referenceImageUrls[1]")
+                        .value("https://images.example.com/a.png"))
+                .andExpect(jsonPath("$.data.revisionRequest.requestedAt").value("2026-10-02T23:05:30+09:00"));
+        verifyNoInteractions(studentRepository);
+    }
+
     @Test
-    @DisplayName("학생이 아닌 사용자는 403 JOB_SUBMISSION_403_VIEW로 거부하고 의뢰를 조회하지 않는다")
-    void rejectsNonStudent() throws Exception {
+    @DisplayName("학생이 수정안을 다시 제출하면 사장님에게도 새 수정안만 반환하고 이전 차수의 수정 요청은 붙이지 않는다")
+    void returnsResubmittedRevisionToOwnerWithoutPreviousRequest() throws Exception {
+        givenOwner(5L);
+        givenJob(JobStatus.MATCHED, 7L);
+        givenLatest(submission(JobSubmissionType.REVISION, 1, JobSubmissionReviewStatus.PENDING).id(82L).build());
+
+        mockMvc.perform(get(URL).principal(authentication))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.submissionId").value(82))
+                .andExpect(jsonPath("$.data.revisionNumber").value(1))
+                .andExpect(jsonPath("$.data.reviewStatus").value("PENDING"))
+                .andExpect(jsonPath("$.data", hasKey("revisionRequest")))
+                .andExpect(jsonPath("$.data.revisionRequest").value(nullValue()));
+    }
+
+    @ParameterizedTest
+    @EnumSource(value = JobStatus.class, names = { "CLOSED", "CANCELLED" })
+    @DisplayName("완료·취소된 의뢰도 의뢰한 사장님은 최신 제출물을 조회할 수 있다")
+    void returnsLatestOfFinishedJobToOwner(JobStatus status) throws Exception {
+        givenOwner(5L);
+        givenJob(status, 7L);
+        JobSubmissionReviewStatus reviewStatus = status == JobStatus.CLOSED
+                ? JobSubmissionReviewStatus.APPROVED
+                : JobSubmissionReviewStatus.REVISION_REQUESTED;
+        givenLatest(submission(JobSubmissionType.DRAFT, 0, reviewStatus).build());
+
+        mockMvc.perform(get(URL).principal(authentication))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.submissionId").value(81))
+                .andExpect(jsonPath("$.data.reviewStatus").value(reviewStatus.name()));
+    }
+
+    @Test
+    @DisplayName("사장님 본인 의뢰에 제출물이 없으면 404 JOB_SUBMISSION_404_LATEST를 반환한다")
+    void rejectsOwnersJobWithoutSubmission() throws Exception {
+        givenOwner(5L);
+        givenJob(JobStatus.OPEN, null);
+        when(jobSubmissionRepository.findFirstByJobIdOrderByRevisionNumberDesc(42L)).thenReturn(Optional.empty());
+
+        mockMvc.perform(get(URL).principal(authentication))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.error.code").value("JOB_SUBMISSION_404_LATEST"));
+    }
+
+    @Test
+    @DisplayName("다른 사장님의 의뢰이면 404 JOB_404를 반환하고 제출물을 조회하지 않는다")
+    void rejectsOtherOwnersJob() throws Exception {
+        givenOwner(6L);
+        givenJob(JobStatus.MATCHED, 7L);
+
+        mockMvc.perform(get(URL).principal(authentication))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.error.code").value("JOB_404"));
+        verifyNoInteractions(jobSubmissionRepository);
+    }
+
+    @Test
+    @DisplayName("사장님 프로필 ID가 담당 학생 프로필 ID와 숫자만 같으면 404 JOB_404로 거부하고 제출물을 조회하지 않는다")
+    void rejectsOwnerWhoseProfileIdEqualsSelectedStudentId() throws Exception {
+        givenOwner(7L);
+        givenJob(JobStatus.MATCHED, 7L);
+
+        mockMvc.perform(get(URL).principal(authentication))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.error.code").value("JOB_404"));
+        verifyNoInteractions(studentRepository, jobSubmissionRepository);
+    }
+
+    @Test
+    @DisplayName("학생 프로필 ID가 의뢰한 사장님 프로필 ID와 숫자만 같으면 404 JOB_404로 거부하고 제출물을 조회하지 않는다")
+    void rejectsStudentWhoseProfileIdEqualsOwnerId() throws Exception {
+        givenStudent();
+        when(jobRepository.findById(42L)).thenReturn(Optional.of(Job.builder()
+                .id(42L)
+                .ownerProfileId(7L)
+                .status(JobStatus.MATCHED)
+                .selectedStudentProfileId(8L)
+                .revisionCount(2)
+                .build()));
+
+        mockMvc.perform(get(URL).principal(authentication))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.error.code").value("JOB_404"));
+        verifyNoInteractions(ownerRepository, jobSubmissionRepository);
+    }
+
+    @Test
+    @DisplayName("사장님·학생이 아닌 역할은 403 JOB_SUBMISSION_403_VIEW로 거부하고 프로필과 의뢰를 조회하지 않는다")
+    void rejectsDisallowedRole() throws Exception {
         when(userRepository.findByUsernameAndIsLock(USERNAME, false)).thenReturn(Optional.of(
-                User.builder().id(STUDENT_USER_ID).role(UserRole.OWNER).build()));
+                User.builder().id(STUDENT_USER_ID).role(UserRole.PENDING).build()));
+
+        mockMvc.perform(get(URL).principal(authentication))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.error.code").value("JOB_SUBMISSION_403_VIEW"));
+        verifyNoInteractions(ownerRepository, studentRepository, jobRepository, jobSubmissionRepository);
+    }
+
+    @Test
+    @DisplayName("사장님 역할이어도 사장님 프로필이 없으면 403 JOB_SUBMISSION_403_VIEW로 거부하고 의뢰를 조회하지 않는다")
+    void rejectsOwnerWithoutProfile() throws Exception {
+        when(userRepository.findByUsernameAndIsLock(USERNAME, false)).thenReturn(Optional.of(
+                User.builder().id(OWNER_USER_ID).role(UserRole.OWNER).build()));
+        when(ownerRepository.findByUserId(OWNER_USER_ID)).thenReturn(Optional.empty());
 
         mockMvc.perform(get(URL).principal(authentication))
                 .andExpect(status().isForbidden())
@@ -346,6 +482,13 @@ class JobLatestSubmissionFlowTest {
                 User.builder().id(STUDENT_USER_ID).role(UserRole.STUDENT).build()));
         when(studentRepository.findByUserId(STUDENT_USER_ID))
                 .thenReturn(Optional.of(Student.builder().id(7L).userId(STUDENT_USER_ID).build()));
+    }
+
+    private void givenOwner(Long ownerProfileId) {
+        when(userRepository.findByUsernameAndIsLock(USERNAME, false)).thenReturn(Optional.of(
+                User.builder().id(OWNER_USER_ID).role(UserRole.OWNER).build()));
+        when(ownerRepository.findByUserId(OWNER_USER_ID))
+                .thenReturn(Optional.of(Owner.builder().id(ownerProfileId).userId(OWNER_USER_ID).build()));
     }
 
     private void givenJob(JobStatus status, Long selectedStudentProfileId) {
