@@ -184,9 +184,9 @@ class ReviewControllerTest {
     }
 
     @Test
-    @DisplayName("받은 리뷰 조회는 200과 제출물 ID, 의뢰 제목, 매장 이름, 별점, 작성일, 좋은 점 코드, 내용을 반환한다")
+    @DisplayName("리뷰 조회는 200과 제출물 ID, 의뢰 제목, 매장 이름, 별점, 작성일, 좋은 점 코드, 내용을 반환한다")
     void returnsStudentReview() throws Exception {
-        when(reviewFacade.getStudentReview(USERNAME, 42L)).thenReturn(StudentReviewResult.of(
+        when(reviewFacade.getJobReview(USERNAME, 42L)).thenReturn(StudentReviewResult.of(
                 Review.builder()
                         .jobId(42L)
                         .rating(5)
@@ -213,7 +213,7 @@ class ReviewControllerTest {
     @Test
     @DisplayName("글 없는 리뷰를 조회하면 내용 키를 빼지 않고 null로 반환한다")
     void returnsStudentReviewWithoutContent() throws Exception {
-        when(reviewFacade.getStudentReview(USERNAME, 42L)).thenReturn(StudentReviewResult.of(
+        when(reviewFacade.getJobReview(USERNAME, 42L)).thenReturn(StudentReviewResult.of(
                 Review.builder()
                         .jobId(42L)
                         .rating(4)
@@ -231,7 +231,7 @@ class ReviewControllerTest {
     }
 
     @Test
-    @DisplayName("받은 리뷰 조회에서 의뢰 ID가 0 이하이면 COMMON_400으로 거부한다")
+    @DisplayName("리뷰 조회에서 의뢰 ID가 0 이하이면 COMMON_400으로 거부한다")
     void rejectsNonPositiveJobIdOnLookup() throws Exception {
         mockMvc.perform(get("/jobs/0/review").principal(authentication))
                 .andExpect(status().isBadRequest())
