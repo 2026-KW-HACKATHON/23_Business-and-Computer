@@ -1,17 +1,15 @@
-import { useLocation, useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { Button, DoneScreen, StarRating } from "../components";
-import { OWNER_PATHS, useOwnerWork } from "../features/owner";
+import { OWNER_PATHS } from "../features/owner";
 import { studentTitle } from "../lib/korean";
 
-/** 피그마 「후기 완료 / 정산 완료」. 남긴 별점을 보여 주고 홈으로. 서버 작업은 학생 이름을 후기 작성에서 받는다 */
+/** 피그마 「후기 완료 / 정산 완료」. 남긴 별점을 보여 주고 홈으로. 학생 이름 · 별점은 후기 작성에서 받는다 */
 function OwnerReviewDonePage() {
-  const { workId = "" } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
-  const work = useOwnerWork(workId);
   const state = location.state as { rating?: number; studentName?: string } | null;
   const rating = state?.rating;
-  const name = work?.student.name ?? state?.studentName;
+  const name = state?.studentName;
   const studentName = name ? `${studentTitle(name)}에게` : "학생에게";
 
   return (

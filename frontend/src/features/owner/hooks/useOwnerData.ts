@@ -1,121 +1,20 @@
-import { todayIsoDate } from "../../../lib/date";
-import {
-  SAMPLE_REQUESTS,
-  SAMPLE_WORKS,
-} from "../lib/sampleDetails";
 import { SAMPLE_REQUEST_EXAMPLES } from "../lib/sampleHome";
-import { SAMPLE_STUDENT_PROFILES } from "../lib/sampleStudents";
-import type {
-  OwnerRequest,
-  OwnerWork,
-  RequestExample,
-  StudentProfile,
-  StudentProfileRef,
-  StudentRef,
-} from "../types";
+import type { RequestExample } from "../types";
 
-/*
- * 사장님 화면 데이터. 지금은 임시 예시 데이터를 돌려준다.
- * 백엔드를 연동할 때 이 안만 API 호출로 바꾸면 화면은 그대로 쓴다.
- *
- * 원본은 작업 · 의뢰 · 제안 · 학생 프로필 · 탐색 상세 하나씩이고, 탐색 목록(과
- * useOwnerHome 의 홈)은 원본에서 만든다. 그래서 어느 화면에서
- * 상세로 들어가도 이름 · 학과 · 금액 · 날짜가 같다.
- */
-
-// ---- 시연 중에 바뀐 상태. 백엔드 연동 전까지 새로고침하면 처음으로 돌아간다 ----
-
-const completedWorkIds = new Set<string>();
+/** 이 화면을 연 동안 후기를 남긴 작업. 끝난 목록을 다시 불러오기 전에도 「후기 작성 완료」로 보인다 */
 const reviewedWorkIds = new Set<string>();
 
-/** 작업 확인 「완료 확인」 (백엔드: complete_work) */
-export function completeOwnerWork(workId: string): void {
-  completedWorkIds.add(workId);
-}
-
-/** 후기를 남김 (백엔드: 후기 저장) */
+/** 후기를 남김 */
 export function markOwnerWorkReviewed(workId: string): void {
   reviewedWorkIds.add(workId);
 }
 
-/** 이 화면을 연 동안 후기를 남겼는지. 끝난 작업 목록이 후기 여부를 주기 전까지 서버 작업도 이것으로 본다 */
+/** 이 화면을 연 동안 후기를 남겼는지 */
 export function isOwnerWorkReviewed(workId: string): boolean {
   return reviewedWorkIds.has(workId);
-}
-
-// ---- 학생: 이름 · 학과 · 학번 · 평점은 프로필 한 곳에서 ----
-
-/** 후기 평균. 후기가 없으면 비운다 */
-function ratingOf(profile: StudentProfile): number | undefined {
-  if (profile.reviews.length === 0) return undefined;
-  const sum = profile.reviews.reduce((total, review) => total + review.rating, 0);
-  return Math.round((sum / profile.reviews.length) * 10) / 10;
-}
-
-function profileOf(studentId: string | undefined): StudentProfile | undefined {
-  const profile = SAMPLE_STUDENT_PROFILES.find((p) => p.id === studentId);
-  return profile && { ...profile, rating: ratingOf(profile) };
-}
-
-function withStudent<T extends StudentRef>(ref: T): T {
-  const profile = profileOf(ref.id);
-  if (!profile) return ref;
-  const fromProfile: StudentProfileRef = {
-    id: profile.id,
-    name: profile.name,
-    department: profile.department,
-    year: profile.year,
-    rating: profile.rating,
-    completedCount: profile.completedCount,
-  };
-  return { ...ref, ...fromProfile };
-}
-
-// ---- 원본 ----
-
-function currentWork(work: OwnerWork): OwnerWork {
-  let next: OwnerWork = { ...work, student: withStudent(work.student) };
-  if (completedWorkIds.has(work.id) && work.status === "submitted") {
-    const today = todayIsoDate();
-    next = {
-      ...next,
-      status: "completed",
-      completedOn: today,
-      completedBy: "owner",
-      autoCompleteOn: undefined,
-      history: [...work.history, { date: today, text: "사장님이 완료 확인" }],
-    };
-  }
-  return reviewedWorkIds.has(work.id) ? { ...next, reviewed: true } : next;
-}
-
-const works = () => SAMPLE_WORKS.map(currentWork);
-
-const requests = () =>
-  SAMPLE_REQUESTS.map((request) => ({
-    ...request,
-    applicants: request.applicants.map((a) => ({ ...a, student: withStudent(a.student) })),
-  }));
-
-// ---- 화면별 ----
-
-/** 작업 하나. 없으면 undefined */
-export function useOwnerWork(workId: string | undefined): OwnerWork | undefined {
-  return works().find((work) => work.id === workId);
 }
 
 /** 홈 「이런 의뢰는 어때요?」 예시 하나. 의뢰 등록을 이 내용으로 채워 시작한다 */
 export function useRequestExample(exampleId: string | undefined): RequestExample | undefined {
   return SAMPLE_REQUEST_EXAMPLES.find((example) => example.id === exampleId);
 }
-
-/** 내 작업 전체 (진행 중 · 완료 · 취소) */
-export function useOwnerWorks(): OwnerWork[] {
-  return works();
-}
-
-/** 보낸 의뢰 전체 (모집 중) */
-export function useOwnerRequests(): OwnerRequest[] {
-  return requests();
-}
-

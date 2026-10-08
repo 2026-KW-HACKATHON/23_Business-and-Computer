@@ -19,7 +19,6 @@ import {
   parsePositiveId,
   sendRevisionRequest,
   useOwnerProgressJobs,
-  useOwnerWork,
   usePendingSubmission,
 } from "../features/owner";
 import { useBack } from "../hooks/useBack";
@@ -31,12 +30,13 @@ import "./OwnerRevisionPage.css";
 
 /**
  * 피그마 「수정 요청」 + 「수정 요청 완료 팝업」. 남은 수정 횟수 안에서 고칠 곳을 한 번에 적는다.
- * 주소의 id 가 숫자면 서버 작업(ADR 0035), 아니면 샘플 작업(알림 · 채팅의 예시).
+ * 서버 작업(ADR 0035). 주소의 id 가 숫자가 아니면 찾을 수 없음.
  */
 function OwnerRevisionPage() {
   const { workId = "" } = useParams();
+  const back = useBack(OWNER_PATHS.home);
   const jobId = parsePositiveId(workId);
-  return jobId !== undefined ? <JobRevision jobId={jobId} /> : <SampleRevision workId={workId} />;
+  return jobId !== undefined ? <JobRevision jobId={jobId} /> : <OwnerMissing title="수정 요청" onBack={back} />;
 }
 
 /** 작업 제목과 「학생 · 초안 도착 · 수정 n/m」 */
@@ -146,74 +146,6 @@ function remainingText(remaining: number | undefined): string {
   return remaining > 0
     ? `수정은 ${remaining}회 남았어요. 한 번에 모아서 적어 주세요.`
     : "남은 수정이 없어요. 작업 확인에서 완료를 눌러 주세요.";
-}
-
-/** 샘플 작업의 수정 요청 */
-function SampleRevision({ workId }: { workId: string }) {
-  const navigate = useNavigate();
-  const back = useBack(OWNER_PATHS.home);
-  const work = useOwnerWork(workId);
-  const [detail, setDetail] = useState("");
-  const [photos, setPhotos] = useState<File[]>([]);
-  const [sent, setSent] = useState(false);
-
-  if (!work) return <OwnerMissing title="수정 요청" onBack={back} />;
-
-  const remaining = work.revisionLimit - work.revisionCount;
-  const arrived = work.revisionCount > 0 ? "수정안" : "초안";
-  const meta = [
-    `${work.student.name} 학생`,
-    work.submittedOn && `${arrived} 도착 ${formatMonthDay(work.submittedOn)}`,
-    `수정 ${work.revisionCount}/${work.revisionLimit}`,
-  ]
-    .filter(Boolean)
-    .join(" · ");
-
-  return (
-    <SubScreen
-      title="수정 요청"
-      onBack={back}
-      footer={
-        <Button
-          fullWidth
-          disabled={remaining <= 0 || detail.trim() === ""}
-          onClick={() => setSent(true)}
-        >
-          수정 요청 보내기
-        </Button>
-      }
-    >
-      <div className="owner-revision">
-        <RevisionWork kind={work.kind} title={work.title} meta={meta} />
-
-        <div className="owner-revision__intro">
-          <h2 className="owner-revision__title">어떤 부분을 고칠까요?</h2>
-          <p className="owner-revision__description">{remainingText(remaining)}</p>
-        </div>
-
-        <RevisionForm detail={detail} onDetail={setDetail} photos={photos} onPhotos={setPhotos} />
-
-        <p className="owner-revision__note">
-          학생은 최종 마감({formatMonthDay(work.finalDue)})까지 수정본을 보내요
-        </p>
-      </div>
-
-      <Dialog
-        open={sent}
-        image="doneOwner"
-        title="수정 요청을 보냈어요"
-        description={`${work.student.name} 학생이 ${formatMonthDay(work.finalDue)}까지\n수정본을 보내 드려요.`}
-        actions={
-          <Button
-            fullWidth
-            onClick={() => navigate(OWNER_PATHS.activity("inProgress"), { replace: true })}
-          >
-            확인
-          </Button>
-        }
-      />
-    </SubScreen>
-  );
 }
 
 /**
