@@ -224,9 +224,9 @@ The backend (dev) has:
     hidden.
   - Both: a non-numeric id or 404 shows `OwnerMissing`; 401 goes to /login;
     other failures show `LoadNotice` with 「다시 시도」. 「우리 가게에도 비슷한
-    의뢰 만들기」 opens 의뢰 등록 with the first category that is one of the
-    six fields picked (and, for a job, its tasks in that field); with no such
-    category it opens empty.
+    의뢰 만들기」 opens 의뢰 등록 with the detail's categories picked (and,
+    for a job, its tasks); categories and tasks not on GET /specialties are
+    left out (ADR 0058).
 
 ## Rationale
 

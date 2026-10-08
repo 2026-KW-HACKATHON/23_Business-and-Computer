@@ -135,5 +135,5 @@ The shared API layer (ADR 0021) provides `apiData` in `src/api/client.ts`
 - The sent-proposal list, its detail, the home 「기다리는 중」 proposals, and
   the 내 정보 count now use `GET /me/proposals` and
   `GET /proposals/{proposalId}` (ADR 0023).
-- Other screens still use `SPECIALTY_BADGES` (request writing, the profile,
-  and profile edit); move them to `useSpecialties` in the follow-up issue.
+- Signup, profile edit, and 의뢰 등록 1/3 (ADR 0058) read `useSpecialties`
+  too; `SPECIALTY_BADGES` is removed.

@@ -22,7 +22,6 @@ import {
 import { proposalBadgeNames, proposalMonthDay, useProposalDetail } from "../features/proposal";
 import { useBack } from "../hooks/useBack";
 import { studentTitle, withSubject } from "../lib/korean";
-import { FIELDS } from "../types/field";
 import "./OwnerDetailPage.css";
 import "./OwnerProposalPage.css";
 import "./OwnerExploreDetailPage.css";
@@ -52,7 +51,6 @@ function OwnerExploreProposalPage() {
   const notice = load.status === "error" ? "error" : proposal ? undefined : "loading";
   const student = proposal?.student;
   const badges = proposal ? proposalBadgeNames(proposal.specialtyCategories) : [];
-  const field = FIELDS.find((f) => badges.includes(f));
   const receivedOn = proposal && proposalMonthDay(proposal.createdAt);
   const photos = proposal?.referenceImageUrls ?? [];
 
@@ -65,7 +63,9 @@ function OwnerExploreProposalPage() {
           <Button
             fullWidth
             onClick={() =>
-              navigate(OWNER_PATHS.newRequest, field ? { state: similarRequestState(field) } : undefined)
+              navigate(OWNER_PATHS.newRequest, {
+                state: similarRequestState(proposal.specialtyCategories, { withTasks: false }),
+              })
             }
           >
             우리 가게에도 비슷한 의뢰 만들기
