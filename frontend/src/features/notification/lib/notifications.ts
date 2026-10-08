@@ -59,7 +59,7 @@ const TYPE_ICONS: Record<NotificationType, WorkKind | string> = {
 
 const KNOWN_TYPES: ReadonlySet<string> = new Set(Object.keys(TYPE_ICONS));
 
-/** 이 화면이 아는 알림 종류인지. 모르는 종류는 목록에 보이되 눌러도 이동하지 않는다 */
+/** 아이콘이 정해진 알림 종류인지 (백엔드 21종). 모르는 종류는 🔔 이고, 누르면 대상 종류의 기본 화면으로 간다 */
 export function isKnownNotificationType(type: string): type is NotificationType {
   return KNOWN_TYPES.has(type);
 }

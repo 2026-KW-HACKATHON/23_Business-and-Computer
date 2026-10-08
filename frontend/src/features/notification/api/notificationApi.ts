@@ -2,8 +2,8 @@ import { apiData } from "../../../api/client";
 
 /**
  * 알림 종류 (백엔드 NotificationType 21종). 서버가 늘릴 수 있어 모르는 값도 문자열로 받는다
- * (목록에는 보이고, 눌러도 이동하지 않는다). CHAT_MESSAGE_RECEIVED · PAYMENT_COMPLETED · JOB_COMPLETED 는
- * 저장된 알림 호환용으로 서버가 더 만들지 않는다
+ * (목록에 보이고, 누르면 대상 종류의 기본 화면으로 간다). CHAT_MESSAGE_RECEIVED · PAYMENT_COMPLETED ·
+ * JOB_COMPLETED 는 저장된 알림 호환용으로 서버가 더 만들지 않는다
  */
 export type NotificationType =
   | "JOB_DRAFT_SUBMITTED"

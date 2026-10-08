@@ -1,11 +1,11 @@
-import { isKnownNotificationType, numericTargetId } from "../../notification";
+import { numericTargetId } from "../../notification";
 import type { NotificationItem } from "../../notification";
 import { fetchMyProposals } from "../api/proposalApi";
 import { STUDENT_PATHS } from "./paths";
 
 /**
  * 학생이 알림을 누르면 가는 화면. 종류에 맞는 화면을 먼저 보고(대상 종류가 맞을 때만), 없으면
- * 대상 종류의 기본 화면으로 간다. 모르는 종류 · 대상이거나 id 가 맞지 않으면 undefined
+ * (모르는 종류 포함) 대상 종류의 기본 화면으로 간다. 모르는 대상이거나 id 가 맞지 않으면 undefined
  * (목록에 보이되 이동하지 않는다). PROPOSAL_ACCEPTED 는 대상이 제안이 아니라 결제로 만들어진
  * 의뢰라서 resolveNotificationPath 가 보낸 제안에서 찾는다 (여기서는 undefined).
  * - JOB_APPLICATION_REJECTED · JOB_RECRUITMENT_CANCELLED → 의뢰서 (모집이 끝났거나 취소된 의뢰도 연다)
@@ -17,7 +17,6 @@ import { STUDENT_PATHS } from "./paths";
  * - PROPOSAL_REJECTED · PROPOSAL_LIKE_MILESTONE_REACHED → 보낸 제안 상세 (대상 기본)
  */
 export function notificationPath(item: NotificationItem): string | undefined {
-  if (!isKnownNotificationType(item.type)) return undefined;
   const id = numericTargetId(item);
   if (item.targetType === "JOB") {
     switch (item.type) {

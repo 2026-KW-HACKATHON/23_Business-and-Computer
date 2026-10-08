@@ -48,7 +48,8 @@ const OWNER = {
   JOB_APPLICATION_SELECTED: `/owner/chats/${ROOM}`,
   JOB_APPLICATION_REJECTED: `/owner/requests/${JOB}`,
   PROPOSAL_REJECTED: `/owner/proposals/${PROPOSAL}`,
-  PROPOSAL_CANCELLED: `/owner/proposals/${PROPOSAL}`,
+  // 서버가 취소된 제안을 사장님에게 주지 않아 내 활동 › 받은 제안으로
+  PROPOSAL_CANCELLED: "/owner/requests?tab=proposals",
   PROPOSAL_ACCEPTED: `/owner/requests/${JOB}`,
   JOB_STARTED: `/owner/chats/${ROOM}`,
   JOB_REVISION_REQUESTED: `/owner/requests/${JOB}`,
@@ -134,9 +135,23 @@ try {
   );
   checked += 3;
 
-  // 모르는 종류 · 대상, 숫자가 아닌 id 는 이동하지 않는다
+  // 모르는 종류는 대상 종류의 기본 화면으로 간다 (아이콘은 🔔)
+  const unknownDefaults = [
+    ["JOB", JOB, `/owner/requests/${JOB}`, `/student/works/${JOB}/submit`],
+    ["PROPOSAL", PROPOSAL, `/owner/proposals/${PROPOSAL}`, `/student/proposals/${PROPOSAL}`],
+    ["CHAT_ROOM", ROOM, `/owner/chats/${ROOM}`, `/student/chats/${ROOM}`],
+    ["PAYMENT", PAYMENT, "/owner/me/payments", "/student/me/settlements"],
+  ];
+  for (const [targetType, targetId, ownerPath, studentPath] of unknownDefaults) {
+    const n = item("SOMETHING_NEW", targetType, targetId);
+    assert.equal(owner.notificationPath(n), ownerPath, `사장님 모르는 종류 → ${targetType} 기본`);
+    assert.equal(await student.resolveNotificationPath(n, proposals), studentPath, `학생 모르는 종류 → ${targetType} 기본`);
+    checked += 2;
+  }
+
+  // 모르는 대상, 숫자가 아닌 id 는 이동하지 않는다
   for (const n of [
-    item("SOMETHING_NEW", "JOB", JOB),
+    item("SOMETHING_NEW", "SOMETHING", JOB),
     item("JOB_DRAFT_SUBMITTED", "SOMETHING", JOB),
     item("JOB_DRAFT_SUBMITTED", "JOB", "abc"),
     item("PROPOSAL_RECEIVED", "PROPOSAL", "012"),
