@@ -7,6 +7,7 @@ import java.security.SecureRandom;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.Locale;
+import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ClassPathResource;
@@ -33,6 +34,11 @@ public class AuthService {
     private static final SecureRandom RANDOM = new SecureRandom();
     private static final BCryptPasswordEncoder CODE_ENCODER = new BCryptPasswordEncoder();
     private static final String VERIFICATION_MAIL_TEMPLATE = "mail/student-email-verification.html";
+    // 인증 메일 본문의 그림. 메일에 붙여 보내야 메일 프로그램이 외부 주소 없이 그림을 보여 준다 (Content-ID → 파일)
+    private static final Map<String, String> VERIFICATION_MAIL_IMAGES = Map.of(
+            "golmok-app-icon", "mail/golmok-app-icon.png",
+            "golmok-logo", "mail/golmok-logo.png",
+            "golmok-tagline", "mail/golmok-tagline.png");
 
     private final StudentEmailVerificationRepository verificationRepository;
     private final JavaMailSender mailSender;
@@ -98,8 +104,11 @@ public class AuthService {
             helper.setTo(email);
             helper.setSubject("[골목인턴] 학생 이메일 인증번호");
             helper.setText(
-                    "학생 이메일 인증번호는 " + code + "입니다. 10분 안에 입력해 주세요.",
+                    "골목인턴 학생 인증번호는 " + code + "이에요. 10분 안에 가입 화면에 입력해 주세요.",
                     verificationMailTemplate.replace("{{code}}", code));
+            for (Map.Entry<String, String> image : VERIFICATION_MAIL_IMAGES.entrySet()) {
+                helper.addInline(image.getKey(), new ClassPathResource(image.getValue()), "image/png");
+            }
             mailSender.send(message);
         } catch (MailException | MessagingException exception) {
             throw new BusinessException(ErrorCode.STUDENT_EMAIL_DELIVERY_FAILED);
