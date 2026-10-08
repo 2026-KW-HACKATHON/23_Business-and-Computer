@@ -159,6 +159,11 @@ class ProposalCancelPersistenceIntegrationTest {
         author = givenStudent(1, null);
         givenOwner(null);
         when(ownerService.getOwnerProfile(OWNER_USER_ID)).thenReturn(Owner.builder().id(OWNER_PROFILE_ID).build());
+        // 알림 수신자를 찾을 때 읽는 제안 당사자 프로필
+        when(studentService.getStudentProfile(AUTHOR_PROFILE_ID)).thenReturn(
+                Student.builder().id(AUTHOR_PROFILE_ID).userId(userId(1)).build());
+        when(ownerService.getOwnerProfileById(OWNER_PROFILE_ID)).thenReturn(
+                Owner.builder().id(OWNER_PROFILE_ID).userId(OWNER_USER_ID).storeName("가꿈 카페").build());
         when(kakaoPayClient.cid()).thenReturn("TC0ONETIME");
     }
 

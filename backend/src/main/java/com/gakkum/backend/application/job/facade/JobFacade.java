@@ -13,18 +13,19 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
-import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import com.gakkum.backend.application.job.dto.JobCreateRequest;
 import com.gakkum.backend.domain.certificate.service.CertificateService;
 import com.gakkum.backend.domain.chat.entity.ChatMessageType;
 import com.gakkum.backend.domain.chat.service.ChatAttachmentPolicy;
+import com.gakkum.backend.domain.chat.service.ChatRoomService;
 import com.gakkum.backend.domain.job.client.JobSubmissionFileStorageClient;
 import com.gakkum.backend.domain.job.client.JobSubmissionFileStorageClient.PresignedFileUpload;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.CancelJobCommand;
@@ -93,9 +94,7 @@ import com.gakkum.backend.domain.owner.entity.Owner;
 import com.gakkum.backend.domain.owner.service.OwnerService;
 import com.gakkum.backend.domain.media.dto.ImagePurpose;
 import com.gakkum.backend.domain.media.service.MediaService;
-import com.gakkum.backend.domain.notification.dto.NotificationEvent;
-import com.gakkum.backend.domain.notification.entity.NotificationTargetType;
-import com.gakkum.backend.domain.notification.entity.NotificationType;
+import com.gakkum.backend.domain.notification.dto.NotificationEventFactory;
 import com.gakkum.backend.domain.payment.dto.PaymentQueryDto.ApprovedPaymentData;
 import com.gakkum.backend.domain.payment.dto.PaymentQueryDto.RefundedPaymentData;
 import com.gakkum.backend.domain.payment.service.PaymentService;
@@ -133,6 +132,8 @@ public class JobFacade {
     private final ProposalService proposalService;
     private final MediaService mediaService;
     private final ApplicationEventPublisher eventPublisher;
+    private final TransactionTemplate transactionTemplate;
+    private final ChatRoomService chatRoomService;
 
     // 사진 저장소 확인이 DB 트랜잭션과 커넥션을 붙잡지 않도록 저장 트랜잭션은 JobService에 둔다
     public void createJob(String username, JobCreateRequest request) {
@@ -300,7 +301,7 @@ public class JobFacade {
     /** 매칭된 학생에게 작업물 파일 업로드 URL과 제출에 쓸 공개 URL을 발급한다. 형식·크기는 채팅 첨부 규칙을 따른다. */
     @Transactional(readOnly = true)
     public PrepareSubmissionFileUploadResult prepareSubmissionFileUpload(PrepareSubmissionFileUploadCommand command) {
-        Student student = getSubmittingStudent(command.getUsername());
+        Student student = getSubmittingStudent(userService.getActiveUser(command.getUsername()));
         jobService.getSubmittableJob(command.getJobId(), student.getId());
 
         ChatMessageType policyType = command.getType() == JobSubmissionFileType.IMAGE
@@ -315,34 +316,48 @@ public class JobFacade {
     }
 
     /**
-     * 매칭된 학생의 첫 초안 제출.
-     * 파일 저장소 확인이 DB 트랜잭션과 커넥션을 붙잡지 않도록 이 메서드에는 트랜잭션을 두지 않는다.
+     * 매칭된 학생의 첫 초안 제출. 저장에 성공하면 사장님에게 초안 도착 알림을 발행한다.
+     * 파일 저장소 확인이 DB 트랜잭션과 커넥션을 붙잡지 않도록 저장과 알림 준비만 트랜잭션으로 묶는다.
      */
     public JobSubmissionCreateResult submitDraft(CreateJobSubmissionCommand command) {
-        Student student = getSubmittingStudent(command.getUsername());
+        User user = userService.getActiveUser(command.getUsername());
+        Student student = getSubmittingStudent(user);
         jobService.validateDraftSubmittable(command.getJobId(), student.getId());
         Map<String, Long> fileSizes = findUploadedFileSizes(command, student.getId());
 
-        JobSubmission submission = jobService.submitDraft(command, student.getId(), fileSizes);
-        return JobSubmissionCreateResult.from(submission);
+        return transactionTemplate.execute(status -> {
+            JobSubmission submission = jobService.submitDraft(command, student.getId(), fileSizes);
+            Job job = getJob(submission.getJobId());
+            Owner owner = ownerService.getOwnerProfileById(job.getOwnerProfileId());
+            eventPublisher.publishEvent(NotificationEventFactory.jobDraftSubmitted(
+                    owner.getUserId(), submission.getId(), job.getId(), job.getTitle(), user.getName()));
+            return JobSubmissionCreateResult.from(submission);
+        });
     }
 
     /**
-     * 매칭된 학생의 수정안 제출. 수정 번호는 서버가 정한다.
-     * 파일 저장소 확인이 DB 트랜잭션과 커넥션을 붙잡지 않도록 이 메서드에는 트랜잭션을 두지 않는다.
+     * 매칭된 학생의 수정안 제출. 수정 번호는 서버가 정한다. 저장한 수정안마다 사장님에게 수정안 도착 알림을 발행한다.
+     * 파일 저장소 확인이 DB 트랜잭션과 커넥션을 붙잡지 않도록 저장과 알림 준비만 트랜잭션으로 묶는다.
      */
     public JobSubmissionCreateResult submitRevision(CreateJobSubmissionCommand command) {
-        Student student = getSubmittingStudent(command.getUsername());
+        User user = userService.getActiveUser(command.getUsername());
+        Student student = getSubmittingStudent(user);
         jobService.validateRevisionSubmittable(command.getJobId(), student.getId());
         Map<String, Long> fileSizes = findUploadedFileSizes(command, student.getId());
 
-        JobSubmission submission = jobService.submitRevision(command, student.getId(), fileSizes);
-        return JobSubmissionCreateResult.from(submission);
+        return transactionTemplate.execute(status -> {
+            JobSubmission submission = jobService.submitRevision(command, student.getId(), fileSizes);
+            Job job = getJob(submission.getJobId());
+            Owner owner = ownerService.getOwnerProfileById(job.getOwnerProfileId());
+            eventPublisher.publishEvent(NotificationEventFactory.jobRevisionSubmitted(
+                    owner.getUserId(), submission.getId(), job.getId(), job.getTitle(), user.getName()));
+            return JobSubmissionCreateResult.from(submission);
+        });
     }
 
     /**
-     * 사장님 본인 의뢰의 검토 대기 제출물에 수정 요청 내용과 참고 사진을 남긴다.
-     * 사진 저장소 확인이 의뢰 행 잠금과 DB 커넥션을 붙잡지 않도록 이 메서드에는 트랜잭션을 두지 않는다.
+     * 사장님 본인 의뢰의 검토 대기 제출물에 수정 요청 내용과 참고 사진을 남기고 담당 학생에게 수정 요청 알림을 발행한다.
+     * 사진 저장소 확인이 의뢰 행 잠금과 DB 커넥션을 붙잡지 않도록 저장과 알림 준비만 트랜잭션으로 묶는다.
      */
     public void requestRevision(RequestJobSubmissionRevisionCommand command) {
         User user = userService.getActiveUser(command.getUsername());
@@ -350,25 +365,74 @@ public class JobFacade {
         jobService.validateRevisionRequestable(command.getJobId(), command.getSubmissionId(), owner.getId());
         validateUploadedImages(command.getReferenceImageUrls(), user.getId());
 
-        jobService.requestRevision(command, owner.getId());
+        transactionTemplate.executeWithoutResult(status -> {
+            Job job = jobService.requestRevision(command, owner.getId());
+            Student student = studentService.getStudentProfile(job.getSelectedStudentProfileId());
+            eventPublisher.publishEvent(NotificationEventFactory.jobRevisionRequested(
+                    student.getUserId(), command.getSubmissionId(), job.getId(), job.getTitle(),
+                    owner.getStoreName()));
+        });
     }
 
-    /** 사장님 본인 의뢰의 검토 대기 제출물을 최종 결과로 수락하고 의뢰를 종료한다. */
+    /**
+     * 사장님 본인 의뢰의 검토 대기 제출물을 최종 결과로 수락하고 의뢰를 종료한다.
+     * 사장님에게 후기 요청 알림을, 결제 완료 기록이 있으면 담당 학생에게 정산 내역 알림을 발행한다.
+     */
     @Transactional
     public void completeSubmission(String username, Long jobId, Long submissionId) {
         User user = userService.getActiveUser(username);
         Owner owner = ownerService.getOwnerProfile(user.getId());
-        jobService.completeSubmission(CompleteJobSubmissionCommand.of(jobId, submissionId, owner.getId()));
+        Job job = jobService.completeSubmission(CompleteJobSubmissionCommand.of(jobId, submissionId, owner.getId()));
+
+        Student student = studentService.getStudentProfile(job.getSelectedStudentProfileId());
+        User studentUser = userService.getUser(student.getUserId());
+        eventPublisher.publishEvent(NotificationEventFactory.jobReviewRequested(
+                owner.getUserId(), job.getId(), job.getTitle(), studentUser.getName()));
+        paymentService.findPaidPayment(job.getId()).ifPresent(payment -> eventPublisher.publishEvent(
+                NotificationEventFactory.paymentSettled(
+                        student.getUserId(), payment.paymentId(), job.getId(), job.getTitle(), payment.amount())));
     }
 
-    /** 사장님 본인 의뢰를 취소한다. 결제 후 진행 중이던 의뢰는 학생 보상금을 뺀 금액을 환불 처리한다. */
+    /**
+     * 사장님 본인 의뢰를 취소한다. 결제 후 진행 중이던 의뢰는 학생 보상금을 뺀 금액을 환불 처리한다.
+     * 모집 중 취소는 대기 중 지원자 전체에게, 진행 중 취소는 담당 학생과 환불 기록을 받는 사장님에게 알림을 발행한다.
+     */
     @Transactional
     public JobCancelResult cancelJob(CancelJobCommand command) {
         User user = userService.getActiveUser(command.getUsername());
         Owner owner = ownerService.getOwnerProfile(user.getId());
         CancelledJobData cancelled = jobService.cancelJob(command, owner.getId());
-        RefundedPaymentData refund = cancelled.isPaid() ? paymentService.refundOnCancel(command.getJobId()) : null;
-        return JobCancelResult.of(cancelled.getJob(), refund);
+        Job job = cancelled.getJob();
+        if (!cancelled.isPaid()) {
+            publishRecruitmentCancelled(job, owner);
+            return JobCancelResult.of(job, null);
+        }
+
+        RefundedPaymentData refund = paymentService.refundOnCancel(command.getJobId());
+        Student student = studentService.getStudentProfile(job.getSelectedStudentProfileId());
+        eventPublisher.publishEvent(NotificationEventFactory.jobCancelledByOwner(
+                student.getUserId(), job.getId(), chatRoomService.getOrCreate(job.getId()).getId(), job.getTitle(),
+                owner.getStoreName()));
+        eventPublisher.publishEvent(NotificationEventFactory.paymentRefunded(
+                owner.getUserId(), refund.paymentId(), job.getTitle(), refund.refundAmount()));
+        return JobCancelResult.of(job, refund);
+    }
+
+    /** 대기 중(PENDING) 지원자 전체에게 모집 취소를 알린다. 지원서 상태는 바꾸지 않는다. */
+    private void publishRecruitmentCancelled(Job job, Owner owner) {
+        List<Long> studentProfileIds = jobService.getPendingApplications(job.getId()).stream()
+                .map(JobApplication::getStudentProfileId)
+                .distinct()
+                .toList();
+        if (studentProfileIds.isEmpty()) {
+            return;
+        }
+        Map<Long, Student> studentsById = studentService.getStudentProfilesByIds(studentProfileIds);
+        for (Long studentProfileId : studentProfileIds) {
+            eventPublisher.publishEvent(NotificationEventFactory.jobRecruitmentCancelled(
+                    studentsById.get(studentProfileId).getUserId(), job.getId(), job.getTitle(),
+                    owner.getStoreName()));
+        }
     }
 
     @Transactional(readOnly = true)
@@ -395,7 +459,8 @@ public class JobFacade {
 
     /**
      * 학생 본인이 모집 중 의뢰에 지원한다. 학생이 아니거나 학생 프로필이 없으면 의뢰를 조회하기 전에 거부한다.
-     * 사용자 확인이 의뢰 행 잠금을 붙잡지 않도록 이 메서드에는 트랜잭션을 두지 않는다.
+     * 저장에 성공하면 의뢰한 사장님에게 새 지원 알림을 발행한다.
+     * 사용자 확인이 의뢰 행 잠금을 붙잡지 않도록 저장과 알림 준비만 트랜잭션으로 묶는다.
      */
     public JobApplicationCreateResult createJobApplication(CreateJobApplicationCommand command) {
         User user = userService.getActiveUser(command.getUsername());
@@ -404,13 +469,15 @@ public class JobFacade {
         }
         Student student = studentService.findStudentProfileByUserId(user.getId())
                 .orElseThrow(() -> new BusinessException(ErrorCode.JOB_APPLICATION_STUDENT_REQUIRED));
-        JobApplication application = jobService.createJobApplication(command, student.getId(), user.getDemoSessionId());
-        Job job = jobService.getJobsByIds(List.of(application.getJobId())).get(application.getJobId());
-        Owner owner = ownerService.getOwnerProfileById(job.getOwnerProfileId());
-        eventPublisher.publishEvent(new NotificationEvent(UUID.randomUUID(), owner.getUserId(),
-                NotificationType.JOB_APPLICATION_RECEIVED, "새로운 지원자가 있어요",
-                "등록한 의뢰에 새로운 지원이 도착했습니다.", NotificationTargetType.JOB, job.getId().toString()));
-        return JobApplicationCreateResult.from(application);
+        return transactionTemplate.execute(status -> {
+            JobApplication application = jobService.createJobApplication(
+                    command, student.getId(), user.getDemoSessionId());
+            Job job = getJob(application.getJobId());
+            Owner owner = ownerService.getOwnerProfileById(job.getOwnerProfileId());
+            eventPublisher.publishEvent(NotificationEventFactory.jobApplicationReceived(
+                    owner.getUserId(), application.getId(), job.getId(), job.getTitle(), user.getName()));
+            return JobApplicationCreateResult.from(application);
+        });
     }
 
     /**
@@ -688,13 +755,16 @@ public class JobFacade {
     }
 
     /** 학생 프로필이 없는 사용자(사장님 포함)는 작업물을 제출할 수 없다. */
-    private Student getSubmittingStudent(String username) {
-        User user = userService.getActiveUser(username);
+    private Student getSubmittingStudent(User user) {
         if (user.getRole() != UserRole.STUDENT) {
             throw new BusinessException(ErrorCode.JOB_SUBMISSION_FORBIDDEN);
         }
         return studentService.findStudentProfileByUserId(user.getId())
                 .orElseThrow(() -> new BusinessException(ErrorCode.JOB_SUBMISSION_FORBIDDEN));
+    }
+
+    private Job getJob(Long jobId) {
+        return jobService.getJobsByIds(List.of(jobId)).get(jobId);
     }
 
     /**

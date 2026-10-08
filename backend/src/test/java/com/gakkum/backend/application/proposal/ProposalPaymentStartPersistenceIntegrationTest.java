@@ -183,6 +183,11 @@ class ProposalPaymentStartPersistenceIntegrationTest {
                 Student.builder().id(STUDENT_PROFILE_ID).userId(STUDENT_USER_ID).build()));
         when(kakaoPayClient.cid()).thenReturn("TC0ONETIME");
         when(ownerService.getOwnerProfile(OWNER_USER_ID)).thenReturn(Owner.builder().id(OWNER_PROFILE_ID).build());
+        // 알림 수신자를 찾을 때 읽는 제안 당사자 프로필
+        when(studentService.getStudentProfile(STUDENT_PROFILE_ID)).thenReturn(
+                Student.builder().id(STUDENT_PROFILE_ID).userId(STUDENT_USER_ID).build());
+        when(ownerService.getOwnerProfileById(OWNER_PROFILE_ID)).thenReturn(
+                Owner.builder().id(OWNER_PROFILE_ID).userId(OWNER_USER_ID).storeName("가꿈 카페").build());
     }
 
     @AfterEach

@@ -19,6 +19,7 @@ import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.InOrder;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import com.gakkum.backend.domain.payment.dto.PaymentCommandDto.PreparePaymentCommand;
 import com.gakkum.backend.domain.payment.dto.PaymentQueryDto.PaymentHistoryData;
@@ -145,11 +146,12 @@ class PaymentServiceTest {
         Payment paid = Payment.pending(11L, 21L, USER_ID, "order-123", 100_000L, NOW);
         paid.recordKakaoTid("T1234567890123456789");
         paid.approve(NOW);
+        ReflectionTestUtils.setField(paid, "id", 91L);
         when(repository.findByJobIdAndStatus(11L, PaymentStatus.PAID)).thenReturn(Optional.of(paid));
 
         RefundedPaymentData result = service.refundOnCancel(11L);
 
-        assertThat(result).isEqualTo(new RefundedPaymentData(100_000L, 20_000L, 80_000L, NOW));
+        assertThat(result).isEqualTo(new RefundedPaymentData(91L, 100_000L, 20_000L, 80_000L, NOW));
         assertThat(paid.getStatus()).isEqualTo(PaymentStatus.REFUNDED);
     }
 
@@ -167,6 +169,7 @@ class PaymentServiceTest {
     @DisplayName("취소된 의뢰의 환불 주문은 저장된 결제 금액·학생 보상금·환불 금액을 그대로 반환한다")
     void returnsStoredRefundedPayment() {
         Payment refunded = mock(Payment.class);
+        when(refunded.getId()).thenReturn(91L);
         when(refunded.getAmount()).thenReturn(100_000L);
         when(refunded.getStudentCompensationAmount()).thenReturn(30_000L);
         when(refunded.getRefundAmount()).thenReturn(70_000L);
@@ -174,7 +177,7 @@ class PaymentServiceTest {
         when(repository.findByJobIdAndStatus(11L, PaymentStatus.REFUNDED)).thenReturn(Optional.of(refunded));
 
         assertThat(service.getRefundedPayment(11L))
-                .isEqualTo(new RefundedPaymentData(100_000L, 30_000L, 70_000L, NOW));
+                .isEqualTo(new RefundedPaymentData(91L, 100_000L, 30_000L, 70_000L, NOW));
     }
 
     @Test
@@ -361,11 +364,12 @@ class PaymentServiceTest {
     @DisplayName("의뢰서 거절은 의뢰의 결제 완료 주문을 잠가 전액 환불로 기록하고 결제 금액·보상금 0원·환불 금액·환불 시각을 반환한다")
     void refundsPaidPaymentFullyOnDecline() {
         Payment paid = paidProposalPayment(5L, 42L);
+        ReflectionTestUtils.setField(paid, "id", 92L);
         when(repository.findLockedByJobIdAndStatus(42L, PaymentStatus.PAID)).thenReturn(Optional.of(paid));
 
         RefundedPaymentData result = service.refundOnDecline(42L, 5L, USER_ID);
 
-        assertThat(result).isEqualTo(new RefundedPaymentData(50_000L, 0L, 50_000L, NOW));
+        assertThat(result).isEqualTo(new RefundedPaymentData(92L, 50_000L, 0L, 50_000L, NOW));
         assertThat(paid.getStatus()).isEqualTo(PaymentStatus.REFUNDED);
         // 잠금 없는 조회로 환불하지 않는다
         verify(repository, never()).findByJobIdAndStatus(any(), any());

@@ -827,7 +827,7 @@ class ProposalControllerTest {
         Job job = Job.builder().id(42L).status(JobStatus.CANCELLED)
                 .completedAt(LocalDateTime.of(2026, 10, 6, 12, 0)).build();
         when(proposalFacade.declineProposalJob(USERNAME, 42L)).thenReturn(ProposalJobDeclineResult.of(job, proposal,
-                new RefundedPaymentData(100_000L, 0L, 100_000L, Instant.parse("2026-10-06T03:00:00Z"))));
+                new RefundedPaymentData(91L, 100_000L, 0L, 100_000L, Instant.parse("2026-10-06T03:00:00Z"))));
 
         mockMvc.perform(post("/jobs/42/decline").principal(authentication))
                 .andExpect(status().isOk())

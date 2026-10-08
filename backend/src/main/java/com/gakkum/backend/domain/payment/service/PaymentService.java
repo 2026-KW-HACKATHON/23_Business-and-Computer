@@ -149,15 +149,14 @@ public class PaymentService {
      * 취소된 진행 중 의뢰의 결제 완료(PAID) 주문을 환불 처리한다. 결제 금액의 20%는 학생 보상금으로 남기고 나머지를 환불한다.
      * 해커톤 범위에서는 카카오페이 결제 취소 API를 호출하지 않고 환불 금액만 기록한다.
      * @param jobId
-     * @return 결제 금액, 학생 보상금, 환불 금액, 환불 처리 시각
+     * @return 결제 ID, 결제 금액, 학생 보상금, 환불 금액, 환불 처리 시각
      */
     @Transactional
     public RefundedPaymentData refundOnCancel(Long jobId) {
         Payment payment = paymentRepository.findByJobIdAndStatus(jobId, PaymentStatus.PAID)
                 .orElseThrow(() -> new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR));
         payment.refundOnCancel(Instant.now(clock));
-        return new RefundedPaymentData(payment.getAmount(), payment.getStudentCompensationAmount(),
-                payment.getRefundAmount(), payment.getRefundedAt());
+        return toRefundedData(payment);
     }
 
     /**
@@ -167,7 +166,7 @@ public class PaymentService {
      * @param jobId
      * @param proposalId 의뢰를 만든 제안 ID
      * @param ownerUserId 의뢰한 사장님의 사용자 ID
-     * @return 결제 금액, 학생 보상금(0원), 환불 금액(결제 금액 전액), 환불 처리 시각
+     * @return 결제 ID, 결제 금액, 학생 보상금(0원), 환불 금액(결제 금액 전액), 환불 처리 시각
      */
     @Transactional
     public RefundedPaymentData refundOnDecline(Long jobId, Long proposalId, String ownerUserId) {
@@ -178,14 +177,13 @@ public class PaymentService {
             throw new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR);
         }
         payment.refundOnDecline(Instant.now(clock));
-        return new RefundedPaymentData(payment.getAmount(), payment.getStudentCompensationAmount(),
-                payment.getRefundAmount(), payment.getRefundedAt());
+        return toRefundedData(payment);
     }
 
     /**
      * 결제 후 취소되거나 학생이 거절한 의뢰의 환불(REFUNDED) 주문 조회. 금액은 환불 시 저장한 값을 그대로 읽고 다시 계산하지 않는다.
      * @param jobId
-     * @return 결제 금액, 학생 보상금, 환불 금액, 환불 처리 시각. 환불 주문이나 저장된 금액이 없으면 데이터 오류(500)
+     * @return 결제 ID, 결제 금액, 학생 보상금, 환불 금액, 환불 처리 시각. 환불 주문이나 저장된 금액이 없으면 데이터 오류(500)
      */
     @Transactional(readOnly = true)
     public RefundedPaymentData getRefundedPayment(Long jobId) {
@@ -194,14 +192,13 @@ public class PaymentService {
         if (payment.getRefundAmount() == null || payment.getStudentCompensationAmount() == null) {
             throw new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR);
         }
-        return new RefundedPaymentData(payment.getAmount(), payment.getStudentCompensationAmount(),
-                payment.getRefundAmount(), payment.getRefundedAt());
+        return toRefundedData(payment);
     }
 
     /**
      * 의뢰의 결제 완료(PAID) 주문 조회. 매칭 이후 의뢰에는 결제 완료 주문이 반드시 있어야 한다.
      * @param jobId
-     * @return 주문 ID, 결제 금액, 결제 승인 시각
+     * @return 결제 ID, 주문 ID, 결제 금액, 결제 승인 시각
      */
     @Transactional(readOnly = true)
     public ApprovedPaymentData getPaidPayment(Long jobId) {
@@ -210,7 +207,17 @@ public class PaymentService {
         if (payment.getApprovedAt() == null) {
             throw new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR);
         }
-        return new ApprovedPaymentData(payment.getOrderId(), payment.getAmount(), payment.getApprovedAt());
+        return toApprovedData(payment);
+    }
+
+    /**
+     * 의뢰의 결제 완료(PAID) 주문 조회. 정산 알림처럼 결제 기록이 있을 때만 이어지는 처리에 쓴다.
+     * @param jobId
+     * @return 결제 ID, 주문 ID, 결제 금액, 결제 승인 시각. 결제 완료 주문이 없으면 빈 값
+     */
+    @Transactional(readOnly = true)
+    public Optional<ApprovedPaymentData> findPaidPayment(Long jobId) {
+        return paymentRepository.findByJobIdAndStatus(jobId, PaymentStatus.PAID).map(PaymentService::toApprovedData);
     }
 
     /**
@@ -261,5 +268,15 @@ public class PaymentService {
             throw new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR);
         }
         return payments.stream().map(SettlementHistoryData::from).toList();
+    }
+
+    private static ApprovedPaymentData toApprovedData(Payment payment) {
+        return new ApprovedPaymentData(
+                payment.getId(), payment.getOrderId(), payment.getAmount(), payment.getApprovedAt());
+    }
+
+    private static RefundedPaymentData toRefundedData(Payment payment) {
+        return new RefundedPaymentData(payment.getId(), payment.getAmount(), payment.getStudentCompensationAmount(),
+                payment.getRefundAmount(), payment.getRefundedAt());
     }
 }

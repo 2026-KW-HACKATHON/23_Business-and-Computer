@@ -20,6 +20,7 @@ import com.gakkum.backend.domain.proposal.dto.ProposalCommandDto.GetMyProposalsC
 import com.gakkum.backend.domain.proposal.dto.ProposalCommandDto.GetReceivedProposalsCommand;
 import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.ExploreProposalData;
 import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.ProposalDetailData;
+import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.ProposalLikeData;
 import com.gakkum.backend.domain.proposal.entity.Proposal;
 import com.gakkum.backend.domain.proposal.entity.ProposalLike;
 import com.gakkum.backend.domain.proposal.entity.ProposalRejectedBy;
@@ -273,16 +274,18 @@ public class ProposalService {
      * @param proposalId
      * @param studentProfileId
      * @param demoSessionId 공감하는 학생의 격리 범위. 실제 학생은 null
-     * @return 공감 수가 반영된 제안
+     * @return 공감 수가 반영된 제안과 이 요청으로 공감이 새로 추가됐는지
      */
     @Transactional
-    public Proposal likeProposal(Long proposalId, Long studentProfileId, String demoSessionId) {
+    public ProposalLikeData likeProposal(Long proposalId, Long studentProfileId, String demoSessionId) {
         Proposal proposal = getLikeableProposalForUpdate(proposalId, demoSessionId);
-        if (proposalLikeRepository.findByProposalIdAndStudentProfileId(proposalId, studentProfileId).isEmpty()) {
+        boolean added = proposalLikeRepository.findByProposalIdAndStudentProfileId(proposalId, studentProfileId)
+                .isEmpty();
+        if (added) {
             proposalLikeRepository.save(ProposalLike.create(proposalId, studentProfileId));
             proposal.increaseLikeCount();
         }
-        return proposal;
+        return ProposalLikeData.of(proposal, added);
     }
 
     /**

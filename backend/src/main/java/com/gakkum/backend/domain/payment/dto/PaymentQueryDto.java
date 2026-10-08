@@ -26,14 +26,17 @@ public final class PaymentQueryDto {
     public record PendingPaymentData(String orderId, Long amount, String orderName, String ownerUserId) {
     }
 
-    public record ApprovedPaymentData(String orderId, Long amount, Instant approvedAt) {
+    /** paymentId는 알림 대상·중복 방지용 내부 값이다. HTTP 응답에는 내리지 않는다. */
+    public record ApprovedPaymentData(Long paymentId, String orderId, Long amount, Instant approvedAt) {
     }
 
     /** 결제 승인 결과. 일반 결제의 의뢰는 진행 중(MATCHED), 제안 결제의 의뢰는 수락 대기(AWAITING_START) 이후 상태다. */
     public record ApprovedOrderData(String orderId, Long amount, Instant approvedAt, Long jobId, JobStatus jobStatus) {
     }
 
-    public record RefundedPaymentData(Long amount, Long studentCompensationAmount, Long refundAmount, Instant refundedAt) {
+    /** paymentId는 알림 대상·중복 방지용 내부 값이다. HTTP 응답에는 내리지 않는다. */
+    public record RefundedPaymentData(Long paymentId, Long amount, Long studentCompensationAmount, Long refundAmount,
+            Instant refundedAt) {
     }
 
     @Getter

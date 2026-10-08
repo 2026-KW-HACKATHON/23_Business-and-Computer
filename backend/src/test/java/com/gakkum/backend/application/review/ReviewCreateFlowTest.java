@@ -20,6 +20,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.test.web.servlet.MockMvc;
@@ -36,6 +37,8 @@ import com.gakkum.backend.domain.job.repository.JobSpecialtyRepository;
 import com.gakkum.backend.domain.job.repository.JobSubmissionRepository;
 import com.gakkum.backend.domain.job.service.JobService;
 import com.gakkum.backend.domain.jwt.service.JwtService;
+import com.gakkum.backend.domain.notification.dto.NotificationEvent;
+import com.gakkum.backend.domain.notification.dto.NotificationEventFactory;
 import com.gakkum.backend.domain.owner.entity.Owner;
 import com.gakkum.backend.domain.owner.repository.OwnerRepository;
 import com.gakkum.backend.domain.owner.service.OwnerService;
@@ -43,6 +46,7 @@ import com.gakkum.backend.domain.review.entity.Review;
 import com.gakkum.backend.domain.review.entity.ReviewPositivePoint;
 import com.gakkum.backend.domain.review.repository.ReviewRepository;
 import com.gakkum.backend.domain.review.service.ReviewService;
+import com.gakkum.backend.domain.student.entity.Student;
 import com.gakkum.backend.domain.student.repository.StudentRepository;
 import com.gakkum.backend.domain.student.service.StudentService;
 import com.gakkum.backend.domain.user.entity.User;
@@ -56,6 +60,7 @@ class ReviewCreateFlowTest {
 
     private static final String USERNAME = "KAKAO_12345";
     private static final String OWNER_USER_ID = "01K58M6PJV8VAJMXHBHJ2PNB5C";
+    private static final String STUDENT_USER_ID = "01K58M6PJV8VAJMXHBHJ2PNB5D";
     private static final String URL = "/jobs/42/reviews";
     private static final String BODY =
             "{\"positivePoints\":[\"FAST_COMMUNICATION\"],\"content\":\"소통이 빨라 좋았어요.\",\"rating\":5}";
@@ -64,6 +69,8 @@ class ReviewCreateFlowTest {
     private final OwnerRepository ownerRepository = mock(OwnerRepository.class);
     private final JobRepository jobRepository = mock(JobRepository.class);
     private final ReviewRepository reviewRepository = mock(ReviewRepository.class);
+    private final StudentRepository studentRepository = mock(StudentRepository.class);
+    private final ApplicationEventPublisher eventPublisher = mock(ApplicationEventPublisher.class);
     private final UsernamePasswordAuthenticationToken authentication =
             new UsernamePasswordAuthenticationToken(USERNAME, null);
 
@@ -74,15 +81,17 @@ class ReviewCreateFlowTest {
         JobService jobService = new JobService(jobRepository, mock(JobSpecialtyRepository.class),
                 mock(JobApplicationRepository.class), mock(JobSubmissionRepository.class), Clock.systemUTC());
         ReviewFacade facade = new ReviewFacade(new UserService(userRepository, mock(JwtService.class)),
-                new OwnerService(ownerRepository), new StudentService(mock(StudentRepository.class)), jobService,
-                new ReviewService(reviewRepository));
+                new OwnerService(ownerRepository), new StudentService(studentRepository), jobService,
+                new ReviewService(reviewRepository), eventPublisher);
+        when(studentRepository.findById(7L)).thenReturn(Optional.of(
+                Student.builder().id(7L).userId(STUDENT_USER_ID).build()));
         mockMvc = MockMvcBuilders.standaloneSetup(new ReviewController(facade))
                 .setControllerAdvice(new GlobalExceptionHandler())
                 .build();
     }
 
     @Test
-    @DisplayName("본인의 완료된 의뢰에 리뷰를 쓰면 201을 반환하고 의뢰의 담당 학생을 리뷰 대상으로 저장한다")
+    @DisplayName("본인의 완료된 의뢰에 리뷰를 쓰면 201을 반환하고 의뢰의 담당 학생을 리뷰 대상으로 저장한 뒤 그 학생에게 후기 도착을 알린다")
     void createsReviewForSelectedStudent() throws Exception {
         givenActiveUser(UserRole.OWNER);
         givenOwnedJob(JobStatus.CLOSED);
@@ -105,6 +114,10 @@ class ReviewCreateFlowTest {
         assertThat(captor.getValue().getPositivePoints()).containsExactly(ReviewPositivePoint.FAST_COMMUNICATION);
         assertThat(captor.getValue().getContent()).isEqualTo("소통이 빨라 좋았어요.");
         assertThat(captor.getValue().getRating()).isEqualTo(5);
+        ArgumentCaptor<NotificationEvent> event = ArgumentCaptor.forClass(NotificationEvent.class);
+        verify(eventPublisher).publishEvent(event.capture());
+        assertThat(event.getValue()).isEqualTo(NotificationEventFactory.jobReviewReceived(
+                STUDENT_USER_ID, 301L, 42L, "메뉴판 디자인", "가꿈 카페"));
     }
 
     @ParameterizedTest
@@ -144,7 +157,7 @@ class ReviewCreateFlowTest {
         perform()
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.error.code").value("JOB_404"));
-        verifyNoInteractions(reviewRepository);
+        verifyNoInteractions(reviewRepository, eventPublisher);
     }
 
     @Test
@@ -156,7 +169,7 @@ class ReviewCreateFlowTest {
         perform()
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.error.code").value("REVIEW_409_STATUS"));
-        verifyNoInteractions(reviewRepository);
+        verifyNoInteractions(reviewRepository, eventPublisher);
     }
 
     @Test
@@ -170,6 +183,7 @@ class ReviewCreateFlowTest {
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.error.code").value("REVIEW_409_DUPLICATE"));
         verify(reviewRepository, never()).saveAndFlush(any());
+        verifyNoInteractions(eventPublisher);
     }
 
     @Test
@@ -208,13 +222,15 @@ class ReviewCreateFlowTest {
     private void givenActiveUser(UserRole role) {
         when(userRepository.findByUsernameAndIsLock(USERNAME, false)).thenReturn(Optional.of(
                 User.builder().id(OWNER_USER_ID).role(role).build()));
-        when(ownerRepository.findByUserId(OWNER_USER_ID)).thenReturn(Optional.of(Owner.builder().id(5L).build()));
+        when(ownerRepository.findByUserId(OWNER_USER_ID)).thenReturn(Optional.of(
+                Owner.builder().id(5L).userId(OWNER_USER_ID).storeName("가꿈 카페").build()));
     }
 
     private void givenOwnedJob(JobStatus status) {
         when(jobRepository.findByIdAndOwnerProfileId(42L, 5L)).thenReturn(Optional.of(Job.builder()
                 .id(42L)
                 .ownerProfileId(5L)
+                .title("메뉴판 디자인")
                 .status(status)
                 .selectedStudentProfileId(7L)
                 .build()));
