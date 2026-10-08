@@ -24,6 +24,24 @@
   border-top: 1px solid var(--role-border);
 }
 
+/* 「끝난 일」을 펼치면 새로 보이는 줄이 살짝 내려오며 나타난다 */
+.student-home__list--expanded > * + * {
+  animation: student-home-reveal 0.24s ease-out;
+}
+
+@keyframes student-home-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .student-home__list--expanded > * + * {
+    animation: none;
+  }
+}
+
 .student-home__examples {
   display: flex;
   gap: 10px;

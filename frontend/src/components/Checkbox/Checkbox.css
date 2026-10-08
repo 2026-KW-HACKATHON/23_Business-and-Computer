@@ -32,6 +32,27 @@
   border-radius: 6px;
   background: var(--color-white);
   color: transparent;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
+}
+
+/* 체크하면 체크 표시가 작게 시작해 톡 커진다 */
+.checkbox__box svg {
+  transform: scale(0.5);
+  transition: transform 0.2s cubic-bezier(0.3, 1.4, 0.5, 1);
+}
+
+.checkbox__input:checked + .checkbox__box svg {
+  transform: scale(1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .checkbox__box,
+  .checkbox__box svg {
+    transition: none;
+  }
 }
 
 .checkbox__input:checked + .checkbox__box {

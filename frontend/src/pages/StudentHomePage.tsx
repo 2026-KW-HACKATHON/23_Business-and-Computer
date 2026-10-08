@@ -278,7 +278,7 @@ function StudentHomePage() {
             expanded={doneExpanded}
             onAction={() => setDoneExpanded((v) => !v)}
           />
-          <div className="student-home__list">
+          <div className={`student-home__list${doneExpanded ? " student-home__list--expanded" : ""}`}>
             {doneRows.map((job) => (
               <TaskRow
                 key={job.jobId}

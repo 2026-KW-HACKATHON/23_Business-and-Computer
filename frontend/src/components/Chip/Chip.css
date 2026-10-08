@@ -62,13 +62,37 @@
   outline-offset: 2px;
 }
 
-/* 누를 때 반응: 살짝 작아진다 */
+/* 누를 때 반응: 살짝 작아진다. 고르면 바탕 · 테두리 · 글자색이 부드럽게 바뀐다 */
 .chip {
   transition:
     box-shadow 0.15s ease,
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease,
     transform 0.12s ease;
+}
+
+/* 고르면 체크가 톡 나타난다 */
+.chip--selected > img {
+  animation: chip-check-in 0.2s cubic-bezier(0.3, 1.4, 0.5, 1);
+}
+
+@keyframes chip-check-in {
+  from {
+    transform: scale(0);
+  }
 }
 
 .chip:active {
   transform: scale(0.96);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chip {
+    transition: none;
+  }
+
+  .chip--selected > img {
+    animation: none;
+  }
 }
