@@ -32,7 +32,7 @@ export {
   useApplicantProfile,
   useJobApplications,
   useJobResult,
-  useLatestJobSubmission,
+  useJobSubmissions,
   useOpenJobs,
   useOwnerStudentProfile,
   usePendingSubmission,
@@ -128,3 +128,4 @@ export type {
   RequestContent,
   RequestExample,
 } from "./types";
+export type { JobSubmission } from "./lib/ownerJobs";

@@ -43,7 +43,11 @@ export const OWNER_PATHS = {
   workReview: (workId: string) => `/owner/works/${workId}/review`,
   workReviewDone: (workId: string) => `/owner/works/${workId}/review/done`,
   workResult: (workId: string) => `/owner/works/${workId}/result`,
-  workRevisionSent: (workId: string) => `/owner/works/${workId}/revision/sent`,
+  /** 보낸 수정 요청. submissionId 를 주면 그 결과물에 보낸 지난 요청 */
+  workRevisionSent: (workId: string, submissionId?: string) =>
+    `/owner/works/${workId}/revision/sent${submissionId ? `?submission=${submissionId}` : ""}`,
+  /** 지난 초안 · 수정안 (읽기 전용) */
+  workSubmission: (workId: string, submissionId: string) => `/owner/works/${workId}/submissions/${submissionId}`,
   workHistory: (workId: string) => `/owner/works/${workId}/history`,
   exploreProposal: (id: string) => `/explore/proposals/${id}`,
   exploreRequest: (id: string) => `/explore/requests/${id}`,

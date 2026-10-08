@@ -26,8 +26,8 @@ export function chatWorkStageOf(room: ChatRoom): ChatWorkStage | undefined {
 export type ChatWorkDoc = "start" | "draft" | "revisionRequest" | "revision" | "result" | "review" | "canceled";
 
 /**
- * 그 단계까지 쌓인 서류 (생긴 순서). 수정을 몇 번 했는지, 끝난 작업에 초안 · 수정안이 있었는지는
- * 서류 이력을 주는 API 가 오기 전까지 몰라서 지금 단계로 어림한다. withReview 면 끝난 작업에 후기를 붙인다
+ * 그 단계까지 쌓인 서류 (생긴 순서). 서류 이력(GET /jobs/{id}/submissions)을 불러오기 전 · 불러오지 못했을 때
+ * 지금 단계로 어림한다. withReview 면 끝난 작업에 후기를 붙인다
  */
 export function chatWorkDocs(stage: ChatWorkStage | undefined, withReview = false): ChatWorkDoc[] {
   switch (stage) {
@@ -46,16 +46,20 @@ export function chatWorkDocs(stage: ChatWorkStage | undefined, withReview = fals
   }
 }
 
-/** 이력 줄 하나. round 는 수정이 두 번 이상일 때 수정 요청 · 수정안의 회차(1부터), past 면 지난 회차라 아직 열 수 없다 */
+/**
+ * 이력 줄 하나. round 는 수정이 두 번 이상일 때 수정 요청 · 수정안의 회차(1부터), past 면 지금 서류가 아닌 지난 서류.
+ * submissionId 는 서류 이력에서 온 초안 · 수정안의 결과물 (수정 요청은 그 요청을 받은 결과물)
+ */
 export interface ChatWorkEntry {
   doc: ChatWorkDoc;
   round?: number;
   past?: boolean;
+  submissionId?: number;
 }
 
 /**
- * 작업 이력 줄. revisions 는 마지막 결과물의 수정 번호(초안 0)로, 알면 수정 요청 · 수정안을 회차마다 한 줄씩
- * 「수정 요청 1」「수정안 1」… 로 펼치고 마지막 회차만 연다. 수정이 한 번뿐이거나 번호를 모르면 한 줄씩
+ * 서류 이력을 불러오기 전의 작업 이력 줄. revisions 는 마지막 결과물의 수정 번호(초안 0)로, 알면 수정 요청 · 수정안을
+ * 회차마다 한 줄씩 「수정 요청 1」「수정안 1」… 로 펼치고 지난 회차는 past. 수정이 한 번뿐이거나 번호를 모르면 한 줄씩
  */
 export function chatWorkEntries(
   stage: ChatWorkStage | undefined,
@@ -74,6 +78,58 @@ export function chatWorkEntries(
     if (past || stage === "revisionArrived") rounds.push({ doc: "revision", round, past });
   }
   return [{ doc: "start" }, { doc: "draft" }, ...rounds];
+}
+
+/** 서류 이력의 결과물 하나 (GET /jobs/{id}/submissions). 사장님 · 학생 응답이 같은 모양이다 */
+export interface ChatWorkSubmission {
+  submissionId: number;
+  /** 초안 0, 수정안은 1부터 */
+  revisionNumber: number;
+  /** 이 결과물에 받은 수정 요청. 없으면 없음 */
+  revisionRequest?: unknown;
+}
+
+/**
+ * 서류 이력으로 만든 작업 이력 줄. 결과물마다 초안 · 수정안 줄, 수정 요청을 받았으면 바로 뒤에 수정 요청 줄.
+ * 끝난 작업의 마지막 결과물은 「결과물」 줄이 대신하고, 성사되지 않은 작업은 끝에 「취소 내역」. 수정 요청이 두 번
+ * 이상이면 회차를 붙인다. 진행 중이면 마지막 줄(도착한 결과물 · 고치는 중의 수정 요청)만 past 가 아니다
+ */
+export function chatWorkEntriesFromSubmissions(
+  stage: ChatWorkStage | undefined,
+  submissions: ChatWorkSubmission[],
+  withReview = false,
+): ChatWorkEntry[] {
+  const sorted = [...submissions].sort((a, b) => a.revisionNumber - b.revisionNumber);
+  const shown = stage === "completed" ? sorted.slice(0, -1) : sorted;
+  const numbered = sorted.filter((s) => s.revisionRequest).length > 1;
+  const docs = shown.flatMap((s): ChatWorkEntry[] => {
+    const own: ChatWorkEntry = {
+      doc: s.revisionNumber === 0 ? "draft" : "revision",
+      round: numbered && s.revisionNumber > 0 ? s.revisionNumber : undefined,
+      past: true,
+      submissionId: s.submissionId,
+    };
+    if (!s.revisionRequest) return [own];
+    const round = numbered ? s.revisionNumber + 1 : undefined;
+    return [own, { doc: "revisionRequest", round, past: true, submissionId: s.submissionId }];
+  });
+  // 진행 중이면 마지막 서류가 지금 서류다
+  const last = docs.length > 0 ? docs[docs.length - 1] : undefined;
+  const current =
+    last !== undefined &&
+    (last.doc === "revisionRequest"
+      ? stage === "revising"
+      : stage === "draftArrived" || stage === "revisionArrived");
+  const rows = last !== undefined && current ? [...docs.slice(0, -1), { ...last, past: false }] : docs;
+  const end: ChatWorkEntry[] =
+    stage === "completed"
+      ? withReview
+        ? [{ doc: "result" }, { doc: "review" }]
+        : [{ doc: "result" }]
+      : stage === "notConcluded"
+        ? [{ doc: "canceled" }]
+        : [];
+  return [{ doc: "start" }, ...rows, ...end];
 }
 
 const DOC_LABEL: Record<Exclude<ChatWorkDoc, "start">, string> = {

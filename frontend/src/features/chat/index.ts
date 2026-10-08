@@ -24,12 +24,13 @@ export {
   chatWorkBadge,
   chatWorkDocLabel,
   chatWorkEntries,
+  chatWorkEntriesFromSubmissions,
   chatWorkEntryLabel,
   chatWorkFlowIndex,
   chatWorkStageOf,
   chatWorkStatusText,
 } from "./lib/workDocs";
-export type { ChatWorkDoc, ChatWorkEntry, ChatWorkStage } from "./lib/workDocs";
+export type { ChatWorkDoc, ChatWorkEntry, ChatWorkStage, ChatWorkSubmission } from "./lib/workDocs";
 export { attachmentDetailText, isAttachmentExpired } from "./lib/messages";
 
 export type { ChatJobStatus } from "./api/chatApi";
