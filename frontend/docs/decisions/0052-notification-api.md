@@ -50,7 +50,10 @@ The backend (dev) has, for any logged-in user:
     picks the icon by type (🔔 for an unknown type), and hides
     CHAT_MESSAGE_RECEIVED.
   - `src/features/notification/hooks/useNotifications.ts` loads the first
-    page on entry and the next page with `loadMore`; marks one or all read
+    page on entry and the next page with `loadMore`. A page with no item
+    left after hiding CHAT_MESSAGE_RECEIVED is skipped: it fetches the
+    following page until an item shows or the list ends, up to 10 pages per
+    call, after which the end-of-list loading continues. It marks one or all read
     on screen first and then on the server; reloads the list when 「모두
     읽음」 fails; sends 401 to /login.
   - `src/features/notification/hooks/useNotificationUnread.ts` drives the
@@ -59,15 +62,18 @@ The backend (dev) has, for any logged-in user:
   오늘 / 어제 / 이전 with `NotificationRow`; the next page loads when the end
   of the list comes near (`useLoadMoreSentinel` in
   `src/features/explore/hooks/useLoadMoreSentinel.ts`);
-  「모두 읽음」 in the app bar once loaded; 「아직 알림이 없어요」 when nothing
-  is left to load. Loading and errors use `LoadNotice` (「알림을 불러오는
+  「모두 읽음」 in the app bar once loaded; 「아직 알림이 없어요」 when every
+  page is loaded and no item shows (including a list of chat notifications
+  only). Loading and errors use `LoadNotice` (「알림을 불러오는
   중이에요」 · 「알림을 불러오지 못했어요」, and 「더 불러오는 중이에요」 ·
   「더 불러오지 못했어요」 for the next page) with 「다시 시도」.
 - **Tap**: an unread item is marked read (PUT one), then the screen from
   `notificationPath` in `src/features/owner/lib/notifications.ts` or
   `src/features/student/lib/notifications.ts` opens. The type decides first,
-  then `targetType`; an unknown type or target, or an id that is not a
-  positive number for JOB · PROPOSAL, stays on the list.
+  then `targetType`: an unknown type goes to its `targetType`'s default
+  screen (rows 「other JOB」, PROPOSAL, CHAT_ROOM, PAYMENT below) and shows
+  the 🔔 icon. An unknown `targetType`, or an id that is not a positive
+  number for JOB · PROPOSAL, stays on the list.
 
   | | 사장님 | 학생 |
   |---|---|---|
@@ -101,6 +107,7 @@ The backend (dev) has, for any logged-in user:
 
 ## Agent Guidance
 
-- New types or targets need an entry in `isKnownNotificationType` and the
-  two `notificationPath` functions; until then they show without a
+- A new type opens its `targetType`'s default screen; a type with a better
+  screen gets a case in the two `notificationPath` functions. A new
+  `targetType` needs a case there too, and without one it shows without a
   destination.
