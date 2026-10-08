@@ -50,7 +50,9 @@ import com.gakkum.backend.domain.chat.entity.ChatRoom;
 import com.gakkum.backend.domain.job.entity.Job;
 import com.gakkum.backend.domain.job.entity.JobApplication;
 import com.gakkum.backend.domain.job.entity.JobStatus;
+import com.gakkum.backend.domain.job.entity.JobSubmission;
 import com.gakkum.backend.domain.job.entity.JobSubmissionReviewStatus;
+import com.gakkum.backend.domain.job.entity.JobSubmissionType;
 import com.gakkum.backend.global.exception.BusinessException;
 import com.gakkum.backend.global.exception.ErrorCode;
 import com.gakkum.backend.global.exception.GlobalExceptionHandler;
@@ -86,6 +88,9 @@ class ChatControllerTest {
                 .andExpect(jsonPath("$.data.rooms[0].deadlineType").value("DRAFT"))
                 .andExpect(jsonPath("$.data.rooms[0].deadlineDate").value("2026-10-10"))
                 .andExpect(jsonPath("$.data.rooms[0].submissionReviewStatus").value("PENDING"))
+                .andExpect(jsonPath("$.data.rooms[0].submissionType").value("REVISION"))
+                .andExpect(jsonPath("$.data.rooms[0].revisionNumber").value(2))
+                .andExpect(jsonPath("$.data.rooms[0].proposalId").value(31))
                 .andExpect(jsonPath("$.data.rooms[0].budget").value(300000))
                 .andExpect(jsonPath("$.data.rooms[0].revisionCount").value(2))
                 .andExpect(jsonPath("$.data.rooms[0].draftDeadline").value("2026-10-10"))
@@ -110,10 +115,54 @@ class ChatControllerTest {
                 .andExpect(jsonPath("$.data.jobTitle").value("의뢰 제목"))
                 .andExpect(jsonPath("$.data.jobStatus").value("MATCHED"))
                 .andExpect(jsonPath("$.data.deadlineType").value("DRAFT"))
+                .andExpect(jsonPath("$.data.submissionReviewStatus").value("PENDING"))
+                .andExpect(jsonPath("$.data.submissionType").value("REVISION"))
+                .andExpect(jsonPath("$.data.revisionNumber").value(2))
+                .andExpect(jsonPath("$.data.proposalId").value(31))
                 .andExpect(jsonPath("$.data.applicationSummary").value("한 줄 요약"))
                 .andExpect(jsonPath("$.data.applicationWorkPlan").value("작업계획서"))
                 .andExpect(jsonPath("$.data.applicationDeliveryMethod").value("결과물 전달 방법"))
                 .andExpect(jsonPath("$.data.applicationContent").doesNotExist());
+    }
+
+    @Test
+    @DisplayName("제출물이 없는 일반 의뢰는 목록과 단건 모두 제출물·제안 필드를 명시적 null로 반환한다")
+    void returnsExplicitNullWithoutSubmissionAndProposal() throws Exception {
+        Room room = roomResponse(JobStatus.MATCHED, null, null);
+        when(service.getMyChatRooms("KAKAO_123")).thenReturn(ChatRoomListResponse.of(List.of(room)));
+        when(service.getChatRoom("KAKAO_123", "01K58M6PJV8VAJMXHBHJ2PNB5C")).thenReturn(room);
+
+        mockMvc.perform(get("/me/chat-rooms").principal(authentication))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.rooms[0].submissionReviewStatus").hasJsonPath())
+                .andExpect(jsonPath("$.data.rooms[0].submissionReviewStatus").value(nullValue()))
+                .andExpect(jsonPath("$.data.rooms[0].submissionType").hasJsonPath())
+                .andExpect(jsonPath("$.data.rooms[0].submissionType").value(nullValue()))
+                .andExpect(jsonPath("$.data.rooms[0].revisionNumber").hasJsonPath())
+                .andExpect(jsonPath("$.data.rooms[0].revisionNumber").value(nullValue()))
+                .andExpect(jsonPath("$.data.rooms[0].proposalId").hasJsonPath())
+                .andExpect(jsonPath("$.data.rooms[0].proposalId").value(nullValue()));
+        mockMvc.perform(get("/chat-rooms/01K58M6PJV8VAJMXHBHJ2PNB5C").principal(authentication))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.submissionType").hasJsonPath())
+                .andExpect(jsonPath("$.data.submissionType").value(nullValue()))
+                .andExpect(jsonPath("$.data.revisionNumber").hasJsonPath())
+                .andExpect(jsonPath("$.data.revisionNumber").value(nullValue()))
+                .andExpect(jsonPath("$.data.proposalId").hasJsonPath())
+                .andExpect(jsonPath("$.data.proposalId").value(nullValue()));
+    }
+
+    @Test
+    @DisplayName("초안 제출물은 수정 번호 0을 숫자로 반환한다")
+    void returnsDraftRevisionNumberZero() throws Exception {
+        when(service.getChatRoom("KAKAO_123", "01K58M6PJV8VAJMXHBHJ2PNB5C"))
+                .thenReturn(roomResponse(JobStatus.MATCHED, submission(JobSubmissionType.DRAFT, 0), null));
+
+        mockMvc.perform(get("/chat-rooms/01K58M6PJV8VAJMXHBHJ2PNB5C").principal(authentication))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.submissionType").value("DRAFT"))
+                .andExpect(jsonPath("$.data.revisionNumber").value(0))
+                .andExpect(jsonPath("$.data.proposalId").value(nullValue()));
     }
 
     @Test
@@ -579,15 +628,24 @@ class ChatControllerTest {
     }
 
     private Room roomResponse(JobStatus status) {
+        return roomResponse(status, submission(JobSubmissionType.REVISION, 2), 31L);
+    }
+
+    private JobSubmission submission(JobSubmissionType type, int revisionNumber) {
+        return JobSubmission.builder().jobId(11L).submissionType(type).revisionNumber(revisionNumber)
+                .reviewStatus(JobSubmissionReviewStatus.PENDING).build();
+    }
+
+    private Room roomResponse(JobStatus status, JobSubmission latestSubmission, Long proposalId) {
         ChatRoom room = ChatRoom.create(11L);
         ReflectionTestUtils.setField(room, "id", "01K58M6PJV8VAJMXHBHJ2PNB5C");
         Job job = Job.builder().id(11L).title("의뢰 제목").status(status).budget(300000L).revisionCount(2)
                 .draftDeadline(LocalDate.of(2026, 10, 10))
-                .finalDeadline(LocalDate.of(2026, 10, 20)).build();
+                .finalDeadline(LocalDate.of(2026, 10, 20)).proposalId(proposalId).build();
         return Room.of(room, job, "학생 이름", "student.png",
                 LastMessage.of(ChatMessageType.TEXT, "안녕하세요", LocalDateTime.of(2026, 9, 26, 12, 30)),
                 3L, DeadlineType.DRAFT, LocalDate.of(2026, 10, 10),
-                JobSubmissionReviewStatus.PENDING, JobApplication.builder().summary("한 줄 요약")
+                latestSubmission, JobApplication.builder().summary("한 줄 요약")
                         .workPlan("작업계획서").deliveryMethod("결과물 전달 방법").build());
     }
 

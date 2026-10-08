@@ -219,6 +219,86 @@ class ChatFacadeTest {
     }
 
     @Test
+    @DisplayName("목록은 검토 상태와 무관하게 수정 번호가 가장 큰 제출물의 유형과 번호, 작업의 제안 ID를 반환한다")
+    void listShowsLatestSubmissionAndProposal() {
+        owner();
+        Job proposalBased = Job.builder().id(4L).title("제안 기반").status(JobStatus.MATCHED).ownerProfileId(10L)
+                .selectedStudentProfileId(20L).proposalId(77L).build();
+        Job completed = Job.builder().id(5L).title("완료").status(JobStatus.CLOSED).ownerProfileId(10L)
+                .selectedStudentProfileId(20L).proposalId(78L).build();
+        when(jobRepository.findByOwnerProfileId(10L)).thenReturn(List.of(
+                job(1L, "제출 전", JobStatus.MATCHED), job(2L, "초안", JobStatus.MATCHED),
+                job(3L, "수정 요청", JobStatus.MATCHED), proposalBased, completed));
+        when(roomRepository.findByJobIdIn(anyList())).thenReturn(List.of(
+                room(1L, LocalDateTime.now()), room(2L, LocalDateTime.now()), room(3L, LocalDateTime.now()),
+                room(4L, LocalDateTime.now()), room(5L, LocalDateTime.now())));
+        when(studentRepository.findAllById(anyList())).thenReturn(List.of(student()));
+        when(userService.getUsersByIds(anyList())).thenReturn(Map.of(STUDENT_ID,
+                User.builder().id(STUDENT_ID).name("학생 이름").build()));
+        // 저장소 반환 순서와 무관하게 최대 수정 번호를 고른다
+        when(submissionRepository.findByJobIdIn(anyList())).thenReturn(List.of(
+                submission(2L, JobSubmissionType.DRAFT, 0, JobSubmissionReviewStatus.PENDING),
+                submission(3L, JobSubmissionType.REVISION, 2, JobSubmissionReviewStatus.REVISION_REQUESTED),
+                submission(3L, JobSubmissionType.DRAFT, 0, JobSubmissionReviewStatus.APPROVED),
+                submission(3L, JobSubmissionType.REVISION, 1, JobSubmissionReviewStatus.REVISION_REQUESTED),
+                submission(4L, JobSubmissionType.REVISION, 1, JobSubmissionReviewStatus.PENDING),
+                submission(4L, JobSubmissionType.REVISION, 3, JobSubmissionReviewStatus.PENDING),
+                submission(4L, JobSubmissionType.DRAFT, 0, JobSubmissionReviewStatus.APPROVED),
+                submission(4L, JobSubmissionType.REVISION, 2, JobSubmissionReviewStatus.REVISION_REQUESTED),
+                submission(5L, JobSubmissionType.DRAFT, 0, JobSubmissionReviewStatus.APPROVED),
+                submission(5L, JobSubmissionType.REVISION, 1, JobSubmissionReviewStatus.APPROVED)));
+
+        Map<Long, ChatRoomListResponse.Room> rooms = service.getMyChatRooms("owner").getRooms().stream()
+                .collect(java.util.stream.Collectors.toMap(ChatRoomListResponse.Room::getJobId,
+                        java.util.function.Function.identity()));
+
+        assertThat(rooms.get(1L).getSubmissionType()).isNull();
+        assertThat(rooms.get(1L).getRevisionNumber()).isNull();
+        assertThat(rooms.get(1L).getProposalId()).isNull();
+        assertThat(rooms.get(2L).getSubmissionType()).isEqualTo(JobSubmissionType.DRAFT);
+        assertThat(rooms.get(2L).getRevisionNumber()).isZero();
+        assertThat(rooms.get(2L).getProposalId()).isNull();
+        assertThat(rooms.get(3L).getSubmissionReviewStatus())
+                .isEqualTo(JobSubmissionReviewStatus.REVISION_REQUESTED);
+        assertThat(rooms.get(3L).getSubmissionType()).isEqualTo(JobSubmissionType.REVISION);
+        assertThat(rooms.get(3L).getRevisionNumber()).isEqualTo(2);
+        assertThat(rooms.get(4L).getSubmissionReviewStatus()).isEqualTo(JobSubmissionReviewStatus.PENDING);
+        assertThat(rooms.get(4L).getSubmissionType()).isEqualTo(JobSubmissionType.REVISION);
+        assertThat(rooms.get(4L).getRevisionNumber()).isEqualTo(3);
+        assertThat(rooms.get(4L).getProposalId()).isEqualTo(77L);
+        // 완료된 작업에서도 최신 제출물 정보와 제안 ID를 유지한다
+        assertThat(rooms.get(5L).getJobStatus()).isEqualTo(JobStatus.CLOSED);
+        assertThat(rooms.get(5L).getSubmissionReviewStatus()).isEqualTo(JobSubmissionReviewStatus.APPROVED);
+        assertThat(rooms.get(5L).getSubmissionType()).isEqualTo(JobSubmissionType.REVISION);
+        assertThat(rooms.get(5L).getRevisionNumber()).isEqualTo(1);
+        assertThat(rooms.get(5L).getProposalId()).isEqualTo(78L);
+    }
+
+    @Test
+    @DisplayName("단건 조회도 최신 제출물의 유형과 번호, 작업의 제안 ID를 반환한다")
+    void singleRoomShowsLatestSubmissionAndProposal() {
+        owner();
+        ChatRoom room = room(4L, LocalDateTime.now());
+        when(roomRepository.findById(room.getId())).thenReturn(Optional.of(room));
+        when(jobRepository.findById(4L)).thenReturn(Optional.of(Job.builder().id(4L).title("제안 기반")
+                .status(JobStatus.MATCHED).ownerProfileId(10L).selectedStudentProfileId(20L)
+                .proposalId(77L).build()));
+        when(studentRepository.findAllById(anyList())).thenReturn(List.of(student()));
+        when(userService.getUsersByIds(anyList())).thenReturn(Map.of(STUDENT_ID,
+                User.builder().id(STUDENT_ID).name("학생 이름").build()));
+        when(submissionRepository.findByJobIdIn(List.of(4L))).thenReturn(List.of(
+                submission(4L, JobSubmissionType.REVISION, 1, JobSubmissionReviewStatus.APPROVED),
+                submission(4L, JobSubmissionType.DRAFT, 0, JobSubmissionReviewStatus.APPROVED)));
+
+        ChatRoomListResponse.Room result = service.getChatRoom("owner", room.getId());
+
+        assertThat(result.getSubmissionReviewStatus()).isEqualTo(JobSubmissionReviewStatus.APPROVED);
+        assertThat(result.getSubmissionType()).isEqualTo(JobSubmissionType.REVISION);
+        assertThat(result.getRevisionNumber()).isEqualTo(1);
+        assertThat(result.getProposalId()).isEqualTo(77L);
+    }
+
+    @Test
     @DisplayName("종료된 의뢰에는 현재 마감 유형과 날짜를 표시하지 않는다")
     void closedJobHasNoActiveDeadline() {
         studentViewer();
