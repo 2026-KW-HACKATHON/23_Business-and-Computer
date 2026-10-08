@@ -1,7 +1,7 @@
 import { ApiError } from "../../../api/client";
 import { daysAgo, isoOfUtc } from "../../../lib/date";
 import type { WorkKind } from "../../../types/workKind";
-import type { NotificationResponse, NotificationType } from "../api/notificationApi";
+import type { NotificationResponse } from "../api/notificationApi";
 
 /** 화면에 그리는 알림 하나 */
 export interface NotificationItem {
@@ -27,21 +27,6 @@ export function toNotificationItem(response: NotificationResponse): Notification
     read: response.readAt !== null && response.readAt !== undefined,
     createdAt: isoOfUtc(response.createdAt),
   };
-}
-
-const KNOWN_TYPES: ReadonlySet<string> = new Set<NotificationType>([
-  "JOB_DRAFT_SUBMITTED",
-  "PROPOSAL_RECEIVED",
-  "JOB_APPLICATION_RECEIVED",
-  "CHAT_MESSAGE_RECEIVED",
-  "PAYMENT_COMPLETED",
-  "JOB_COMPLETED",
-  "PROPOSAL_LIKE_MILESTONE_REACHED",
-]);
-
-/** 이 화면이 아는 알림 종류인지. 모르는 종류는 목록에 보이되 눌러도 이동하지 않는다 */
-export function isKnownNotificationType(type: string): boolean {
-  return KNOWN_TYPES.has(type);
 }
 
 /** 알림 목록에 넣지 않는 종류. 새 채팅 메시지는 채팅 탭 점으로 안내한다 */

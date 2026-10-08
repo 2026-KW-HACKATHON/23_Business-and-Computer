@@ -2,7 +2,7 @@ import { apiData } from "../../../api/client";
 
 /**
  * 알림 종류 (NotificationType). 서버가 늘릴 수 있어 모르는 값도 문자열로 받는다
- * (목록에는 보이고, 눌러도 이동하지 않는다)
+ * (목록에 보이고, 누르면 대상 종류의 기본 화면으로 간다)
  */
 export type NotificationType =
   | "JOB_DRAFT_SUBMITTED"

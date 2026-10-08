@@ -1,13 +1,12 @@
-import { isKnownNotificationType, numericTargetId } from "../../notification";
+import { numericTargetId } from "../../notification";
 import type { NotificationItem } from "../../notification";
 import { STUDENT_PATHS } from "./paths";
 
 /**
- * 학생이 알림을 누르면 가는 화면. 종류에 맞는 화면을 먼저 보고, 없으면 대상 종류로 간다.
- * 모르는 종류 · 대상이거나 id 가 맞지 않으면 undefined (목록에 보이되 이동하지 않는다).
+ * 학생이 알림을 누르면 가는 화면. 종류에 맞는 화면을 먼저 보고, 없으면(모르는 종류 포함) 대상
+ * 종류의 기본 화면으로 간다. 모르는 대상이거나 id 가 맞지 않으면 undefined (목록에 보이되 이동하지 않는다).
  */
 export function notificationPath(item: NotificationItem): string | undefined {
-  if (!isKnownNotificationType(item.type)) return undefined;
   const id = numericTargetId(item);
   if (item.type === "JOB_COMPLETED" && item.targetType === "JOB" && id) {
     return STUDENT_PATHS.workResult(id);
