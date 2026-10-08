@@ -43,7 +43,7 @@ import jakarta.persistence.EntityManager;
 @DataJpaTest
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @EnabledIfEnvironmentVariable(named = "DATABASE_URL", matches = "jdbc:postgresql://(localhost|127\\.0\\.0\\.1)[:/].*")
-@DisplayName("수정 요청 내용 저장과 학생 최신 제출물 PostgreSQL 조회")
+@DisplayName("수정 요청 내용 저장과 사장님·학생 최신 제출물 PostgreSQL 조회")
 class JobSubmissionRevisionRequestPostgresTest {
 
     private static final long OWNER_PROFILE_ID = 988_301L;
@@ -180,6 +180,52 @@ class JobSubmissionRevisionRequestPostgresTest {
                 GetLatestJobSubmissionCommand.of(jobId, STUDENT_PROFILE_ID + 1)), ErrorCode.JOB_NOT_FOUND);
         assertError(() -> jobService.getLatestSubmission(
                 GetLatestJobSubmissionCommand.of(jobId, STUDENT_PROFILE_ID)),
+                ErrorCode.JOB_SUBMISSION_LATEST_NOT_FOUND);
+    }
+
+    @Test
+    @DisplayName("의뢰한 사장님의 최신 제출물 조회는 수정 요청 내용이 담긴 초안을, 재제출 뒤에는 수정 요청이 없는 새 수정안을 고른다")
+    void returnsHighestRevisionAsLatestToOwner() {
+        Long jobId = job(JobStatus.MATCHED, 2);
+        Long draft = submission(jobId, 0, JobSubmissionReviewStatus.PENDING);
+        jobService.requestRevision(command(jobId, draft, IMAGES), OWNER_PROFILE_ID);
+        entityManager.flush();
+        entityManager.clear();
+
+        JobSubmission requested = jobService.getLatestSubmission(
+                GetLatestJobSubmissionCommand.ofOwner(jobId, OWNER_PROFILE_ID));
+        assertThat(requested.getId()).isEqualTo(draft);
+        assertThat(requested.getRevisionNumber()).isZero();
+        assertThat(requested.getReviewStatus()).isEqualTo(JobSubmissionReviewStatus.REVISION_REQUESTED);
+        assertThat(requested.getReviewComment()).isEqualTo(MESSAGE);
+        assertThat(requested.getRevisionReferenceImageUrls()).containsExactlyElementsOf(IMAGES);
+        assertThat(requested.getReviewedAt()).isEqualTo(LocalDateTime.ofInstant(NOW, ZoneOffset.UTC));
+
+        Long revision = submission(jobId, 1, JobSubmissionReviewStatus.PENDING);
+        entityManager.clear();
+
+        JobSubmission latest = jobService.getLatestSubmission(
+                GetLatestJobSubmissionCommand.ofOwner(jobId, OWNER_PROFILE_ID));
+        assertThat(latest.getId()).isEqualTo(revision);
+        assertThat(latest.getRevisionNumber()).isEqualTo(1);
+        assertThat(latest.getReviewComment()).isNull();
+        assertThat(latest.getRevisionReferenceImageUrls()).isEmpty();
+    }
+
+    @Test
+    @DisplayName("사장님 최신 제출물 조회는 다른 사장님과 담당 학생 ID를 쓴 사장님을 JOB_404, 제출물이 없는 본인 의뢰를 JOB_SUBMISSION_404_LATEST로 거부한다")
+    void rejectsLatestOfOtherOwnerOrEmptyJob() {
+        Long jobId = job(JobStatus.MATCHED, 2);
+        entityManager.clear();
+
+        assertError(() -> jobService.getLatestSubmission(
+                GetLatestJobSubmissionCommand.ofOwner(jobId, OWNER_PROFILE_ID + 2)), ErrorCode.JOB_NOT_FOUND);
+        assertError(() -> jobService.getLatestSubmission(
+                GetLatestJobSubmissionCommand.ofOwner(jobId, STUDENT_PROFILE_ID)), ErrorCode.JOB_NOT_FOUND);
+        assertError(() -> jobService.getLatestSubmission(
+                GetLatestJobSubmissionCommand.of(jobId, OWNER_PROFILE_ID)), ErrorCode.JOB_NOT_FOUND);
+        assertError(() -> jobService.getLatestSubmission(
+                GetLatestJobSubmissionCommand.ofOwner(jobId, OWNER_PROFILE_ID)),
                 ErrorCode.JOB_SUBMISSION_LATEST_NOT_FOUND);
     }
 
