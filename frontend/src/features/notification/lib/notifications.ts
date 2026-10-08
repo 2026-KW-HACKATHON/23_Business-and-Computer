@@ -29,18 +29,38 @@ export function toNotificationItem(response: NotificationResponse): Notification
   };
 }
 
-const KNOWN_TYPES: ReadonlySet<string> = new Set<NotificationType>([
-  "JOB_DRAFT_SUBMITTED",
-  "PROPOSAL_RECEIVED",
-  "JOB_APPLICATION_RECEIVED",
-  "CHAT_MESSAGE_RECEIVED",
-  "PAYMENT_COMPLETED",
-  "JOB_COMPLETED",
-  "PROPOSAL_LIKE_MILESTONE_REACHED",
-]);
+/**
+ * 아는 알림 종류와 동그라미 안 아이콘. 의뢰 · 작업은 의뢰 아이콘, 제안은 제안 아이콘(취소 · 거절도
+ * 같은 종류 아이콘), 결제 · 환불 · 정산 💳, 후기 ⭐
+ */
+const TYPE_ICONS: Record<NotificationType, WorkKind | string> = {
+  JOB_DRAFT_SUBMITTED: "request",
+  JOB_APPLICATION_RECEIVED: "request",
+  JOB_APPLICATION_SELECTED: "request",
+  JOB_APPLICATION_REJECTED: "request",
+  JOB_STARTED: "request",
+  JOB_REVISION_REQUESTED: "request",
+  JOB_REVISION_SUBMITTED: "request",
+  JOB_RECRUITMENT_CANCELLED: "request",
+  JOB_CANCELLED_BY_OWNER: "request",
+  PROPOSAL_RECEIVED: "proposal",
+  PROPOSAL_LIKE_MILESTONE_REACHED: "proposal",
+  PROPOSAL_REJECTED: "proposal",
+  PROPOSAL_CANCELLED: "proposal",
+  PROPOSAL_ACCEPTED: "proposal",
+  CHAT_MESSAGE_RECEIVED: "💬",
+  PAYMENT_COMPLETED: "💳",
+  PAYMENT_REFUNDED: "💳",
+  PAYMENT_SETTLED: "💳",
+  JOB_REVIEW_REQUESTED: "⭐",
+  JOB_REVIEW_RECEIVED: "⭐",
+  JOB_COMPLETED: "✅",
+};
+
+const KNOWN_TYPES: ReadonlySet<string> = new Set(Object.keys(TYPE_ICONS));
 
 /** 이 화면이 아는 알림 종류인지. 모르는 종류는 목록에 보이되 눌러도 이동하지 않는다 */
-export function isKnownNotificationType(type: string): boolean {
+export function isKnownNotificationType(type: string): type is NotificationType {
   return KNOWN_TYPES.has(type);
 }
 
@@ -59,22 +79,7 @@ export function notificationGroupOf(item: NotificationItem, now = new Date()): N
 
 /** 알림 동그라미 안 아이콘: 작업 종류 아이콘 또는 이모지. 모르는 종류는 종 */
 export function notificationIcon(type: string): WorkKind | string {
-  switch (type) {
-    case "JOB_DRAFT_SUBMITTED":
-    case "JOB_APPLICATION_RECEIVED":
-      return "request";
-    case "PROPOSAL_RECEIVED":
-    case "PROPOSAL_LIKE_MILESTONE_REACHED":
-      return "proposal";
-    case "CHAT_MESSAGE_RECEIVED":
-      return "💬";
-    case "PAYMENT_COMPLETED":
-      return "💳";
-    case "JOB_COMPLETED":
-      return "✅";
-    default:
-      return "🔔";
-  }
+  return isKnownNotificationType(type) ? TYPE_ICONS[type] : "🔔";
 }
 
 /** 의뢰 · 제안 · 결제 대상 id (양의 정수 글자). 아니면 undefined */

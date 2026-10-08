@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { Navigate, useNavigate, useParams } from "react-router-dom";
 import {
   AppImage,
   Button,
@@ -20,6 +20,7 @@ import {
   parsePositiveId,
   sendJobReview,
   useJobResult,
+  useOwnerJobReview,
 } from "../features/owner";
 import { useBack } from "../hooks/useBack";
 import { studentTitle } from "../lib/korean";
@@ -145,11 +146,13 @@ function ReviewScreen({
 /**
  * 서버 작업의 후기 작성 (ADR 0036). 학생 이름은 결과물(GET /jobs/{id}/result)에서 불러와, 끝나지 않은
  * 작업이면 「아직 끝나지 않은 작업이에요」. 남기면 이 화면을 연 동안 「후기 작성 완료」로 보인다.
+ * 이미 후기를 남긴 작업(GET /jobs/{id}/review 가 있음)은 남긴 후기 화면으로 보낸다 (후기 요청 알림에서 다시 들어올 때).
  */
 function JobReview({ jobId }: { jobId: number }) {
   const navigate = useNavigate();
   const back = useBack(OWNER_PATHS.home);
   const { load, reload } = useJobResult(jobId);
+  const { load: reviewLoad } = useOwnerJobReview(jobId);
   const form = useReviewForm();
   const [sending, setSending] = useState(false);
   const [sendError, setSendError] = useState<string | null>(null);
@@ -165,14 +168,18 @@ function JobReview({ jobId }: { jobId: number }) {
     };
   }, []);
 
+  if (reviewLoad.status === "loaded") {
+    return <Navigate to={OWNER_PATHS.workReviewView(String(jobId))} replace />;
+  }
   if (load.status === "notFound" || load.status === "closed") {
     return <OwnerMissing title="후기 작성" onBack={back} message="아직 끝나지 않은 작업이에요" />;
   }
-  if (load.status !== "loaded") {
+  // 남긴 후기가 있는지 아직 모르면 기다린다 (없으면 notFound, 못 불러오면 작성 화면을 그대로 보인다)
+  if (load.status !== "loaded" || reviewLoad.status === "loading") {
     return (
       <SubScreen title="후기 작성" onBack={back}>
         <LoadNotice
-          status={load.status}
+          status={load.status === "error" ? "error" : "loading"}
           loadingText="작업을 불러오는 중이에요"
           errorText="작업을 불러오지 못했어요"
           onRetry={reload}
@@ -215,7 +222,8 @@ function JobReview({ jobId }: { jobId: number }) {
         break;
       case "duplicate":
         markOwnerWorkReviewed(id);
-        setSendError("이미 후기를 남긴 작업이에요");
+        window.alert("이미 후기를 남긴 작업이에요");
+        navigate(OWNER_PATHS.workReviewView(id), { replace: true });
         break;
       case "notAvailable":
         setSendError("아직 끝나지 않은 작업이에요");

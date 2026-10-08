@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { LoadNotice, NotificationRow, SubScreen, TextButton, WorkKindIcon } from "../components";
 import { useLoadMoreSentinel } from "../features/explore";
@@ -8,7 +9,7 @@ import {
   useNotifications,
 } from "../features/notification";
 import type { NotificationItem } from "../features/notification";
-import { STUDENT_PATHS, notificationPath } from "../features/student";
+import { STUDENT_PATHS, resolveNotificationPath } from "../features/student";
 import { useBack } from "../hooks/useBack";
 import { formatNotificationTime } from "../lib/date";
 import "./StudentNotificationsPage.css";
@@ -27,10 +28,20 @@ function StudentNotificationsPage() {
     loadMore,
   );
 
+  // 수락된 제안 알림은 갈 곳을 보낸 제안에서 찾아서, 그사이 화면을 떠났으면 이동하지 않는다
+  const mounted = useRef(true);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
+
   const open = (item: NotificationItem) => {
     if (!item.read) markRead(item.id);
-    const path = notificationPath(item);
-    if (path) navigate(path);
+    void resolveNotificationPath(item).then((path) => {
+      if (path && mounted.current) navigate(path);
+    });
   };
 
   return (

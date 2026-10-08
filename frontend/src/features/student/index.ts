@@ -104,7 +104,7 @@ export { appliedStatusLabel } from "./lib/appliedJobs";
 export { sendWorkDecline, sendWorkStart } from "./lib/workStart";
 export type { WorkDeclineResult, WorkStartResult } from "./lib/workStart";
 export type { AppliedJob } from "./lib/appliedJobs";
-export { notificationPath } from "./lib/notifications";
+export { notificationPath, resolveNotificationPath } from "./lib/notifications";
 export { STUDENT_PATHS } from "./lib/paths";
 export type { ProfileEditSection, StudentActivityTab } from "./lib/paths";
 export type {

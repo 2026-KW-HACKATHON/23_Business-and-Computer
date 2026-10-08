@@ -3,18 +3,28 @@ import type { NotificationItem } from "../../notification";
 import { OWNER_PATHS } from "./paths";
 
 /**
- * 사장님이 알림을 누르면 가는 화면. 종류에 맞는 화면을 먼저 보고, 없으면 대상 종류로 간다.
- * 모르는 종류 · 대상이거나 id 가 맞지 않으면 undefined (목록에 보이되 이동하지 않는다).
+ * 사장님이 알림을 누르면 가는 화면. 종류에 맞는 화면을 먼저 보고(대상 종류가 맞을 때만), 없으면
+ * 대상 종류의 기본 화면으로 간다. 모르는 종류 · 대상이거나 id 가 맞지 않으면 undefined
+ * (목록에 보이되 이동하지 않는다).
+ * - JOB_APPLICATION_RECEIVED → 지원자 목록
+ * - JOB_DRAFT_SUBMITTED · JOB_REVISION_SUBMITTED → 작업 확인
+ * - JOB_REVIEW_REQUESTED → 후기 작성 (이미 남겼으면 그 화면이 남긴 후기로 보낸다)
+ * - JOB_COMPLETED → 결과물 보기
+ * - PROPOSAL_RECEIVED · PROPOSAL_LIKE_MILESTONE_REACHED · PROPOSAL_CANCELLED → 받은 제안 상세 (대상 기본)
+ * - JOB_STARTED → 채팅방 (대상 기본), PAYMENT_REFUNDED · PAYMENT_COMPLETED → 결제 내역 (대상 기본)
  */
 export function notificationPath(item: NotificationItem): string | undefined {
   if (!isKnownNotificationType(item.type)) return undefined;
   const id = numericTargetId(item);
   if (item.targetType === "JOB" && id) {
     switch (item.type) {
-      case "JOB_DRAFT_SUBMITTED":
-        return OWNER_PATHS.workCheck(id);
       case "JOB_APPLICATION_RECEIVED":
         return OWNER_PATHS.requestApplicants(id);
+      case "JOB_DRAFT_SUBMITTED":
+      case "JOB_REVISION_SUBMITTED":
+        return OWNER_PATHS.workCheck(id);
+      case "JOB_REVIEW_REQUESTED":
+        return OWNER_PATHS.workReview(id);
       case "JOB_COMPLETED":
         return OWNER_PATHS.workResult(id);
     }
