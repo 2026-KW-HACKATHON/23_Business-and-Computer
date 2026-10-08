@@ -30,7 +30,7 @@ export interface OwnerMatchedJobResponse {
   revisionCount?: number | null;
   /** 검토를 기다리는 결과물의 수정 번호 (초안 0). 없으면 학생이 만드는 중 */
   revisionNumber?: number | null;
-  /** 검토를 기다리는 결과물이 도착한 시각 (UTC, 오프셋 없음). 없으면 학생이 만드는 중 */
+  /** 검토를 기다리는 결과물이 도착한 시각 (한국 시각 +09:00). 없으면 학생이 만드는 중 */
   submittedAt?: string | null;
 }
 

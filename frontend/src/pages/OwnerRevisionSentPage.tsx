@@ -10,7 +10,7 @@ import {
   useProposalJobIds,
 } from "../features/owner";
 import { useBack } from "../hooks/useBack";
-import { formatMonthDay, koreaDateOfUtc } from "../lib/date";
+import { formatMonthDay, koreaDate } from "../lib/date";
 import { studentTitle } from "../lib/korean";
 import "./OwnerRevisionPage.css";
 
@@ -41,7 +41,7 @@ function OwnerRevisionSentPage() {
   // 「박지은 학생, 9월 23일 수정 요청, 수정 1/1」
   const meta = [
     matched?.student.name ? studentTitle(matched.student.name) : undefined,
-    request ? `${formatMonthDay(koreaDateOfUtc(request.requestedAt))} 수정 요청` : undefined,
+    request ? `${formatMonthDay(koreaDate(request.requestedAt))} 수정 요청` : undefined,
     latest && job ? `수정 ${latest.revisionNumber + 1}/${job.revisionCount}` : undefined,
   ]
     .filter(Boolean)

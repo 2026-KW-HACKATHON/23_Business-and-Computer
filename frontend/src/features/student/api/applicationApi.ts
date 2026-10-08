@@ -21,7 +21,7 @@ export interface AppliedJobResponse {
   finalDeadline: string;
   jobStatus: JobStatus;
   applicationStatus: JobApplicationStatus;
-  /** 지원한 시각 (UTC, 오프셋 없음) "2026-10-06T01:20:30" */
+  /** 지원한 시각 (한국 시각) "2026-10-06T10:20:30+09:00" */
   appliedAt?: string | null;
   /** 가게 이름. 카드에 「가게, 사장님 검토 중」으로 보인다 */
   storeName?: string | null;

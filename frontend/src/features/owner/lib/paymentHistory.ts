@@ -1,5 +1,5 @@
 import { ApiError } from "../../../api/client";
-import { formatMonthDay, koreaDateOfUtc } from "../../../lib/date";
+import { formatMonthDay, koreaDate } from "../../../lib/date";
 import { studentTitle } from "../../../lib/korean";
 import { formatWon } from "../../../lib/money";
 import { fetchOwnerPayments } from "../api/paymentHistoryApi";
@@ -35,7 +35,7 @@ export const PAYMENT_STATUS_LABEL: Record<PaymentHistoryStatus, string> = {
  */
 export function paymentDetailText(payment: OwnerPaymentItem): string {
   const student = payment.studentName?.trim() ? studentTitle(payment.studentName) : "학생";
-  const paidOn = payment.approvedAt ? formatMonthDay(koreaDateOfUtc(payment.approvedAt)) : undefined;
+  const paidOn = payment.approvedAt ? formatMonthDay(koreaDate(payment.approvedAt)) : undefined;
   const settledOn = payment.settledDate ? formatMonthDay(payment.settledDate) : undefined;
   const refundedOn = payment.refundedDate ? formatMonthDay(payment.refundedDate) : undefined;
   const refund = `${formatWon(payment.refundAmount ?? 0)} 환불`;

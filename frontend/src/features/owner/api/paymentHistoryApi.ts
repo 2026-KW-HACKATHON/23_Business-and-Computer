@@ -11,7 +11,7 @@ export interface PaymentHistoryItem {
   amount: number;
   /** 돌려받은 금액(원). 환불이 없으면 없음 */
   refundAmount?: number | null;
-  /** 결제한 시각 (UTC, "2026-10-06T03:00:00Z") */
+  /** 결제한 시각 (한국 시각 "2026-10-06T12:00:00+09:00") */
   approvedAt?: string | null;
   studentName?: string | null;
   status: PaymentHistoryStatus;

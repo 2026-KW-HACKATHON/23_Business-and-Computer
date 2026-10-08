@@ -10,7 +10,7 @@ import {
   useOwnerWork,
 } from "../features/owner";
 import { useBack } from "../hooks/useBack";
-import { formatMonthDay, koreaDateOfUtc } from "../lib/date";
+import { formatMonthDay, koreaDate } from "../lib/date";
 import { studentTitle } from "../lib/korean";
 import { formatWon } from "../lib/money";
 import "./OwnerWorkCancelPage.css";
@@ -54,8 +54,8 @@ function JobCanceled({ workId }: { workId: string }) {
   if (job.status !== "CANCELLED") return <OwnerMissing title="성사되지 않은 작업" onBack={back} />;
 
   const closed = closedLoad.status === "loaded" ? closedLoad.jobs.find((j) => j.jobId === job.id) : undefined;
-  // 취소 시각은 UTC (오프셋 없음)라 한국 날짜로 바꾼다
-  const canceledDate = job.cancelledAt ? koreaDateOfUtc(job.cancelledAt) : closed?.closedOn;
+  // 취소 시각의 한국 날짜
+  const canceledDate = job.cancelledAt ? koreaDate(job.cancelledAt) : closed?.closedOn;
   const canceledOn = canceledDate ? formatMonthDay(canceledDate) : "";
   const declined = job.cancelledBy === "STUDENT";
   // 맡은 학생이 있었던(결제한) 의뢰만 환불 정보가 온다

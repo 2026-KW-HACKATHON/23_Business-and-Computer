@@ -62,12 +62,13 @@ export function todayIsoDate(now = new Date()): string {
 }
 
 /**
- * 서버가 오프셋 없이 주는 UTC 시각("2026-10-07T15:22:05")의 한국 날짜 "2026-10-08".
- * 제출물 · 수정 요청 시각에 쓴다. 읽지 못하면 앞 10자(날짜)를 그대로 쓴다
+ * 서버 시각("2026-10-08T00:30:00+09:00")의 한국 날짜 "2026-10-08". 오프셋(+09:00 · Z)을 읽어 한국 날짜로 바꾸고,
+ * 오프셋이 없거나 읽지 못하면 앞 10자(날짜)를 그대로 쓴다
  */
-export function koreaDateOfUtc(utcDateTime: string): string {
-  const time = Date.parse(`${utcDateTime.replace(/(\.\d{3})\d+/, "$1").replace(/Z$/, "")}Z`);
-  if (Number.isNaN(time)) return utcDateTime.slice(0, 10);
+export function koreaDate(dateTime: string): string {
+  if (!/(Z|[+-]\d{2}:?\d{2})$/.test(dateTime)) return dateTime.slice(0, 10);
+  const time = Date.parse(dateTime);
+  if (Number.isNaN(time)) return dateTime.slice(0, 10);
   return new Date(time + 9 * 3_600_000).toISOString().slice(0, 10);
 }
 
