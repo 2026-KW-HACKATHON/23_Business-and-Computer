@@ -59,6 +59,7 @@ export { default as RoleAvatar } from "./RoleAvatar/RoleAvatar";
 export { default as RoleCard } from "./RoleCard/RoleCard";
 export { default as SearchBar } from "./SearchBar/SearchBar";
 export { default as SectionHeader } from "./SectionHeader/SectionHeader";
+export { default as SignupGuide } from "./SignupGuide/SignupGuide";
 export { default as StarRating } from "./StarRating/StarRating";
 export { default as StepIndicator } from "./StepIndicator/StepIndicator";
 export { default as StoreInfo } from "./StoreInfo/StoreInfo";

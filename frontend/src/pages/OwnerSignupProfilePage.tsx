@@ -14,6 +14,7 @@ import {
 } from "../features/signup";
 import type { PhotoUploadResult } from "../features/signup";
 import { useObjectUrls } from "../hooks/useObjectUrls";
+import { markSignupGuide } from "../lib/signupGuide";
 import "./SignupPage.css";
 import "./OwnerSignupProfilePage.css";
 
@@ -174,6 +175,8 @@ function OwnerSignupProfilePage() {
       case "registered":
         // 뒤로 가기로 돌아오지 않게 교체한다
         update({ completed: true });
+        // 가입 후 첫 홈에서 한 번 안내한다 (ADR 0053)
+        markSignupGuide("owner");
         navigate("/signup/owner/done", { replace: true });
         break;
       case "unauthorized":

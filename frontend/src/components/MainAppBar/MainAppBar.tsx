@@ -42,6 +42,7 @@ function MainAppBar({
             className={`main-app-bar__icon${hasUnread ? " main-app-bar__icon--unread" : ""}`}
             onClick={onNotifications}
             aria-label={hasUnread ? "알림 (안 읽은 알림 있음)" : "알림"}
+            data-guide="bell"
           >
             <AppImage name="iconBell" alt="" priority />
           </button>

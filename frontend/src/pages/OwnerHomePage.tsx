@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { CategoryBadge, LoadNotice, SectionHeader, TaskRow, TodoNoneCard } from "../components";
+import { CategoryBadge, LoadNotice, SectionHeader, SignupGuide, TaskRow, TodoNoneCard } from "../components";
 import {
   FirstVisitGuide,
   OWNER_PATHS,
@@ -14,6 +14,7 @@ import {
 import type { OwnerTodo, OwnerWorkingItem } from "../features/owner";
 import { formatMonthDay } from "../lib/date";
 import { useDragScroll } from "../hooks/useDragScroll";
+import { clearSignupGuide, pendingSignupGuide } from "../lib/signupGuide";
 import "./OwnerHomePage.css";
 
 /**
@@ -26,8 +27,22 @@ import "./OwnerHomePage.css";
  * 「학생이 작업 중」은 GET /me/jobs?status=MATCHED (ADR 0035). 불러오는 중 · 실패면 확인할 일 아래에 안내 줄을
  * 보이고, 개수는 둘 다 불러온 뒤에만 보인다.
  */
+/** 가입 후 첫 안내 말풍선: ① 확인할 일 · ② 새 의뢰 · ③ 알림 */
+const SIGNUP_GUIDE_TIPS = [
+  "진행 상황은 여기 확인할 일에서 봐요",
+  "새 의뢰는 여기서 올려요",
+  "학생 제안이 오면 알림으로 알려 드려요",
+] as const;
+
 function OwnerHomePage() {
   const navigate = useNavigate();
+  // 가입하고 처음 들어온 홈이면 한 번만 가입 후 첫 안내 (ADR 0053)
+  const [signupGuide, setSignupGuide] = useState(() => pendingSignupGuide("owner"));
+  const firstCardRef = useRef<HTMLDivElement>(null);
+  const closeSignupGuide = () => {
+    clearSignupGuide();
+    setSignupGuide(false);
+  };
   const home = useOwnerHome();
   // 끝난 일은 접힌 채 최근 1건만 보인다
   const [doneExpanded, setDoneExpanded] = useState(false);
@@ -54,7 +69,9 @@ function OwnerHomePage() {
       {home.firstVisit && (
         <section className="owner-home__section">
           <SectionHeader title="확인할 일" count={0} />
-          <FirstVisitGuide onStart={() => navigate(OWNER_PATHS.newRequest)} />
+          <div ref={firstCardRef}>
+            <FirstVisitGuide onStart={() => navigate(OWNER_PATHS.newRequest)} />
+          </div>
         </section>
       )}
 
@@ -141,6 +158,16 @@ function OwnerHomePage() {
           ))}
         </ul>
       </section>
+
+      {signupGuide && home.firstVisit === true && (
+        <SignupGuide
+          tone="owner"
+          card={<FirstVisitGuide onStart={() => undefined} />}
+          cardRef={firstCardRef}
+          tips={SIGNUP_GUIDE_TIPS}
+          onClose={closeSignupGuide}
+        />
+      )}
 
       {!home.firstVisit && home.done.length > 0 && (
         <section className="owner-home__section">
