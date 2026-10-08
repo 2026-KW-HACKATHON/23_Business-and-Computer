@@ -16,8 +16,8 @@ https://www.notion.so/2026-KW-0a0934d4ce52829080af81f185aacf3b?source=copy_link
 
 | 구분 | 주소 |
 | --- | --- |
-| 서비스 | https://gakkum.hubspacekw.com |
-| API 서버 | https://gakkum-api.hubspacekw.com |
+| 서비스 바로가기 | https://gakkum.hubspacekw.com |
+| (API 서버) | https://gakkum-api.hubspacekw.com |
 
 로그인 화면에서 「둘러보기」를 누르면 체험용 사장님·학생 계정이 만들어져, 가입 없이 두 역할을 오가며 써 볼 수 있습니다.
 
