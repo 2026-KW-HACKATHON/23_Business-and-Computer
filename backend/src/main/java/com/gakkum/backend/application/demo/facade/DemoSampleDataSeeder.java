@@ -1,6 +1,7 @@
 package com.gakkum.backend.application.demo.facade;
 
 import java.time.Clock;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -8,8 +9,10 @@ import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -35,13 +38,18 @@ import com.gakkum.backend.domain.job.entity.Job;
 import com.gakkum.backend.domain.job.entity.JobApplication;
 import com.gakkum.backend.domain.job.entity.JobSubmission;
 import com.gakkum.backend.domain.job.service.JobService;
+import com.gakkum.backend.domain.notification.dto.NotificationEvent;
+import com.gakkum.backend.domain.notification.dto.NotificationEventFactory;
+import com.gakkum.backend.domain.notification.service.NotificationService;
 import com.gakkum.backend.domain.owner.dto.OwnerCommandDto.CreateOwnerProfileCommand;
 import com.gakkum.backend.domain.owner.entity.Owner;
 import com.gakkum.backend.domain.owner.service.OwnerService;
 import com.gakkum.backend.domain.payment.dto.PaymentCommandDto.PreparePaymentCommand;
+import com.gakkum.backend.domain.payment.dto.PaymentQueryDto.RefundedPaymentData;
 import com.gakkum.backend.domain.payment.entity.Payment;
 import com.gakkum.backend.domain.payment.service.PaymentService;
 import com.gakkum.backend.domain.proposal.dto.ProposalCommandDto.CreateProposalCommand;
+import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.ProposalLikeData;
 import com.gakkum.backend.domain.proposal.entity.Proposal;
 import com.gakkum.backend.domain.proposal.service.ProposalService;
 import com.gakkum.backend.domain.review.dto.ReviewCommandDto.CreateReviewCommand;
@@ -65,6 +73,8 @@ import lombok.RequiredArgsConstructor;
  * 학생 지원자·다른 학생의 제안·다른 가게의 의뢰가 필요해서 같은 세션에 로그인할 수 없는 예시 사장님·학생을 둔다.
  * 결제는 카카오페이를 거치지 않고 PaymentApprovalService·ProposalFacade와 같은 순서로 상태만 바꾼다.
  * 지난 일(작성 · 지원 · 결제 · 제출 · 수정 요청 · 완료 · 후기 · 취소)은 결제일과 마감에 맞는 과거 시각으로 둔다.
+ * 알림은 같은 일을 실제 API 로 했을 때 Facade 가 보내는 알림을 그 일의 시각으로 방문자 사장님·학생에게만 만든다.
+ * 어제부터 온 알림은 아직 읽지 않은 새 알림이고, 그 전 알림은 읽은 기록이다.
  */
 @Component
 @ConditionalOnProperty(name = "demo-login.enabled", havingValue = "true")
@@ -75,6 +85,10 @@ public class DemoSampleDataSeeder {
     private static final String UNIVERSITY = "광운대학교";
     // 제출물 원본 파일 자리. 받기를 누르면 그림이 열리고 화면에는 주소 끝(크기.png)이 파일 이름으로 보인다
     private static final String SAMPLE_FILE_BASE = "https://placehold.co/";
+    // 지난 알림은 온 지 두 시간 뒤에 읽은 것으로 둔다
+    private static final Duration READ_AFTER = Duration.ofHours(2);
+    // 공감 알림 기준 (ProposalFacade 와 같다)
+    private static final Set<Integer> LIKE_MILESTONES = Set.of(10, 30, 50);
 
     private final UserService userService;
     private final OwnerService ownerService;
@@ -88,6 +102,7 @@ public class DemoSampleDataSeeder {
     private final CertificateService certificateService;
     private final ChatRoomService chatRoomService;
     private final ChatService chatService;
+    private final NotificationService notificationService;
     private final Clock clock;
     // 지난 일의 시각을 옮길 때 쓴다 (Session.applyTimeline)
     @PersistenceContext
@@ -127,6 +142,16 @@ public class DemoSampleDataSeeder {
         private final Map<String, Long> specialtyIds;
         private final Map<String, Long> categoryIds;
         private final List<TimelineUpdate> timeline = new ArrayList<>();
+        // 알림 내용을 만들 때 쓴다 (프로필 id → 가게 · 학생, 사용자 id → 이름)
+        private final Map<Long, Owner> stores = new HashMap<>();
+        private final Map<Long, Student> students = new HashMap<>();
+        private final Map<String, String> names = new HashMap<>();
+        // 결제하면 고르지 않은 지원자에게도 알리므로 의뢰마다 지원서를 모아 둔다
+        private final Map<Long, List<JobApplication>> applications = new HashMap<>();
+        // 방문자 사장님 · 학생. 예시 사장님 · 학생은 로그인할 수 없어 알림을 만들지 않는다
+        private final Set<String> visitorUserIds;
+        // 이 시각부터 온 알림(어제 · 오늘)은 읽지 않은 새 알림, 그 전 알림은 읽은 기록
+        private final Instant unreadFrom;
 
         private Session(Visitor visitor) {
             this.demoSessionId = visitor.demoSessionId();
@@ -137,6 +162,10 @@ public class DemoSampleDataSeeder {
             this.specialtyIds = specialtyService.getSpecialtyIdsByName();
             this.categoryIds = businessCategoryService.getBusinessCategories().stream().collect(Collectors.toMap(
                     BusinessCategoryResponse::getName, BusinessCategoryResponse::getId, (first, second) -> first));
+            this.visitorUserIds = Set.of(myStore.getUserId(), me.getUserId());
+            this.unreadFrom = today.minusDays(1).atStartOfDay(KOREA).toInstant();
+            stores.put(myStore.getId(), myStore);
+            students.put(me.getId(), me);
         }
 
         private void seed() {
@@ -567,6 +596,9 @@ public class DemoSampleDataSeeder {
         /** 사장님이 결제 전에 받은 제안을 거절한 상태. ProposalFacade.rejectProposal과 같다. */
         private void rejectByOwner(Proposal proposal, Instant rejectedAt) {
             proposal.rejectByOwner(LocalDateTime.ofInstant(rejectedAt, ZoneOffset.UTC));
+            addNotification(NotificationEventFactory.proposalRejected(
+                    students.get(proposal.getStudentProfileId()).getUserId(), proposal.getId(), proposal.getTitle(),
+                    stores.get(proposal.getOwnerProfileId()).getStoreName()), rejectedAt);
         }
 
         /** 다른 가게: 방문자 학생의 작업·지원·선택되지 않은 지원, 공감할 다른 학생의 제안, 탐색에 보일 의뢰. */
@@ -678,6 +710,8 @@ public class DemoSampleDataSeeder {
             for (Long specialtyId : specialties(specialties)) {
                 specialtyService.addStudentSpecialty(AddStudentSpecialtyCommand.of(student.getId(), specialtyId));
             }
+            students.put(student.getId(), student);
+            names.put(user.getId(), name);
             return student;
         }
 
@@ -687,9 +721,11 @@ public class DemoSampleDataSeeder {
             Long categoryId = categoryIds.containsKey(categoryName)
                     ? categoryIds.get(categoryName)
                     : businessCategoryService.getFirstCategoryId();
-            return ownerService.createOwnerProfile(CreateOwnerProfileCommand.of(
+            Owner owner = ownerService.createOwnerProfile(CreateOwnerProfileCommand.of(
                     user.getId(), "DEMO-" + demoSessionId + "-" + number, null, ownerName, storeName, categoryId,
                     address, description, null, List.of()), demoSessionId);
+            stores.put(owner.getId(), owner);
+            return owner;
         }
 
         private Job openJob(Owner store, Instant postedAt, String title, String description, long budget,
@@ -706,6 +742,9 @@ public class DemoSampleDataSeeder {
             JobApplication application = jobService.createJobApplication(CreateJobApplicationCommand.of(
                     null, job.getId(), summary, workPlan, deliveryMethod), student.getId(), demoSessionId);
             backdate("job_applications", "created_at", application.getId(), appliedAt);
+            applications.computeIfAbsent(job.getId(), id -> new ArrayList<>()).add(application);
+            addNotification(NotificationEventFactory.jobApplicationReceived(storeOf(job).getUserId(),
+                    application.getId(), job.getId(), job.getTitle(), nameOf(student)), appliedAt);
             return application;
         }
 
@@ -717,8 +756,19 @@ public class DemoSampleDataSeeder {
             job.match(application.getStudentProfileId());
             application.accept();
             payment.approve(approvedAt);
-            chatRoomService.createIfAbsent(job.getId());
+            ChatRoom chatRoom = chatRoomService.getOrCreate(job.getId());
             backdateByJob("chat_rooms", "created_at", job.getId(), approvedAt);
+            // 고른 학생에게 선정을, 같은 의뢰의 나머지 지원자에게 미선정을 알린다
+            addNotification(NotificationEventFactory.jobApplicationSelected(
+                    students.get(application.getStudentProfileId()).getUserId(), payment.getId(), chatRoom.getId(),
+                    job.getTitle(), store.getStoreName(), job.getFinalDeadline()), approvedAt);
+            for (JobApplication other : applications.getOrDefault(job.getId(), List.of())) {
+                if (!other.getId().equals(application.getId())) {
+                    addNotification(NotificationEventFactory.jobApplicationRejected(
+                            students.get(other.getStudentProfileId()).getUserId(), payment.getId(), job.getId(),
+                            job.getTitle(), store.getStoreName()), approvedAt);
+                }
+            }
         }
 
         // 샘플 파일은 저장소에 올린 것이 아니라 크기를 기록하지 않는다
@@ -727,6 +777,8 @@ public class DemoSampleDataSeeder {
             JobSubmission submission = jobService.submitDraft(CreateJobSubmissionCommand.of(
                     null, job.getId(), sampleFiles(files), message), student.getId(), Map.of());
             backdate("job_submissions", "created_at", submission.getId(), submittedAt);
+            addNotification(NotificationEventFactory.jobDraftSubmitted(storeOf(job).getUserId(), submission.getId(),
+                    job.getId(), job.getTitle(), nameOf(student)), submittedAt);
             return submission;
         }
 
@@ -735,6 +787,8 @@ public class DemoSampleDataSeeder {
             JobSubmission submission = jobService.submitRevision(CreateJobSubmissionCommand.of(
                     null, job.getId(), sampleFiles(files), message), student.getId(), Map.of());
             backdate("job_submissions", "created_at", submission.getId(), submittedAt);
+            addNotification(NotificationEventFactory.jobRevisionSubmitted(storeOf(job).getUserId(), submission.getId(),
+                    job.getId(), job.getTitle(), nameOf(student)), submittedAt);
             return submission;
         }
 
@@ -743,6 +797,9 @@ public class DemoSampleDataSeeder {
             jobService.requestRevision(RequestJobSubmissionRevisionCommand.of(
                     null, job.getId(), submission.getId(), message, List.of()), job.getOwnerProfileId());
             backdate("job_submissions", "reviewed_at", submission.getId(), requestedAt);
+            addNotification(NotificationEventFactory.jobRevisionRequested(
+                    students.get(job.getSelectedStudentProfileId()).getUserId(), submission.getId(), job.getId(),
+                    job.getTitle(), storeOf(job).getStoreName()), requestedAt);
         }
 
         private void complete(Job job, JobSubmission submission, Instant completedAt) {
@@ -750,22 +807,40 @@ public class DemoSampleDataSeeder {
                     job.getId(), submission.getId(), job.getOwnerProfileId()));
             backdate("job_submissions", "reviewed_at", submission.getId(), completedAt);
             backdate("jobs", "completed_at", job.getId(), completedAt);
+            // 사장님에게 후기 요청을, 결제가 있으면 담당 학생에게 정산 내역을 알린다
+            Student student = students.get(job.getSelectedStudentProfileId());
+            addNotification(NotificationEventFactory.jobReviewRequested(storeOf(job).getUserId(), job.getId(),
+                    job.getTitle(), nameOf(student)), completedAt);
+            paymentService.findPaidPayment(job.getId()).ifPresent(paid -> addNotification(
+                    NotificationEventFactory.paymentSettled(student.getUserId(), paid.paymentId(), job.getId(),
+                            job.getTitle(), paid.amount()), completedAt));
         }
 
         private void review(Job job, Student student, Instant reviewedAt, int rating, String content,
                             ReviewPositivePoint... points) {
-            reviewService.createReview(CreateReviewCommand.of(null, job.getId(), List.of(points), content, rating),
-                    job.getOwnerProfileId(), student.getId());
+            Long reviewId = reviewService.createReview(
+                    CreateReviewCommand.of(null, job.getId(), List.of(points), content, rating),
+                    job.getOwnerProfileId(), student.getId()).getId();
             backdateByJob("reviews", "created_at", job.getId(), reviewedAt);
+            addNotification(NotificationEventFactory.jobReviewReceived(student.getUserId(), reviewId, job.getId(),
+                    job.getTitle(), storeOf(job).getStoreName()), reviewedAt);
         }
 
         /** 사장님이 작업 중에 취소해 착수 보상을 뺀 금액이 환불된 상태. JobFacade.cancelJob과 같다. */
         private void cancel(Job job, Instant cancelledAt, String reason, String messageToStudent) {
             jobService.cancelJob(CancelJobCommand.of(null, job.getId(), reason, messageToStudent),
                     job.getOwnerProfileId());
-            paymentService.refundOnCancel(job.getId());
+            RefundedPaymentData refund = paymentService.refundOnCancel(job.getId());
             backdate("jobs", "completed_at", job.getId(), cancelledAt);
             backdateRefund(job.getId(), cancelledAt);
+            // 담당 학생에게 취소를, 환불 기록을 받는 사장님에게 환불 내역을 알린다
+            Owner store = storeOf(job);
+            addNotification(NotificationEventFactory.jobCancelledByOwner(
+                    students.get(job.getSelectedStudentProfileId()).getUserId(), job.getId(),
+                    chatRoomService.getOrCreate(job.getId()).getId(), job.getTitle(), store.getStoreName()),
+                    cancelledAt);
+            addNotification(NotificationEventFactory.paymentRefunded(store.getUserId(), refund.paymentId(),
+                    job.getTitle(), refund.refundAmount()), cancelledAt);
         }
 
         /**
@@ -824,12 +899,24 @@ public class DemoSampleDataSeeder {
                     null, store.getId(), specialties(specialties), title, customerProblem, proposedSolution, workPlan,
                     proposedFee, draftDays, finalDays, List.of()), student.getId(), demoSessionId);
             backdate("proposals", "created_at", proposal.getId(), createdAt);
+            addNotification(NotificationEventFactory.proposalReceived(store.getUserId(), proposal.getId(),
+                    proposal.getTitle(), nameOf(student)), createdAt);
             return proposal;
         }
 
         private void like(Proposal proposal, Student... likers) {
             for (Student liker : likers) {
-                proposalService.likeProposal(proposal.getId(), liker.getId(), demoSessionId);
+                ProposalLikeData liked = proposalService.likeProposal(proposal.getId(), liker.getId(), demoSessionId);
+                // 새 공감으로 기준 수에 닿으면 받은 사장님과 제안한 학생에게 알린다 (공감은 지금 시각에 남는다)
+                int likeCount = liked.getProposal().getLikeCount();
+                if (liked.isAdded() && LIKE_MILESTONES.contains(likeCount)) {
+                    addNotification(NotificationEventFactory.proposalLikeMilestoneReachedForOwner(
+                            stores.get(proposal.getOwnerProfileId()).getUserId(), proposal.getId(), proposal.getTitle(),
+                            likeCount), now);
+                    addNotification(NotificationEventFactory.proposalLikeMilestoneReachedForStudent(
+                            students.get(proposal.getStudentProfileId()).getUserId(), proposal.getId(),
+                            proposal.getTitle(), likeCount), now);
+                }
             }
         }
 
@@ -846,6 +933,10 @@ public class DemoSampleDataSeeder {
             payment.approve(approvedAt);
             payment.linkJob(job.getId());
             backdate("jobs", "created_at", job.getId(), approvedAt);
+            // 제안한 학생에게 수락을 알린다. 학생이 시작하기 전이라 작업 시작 알림은 없다
+            addNotification(NotificationEventFactory.proposalAccepted(
+                    students.get(proposal.getStudentProfileId()).getUserId(), payment.getId(), job.getId(),
+                    job.getTitle(), store.getStoreName(), job.getFinalDeadline()), approvedAt);
             return job;
         }
 
@@ -853,9 +944,11 @@ public class DemoSampleDataSeeder {
         private void start(Proposal proposal, Job job, Instant startedAt) {
             jobService.startJob(job.getId(), proposal.getId(), proposal.getStudentProfileId());
             proposal.accept();
-            chatRoomService.getOrCreate(job.getId());
+            ChatRoom chatRoom = chatRoomService.getOrCreate(job.getId());
             backdate("jobs", "started_at", job.getId(), startedAt);
             backdateByJob("chat_rooms", "created_at", job.getId(), startedAt);
+            addNotification(NotificationEventFactory.jobStarted(storeOf(job).getUserId(), job.getId(), chatRoom.getId(),
+                    job.getTitle(), nameOf(students.get(proposal.getStudentProfileId()))), startedAt);
         }
 
         /** 학생이 의뢰서를 거절해 전액 환불된 상태. ProposalFacade.declineProposalJob과 같다. */
@@ -863,9 +956,12 @@ public class DemoSampleDataSeeder {
             Owner store = ownerService.getOwnerProfileById(proposal.getOwnerProfileId());
             jobService.declineJob(job.getId(), proposal.getId(), proposal.getStudentProfileId());
             proposal.rejectByStudent(LocalDateTime.ofInstant(declinedAt, ZoneOffset.UTC));
-            paymentService.refundOnDecline(job.getId(), proposal.getId(), store.getUserId());
+            RefundedPaymentData refund = paymentService.refundOnDecline(job.getId(), proposal.getId(),
+                    store.getUserId());
             backdate("jobs", "completed_at", job.getId(), declinedAt);
             backdateRefund(job.getId(), declinedAt);
+            addNotification(NotificationEventFactory.paymentRefunded(store.getUserId(), refund.paymentId(),
+                    job.getTitle(), refund.refundAmount()), declinedAt);
         }
 
         private List<Long> specialties(String... names) {
@@ -874,6 +970,28 @@ public class DemoSampleDataSeeder {
 
         private List<String> sampleFiles(String... files) {
             return Arrays.stream(files).map(file -> SAMPLE_FILE_BASE + file).toList();
+        }
+
+        /**
+         * 같은 일을 실제 API 로 했을 때 Facade 가 보내는 알림을 그 일의 시각으로 바로 저장한다.
+         * 방문자에게 가는 알림만 만들고, 어제보다 전에 온 알림은 두 시간 뒤에 읽은 것으로 둔다.
+         */
+        private void addNotification(NotificationEvent event, Instant at) {
+            if (!visitorUserIds.contains(event.recipientUserId())) {
+                return;
+            }
+            LocalDateTime readAt = at.isBefore(unreadFrom)
+                    ? LocalDateTime.ofInstant(at.plus(READ_AFTER), ZoneOffset.UTC)
+                    : null;
+            backdate("notifications", "created_at", notificationService.storeDemoSample(event, readAt).getId(), at);
+        }
+
+        private Owner storeOf(Job job) {
+            return stores.get(job.getOwnerProfileId());
+        }
+
+        private String nameOf(Student student) {
+            return names.computeIfAbsent(student.getUserId(), userId -> userService.getUser(userId).getName());
         }
 
         /** 오늘에서 days 일 전 hour 시(한국 시간). 지난 일은 모두 이 시각에 일어난 것으로 둔다 (days 는 1 이상) */
