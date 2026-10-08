@@ -33,6 +33,8 @@ export interface OwnerProgressJob {
   revisionSubmitted: boolean;
   /** 도착한 결과물 id (submitted 일 때만) */
   pendingSubmissionId?: number;
+  /** 도착한 결과물의 수정 번호, 초안 0 (submitted 일 때만) */
+  revisionNumber?: number;
   /** 도착한 결과물이 온 한국 날짜 "2026-10-07" (submitted 일 때만) */
   arrivedOn?: string;
   student: {
@@ -118,6 +120,7 @@ function toProgressJob(job: OwnerMatchedJobResponse, proposal?: ReceivedProposal
     stage: ownerProgressStageOf(job),
     revisionSubmitted: job.submissionType === "REVISION",
     pendingSubmissionId: job.pendingSubmissionId ?? undefined,
+    revisionNumber: job.pendingSubmissionId ? (job.revisionNumber ?? undefined) : undefined,
     arrivedOn: job.pendingSubmissionId && job.submittedAt ? koreaDateOfUtc(job.submittedAt) : undefined,
     student: {
       profileId: job.studentProfileId,

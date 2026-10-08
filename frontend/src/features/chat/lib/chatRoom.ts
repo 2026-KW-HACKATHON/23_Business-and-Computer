@@ -36,23 +36,6 @@ export function chatListStatusText(room: ChatRoom, viewer: Role): string {
   }
 }
 
-/** 채팅방 위 작업 카드의 굵은 진행 상태. 모르면 undefined */
-export function chatSummaryText(room: ChatRoom, viewer: Role): string | undefined {
-  const progress = chatProgressOf(room);
-  switch (progress?.type) {
-    case "making":
-      return `${progress.stage} 만드는 중, ${formatMonthDay(progress.due)}까지 ${viewer === "owner" ? "도착" : "제출"}`;
-    case "submitted":
-      return viewer === "owner" ? "결과물이 도착했어요, 확인해 주세요" : "결과물을 보냈어요, 사장님 확인 중";
-    case "completed":
-      return "완료된 작업이에요";
-    case "notConcluded":
-      return "성사되지 않은 작업이에요";
-    default:
-      return undefined;
-  }
-}
-
 /** 채팅 목록의 마지막 메시지 글자. 메시지가 없으면 안내 */
 export function chatLastMessageText(room: ChatRoom): string {
   const last = room.lastMessage;
@@ -69,9 +52,9 @@ export function chatPlanOf(room: ChatRoom): ApplicationPlan | undefined {
   return { summary: applicationSummary, method: applicationWorkPlan, deliverable: applicationDeliveryMethod };
 }
 
-/** 사장님 「작업 취소」: 작업 상태가 매칭이고 확인할 결과물이 없을 때만 */
+/** 사장님 「작업 취소」: 작업 중이고 아직 결과물을 하나도 받지 않았을 때만 (받은 뒤에는 서버도 막는다) */
 export function canCancelChatWork(room: ChatRoom): boolean {
-  return room.jobStatus === "MATCHED" && room.submissionReviewStatus !== "PENDING";
+  return room.jobStatus === "MATCHED" && !room.submissionReviewStatus;
 }
 
 /** 「문제 신고」: 작업 상태가 매칭일 때만 */

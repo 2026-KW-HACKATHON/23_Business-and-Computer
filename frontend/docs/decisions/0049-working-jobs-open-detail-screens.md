@@ -24,8 +24,7 @@ it, and its button reads 「지원자 N명 보기」 when applicants are waiting
 - **Rows**: home 「학생이 작업 중」 → `OWNER_PATHS.request(jobId)`, or
   `OWNER_PATHS.proposal(proposalId)` for a proposal. 내 활동 › 진행 중
   「상세보기」 → 작업 확인 when a submission arrived, otherwise the same two.
-  The 작업계획서 sheet (`WorkPlanSheet`) opens from the chat room
-  「작업 보기」.
+  The chat room work card opens the same screens (ADR 0045).
 - **보낸 의뢰 while MATCHED** (`src/pages/OwnerRequestPage.tsx`,
   `useAssignedWork` → `loadAssignedWork` in
   `src/features/owner/lib/progressJobs.ts`), top to bottom:

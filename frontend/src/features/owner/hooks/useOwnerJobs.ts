@@ -5,6 +5,7 @@ import {
   loadApplicantProfile,
   loadJobApplications,
   loadJobResult,
+  loadLatestJobSubmission,
   loadOpenJobs,
   loadPendingSubmission,
   loadStudentProfile,
@@ -18,6 +19,7 @@ import type {
 } from "../lib/ownerJobs";
 import type { JobResult } from "../lib/closedJobs";
 import type { PendingSubmission } from "../lib/submissionReview";
+import type { LatestJobSubmissionResponse } from "../api/progressApi";
 
 export type OwnerJobLoad<T> =
   | { status: "loading" }
@@ -122,6 +124,20 @@ export function usePendingSubmission(
     jobId === undefined ? undefined : String(jobId),
     () => loadPendingSubmission(jobId ?? 0),
     "내 의뢰의 결과물만 볼 수 있어요",
+  );
+}
+
+/**
+ * 내 의뢰의 마지막 결과물과 그 결과물에 보낸 수정 요청 (GET /jobs/{id}/submissions/latest). 서버가 지금은
+ * 맡은 학생에게만 열어 두어 사장님에게 오는 403 은 notFound 로 받는다 (백엔드 요청 중, ADR 0045)
+ */
+export function useLatestJobSubmission(
+  jobId: number | undefined,
+): { load: OwnerJobLoad<LatestJobSubmissionResponse>; reload: () => void } {
+  return useOwnerJobLoad(
+    jobId === undefined ? undefined : String(jobId),
+    () => loadLatestJobSubmission(jobId ?? 0),
+    "내 의뢰의 수정 요청만 볼 수 있어요",
   );
 }
 

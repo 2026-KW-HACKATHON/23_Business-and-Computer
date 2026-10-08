@@ -67,7 +67,7 @@
 
 .owner-signup-profile__upload:focus-within,
 .owner-signup-profile__add:focus-within {
-  outline: 2px solid var(--color-black);
+  outline: 2px solid var(--role-focus);
   outline-offset: 2px;
 }
 

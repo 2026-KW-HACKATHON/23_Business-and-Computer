@@ -8,7 +8,6 @@ export { default as RefundBreakdown } from "./components/RefundBreakdown";
 export { default as StudentBox } from "./components/StudentBox";
 export { default as OwnerTabScreen } from "./components/OwnerTabScreen";
 export { default as TodoCarousel } from "./components/TodoCarousel";
-export { default as WorkPlanSheet } from "./components/WorkPlanSheet";
 export {
   completeOwnerWork,
   markOwnerWorkReviewed,
@@ -32,6 +31,7 @@ export {
   useApplicantProfile,
   useJobApplications,
   useJobResult,
+  useLatestJobSubmission,
   useOpenJobs,
   useOwnerStudentProfile,
   usePendingSubmission,
@@ -85,10 +85,10 @@ export {
 } from "./lib/receivedProposals";
 export type { ReceivedProposal } from "./lib/receivedProposals";
 export { flowSteps } from "./lib/flow";
+export { ownerWorkDocPath, ownerWorkDocSub } from "./lib/workDocs";
 export {
   WAITING_STATUS_LABEL,
   deadlineText,
-  ownerWorkPlanContent,
   studentLabel,
   studentRecord,
 } from "./lib/format";
@@ -126,5 +126,4 @@ export type {
   PickedTask,
   RequestContent,
   RequestExample,
-  WorkPlanSheetContent,
 } from "./types";
