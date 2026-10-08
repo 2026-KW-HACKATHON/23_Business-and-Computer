@@ -30,6 +30,8 @@ public class ProposalDetailResponse {
     private final String storeName;
     // 매장의 현재 프로필 주소. 등록하지 않았으면 null
     private final String storeAddress;
+    // 매장 대표 사진(사장님 프로필 사진). 사진이 없으면 null
+    private final String storeProfileImageUrl;
     private final Integer likeCount;
     // 학생이 아닌 사용자에게도 false로 항상 내린다
     private final boolean likedByMe;
@@ -61,6 +63,7 @@ public class ProposalDetailResponse {
                 .title(result.getTitle())
                 .storeName(result.getStoreName())
                 .storeAddress(result.getStoreAddress())
+                .storeProfileImageUrl(result.getStoreProfileImageUrl())
                 .likeCount(result.getLikeCount())
                 .likedByMe(result.isLikedByMe())
                 .specialtyCategories(result.getSpecialtyCategories().stream()
@@ -119,6 +122,8 @@ public class ProposalDetailResponse {
 
         private final Long studentProfileId;
         private final String name;
+        // 학생 프로필 사진. 사진이 없으면 null
+        private final String profileImageUrl;
         private final String major;
         // 전체 학번 대신 입학년도 뒤 두 자리만 전달한다 (2024402001 → "24")
         private final String studentNumber;
@@ -127,7 +132,8 @@ public class ProposalDetailResponse {
 
         public static ProposalStudent from(ProposalStudentResult result) {
             String studentNumber = result.getStudentNumber();
-            return new ProposalStudent(result.getStudentProfileId(), result.getName(), result.getMajor(),
+            return new ProposalStudent(result.getStudentProfileId(), result.getName(), result.getProfileImageUrl(),
+                    result.getMajor(),
                     studentNumber == null ? null : studentNumber.substring(2, 4),
                     result.getAverageRating(), result.getCompletedJobCount());
         }

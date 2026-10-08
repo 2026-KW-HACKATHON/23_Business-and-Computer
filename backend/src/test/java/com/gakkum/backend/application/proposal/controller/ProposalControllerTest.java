@@ -3,6 +3,7 @@ package com.gakkum.backend.application.proposal.controller;
 import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.ProposalJobDeclineResult;
 import com.gakkum.backend.domain.payment.dto.PaymentQueryDto.RefundedPaymentData;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.hasKey;
 import static org.hamcrest.Matchers.nullValue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -200,14 +201,16 @@ class ProposalControllerTest {
                 .status(ProposalStatus.PENDING)
                 .createdAt(LocalDateTime.of(2026, 9, 30, 10, 0))
                 .build();
-        Student student = Student.builder().id(7L).major("시각디자인학부").studentNumber(studentNumber).build();
+        Student student = Student.builder().id(7L).major("시각디자인학부").studentNumber(studentNumber)
+                .profileImageUrl("https://cdn.example.com/students/7/profile.png").build();
         User studentUser = User.builder().name("김학생").build();
         List<SpecialtyCategoryResult> categories = List.of(
                 SpecialtyCategoryResult.of(1L, "디자인", List.of(SpecialtyResult.of(3L, "로고 디자인"))),
                 SpecialtyCategoryResult.of(2L, "영상", List.of(
                         SpecialtyResult.of(11L, "숏폼 촬영"), SpecialtyResult.of(12L, "영상 편집"))));
         when(proposalFacade.getProposalDetail(USERNAME, 31L))
-                .thenReturn(ProposalDetailResult.of(proposal, "가게 이름", "서울시 마포구 1", student, studentUser,
+                .thenReturn(ProposalDetailResult.of(proposal, "가게 이름", "서울시 마포구 1",
+                        "https://cdn.example.com/owners/5/profile.png", student, studentUser,
                         new java.math.BigDecimal("4.3"), 5L, categories, true, LocalDate.of(2026, 10, 5), null, null));
 
         mockMvc.perform(get("/proposals/31").principal(authentication))
@@ -217,6 +220,9 @@ class ProposalControllerTest {
                 .andExpect(jsonPath("$.data.title").value("메뉴판 개선 제안"))
                 .andExpect(jsonPath("$.data.storeName").value("가게 이름"))
                 .andExpect(jsonPath("$.data.storeAddress").value("서울시 마포구 1"))
+                .andExpect(jsonPath("$.data.storeProfileImageUrl").value("https://cdn.example.com/owners/5/profile.png"))
+                .andExpect(jsonPath("$.data.student.profileImageUrl")
+                        .value("https://cdn.example.com/students/7/profile.png"))
                 .andExpect(jsonPath("$.data.likeCount").value(4))
                 .andExpect(jsonPath("$.data.likedByMe").value(true))
                 .andExpect(jsonPath("$.data.specialtyCategories.length()").value(2))
@@ -258,7 +264,7 @@ class ProposalControllerTest {
                 .draftDeadline(LocalDate.of(2026, 10, 8)).finalDeadline(LocalDate.of(2026, 10, 12))
                 .revisionCount(2).acceptanceMessage("매장 분위기에 맞춰 작업 부탁드립니다.").build();
         when(proposalFacade.getProposalDetail(USERNAME, 31L))
-                .thenReturn(ProposalDetailResult.of(proposal, "가게 이름", null,
+                .thenReturn(ProposalDetailResult.of(proposal, "가게 이름", null, null,
                         Student.builder().id(7L).build(), User.builder().name("김학생").build(),
                         new java.math.BigDecimal("4.3"), 5L, List.of(), false, LocalDate.of(2026, 10, 9), 42L,
                         ProposalAgreementResult.of(job, Instant.parse("2026-10-05T03:00:00Z"))));
@@ -270,8 +276,12 @@ class ProposalControllerTest {
                 // 공감하지 않았으면 필드를 빼지 않고 false로 내린다
                 .andExpect(jsonPath("$.data.likedByMe").value(false))
                 .andExpect(jsonPath("$.data.student.studentNumber").doesNotExist())
-                // 주소 미등록과 생성 시각 없음은 null로 내린다
+                // 주소·매장 사진·학생 사진 미등록과 생성 시각 없음은 null로 내린다
                 .andExpect(jsonPath("$.data.storeAddress").doesNotExist())
+                .andExpect(jsonPath("$.data", hasKey("storeProfileImageUrl")))
+                .andExpect(jsonPath("$.data.storeProfileImageUrl").value(nullValue()))
+                .andExpect(jsonPath("$.data.student", hasKey("profileImageUrl")))
+                .andExpect(jsonPath("$.data.student.profileImageUrl").value(nullValue()))
                 .andExpect(jsonPath("$.data.createdAt").doesNotExist())
                 .andExpect(jsonPath("$.data.estimatedDraftDeadline").doesNotExist())
                 .andExpect(jsonPath("$.data.estimatedFinalDeadline").doesNotExist())
@@ -612,7 +622,7 @@ class ProposalControllerTest {
         when(proposalFacade.getReceivedProposals(USERNAME)).thenReturn(ReceivedProposalListResult.of(List.of(
                 ReceivedProposalResult.of(proposal, student, studentUser, List.of(), null))));
         when(proposalFacade.getProposalDetail(USERNAME, 31L))
-                .thenReturn(ProposalDetailResult.of(proposal, "가꿈 카페", null, student, studentUser,
+                .thenReturn(ProposalDetailResult.of(proposal, "가꿈 카페", null, null, student, studentUser,
                         new java.math.BigDecimal("4.3"), 5L, List.of(), false, LocalDate.of(2026, 10, 6), null, null));
     }
 
@@ -691,7 +701,7 @@ class ProposalControllerTest {
                 MyProposalResult.of(proposal, Owner.builder().id(50L).storeName("가꿈 카페").build(),
                         List.of(), null))));
         when(proposalFacade.getProposalDetail(USERNAME, 31L))
-                .thenReturn(ProposalDetailResult.of(proposal, "가꿈 카페", null,
+                .thenReturn(ProposalDetailResult.of(proposal, "가꿈 카페", null, null,
                         Student.builder().id(7L).build(), User.builder().name("김학생").build(),
                         new java.math.BigDecimal("4.3"), 5L, List.of(), false, LocalDate.of(2026, 10, 6), null, null));
 
@@ -724,14 +734,15 @@ class ProposalControllerTest {
     }
 
     @Test
-    @DisplayName("받은 제안 목록은 200과 카드·학생 4개 필드, 연결 의뢰 상태, 한국 시각 생성 시각을 반환한다")
+    @DisplayName("받은 제안 목록은 200과 카드·학생 5개 필드(프로필 사진 포함), 연결 의뢰 상태, 한국 시각 생성 시각을 반환한다")
     void returnsReceivedProposals() throws Exception {
         // UTC 10월 5일 15:30 = 한국 10월 6일 00:30
         Proposal proposal = Proposal.builder().id(101L).title("메뉴판 개선 제안").likeCount(12)
                 .proposedSolution("사진 중심 메뉴판으로 바꿔드릴게요.").status(ProposalStatus.PENDING)
                 .createdAt(LocalDateTime.of(2026, 10, 5, 15, 30)).build();
         Student student = Student.builder().id(7L).userId("student-user").major("소프트웨어학부")
-                .studentNumber("2024123456").build();
+                .studentNumber("2024123456").profileImageUrl("https://cdn.example.com/students/7/profile.png")
+                .build();
         User studentUser = User.builder().id("student-user").name("홍길동").build();
         when(proposalFacade.getReceivedProposals(USERNAME)).thenReturn(ReceivedProposalListResult.of(List.of(
                 ReceivedProposalResult.of(proposal, student, studentUser, List.of(SpecialtyCategoryResult.of(
@@ -757,12 +768,14 @@ class ProposalControllerTest {
                 .andExpect(jsonPath("$.data.proposals[0].student.name").value("홍길동"))
                 .andExpect(jsonPath("$.data.proposals[0].student.studentNumber").value("2024123456"))
                 .andExpect(jsonPath("$.data.proposals[0].student.major").value("소프트웨어학부"))
+                .andExpect(jsonPath("$.data.proposals[0].student.profileImageUrl")
+                        .value("https://cdn.example.com/students/7/profile.png"))
                 .andExpect(jsonPath("$.data.proposals[0].student.userId").doesNotExist())
                 .andExpect(jsonPath("$.data.proposals[0].student.averageRating").doesNotExist());
     }
 
     @Test
-    @DisplayName("결제 전이라 의뢰가 없는 받은 제안은 jobId와 jobStatus를 null로 반환한다")
+    @DisplayName("결제 전이라 의뢰가 없는 받은 제안은 jobId와 jobStatus를, 사진이 없는 학생은 프로필 사진을 null로 반환한다")
     void returnsNullJobFieldsForReceivedProposalWithoutJob() throws Exception {
         // UTC 10월 5일 14:59 = 한국 10월 5일 23:59. 날짜가 넘어가지 않는 경계다
         Proposal proposal = Proposal.builder().id(101L).title("메뉴판 개선 제안").likeCount(0)
@@ -775,6 +788,8 @@ class ProposalControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.proposals[0].jobId").value(nullValue()))
                 .andExpect(jsonPath("$.data.proposals[0].jobStatus").value(nullValue()))
+                .andExpect(jsonPath("$.data.proposals[0].student", hasKey("profileImageUrl")))
+                .andExpect(jsonPath("$.data.proposals[0].student.profileImageUrl").value(nullValue()))
                 .andExpect(jsonPath("$.data.proposals[0].createdAt").value("2026-10-05T23:59:00+09:00"));
     }
 

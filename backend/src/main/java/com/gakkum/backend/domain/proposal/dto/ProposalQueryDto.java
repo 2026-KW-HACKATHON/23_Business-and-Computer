@@ -246,10 +246,12 @@ public final class ProposalQueryDto {
         private final String name;
         private final String studentNumber;
         private final String major;
+        // 학생 프로필 사진. 사진이 없으면 null
+        private final String profileImageUrl;
 
         public static ReceivedProposalStudentResult of(Student student, User studentUser) {
-            return new ReceivedProposalStudentResult(
-                    student.getId(), studentUser.getName(), student.getStudentNumber(), student.getMajor());
+            return new ReceivedProposalStudentResult(student.getId(), studentUser.getName(),
+                    student.getStudentNumber(), student.getMajor(), student.getProfileImageUrl());
         }
     }
 
@@ -278,6 +280,8 @@ public final class ProposalQueryDto {
         private final String storeName;
         // 매장의 현재 프로필 주소. 등록하지 않았으면 null
         private final String storeAddress;
+        // 매장 대표 사진(사장님 프로필 사진). 사진이 없으면 null
+        private final String storeProfileImageUrl;
         private final Integer likeCount;
         // 조회한 학생 본인의 공감 여부. 학생이 아니거나 학생 프로필이 없으면 false
         private final boolean likedByMe;
@@ -311,7 +315,7 @@ public final class ProposalQueryDto {
          * @param agreement 제안의 당사자에게만 내리는 확정 작업 조건, 없으면 null
          */
         public static ProposalDetailResult of(Proposal proposal, String storeName, String storeAddress,
-                Student student, User studentUser, BigDecimal averageRating, long completedJobCount,
+                String storeProfileImageUrl, Student student, User studentUser, BigDecimal averageRating, long completedJobCount,
                 List<SpecialtyCategoryResult> specialtyCategories, boolean likedByMe,
                 LocalDate today, Long jobId, ProposalAgreementResult agreement) {
             boolean pending = proposal.getStatus() == ProposalStatus.PENDING;
@@ -326,6 +330,7 @@ public final class ProposalQueryDto {
                     .title(proposal.getTitle())
                     .storeName(storeName)
                     .storeAddress(storeAddress)
+                    .storeProfileImageUrl(storeProfileImageUrl)
                     .likeCount(proposal.getLikeCount())
                     .likedByMe(likedByMe)
                     .specialtyCategories(specialtyCategories)
@@ -434,6 +439,8 @@ public final class ProposalQueryDto {
 
         private final Long studentProfileId;
         private final String name;
+        // 학생 프로필 사진. 사진이 없으면 null
+        private final String profileImageUrl;
         private final String major;
         private final String studentNumber;
         private final BigDecimal averageRating;
@@ -441,8 +448,8 @@ public final class ProposalQueryDto {
 
         public static ProposalStudentResult of(Student student, User studentUser, BigDecimal averageRating,
                 long completedJobCount) {
-            return new ProposalStudentResult(student.getId(), studentUser.getName(), student.getMajor(),
-                    student.getStudentNumber(), averageRating, completedJobCount);
+            return new ProposalStudentResult(student.getId(), studentUser.getName(), student.getProfileImageUrl(),
+                    student.getMajor(), student.getStudentNumber(), averageRating, completedJobCount);
         }
     }
 
