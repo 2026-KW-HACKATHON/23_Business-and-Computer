@@ -122,3 +122,13 @@
   color: var(--color-danger);
   text-align: center;
 }
+
+/* 남긴 후기 보기: 쓴 글 (읽기 전용) */
+.owner-review__written {
+  margin: 0;
+  font-size: 15px;
+  line-height: 22px;
+  color: var(--color-black);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}

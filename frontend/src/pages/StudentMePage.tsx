@@ -103,12 +103,12 @@ function StudentMePage() {
 
 /**
  * 사진 · 이름 · 학교와 학번 · 특기 대분류, 「광운대 인증 완료」 · 「프로필 수정」.
- * 서버에 학과가 없어 학교 줄은 「광운대학교 24학번」이다.
+ * 학교 줄은 「광운대학교 경영학부 24학번」 (학과가 없으면 빼고).
  */
 function MeHead({ me }: { me: StudentMe }) {
   const navigate = useNavigate();
   const { photoUrl, changePhoto } = useStudentPhotoChange(me);
-  const school = [me.university, studentYearText(me.studentNumber)].filter(Boolean).join(" ");
+  const school = [me.university, me.major?.trim(), studentYearText(me.studentNumber)].filter(Boolean).join(" ");
   const fields = me.specialtyCategories.map((category) => category.name).join(" / ");
 
   return (

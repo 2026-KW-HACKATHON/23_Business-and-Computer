@@ -14,6 +14,7 @@ import {
 import {
   OWNER_PATHS,
   OwnerMissing,
+  ProposalRejectDialogs,
   StudentBox,
   proposalStudentRecord,
   receivedOnText,
@@ -21,6 +22,7 @@ import {
   receivedProposalInProgress,
   receivedProposalStatusLabel,
   studentMetaText,
+  useProposalReject,
 } from "../features/owner";
 import {
   estimatedDeadlineText,
@@ -37,13 +39,15 @@ import "./OwnerProposalPage.css";
 /**
  * 피그마 「받은 제안 상세」. GET /proposals/{id} (ADR 0025).
  * 결제한 제안(AWAITING_START · ACCEPTED)은 확정된 작업 조건(agreement)을 보인다.
- * 「수락하기」는 결정 대기(PENDING)일 때만 보인다.
+ * 결정 대기(PENDING)일 때만 아래에 「거절하기」 · 「수락하기」. 「거절하기」는 확인 팝업 뒤
+ * POST /proposals/{id}/reject 로 거절하고 「학생의 제안을 거절했어요」 → 이전 화면 (ADR 0033).
  */
 function OwnerProposalPage() {
   const { proposalId } = useParams();
   const navigate = useNavigate();
   const back = useBack(OWNER_PATHS.activity("proposals"));
   const { load, reload } = useProposalDetail(proposalId);
+  const reject = useProposalReject(reload);
 
   if (load.status === "notFound") return <OwnerMissing title="받은 제안" onBack={back} />;
 
@@ -56,7 +60,7 @@ function OwnerProposalPage() {
   const showAgreement =
     agreement && (proposal?.status === "AWAITING_START" || proposal?.status === "ACCEPTED");
   const photos = proposal?.referenceImageUrls ?? [];
-  const receivedOn = proposal && receivedOnText(proposal.createdAt);
+  const receivedOn = proposal && receivedOnText(proposal.createdAt, proposal.rejectedAt);
   const student = proposal?.student;
   const studentMeta = student && studentMetaText(student.studentNumber, student.major);
 
@@ -66,9 +70,14 @@ function OwnerProposalPage() {
       onBack={back}
       footer={
         proposal && pending ? (
-          <Button fullWidth onClick={() => navigate(OWNER_PATHS.proposalAccept(String(proposal.proposalId)))}>
-            수락하기
-          </Button>
+          <div className="owner-detail__actions">
+            <Button variant="secondary" onClick={() => reject.ask(proposal.proposalId)}>
+              거절하기
+            </Button>
+            <Button onClick={() => navigate(OWNER_PATHS.proposalAccept(String(proposal.proposalId)))}>
+              수락하기
+            </Button>
+          </div>
         ) : (
           <Button fullWidth onClick={back}>
             확인
@@ -193,6 +202,8 @@ function OwnerProposalPage() {
           )}
         </div>
       )}
+
+      <ProposalRejectDialogs reject={reject} onDone={back} />
     </SubScreen>
   );
 }

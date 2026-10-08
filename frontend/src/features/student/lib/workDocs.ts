@@ -1,27 +1,31 @@
-import type { ChatWorkDoc, ChatWorkStage } from "../../chat";
+import type { ChatWorkDoc, ChatWorkEntry, ChatWorkStage } from "../../chat";
 import type { WorkKind } from "../../../types/workKind";
 import { STUDENT_PATHS } from "./paths";
 
 /**
- * 작업 서류마다 학생이 여는 화면. 마지막으로 낸 결과물과 그 수정 요청만 서버가 주어서, 그 앞의 지난
- * 초안 · 수정 요청은 없다 (서류 이력 API 요청 중, ADR 0045)
+ * 작업 이력 줄마다 학생이 여는 화면 (ADR 0045). 지금 서류(낸 결과물 · 고치는 중의 수정 요청)는 그 단계 화면,
+ * 지난 초안 · 수정안 · 수정 요청은 서류 이력의 그 결과물로 연다. 이력을 불러오지 못한 지난 서류는 없다
  */
 export function studentWorkDocPath(
-  doc: ChatWorkDoc,
+  entry: ChatWorkEntry,
   jobId: number,
   stage: ChatWorkStage | undefined,
   proposalId?: number,
 ): string | undefined {
   const id = String(jobId);
-  switch (doc) {
+  const submissionId = entry.submissionId === undefined ? undefined : String(entry.submissionId);
+  switch (entry.doc) {
     case "start":
       return proposalId !== undefined ? STUDENT_PATHS.proposal(String(proposalId)) : STUDENT_PATHS.requestFull(id);
     case "draft":
-      return stage === "draftArrived" || stage === "revising" ? STUDENT_PATHS.workSubmitted(id) : undefined;
-    case "revisionRequest":
-      return stage === "revising" ? STUDENT_PATHS.workRevision(id) : undefined;
+      if (!entry.past && stage === "draftArrived") return STUDENT_PATHS.workSubmitted(id);
+      return submissionId === undefined ? undefined : STUDENT_PATHS.workSubmission(id, submissionId);
     case "revision":
-      return stage === "revisionArrived" ? STUDENT_PATHS.workSubmitted(id) : undefined;
+      if (!entry.past && stage === "revisionArrived") return STUDENT_PATHS.workSubmitted(id);
+      return submissionId === undefined ? undefined : STUDENT_PATHS.workSubmission(id, submissionId);
+    case "revisionRequest":
+      if (!entry.past && stage === "revising") return STUDENT_PATHS.workRevision(id);
+      return submissionId === undefined ? undefined : STUDENT_PATHS.workSubmissionRequest(id, submissionId);
     case "result":
       return STUDENT_PATHS.workResult(id);
     case "review":

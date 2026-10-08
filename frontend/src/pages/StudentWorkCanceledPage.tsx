@@ -9,7 +9,7 @@ import {
   useStudentWork,
 } from "../features/student";
 import { useBack } from "../hooks/useBack";
-import { formatMonthDay, koreaDateOfUtc } from "../lib/date";
+import { formatMonthDay, koreaDate } from "../lib/date";
 import { formatWon } from "../lib/money";
 import "./StudentDetailPage.css";
 import "./StudentWorkPage.css";
@@ -87,8 +87,8 @@ function JobCanceled({ workId, jobId }: { workId: string; jobId: number }) {
         kind: proposalJobIds.has(jobId) ? "proposal" : "request",
         title: job.title,
         meta: `${store}, ${declined ? "의뢰서 거절" : "사장님이 취소"}, 작업비 ${formatWon(job.budget)}`,
-        // 취소 시각은 UTC (오프셋 없음)라 한국 날짜로 바꾼다
-        canceledOn: job.cancelledAt ? formatMonthDay(koreaDateOfUtc(job.cancelledAt)) : undefined,
+        // 취소 시각의 한국 날짜
+        canceledOn: job.cancelledAt ? formatMonthDay(koreaDate(job.cancelledAt)) : undefined,
         description,
         reason: declined ? undefined : job.cancelReason?.trim() || undefined,
         message: job.messageToStudent?.trim() || undefined,

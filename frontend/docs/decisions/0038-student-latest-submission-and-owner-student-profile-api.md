@@ -19,7 +19,7 @@ The backend (dev) has:
   requestedAt } | null }`: the submission with the highest revision number,
   also after the job is completed or cancelled. Errors: JOB_404 (not the
   student's job), JOB_SUBMISSION_404_LATEST (nothing submitted),
-  JOB_SUBMISSION_403_VIEW (not a student). Times are UTC without an offset;
+  JOB_SUBMISSION_403_VIEW (not a student). Times are Korean time (+09:00);
   file URLs end with the uploaded file name.
 - GET /students/{studentProfileId}/profile (any owner) → the same shape as
   the applicant profile (ADR 0030). Errors: STUDENT_PROFILE_403_OWNER,
@@ -33,7 +33,7 @@ The backend (dev) has:
   `src/features/student/hooks/useLatestSubmission.ts`): each stage screen
   loads the latest submission of its job. 401 goes to /login; a 404 or any
   other failure shows `LoadNotice` with 「다시 시도」. Dates are the Korean date
-  of the UTC times (`koreaDateOfUtc` in `src/lib/date.ts`).
+  of those times (`koreaDate` in `src/lib/date.ts`).
 - **수정 요청 확인** (`src/pages/StudentJobStagePages.tsx`): the owner's
   request with its date, the text (line breaks kept; 「사장님이 적은 내용이
   없어요」 when there is none), and 참고 사진 (`ReferencePhotos`, tap to see

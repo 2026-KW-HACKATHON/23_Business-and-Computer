@@ -2,7 +2,7 @@ import { ApiError } from "../../../api/client";
 import type { FlowStep } from "../../../components";
 import { proposalMonthDay } from "../../proposal";
 import type { ProposalJobStatus, ProposalStatus, ProposalStudentResponse } from "../../proposal";
-import { fetchReceivedProposals } from "../api/receivedProposalApi";
+import { fetchReceivedProposals, rejectReceivedProposal } from "../api/receivedProposalApi";
 import type { ReceivedProposalResponse } from "../api/receivedProposalApi";
 import { flowSteps } from "./flow";
 
@@ -65,8 +65,16 @@ export function receivedProposalFlowSteps(
   }
 }
 
-/** 「10월 5일 도착」. createdAt 이 없으면 undefined (그 줄을 숨긴다) */
-export function receivedOnText(createdAt: string | null | undefined): string | undefined {
+/**
+ * 「10월 5일 도착」. 거절된 제안(rejectedAt)은 「10월 8일 성사되지 않음」.
+ * 날짜가 없으면 undefined (그 줄을 숨긴다)
+ */
+export function receivedOnText(
+  createdAt: string | null | undefined,
+  rejectedAt?: string | null,
+): string | undefined {
+  const rejectedOn = proposalMonthDay(rejectedAt);
+  if (rejectedOn) return `${rejectedOn} 성사되지 않음`;
   const monthDay = proposalMonthDay(createdAt);
   return monthDay && `${monthDay} 도착`;
 }
@@ -115,6 +123,41 @@ export async function loadReceivedProposals(): Promise<ReceivedProposalsResult> 
       if (error.code === "PROPOSAL_403_LIST_OWNER" || error.code === "OWNER_403") {
         return { status: "forbidden" };
       }
+    }
+    return { status: "error" };
+  }
+}
+
+/** 받은 제안 거절 결과 */
+export type ProposalRejectResult =
+  | { status: "rejected" }
+  | {
+      status:
+        | "unauthorized"
+        /** 403 PROPOSAL_403_REJECT — 이 제안을 받은 사장님이 아님 */
+        | "forbidden"
+        /** 404 PROPOSAL_404 */
+        | "notFound"
+        /** 409 PROPOSAL_409_REJECT — 결정 대기가 아님 (이미 결제 · 시작 · 취소 · 끝남) */
+        | "notAvailable"
+        /** 409 PROPOSAL_409_REJECT_PAYMENT_PENDING — 이 제안을 결제하는 중 */
+        | "paymentPending"
+        /** 5xx · 네트워크 */
+        | "error";
+    };
+
+/** 받은 제안을 거절하고 결과를 화면이 쓰는 값으로 바꾼다 */
+export async function sendProposalReject(proposalId: number): Promise<ProposalRejectResult> {
+  try {
+    await rejectReceivedProposal(proposalId);
+    return { status: "rejected" };
+  } catch (error) {
+    if (error instanceof ApiError) {
+      if (error.status === 401) return { status: "unauthorized" };
+      if (error.code === "PROPOSAL_403_REJECT") return { status: "forbidden" };
+      if (error.code === "PROPOSAL_404") return { status: "notFound" };
+      if (error.code === "PROPOSAL_409_REJECT") return { status: "notAvailable" };
+      if (error.code === "PROPOSAL_409_REJECT_PAYMENT_PENDING") return { status: "paymentPending" };
     }
     return { status: "error" };
   }

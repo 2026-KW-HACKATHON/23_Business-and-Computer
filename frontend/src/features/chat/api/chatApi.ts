@@ -34,6 +34,12 @@ export interface ChatRoomResponse {
   /** "2026-10-09" */
   deadlineDate?: string | null;
   submissionReviewStatus?: ChatSubmissionReviewStatus | null;
+  /** 마지막 결과물이 초안인지 수정안인지. 낸 게 없으면 없다 */
+  submissionType?: "DRAFT" | "REVISION" | null;
+  /** 마지막 결과물의 수정 번호 (초안 0). 낸 게 없으면 없다 */
+  revisionNumber?: number | null;
+  /** 제안으로 시작한 작업이면 그 제안 id */
+  proposalId?: number | null;
   budget: number;
   revisionCount: number;
   draftDeadline: string;
@@ -57,6 +63,8 @@ export interface ChatMessageResponse {
   /** TEXT 는 본문, IMAGE · FILE 은 짧게 쓰는 열람 주소 */
   content?: string | null;
   attachmentName?: string | null;
+  /** IMAGE · FILE 의 크기 (바이트). TEXT 와 크기를 기록하기 전의 첨부는 없다 */
+  attachmentSize?: number | null;
   /** IMAGE · FILE 열람 주소의 만료 시각. TEXT 는 없다 */
   contentExpiresAt?: string | null;
   createdAt: string;

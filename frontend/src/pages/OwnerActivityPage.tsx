@@ -16,6 +16,7 @@ import {
 import {
   OWNER_PATHS,
   PaymentSummaryBox,
+  ProposalRejectDialogs,
   admissionYearText,
   deadlineText,
   isOwnerWorkReviewed,
@@ -30,6 +31,7 @@ import {
   useOpenJobs,
   useOwnerClosedJobs,
   useOwnerProgressJobs,
+  useProposalReject,
   useReceivedProposals,
 } from "../features/owner";
 import type {
@@ -98,6 +100,7 @@ function CardHead({ kind, title, right }: { kind: WorkKind; title: string; right
  * 보낸 의뢰는 GET /me/jobs?status=OPEN (ADR 0030), 받은 제안은 GET /me/received-proposals (ADR 0025),
  * 진행 중은 GET /me/jobs?status=MATCHED (ADR 0035), 완료는 GET /me/jobs?status=CLOSED (ADR 0036).
  * 완료 탭 위 결제 요약은 끝난 목록과 함께 불러온 GET /payments 요약이다 (ADR 0040).
+ * 결정 대기인 받은 제안은 카드의 「거절하기」로 바로 거절한다 (POST /proposals/{id}/reject, ADR 0033).
  */
 function OwnerActivityPage() {
   const navigate = useNavigate();
@@ -111,6 +114,7 @@ function OwnerActivityPage() {
   );
   const { load: proposalsLoad, reload: reloadProposals } = useReceivedProposals();
   const proposals = proposalsLoad.status === "loaded" ? proposalsLoad.proposals : [];
+  const reject = useProposalReject(reloadProposals);
   const { load: progressLoad, reload: reloadProgress } = useOwnerProgressJobs();
   const inProgress = (progressLoad.status === "loaded" ? [...progressLoad.jobs] : []).sort((a, b) =>
     ownerProgressDeadline(a).due.localeCompare(ownerProgressDeadline(b).due),
@@ -171,7 +175,7 @@ function OwnerActivityPage() {
   // 모든 상태를 보인다
   const proposalCard = (proposal: ReceivedProposal) => {
     const openDetail = () => navigate(OWNER_PATHS.proposal(String(proposal.proposalId)));
-    const receivedOn = receivedOnText(proposal.createdAt);
+    const receivedOn = receivedOnText(proposal.createdAt, proposal.rejectedAt);
     return (
       <li key={proposal.proposalId} className="owner-activity__card">
         <CardHead
@@ -209,9 +213,14 @@ function OwnerActivityPage() {
         {proposal.status === "PENDING" && (
           <>
             <div className="owner-activity__divider" />
-            <Button size="medium" fullWidth onClick={openDetail}>
-              자세히 보고 수락하기
-            </Button>
+            <div className="owner-activity__actions">
+              <Button size="medium" onClick={openDetail}>
+                자세히 보고 수락하기
+              </Button>
+              <Button variant="secondary" size="medium" onClick={() => reject.ask(proposal.proposalId)}>
+                거절하기
+              </Button>
+            </div>
           </>
         )}
       </li>
@@ -423,6 +432,7 @@ function OwnerActivityPage() {
         workTitle={reportTitle ?? ""}
         onClose={() => setReportTitle(undefined)}
       />
+      <ProposalRejectDialogs reject={reject} onDone={reject.finish} />
     </SubScreen>
   );
 }

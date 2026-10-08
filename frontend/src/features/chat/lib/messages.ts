@@ -40,6 +40,7 @@ export function toChatMessage(
     type: response.type,
     content: response.content ?? undefined,
     attachmentName: response.attachmentName ?? undefined,
+    fileSize: response.attachmentSize ?? undefined,
     contentExpiresAt: response.contentExpiresAt ?? undefined,
     createdAt: response.createdAt,
     mine: viewerUserId !== undefined ? response.senderUserId === viewerUserId : knownMine,
@@ -161,7 +162,7 @@ export function attachmentFailureOf(error: unknown): AttachmentFailure {
   }
 }
 
-/** 파일 말풍선 아래 줄 「PDF · 2.1MB」. 크기를 모르면 (다른 사람이 보낸 · 예전 첨부) undefined */
+/** 파일 말풍선 아래 줄 「PDF · 2.1MB」. 크기를 모르면 (크기를 기록하기 전의 첨부) undefined */
 export function attachmentDetailText(message: ChatMessage): string | undefined {
   if (message.fileSize === undefined) return undefined;
   const extension = message.attachmentName ? extensionOf(message.attachmentName).toUpperCase() : "";

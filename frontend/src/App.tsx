@@ -39,8 +39,10 @@ import OwnerPayPage from './pages/OwnerPayPage'
 import OwnerProposalAcceptPage from './pages/OwnerProposalAcceptPage'
 import OwnerRevisionPage from './pages/OwnerRevisionPage'
 import OwnerRevisionSentPage from './pages/OwnerRevisionSentPage'
+import OwnerPastSubmissionPage from './pages/OwnerPastSubmissionPage'
 import OwnerReviewPage from './pages/OwnerReviewPage'
 import OwnerReviewDonePage from './pages/OwnerReviewDonePage'
+import OwnerReviewViewPage from './pages/OwnerReviewViewPage'
 import OwnerWorkCancelPage from './pages/OwnerWorkCancelPage'
 import OwnerWorkCanceledPage from './pages/OwnerWorkCanceledPage'
 import OwnerExploreProposalPage from './pages/OwnerExploreProposalPage'
@@ -75,6 +77,7 @@ import StudentWorkSubmitPage from './pages/StudentWorkSubmitPage'
 import StudentRevisionPage from './pages/StudentRevisionPage'
 import StudentRevisionSubmitPage from './pages/StudentRevisionSubmitPage'
 import StudentSubmittedPage from './pages/StudentSubmittedPage'
+import StudentPastSubmissionPage from './pages/StudentPastSubmissionPage'
 import StudentWorkResultPage from './pages/StudentWorkResultPage'
 import StudentWorkHistoryPage from './pages/StudentWorkHistoryPage'
 import StudentReviewPage from './pages/StudentReviewPage'
@@ -136,8 +139,10 @@ function App() {
       <Route path="/owner/students/:studentId" element={<OwnerStudentPage />} />
       <Route path="/owner/works/:workId/revision" element={<OwnerRevisionPage />} />
       <Route path="/owner/works/:workId/revision/sent" element={<OwnerRevisionSentPage />} />
+      <Route path="/owner/works/:workId/submissions/:submissionId" element={<OwnerPastSubmissionPage />} />
       <Route path="/owner/works/:workId/review" element={<OwnerReviewPage />} />
       <Route path="/owner/works/:workId/review/done" element={<OwnerReviewDonePage />} />
+      <Route path="/owner/works/:workId/review/view" element={<OwnerReviewViewPage />} />
       <Route path="/owner/works/:workId/cancel" element={<OwnerWorkCancelPage />} />
       <Route path="/owner/works/:workId/canceled" element={<OwnerWorkCanceledPage />} />
       <Route path="/explore/proposals/:proposalId" element={<OwnerExploreProposalPage />} />
@@ -170,6 +175,14 @@ function App() {
       <Route path="/student/works/:workId/revision" element={<StudentRevisionPage />} />
       <Route path="/student/works/:workId/revision/submit" element={<StudentRevisionSubmitPage />} />
       <Route path="/student/works/:workId/submitted" element={<StudentSubmittedPage />} />
+      <Route
+        path="/student/works/:workId/submissions/:submissionId"
+        element={<StudentPastSubmissionPage view="submission" />}
+      />
+      <Route
+        path="/student/works/:workId/submissions/:submissionId/request"
+        element={<StudentPastSubmissionPage view="request" />}
+      />
       <Route path="/student/works/:workId/result" element={<StudentWorkResultPage />} />
       <Route path="/student/works/:workId/history" element={<StudentWorkHistoryPage />} />
       <Route path="/student/works/:workId/review" element={<StudentReviewPage />} />

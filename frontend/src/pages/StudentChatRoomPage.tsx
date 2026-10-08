@@ -14,7 +14,7 @@ import {
   useScrollToLatest,
 } from "../features/chat";
 import type { ChatMessage, ChatWorkTroubleItem } from "../features/chat";
-import { STUDENT_PATHS, useProgressJobs, useProposalJobIds } from "../features/student";
+import { STUDENT_PATHS } from "../features/student";
 import { useBack } from "../hooks/useBack";
 import { ATTACHMENT_ACCEPT } from "../lib/attachmentFormats";
 import { formatDayChip, formatMonthDay } from "../lib/date";
@@ -47,10 +47,6 @@ function StudentChatRoom({ roomId }: { roomId: string }) {
   const [photoKey, setPhotoKey] = useState<string | null>(null);
   // 처음 들어올 때, 맨 아래 근처에서 새 메시지를 받을 때, 내가 보낼 때 맨 아래로
   const endRef = useScrollToLatest(messages);
-  // 보낸 제안의 의뢰면 제안에서 시작한 작업 (값은 제안 id)
-  const proposalJobIds = useProposalJobIds();
-  // 낸 결과물이 초안인지 수정안인지는 진행 중 목록으로
-  const { load: progressLoad } = useProgressJobs();
 
   // 사진은 앱 안에서 크게 본다. 주소가 만료됐으면 새로 받아 바꿔 끼운다
   const showPhoto = (message: ChatMessage) => {
@@ -74,10 +70,9 @@ function StudentChatRoom({ roomId }: { roomId: string }) {
   const { room } = load;
   const partnerName = `${room.counterpartName} 사장님`;
   const id = String(room.jobId);
-  const matched = progressLoad.status === "loaded" ? progressLoad.jobs.find((job) => job.jobId === room.jobId) : undefined;
-  const stage = chatWorkStageOf(room, matched);
-  const proposalId = proposalJobIds.get(room.jobId);
-  const kind = proposalId !== undefined ? "proposal" : "request";
+  const stage = chatWorkStageOf(room);
+  // 제안으로 시작한 작업은 채팅방이 제안 id 를 준다
+  const kind = typeof room.proposalId === "number" ? "proposal" : "request";
   // 지금 할 일: 초안 · 수정안 내기
   const action =
     stage === "drafting"

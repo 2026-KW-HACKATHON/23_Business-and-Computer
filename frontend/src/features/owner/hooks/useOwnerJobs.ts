@@ -5,7 +5,8 @@ import {
   loadApplicantProfile,
   loadJobApplications,
   loadJobResult,
-  loadLatestJobSubmission,
+  loadJobSubmissions,
+  loadOwnerJobReview,
   loadOpenJobs,
   loadPendingSubmission,
   loadStudentProfile,
@@ -14,12 +15,13 @@ import type {
   ApplicantProfile,
   JobApplicationSort,
   JobApplications,
+  JobSubmission,
   OpenJob,
   OwnerJobResult,
+  OwnerJobReview,
 } from "../lib/ownerJobs";
 import type { JobResult } from "../lib/closedJobs";
 import type { PendingSubmission } from "../lib/submissionReview";
-import type { LatestJobSubmissionResponse } from "../api/progressApi";
 
 export type OwnerJobLoad<T> =
   | { status: "loading" }
@@ -128,16 +130,16 @@ export function usePendingSubmission(
 }
 
 /**
- * 내 의뢰의 마지막 결과물과 그 결과물에 보낸 수정 요청 (GET /jobs/{id}/submissions/latest). 서버가 지금은
- * 맡은 학생에게만 열어 두어 사장님에게 오는 403 은 notFound 로 받는다 (백엔드 요청 중, ADR 0045)
+ * 내 의뢰의 모든 초안 · 수정안과 각 수정 요청 (GET /jobs/{id}/submissions). 작업 이력 · 지난 초안 ·
+ * 보낸 수정 요청이 쓴다
  */
-export function useLatestJobSubmission(
+export function useJobSubmissions(
   jobId: number | undefined,
-): { load: OwnerJobLoad<LatestJobSubmissionResponse>; reload: () => void } {
+): { load: OwnerJobLoad<JobSubmission[]>; reload: () => void } {
   return useOwnerJobLoad(
     jobId === undefined ? undefined : String(jobId),
-    () => loadLatestJobSubmission(jobId ?? 0),
-    "내 의뢰의 수정 요청만 볼 수 있어요",
+    () => loadJobSubmissions(jobId ?? 0),
+    "내 의뢰의 결과물만 볼 수 있어요",
   );
 }
 
@@ -147,5 +149,14 @@ export function useJobResult(jobId: number | undefined): { load: OwnerJobLoad<Jo
     jobId === undefined ? undefined : String(jobId),
     () => loadJobResult(jobId ?? 0),
     "내 의뢰의 결과물만 볼 수 있어요",
+  );
+}
+
+/** 완료된 내 작업에 내가 남긴 후기 (GET /jobs/{id}/review). 남기지 않았으면 notFound */
+export function useOwnerJobReview(jobId: number | undefined): { load: OwnerJobLoad<OwnerJobReview>; reload: () => void } {
+  return useOwnerJobLoad(
+    jobId === undefined ? undefined : String(jobId),
+    () => loadOwnerJobReview(jobId ?? 0),
+    "내 작업의 후기만 볼 수 있어요",
   );
 }

@@ -7,9 +7,10 @@ import {
   fetchOpenJobs,
   fetchStudentProfile,
 } from "../api/jobApi";
-import { fetchJobResult } from "../api/closedApi";
-import { fetchLatestJobSubmission, fetchPendingSubmission } from "../api/progressApi";
-import type { LatestJobSubmissionResponse } from "../api/progressApi";
+import { fetchJobResult, fetchOwnerJobReview } from "../api/closedApi";
+import type { OwnerJobReviewResponse } from "../api/closedApi";
+import { fetchJobSubmissions, fetchPendingSubmission } from "../api/progressApi";
+import type { JobSubmissionResponse } from "../api/progressApi";
 import type {
   ApplicantProfileResponse,
   JobApplicantResponse,
@@ -24,6 +25,10 @@ export type JobApplicant = JobApplicantResponse;
 export type JobApplications = JobApplicationsResponse;
 export type ApplicantProfile = ApplicantProfileResponse;
 export type { JobApplicationSort };
+/** 서류 이력의 결과물 하나 (GET /jobs/{id}/submissions) */
+export type JobSubmission = JobSubmissionResponse;
+/** 내가 남긴 후기 (GET /jobs/{id}/review) */
+export type OwnerJobReview = OwnerJobReviewResponse;
 
 /** 사장님 의뢰 API 를 불러온 결과 (화면이 고른다) */
 export type OwnerJobResult<T> =
@@ -59,11 +64,8 @@ export const loadStudentProfile = (studentProfileId: number) =>
   attempt(() => fetchStudentProfile(studentProfileId));
 export const loadPendingSubmission = (jobId: number) => attempt(() => fetchPendingSubmission(jobId));
 export const loadJobResult = (jobId: number) => attempt(() => fetchJobResult(jobId));
-/** 서버가 아직 사장님에게 열어 두지 않아 오는 403 은 「아직 없음」으로 본다 (백엔드 요청 중, ADR 0045) */
-export const loadLatestJobSubmission = async (jobId: number): Promise<OwnerJobResult<LatestJobSubmissionResponse>> => {
-  const result = await attempt(() => fetchLatestJobSubmission(jobId));
-  return result.status === "forbidden" ? { status: "notFound" } : result;
-};
+export const loadJobSubmissions = (jobId: number) => attempt(() => fetchJobSubmissions(jobId));
+export const loadOwnerJobReview = (jobId: number) => attempt(() => fetchOwnerJobReview(jobId));
 
 /** 주소의 id 가 양의 정수인지. 아니면 undefined (요청하지 않는다) */
 export function parsePositiveId(id: string | undefined): number | undefined {

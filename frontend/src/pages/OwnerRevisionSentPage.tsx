@@ -1,48 +1,45 @@
-import { useParams } from "react-router-dom";
+import { useParams, useSearchParams } from "react-router-dom";
 import { Button, LoadNotice, ReferencePhotos, SubScreen, WorkKindIcon } from "../components";
-import { useJobDetail } from "../features/explore";
-import {
-  OWNER_PATHS,
-  OwnerMissing,
-  parsePositiveId,
-  useLatestJobSubmission,
-  useOwnerProgressJobs,
-  useProposalJobIds,
-} from "../features/owner";
+import { chatWorkStageOf, useChatRooms } from "../features/chat";
+import { OWNER_PATHS, OwnerMissing, parsePositiveId, useJobSubmissions } from "../features/owner";
 import { useBack } from "../hooks/useBack";
-import { formatMonthDay, koreaDateOfUtc } from "../lib/date";
+import { formatMonthDay, koreaDate } from "../lib/date";
 import { studentTitle } from "../lib/korean";
 import "./OwnerRevisionPage.css";
 
 /**
  * 피그마 「보낸 수정 요청 보기 (사장님)」 (ADR 0045). 작업 이력의 「수정 요청」 줄. 수정 요청 화면과 같은
- * 틀로, 내가 보낸 요청 내용과 참고 사진을 읽기만 한다. 마지막 결과물의 수정 요청을
- * GET /jobs/{id}/submissions/latest 로 읽는데, 서버가 지금은 맡은 학생에게만 열어 두어 그 전까지는 같은 틀에
- * 「요청 내용」 칸만 안내로 보인다
+ * 틀로, 내가 보낸 요청 내용과 참고 사진을 읽기만 한다. 서류 이력(GET /jobs/{id}/submissions)에서 주소의
+ * ?submission= 결과물에 보낸 요청을, 없으면 마지막으로 보낸 요청을 보인다. 작업 이름 · 학생 · 수정 횟수 ·
+ * 최종 마감은 채팅방(GET /me/chat-rooms)에서 읽는다
  */
 function OwnerRevisionSentPage() {
   const { workId } = useParams();
+  const [params] = useSearchParams();
   const jobId = parsePositiveId(workId);
+  const submissionId = parsePositiveId(params.get("submission") ?? undefined);
   const back = useBack(OWNER_PATHS.chats);
-  const { load, reload } = useLatestJobSubmission(jobId);
-  const { load: jobLoad } = useJobDetail(workId);
-  const { load: progressLoad } = useOwnerProgressJobs();
-  const proposalJobIds = useProposalJobIds();
+  const { load, reload } = useJobSubmissions(jobId);
+  const { load: roomsLoad } = useChatRooms();
 
   if (jobId === undefined) return <OwnerMissing title="보낸 수정 요청" onBack={back} />;
 
-  // 서버가 아직 주지 않음 (사장님에게 열리기 전)
-  const waiting = load.status === "notFound" || load.status === "closed";
-  const latest = load.status === "loaded" ? load.data : undefined;
-  const request = latest?.revisionRequest ?? undefined;
-  const job = jobLoad.status === "loaded" ? jobLoad.job : undefined;
-  const matched = progressLoad.status === "loaded" ? progressLoad.jobs.find((j) => j.jobId === jobId) : undefined;
-  const revising = matched?.stage === "revising";
+  // 수정 요청을 보낸 결과물 (오래된 것부터)
+  const requested =
+    load.status === "loaded"
+      ? [...load.data].sort((a, b) => a.revisionNumber - b.revisionNumber).filter((s) => s.revisionRequest)
+      : [];
+  const newest = requested.length > 0 ? requested[requested.length - 1] : undefined;
+  const target = submissionId === undefined ? newest : requested.find((s) => s.submissionId === submissionId);
+  const request = target?.revisionRequest ?? undefined;
+  const room = roomsLoad.status === "loaded" ? roomsLoad.rooms.find((r) => r.jobId === jobId) : undefined;
+  // 학생이 지금 고치고 있는 요청이면 최종 마감을 알린다
+  const current = room !== undefined && target !== undefined && target === newest && chatWorkStageOf(room) === "revising";
   // 「박지은 학생, 9월 23일 수정 요청, 수정 1/1」
   const meta = [
-    matched?.student.name ? studentTitle(matched.student.name) : undefined,
-    request ? `${formatMonthDay(koreaDateOfUtc(request.requestedAt))} 수정 요청` : undefined,
-    latest && job ? `수정 ${latest.revisionNumber + 1}/${job.revisionCount}` : undefined,
+    room ? studentTitle(room.counterpartName) : undefined,
+    request ? `${formatMonthDay(koreaDate(request.requestedAt))} 수정 요청` : undefined,
+    target && room ? `수정 ${target.revisionNumber + 1}/${room.revisionCount}` : undefined,
   ]
     .filter(Boolean)
     .join(", ");
@@ -66,13 +63,15 @@ function OwnerRevisionSentPage() {
           onRetry={reload}
         />
       )}
-      {latest && !request && <p className="owner-revision__note">이 결과물에는 보낸 수정 요청이 없어요</p>}
-      {(waiting || request) && (
+      {load.status !== "loading" && load.status !== "error" && !request && (
+        <p className="owner-revision__note">보낸 수정 요청이 없어요</p>
+      )}
+      {request && (
         <div className="owner-revision">
           <section className="owner-revision__work">
             <div className="owner-revision__work-head">
-              <WorkKindIcon kind={proposalJobIds.has(jobId) ? "proposal" : "request"} size={22} />
-              <h2 className="owner-revision__work-title">{job?.title ?? ""}</h2>
+              <WorkKindIcon kind={typeof room?.proposalId === "number" ? "proposal" : "request"} size={22} />
+              <h2 className="owner-revision__work-title">{room?.jobTitle ?? ""}</h2>
             </div>
             {meta && <p className="owner-revision__meta">{meta}</p>}
           </section>
@@ -85,13 +84,7 @@ function OwnerRevisionSentPage() {
           <section className="request-field">
             <h3 className="request-field__label">요청 내용</h3>
             <div className="request-field__textarea-box">
-              {request ? (
-                <p className="owner-revision__sent-text">{request.message?.trim() || "적은 내용이 없어요"}</p>
-              ) : (
-                <p className="owner-revision__sent-text owner-revision__sent-text--waiting">
-                  보낸 수정 요청은 곧 여기서 볼 수 있어요
-                </p>
-              )}
+              <p className="owner-revision__sent-text">{request.message?.trim() || "적은 내용이 없어요"}</p>
             </div>
           </section>
 
@@ -102,8 +95,8 @@ function OwnerRevisionSentPage() {
             </section>
           )}
 
-          {revising && job && (
-            <p className="owner-revision__note">학생은 최종 마감({formatMonthDay(job.finalDeadline)})까지 수정안을 보내요</p>
+          {current && room && (
+            <p className="owner-revision__note">학생은 최종 마감({formatMonthDay(room.finalDeadline)})까지 수정안을 보내요</p>
           )}
         </div>
       )}

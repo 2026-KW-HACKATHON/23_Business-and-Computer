@@ -34,7 +34,8 @@ const PREVIEW_COUNT = 2;
 /**
  * 피그마 「프로필 수정(학생)」. 사장님이 보는 내 프로필 그대로 보여 주고,
  * 아래에 나만 보는 정산 내역을 붙인다. 각 「수정」은 「프로필 편집(학생)」을 연다.
- * 모두 GET /students/me (ADR 0041). 후기와 정산은 서버가 주는 최근 세 개까지.
+ * 모두 GET /students/me (ADR 0041). 받은 후기는 서버가 모두 주고 두 개까지 보이다가 「전체 보기」로 펼친다.
+ * 정산은 서버가 주는 최근 세 개까지.
  */
 function StudentProfilePage() {
   const back = useBack(STUDENT_PATHS.me);
@@ -61,7 +62,7 @@ function ProfileBody({ me, onBack }: { me: StudentMe; onBack: () => void }) {
   const openEdit = (section?: ProfileEditSection) =>
     navigate(STUDENT_PATHS.profileEdit, { state: section ? { section } : undefined });
 
-  const school = ["광운대", studentYearText(me.studentNumber)].filter(Boolean).join(" ");
+  const school = ["광운대", me.major?.trim(), studentYearText(me.studentNumber)].filter(Boolean).join(" ");
   const intro = me.introduction?.trim();
   const badges = specialtyNamesOf(me.specialtyCategories);
   const portfolioUrl = me.portfolioUrl?.trim();

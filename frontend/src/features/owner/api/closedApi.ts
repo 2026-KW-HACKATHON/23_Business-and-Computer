@@ -46,6 +46,8 @@ export interface JobResultResponse {
   workFee: number;
   /** 파일 주소. 끝 경로가 학생이 올린 파일 이름 */
   fileUrls: string[];
+  /** 파일마다 주소와 크기(바이트). 크기를 기록하기 전에 낸 파일은 size 가 null */
+  files?: { fileUrl: string; size?: number | null }[] | null;
   message: string;
   /** 오래된 것부터 */
   workHistory: { type: WorkHistoryType; date: string }[];
@@ -72,8 +74,29 @@ export interface JobReviewRequest {
   rating: number;
   /** 겹치지 않게 5개까지 */
   positivePoints: ReviewPositivePoint[];
-  /** 꼭 적어야 함, 5000자까지 */
-  content: string;
+  /** 선택, 5000자까지. 보내지 않으면 글 없는 후기 */
+  content?: string;
+}
+
+/** GET /jobs/{jobId}/review 의 답. 완료된 내 작업에 내가 남긴 후기 */
+export interface OwnerJobReviewResponse {
+  submissionId: number;
+  jobTitle: string;
+  storeName?: string | null;
+  /** 1 ~ 5 */
+  rating: number;
+  /** 후기를 남긴 날 "2026-10-06" */
+  createdAt: string;
+  positivePoints: ReviewPositivePoint[];
+  /** 글 없는 후기는 null */
+  content?: string | null;
+}
+
+/** GET /jobs/{jobId}/review — 내가 남긴 후기. 남기지 않았거나 내 작업이 아니면 404 REVIEW_404 */
+export async function fetchOwnerJobReview(jobId: number): Promise<OwnerJobReviewResponse> {
+  const data = await apiData<OwnerJobReviewResponse | undefined>(`/jobs/${jobId}/review`);
+  if (!data) throw new Error("Owner job review response has no data");
+  return data;
 }
 
 /** POST /jobs/{jobId}/reviews — 완료된 내 작업의 학생에게 후기를 한 번 남긴다 */

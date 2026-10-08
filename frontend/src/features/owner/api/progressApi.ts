@@ -30,7 +30,7 @@ export interface OwnerMatchedJobResponse {
   revisionCount?: number | null;
   /** 검토를 기다리는 결과물의 수정 번호 (초안 0). 없으면 학생이 만드는 중 */
   revisionNumber?: number | null;
-  /** 검토를 기다리는 결과물이 도착한 시각 (UTC, 오프셋 없음). 없으면 학생이 만드는 중 */
+  /** 검토를 기다리는 결과물이 도착한 시각 (한국 시각 +09:00). 없으면 학생이 만드는 중 */
   submittedAt?: string | null;
 }
 
@@ -102,12 +102,18 @@ export async function requestSubmissionRevision(
   });
 }
 
-/** GET /jobs/{jobId}/submissions/latest 의 답. 마지막 결과물과 그 결과물에 보낸 수정 요청 */
-export interface LatestJobSubmissionResponse {
+/** GET /jobs/{jobId}/submissions 의 결과물 하나. 초안 · 수정안과 그 결과물에 보낸 수정 요청 */
+export interface JobSubmissionResponse {
   submissionId: number;
   submissionType: SubmissionType;
   /** 초안 0, 수정안은 1부터 */
   revisionNumber: number;
+  /** 파일 주소. 끝 경로가 학생이 올린 파일 이름 */
+  fileUrls: string[];
+  /** 파일마다 주소와 크기(바이트). 크기를 기록하기 전에 낸 파일은 size 가 null */
+  files?: { fileUrl: string; size?: number | null }[] | null;
+  /** 학생이 남긴 말 */
+  message?: string | null;
   reviewStatus: "PENDING" | "REVISION_REQUESTED" | "APPROVED";
   /** 한국 시각 "2026-10-07T15:22:05+09:00" */
   submittedAt: string;
@@ -123,11 +129,10 @@ export interface LatestJobSubmissionResponse {
 }
 
 /**
- * GET /jobs/{jobId}/submissions/latest — 마지막 결과물과 그 수정 요청. 지금은 맡은 학생에게만 열려 있어
- * 사장님은 404 를 받는다 (백엔드 요청 중, ADR 0045)
+ * GET /jobs/{jobId}/submissions — 내 의뢰의 모든 초안 · 수정안과 각 수정 요청 (작업 상태와 관계없이).
+ * 낸 게 없으면 빈 배열
  */
-export async function fetchLatestJobSubmission(jobId: number): Promise<LatestJobSubmissionResponse> {
-  const data = await apiData<LatestJobSubmissionResponse | undefined>(`/jobs/${jobId}/submissions/latest`);
-  if (!data) throw new Error("Latest submission response has no data");
-  return data;
+export async function fetchJobSubmissions(jobId: number): Promise<JobSubmissionResponse[]> {
+  const data = await apiData<{ submissions?: JobSubmissionResponse[] } | undefined>(`/jobs/${jobId}/submissions`);
+  return data?.submissions ?? [];
 }

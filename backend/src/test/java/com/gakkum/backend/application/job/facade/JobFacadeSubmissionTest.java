@@ -24,6 +24,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
+import org.springframework.context.ApplicationEventPublisher;
+
 import com.gakkum.backend.application.job.dto.JobSubmissionResponse;
 import com.gakkum.backend.domain.media.service.MediaService;
 import com.gakkum.backend.domain.chat.entity.ChatMessageType;
@@ -73,7 +75,7 @@ class JobFacadeSubmissionTest {
             userService, mock(OwnerService.class), jobService, mock(SpecialtyCategoryService.class),
             mock(SpecialtyService.class), studentService,
             storageClient, chatAttachmentPolicy, mock(PaymentService.class),
-                mock(ReviewService.class), mock(CertificateService.class), mock(ProposalService.class), mock(MediaService.class));
+                mock(ReviewService.class), mock(CertificateService.class), mock(ProposalService.class), mock(MediaService.class), mock(ApplicationEventPublisher.class));
 
     @Test
     @DisplayName("업로드 준비는 채팅 첨부 규칙으로 검증한 형식으로 서명하고 공개 파일 URL을 반환한다")

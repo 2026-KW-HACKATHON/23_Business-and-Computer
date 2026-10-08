@@ -7,6 +7,10 @@ export interface OwnerMeResponse {
   profileImageUrl?: string | null;
   /** 사장님 이름 */
   name: string;
+  /** 사업자 인증 때 적은 대표자 이름. 없을 수 있다 */
+  representativeName?: string | null;
+  /** 사업자등록번호 숫자 10자리 ("1234567890") */
+  businessNumber?: string | null;
   storeName: string;
   storeAddress?: string | null;
   /** 업종 id (GET /business-categories) */

@@ -1,33 +1,37 @@
-import type { ChatWorkDoc, ChatWorkStage } from "../../chat";
+import type { ChatWorkDoc, ChatWorkEntry, ChatWorkStage } from "../../chat";
 import type { WorkKind } from "../../../types/workKind";
 import { OWNER_PATHS } from "./paths";
 
 /**
- * 작업 서류마다 사장님이 여는 화면. 지난 초안 · 지난 수정안 · 지난 수정 요청 · 남긴 후기는 서버가 아직
- * 주지 않아 없다 (서류 이력 API 요청 중, ADR 0045)
+ * 작업 이력 줄마다 사장님이 여는 화면 (ADR 0045). 지금 서류(도착한 결과물 · 고치는 중의 수정 요청)는 그 단계
+ * 화면, 지난 초안 · 수정안 · 수정 요청은 서류 이력의 그 결과물로 연다. 이력을 불러오지 못한 지난 서류는 없다
  */
 export function ownerWorkDocPath(
-  doc: ChatWorkDoc,
+  entry: ChatWorkEntry,
   jobId: number,
   stage: ChatWorkStage | undefined,
   proposalId?: number,
 ): string | undefined {
   const id = String(jobId);
-  switch (doc) {
+  const submissionId = entry.submissionId === undefined ? undefined : String(entry.submissionId);
+  switch (entry.doc) {
     case "start":
       return proposalId !== undefined ? OWNER_PATHS.proposal(String(proposalId)) : OWNER_PATHS.request(id);
     case "draft":
-      return stage === "draftArrived" ? OWNER_PATHS.workCheck(id) : undefined;
+      if (!entry.past && stage === "draftArrived") return OWNER_PATHS.workCheck(id);
+      return submissionId === undefined ? undefined : OWNER_PATHS.workSubmission(id, submissionId);
     case "revision":
-      return stage === "revisionArrived" ? OWNER_PATHS.workCheck(id) : undefined;
+      if (!entry.past && stage === "revisionArrived") return OWNER_PATHS.workCheck(id);
+      return submissionId === undefined ? undefined : OWNER_PATHS.workSubmission(id, submissionId);
+    case "revisionRequest":
+      if (!entry.past && stage === "revising") return OWNER_PATHS.workRevisionSent(id);
+      return submissionId === undefined ? undefined : OWNER_PATHS.workRevisionSent(id, submissionId);
     case "result":
       return OWNER_PATHS.workResult(id);
+    case "review":
+      return OWNER_PATHS.workReviewView(id);
     case "canceled":
       return OWNER_PATHS.workCanceled(id);
-    case "revisionRequest":
-      return stage === "revising" ? OWNER_PATHS.workRevisionSent(id) : undefined;
-    case "review":
-      return undefined;
   }
 }
 

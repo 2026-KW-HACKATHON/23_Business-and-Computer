@@ -4,6 +4,7 @@ import {
   ChatWorkHistory,
   chatWorkBadge,
   chatWorkEntries,
+  chatWorkEntriesFromSubmissions,
   chatWorkEntryLabel,
   chatWorkFlowIndex,
   chatWorkStageOf,
@@ -15,9 +16,7 @@ import {
   flowSteps,
   studentWorkDocPath,
   studentWorkDocSub,
-  useLatestSubmission,
-  useProgressJobs,
-  useProposalJobIds,
+  useSubmissionHistory,
 } from "../features/student";
 import { useBack } from "../hooks/useBack";
 import { formatWon } from "../lib/money";
@@ -27,18 +26,16 @@ const jobIdOf = (workId: string) => (/^[1-9][0-9]*$/.test(workId) ? Number(workI
 
 /**
  * 피그마 「작업 이력 (학생)」 (ADR 0045). 채팅 작업 카드 「이력 상세보기 ›」. 그 작업의 채팅방(GET /me/chat-rooms)과
- * 진행 중 목록의 단계로 쌓인 서류를 보인다. 끝난 작업에는 받은 후기 줄이 붙는다. 수정이 두 번 이상이면
- * 회차마다 한 줄 (회차는 마지막으로 낸 결과물의 번호, GET /jobs/{id}/submissions/latest)
+ * 서류 이력(GET /jobs/{id}/submissions)으로 쌓인 서류를 생긴 순서대로 보인다. 줄마다 그 서류 화면으로 가고,
+ * 지난 초안 · 수정 요청 · 수정안도 열린다. 끝난 작업에는 받은 후기 줄이 붙는다. 이력을 불러오기 전에는 지금
+ * 단계로 어림한 줄을 보인다
  */
 function StudentWorkHistoryPage() {
   const { workId = "" } = useParams();
   const jobId = jobIdOf(workId);
   const back = useBack(STUDENT_PATHS.chats);
   const { load, reload } = useChatRooms();
-  const { load: progressLoad } = useProgressJobs();
-  const proposalJobIds = useProposalJobIds();
-  // 몇 번째 수정인지는 마지막으로 낸 결과물의 번호로
-  const { load: latestLoad } = useLatestSubmission(jobId ?? 0);
+  const { load: submissionsLoad } = useSubmissionHistory(jobId ?? 0);
 
   const room = load.status === "loaded" ? load.rooms.find((r) => r.jobId === jobId) : undefined;
   if (jobId === undefined || (load.status === "loaded" && !room)) {
@@ -57,11 +54,13 @@ function StudentWorkHistoryPage() {
     );
   }
 
-  const matched = progressLoad.status === "loaded" ? progressLoad.jobs.find((job) => job.jobId === jobId) : undefined;
-  const stage = chatWorkStageOf(room, matched);
-  const proposalId = proposalJobIds.get(jobId);
+  const stage = chatWorkStageOf(room);
+  const proposalId = room.proposalId ?? undefined;
   const kind = proposalId !== undefined ? "proposal" : "request";
-  const revisions = latestLoad.status === "loaded" ? latestLoad.submission.revisionNumber : undefined;
+  const entries =
+    submissionsLoad.status === "loaded"
+      ? chatWorkEntriesFromSubmissions(stage, submissionsLoad.submissions, true)
+      : chatWorkEntries(stage, room.revisionNumber ?? undefined, true);
   const flowIndex = chatWorkFlowIndex(stage);
   const flowSub = stage === "draftArrived" || stage === "revisionArrived" ? "확인 중" : "작업 중";
 
@@ -78,11 +77,12 @@ function StudentWorkHistoryPage() {
             ? undefined
             : flowSteps(kind === "proposal" ? "제안" : "의뢰", flowIndex, flowIndex < 5 ? flowSub : undefined)
         }
-        rows={chatWorkEntries(stage, revisions, true).map((entry) => ({
+        rows={entries.map((entry) => ({
           label: chatWorkEntryLabel(entry, kind),
           sub: studentWorkDocSub(entry.doc, kind),
-          to: entry.past ? undefined : studentWorkDocPath(entry.doc, jobId, stage, proposalId),
+          to: studentWorkDocPath(entry, jobId, stage, proposalId),
         }))}
+        note={submissionsLoad.status === "error" ? "지난 서류를 불러오지 못했어요" : undefined}
       />
     </SubScreen>
   );

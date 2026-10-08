@@ -117,6 +117,9 @@ export const REVIEW_POINTS: { label: string; value: ReviewPositivePoint }[] = [
   { label: "수정을 잘 반영해요", value: "REVISION_FEEDBACK" },
 ];
 
+/** 별점 말 (1 ~ 5점, 0 은 비움) */
+export const REVIEW_RATING_LABELS = ["", "별로예요", "아쉬워요", "보통이에요", "좋아요", "최고예요"];
+
 /** 후기 결과 */
 export type JobReviewResult =
   | { status: "done" }
@@ -133,23 +136,19 @@ export type JobReviewResult =
         | "error";
     };
 
-/**
- * 후기를 남긴다 (POST /jobs/{id}/reviews). 서버는 글을 꼭 받아서, 글을 비워 두면 고른 별점 말과
- * 좋았던 점을 이어 글로 보낸다 (「최고예요 · 친절해요」).
- */
+/** 후기를 남긴다 (POST /jobs/{id}/reviews). 글은 선택이라 비워 두면 보내지 않는다 */
 export async function sendJobReview(
   jobId: number,
-  review: { rating: number; ratingLabel: string; pointLabels: string[]; text: string },
+  review: { rating: number; pointLabels: string[]; text: string },
 ): Promise<JobReviewResult> {
   // 고른 순서와 관계없이 칩 순서대로
   const points = REVIEW_POINTS.filter((point) => review.pointLabels.includes(point.label));
-  const content =
-    review.text.trim() || [review.ratingLabel, ...points.map((point) => point.label)].filter(Boolean).join(" · ");
+  const content = review.text.trim();
   try {
     await createJobReview(jobId, {
       rating: review.rating,
       positivePoints: points.map((point) => point.value),
-      content,
+      ...(content ? { content } : {}),
     });
     return { status: "done" };
   } catch (error) {

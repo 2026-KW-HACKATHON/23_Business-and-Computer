@@ -1,5 +1,10 @@
 import { apiData } from "../../../api/client";
-import type { ProposalJobStatus, ProposalSpecialtyCategory, ProposalStatus } from "../../proposal";
+import type {
+  ProposalJobStatus,
+  ProposalRejectedBy,
+  ProposalSpecialtyCategory,
+  ProposalStatus,
+} from "../../proposal";
 
 /** GET /me/received-proposals 의 제안 하나 (ReceivedProposalListResponse.ReceivedProposal) */
 export interface ReceivedProposalResponse {
@@ -20,7 +25,11 @@ export interface ReceivedProposalResponse {
   jobId?: number | null;
   /** 서버가 주면 「성사되지 않음」 칩에 쓴다 */
   jobStatus?: ProposalJobStatus | null;
-  /** 서버가 주면 「M월 D일 도착」에 쓴다. 한국 시각, 오프셋 없음 */
+  /** REJECTED 일 때만. 누가 거절했는지 */
+  rejectedBy?: ProposalRejectedBy | null;
+  /** REJECTED 일 때만. 「M월 D일 성사되지 않음」에 쓴다. 한국 시각 "2026-10-06T00:30:00+09:00" */
+  rejectedAt?: string | null;
+  /** 서버가 주면 「M월 D일 도착」에 쓴다. 한국 시각 (+09:00) */
   createdAt?: string | null;
 }
 
@@ -30,4 +39,12 @@ export async function fetchReceivedProposals(): Promise<ReceivedProposalResponse
     "/me/received-proposals",
   );
   return data?.proposals ?? [];
+}
+
+/**
+ * POST /proposals/{proposalId}/reject — 받은 사장님이 결제 전(PENDING) 제안을 거절한다 (본문 없음).
+ * 모인 공감은 그대로 남고 더는 공감할 수 없다. 이미 거절한 제안을 다시 보내도 성공한다.
+ */
+export async function rejectReceivedProposal(proposalId: number): Promise<void> {
+  await apiData<unknown>(`/proposals/${proposalId}/reject`, { method: "POST" });
 }

@@ -68,7 +68,7 @@ export interface LatestSubmissionResponse {
   message?: string | null;
   /** PENDING = 사장님 확인 중, REVISION_REQUESTED = 수정 요청 받음, APPROVED = 완료 */
   reviewStatus: "PENDING" | "REVISION_REQUESTED" | "APPROVED";
-  /** UTC, 오프셋 없음 ("2026-10-07T05:22:05"). 날짜는 submissionDay 로 한국 날짜로 바꿔 쓴다 */
+  /** 한국 시각 ("2026-10-07T14:22:05+09:00"). 날짜는 submissionDay 로 읽는다 */
   submittedAt: string;
   /** 이 결과물에 받은 수정 요청. 받지 않았으면 없음 */
   revisionRequest?: {
@@ -76,7 +76,7 @@ export interface LatestSubmissionResponse {
     message?: string | null;
     /** 참고 사진 주소 (4장까지) */
     referenceImageUrls?: string[] | null;
-    /** UTC, 오프셋 없음 */
+    /** 한국 시각 (+09:00) */
     requestedAt: string;
   } | null;
 }
@@ -89,6 +89,15 @@ export async function fetchLatestSubmission(jobId: number): Promise<LatestSubmis
   const data = await apiData<LatestSubmissionResponse | undefined>(`/jobs/${jobId}/submissions/latest`);
   if (!data) throw new Error("Latest submission response has no data");
   return data;
+}
+
+/**
+ * GET /jobs/{jobId}/submissions — 내가 맡은 의뢰에 낸 모든 초안 · 수정안과 각 수정 요청 (작업 상태와 관계없이).
+ * 낸 게 없으면 빈 배열
+ */
+export async function fetchSubmissionHistory(jobId: number): Promise<LatestSubmissionResponse[]> {
+  const data = await apiData<{ submissions?: LatestSubmissionResponse[] } | undefined>(`/jobs/${jobId}/submissions`);
+  return data?.submissions ?? [];
 }
 
 /** POST /jobs/{jobId}/submission/revisions — 수정 요청을 받은 뒤의 수정안 */
