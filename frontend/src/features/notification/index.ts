@@ -6,7 +6,6 @@ export type { NotificationsLoad } from "./hooks/useNotifications";
 
 export {
   NOTIFICATION_GROUPS,
-  isKnownNotificationType,
   notificationGroupOf,
   notificationIcon,
   numericTargetId,
