@@ -1,5 +1,5 @@
 import { ApiError } from "../../../api/client";
-import { koreaDateOfUtc } from "../../../lib/date";
+import { koreaDate } from "../../../lib/date";
 import { fetchLatestSubmission } from "../api/submissionApi";
 import type { LatestSubmissionResponse } from "../api/submissionApi";
 
@@ -26,8 +26,8 @@ export async function loadLatestSubmission(jobId: number): Promise<LatestSubmiss
   }
 }
 
-/** 제출 · 수정 요청 시각(UTC, 오프셋 없음)의 한국 날짜 ("2026-10-07T15:22:05" → "2026-10-08") */
-export const submissionDay = (dateTime: string) => koreaDateOfUtc(dateTime);
+/** 제출 · 수정 요청 시각의 한국 날짜 ("2026-10-08T00:22:05+09:00" → "2026-10-08") */
+export const submissionDay = (dateTime: string) => koreaDate(dateTime);
 
 /** 이번 수정 요청이 마지막인지. 수정 요청은 결과물마다 한 번이고, revisionNumber + 1 번째 요청이다 */
 export function isLastRevision(submission: LatestSubmission, revisionLimit: number): boolean {

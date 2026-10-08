@@ -58,7 +58,7 @@ export interface MyProposalResponse {
   rejectedBy?: ProposalRejectedBy | null;
   /** REJECTED 일 때만. 「M월 D일 성사되지 않음」에 쓴다. 한국 시각 "2026-10-06T00:30:00+09:00" */
   rejectedAt?: string | null;
-  /** 한국 시각, 오프셋 없음 "2026-10-05T14:03:11.123" */
+  /** 한국 시각 "2026-10-05T14:03:11+09:00" */
   createdAt?: string | null;
 }
 

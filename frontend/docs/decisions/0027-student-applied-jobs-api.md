@@ -78,4 +78,4 @@ not show in any student screen. The backend (dev) has:
 ## Agent Guidance
 
 - The list now carries `storeName`, the sent application, and REJECTED
-  items (ADR 0039); `appliedAt` is UTC, read it with `koreaDateOfUtc`.
+  items (ADR 0039); read the date of `appliedAt` with `koreaDate`.

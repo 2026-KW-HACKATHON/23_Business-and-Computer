@@ -30,8 +30,8 @@ an offset; the received proposal `createdAt` is Korean time.
 
 ## Decision
 
-- **Dates**: `koreaDateOfUtc` (`src/lib/date.ts`) turns a UTC time into the
-  Korean date. The automatic completion date is that date + 7 days.
+- **Dates**: `koreaDate` (`src/lib/date.ts`) turns a server time (+09:00)
+  into the Korean date. The automatic completion date is that date + 7 days.
 - **Owner data** (`src/features/owner/lib/progressJobs.ts`):
   `loadOwnerProgressJobs` reads the name, fee, revision count, and arrival
   date (`arrivedOn`) from the list and only GET /me/received-proposals
@@ -75,5 +75,4 @@ an offset; the received proposal `createdAt` is Korean time.
   `storeAddress` option and GET /jobs/{id} from `loadProgressJobs`.
 - When the owner matched list carries the application, read it there and
   drop GET /me/chat-rooms from `loadAssignedWork` (ADR 0049).
-- New list times are UTC without an offset unless the backend says
-  otherwise; read them with `koreaDateOfUtc`.
+- Server times carry +09:00; read their dates with `koreaDate`.

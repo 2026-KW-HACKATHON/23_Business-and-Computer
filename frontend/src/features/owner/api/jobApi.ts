@@ -112,7 +112,8 @@ export interface ApplicantProfileResponse {
   portfolioUrl?: string | null;
   penaltyCount: number;
   reviewCount: number;
-  reviews: { storeName: string; jobTitle: string; content: string; rating: number; createdAt: string }[];
+  /** 글 없는 후기는 content 가 null */
+  reviews: { storeName: string; jobTitle: string; content?: string | null; rating: number; createdAt: string }[];
 }
 
 export async function fetchApplicantProfile(

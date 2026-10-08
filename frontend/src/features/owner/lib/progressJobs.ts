@@ -1,6 +1,6 @@
 import { ApiError } from "../../../api/client";
 import type { FlowStep } from "../../../components";
-import { addDays, koreaDateOfUtc } from "../../../lib/date";
+import { addDays, koreaDate } from "../../../lib/date";
 import type { WorkKind } from "../../../types/workKind";
 import type { ApplicationPlan } from "../../../types/workPlan";
 import type { JobSpecialtyCategory } from "../api/jobApi";
@@ -121,7 +121,7 @@ function toProgressJob(job: OwnerMatchedJobResponse, proposal?: ReceivedProposal
     revisionSubmitted: job.submissionType === "REVISION",
     pendingSubmissionId: job.pendingSubmissionId ?? undefined,
     revisionNumber: job.pendingSubmissionId ? (job.revisionNumber ?? undefined) : undefined,
-    arrivedOn: job.pendingSubmissionId && job.submittedAt ? koreaDateOfUtc(job.submittedAt) : undefined,
+    arrivedOn: job.pendingSubmissionId && job.submittedAt ? koreaDate(job.submittedAt) : undefined,
     student: {
       profileId: job.studentProfileId,
       name,

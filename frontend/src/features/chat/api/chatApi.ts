@@ -57,6 +57,8 @@ export interface ChatMessageResponse {
   /** TEXT 는 본문, IMAGE · FILE 은 짧게 쓰는 열람 주소 */
   content?: string | null;
   attachmentName?: string | null;
+  /** IMAGE · FILE 의 크기 (바이트). TEXT 와 크기를 기록하기 전의 첨부는 없다 */
+  attachmentSize?: number | null;
   /** IMAGE · FILE 열람 주소의 만료 시각. TEXT 는 없다 */
   contentExpiresAt?: string | null;
   createdAt: string;

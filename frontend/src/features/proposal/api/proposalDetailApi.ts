@@ -63,7 +63,7 @@ export interface ProposalDetailResponse {
   draftDays: number;
   finalDays: number;
   referenceImageUrls?: string[] | null;
-  /** 한국 시각, 오프셋 없음 "2026-10-05T14:03:11.123" */
+  /** 한국 시각 "2026-10-05T14:03:11+09:00" */
   createdAt?: string | null;
   status: ProposalStatus;
   /** REJECTED 일 때만. 거절 주체를 기록하기 전에 거절된 제안은 없음 */

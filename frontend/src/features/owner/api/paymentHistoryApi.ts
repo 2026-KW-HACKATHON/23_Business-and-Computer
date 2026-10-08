@@ -11,10 +11,14 @@ export interface PaymentHistoryItem {
   amount: number;
   /** 돌려받은 금액(원). 환불이 없으면 없음 */
   refundAmount?: number | null;
-  /** 결제한 시각 (UTC, "2026-10-06T03:00:00Z") */
+  /** 결제한 시각 (한국 시각 "2026-10-06T12:00:00+09:00") */
   approvedAt?: string | null;
   studentName?: string | null;
   status: PaymentHistoryStatus;
+  /** 정산한 날 (한국 날짜 "2026-10-06"). 정산 완료일 때만 */
+  settledDate?: string | null;
+  /** 환불한 날 (한국 날짜). 부분 · 전액 환불일 때만 */
+  refundedDate?: string | null;
 }
 
 /** GET /payments 의 답. 요약과 달마다 묶은 결제 */

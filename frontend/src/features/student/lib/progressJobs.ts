@@ -1,6 +1,6 @@
 import { ApiError } from "../../../api/client";
 import type { FlowStep } from "../../../components";
-import { koreaDateOfUtc } from "../../../lib/date";
+import { koreaDate } from "../../../lib/date";
 import type { WorkKind } from "../../../types/workKind";
 import { fetchJobDetail } from "../../explore";
 import type { ExploreSpecialtyCategory } from "../../explore";
@@ -132,7 +132,7 @@ export async function loadProgressJobs({
       revisionLimit: job.revisionCount,
       stage: progressStageOf(job),
       revisionSubmitted: job.submissionType === "REVISION",
-      submittedOn: job.submittedAt ? koreaDateOfUtc(job.submittedAt) : undefined,
+      submittedOn: job.submittedAt ? koreaDate(job.submittedAt) : undefined,
       storeName: job.storeName?.trim() || details[i]?.storeName?.trim() || undefined,
       storeAddress: details[i]?.storeAddress?.trim() || undefined,
     })),

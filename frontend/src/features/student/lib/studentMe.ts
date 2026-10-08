@@ -53,9 +53,9 @@ export function portfolioHref(url: string): string {
   return /^https?:\/\//.test(url) ? url : `https://${url}`;
 }
 
-/** 후기의 의뢰 자리. 서버가 의뢰 제목 대신 특기를 줘서 특기 이름을 잇는다 (「메뉴판·가격표 디자인」) */
+/** 후기의 의뢰 자리. 의뢰 제목, 없으면 의뢰의 특기 이름을 잇는다 (「메뉴판·가격표 디자인」) */
 export function reviewWorkText(review: StudentMeReview): string {
-  return specialtyNamesOf(review.specialtyCategories).join(" · ");
+  return review.jobTitle?.trim() || specialtyNamesOf(review.specialtyCategories).join(" · ");
 }
 
 /** 저장할 프로필. PUT /students/me 는 보낸 값으로 모두 바뀌어서 바꾸지 않는 칸도 지금 값을 넣는다 */

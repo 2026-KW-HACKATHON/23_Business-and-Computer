@@ -22,7 +22,7 @@ export type { JobAssignment } from "./hooks/useJobAssignment";
 export { useOwnerHome } from "./hooks/useOwnerHome";
 export { useOwnerMe, useStoreCategories } from "./hooks/useOwnerMe";
 export type { OwnerMeLoad, StoreCategoriesLoad } from "./hooks/useOwnerMe";
-export { ownerMeChanges, ownerStoreForm, saveOwnerMe, storeAddressOf, storeCategoryId } from "./lib/ownerMe";
+export { businessInfoText, ownerMeChanges, ownerStoreForm, saveOwnerMe, storeAddressOf, storeCategoryId } from "./lib/ownerMe";
 export type { OwnerMe, OwnerMeChanges, OwnerMeSaveResult, OwnerStoreForm } from "./lib/ownerMe";
 export { useProposalJobIds } from "./hooks/useProposalJobIds";
 export { useProposalReject } from "./hooks/useProposalReject";

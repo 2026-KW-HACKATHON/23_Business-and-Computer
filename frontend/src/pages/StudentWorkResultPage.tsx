@@ -20,6 +20,7 @@ import {
   workHistoryText,
 } from "../features/student";
 import { useBack } from "../hooks/useBack";
+import { fileSizeOfUrl } from "../lib/attachmentFormats";
 import { formatMonthDay } from "../lib/date";
 import { fileNameFromUrl } from "../lib/fileUrl";
 import { formatWon } from "../lib/money";
@@ -45,7 +46,7 @@ function StudentWorkResultPage() {
 
 /**
  * 서버 작업의 결과물. 가게 이름은 GET /jobs/{id}, 사장님 후기는 GET /jobs/{id}/review 에서 보고,
- * 제안으로 시작했는지는 보낸 제안(GET /me/proposals)의 jobId 로 본다. 파일 크기는 서버가 주지 않아 이름만 보인다.
+ * 제안으로 시작했는지는 보낸 제안(GET /me/proposals)의 jobId 로 본다. 원본 파일은 이름과 크기(files)를 보인다.
  */
 function JobResultView({ jobId }: { jobId: number }) {
   const navigate = useNavigate();
@@ -74,6 +75,7 @@ function JobResultView({ jobId }: { jobId: number }) {
   const completedHow = result.normalCompleted ? "사장님이 직접 확인" : "7일 지나 자동 완료";
   const completed = `${formatMonthDay(result.completedAt)} 완료 (${completedHow})`;
   const names = result.fileUrls.map(fileNameFromUrl);
+  const sizes = result.fileUrls.map((url) => fileSizeOfUrl(result.files, url));
   const reviewText = review?.content?.trim();
 
   return (
@@ -106,6 +108,7 @@ function JobResultView({ jobId }: { jobId: number }) {
                 <span aria-hidden="true">📄</span>
                 <span className="student-work__file-info">
                   <strong>{names[i]}</strong>
+                  {sizes[i] && <small>{sizes[i]}</small>}
                 </span>
                 <DownloadButton href={url} aria-label={`${names[i]} 받기`} />
               </li>

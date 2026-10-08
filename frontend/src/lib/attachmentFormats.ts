@@ -61,3 +61,12 @@ export function attachmentFormatOf(file: File): { type: AttachmentType; contentT
 export function fileSizeText(bytes: number): string {
   return bytes >= MB ? `${(bytes / MB).toFixed(1)}MB` : `${Math.max(1, Math.round(bytes / 1024))}KB`;
 }
+
+/** 결과물 파일 목록(files)에서 그 주소의 크기 「24.1MB」. 크기가 없으면 (크기를 기록하기 전에 낸 파일) undefined */
+export function fileSizeOfUrl(
+  files: { fileUrl: string; size?: number | null }[] | null | undefined,
+  url: string,
+): string | undefined {
+  const size = files?.find((file) => file.fileUrl === url)?.size;
+  return typeof size === "number" && size > 0 ? fileSizeText(size) : undefined;
+}

@@ -8,8 +8,10 @@ export interface StudentMeSpecialtyCategory {
   specialties: { id: number; name: string }[];
 }
 
-/** 받은 후기 하나. 의뢰 제목은 없고 의뢰의 특기만 온다 */
+/** 받은 후기 하나 */
 export interface StudentMeReview {
+  /** 후기를 받은 의뢰 제목 */
+  jobTitle?: string | null;
   storeName?: string | null;
   specialtyCategories: StudentMeSpecialtyCategory[];
   rating: number;
@@ -27,6 +29,8 @@ export interface StudentMeResponse {
   university: string;
   /** 학번 전체가 아니라 입학연도 두 자리 (「24」) */
   studentNumber: string;
+  /** 학과 (「경영학부」). 없을 수 있다 */
+  major?: string | null;
   introduction?: string | null;
   portfolioUrl?: string | null;
   /** 보낸 제안 수 (취소한 제안 빼고) */
@@ -40,7 +44,7 @@ export interface StudentMeResponse {
   certificates: { certificateName: string; acquiredYear: number }[];
   /** 받은 후기 전체 수 */
   reviewCount: number;
-  /** 최근 후기 세 개까지 */
+  /** 받은 후기 전부 (최신순) */
   reviews: StudentMeReview[];
   /** 최근 정산 완료 세 개까지 (GET /settlements 와 같은 모양) */
   settlements: SettlementItem[];
