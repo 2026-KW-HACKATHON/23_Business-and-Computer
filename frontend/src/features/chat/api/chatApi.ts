@@ -76,9 +76,22 @@ export async function fetchChatRooms(): Promise<ChatRoomResponse[]> {
   return data?.rooms ?? [];
 }
 
-/** GET /chat-rooms/{roomId} — 채팅방 하나 */
-export async function fetchChatRoom(roomId: string): Promise<ChatRoomResponse> {
-  const data = await apiData<ChatRoomResponse | undefined>(`/chat-rooms/${encodeURIComponent(roomId)}`);
+/**
+ * GET /chat-rooms/{roomId} 의 답 (ChatRoomEntryResponse). 방 필드는 감싸지 않고 그대로 오고,
+ * 대화 내역(GET /chat-rooms/{roomId}/messages 와 같은 모양)과 후기 여부가 함께 온다
+ */
+export interface ChatRoomEntryResponse extends ChatRoomResponse {
+  /** 이 작업에 사장님 후기가 등록됐는지 */
+  reviewed?: boolean | null;
+  /** 지금 로그인한 사용자 ID. senderUserId 와 같으면 내 메시지 */
+  viewerUserId?: string | null;
+  /** 대화 내역 전체 (id 오름차순) */
+  messages?: ChatMessageResponse[];
+}
+
+/** GET /chat-rooms/{roomId} — 채팅방 하나와 대화 내역 전체 · 후기 여부. 채팅방에 들어올 때 이것 하나로 그린다 */
+export async function fetchChatRoom(roomId: string): Promise<ChatRoomEntryResponse> {
+  const data = await apiData<ChatRoomEntryResponse | undefined>(`/chat-rooms/${encodeURIComponent(roomId)}`);
   if (!data) throw new Error("Chat room response has no data");
   return data;
 }

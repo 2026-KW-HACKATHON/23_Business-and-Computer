@@ -21,7 +21,8 @@ sheet.
 - The room (GET /me/chat-rooms, GET /chat-rooms/{id}) carries the job status,
   the deadline type, the last submission's `submissionReviewStatus`,
   `submissionType` (DRAFT · REVISION), and `revisionNumber`, and the
-  `proposalId` of a job started from a proposal.
+  `proposalId` of a job started from a proposal. GET /chat-rooms/{id} also
+  carries `reviewed`, whether the owner has reviewed the work.
 - GET /jobs/{id}/submissions → `{ submissions [{ submissionId,
   submissionType, revisionNumber, fileUrls, files, message, reviewStatus,
   submittedAt, revisionRequest { message, referenceImageUrls, requestedAt }
@@ -64,7 +65,8 @@ sheet.
     「완료된 작업이에요」, 「성사되지 않은 작업이에요」;
   - the terms: 작업비, 수정 n회, 최종 마감;
   - the action: owner 「초안 확인하기」 · 「수정안 확인하기」 (작업 확인) and
-    「후기 남기기」 once the closed list says no review yet; student 「초안
+    「후기 남기기」 for a completed work while the room's `reviewed` is false
+    and no review was left in this session (`isOwnerWorkReviewed`); student 「초안
     제출하기」 and 「수정안 작성하기」;
   - 「문제가 있나요? ›」 under a gray line, in the 12px gray of the 내 활동
     card. A tap shows the text buttons beside it and turns the arrow to ‹:

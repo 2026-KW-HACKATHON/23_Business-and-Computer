@@ -12,6 +12,7 @@ import {
   sendChatAttachment,
   sendChatText,
 } from "../api/chatApi";
+import type { ChatRoomEntryResponse } from "../api/chatApi";
 import {
   CHAT_LEAVE_MESSAGE,
   attachmentFailureOf,
@@ -24,7 +25,7 @@ import {
   upsertMessage,
 } from "../lib/messages";
 import { trackRead } from "../lib/readSync";
-import type { ChatFailure, ChatMessage, ChatRoom } from "../types";
+import type { ChatFailure, ChatMessage, ChatRoomEntry } from "../types";
 
 /** 보내는 중 · 보내지 못한 첨부. uploadId 가 있으면 저장소에 올리기까지 끝났다 */
 interface AttachmentJob {
@@ -37,10 +38,24 @@ interface AttachmentJob {
 /** 채팅방 안에서 대화 내역을 다시 불러오는 간격 */
 const POLL_MS = 3_000;
 
+/** 대화 내역 한 번 (GET /chat-rooms/{roomId}/messages 의 답, 입장 정보의 대화 내역) */
+type ChatMessagesPage = Awaited<ReturnType<typeof fetchChatMessages>>;
+
+/** 입장 정보(GET /chat-rooms/{roomId})를 방과 대화 내역으로 나눈다 */
+function splitEntry({ reviewed, viewerUserId, messages, ...room }: ChatRoomEntryResponse): {
+  room: ChatRoomEntry;
+  page: ChatMessagesPage;
+} {
+  return {
+    room: { ...room, reviewed: reviewed === true },
+    page: { viewerUserId: viewerUserId ?? undefined, messages: messages ?? [] },
+  };
+}
+
 export type ChatRoomLoad =
   | { status: "loading" }
   | { status: "error" }
-  | { status: "loaded"; room: ChatRoom };
+  | { status: "loaded"; room: ChatRoomEntry };
 
 export interface ChatRoomState {
   load: ChatRoomLoad;
@@ -66,8 +81,9 @@ export interface ChatRoomState {
 }
 
 /**
- * 채팅방 하나 (GET /chat-rooms/{roomId} + 대화 내역).
- * - 대화 내역은 3초마다 다시 불러오고, 탭이 안 보이면 멈췄다가 다시 보이면 바로 불러온다
+ * 채팅방 하나 (GET /chat-rooms/{roomId}). 들어올 때 방 정보 · 대화 내역 · 후기 여부를 요청 하나로 받는다.
+ * - 대화 내역(GET /chat-rooms/{roomId}/messages)은 3초마다 다시 불러오고, 탭이 안 보이면 멈췄다가
+ *   다시 보이면 방 정보와 대화 내역을 요청 하나로 바로 다시 받는다
  * - 마지막 메시지가 바뀌면 그 id 로 읽음 처리한다 (들어올 때 · 새 메시지를 받을 때)
  * - 401 은 /login, CHAT_403 · CHAT_ROOM_404 는 안내 후 listPath 로 보낸다
  * roomId 가 바뀌면 화면이 key 로 새로 만들어 쓴다.
@@ -119,7 +135,7 @@ export function useChatRoom(roomId: string, listPath: string): ChatRoomState {
 
   /** 받은 대화 내역을 합치고, 그 안에 저장된 보내는 중 · 실패 글은 뺀다 */
   const receive = useCallback(
-    (page: Awaited<ReturnType<typeof fetchChatMessages>>) => {
+    (page: ChatMessagesPage) => {
       if (page.viewerUserId !== undefined) viewerUserId.current = page.viewerUserId;
       const viewer = viewerUserId.current;
       setSaved((current) => mergeMessages(current, page.messages, viewer, mineIds.current).map(withSentSize));
@@ -130,12 +146,13 @@ export function useChatRoom(roomId: string, listPath: string): ChatRoomState {
     [withSentSize],
   );
 
-  // 처음 불러오기
+  // 처음 불러오기: 방 정보와 대화 내역을 요청 하나로
   useEffect(() => {
     let active = true;
-    void Promise.all([fetchChatRoom(roomId), fetchChatMessages(roomId)]).then(
-      ([room, page]) => {
+    void fetchChatRoom(roomId).then(
+      (entry) => {
         if (!active) return;
+        const { room, page } = splitEntry(entry);
         receive(page);
         setLoad({ status: "loaded", room });
       },
@@ -165,12 +182,24 @@ export function useChatRoom(roomId: string, listPath: string): ChatRoomState {
         timer = window.setTimeout(() => void tick(), POLL_MS);
       }
     };
-    const tick = async () => {
+    /** 방 정보(작업 카드)를 바꾸고 함께 온 대화 내역을 합친다 */
+    const applyEntry = (entry: ChatRoomEntryResponse) => {
+      if (!active) return;
+      const { room, page } = splitEntry(entry);
+      receive(page);
+      setLoad({ status: "loaded", room });
+    };
+    /** withRoom 이면 대화 내역 대신 방 정보와 대화 내역을 요청 하나로 받는다 */
+    const tick = async (withRoom = false) => {
       timer = undefined;
       running = true;
       try {
-        const page = await fetchChatMessages(roomId);
-        if (active) receive(page);
+        if (withRoom) {
+          applyEntry(await fetchChatRoom(roomId));
+        } else {
+          const page = await fetchChatMessages(roomId);
+          if (active) receive(page);
+        }
       } catch (error) {
         const failure = chatFailureOf(error);
         if (active && failure !== "error") {
@@ -186,14 +215,13 @@ export function useChatRoom(roomId: string, listPath: string): ChatRoomState {
       window.clearTimeout(timer);
       timer = undefined;
       if (!visible()) return;
-      // 작업 카드(제출 · 마감)도 그사이 바뀌었을 수 있다
-      void fetchChatRoom(roomId).then(
-        (room) => {
-          if (active) setLoad({ status: "loaded", room });
-        },
-        () => undefined,
-      );
-      if (!running) void tick();
+      // 작업 카드(제출 · 마감)도 그사이 바뀌었을 수 있어 방 정보로 대화 내역까지 함께 받는다
+      if (!running) {
+        void tick(true);
+        return;
+      }
+      // 대화 내역을 받는 중이면 그 요청은 그대로 두고 방 정보만 따로 받는다
+      void fetchChatRoom(roomId).then(applyEntry, () => undefined);
     };
 
     schedule();
