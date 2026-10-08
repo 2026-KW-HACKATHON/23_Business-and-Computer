@@ -37,3 +37,11 @@ export const TERMS_SECTIONS: { title: string; body: string }[] = [
     body: "학생은 상업용으로 쓸 수 있는 폰트·이미지만 사용해요. 대가를 받은 SNS 게시물에는 협찬·광고 표시를 하고, 손님이 찍히는 촬영은 미리 동의를 받아요. 약속을 어기면 신고할 수 있고, 확인되면 페널티가 후기에 남아요.",
   },
 ];
+
+/**
+ * 결제 · 제안 수락(사장님)과 작업 시작(학생)의 「책임 약관과 취소·환불 기준」에 보이는 항목 (ADR 0054).
+ * 작업비가 오가는 방식 · 수정 · 취소와 환불 · 결과물의 권리 · 서로 지키는 약속
+ */
+const AGREEMENT_TITLES = new Set(["작업비는 이렇게 오가요", "수정 요청", "취소와 환불", "결과물의 권리", "서로 지키는 약속"]);
+
+export const AGREEMENT_SECTIONS = TERMS_SECTIONS.filter((section) => AGREEMENT_TITLES.has(section.title));
