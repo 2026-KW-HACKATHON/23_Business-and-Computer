@@ -1,6 +1,12 @@
 package com.gakkum.backend.application.job.controller;
 
+import java.util.concurrent.Callable;
+
+import org.springframework.http.CacheControl;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -9,6 +15,11 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.context.request.NativeWebRequest;
+import org.springframework.web.context.request.async.AsyncRequestTimeoutException;
+import org.springframework.web.context.request.async.CallableProcessingInterceptor;
+import org.springframework.web.context.request.async.WebAsyncUtils;
+import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 
 import com.gakkum.backend.application.job.dto.JobApplicantProfileResponse;
 import com.gakkum.backend.application.job.dto.JobApplicationCreateRequest;
@@ -20,21 +31,28 @@ import com.gakkum.backend.application.job.dto.JobCreateRequest;
 import com.gakkum.backend.application.job.dto.JobDetailResponse;
 import com.gakkum.backend.application.job.dto.JobListResponse;
 import com.gakkum.backend.application.job.dto.JobSubmissionCreateRequest;
+import com.gakkum.backend.application.job.dto.JobSubmissionDownloadRequest;
 import com.gakkum.backend.application.job.dto.JobSubmissionResponse;
 import com.gakkum.backend.application.job.dto.JobSubmissionRevisionRequest;
 import com.gakkum.backend.application.job.dto.PrepareSubmissionFileUploadRequest;
 import com.gakkum.backend.application.job.facade.JobFacade;
+import com.gakkum.backend.domain.job.client.JobSubmissionArchive;
 import com.gakkum.backend.domain.job.dto.JobApplicationSort;
 import com.gakkum.backend.global.exception.BusinessException;
+import com.gakkum.backend.global.exception.DownloadAbortedException;
 import com.gakkum.backend.global.exception.ErrorCode;
 import com.gakkum.backend.global.response.ApiResponse;
 
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 @RestController
 @RequiredArgsConstructor
 public class JobController {
+
+    private static final MediaType ZIP = MediaType.parseMediaType("application/zip");
+    private static final String SUBMISSION_ARCHIVE_FILE_NAME = "work-submissions.zip";
 
     private final JobFacade jobFacade;
 
@@ -129,6 +147,25 @@ public class JobController {
         JobSubmissionResponse.History response = JobSubmissionResponse.History.from(
                 jobFacade.getSubmissions(authentication.getName(), jobId));
         return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    /**
+     * 의뢰한 사장님 또는 담당 학생이 여러 의뢰에서 고른 작업물 파일을 ZIP 하나로 내려받는 API(작업 상태와 무관).
+     * 성공 응답만 ApiResponse가 아닌 application/zip 스트림이고, 전송을 시작하기 전의 오류는 ApiResponse 형식이다.
+     */
+    @PostMapping("/jobs/submissions/download")
+    public ResponseEntity<StreamingResponseBody> downloadSubmissionFiles(
+            Authentication authentication, HttpServletRequest servletRequest,
+            @Valid @RequestBody JobSubmissionDownloadRequest request) {
+        JobSubmissionArchive archive = jobFacade.prepareSubmissionDownload(request.toCommand(authentication.getName()));
+        WebAsyncUtils.getAsyncManager(servletRequest)
+                .registerCallableInterceptor(JobSubmissionArchive.class.getName(), new ArchiveLifecycle(archive));
+        return ResponseEntity.ok()
+                .contentType(ZIP)
+                .header(HttpHeaders.CONTENT_DISPOSITION,
+                        ContentDisposition.attachment().filename(SUBMISSION_ARCHIVE_FILE_NAME).build().toString())
+                .cacheControl(CacheControl.noStore())
+                .body(archive::writeTo);
     }
 
     /** 완료된 의뢰의 최종 결과물과 작업 이력 조회 API(의뢰한 사장님과 담당 학생만 조회 가능) */
@@ -248,5 +285,28 @@ public class JobController {
         JobListResponse.StudentAppliedJobList response = JobListResponse.StudentAppliedJobList.from(
                 jobFacade.getStudentAppliedJobs(authentication.getName()));
         return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    /** 요청이 어떻게 끝나든 남은 전송 작업을 멈춰 처리 슬롯이 돌아오게 하고, 서버 타임아웃은 전송 실패로 끝낸다. */
+    private static final class ArchiveLifecycle implements CallableProcessingInterceptor {
+
+        private final JobSubmissionArchive archive;
+
+        private ArchiveLifecycle(JobSubmissionArchive archive) {
+            this.archive = archive;
+        }
+
+        // 기본 타임아웃 처리는 전송 중이던 응답을 정상 종료해, 잘린 ZIP이 다 받은 파일처럼 보인다
+        @Override
+        public <T> Object handleTimeout(NativeWebRequest request, Callable<T> task) {
+            return new DownloadAbortedException(
+                    ErrorCode.JOB_SUBMISSION_DOWNLOAD_BUSY, new AsyncRequestTimeoutException());
+        }
+
+        // 타임아웃 뒤에도 저장소 읽기에 묶여 남는 작업을 끊고, 전송이 시작되지 않은 채 끝난 요청의 슬롯을 돌려준다
+        @Override
+        public <T> void afterCompletion(NativeWebRequest request, Callable<T> task) {
+            archive.cancel();
+        }
     }
 }

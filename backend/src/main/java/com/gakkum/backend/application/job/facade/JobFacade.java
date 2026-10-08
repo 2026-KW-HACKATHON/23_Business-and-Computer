@@ -6,6 +6,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -26,6 +27,7 @@ import com.gakkum.backend.domain.certificate.service.CertificateService;
 import com.gakkum.backend.domain.chat.entity.ChatMessageType;
 import com.gakkum.backend.domain.chat.service.ChatAttachmentPolicy;
 import com.gakkum.backend.domain.chat.service.ChatRoomService;
+import com.gakkum.backend.domain.job.client.JobSubmissionArchive;
 import com.gakkum.backend.domain.job.client.JobSubmissionFileStorageClient;
 import com.gakkum.backend.domain.job.client.JobSubmissionFileStorageClient.PresignedFileUpload;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.CancelJobCommand;
@@ -33,6 +35,8 @@ import com.gakkum.backend.domain.job.dto.JobCommandDto.CompleteJobSubmissionComm
 import com.gakkum.backend.domain.job.dto.JobCommandDto.CreateJobApplicationCommand;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.CreateJobCommand;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.CreateJobSubmissionCommand;
+import com.gakkum.backend.domain.job.dto.JobCommandDto.DownloadJobSubmissionFilesCommand;
+import com.gakkum.backend.domain.job.dto.JobCommandDto.DownloadJobSubmissionFilesCommand.JobFiles;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.GetClosedJobsCommand;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.GetJobApplicantProfileCommand;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.GetJobApplicationsCommand;
@@ -264,6 +268,52 @@ public class JobFacade {
             return GetLatestJobSubmissionCommand.of(jobId, student.getId());
         }
         throw new BusinessException(ErrorCode.JOB_SUBMISSION_VIEW_FORBIDDEN);
+    }
+
+    /**
+     * 여러 의뢰에서 고른 제출 파일의 ZIP 다운로드를 준비한다. 의뢰마다 제출물 조회와 같은 당사자 확인을 하고,
+     * 고른 URL이 그 의뢰의 제출물에 등록된 저장소 파일인지와 파일이 실제로 있는지를 모두 확인한 뒤에만 다운로드를 돌려준다.
+     * 저장소 확인과 전송이 DB 트랜잭션과 커넥션을 붙잡지 않도록 트랜잭션은 JobService의 조회에만 둔다.
+     * 돌려준 다운로드는 처리 슬롯을 쥐고 있으므로 호출한 쪽이 전송하거나 close 해야 한다.
+     */
+    public JobSubmissionArchive prepareSubmissionDownload(DownloadJobSubmissionFilesCommand command) {
+        User user = userService.getActiveUser(command.getUsername());
+        Long ownerProfileId = null;
+        Long studentProfileId = null;
+        if (user.getRole() == UserRole.OWNER) {
+            ownerProfileId = ownerService.findOwnerProfileByUserId(user.getId()).map(Owner::getId)
+                    .orElseThrow(() -> new BusinessException(ErrorCode.JOB_SUBMISSION_VIEW_FORBIDDEN));
+        } else if (user.getRole() == UserRole.STUDENT) {
+            studentProfileId = studentService.findStudentProfileByUserId(user.getId()).map(Student::getId)
+                    .orElseThrow(() -> new BusinessException(ErrorCode.JOB_SUBMISSION_VIEW_FORBIDDEN));
+        } else {
+            throw new BusinessException(ErrorCode.JOB_SUBMISSION_VIEW_FORBIDDEN);
+        }
+        Map<Long, Job> jobsById = jobService.getSubmissionDownloadJobs(command, ownerProfileId, studentProfileId);
+
+        List<JobSubmissionArchive.File> files = new ArrayList<>();
+        for (JobFiles jobFiles : command.getJobs()) {
+            Job job = jobsById.get(jobFiles.getJobId());
+            for (String fileUrl : jobFiles.getFileUrls()) {
+                String key = jobSubmissionFileStorageClient
+                        .findKey(fileUrl, job.getId(), job.getSelectedStudentProfileId())
+                        .orElseThrow(() -> new BusinessException(ErrorCode.JOB_SUBMISSION_FILE_URL_INVALID));
+                files.add(new JobSubmissionArchive.File(job.getId(), key));
+            }
+        }
+
+        // 파일 수만큼 나가는 저장소 확인도 동시 처리 한도 안에서 하도록 슬롯부터 잡는다
+        JobSubmissionArchive archive = jobSubmissionFileStorageClient.startArchive(files);
+        try {
+            for (JobSubmissionArchive.File file : files) {
+                jobSubmissionFileStorageClient.findSize(file.key())
+                        .orElseThrow(() -> new BusinessException(ErrorCode.JOB_SUBMISSION_FILE_NOT_FOUND));
+            }
+            return archive;
+        } catch (RuntimeException exception) {
+            archive.close();
+            throw exception;
+        }
     }
 
     /**

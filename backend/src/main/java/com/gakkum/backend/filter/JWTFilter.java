@@ -10,7 +10,10 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.web.context.RequestAttributeSecurityContextRepository;
+import org.springframework.security.web.context.SecurityContextRepository;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
@@ -23,6 +26,9 @@ import java.util.List;
 public class JWTFilter extends OncePerRequestFilter {
 
     private final JWTUtil jwtUtil;
+    // 파일 전송처럼 응답을 비동기로 마무리하는 요청은 같은 요청이 한 번 더 필터 체인을 지나는데, 이 필터는 그때 다시 실행되지 않는다.
+    // 인증 정보를 요청 속성에 남겨 그 디스패치에서도 같은 사용자로 인가되게 한다 (세션에는 저장하지 않는다)
+    private final SecurityContextRepository securityContextRepository = new RequestAttributeSecurityContextRepository();
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
@@ -48,7 +54,10 @@ public class JWTFilter extends OncePerRequestFilter {
             List<GrantedAuthority> authorities = Collections.singletonList(new SimpleGrantedAuthority(role));
 
             Authentication auth = new UsernamePasswordAuthenticationToken(username, null, authorities);
-            SecurityContextHolder.getContext().setAuthentication(auth);
+            SecurityContext context = SecurityContextHolder.createEmptyContext();
+            context.setAuthentication(auth);
+            SecurityContextHolder.setContext(context);
+            securityContextRepository.saveContext(context, request, response);
 
             filterChain.doFilter(request, response);
 

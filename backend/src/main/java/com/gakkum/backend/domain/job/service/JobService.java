@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -24,6 +25,8 @@ import com.gakkum.backend.domain.job.dto.JobCommandDto.CompleteJobSubmissionComm
 import com.gakkum.backend.domain.job.dto.JobCommandDto.CreateJobApplicationCommand;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.CreateJobCommand;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.CreateJobSubmissionCommand;
+import com.gakkum.backend.domain.job.dto.JobCommandDto.DownloadJobSubmissionFilesCommand;
+import com.gakkum.backend.domain.job.dto.JobCommandDto.DownloadJobSubmissionFilesCommand.JobFiles;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.CreateProposalJobCommand;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.GetClosedJobsCommand;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.GetExploreJobsCommand;
@@ -566,6 +569,37 @@ public class JobService {
                 .filter(found -> isSubmissionViewer(found, command.getOwnerProfileId(), command.getStudentProfileId()))
                 .orElseThrow(() -> new BusinessException(ErrorCode.JOB_NOT_FOUND));
         return jobSubmissionRepository.findByJobIdOrderByRevisionNumberAsc(job.getId());
+    }
+
+    /**
+     * ZIP으로 내려받을 제출 파일을 고른 의뢰들을 조회. 의뢰마다 제출물 조회와 같은 당사자 확인을 하고 작업 상태는 제한하지 않는다.
+     * 하나라도 존재하지 않거나 당사자가 아니면 같은 404, 고른 URL이 그 의뢰의 제출물에 등록된 파일이 아니면 JOB_SUBMISSION_400_FILE_URL로 전체를 거부한다.
+     * @param command
+     * @param ownerProfileId 사장님으로 조회할 때의 프로필 ID(학생이면 null)
+     * @param studentProfileId 학생으로 조회할 때의 프로필 ID(사장님이면 null)
+     * @return 의뢰 ID별 의뢰
+     */
+    @Transactional(readOnly = true)
+    public Map<Long, Job> getSubmissionDownloadJobs(
+            DownloadJobSubmissionFilesCommand command, Long ownerProfileId, Long studentProfileId) {
+        List<Long> jobIds = command.getJobs().stream().map(JobFiles::getJobId).toList();
+        Map<Long, Job> jobsById = jobRepository.findAllById(jobIds).stream()
+                .filter(job -> isSubmissionViewer(job, ownerProfileId, studentProfileId))
+                .collect(Collectors.toMap(Job::getId, job -> job));
+        if (!jobsById.keySet().containsAll(jobIds)) {
+            throw new BusinessException(ErrorCode.JOB_NOT_FOUND);
+        }
+
+        Map<Long, Set<String>> submittedFileUrlsByJobId = jobSubmissionRepository.findByJobIdIn(jobIds).stream()
+                .collect(Collectors.groupingBy(
+                        JobSubmission::getJobId,
+                        Collectors.flatMapping(submission -> submission.getFileUrls().stream(), Collectors.toSet())));
+        for (JobFiles files : command.getJobs()) {
+            if (!submittedFileUrlsByJobId.getOrDefault(files.getJobId(), Set.of()).containsAll(files.getFileUrls())) {
+                throw new BusinessException(ErrorCode.JOB_SUBMISSION_FILE_URL_INVALID);
+            }
+        }
+        return jobsById;
     }
 
     private boolean isSubmissionViewer(Job job, Long ownerProfileId, Long studentProfileId) {
