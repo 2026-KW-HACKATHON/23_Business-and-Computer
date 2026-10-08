@@ -47,9 +47,10 @@ ADR 0041.
   (「착수 보상 ○원 정산 완료」 when paid out, 상세보기). While loading or after a
   failure the count shows loading dots (ADR 0059) with `LoadNotice`.
 - **Home** (`src/features/student/hooks/useStudentHome.ts`): 끝난 일 lists
-  the completed jobs, and 확인할 일 holds requests waiting for agreement on my
-  proposals, drafts, and revisions. The first-visit guide shows only when the
-  finished, in-progress, applied, and proposal lists are all loaded and empty.
+  the settled jobs, and 확인할 일 holds requests waiting for agreement on my
+  proposals, drafts, and revisions, all from GET /me/home (ADR 0065). The
+  server reads the same settlement history for 끝난 일 and counts it toward
+  the first-visit value.
 - **내 작업물 모아보기** (`src/pages/StudentPortfolioPage.tsx`): completed jobs
   by month with the first file's name and type; the three stats come from the
   same list.

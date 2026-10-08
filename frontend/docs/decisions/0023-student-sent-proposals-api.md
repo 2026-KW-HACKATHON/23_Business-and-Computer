@@ -62,17 +62,17 @@ student screen, which still read `sampleProposals.ts`. The backend (dev) has:
     /login.
   - `apiData` already retries `POST /refresh` once and clears the stored
     tokens when that fails. The hooks only send the user to /login.
-- **One hook for four screens**: 내 활동 › 보낸 제안, the home 「기다리는 중」,
-  and the 내 정보 count all use `useSentProposals`.
+- **One hook for the list screens**: 내 활동 › 보낸 제안 and the 내 정보
+  count use `useSentProposals`.
   - 내 활동 and 내 정보: the summary count shows loading dots while loading or after a
     failure (ADR 0059). 내 활동 shows `LoadNotice` in place of the list, with
     「다시 시도」 on failure. 「아직 없어요」 shows only for a loaded empty list.
-  - Home: 「기다리는 중」 lists PENDING proposals. While the list loads or
-    after a failure, that section shows `LoadNotice` with no count.
-  - First-visit check on the home: the screen is not a first visit when there
-    are works, applications, or sent proposals. Otherwise it is decided only
-    once the sent list and the application list (ADR 0027) have loaded. Until then the home shows only the loading or retry line,
-    never the guide.
+  - Home: 「기다리는 중」 lists PENDING proposals from GET /me/home (ADR 0065).
+    After that section fails, it shows `LoadNotice` with no count.
+  - First-visit check on the home: the `firstVisit` of GET /me/home. When the
+    server cannot tell, the screen is not a first visit if a shown list has
+    an item; otherwise the home shows only the loading or retry line, never
+    the guide.
   - 탐색 marks 「내 제안」 by the ids in this list (ADR 0026).
 - **Status chip** (`sentProposalStatusLabel`):
   - PENDING 「수락 대기 중」, AWAITING_START 「수락됨」, ACCEPTED 「작업 중」,

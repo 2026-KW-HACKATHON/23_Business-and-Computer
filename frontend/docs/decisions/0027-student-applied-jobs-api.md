@@ -51,9 +51,8 @@ not show in any student screen. The backend (dev) has:
   all three fields.
 - **Home 「기다리는 중」**: PENDING applications after the PENDING proposals,
   「가게 의뢰에 지원」 when the store name is sent and 「의뢰에 지원」 otherwise,
-  with the draft deadline; a row opens 의뢰서 전체 보기. The first-visit check
-  is false when there are works, applications, or sent proposals; otherwise it
-  is true only once both lists have loaded.
+  with the draft deadline; a row opens 의뢰서 전체 보기. The rows and the
+  first-visit value come from GET /me/home (ADR 0065).
 - **내 정보**: the 지원한 의뢰 count, or loading dots while loading or after a
   failure (ADR 0059).
 - **Optional fields**: `storeName`, `summary`, `workPlan`, and
