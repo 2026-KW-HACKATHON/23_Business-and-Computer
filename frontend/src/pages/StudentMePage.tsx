@@ -87,12 +87,7 @@ function StudentMePage() {
       <section className="student-me__section student-me__section--settings">
         <div className="student-me__group">
           <h2 className="student-me__section-title">설정</h2>
-          <MenuList
-            items={[
-              { label: "알림 설정" },
-              { label: "약관 및 정책", onClick: () => setTermsOpen(true) },
-            ]}
-          />
+          <MenuList items={[{ label: "약관 및 정책", onClick: () => setTermsOpen(true) }]} />
         </div>
         <MenuList items={[{ label: "로그아웃", danger: true, onClick: logout }]} />
       </section>

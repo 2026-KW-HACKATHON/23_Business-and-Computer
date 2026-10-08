@@ -8,9 +8,11 @@
 
 .explore-tabs__tab {
   position: relative;
-  height: 40px;
-  padding: 0;
+  height: 32px;
+  margin: 4px -10px;
+  padding: 0 10px;
   border: none;
+  border-radius: 999px;
   background: none;
   font-family: inherit;
   font-size: 16px;
@@ -28,9 +30,9 @@
 .explore-tabs__tab--current::after {
   content: "";
   position: absolute;
-  right: 0;
-  bottom: 0;
-  left: 0;
+  right: 10px;
+  bottom: -4px;
+  left: 10px;
   height: 2px;
   border-radius: 1px;
   background: var(--color-student);
@@ -39,5 +41,4 @@
 .explore-tabs__tab:focus-visible {
   outline: 2px solid var(--role-focus);
   outline-offset: -2px;
-  border-radius: 4px;
 }

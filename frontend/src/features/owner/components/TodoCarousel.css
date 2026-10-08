@@ -117,6 +117,7 @@
   margin-top: -36px;
   padding: 0;
   border: none;
+  border-radius: 999px;
   background: none;
   color: var(--role-secondary);
   cursor: pointer;
@@ -139,7 +140,6 @@
 .todo-carousel__arrow:focus-visible {
   outline: 2px solid var(--role-focus);
   outline-offset: -2px;
-  border-radius: 6px;
 }
 
 .todo-carousel__dots {

@@ -16,10 +16,53 @@
   cursor: pointer;
 }
 
+/*
+ * 누를 때 반응: 줄은 그대로 두고, 글자보다 좌우 12px 넓은 둥근 안쪽 상자가 어두워진다 (ADR 0061).
+ * 줄 상자 · 구분선 · 글자 위치는 바뀌지 않는다. 포커스 테두리도 같은 상자에 그린다
+ */
+.task-row--link {
+  position: relative;
+  isolation: isolate;
+}
+
+.task-row--link::before {
+  content: "";
+  position: absolute;
+  inset: 4px -12px;
+  z-index: -1;
+  border-radius: 12px;
+  pointer-events: none;
+  transition: background-color 0.15s ease;
+}
+
+.task-row--link:hover,
+.task-row--link:active {
+  box-shadow: none;
+}
+
+@media (hover: hover) {
+  .task-row--link:hover::before {
+    background: rgba(12, 12, 12, 0.04);
+  }
+}
+
+.task-row--link:active::before {
+  background: rgba(12, 12, 12, 0.08);
+}
+
 .task-row--link:focus-visible {
+  outline: none;
+}
+
+.task-row--link:focus-visible::before {
   outline: 2px solid var(--role-focus);
-  outline-offset: 2px;
-  border-radius: 8px;
+  outline-offset: -2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .task-row--link::before {
+    transition: none;
+  }
 }
 
 .task-row__content {

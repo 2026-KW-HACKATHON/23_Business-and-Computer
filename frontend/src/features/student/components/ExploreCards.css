@@ -41,6 +41,32 @@
   border-radius: 4px;
 }
 
+/* 누를 때 반응: 제목은 카드를 연다. 제목 대신 카드 바탕이 어두워진다 (ADR 0061) */
+.student-card {
+  transition: box-shadow 0.15s ease;
+}
+
+.student-card__title:hover,
+.student-card__title:active {
+  box-shadow: none;
+}
+
+@media (hover: hover) {
+  .student-card:has(.student-card__title:hover) {
+    box-shadow: inset 0 0 0 100vmax rgba(12, 12, 12, 0.04);
+  }
+}
+
+.student-card:has(.student-card__title:active) {
+  box-shadow: inset 0 0 0 100vmax rgba(12, 12, 12, 0.08);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .student-card {
+    transition: none;
+  }
+}
+
 .student-card__meta {
   display: flex;
   align-items: center;

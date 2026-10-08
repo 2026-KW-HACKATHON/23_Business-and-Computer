@@ -82,7 +82,7 @@ function StudentSignupInfoPage() {
             onChange={(agreedToTerms) => update({ agreedToTerms })}
             label="이용약관에 모두 동의해요"
           />
-          <button type="button" className="signup__terms-view" onClick={() => setTermsOpen(true)}>
+          <button type="button" className="signup__terms-view press-text" onClick={() => setTermsOpen(true)}>
             보기
           </button>
         </div>

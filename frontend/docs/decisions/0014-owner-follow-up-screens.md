@@ -69,5 +69,5 @@ read-only explore details. The backend has no API for them yet.
 - Backend integration: replace the hooks in `useOwnerData.ts`, and save
   reviews, revisions, and cancellations on the server. Choosing and paying
   for an applicant read and write the backend (ADR 0037).
-- Still without an action: 거절하기 on proposals, rejecting from 내 활동,
-  and 알림 설정 · 계정 정보 · 약관 in 내 정보.
+- 거절하기 on a received proposal and on its 내 활동 card rejects through the
+  API (ADR 0033). 「약관 및 정책」 in 내 정보 opens `TermsSheet`.

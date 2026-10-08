@@ -69,7 +69,7 @@ function OwnerStudentProfileView({ profile }: { profile: ApplicantProfile }) {
                 <AppImage name="iconLink" width={16} />
                 <span className="owner-student__portfolio-url">{portfolioUrl}</span>
                 <a
-                  className="owner-student__open"
+                  className="owner-student__open press-text"
                   href={/^https?:\/\//.test(portfolioUrl) ? portfolioUrl : `https://${portfolioUrl}`}
                   target="_blank"
                   rel="noreferrer"
