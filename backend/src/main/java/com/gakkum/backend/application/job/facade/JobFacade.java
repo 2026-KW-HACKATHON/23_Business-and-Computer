@@ -12,6 +12,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
@@ -433,7 +434,25 @@ public class JobFacade {
         User user = userService.getActiveUser(username);
         Owner owner = ownerService.getOwnerProfile(user.getId());
         Job job = jobService.completeSubmission(CompleteJobSubmissionCommand.of(jobId, submissionId, owner.getId()));
+        publishCompleted(job, owner);
+    }
 
+    /**
+     * 검토 없이 자동 완료 기간이 지난 의뢰를 종료하고 수동 완료와 같은 알림을 발행한다.
+     * 의뢰마다 별도 트랜잭션으로 처리해, 알림 준비까지 실패하면 그 의뢰의 완료만 롤백한다.
+     * @param jobId
+     * @param referenceTime 만료를 판단하는 기준 시각(UTC)
+     * @return 완료했으면 true, 대상 조회 뒤 조건이 바뀌어 건너뛰었으면 false
+     */
+    @Transactional
+    public boolean autoCompleteSubmission(Long jobId, LocalDateTime referenceTime) {
+        Optional<Job> completed = jobService.autoCompleteSubmission(jobId, referenceTime);
+        completed.ifPresent(job -> publishCompleted(job, ownerService.getOwnerProfileById(job.getOwnerProfileId())));
+        return completed.isPresent();
+    }
+
+    /** 완료된 의뢰의 사장님에게 후기 요청 알림을, 결제 완료 기록이 있으면 담당 학생에게 정산 내역 알림을 발행한다. */
+    private void publishCompleted(Job job, Owner owner) {
         Student student = studentService.getStudentProfile(job.getSelectedStudentProfileId());
         User studentUser = userService.getUser(student.getUserId());
         eventPublisher.publishEvent(NotificationEventFactory.jobReviewRequested(

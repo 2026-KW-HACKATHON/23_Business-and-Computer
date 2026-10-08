@@ -1,6 +1,7 @@
 package com.gakkum.backend.domain.job.service;
 
 import java.time.Clock;
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
@@ -79,6 +80,9 @@ import lombok.RequiredArgsConstructor;
 @Service
 @RequiredArgsConstructor
 public class JobService {
+
+    // 최신 제출물이 이 기간 동안 승인·수정 요청 없이 남으면 자동 완료한다
+    private static final Duration AUTO_COMPLETION_PERIOD = Duration.ofHours(168);
 
     private final JobRepository jobRepository;
     private final JobSpecialtyRepository jobSpecialtyRepository;
@@ -769,6 +773,46 @@ public class JobService {
         }
         submission.approve();
         job.complete(now());
+        return job;
+    }
+
+    /**
+     * 자동 완료 대상 의뢰 ID를 ID 오름차순으로 조회. 진행 중(MATCHED)이고 데모가 아니며,
+     * 최신 제출물이 검토 대기(PENDING)인 채 제출 후 자동 완료 기간이 지난 의뢰다.
+     * @param afterJobId 이 ID보다 큰 의뢰만 조회한다
+     * @param referenceTime 만료를 판단하는 기준 시각(UTC)
+     * @param limit
+     * @return 의뢰 ID, 없으면 빈 목록
+     */
+    @Transactional(readOnly = true)
+    public List<Long> getAutoCompletableJobIds(Long afterJobId, LocalDateTime referenceTime, int limit) {
+        return jobRepository.findAutoCompletableJobIds(afterJobId, JobStatus.MATCHED,
+                JobSubmissionReviewStatus.PENDING, referenceTime.minus(AUTO_COMPLETION_PERIOD), Limit.of(limit));
+    }
+
+    /**
+     * 검토 없이 자동 완료 기간이 지난 최신 제출물을 최종 결과로 승인하고 의뢰를 종료한다. 완료 시각은 실제 처리 시각이다.
+     * 의뢰 행을 잠가 같은 의뢰의 수동 완료·수정 요청·수정안 제출과 순서대로 처리하고, 잠근 뒤 조건을 다시 확인한다.
+     * @param jobId
+     * @param referenceTime 만료를 판단하는 기준 시각(UTC)
+     * @return 종료된(CLOSED) 의뢰. 대상 조회 뒤 조건이 바뀌어 건너뛰었으면 빈 값
+     */
+    @Transactional
+    public Optional<Job> autoCompleteSubmission(Long jobId, LocalDateTime referenceTime) {
+        Optional<Job> job = jobRepository.findLockedById(jobId)
+                .filter(found -> found.getStatus() == JobStatus.MATCHED && found.getDemoSessionId() == null);
+        if (job.isEmpty()) {
+            return Optional.empty();
+        }
+        LocalDateTime submittedUntil = referenceTime.minus(AUTO_COMPLETION_PERIOD);
+        Optional<JobSubmission> submission = jobSubmissionRepository.findFirstByJobIdOrderByRevisionNumberDesc(jobId)
+                .filter(latest -> latest.getReviewStatus() == JobSubmissionReviewStatus.PENDING)
+                .filter(latest -> latest.getCreatedAt() != null && !latest.getCreatedAt().isAfter(submittedUntil));
+        if (submission.isEmpty()) {
+            return Optional.empty();
+        }
+        submission.get().approve();
+        job.get().complete(now());
         return job;
     }
 

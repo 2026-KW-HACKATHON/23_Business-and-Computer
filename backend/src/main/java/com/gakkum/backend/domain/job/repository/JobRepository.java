@@ -13,6 +13,7 @@ import org.springframework.data.repository.query.Param;
 
 import com.gakkum.backend.domain.job.entity.Job;
 import com.gakkum.backend.domain.job.entity.JobStatus;
+import com.gakkum.backend.domain.job.entity.JobSubmissionReviewStatus;
 
 import jakarta.persistence.LockModeType;
 
@@ -102,6 +103,31 @@ public interface JobRepository extends JpaRepository<Job, Long> {
 
         Long getJobCount();
     }
+
+    /*
+     * 자동 완료 대상 의뢰 ID. 의뢰의 최신 제출물(수정 번호가 가장 큰 행)만 골라 검토 상태와 제출 시각을 비교해야 해서
+     * 연관관계가 없는 JobSubmission을 EXISTS와 MAX 서브쿼리로 확인하며, 메서드 이름으로 표현할 수 없다.
+     * 데모 의뢰(demoSessionId가 있는 행)는 빼고, afterJobId보다 큰 ID를 오름차순으로 읽는다.
+     */
+    @Query("""
+            select j.id from Job j
+            where j.id > :afterJobId
+              and j.status = :jobStatus
+              and j.demoSessionId is null
+              and exists (
+                    select 1 from JobSubmission s
+                    where s.jobId = j.id
+                      and s.reviewStatus = :reviewStatus
+                      and s.createdAt <= :submittedUntil
+                      and s.revisionNumber = (
+                            select max(latest.revisionNumber) from JobSubmission latest
+                            where latest.jobId = j.id))
+            order by j.id asc
+            """)
+    List<Long> findAutoCompletableJobIds(@Param("afterJobId") Long afterJobId,
+            @Param("jobStatus") JobStatus jobStatus,
+            @Param("reviewStatus") JobSubmissionReviewStatus reviewStatus,
+            @Param("submittedUntil") LocalDateTime submittedUntil, Limit limit);
 
     List<Job> findByOwnerProfileId(Long ownerProfileId);
     List<Job> findBySelectedStudentProfileId(Long studentProfileId);
