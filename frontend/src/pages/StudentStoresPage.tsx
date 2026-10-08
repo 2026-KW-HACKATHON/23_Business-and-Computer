@@ -92,7 +92,7 @@ function StudentStoresPage() {
           <ul className="student-stores__list">
             {visible.map((store) => (
               <li key={store.ownerProfileId} className="student-stores__row">
-                <RoleAvatar role="owner" size={40} />
+                <RoleAvatar role="owner" size={40} src={store.photo} />
                 <span className="student-stores__info">
                   <span className="student-stores__name">
                     <strong>{store.name}</strong>

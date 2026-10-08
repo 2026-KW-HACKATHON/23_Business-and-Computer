@@ -158,7 +158,7 @@ function PayForm({
 
         <section className="owner-pay__card">
           <div className="owner-pay__student">
-            <RoleAvatar role="student" />
+            <RoleAvatar role="student" src={applicant.profileImageUrl} />
             <div className="owner-pay__student-info">
               <strong>{studentTitle(applicant.name)}에게 맡겨요</strong>
               <span>{meta}</span>

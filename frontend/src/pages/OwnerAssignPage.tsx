@@ -93,7 +93,7 @@ function OwnerAssignPage() {
 
         <section className="owner-assign__card">
           <div className="owner-assign__student">
-            <RoleAvatar role="student" size={48} />
+            <RoleAvatar role="student" size={48} src={applicant.profileImageUrl} />
             <div className="owner-assign__student-info">
               <strong className="owner-assign__name">{name}</strong>
               <span className="owner-assign__meta">{meta}</span>

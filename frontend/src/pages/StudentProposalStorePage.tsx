@@ -119,7 +119,7 @@ function StudentProposalStorePage() {
                       className={`student-new__store${selected ? " student-new__store--selected" : ""}`}
                       onClick={() => setStore(s)}
                     >
-                      <RoleAvatar role="owner" size={40} />
+                      <RoleAvatar role="owner" size={40} src={s.photo} />
                       <span className="student-new__store-info">
                         <strong>{s.name}</strong>
                         <span>

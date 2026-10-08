@@ -105,7 +105,7 @@ function StudentChatRoom({ roomId }: { roomId: string }) {
     <SubScreen
       title={
         <span className="student-chat__partner">
-          <RoleAvatar role="owner" size={32} />
+          <RoleAvatar role="owner" size={32} src={room.counterpartProfileImageUrl} />
           <span className="student-chat__partner-text">
             <strong>{partnerName}</strong>
             <small>{room.jobTitle}</small>
@@ -172,7 +172,7 @@ function StudentChatRoom({ roomId }: { roomId: string }) {
                   </div>
                 ) : (
                   <div className="student-chat__partner-message">
-                    <RoleAvatar role="owner" size={28} />
+                    <RoleAvatar role="owner" size={28} src={room.counterpartProfileImageUrl} />
                     <div className="student-chat__group">
                       <span className="student-chat__sender">{partnerName}</span>
                       <div className="student-chat__line">

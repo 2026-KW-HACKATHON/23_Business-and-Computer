@@ -30,6 +30,7 @@ function StudentChatsPage() {
               <ChatRow
                 tone="student"
                 partnerRole="owner"
+                partnerPhoto={room.counterpartProfileImageUrl}
                 name={`${room.counterpartName} 사장님`}
                 workTitle={room.jobTitle}
                 status={chatListStatusText(room, "student")}
