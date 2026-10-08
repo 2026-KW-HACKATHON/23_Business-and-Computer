@@ -98,7 +98,7 @@ function OwnerStudentProfileView({ profile }: { profile: ApplicantProfile }) {
                   <span className="owner-student__review-work">{review.jobTitle}</span>
                   <span className="owner-student__review-rating">★ {review.rating.toFixed(1)}</span>
                 </div>
-                <p className="owner-student__review-text">{review.content}</p>
+                {review.content?.trim() && <p className="owner-student__review-text">{review.content.trim()}</p>}
                 <p className="owner-student__review-date">{formatDotDate(review.createdAt.slice(0, 10))}</p>
               </li>
             ))}

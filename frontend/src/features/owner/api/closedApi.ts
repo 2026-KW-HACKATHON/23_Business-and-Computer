@@ -74,8 +74,8 @@ export interface JobReviewRequest {
   rating: number;
   /** 겹치지 않게 5개까지 */
   positivePoints: ReviewPositivePoint[];
-  /** 꼭 적어야 함, 5000자까지 */
-  content: string;
+  /** 선택, 5000자까지. 보내지 않으면 글 없는 후기 */
+  content?: string;
 }
 
 /** POST /jobs/{jobId}/reviews — 완료된 내 작업의 학생에게 후기를 한 번 남긴다 */

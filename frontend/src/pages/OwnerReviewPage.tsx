@@ -218,7 +218,6 @@ function JobReview({ jobId }: { jobId: number }) {
     setSendError(null);
     const result = await sendJobReview(jobId, {
       rating: form.rating,
-      ratingLabel: RATING_LABELS[form.rating],
       pointLabels: form.points,
       text: form.text,
     });
