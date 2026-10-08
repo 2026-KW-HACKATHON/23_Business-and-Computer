@@ -219,7 +219,7 @@ interface RevisionStepperProps {
   onChange: (value: number) => void;
 }
 
-/** 수정 횟수 − / + (최소 1회) */
+/** 수정 횟수 − / + (최소 1회 · 최대 5회) */
 export function RevisionStepper({ value, onChange }: RevisionStepperProps) {
   return (
     <div className="request-field__stepper">

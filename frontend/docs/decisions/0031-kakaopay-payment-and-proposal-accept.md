@@ -127,8 +127,9 @@ The backend (dev) pays through the KakaoPay test merchant:
     내용을 나눠 보세요」;
   - 「다시 결제하기」 goes to
     /owner/requests/{jobId}/assign/{jobApplicationId}/pay.
-- 수정 횟수 starts at 1 and cannot go below 1 on screen, although the server
-  accepts 0.
+- 수정 횟수 starts at 1 and stays between 1 and 5 on screen, although the
+  server accepts 0 and more than 5. The hint under the label says so: 「최소
+  1회 · 최대 5회 · 등록한 뒤에는 바꿀 수 없어요」 (the same on 의뢰 등록 2/3).
 
 ## Rationale
 

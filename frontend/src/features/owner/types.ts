@@ -95,7 +95,7 @@ export interface RequestContent {
   /** "2026-09-27". 아직 안 골랐으면 "" */
   draftDue: string;
   finalDue: string;
-  /** 최소 1회 */
+  /** 최소 1회 · 최대 5회 */
   revisions: number;
   /** 참고 사진 (선택, 최대 4장). 등록할 때 올린다 */
   photos: File[];

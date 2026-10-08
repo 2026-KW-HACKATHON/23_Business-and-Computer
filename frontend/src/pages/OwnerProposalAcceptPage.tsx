@@ -191,7 +191,7 @@ function AcceptForm({ proposal, onBack }: { proposal: ProposalDetail; onBack: ()
           </p>
         </FormField>
 
-        <FormField label="수정 횟수" hint="최소 1회 · 등록한 뒤에는 바꿀 수 없어요">
+        <FormField label="수정 횟수" hint="최소 1회 · 최대 5회 · 등록한 뒤에는 바꿀 수 없어요">
           <RevisionStepper value={revisions} onChange={setRevisions} />
         </FormField>
 
