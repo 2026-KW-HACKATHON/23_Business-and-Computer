@@ -62,8 +62,8 @@ The backend (dev) has:
 - **Home**: arrived submissions are 「확인할 일」 cards (「초안/수정안이
   도착했어요」, 「M월 D일까지 확인하지 않으면 자동으로 완료돼요」, ADR 0039); drafting ·
   revising jobs are 「학생이 작업 중」 rows that open 보낸 의뢰 or the
-  received proposal (ADR 0049). A failed load shows one 「다시 시도」 line, and the
-  확인할 일 count waits for both lists.
+  received proposal (ADR 0049). Both now come from GET /me/home, with one
+  「다시 시도」 line per failed section (ADR 0064).
 - **작업 확인** (`src/pages/OwnerJobCheckPage.tsx`, /owner/works/:id/check
   with a numeric id): the summary (student · 초안/수정안 도착 M월 D일 · 수정
   n/m), flow bar, 「M월 D일까지 확인해 주세요」 with the revisions left (ADR

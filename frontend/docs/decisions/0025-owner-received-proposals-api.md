@@ -70,15 +70,15 @@ The owner side read `SAMPLE_PROPOSALS`, so a proposal a student sent
     - 401 goes to /login.
     - `PROPOSAL_403_LIST_OWNER` or `OWNER_403` shows the alert 「사장님만 받은
       제안을 볼 수 있어요」, then goes to `landingPath()`.
-- **One hook for three places**: 내 활동 › 받은 제안, the home 「확인할 일」,
-  and the 내 정보 count all use `useReceivedProposals`.
+- **One hook**: 내 활동 › 받은 제안 and the 내 정보 count use
+  `useReceivedProposals`.
   - The summary counts show loading dots while loading or after a failure
     (ADR 0059).
   - 내 활동 shows `LoadNotice` with 「다시 시도」.
   - Home: only PENDING proposals become 「새 제안」 cards. The card badge is
-    the first category name, and the student line shows `major`. While the
-    list loads or after a failure, 확인할 일 shows `LoadNotice` and no count.
-  - `firstVisit` comes from the home's lists, this one included (ADR 0051).
+    the first category name, and the student line shows `major`. The home
+    now reads these cards and `firstVisit` from GET /me/home (ADR 0064)
+    instead of this list.
 - **Status chip** (`receivedProposalStatusLabel`):
   - PENDING 「결정 대기」, AWAITING_START 「결제 완료」, ACCEPTED 「작업 중」,
     REJECTED · CANCELLED 「성사되지 않음」.

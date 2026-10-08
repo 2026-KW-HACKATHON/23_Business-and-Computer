@@ -52,8 +52,8 @@ The backend (dev) has:
   replaces the list while loading or after a failure. 「후기 작성 완료」 shows
   when the list says `reviewed`, or for a job reviewed in this session
   (`isOwnerWorkReviewed`) before the list reloads.
-- **Home 끝난 일**: completed jobs from the same list; the section hides when
-  the list fails.
+- **Home 끝난 일**: completed jobs from GET /me/home (ADR 0064); a failed
+  section shows 「끝난 일을 불러오지 못했어요」 with 「다시 시도」.
 - **지난 결과물 보기** (/owner/works/:id/result with a numeric id): GET
   /jobs/{id}/result. The meta shows the student, the completion date and how
   (직접 확인 · 7일 지나 자동 완료), and the fee. Files show their name, their
