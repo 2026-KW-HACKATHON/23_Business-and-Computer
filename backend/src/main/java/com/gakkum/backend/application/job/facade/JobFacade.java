@@ -13,9 +13,11 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -91,6 +93,9 @@ import com.gakkum.backend.domain.owner.entity.Owner;
 import com.gakkum.backend.domain.owner.service.OwnerService;
 import com.gakkum.backend.domain.media.dto.ImagePurpose;
 import com.gakkum.backend.domain.media.service.MediaService;
+import com.gakkum.backend.domain.notification.dto.NotificationEvent;
+import com.gakkum.backend.domain.notification.entity.NotificationTargetType;
+import com.gakkum.backend.domain.notification.entity.NotificationType;
 import com.gakkum.backend.domain.payment.dto.PaymentQueryDto.ApprovedPaymentData;
 import com.gakkum.backend.domain.payment.dto.PaymentQueryDto.RefundedPaymentData;
 import com.gakkum.backend.domain.payment.service.PaymentService;
@@ -127,6 +132,7 @@ public class JobFacade {
     private final CertificateService certificateService;
     private final ProposalService proposalService;
     private final MediaService mediaService;
+    private final ApplicationEventPublisher eventPublisher;
 
     // 사진 저장소 확인이 DB 트랜잭션과 커넥션을 붙잡지 않도록 저장 트랜잭션은 JobService에 둔다
     public void createJob(String username, JobCreateRequest request) {
@@ -398,8 +404,13 @@ public class JobFacade {
         }
         Student student = studentService.findStudentProfileByUserId(user.getId())
                 .orElseThrow(() -> new BusinessException(ErrorCode.JOB_APPLICATION_STUDENT_REQUIRED));
-        return JobApplicationCreateResult.from(
-                jobService.createJobApplication(command, student.getId(), user.getDemoSessionId()));
+        JobApplication application = jobService.createJobApplication(command, student.getId(), user.getDemoSessionId());
+        Job job = jobService.getJobsByIds(List.of(application.getJobId())).get(application.getJobId());
+        Owner owner = ownerService.getOwnerProfileById(job.getOwnerProfileId());
+        eventPublisher.publishEvent(new NotificationEvent(UUID.randomUUID(), owner.getUserId(),
+                NotificationType.JOB_APPLICATION_RECEIVED, "새로운 지원자가 있어요",
+                "등록한 의뢰에 새로운 지원이 도착했습니다.", NotificationTargetType.JOB, job.getId().toString()));
+        return JobApplicationCreateResult.from(application);
     }
 
     /**

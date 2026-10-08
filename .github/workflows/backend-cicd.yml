@@ -205,6 +205,7 @@ jobs:
 
           test -r "$ENV_FILE"
           docker info > /dev/null
+          docker network inspect gakkum-net > /dev/null
           exec 9>/var/lock/gakkum-deploy.lock
           flock -n 9
 
@@ -252,6 +253,7 @@ jobs:
             --log-opt awslogs-group=/Golmock/backend \
             --log-opt awslogs-stream=backend \
             --env-file "$ENV_FILE" \
+            --network gakkum-net \
             --env SPRING_PROFILES_ACTIVE=prod \
             --env SERVER_SHUTDOWN=graceful \
             --env SPRING_LIFECYCLE_TIMEOUT_PER_SHUTDOWN_PHASE=25s \

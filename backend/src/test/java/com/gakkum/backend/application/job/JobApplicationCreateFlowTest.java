@@ -15,6 +15,7 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
+import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
 
@@ -27,6 +28,7 @@ import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -51,6 +53,10 @@ import com.gakkum.backend.domain.job.repository.JobSubmissionRepository;
 import com.gakkum.backend.domain.job.service.JobService;
 import com.gakkum.backend.domain.jwt.service.JwtService;
 import com.gakkum.backend.domain.owner.repository.OwnerRepository;
+import com.gakkum.backend.domain.owner.entity.Owner;
+import com.gakkum.backend.domain.notification.dto.NotificationEvent;
+import com.gakkum.backend.domain.notification.entity.NotificationType;
+import com.gakkum.backend.domain.notification.entity.NotificationTargetType;
 import com.gakkum.backend.domain.owner.service.OwnerService;
 import com.gakkum.backend.domain.payment.service.PaymentService;
 import com.gakkum.backend.domain.proposal.service.ProposalService;
@@ -71,6 +77,7 @@ class JobApplicationCreateFlowTest {
 
     private static final String USERNAME = "KAKAO_12345";
     private static final String STUDENT_USER_ID = "01K58M6PJV8VAJMXHBHJ2PNB5C";
+    private static final String OWNER_USER_ID = "01K58M6PJV8VAJMXHBHJ2PNB5D";
     private static final long JOB_ID = 42L;
     private static final long STUDENT_PROFILE_ID = 7L;
     private static final long APPLICATION_ID = 123L;
@@ -84,6 +91,8 @@ class JobApplicationCreateFlowTest {
     private final StudentRepository studentRepository = mock(StudentRepository.class);
     private final JobRepository jobRepository = mock(JobRepository.class);
     private final JobApplicationRepository jobApplicationRepository = mock(JobApplicationRepository.class);
+    private final OwnerRepository ownerRepository = mock(OwnerRepository.class);
+    private final ApplicationEventPublisher eventPublisher = mock(ApplicationEventPublisher.class);
     private final UsernamePasswordAuthenticationToken authentication =
             new UsernamePasswordAuthenticationToken(USERNAME, null);
 
@@ -95,12 +104,14 @@ class JobApplicationCreateFlowTest {
         UserService userService = new UserService(userRepository, mock(JwtService.class));
         JobService jobService = new JobService(jobRepository, mock(JobSpecialtyRepository.class),
                 jobApplicationRepository, mock(JobSubmissionRepository.class), clock);
-        JobFacade facade = new JobFacade(userService, new OwnerService(mock(OwnerRepository.class)), jobService,
+        when(ownerRepository.findById(5L)).thenReturn(Optional.of(
+                Owner.builder().id(5L).userId(OWNER_USER_ID).build()));
+        JobFacade facade = new JobFacade(userService, new OwnerService(ownerRepository), jobService,
                 mock(SpecialtyCategoryService.class), mock(SpecialtyService.class),
                 new StudentService(studentRepository),
                 mock(JobSubmissionFileStorageClient.class), mock(ChatAttachmentPolicy.class),
                 mock(PaymentService.class),
-                mock(ReviewService.class), mock(CertificateService.class), mock(ProposalService.class), mock(MediaService.class));
+                mock(ReviewService.class), mock(CertificateService.class), mock(ProposalService.class), mock(MediaService.class), eventPublisher);
         mockMvc = MockMvcBuilders.standaloneSetup(new JobController(facade))
                 .setControllerAdvice(new GlobalExceptionHandler())
                 .build();
@@ -130,6 +141,13 @@ class JobApplicationCreateFlowTest {
         // 지원만으로는 의뢰 상태와 선정 학생이 바뀌지 않는다
         assertThat(job.getStatus()).isEqualTo(JobStatus.OPEN);
         assertThat(job.getSelectedStudentProfileId()).isNull();
+        ArgumentCaptor<NotificationEvent> event = ArgumentCaptor.forClass(NotificationEvent.class);
+        verify(eventPublisher).publishEvent(event.capture());
+        assertThat(event.getValue().eventId()).isNotNull();
+        assertThat(event.getValue().recipientUserId()).isEqualTo(OWNER_USER_ID);
+        assertThat(event.getValue().type()).isEqualTo(NotificationType.JOB_APPLICATION_RECEIVED);
+        assertThat(event.getValue().targetType()).isEqualTo(NotificationTargetType.JOB);
+        assertThat(event.getValue().targetId()).isEqualTo(Long.toString(JOB_ID));
     }
 
     @Test
@@ -192,7 +210,7 @@ class JobApplicationCreateFlowTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.error.code").value("COMMON_400"));
-        verifyNoInteractions(userRepository, studentRepository, jobRepository, jobApplicationRepository);
+        verifyNoInteractions(userRepository, studentRepository, jobRepository, jobApplicationRepository, eventPublisher);
     }
 
     private static Stream<Arguments> invalidBodies() {
@@ -232,7 +250,7 @@ class JobApplicationCreateFlowTest {
                         .contentType(MediaType.APPLICATION_JSON).content(VALID_BODY))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.error.code").value("COMMON_400"));
-        verifyNoInteractions(userRepository, studentRepository, jobRepository, jobApplicationRepository);
+        verifyNoInteractions(userRepository, studentRepository, jobRepository, jobApplicationRepository, eventPublisher);
     }
 
     @Test
@@ -281,7 +299,7 @@ class JobApplicationCreateFlowTest {
         mockMvc.perform(applyRequest(VALID_BODY))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.error.code").value("JOB_404"));
-        verifyNoInteractions(jobApplicationRepository);
+        verifyNoInteractions(jobApplicationRepository, eventPublisher);
     }
 
     @ParameterizedTest
@@ -294,7 +312,7 @@ class JobApplicationCreateFlowTest {
         mockMvc.perform(applyRequest(VALID_BODY))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.error.code").value("JOB_APPLICATION_409_STATUS"));
-        verifyNoInteractions(jobApplicationRepository);
+        verifyNoInteractions(jobApplicationRepository, eventPublisher);
         assertThat(job.getStatus()).isEqualTo(status);
     }
 
@@ -309,6 +327,7 @@ class JobApplicationCreateFlowTest {
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.error.code").value("JOB_APPLICATION_409_DUPLICATE"));
         verify(jobApplicationRepository, never()).saveAndFlush(any());
+        verifyNoInteractions(eventPublisher);
     }
 
     @Test
@@ -371,6 +390,8 @@ class JobApplicationCreateFlowTest {
     }
 
     private void givenSaveAssignsId() {
+        when(jobRepository.findAllById(List.of(JOB_ID))).thenReturn(List.of(
+                Job.builder().id(JOB_ID).ownerProfileId(5L).build()));
         when(jobApplicationRepository.saveAndFlush(any())).thenAnswer(invocation -> {
             JobApplication application = invocation.getArgument(0);
             return JobApplication.builder()
@@ -405,7 +426,7 @@ class JobApplicationCreateFlowTest {
         mockMvc.perform(applyRequest(VALID_BODY))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.error.code").value("JOB_404"));
-        verifyNoInteractions(jobApplicationRepository);
+        verifyNoInteractions(jobApplicationRepository, eventPublisher);
     }
 
     @Test

@@ -1,0 +1,11 @@
+# 로컬 테스트용. 개발 서버 Redis는 별도로 구성하고 REDIS_* 환경변수로 연결한다.
+services:
+  redis:
+    image: redis:8-alpine
+    ports:
+      - "127.0.0.1:6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
