@@ -13,7 +13,6 @@ import { categoryNames, jobTaskNames, useJobDetail } from "../features/explore";
 import { OWNER_PATHS, OwnerMissing, similarRequestState } from "../features/owner";
 import { useBack } from "../hooks/useBack";
 import { withSubject } from "../lib/korean";
-import { FIELDS } from "../types/field";
 import "./OwnerDetailPage.css";
 import "./OwnerExploreDetailPage.css";
 
@@ -31,7 +30,6 @@ function OwnerExploreRequestPage() {
 
   const job = load.status === "loaded" ? load.job : undefined;
   const badges = job ? categoryNames(job.specialtyCategories) : [];
-  const field = FIELDS.find((f) => badges.includes(f));
   const tasks = job ? jobTaskNames(job) : [];
   const photos = job?.referenceImageUrls ?? [];
 
@@ -44,10 +42,9 @@ function OwnerExploreRequestPage() {
           <Button
             fullWidth
             onClick={() =>
-              navigate(
-                OWNER_PATHS.newRequest,
-                field ? { state: similarRequestState(field, tasks) } : undefined,
-              )
+              navigate(OWNER_PATHS.newRequest, {
+                state: similarRequestState(job.specialtyCategories, { withTasks: true }),
+              })
             }
           >
             우리 가게에도 비슷한 의뢰 만들기

@@ -41,7 +41,8 @@ read-only explore details. The backend has no API for them yet.
 - Explore cards and the explore request detail show the store name
   only, without the street or address. The read-only details hide budget
   and deadlines, and 「우리 가게에도 비슷한 의뢰 만들기」 opens registration
-  with the same field and tasks picked.
+  with the same categories picked, and for a request also its tasks
+  (ADR 0058).
 - 탐색 reads the backend (ADR 0026), and so does the student profile
   (ADR 0038).
 - New shared components: `Dialog`, `DoneScreen`, `NumberedSteps`,

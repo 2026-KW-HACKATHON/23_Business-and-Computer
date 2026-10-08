@@ -171,10 +171,11 @@
   gap: 6px;
 }
 
-.owner-new__group-note {
-  font-size: 13px;
-  line-height: 19px;
-  color: var(--role-secondary);
+.owner-new__empty {
+  padding: 24px 0;
+  font-size: 14px;
+  color: var(--text-placeholder);
+  text-align: center;
 }
 
 .owner-new__footer {

@@ -74,10 +74,14 @@ export interface OwnerWaitingItem {
   status: WaitingStatus;
 }
 
-/** 의뢰 등록 1/3 에서 고른 일 하나 */
+/** 의뢰 등록 1/3 에서 고른 일 하나 (GET /specialties 의 특기) */
 export interface PickedTask {
-  field: Field;
-  task: string;
+  specialtyId: number;
+  /** 특기 이름 (예: 리뷰 분석) */
+  name: string;
+  /** 대분류 id · 이름 (예: 분석). 3/3 뱃지에 쓴다 */
+  categoryId: number;
+  categoryName: string;
 }
 
 export type { DueDates } from "../../components";
