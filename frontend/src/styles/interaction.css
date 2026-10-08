@@ -3,6 +3,7 @@
  * - 마우스를 올리면 바탕이 살짝, 누르면 조금 더 어두워진다. 바탕 위에 안쪽 그림자를 덧칠해서 글자 · 아이콘은 그대로 선명하다
  * - 마우스가 없는 폰은 누를 때만 반응한다. 폰의 기본 회색 번쩍임(탭 하이라이트)은 끄고 이 반응을 쓴다
  * - 모든 선택자를 :where 로 감싸 우선순위가 0이다. 자기 그림자(받침 · 카드 그림자)나 다른 반응이 있는 것은 컴포넌트 CSS 가 정한다
+ * - 여백 없는 글자 링크 · 글자 버튼은 .press-text 를 붙여 바탕 대신 글자가 옅어진다 (ADR 0061)
  */
 :where(button, a[href], [role="button"]) {
   -webkit-tap-highlight-color: transparent;
@@ -25,8 +26,28 @@
   box-shadow: inset 0 0 0 100vmax rgba(12, 12, 12, 0.08);
 }
 
+/* 글자 링크 · 글자 버튼 (재전송 · 수정 · 신고 · 약관 보기 …): 바탕 대신 글자가 옅어진다 (ADR 0061) */
+.press-text {
+  transition: opacity 0.15s ease;
+}
+
+.press-text:where(:hover, :active) {
+  box-shadow: none;
+}
+
+@media (hover: hover) {
+  .press-text:where(:not(:disabled, [aria-disabled="true"])):hover {
+    opacity: 0.7;
+  }
+}
+
+.press-text:where(:not(:disabled, [aria-disabled="true"])):active {
+  opacity: 0.5;
+}
+
 @media (prefers-reduced-motion: reduce) {
-  :where(button, a[href], [role="button"]) {
+  :where(button, a[href], [role="button"]),
+  .press-text {
     transition: none;
   }
 }

@@ -76,7 +76,7 @@ function OwnerPastSubmissionPage() {
       title={`지난 ${noun}`}
       onBack={back}
       right={
-        <button type="button" className="owner-check__report" onClick={() => setReportOpen(true)}>
+        <button type="button" className="owner-check__report press-text" onClick={() => setReportOpen(true)}>
           신고
         </button>
       }

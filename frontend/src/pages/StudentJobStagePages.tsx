@@ -221,7 +221,7 @@ function SubmittedScreen({ job, back }: { job: ProgressJob; back: () => void }) 
       title={`제출한 ${stage}`}
       onBack={back}
       right={
-        <button type="button" className="student-work__report" onClick={() => setReportOpen(true)}>
+        <button type="button" className="student-work__report press-text" onClick={() => setReportOpen(true)}>
           신고
         </button>
       }

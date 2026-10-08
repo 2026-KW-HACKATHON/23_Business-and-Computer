@@ -147,6 +147,13 @@
   cursor: pointer;
 }
 
+/* 누를 때 반응: 어두워지는 칸이 ✕ 를 둥글게 감싼다 (크기는 그대로) */
+.owner-revision__photo-list button:last-child {
+  margin: -4px;
+  padding: 4px 6px;
+  border-radius: 999px;
+}
+
 .owner-revision__note {
   font-size: 12px;
   line-height: 17px;

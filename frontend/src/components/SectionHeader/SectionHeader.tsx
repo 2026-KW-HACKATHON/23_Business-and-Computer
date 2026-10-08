@@ -22,7 +22,7 @@ function SectionHeader({ title, count, actionLabel, onAction, expanded }: Sectio
       {actionLabel && onAction && (
         <button
           type="button"
-          className="section-header__action"
+          className="section-header__action press-text"
           aria-expanded={expanded}
           onClick={onAction}
         >

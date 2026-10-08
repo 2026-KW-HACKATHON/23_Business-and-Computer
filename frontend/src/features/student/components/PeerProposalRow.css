@@ -12,8 +12,10 @@
   align-items: center;
   gap: 12px;
   min-width: 0;
-  padding: 0;
+  margin: -8px;
+  padding: 8px;
   border: none;
+  border-radius: 12px;
   background: none;
   font-family: inherit;
   text-align: left;
@@ -22,8 +24,7 @@
 
 .peer-row__open:focus-visible {
   outline: 2px solid var(--role-focus);
-  outline-offset: 2px;
-  border-radius: 8px;
+  outline-offset: -2px;
 }
 
 .peer-row__text {

@@ -27,8 +27,51 @@
   color: var(--color-black);
 }
 
+/*
+ * 누를 때 반응: 줄은 그대로 두고, 글자보다 좌우 12px 넓은 둥근 안쪽 상자가 어두워진다 (ADR 0061).
+ * 줄 상자 · 구분선 · 글자 위치는 바뀌지 않는다. 포커스 테두리도 같은 상자에 그린다
+ */
+.explore-sort__option {
+  position: relative;
+  isolation: isolate;
+}
+
+.explore-sort__option::before {
+  content: "";
+  position: absolute;
+  inset: 2px -12px;
+  z-index: -1;
+  border-radius: 12px;
+  pointer-events: none;
+  transition: background-color 0.15s ease;
+}
+
+.explore-sort__option:hover,
+.explore-sort__option:active {
+  box-shadow: none;
+}
+
+@media (hover: hover) {
+  .explore-sort__option:hover::before {
+    background: rgba(12, 12, 12, 0.04);
+  }
+}
+
+.explore-sort__option:active::before {
+  background: rgba(12, 12, 12, 0.08);
+}
+
 .explore-sort__option:focus-visible {
+  outline: none;
+}
+
+.explore-sort__option:focus-visible::before {
   outline: 2px solid var(--role-focus);
-  outline-offset: 2px;
-  border-radius: 8px;
+  outline-offset: -2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .explore-sort__option::before {
+    transition: none;
+  }
 }

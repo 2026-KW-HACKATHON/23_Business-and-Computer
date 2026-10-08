@@ -230,6 +230,13 @@
   cursor: pointer;
 }
 
+/* 누를 때 반응: 어두워지는 칸이 ✕ 를 둥글게 감싼다 (크기는 그대로) */
+.student-new__picked-item > button {
+  margin: -4px;
+  padding: 4px;
+  border-radius: 999px;
+}
+
 .student-confirm__card {
   display: flex;
   flex-direction: column;
@@ -499,6 +506,13 @@
   font-size: 13px;
   color: var(--role-secondary);
   cursor: pointer;
+}
+
+/* 누를 때 반응: 어두워지는 칸이 ✕ 를 둥글게 감싼다 (크기는 그대로) */
+.student-new__file > button:last-child {
+  margin: -4px;
+  padding: 4px 6px;
+  border-radius: 999px;
 }
 
 /* 3/4 참고 사진 형식·크기 오류 */

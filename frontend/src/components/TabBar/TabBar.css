@@ -76,6 +76,17 @@
   }
 }
 
+/* 새 탭 글자는 선택 배경이 닿을 즈음 진해진다 (그 전에 먼저 칠해지지 않게, ADR 0061) */
+.tab-bar__tab--arrived {
+  animation: tab-bar-arrive 0.2s ease 0.12s both;
+}
+
+@keyframes tab-bar-arrive {
+  from {
+    color: var(--role-secondary);
+  }
+}
+
 /* 새 탭 아이콘은 선택 배경이 닿을 즈음 한 번 톡 튄다 */
 .tab-bar__tab--arrived .tab-bar__icon {
   animation: tab-bar-pop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) 0.12s both;
@@ -138,20 +149,38 @@
   border: 0;
 }
 
-/* 누를 때 반응: 탭이 살짝 작아진다 */
+/*
+ * 누를 때 반응 (ADR 0061): 탭에는 공통 바탕(안쪽 그림자)을 쓰지 않는다. 바탕은 선택 배경만 움직인다.
+ * 선택 안 된 탭은 마우스를 올리면 글자 · 아이콘이 진해지고, 누르면 아이콘이 살짝 작아진다
+ */
 .tab-bar__tab {
-  transition:
-    background-color 0.15s ease,
-    box-shadow 0.15s ease,
-    transform 0.12s ease;
+  transition: color 0.15s ease;
 }
 
+.tab-bar__tab:hover,
 .tab-bar__tab:active {
-  transform: scale(0.94);
+  box-shadow: none;
+}
+
+@media (hover: hover) {
+  .tab-bar__tab:not(.tab-bar__tab--current):hover {
+    color: var(--text-title);
+  }
+}
+
+.tab-bar__icon {
+  transition: transform 0.12s ease;
+}
+
+.tab-bar__tab:active .tab-bar__icon {
+  transform: scale(0.9);
 }
 
 @media (prefers-reduced-motion: reduce) {
   .tab-bar__indicator,
+  .tab-bar__tab,
+  .tab-bar__icon,
+  .tab-bar__tab--arrived,
   .tab-bar__tab--arrived .tab-bar__icon {
     transition: none;
     animation: none;

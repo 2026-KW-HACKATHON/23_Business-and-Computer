@@ -131,7 +131,7 @@ function ProfileBody({ me, onBack }: { me: StudentMe; onBack: () => void }) {
                   <AppImage name="iconLink" width={16} />
                   <span className="student-profile__portfolio-url">{portfolioLabel(portfolioUrl)}</span>
                   <a
-                    className="student-profile__open"
+                    className="student-profile__open press-text"
                     href={portfolioHref(portfolioUrl)}
                     target="_blank"
                     rel="noreferrer"

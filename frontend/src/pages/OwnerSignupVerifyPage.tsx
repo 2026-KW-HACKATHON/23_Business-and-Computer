@@ -123,7 +123,7 @@ function OwnerSignupVerifyPage() {
         {verified && (
           <div className="owner-signup-verify__done" role="status">
             <span className="owner-signup-verify__success">가게 인증이 완료되었어요</span>
-            <button type="button" className="owner-signup-verify__edit" onClick={() => edit({})}>
+            <button type="button" className="owner-signup-verify__edit press-text" onClick={() => edit({})}>
               정보 수정
             </button>
           </div>
