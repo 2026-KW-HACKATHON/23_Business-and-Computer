@@ -41,6 +41,9 @@ import com.gakkum.backend.util.UlidGenerator;
 public class DemoFacade {
 
     private static final int SAMPLE_SPECIALTY_COUNT = 2;
+    // 방문자 사장님(대표자)·학생 이름. 화면과 알림이 「김골목 사장님」·「이인턴 학생」처럼 뒤에 부르는 말을 붙인다
+    private static final String OWNER_NAME = "김골목";
+    private static final String STUDENT_NAME = "이인턴";
     // 방문자 데모 학생은 「24학번」으로 보인다
     private static final int VISITOR_ADMISSION_YEAR = 24;
 
@@ -98,8 +101,8 @@ public class DemoFacade {
         }
 
         String demoSessionId = UlidGenerator.generate();
-        User owner = userService.createDemoUser(demoSessionId, UserRole.OWNER, "데모 사장님", null);
-        User student = userService.createDemoUser(demoSessionId, UserRole.STUDENT, "데모 학생",
+        User owner = userService.createDemoUser(demoSessionId, UserRole.OWNER, OWNER_NAME, null);
+        User student = userService.createDemoUser(demoSessionId, UserRole.STUDENT, STUDENT_NAME,
                 "demo-" + demoSessionId.toLowerCase(Locale.ROOT) + "@example.com");
 
         List<Long> specialtyIds = specialtyService.getFirstSpecialtyIds(SAMPLE_SPECIALTY_COUNT);
@@ -107,7 +110,7 @@ public class DemoFacade {
                 owner.getId(),
                 "DEMO-" + demoSessionId,
                 null,
-                "데모 사장님",
+                OWNER_NAME,
                 "[데모] 가꿈 분식",
                 businessCategoryService.getFirstCategoryId(),
                 "서울 노원구 광운로 20",
