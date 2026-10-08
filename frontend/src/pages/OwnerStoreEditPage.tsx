@@ -4,6 +4,7 @@ import { Button, Chip, LoadNotice, ProfilePhoto, SubScreen, TextField } from "..
 import { landingPath } from "../features/auth";
 import {
   OWNER_PATHS,
+  businessInfoText,
   ownerStoreForm,
   saveOwnerMe,
   storeAddressOf,
@@ -27,7 +28,7 @@ const PHOTO_CHECK_TEXT = {
 /**
  * 피그마 「가게 정보 수정」. 지금 값은 GET /owners/me, 업종 칩과 서버 id 는 GET /business-categories,
  * 「저장하기」는 PUT /owners/me (ADR 0040). 업종은 가입 1/3과 같은 칩 11개 중 하나.
- * 사업자 정보는 인증된 값이라 잠겨 있다.
+ * 사업자 정보(대표자 · 사업자번호)는 인증된 값이라 잠겨 있다.
  */
 function OwnerStoreEditPage() {
   const back = useBack(OWNER_PATHS.me);
@@ -212,7 +213,7 @@ function StoreForm({
             사업자 정보 <small>인증된 정보라 바꿀 수 없어요</small>
           </span>
           <div className="owner-store__locked">
-            <span>사업자 인증 완료</span>
+            <span>{businessInfoText(me)}</span>
             <span aria-hidden="true">🔒</span>
           </div>
           <p className="owner-store__note">

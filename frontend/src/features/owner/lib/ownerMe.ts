@@ -141,3 +141,22 @@ export async function saveOwnerMe(changes: OwnerMeChanges, photo?: File): Promis
     return { status: "error" };
   }
 }
+
+/** 사업자등록번호 10자리 → 「123-45-67890」. 모양이 다르면 그대로 */
+export function formatBusinessNumber(value: string): string {
+  const digits = value.replace(/\D/g, "");
+  return digits.length === 10 ? `${digits.slice(0, 3)}-${digits.slice(3, 5)}-${digits.slice(5)}` : value;
+}
+
+/**
+ * 가게 정보 수정의 잠긴 사업자 정보 칸 「대표자 이새빛 · 사업자번호 123-45-67890」.
+ * 있는 것만 보이고, 둘 다 없으면 「사업자 인증 완료」
+ */
+export function businessInfoText(me: OwnerMe): string {
+  const representative = me.representativeName?.trim();
+  const number = me.businessNumber?.trim();
+  const text = [representative && `대표자 ${representative}`, number && `사업자번호 ${formatBusinessNumber(number)}`]
+    .filter(Boolean)
+    .join(" · ");
+  return text || "사업자 인증 완료";
+}
