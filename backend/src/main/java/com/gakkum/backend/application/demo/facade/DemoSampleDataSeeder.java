@@ -5,17 +5,21 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
+import org.hibernate.query.NativeQuery;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,9 +28,9 @@ import com.gakkum.backend.domain.category.dto.BusinessCategoryResponse;
 import com.gakkum.backend.domain.category.service.BusinessCategoryService;
 import com.gakkum.backend.domain.certificate.dto.CertificateCommandDto.AddStudentCertificateCommand;
 import com.gakkum.backend.domain.certificate.service.CertificateService;
+import com.gakkum.backend.domain.chat.entity.ChatMessageType;
 import com.gakkum.backend.domain.chat.entity.ChatRoom;
 import com.gakkum.backend.domain.chat.service.ChatRoomService;
-import com.gakkum.backend.domain.chat.service.ChatService;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.CancelJobCommand;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.CompleteJobSubmissionCommand;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.CreateJobApplicationCommand;
@@ -40,7 +44,6 @@ import com.gakkum.backend.domain.job.entity.JobSubmission;
 import com.gakkum.backend.domain.job.service.JobService;
 import com.gakkum.backend.domain.notification.dto.NotificationEvent;
 import com.gakkum.backend.domain.notification.dto.NotificationEventFactory;
-import com.gakkum.backend.domain.notification.service.NotificationService;
 import com.gakkum.backend.domain.owner.dto.OwnerCommandDto.CreateOwnerProfileCommand;
 import com.gakkum.backend.domain.owner.entity.Owner;
 import com.gakkum.backend.domain.owner.service.OwnerService;
@@ -101,10 +104,8 @@ public class DemoSampleDataSeeder {
     private final ReviewService reviewService;
     private final CertificateService certificateService;
     private final ChatRoomService chatRoomService;
-    private final ChatService chatService;
-    private final NotificationService notificationService;
     private final Clock clock;
-    // 지난 일의 시각을 옮길 때 쓴다 (Session.applyTimeline)
+    // 모아 둔 행을 넣고 지난 일의 시각을 옮길 때 쓴다 (Session.finish)
     @PersistenceContext
     private EntityManager entityManager;
 
@@ -112,8 +113,26 @@ public class DemoSampleDataSeeder {
     public record Visitor(String demoSessionId, Owner store, Student student) {
     }
 
-    /** 예시 데이터를 다 만든 뒤 바꿀 시각 한 칸. at 은 칼럼 타입에 맞춘 값이다 */
-    private record TimelineUpdate(String sql, Object at, Long id) {
+    /** 여러 행을 한 번에 보내는 쿼리의 값 한 칸. sqlType 으로 cast 하고, 값이 null 이어도 javaType 으로 타입을 알려 묶는다 */
+    private record ValueColumn(String sqlType, Class<?> javaType) {
+        private static final ValueColumn BIGINT = new ValueColumn("bigint", Long.class);
+        private static final ValueColumn VARCHAR = new ValueColumn("varchar", String.class);
+        private static final ValueColumn UUID = new ValueColumn("uuid", java.util.UUID.class);
+        private static final ValueColumn TIMESTAMP = new ValueColumn("timestamp", LocalDateTime.class);
+        private static final ValueColumn TIMESTAMP_WITH_TIME_ZONE =
+                new ValueColumn("timestamp with time zone", OffsetDateTime.class);
+    }
+
+    /**
+     * 예시 데이터를 다 만든 뒤 시각을 바꿀 칼럼 하나. keyColumn 으로 행을 찾고, at 은 칼럼 타입이다.
+     * condition 은 행을 더 거르는 조건이고 없으면 빈 문자열이다 (표는 t 로 부른다)
+     */
+    private record TimelineColumn(String table, String column, String keyColumn, ValueColumn at, String condition) {
+    }
+
+    /** 예시 데이터를 다 만든 뒤 한 번에 넣을 채팅 메시지. readByReceiver 면 받는 쪽도 이 메시지까지 읽었다 */
+    private record SampleMessage(String roomId, String senderUserId, boolean fromOwner, boolean readByReceiver,
+                                 UUID clientMessageId, String text, Instant at) {
     }
 
     /** 채팅방 대화 한 줄. fromOwner 면 사장님이, 아니면 학생이 보낸 메시지다 */
@@ -128,7 +147,7 @@ public class DemoSampleDataSeeder {
     public void seed(Visitor visitor) {
         Session session = new Session(visitor);
         session.seed();
-        session.applyTimeline();
+        session.finish();
     }
 
     /** 세션 하나를 채우는 동안의 기준 날짜와 기준 데이터. */
@@ -141,7 +160,11 @@ public class DemoSampleDataSeeder {
         private final LocalDate today;
         private final Map<String, Long> specialtyIds;
         private final Map<String, Long> categoryIds;
-        private final List<TimelineUpdate> timeline = new ArrayList<>();
+        // 칼럼마다 행 키 → 옮길 시각. at 은 칼럼 타입에 맞춘 값이고, 같은 행을 두 번 적으면 나중 시각이 남는다
+        private final Map<TimelineColumn, Map<Long, Object>> timeline = new LinkedHashMap<>();
+        // 알림과 채팅 메시지는 다른 예시 데이터가 읽지 않아서 모아 두었다가 finish 에서 쿼리 한 번으로 넣는다
+        private final List<List<Object>> notificationRows = new ArrayList<>();
+        private final List<SampleMessage> messages = new ArrayList<>();
         // 알림 내용을 만들 때 쓴다 (프로필 id → 가게 · 학생, 사용자 id → 이름)
         private final Map<Long, Owner> stores = new HashMap<>();
         private final Map<Long, Student> students = new HashMap<>();
@@ -848,17 +871,13 @@ public class DemoSampleDataSeeder {
          * lastUnread 면 마지막 메시지만 받는 쪽이 아직 읽지 않은 채로 둔다 (채팅 탭의 안 읽은 표시).
          */
         private void conversation(Job job, Student student, boolean lastUnread, ChatLine... lines) {
-            ChatRoom room = chatRoomService.getOrCreate(job.getId());
-            String ownerUserId = ownerService.getOwnerProfileById(job.getOwnerProfileId()).getUserId();
+            String roomId = chatRoomService.getOrCreate(job.getId()).getId();
+            String ownerUserId = storeOf(job).getUserId();
             for (int i = 0; i < lines.length; i++) {
                 ChatLine line = lines[i];
-                Long messageId = chatService.sendTextMessage(room, line.fromOwner() ? ownerUserId : student.getUserId(),
-                        UUID.randomUUID(), line.text()).getMessage().getId();
-                backdate("chat_messages", "created_at", messageId, line.at());
-                chatService.markRead(room, line.fromOwner(), messageId);
-                if (!lastUnread || i < lines.length - 1) {
-                    chatService.markRead(room, !line.fromOwner(), messageId);
-                }
+                messages.add(new SampleMessage(roomId, line.fromOwner() ? ownerUserId : student.getUserId(),
+                        line.fromOwner(), !lastUnread || i < lines.length - 1, UUID.randomUUID(), line.text(),
+                        line.at()));
             }
         }
 
@@ -973,7 +992,7 @@ public class DemoSampleDataSeeder {
         }
 
         /**
-         * 같은 일을 실제 API 로 했을 때 Facade 가 보내는 알림을 그 일의 시각으로 바로 저장한다.
+         * 같은 일을 실제 API 로 했을 때 Facade 가 보내는 알림을 Stream 을 거치지 않고 그 일의 시각으로 바로 저장한다.
          * 방문자에게 가는 알림만 만들고, 어제보다 전에 온 알림은 두 시간 뒤에 읽은 것으로 둔다.
          */
         private void addNotification(NotificationEvent event, Instant at) {
@@ -983,7 +1002,9 @@ public class DemoSampleDataSeeder {
             LocalDateTime readAt = at.isBefore(unreadFrom)
                     ? LocalDateTime.ofInstant(at.plus(READ_AFTER), ZoneOffset.UTC)
                     : null;
-            backdate("notifications", "created_at", notificationService.storeDemoSample(event, readAt).getId(), at);
+            notificationRows.add(Arrays.asList(event.eventId(), event.recipientUserId(), event.type().name(),
+                    event.title(), event.body(), event.targetType().name(), event.targetId(), readAt,
+                    LocalDateTime.ofInstant(at, ZoneOffset.UTC)));
         }
 
         private Owner storeOf(Job job) {
@@ -1005,35 +1026,116 @@ public class DemoSampleDataSeeder {
          * TIMESTAMP 칼럼은 서비스의 now() 처럼 UTC 시각으로 저장한다.
          */
         private void backdate(String table, String column, Long id, Instant at) {
-            timeline.add(new TimelineUpdate("update " + table + " set " + column + " = :at where id = :id",
-                    LocalDateTime.ofInstant(at, ZoneOffset.UTC), id));
+            backdate(new TimelineColumn(table, column, "id", ValueColumn.TIMESTAMP, ""),
+                    id, LocalDateTime.ofInstant(at, ZoneOffset.UTC));
         }
 
         private void backdateByJob(String table, String column, Long jobId, Instant at) {
-            timeline.add(new TimelineUpdate("update " + table + " set " + column + " = :at where job_id = :id",
-                    LocalDateTime.ofInstant(at, ZoneOffset.UTC), jobId));
+            backdate(new TimelineColumn(table, column, "job_id", ValueColumn.TIMESTAMP, ""),
+                    jobId, LocalDateTime.ofInstant(at, ZoneOffset.UTC));
         }
 
         // 환불 시각은 TIMESTAMP WITH TIME ZONE 칼럼이다
         private void backdateRefund(Long jobId, Instant at) {
-            timeline.add(new TimelineUpdate(
-                    "update payments set refunded_at = :at where job_id = :id and refunded_at is not null",
-                    at.atOffset(ZoneOffset.UTC), jobId));
+            backdate(new TimelineColumn("payments", "refunded_at", "job_id", ValueColumn.TIMESTAMP_WITH_TIME_ZONE,
+                    " and t.refunded_at is not null"), jobId, at.atOffset(ZoneOffset.UTC));
+        }
+
+        private void backdate(TimelineColumn column, Long key, Object at) {
+            timeline.computeIfAbsent(column, added -> new LinkedHashMap<>()).put(key, at);
         }
 
         /**
-         * 적어 둔 시각을 DB 에 옮긴다. 영속성 컨텍스트의 엔티티는 옮기기 전 시각을 들고 있어서,
-         * 같은 트랜잭션의 다음 조회가 DB 값을 읽도록 비운다.
+         * 모아 둔 알림 · 채팅 메시지를 넣고 적어 둔 시각을 DB 에 옮긴다. 행마다 쿼리를 보내면 DB 왕복이 수백 번이라
+         * 표나 칼럼마다 한 번에 보낸다. 영속성 컨텍스트의 엔티티는 옮기기 전 값을 들고 있어서, 같은 트랜잭션의 다음 조회가
+         * DB 값을 읽도록 비운다.
          */
-        private void applyTimeline() {
+        private void finish() {
             entityManager.flush();
-            for (TimelineUpdate update : timeline) {
-                entityManager.createNativeQuery(update.sql())
-                        .setParameter("at", update.at())
-                        .setParameter("id", update.id())
-                        .executeUpdate();
-            }
+            insertNotifications();
+            insertMessages();
+            applyTimeline();
             entityManager.clear();
+        }
+
+        private void insertNotifications() {
+            if (notificationRows.isEmpty()) {
+                return;
+            }
+            rowsQuery("insert into notifications (event_id, recipient_user_id, type, title, body, target_type, "
+                            + "target_id, read_at, created_at) values %s",
+                    List.of(ValueColumn.UUID, ValueColumn.VARCHAR, ValueColumn.VARCHAR, ValueColumn.VARCHAR,
+                            ValueColumn.VARCHAR, ValueColumn.VARCHAR, ValueColumn.VARCHAR, ValueColumn.TIMESTAMP,
+                            ValueColumn.TIMESTAMP),
+                    notificationRows).executeUpdate();
+        }
+
+        /** 채팅 메시지를 넣고, 받은 메시지 id 로 채팅방마다 사장님 · 학생이 어디까지 읽었는지 적는다. */
+        private void insertMessages() {
+            if (messages.isEmpty()) {
+                return;
+            }
+            List<List<Object>> messageRows = messages.stream()
+                    .map(message -> List.<Object>of(message.roomId(), message.senderUserId(),
+                            message.clientMessageId(), ChatMessageType.TEXT.name(), message.text(),
+                            LocalDateTime.ofInstant(message.at(), ZoneOffset.UTC)))
+                    .toList();
+            Map<String, Long> messageIds = new HashMap<>();
+            for (Object inserted : rowsQuery("insert into chat_messages (room_id, sender_user_id, client_message_id, "
+                            + "type, content, created_at) values %s returning id, client_message_id",
+                    List.of(ValueColumn.VARCHAR, ValueColumn.VARCHAR, ValueColumn.UUID, ValueColumn.VARCHAR,
+                            ValueColumn.VARCHAR, ValueColumn.TIMESTAMP),
+                    messageRows).getResultList()) {
+                Object[] row = (Object[]) inserted;
+                messageIds.put(row[1].toString(), ((Number) row[0]).longValue());
+            }
+
+            // 채팅방 id → [사장님이 읽은 마지막 메시지, 학생이 읽은 마지막 메시지]. 메시지는 시간 순서로 모았다
+            Map<String, Long[]> readPositions = new LinkedHashMap<>();
+            for (SampleMessage message : messages) {
+                Long messageId = messageIds.get(message.clientMessageId().toString());
+                Long[] position = readPositions.computeIfAbsent(message.roomId(), roomId -> new Long[2]);
+                int sender = message.fromOwner() ? 0 : 1;
+                position[sender] = messageId;
+                if (message.readByReceiver()) {
+                    position[1 - sender] = messageId;
+                }
+            }
+            rowsQuery("update chat_rooms t set owner_last_read_message_id = v.owner_read, "
+                            + "student_last_read_message_id = v.student_read "
+                            + "from (values %s) as v(id, owner_read, student_read) where t.id = v.id",
+                    List.of(ValueColumn.VARCHAR, ValueColumn.BIGINT, ValueColumn.BIGINT),
+                    readPositions.entrySet().stream()
+                            .map(room -> Arrays.<Object>asList(room.getKey(), room.getValue()[0], room.getValue()[1]))
+                            .toList()).executeUpdate();
+        }
+
+        private void applyTimeline() {
+            timeline.forEach((column, rows) -> rowsQuery(
+                    "update " + column.table() + " t set " + column.column() + " = v.at from (values %s) as v(key, at) "
+                            + "where t." + column.keyColumn() + " = v.key" + column.condition(),
+                    List.of(ValueColumn.BIGINT, column.at()),
+                    rows.entrySet().stream().map(row -> List.of(row.getKey(), row.getValue())).toList())
+                    .executeUpdate());
+        }
+
+        /** 여러 행을 쿼리 한 번으로 보낸다. sql 의 %s 자리에 행들이 (값, …), (값, …) 꼴로 들어간다. */
+        @SuppressWarnings("unchecked")
+        private NativeQuery<?> rowsQuery(String sql, List<ValueColumn> columns, List<List<Object>> rows) {
+            String values = IntStream.range(0, rows.size())
+                    .mapToObj(row -> IntStream.range(0, columns.size())
+                            .mapToObj(column -> "cast(:v" + row + "_" + column + " as "
+                                    + columns.get(column).sqlType() + ")")
+                            .collect(Collectors.joining(", ", "(", ")")))
+                    .collect(Collectors.joining(", "));
+            NativeQuery<?> query = entityManager.createNativeQuery(sql.formatted(values)).unwrap(NativeQuery.class);
+            for (int row = 0; row < rows.size(); row++) {
+                for (int column = 0; column < columns.size(); column++) {
+                    query.setParameter("v" + row + "_" + column, rows.get(row).get(column),
+                            (Class<Object>) columns.get(column).javaType());
+                }
+            }
+            return query;
         }
 
         // kakao_tid는 고유한 20자 이하 값이어야 한다

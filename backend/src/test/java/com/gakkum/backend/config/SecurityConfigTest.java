@@ -372,9 +372,10 @@ class SecurityConfigTest {
     }
 
     @Test
-    @DisplayName("인증 없이 채팅방 목록, 채팅방 단건, 대화 내역을 조회하면 401을 반환하고 컨트롤러에 도달하지 않는다")
+    @DisplayName("인증 없이 채팅방 목록, 채팅방 단건, 대화 내역, 작업 이력을 조회하면 401을 반환하고 컨트롤러에 도달하지 않는다")
     void chatReadsRequireAuthentication() throws Exception {
-        for (String path : List.of("/me/chat-rooms", "/chat-rooms/room-1", "/chat-rooms/room-1/messages")) {
+        for (String path : List.of("/me/chat-rooms", "/chat-rooms/room-1", "/chat-rooms/room-1/messages",
+                "/jobs/1/work-history")) {
             mockMvc.perform(get(path))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.error.code").value("COMMON_401"));

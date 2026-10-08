@@ -63,6 +63,11 @@ public class ChatService {
                 .orElseThrow(() -> new BusinessException(ErrorCode.CHAT_ROOM_NOT_FOUND));
     }
 
+    public ChatRoom findRoomByJobId(Long jobId) {
+        return chatRoomRepository.findByJobId(jobId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.CHAT_ROOM_NOT_FOUND));
+    }
+
     public List<ChatMessage> findMessages(String roomId) {
         return chatMessageRepository.findByRoomIdOrderByIdAsc(roomId);
     }
