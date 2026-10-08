@@ -8,6 +8,7 @@ import java.nio.charset.StandardCharsets;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.util.List;
 import java.util.Map;
@@ -202,6 +203,70 @@ class DemoSampleDataIntegrationTest {
         Job lunch = jobs.get("점심 세트 메뉴판 정리");
         assertThat(instant("select created_at from proposals where id = ?", proposals.get("점심 세트 메뉴판 정리").getId()))
                 .isBefore(instant("select approved_at from payments where job_id = ?", lunch.getId()));
+    }
+
+    @Test
+    @DisplayName("방문자 사장님·학생 알림이 예시 데이터의 일과 같은 시각으로 쌓이고, 어제 온 알림만 읽지 않은 새 알림이다")
+    void seedsVisitorNotifications() throws Exception {
+        JsonNode ownerItems = data(read(ownerToken, "/me/notifications?size=100")).get("items");
+        JsonNode studentItems = data(read(studentToken, "/me/notifications?size=100")).get("items");
+
+        // 사장님: 지원 9 · 받은 제안 7 · 작업 시작 2 · 초안 6 · 수정안 2 · 후기 요청 3 · 환불 2
+        assertThat(ownerItems).hasSize(31);
+        assertThat(types(ownerItems)).containsOnly("JOB_APPLICATION_RECEIVED", "PROPOSAL_RECEIVED", "JOB_STARTED",
+                "JOB_DRAFT_SUBMITTED", "JOB_REVISION_SUBMITTED", "JOB_REVIEW_REQUESTED", "PAYMENT_REFUNDED");
+        // 학생: 선정 4 · 미선정 1 · 제안 수락 3 · 수정 요청 1 · 정산 3 · 후기 3
+        assertThat(studentItems).hasSize(15);
+        assertThat(types(studentItems)).containsOnly("JOB_APPLICATION_SELECTED", "JOB_APPLICATION_REJECTED",
+                "PROPOSAL_ACCEPTED", "JOB_REVISION_REQUESTED", "PAYMENT_SETTLED", "JOB_REVIEW_RECEIVED");
+
+        // 어제 온 알림만 읽지 않았다: 사장님은 지원 2 · 제안 1 · 초안 1 · 수정안 1, 학생은 제안 수락 · 수정 요청
+        assertThat(data(read(ownerToken, "/me/notifications/unread-count")).get("unreadCount").asLong()).isEqualTo(5);
+        assertThat(data(read(studentToken, "/me/notifications/unread-count")).get("unreadCount").asLong())
+                .isEqualTo(2);
+        Instant unreadFrom = LocalDate.now(ZoneId.of("Asia/Seoul")).minusDays(1).atStartOfDay(ZoneId.of("Asia/Seoul"))
+                .toInstant();
+        for (JsonNode item : List.of(ownerItems, studentItems).stream().flatMap(items -> items.valueStream()).toList()) {
+            Instant created = OffsetDateTime.parse(item.get("createdAt").asString()).toInstant();
+            JsonNode readAt = item.get("readAt");
+            assertThat(readAt == null || readAt.isNull()).as(item.get("title").asString())
+                    .isEqualTo(!created.isBefore(unreadFrom));
+        }
+
+        // 알림 시각은 그 일의 시각과 같다
+        Long coupon = id("단골 쿠폰·도장카드 디자인");
+        assertThat(notifiedAt("JOB_DRAFT_SUBMITTED", coupon))
+                .isEqualTo(instant("select min(created_at) from job_submissions where job_id = ?", coupon));
+        Long lunch = id("점심 세트 메뉴판 정리");
+        assertThat(notifiedAt("PROPOSAL_ACCEPTED", lunch))
+                .isEqualTo(instant("select approved_at from payments where job_id = ?", lunch));
+        Long posts = id("인스타 게시물 5개 제작");
+        assertThat(notifiedAt("JOB_REVIEW_RECEIVED", posts))
+                .isEqualTo(instant("select created_at from reviews where job_id = ?", posts));
+
+        // 알림이 가리키는 의뢰 · 제안 · 채팅방 · 결제가 모두 있다
+        assertThat(jdbcTemplate.queryForObject("""
+                select count(*) from notifications n join users u on u.user_id = n.recipient_user_id
+                where u.demo_session_id = ? and not (
+                    (n.target_type = 'JOB' and exists (select 1 from jobs j where j.id::text = n.target_id))
+                    or (n.target_type = 'PROPOSAL' and exists (select 1 from proposals p where p.id::text = n.target_id))
+                    or (n.target_type = 'CHAT_ROOM' and exists (select 1 from chat_rooms c where c.id = n.target_id))
+                    or (n.target_type = 'PAYMENT' and exists (select 1 from payments p where p.id::text = n.target_id)))
+                """, Long.class, sessionId)).isZero();
+    }
+
+    private Instant notifiedAt(String type, Long jobId) {
+        return jdbcTemplate.queryForObject("select created_at from notifications where type = ? and target_id = ?",
+                Timestamp.class, type, String.valueOf(jobId)).toInstant();
+    }
+
+    private static List<String> types(JsonNode items) {
+        return items.valueStream().map(item -> item.get("type").asString()).toList();
+    }
+
+    private static JsonNode data(String body) {
+        JsonNode root = JSON.readTree(body);
+        return root.has("data") ? root.get("data") : root;
     }
 
     @Test
