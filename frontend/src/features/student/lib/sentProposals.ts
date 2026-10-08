@@ -65,7 +65,12 @@ export function sentProposalFlowSteps(
 }
 
 /** 「10월 5일 보냄」. createdAt 이 없으면 undefined (그 줄을 숨긴다) */
-export function sentOnText(createdAt: string | null | undefined): string | undefined {
+export function sentOnText(
+  createdAt: string | null | undefined,
+  rejectedAt?: string | null,
+): string | undefined {
+  const rejectedOn = proposalMonthDay(rejectedAt);
+  if (rejectedOn) return `${rejectedOn} 성사되지 않음`;
   const monthDay = proposalMonthDay(createdAt);
   return monthDay && `${monthDay} 보냄`;
 }

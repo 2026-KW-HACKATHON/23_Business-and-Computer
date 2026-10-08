@@ -1,5 +1,10 @@
 import { apiData } from "../../../api/client";
-import type { ProposalJobStatus, ProposalSpecialtyCategory, ProposalStatus } from "../../proposal";
+import type {
+  ProposalJobStatus,
+  ProposalRejectedBy,
+  ProposalSpecialtyCategory,
+  ProposalStatus,
+} from "../../proposal";
 
 /** POST /proposals 요청 본문 (ProposalCreateRequest) */
 export interface ProposalCreateRequest {
@@ -49,6 +54,10 @@ export interface MyProposalResponse {
   jobId?: number | null;
   /** 그 의뢰의 상태. 결제 전이면 없음 */
   jobStatus?: ProposalJobStatus | null;
+  /** REJECTED 일 때만. 누가 거절했는지 */
+  rejectedBy?: ProposalRejectedBy | null;
+  /** REJECTED 일 때만. 「M월 D일 성사되지 않음」에 쓴다. 한국 시각 "2026-10-06T00:30:00+09:00" */
+  rejectedAt?: string | null;
   /** 한국 시각, 오프셋 없음 "2026-10-05T14:03:11.123" */
   createdAt?: string | null;
 }
