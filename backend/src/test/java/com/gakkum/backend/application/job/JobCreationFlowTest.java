@@ -22,6 +22,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -126,7 +127,7 @@ class JobCreationFlowTest {
         JobFacade facade = new JobFacade(userService, ownerService, jobService,
                 specialtyCategoryService, specialtyService, mock(StudentService.class),
                 mock(JobSubmissionFileStorageClient.class), mock(ChatAttachmentPolicy.class), mock(PaymentService.class),
-                mock(ReviewService.class), mock(CertificateService.class), mock(ProposalService.class), new MediaService(imageStorageClient, DataSize.ofMegabytes(10)));
+                mock(ReviewService.class), mock(CertificateService.class), mock(ProposalService.class), new MediaService(imageStorageClient, DataSize.ofMegabytes(10)), mock(ApplicationEventPublisher.class));
         JobController controller = new JobController(facade);
 
         mockMvc = MockMvcBuilders.standaloneSetup(controller)

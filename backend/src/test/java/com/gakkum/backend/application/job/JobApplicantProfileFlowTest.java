@@ -37,6 +37,7 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
@@ -135,7 +136,7 @@ class JobApplicantProfileFlowTest {
                 new CertificateService(studentCertificateRepository),
                 new ProposalService(proposalRepository, mock(ProposalSpecialtyRepository.class),
                         mock(ProposalLikeRepository.class)),
-                mock(MediaService.class));
+                mock(MediaService.class), mock(ApplicationEventPublisher.class));
 
         mockMvc = MockMvcBuilders.standaloneSetup(new JobController(facade))
                 .setControllerAdvice(new GlobalExceptionHandler())
