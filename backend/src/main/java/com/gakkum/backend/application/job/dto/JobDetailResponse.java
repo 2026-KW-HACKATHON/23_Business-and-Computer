@@ -43,6 +43,8 @@ public final class JobDetailResponse {
         @JsonInclude(JsonInclude.Include.NON_NULL)
         private final JobApplicationStatus applied;
         private final String storeName;
+        // 매장 대표 사진(사장님 프로필 사진). 사진이 없으면 null
+        private final String storeProfileImageUrl;
         // 주소를 등록하지 않은 매장은 null
         private final String storeAddress;
         // 아래 취소 정보는 취소된 의뢰의 사장님·선정 학생에게만 내리고, 그 외에는 모두 null
@@ -70,6 +72,7 @@ public final class JobDetailResponse {
                     .status(result.getStatus())
                     .applied(result.getApplied())
                     .storeName(result.getStoreName())
+                    .storeProfileImageUrl(result.getStoreProfileImageUrl())
                     .storeAddress(result.getStoreAddress())
                     .cancelledBy(result.getCancelledBy())
                     .cancelReason(result.getCancelReason())

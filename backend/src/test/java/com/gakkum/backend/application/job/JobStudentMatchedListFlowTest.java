@@ -165,21 +165,24 @@ class JobStudentMatchedListFlowTest {
     }
 
     @Test
-    @DisplayName("의뢰 수가 늘어도 매장 이름과 제출물은 사장님 중복 없이 한 번씩만 조회한다")
+    @DisplayName("의뢰 수가 늘어도 매장 이름·사진과 제출물은 사장님 중복 없이 한 번씩만 조회하고, 사진이 없는 매장은 사진을 null로 내린다")
     void readsStoreNamesOnce() throws Exception {
         givenStudent();
         when(jobRepository.findBySelectedStudentProfileIdAndStatusOrderByCreatedAtDescIdDesc(7L, JobStatus.MATCHED))
                 .thenReturn(List.of(job(44L, 5L), job(43L, 6L), job(42L, 5L)));
         when(jobSpecialtyRepository.findByJobIdIn(List.of(44L, 43L, 42L))).thenReturn(List.of());
         when(jobSubmissionRepository.findByJobIdIn(List.of(44L, 43L, 42L))).thenReturn(List.of());
-        when(ownerRepository.findAllById(Set.of(5L, 6L)))
-                .thenReturn(List.of(owner(6L, "동네 빵집"), owner(5L, "가꿈 카페")));
+        when(ownerRepository.findAllById(Set.of(5L, 6L))).thenReturn(List.of(
+                owner(6L, "동네 빵집", "https://cdn.example.com/owners/6/profile.png"), owner(5L, "가꿈 카페")));
         when(specialtyCategoryService.getSpecialtyDetails(Set.of())).thenReturn(Map.of());
 
         mockMvc.perform(get("/me/jobs").param("status", "MATCHED").principal(authentication))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.jobs[0].storeName").value("가꿈 카페"))
+                .andExpect(jsonPath("$.data.jobs[0].storeProfileImageUrl").value(nullValue()))
                 .andExpect(jsonPath("$.data.jobs[1].storeName").value("동네 빵집"))
+                .andExpect(jsonPath("$.data.jobs[1].storeProfileImageUrl")
+                        .value("https://cdn.example.com/owners/6/profile.png"))
                 .andExpect(jsonPath("$.data.jobs[2].storeName").value("가꿈 카페"));
         verify(ownerRepository, times(1)).findAllById(any());
         verify(jobSubmissionRepository, times(1)).findByJobIdIn(any());
@@ -253,7 +256,11 @@ class JobStudentMatchedListFlowTest {
     }
 
     private Owner owner(Long id, String storeName) {
-        return Owner.builder().id(id).storeName(storeName).build();
+        return owner(id, storeName, null);
+    }
+
+    private Owner owner(Long id, String storeName, String profileImageUrl) {
+        return Owner.builder().id(id).storeName(storeName).profileImageUrl(profileImageUrl).build();
     }
 
     private JobSubmission submission(

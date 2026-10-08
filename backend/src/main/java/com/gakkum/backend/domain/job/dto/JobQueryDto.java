@@ -75,6 +75,8 @@ public final class JobQueryDto {
         // 조회한 학생 본인의 지원서 상태. 지원 이력이 없거나 학생 프로필이 없는 학생, 학생이 아닌 사용자는 null이다
         private final JobApplicationStatus applied;
         private final String storeName;
+        // 매장 대표 사진(사장님 프로필 사진). 사진이 없으면 null
+        private final String storeProfileImageUrl;
         private final String storeAddress;
         // 아래 취소 정보는 취소된 의뢰를 의뢰한 사장님 또는 선정 학생이 조회할 때만 채우고, 그 외에는 모두 null
         private final String cancelledBy;
@@ -123,6 +125,7 @@ public final class JobQueryDto {
                     .status(job.getStatus().name())
                     .applied(applied)
                     .storeName(owner.getStoreName())
+                    .storeProfileImageUrl(owner.getProfileImageUrl())
                     .storeAddress(owner.getStoreAddress());
         }
     }
@@ -611,6 +614,8 @@ public final class JobQueryDto {
         private final Long pendingSubmissionId;
         private final JobProgressStage progressStage;
         private final String studentName;
+        // 선정 학생의 프로필 사진. 사진이 없으면 null
+        private final String studentProfileImageUrl;
         private final Long budget;
         private final Integer revisionCount;
         // 아래 둘은 pendingSubmissionId와 같은 검토 대기 제출물의 값이고 없으면 null이다
@@ -634,6 +639,7 @@ public final class JobQueryDto {
                     .pendingSubmissionId(pendingSubmission == null ? null : pendingSubmission.getId())
                     .progressStage(data.getProgressStage())
                     .studentName(studentUser.getName())
+                    .studentProfileImageUrl(student.getProfileImageUrl())
                     .budget(job.getBudget())
                     .revisionCount(job.getRevisionCount())
                     .revisionNumber(pendingSubmission == null ? null : pendingSubmission.getRevisionNumber())
@@ -669,10 +675,13 @@ public final class JobQueryDto {
         private final String reviewStatus;
         private final JobProgressStage progressStage;
         private final String storeName;
+        // 매장 대표 사진(사장님 프로필 사진). 사진이 없으면 null
+        private final String storeProfileImageUrl;
         // submissionType·reviewStatus와 같은 최신 제출물의 제출 시각. 제출물이 없으면 null이다
         private final LocalDateTime submittedAt;
 
-        public static StudentMatchedJobResult of(StudentMatchedJobData data, String storeName,
+        /** 매장 이름과 사진은 의뢰한 사장님의 현재 프로필 값이다. */
+        public static StudentMatchedJobResult of(StudentMatchedJobData data, Owner owner,
                 List<SpecialtyCategoryResult> specialtyCategories) {
             Job job = data.getJob();
             JobSubmission latest = data.getLatestSubmission();
@@ -687,7 +696,8 @@ public final class JobQueryDto {
                     .submissionType(latest == null ? null : latest.getSubmissionType().name())
                     .reviewStatus(latest == null ? null : latest.getReviewStatus().name())
                     .progressStage(data.getProgressStage())
-                    .storeName(storeName)
+                    .storeName(owner.getStoreName())
+                    .storeProfileImageUrl(owner.getProfileImageUrl())
                     .submittedAt(latest == null ? null : latest.getCreatedAt())
                     .build();
         }
@@ -932,6 +942,8 @@ public final class JobQueryDto {
 
         private final Long studentProfileId;
         private final String name;
+        // 학생 프로필 사진. 사진이 없으면 null
+        private final String profileImageUrl;
         private final String university;
         private final String major;
         private final String studentNumber;
@@ -940,6 +952,7 @@ public final class JobQueryDto {
             return ApplicantStudentResult.builder()
                     .studentProfileId(student.getId())
                     .name(studentUser.getName())
+                    .profileImageUrl(student.getProfileImageUrl())
                     .university(student.getUniversity())
                     .major(student.getMajor())
                     .studentNumber(student.getStudentNumber())
