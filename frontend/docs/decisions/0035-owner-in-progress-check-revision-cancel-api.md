@@ -4,9 +4,7 @@
 
 Accepted. 내 활동 › 진행 중, the home 「확인할 일」 초안 · 수정안 cards and
 「학생이 작업 중」 rows, 작업 확인, 수정 요청, and 작업 취소 read and write the
-backend for jobs a student is working on. Sample works (ids like
-`work-103`) still open the old sample screens, because sample notifications
-link to them.
+backend for jobs a student is working on.
 
 ## Context
 
@@ -92,8 +90,8 @@ The backend (dev) has:
 
 ## Rationale
 
-- Keeping sample works for non-numeric ids leaves sample notifications
-  working until they read the backend.
+- The work screens read the same job the student works on, so both sides
+  see the same stage, files, and deadlines.
 
 ## Alternatives Considered
 

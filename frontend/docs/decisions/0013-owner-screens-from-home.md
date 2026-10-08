@@ -24,11 +24,9 @@ them yet.
   /owner/requests/:requestId, /owner/requests/:requestId/applicants, and
   /owner/requests/new. The home buttons now use these paths
   (`src/features/owner/lib/paths.ts`); 「더 보기 ›」 goes to 탐색.
-- Every screen reads sample data through hooks in
-  `src/features/owner/hooks/useOwnerData.ts`. The sample lives in
-  `src/features/owner/lib/sampleDetails.ts` and shares ids with the home
-  sample, so a work id opens the same work everywhere. Sample dates count
-  from today (`src/lib/sampleTime.ts`).
+- Every screen reads data through hooks in `src/features/owner/hooks`, so a
+  screen keeps its code when its data moves to the backend. Example dates
+  count from today (`src/lib/sampleTime.ts`).
 - A missing id shows `OwnerMissing` instead of an empty screen.
 - The home rows of 학생이 작업 중, 기다리는 중, and 끝난 일 are whole-row
   buttons with a ›; `TaskRow` takes `onClick` for this.
@@ -46,8 +44,6 @@ them yet.
 
 ## Rationale
 
-- Sharing ids across the sample keeps the walk-through consistent, which
-  the demo (둘러보기) will need too.
 - `SubScreen` gives every non-tab screen the same fixed app bar and footer,
   matching the Figma 「스크롤 화면」 notes.
 

@@ -6,8 +6,7 @@ Accepted. 수정 요청 확인, 수정안 제출, and 제출한 초안 · 수정
 the owner's revision request and the student's own files and message from the
 backend.
 「프로필 보기」 on 내 활동 › 받은 제안 · 진행 중, 받은 제안 상세, and 제안서
-(다른 가게) opens the student's profile from the backend. Sample works
-(non-numeric ids) still open the sample screens.
+(다른 가게) opens the student's profile from the backend.
 
 ## Context
 
@@ -41,7 +40,7 @@ The backend (dev) has:
   D일 보냄」 and a 「받기」 link. 「이번이 마지막 수정이에요」 shows when
   `revisionNumber + 1` reaches the revision count.
 - **수정안 제출** (`src/pages/StudentJobSubmitPage.tsx`): the owner's request
-  (date and text) above the file picker, as on the sample screen.
+  (date and text) above the file picker.
 - **제출한 초안 · 수정안**: the meta reads 「가게 · M월 D일 제출 · 수정 n/m」
   (n = `revisionNumber`), 원본 파일 has 「받기」 links, and 「내가 남긴
   한마디」 (`NoteBox`) shows the message. The automatic completion line
@@ -62,8 +61,6 @@ The backend (dev) has:
 
 - The two profile APIs return the same shape, so one body keeps 학생 프로필
   and 지원자 프로필 identical.
-- A numeric id selects server data, as for server jobs (ADR 0032, ADR 0035),
-  so sample work links keep working.
 
 ## Alternatives Considered
 
@@ -73,5 +70,5 @@ The backend (dev) has:
 
 ## Agent Guidance
 
-- When sample works are removed, drop the non-numeric branches in
-  `src/pages/StudentRevisionPage.tsx` and `src/pages/StudentSubmittedPage.tsx`.
+- Every job screen treats a non-numeric id as not found without a request
+  (`OwnerMissing`, `StudentMissing`).

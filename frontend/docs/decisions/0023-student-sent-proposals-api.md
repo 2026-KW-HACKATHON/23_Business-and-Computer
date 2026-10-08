@@ -149,12 +149,11 @@ student screen, which still read `sampleProposals.ts`. The backend (dev) has:
   list behind it.
 - Showing 0 while loading: rejected, it looks like a real count and would make
   the home pick the first-visit guide.
-- Reusing `AttachmentTiles` for real photos: rejected by the request; it stays
-  a name tile for sample data.
+- Reusing `AttachmentTiles` (name tiles) for real photos: rejected by the
+  request.
 
 ## Agent Guidance
 
-- `useMyProposal` (sample) is used by the work-start screen.
 - `GET /proposals/{id}` does not check that the viewer wrote the proposal
   (only the demo session); the screen trusts that it was reached from the
   student's own list.

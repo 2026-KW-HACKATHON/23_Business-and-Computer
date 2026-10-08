@@ -66,8 +66,6 @@ ADR 0041.
   /jobs/{id}. 의뢰서 거절, 사장님이 작업 중에 취소 (착수 보상 20%), and 시작 전
   취소 each get their own sentence; 취소 이유 shows for an owner cancel, and the
   breakdown for a paid job. The date is the Korean date of `cancelledAt`.
-- Non-numeric ids keep opening the sample screens that notifications and chat
-  examples use.
 - **정산 내역** (`src/pages/StudentSettlementsPage.tsx`): 정산 완료 rows open 내
   결과물, and 착수 보상 · 성사되지 않음 rows open 성사되지 않은 작업.
 - **Owner**: `fetchOwnerClosedJobs` reads the array; 내 정보 counts 보낸 의뢰
