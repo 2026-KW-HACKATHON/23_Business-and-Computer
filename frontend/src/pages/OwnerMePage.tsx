@@ -1,7 +1,7 @@
 import { useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { LoadNotice, MenuList, ProfilePhoto, StoreInfo, SubScreen, SummaryCard } from "../components";
-import { clearTokens, landingPath } from "../features/auth";
+import { landingPath, logOut } from "../features/auth";
 import { OWNER_PATHS, ownerMeChanges, saveOwnerMe, useOpenJobs, useOwnerMe } from "../features/owner";
 import type { ActivityTab, OwnerMe } from "../features/owner";
 import { PROFILE_PHOTO_ACCEPT, TermsSheet, checkProfilePhoto } from "../features/signup";
@@ -32,8 +32,9 @@ function OwnerMePage() {
 
   const openActivity = (tab: ActivityTab) => navigate(OWNER_PATHS.activity(tab));
 
+  // 저장된 토큰은 바로 지우고 서버의 refresh 쿠키 폐기(POST /logout)는 기다리지 않는다
   const logout = () => {
-    clearTokens();
+    void logOut();
     navigate("/login", { replace: true });
   };
 

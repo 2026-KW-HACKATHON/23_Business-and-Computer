@@ -81,6 +81,8 @@ export async function registerOwnerSignup(
           return "alreadyRegistered";
         case "OWNER_409_BUSINESS_NUMBER":
           return "businessNumberTaken";
+        case "OWNER_400_BUSINESS_NOT_VERIFIED":
+          return "businessNotVerified";
         case "CATEGORY_400":
           return "categoryInvalid";
       }

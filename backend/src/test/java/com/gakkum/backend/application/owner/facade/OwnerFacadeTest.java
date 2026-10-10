@@ -3,6 +3,7 @@ package com.gakkum.backend.application.owner.facade;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
@@ -14,15 +15,20 @@ import static org.mockito.Mockito.when;
 import java.time.LocalDate;
 import java.util.List;
 
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InOrder;
 
 import com.gakkum.backend.application.owner.dto.OwnerRegistrationRequest;
 import com.gakkum.backend.application.owner.dto.OwnerRegistrationResponse;
+import com.gakkum.backend.domain.auth.dto.AuthCommandDto.VerifyOwnerBusinessCommand;
+import com.gakkum.backend.domain.auth.service.AuthService;
 import com.gakkum.backend.domain.category.service.BusinessCategoryService;
 import com.gakkum.backend.domain.job.service.JobService;
 import com.gakkum.backend.domain.jwt.service.JwtService;
+import com.gakkum.backend.domain.media.dto.ImagePurpose;
+import com.gakkum.backend.domain.media.service.MediaService;
 import com.gakkum.backend.domain.owner.dto.OwnerCommandDto.CreateOwnerProfileCommand;
 import com.gakkum.backend.domain.owner.service.OwnerService;
 import com.gakkum.backend.domain.proposal.service.ProposalService;
@@ -31,6 +37,7 @@ import com.gakkum.backend.domain.user.entity.UserRole;
 import com.gakkum.backend.domain.user.service.UserService;
 import com.gakkum.backend.global.exception.BusinessException;
 import com.gakkum.backend.global.exception.ErrorCode;
+import com.gakkum.backend.global.transaction.ImmediateTransactionTemplate;
 
 class OwnerFacadeTest {
 
@@ -38,13 +45,18 @@ class OwnerFacadeTest {
     private final OwnerService ownerService = mock(OwnerService.class);
     private final BusinessCategoryService businessCategoryService = mock(BusinessCategoryService.class);
     private final JwtService jwtService = mock(JwtService.class);
+    private final AuthService authService = mock(AuthService.class);
+    private final MediaService mediaService = mock(MediaService.class);
     private final OwnerFacade facade = new OwnerFacade(
             userService,
             ownerService,
             businessCategoryService,
             jwtService,
             mock(JobService.class),
-            mock(ProposalService.class));
+            mock(ProposalService.class),
+            authService,
+            mediaService,
+            new ImmediateTransactionTemplate());
 
     private final User user = User.builder()
             .id("01K58M6PJV8VAJMXHBHJ2PNB5C")
@@ -66,8 +78,10 @@ class OwnerFacadeTest {
             "https://image.example.com/profile.png");
 
     @Test
+    @DisplayName("사업자 진위 확인을 통과하면 사장님 프로필을 만들고 토큰을 발급한다")
     void coordinatesOwnerRegistration() {
         when(userService.validateOwnerRegistration("KAKAO_12345")).thenReturn(user);
+        when(authService.verifyOwnerBusiness(any(VerifyOwnerBusinessCommand.class))).thenReturn(true);
         when(userService.completeOwnerRegistration(user, "김사장")).thenReturn(user);
         when(jwtService.issueAccessToken("KAKAO_12345", UserRole.OWNER)).thenReturn("access-token");
         when(jwtService.replaceRefreshToken("KAKAO_12345", UserRole.OWNER)).thenReturn("refresh-token");
@@ -77,10 +91,21 @@ class OwnerFacadeTest {
         assertThat(response.getAccessToken()).isEqualTo("access-token");
         assertThat(response.getRefreshToken()).isEqualTo("refresh-token");
 
-        InOrder order = inOrder(userService, ownerService, businessCategoryService, jwtService);
+        InOrder order = inOrder(userService, ownerService, businessCategoryService, authService, jwtService);
         order.verify(userService).validateOwnerRegistration("KAKAO_12345");
         order.verify(ownerService).validateBusinessNumberAvailable("12341453312");
         order.verify(businessCategoryService).validateCategoryExists(2L);
+
+        ArgumentCaptor<VerifyOwnerBusinessCommand> verifyCaptor =
+                ArgumentCaptor.forClass(VerifyOwnerBusinessCommand.class);
+        order.verify(authService).verifyOwnerBusiness(verifyCaptor.capture());
+        VerifyOwnerBusinessCommand verifyCommand = verifyCaptor.getValue();
+        assertThat(verifyCommand.getUsername()).isEqualTo("KAKAO_12345");
+        assertThat(verifyCommand.getBusinessNumber()).isEqualTo("12341453312");
+        assertThat(verifyCommand.getOpenedAt()).isEqualTo(LocalDate.of(2020, 3, 1));
+        assertThat(verifyCommand.getRepresentativeName()).isEqualTo("김사장");
+
+        order.verify(userService).validateOwnerRegistration("KAKAO_12345");
         order.verify(userService).completeOwnerRegistration(user, "김사장");
 
         ArgumentCaptor<CreateOwnerProfileCommand> ownerCaptor =
@@ -104,6 +129,86 @@ class OwnerFacadeTest {
     }
 
     @Test
+    @DisplayName("프로필 사진은 프로필 용도로, 매장 사진은 매장 용도로 본인이 올린 사진인지 국세청 확인 전에 확인한다")
+    void validatesUploadedImagesBeforeBusinessVerification() {
+        when(userService.validateOwnerRegistration("KAKAO_12345")).thenReturn(user);
+        when(authService.verifyOwnerBusiness(any(VerifyOwnerBusinessCommand.class))).thenReturn(true);
+
+        facade.register("KAKAO_12345", request);
+
+        InOrder order = inOrder(mediaService, authService);
+        order.verify(mediaService).validateUploadedImages(user.getId(), ImagePurpose.PROFILE,
+                List.of("https://image.example.com/profile.png"));
+        order.verify(mediaService).validateUploadedImages(user.getId(), ImagePurpose.STORE,
+                List.of("https://image.example.com/store1.png", "https://image.example.com/store2.png"));
+        order.verify(authService).verifyOwnerBusiness(any(VerifyOwnerBusinessCommand.class));
+    }
+
+    @Test
+    @DisplayName("프로필 사진이 없으면 프로필 사진 확인은 건너뛰고 매장 사진만 확인한다")
+    void skipsProfileImageCheckWhenAbsent() {
+        when(userService.validateOwnerRegistration("KAKAO_12345")).thenReturn(user);
+        when(authService.verifyOwnerBusiness(any(VerifyOwnerBusinessCommand.class))).thenReturn(true);
+        OwnerRegistrationRequest withoutImages = OwnerRegistrationRequest.of(
+                "김사장", "치킨플러스", null, 2L, "12341453312", LocalDate.of(2020, 3, 1), "김사장", null,
+                null, "  ");
+
+        facade.register("KAKAO_12345", withoutImages);
+
+        verify(mediaService, never()).validateUploadedImages(any(), eq(ImagePurpose.PROFILE), any());
+        verify(mediaService).validateUploadedImages(user.getId(), ImagePurpose.STORE, List.of());
+    }
+
+    @Test
+    @DisplayName("본인이 올리지 않은 사진이면 국세청 확인 전에 그 오류로 거부하고 저장하지 않는다")
+    void rejectsImageNotUploadedByUserBeforeBusinessVerification() {
+        when(userService.validateOwnerRegistration("KAKAO_12345")).thenReturn(user);
+        doThrow(new BusinessException(ErrorCode.MEDIA_IMAGE_URL_INVALID))
+                .when(mediaService).validateUploadedImages(any(), any(), any());
+
+        assertThatThrownBy(() -> facade.register("KAKAO_12345", request))
+                .isInstanceOfSatisfying(BusinessException.class, exception ->
+                        assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.MEDIA_IMAGE_URL_INVALID));
+
+        verifyNoInteractions(authService, jwtService);
+        verify(userService, never()).completeOwnerRegistration(any(), any());
+        verify(ownerService, never()).createOwnerProfile(any(), any());
+    }
+
+    @Test
+    @DisplayName("국세청이 사업자 정보를 확인하지 못하면 400으로 거부하고 저장·토큰 발급을 하지 않는다")
+    void rejectsWhenBusinessIsNotVerified() {
+        when(userService.validateOwnerRegistration("KAKAO_12345")).thenReturn(user);
+        when(authService.verifyOwnerBusiness(any(VerifyOwnerBusinessCommand.class))).thenReturn(false);
+
+        assertThatThrownBy(() -> facade.register("KAKAO_12345", request))
+                .isInstanceOfSatisfying(BusinessException.class, exception ->
+                        assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.OWNER_BUSINESS_NOT_VERIFIED));
+
+        verify(userService, never()).completeOwnerRegistration(any(), any());
+        verify(ownerService, never()).createOwnerProfile(any(), any());
+        verifyNoInteractions(jwtService);
+    }
+
+    @Test
+    @DisplayName("국세청에 닿지 못하면 진위 확인 API와 같은 503 오류를 그대로 전달하고 저장하지 않는다")
+    void propagatesUnavailableWhenNtsIsDown() {
+        when(userService.validateOwnerRegistration("KAKAO_12345")).thenReturn(user);
+        when(authService.verifyOwnerBusiness(any(VerifyOwnerBusinessCommand.class)))
+                .thenThrow(new BusinessException(ErrorCode.OWNER_BUSINESS_VERIFICATION_UNAVAILABLE));
+
+        assertThatThrownBy(() -> facade.register("KAKAO_12345", request))
+                .isInstanceOfSatisfying(BusinessException.class, exception ->
+                        assertThat(exception.getErrorCode())
+                                .isEqualTo(ErrorCode.OWNER_BUSINESS_VERIFICATION_UNAVAILABLE));
+
+        verify(userService, never()).completeOwnerRegistration(any(), any());
+        verify(ownerService, never()).createOwnerProfile(any(), any());
+        verifyNoInteractions(jwtService);
+    }
+
+    @Test
+    @DisplayName("이미 가입한 사용자는 국세청 확인 전에 바로 거부한다")
     void stopsImmediatelyWhenUserIsAlreadyRegistered() {
         when(userService.validateOwnerRegistration("KAKAO_12345"))
                 .thenThrow(new BusinessException(ErrorCode.ALREADY_REGISTERED));
@@ -113,10 +218,11 @@ class OwnerFacadeTest {
                         assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.ALREADY_REGISTERED));
 
         verify(userService, never()).completeOwnerRegistration(any(), any());
-        verifyNoInteractions(ownerService, businessCategoryService, jwtService);
+        verifyNoInteractions(ownerService, businessCategoryService, authService, jwtService);
     }
 
     @Test
+    @DisplayName("사업자등록번호가 이미 쓰이고 있으면 업종 확인·국세청 확인 전에 거부한다")
     void stopsBeforeCategoryCheckWhenBusinessNumberIsDuplicated() {
         when(userService.validateOwnerRegistration("KAKAO_12345")).thenReturn(user);
         doThrow(new BusinessException(ErrorCode.DUPLICATE_BUSINESS_NUMBER))
@@ -128,10 +234,11 @@ class OwnerFacadeTest {
 
         verify(userService, never()).completeOwnerRegistration(any(), any());
         verify(ownerService, never()).createOwnerProfile(any(), any());
-        verifyNoInteractions(businessCategoryService, jwtService);
+        verifyNoInteractions(businessCategoryService, authService, jwtService);
     }
 
     @Test
+    @DisplayName("업종이 없으면 국세청 확인 전에 거부하고 저장하지 않는다")
     void stopsBeforeSavingWhenCategoryDoesNotExist() {
         when(userService.validateOwnerRegistration("KAKAO_12345")).thenReturn(user);
         doThrow(new BusinessException(ErrorCode.BUSINESS_CATEGORY_NOT_FOUND))
@@ -143,6 +250,6 @@ class OwnerFacadeTest {
 
         verify(userService, never()).completeOwnerRegistration(any(), any());
         verify(ownerService, never()).createOwnerProfile(any(), any());
-        verifyNoInteractions(jwtService);
+        verifyNoInteractions(authService, jwtService);
     }
 }

@@ -51,10 +51,12 @@ import com.gakkum.backend.domain.job.repository.JobSpecialtyRepository;
 import com.gakkum.backend.domain.job.repository.JobSubmissionRepository;
 import com.gakkum.backend.domain.job.service.JobService;
 import com.gakkum.backend.domain.jwt.service.JwtService;
+import com.gakkum.backend.domain.media.service.MediaService;
 import com.gakkum.backend.domain.owner.entity.Owner;
 import com.gakkum.backend.domain.owner.repository.OwnerRepository;
 import com.gakkum.backend.domain.owner.service.OwnerService;
 import com.gakkum.backend.domain.payment.service.PaymentService;
+import com.gakkum.backend.domain.proposal.entity.ProposalStatus;
 import com.gakkum.backend.domain.proposal.repository.ProposalLikeRepository;
 import com.gakkum.backend.domain.proposal.repository.ProposalRepository;
 import com.gakkum.backend.domain.proposal.repository.ProposalSpecialtyRepository;
@@ -132,7 +134,8 @@ class StudentProfileFlowTest {
                         jobSubmissionRepository, Clock.systemUTC()),
                 new ReviewService(reviewRepository),
                 paymentService,
-                new OwnerService(ownerRepository));
+                new OwnerService(ownerRepository),
+                mock(MediaService.class));
 
         mockMvc = MockMvcBuilders.standaloneSetup(new StudentController(facade))
                 .setControllerAdvice(new GlobalExceptionHandler())
@@ -155,7 +158,8 @@ class StudentProfileFlowTest {
                 .andExpect(jsonPath("$.data.student.profileImageUrl").value(STUDENT_PROFILE_IMAGE_URL))
                 .andExpect(jsonPath("$.data.student.university").value("광운대학교"))
                 .andExpect(jsonPath("$.data.student.major").value("소프트웨어학부"))
-                .andExpect(jsonPath("$.data.student.studentNumber").value("2023000007"))
+                // 학번 전체 대신 입학연도 두 자리만 내린다
+                .andExpect(jsonPath("$.data.student.studentNumber").value("23"))
                 .andExpect(jsonPath("$.data.proposalCount").value(12))
                 .andExpect(jsonPath("$.data.completedJobCount").value(5))
                 // 학생이 등록한 전체 특기를 대분류·소분류 ID 오름차순으로 내린다
@@ -244,8 +248,8 @@ class StudentProfileFlowTest {
 
     @ParameterizedTest
     @ValueSource(ints = { 0, 1, 30 })
-    @DisplayName("의뢰·지원서·제안 관계와 상태를 조회하지 않아 관계가 없거나 끝난 학생도 조회되고, 리뷰 수가 늘어도 Repository는 종류별로 한 번씩만 호출한다")
-    void succeedsWithoutReadingAnyRelation(int reviewCount) throws Exception {
+    @DisplayName("의뢰 관계가 있으면 제안 관계는 조회하지 않고, 리뷰 수가 늘어도 Repository는 종류별로 한 번씩만 호출한다")
+    void readsEachRepositoryOnceRegardlessOfReviewCount(int reviewCount) throws Exception {
         givenOwner();
         givenStudent(null);
         List<Long> reviewedJobIds = LongStream.rangeClosed(1, reviewCount).map(id -> 1000 + id).boxed().toList();
@@ -270,6 +274,9 @@ class StudentProfileFlowTest {
         verify(userRepository).findByUsernameAndIsLock(USERNAME, false);
         verify(userRepository).findById(STUDENT_USER_ID);
         verify(studentRepository).findById(STUDENT_PROFILE_ID);
+        // 열람 관계는 조회자의 사장님 프로필과 의뢰 관계 한 번으로 확인한다
+        verify(ownerRepository).findByUserId(USER_ID);
+        verify(jobRepository).existsOwnerJobRelatedToStudent(OWNER_PROFILE_ID, STUDENT_PROFILE_ID);
         verify(studentSpecialtyRepository).findByStudentProfileIdIn(List.of(STUDENT_PROFILE_ID));
         verify(specialtyRepository).findAllById(any());
         verify(specialtyCategoryRepository).findAllById(any());
@@ -289,9 +296,78 @@ class StudentProfileFlowTest {
         verifyNoMoreInteractions(userRepository, ownerRepository, jobRepository, studentRepository,
                 studentSpecialtyRepository, specialtyRepository, specialtyCategoryRepository, reviewRepository,
                 studentCertificateRepository, proposalRepository);
-        // 조회자와 학생 사이의 지원서·제안·제출물·결제는 어떤 상태든 읽지 않는다
+        // 지원서는 의뢰 관계 쿼리 안에서만 확인하고, 제출물·결제는 읽지 않는다
         verifyNoInteractions(jobApplicationRepository, jobSpecialtyRepository, jobSubmissionRepository,
                 proposalSpecialtyRepository, proposalLikeRepository, paymentService);
+    }
+
+    @Test
+    @DisplayName("학생이 이 사장님에게 제안을 보냈으면 의뢰 관계가 없어도 조회할 수 있다")
+    void returnsStudentWhoProposedToOwner() throws Exception {
+        givenOwner();
+        givenStudent(null);
+        givenNoJobRelation();
+        when(proposalRepository.existsByOwnerProfileIdAndStudentProfileId(OWNER_PROFILE_ID, STUDENT_PROFILE_ID))
+                .thenReturn(true);
+
+        getProfile()
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.student.studentProfileId").value(7))
+                .andExpect(jsonPath("$.data.student.studentNumber").value("23"));
+    }
+
+    @ParameterizedTest
+    @CsvSource(value = { "NULL", DEMO_SESSION_ID }, nullValues = "NULL")
+    @DisplayName("학생의 제안이 사장님 탐색 목록에 보이면 의뢰·받은 제안 관계가 없어도 조회할 수 있다 (탐색 제안 상세의 프로필 보기)")
+    void returnsStudentWhoseProposalIsShownInExplore(String demoSessionId) throws Exception {
+        givenOwner(demoSessionId);
+        givenStudentFound(student(null), demoSessionId);
+        givenNoJobRelation();
+        when(proposalRepository.existsByStudentProfileIdAndDemoSessionIdAndStatusNotIn(
+                STUDENT_PROFILE_ID, demoSessionId, List.of(ProposalStatus.CANCELLED, ProposalStatus.REJECTED)))
+                .thenReturn(true);
+
+        getProfile()
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.student.studentProfileId").value(7));
+
+        verify(proposalRepository).existsByOwnerProfileIdAndStudentProfileId(OWNER_PROFILE_ID, STUDENT_PROFILE_ID);
+    }
+
+    @Test
+    @DisplayName("의뢰 지원·선택, 받은 제안, 탐색 제안 어느 관계도 없는 학생은 없는 학생과 같은 STUDENT_PROFILE_404를 응답하고 활동 이력을 조회하지 않는다")
+    void rejectsUnrelatedStudent() throws Exception {
+        givenOwner();
+        givenStudent("https://example.com/portfolio", 3);
+        givenNoJobRelation();
+
+        getProfile()
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.error.code").value("STUDENT_PROFILE_404"))
+                .andExpect(jsonPath("$.error.message").value("존재하지 않는 학생입니다."))
+                .andExpect(jsonPath("$.data").doesNotExist());
+
+        verify(jobRepository).existsOwnerJobRelatedToStudent(OWNER_PROFILE_ID, STUDENT_PROFILE_ID);
+        verify(proposalRepository).existsByOwnerProfileIdAndStudentProfileId(OWNER_PROFILE_ID, STUDENT_PROFILE_ID);
+        verify(proposalRepository).existsByStudentProfileIdAndDemoSessionIdAndStatusNotIn(
+                STUDENT_PROFILE_ID, null, List.of(ProposalStatus.CANCELLED, ProposalStatus.REJECTED));
+        verifyNoMoreInteractions(jobRepository, proposalRepository);
+        verifyNoInteractions(studentSpecialtyRepository, specialtyRepository, specialtyCategoryRepository,
+                reviewRepository, studentCertificateRepository);
+    }
+
+    @Test
+    @DisplayName("사장님 프로필이 없는 조회자는 STUDENT_PROFILE_404를 응답하고 관계·활동 이력을 조회하지 않는다")
+    void rejectsOwnerWithoutOwnerProfile() throws Exception {
+        givenOwner();
+        givenStudent(null);
+        when(ownerRepository.findByUserId(USER_ID)).thenReturn(Optional.empty());
+
+        getProfile()
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.error.code").value("STUDENT_PROFILE_404"));
+
+        verifyNoInteractions(jobRepository, proposalRepository, reviewRepository, studentCertificateRepository);
     }
 
     @Test
@@ -442,7 +518,7 @@ class StudentProfileFlowTest {
                 reviewRepository, studentCertificateRepository, proposalRepository, jobRepository, ownerRepository);
     }
 
-    // 사장님 프로필은 조회하지 않으므로 사용자만 준비한다
+    // 조회자 사용자와 사장님 프로필을 준비하고, 기본으로 학생이 이 사장님의 의뢰에 지원한 관계가 있다고 둔다
     private void givenOwner() {
         givenOwner(null);
     }
@@ -450,6 +526,12 @@ class StudentProfileFlowTest {
     private void givenOwner(String demoSessionId) {
         when(userRepository.findByUsernameAndIsLock(USERNAME, false))
                 .thenReturn(Optional.of(user(UserRole.OWNER, demoSessionId)));
+        when(ownerRepository.findByUserId(USER_ID)).thenReturn(Optional.of(owner(OWNER_PROFILE_ID, "월계카페")));
+        when(jobRepository.existsOwnerJobRelatedToStudent(OWNER_PROFILE_ID, STUDENT_PROFILE_ID)).thenReturn(true);
+    }
+
+    private void givenNoJobRelation() {
+        when(jobRepository.existsOwnerJobRelatedToStudent(OWNER_PROFILE_ID, STUDENT_PROFILE_ID)).thenReturn(false);
     }
 
     // 패널티 횟수를 지정하지 않으면 학생 생성 시 기본값을 그대로 쓴다

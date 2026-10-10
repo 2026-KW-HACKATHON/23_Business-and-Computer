@@ -29,6 +29,9 @@ import com.gakkum.backend.domain.job.entity.Job;
 import com.gakkum.backend.domain.job.entity.JobApplication;
 import com.gakkum.backend.domain.job.service.JobService;
 import com.gakkum.backend.domain.jwt.service.JwtService;
+import com.gakkum.backend.domain.media.dto.ImagePurpose;
+import com.gakkum.backend.domain.media.service.MediaService;
+import com.gakkum.backend.domain.owner.entity.Owner;
 import com.gakkum.backend.domain.owner.service.OwnerService;
 import com.gakkum.backend.domain.payment.dto.PaymentQueryDto.SettlementHistoryData;
 import com.gakkum.backend.domain.payment.dto.PaymentQueryDto.SettlementHistoryItemResult;
@@ -41,6 +44,7 @@ import com.gakkum.backend.domain.specialty.dto.SpecialtyCommandDto.AddStudentSpe
 import com.gakkum.backend.domain.specialty.dto.SpecialtyQueryDto.SpecialtyDetail;
 import com.gakkum.backend.domain.specialty.service.SpecialtyCategoryService;
 import com.gakkum.backend.domain.specialty.service.SpecialtyService;
+import com.gakkum.backend.domain.student.dto.StudentCommandDto.CreateStudentProfileCommand;
 import com.gakkum.backend.domain.student.dto.StudentCommandDto.UpdateStudentCertificateCommand;
 import com.gakkum.backend.domain.student.dto.StudentCommandDto.UpdateStudentMeCommand;
 import com.gakkum.backend.domain.student.dto.StudentQueryDto.StudentMeResult;
@@ -78,7 +82,9 @@ public class StudentFacade {
     private final ReviewService reviewService;
     private final PaymentService paymentService;
     private final OwnerService ownerService;
+    private final MediaService mediaService;
 
+    /** 학생 회원가입. 프로필 사진은 본인이 프로필용으로 올린 사진이어야 한다. */
     @Transactional
     public StudentRegistrationResponse register(String username, StudentRegistrationRequest request) {
         String normalizedEmail = request.getNormalizedEmail();
@@ -86,10 +92,15 @@ public class StudentFacade {
         studentService.validateStudentNumberAvailable(request.getStudentNumber());
         List<Long> specialtyIds = request.getNormalizedSpecialtyIds();
         specialtyService.validateSpecialtyIds(specialtyIds);
+        CreateStudentProfileCommand profile = request.toCommand(user.getId());
+        if (profile.getProfileImageUrl() != null) {
+            mediaService.validateUploadedImages(
+                    user.getId(), ImagePurpose.PROFILE, List.of(profile.getProfileImageUrl()));
+        }
         authService.consumeVerifiedStudentEmail(user.getId(), normalizedEmail);
 
         userService.completeStudentRegistration(user, request.getStudentName(), normalizedEmail);
-        Student student = studentService.createStudentProfile(request.toCommand(user.getId()));
+        Student student = studentService.createStudentProfile(profile);
 
         for (Long specialtyId : specialtyIds) {
             specialtyService.addStudentSpecialty(AddStudentSpecialtyCommand.of(student.getId(), specialtyId));
@@ -179,8 +190,11 @@ public class StudentFacade {
     }
 
     /**
-     * 사장님이 학생의 정보와 활동 이력을 조회한다. 학생과의 의뢰·지원·제안 관계와 작업 상태는 확인하지 않는다.
-     * 사장님 역할을 확인한 뒤에만 학생 정보를 조회하고, 격리 범위(demoSessionId)가 조회자와 다른 학생은 없는 학생과 같은 404로 거부한다.
+     * 사장님이 학생의 정보와 활동 이력을 조회한다. 사장님 역할을 확인한 뒤에만 학생 정보를 조회하고,
+     * 격리 범위(demoSessionId)가 조회자와 다른 학생은 없는 학생과 같은 404로 거부한다.
+     * 순번 ID로 아무 학생이나 열어 보지 못하도록 학생과 관계가 있는 사장님만 조회할 수 있다. 관계는 학생이 이 사장님의 의뢰에
+     * 지원했거나 선택된 학생인 경우, 이 사장님에게 제안을 보낸 경우(모두 상태 무관), 학생의 제안이 사장님 탐색 목록에 보이는
+     * 경우다. 관계가 없으면 없는 학생과 구분되지 않도록 같은 404로 거부한다.
      * 응답 항목과 통계·정렬 기준은 지원자 프로필 조회와 같다. 리뷰의 의뢰·매장은 리뷰 수와 무관하게 한 번씩만 조회하고,
      * 참조하는 데이터가 없으면 500으로 거부한다.
      */
@@ -194,6 +208,14 @@ public class StudentFacade {
                 .orElseThrow(() -> new BusinessException(ErrorCode.STUDENT_PROFILE_NOT_FOUND));
         User studentUser = userService.getUser(student.getUserId());
         if (!Objects.equals(studentUser.getDemoSessionId(), viewer.getDemoSessionId())) {
+            throw new BusinessException(ErrorCode.STUDENT_PROFILE_NOT_FOUND);
+        }
+        Long ownerProfileId = ownerService.findOwnerProfileByUserId(viewer.getId())
+                .map(Owner::getId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.STUDENT_PROFILE_NOT_FOUND));
+        if (!jobService.isStudentRelatedToOwnerJobs(ownerProfileId, student.getId())
+                && !proposalService.isStudentProposalVisibleToOwner(
+                        ownerProfileId, student.getId(), viewer.getDemoSessionId())) {
             throw new BusinessException(ErrorCode.STUDENT_PROFILE_NOT_FOUND);
         }
 
@@ -235,6 +257,7 @@ public class StudentFacade {
     /**
      * 학생 본인의 프로필 사진·소개·포트폴리오와 특기·자격증 목록을 요청 값으로 전체 교체한다.
      * 입력을 모두 검증한 뒤에 쓰기 시작하고, 도중에 실패하면 전부 롤백한다. 학생 프로필이 없으면 500으로 거부한다.
+     * 새 프로필 사진은 본인이 올린 사진이어야 한다. 저장된 값을 그대로 보내면 예전 계정·데모 데이터의 다른 주소여도 그대로 둔다.
      */
     @Transactional
     public void updateMe(UpdateStudentMeCommand command) {
@@ -247,6 +270,10 @@ public class StudentFacade {
         specialtyService.validateSpecialtyIds(command.getSpecialtyIds());
         command.getCertificates().forEach(
                 certificate -> certificateService.validateAcquiredYear(certificate.getAcquiredYear()));
+        String profileImageUrl = command.getProfileImageUrl();
+        if (profileImageUrl != null && !profileImageUrl.equals(student.getProfileImageUrl())) {
+            mediaService.validateUploadedImages(user.getId(), ImagePurpose.PROFILE, List.of(profileImageUrl));
+        }
 
         studentService.updateStudentProfile(student, command);
 

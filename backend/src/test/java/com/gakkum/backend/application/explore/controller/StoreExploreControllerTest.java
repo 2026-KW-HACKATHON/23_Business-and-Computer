@@ -157,6 +157,9 @@ class StoreExploreControllerTest {
                 Arguments.of("크기 101", get("/explore/stores").param("size", "101")),
                 Arguments.of("숫자가 아닌 크기", get("/explore/stores").param("size", "many")),
                 Arguments.of("해석할 수 없는 커서", get("/explore/stores").param("cursor", "abc")),
+                Arguments.of("DB 범위 밖 먼 미래 시각의 커서", get("/explore/stores").param("cursor",
+                        StoreExploreCursor.of(StoreExploreSort.LATEST, null,
+                                LocalDateTime.of(300_000, 1, 1, 0, 0), 1L).encode())),
                 Arguments.of("제안·의뢰 탐색 커서", get("/explore/stores").param("cursor", exploreCursor)),
                 Arguments.of("업종을 뺀 요청의 업종 커서", get("/explore/stores").param("cursor", categoryCursor)),
                 Arguments.of("다른 업종의 커서", get("/explore/stores").param("businessCategoryId", "4")

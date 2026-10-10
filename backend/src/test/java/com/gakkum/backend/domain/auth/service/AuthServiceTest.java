@@ -6,6 +6,8 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -20,6 +22,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.mail.MailSendException;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -53,9 +56,17 @@ class AuthServiceTest {
     @BeforeEach
     void setUp() {
         when(mailSender.createMimeMessage()).thenAnswer(invocation -> new MimeMessage((Session) null));
+        when(verificationRepository.findLockedByUserId(USER_ID))
+                .thenAnswer(invocation -> Optional.ofNullable(stored.get()));
         when(verificationRepository.findById(USER_ID))
                 .thenAnswer(invocation -> Optional.ofNullable(stored.get()));
         when(verificationRepository.save(any(StudentEmailVerification.class)))
+                .thenAnswer(invocation -> {
+                    StudentEmailVerification verification = invocation.getArgument(0);
+                    stored.set(verification);
+                    return verification;
+                });
+        when(verificationRepository.saveAndFlush(any(StudentEmailVerification.class)))
                 .thenAnswer(invocation -> {
                     StudentEmailVerification verification = invocation.getArgument(0);
                     stored.set(verification);
@@ -119,6 +130,27 @@ class AuthServiceTest {
         assertThat(stored.get().getFailedAttempts()).isEqualTo(5);
         assertError(ErrorCode.STUDENT_EMAIL_VERIFICATION_INVALID,
                 () -> serviceAt(START.plusSeconds(2)).verifyStudentEmail(USER_ID, EMAIL, code));
+    }
+
+    @Test
+    @DisplayName("발송과 확인은 잠그지 않는 조회 대신 인증 행을 잠그는 조회로 읽는다")
+    void readsVerificationRowWithLockInSendAndVerify() {
+        serviceAt(START).sendStudentEmailVerification(USER_ID, EMAIL);
+        serviceAt(START.plusSeconds(1)).verifyStudentEmail(USER_ID, EMAIL, sentCode());
+
+        verify(verificationRepository, times(2)).findLockedByUserId(USER_ID);
+        verify(verificationRepository, never()).findById(any());
+    }
+
+    @Test
+    @DisplayName("첫 발송이 겹쳐 인증 행 저장이 기본 키 충돌로 실패하면 재발송 대기로 거부하고 메일을 보내지 않는다")
+    void rejectsConcurrentFirstSendAsCooldown() {
+        when(verificationRepository.saveAndFlush(any(StudentEmailVerification.class)))
+                .thenThrow(new DataIntegrityViolationException("duplicate key"));
+
+        assertError(ErrorCode.STUDENT_EMAIL_VERIFICATION_COOLDOWN,
+                () -> serviceAt(START).sendStudentEmailVerification(USER_ID, EMAIL));
+        verify(mailSender, never()).send(any(MimeMessage.class));
     }
 
     @Test

@@ -219,6 +219,9 @@ class ExploreControllerTest {
                 Arguments.of("전체 종류 좋아요순", get("/explore").param("sort", "LIKES")),
                 Arguments.of("의뢰 좋아요순", get("/explore").param("type", "JOB").param("sort", "LIKES")),
                 Arguments.of("해석할 수 없는 커서", get("/explore").param("cursor", "abc")),
+                Arguments.of("DB 범위 밖 먼 미래 시각의 커서", get("/explore").param("cursor",
+                        ExploreCursor.of(ExploreSort.LATEST, ExploreType.ALL, null, ExploreItemType.JOB, null,
+                                LocalDateTime.of(300_000, 1, 1, 0, 0), 1L).encode())),
                 Arguments.of("다른 분류의 커서", get("/explore").param("specialtyCategoryId", "4")
                         .param("cursor", otherFilterCursor)),
                 Arguments.of("다른 정렬의 커서", get("/explore").param("specialtyCategoryId", "3")

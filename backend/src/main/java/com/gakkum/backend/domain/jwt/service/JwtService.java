@@ -25,7 +25,7 @@ public class JwtService {
     private final RefreshRepository refreshRepository;
     private final JWTUtil jwtUtil;
 
-    // 소셜 로그인 성공 후 쿠키(Refresh) -> 헤더 방식으로 응답 <-- 이건 추후에 작성
+    // 소셜 로그인 성공 후 쿠키(Refresh) -> 헤더 방식으로 응답. 쿠키의 토큰이 DB 에 있어야 교환한다
     @Transactional
     public JWTResponseDTO cookie2Header(
             HttpServletRequest request,
@@ -57,6 +57,11 @@ public class JwtService {
             throw new BusinessException(ErrorCode.UNAUTHORIZED);
         }
 
+        // 로그아웃이나 교체로 DB 에서 지워진 토큰은 서명이 맞아도 거부한다 (/refresh 와 같은 확인)
+        if (!consumeRefresh(refreshToken)) {
+            throw new BusinessException(ErrorCode.UNAUTHORIZED);
+        }
+
         // 정보 추출
         String username = jwtUtil.getUsername(refreshToken);
         String role = jwtUtil.getRole(refreshToken);
@@ -65,14 +70,12 @@ public class JwtService {
         String newAccessToken = jwtUtil.createJWT(username, role, true);
         String newRefreshToken = jwtUtil.createJWT(username, role, false);
 
-        // 기존 Refresh 토큰 DB 삭제 후 신규 추가
+        // 기존 Refresh 토큰은 위에서 지웠으니 신규만 추가
         RefreshToken newRefreshEntity = RefreshToken.builder()
                 .username(username)
                 .refresh(newRefreshToken)
                 .build();
 
-        removeRefresh(refreshToken);
-        refreshRepository.flush(); // 같은 트랜잭션 내부라 : 삭제 -> 생성 문제 해결
         refreshRepository.save(newRefreshEntity);
 
         // 새 쿠키로 덮어쓰기
@@ -120,7 +123,8 @@ public class JwtService {
             throw new BusinessException(ErrorCode.UNAUTHORIZED);
         }
 
-        if (!existsRefresh(refreshToken)) {
+        // DB 에 없는 토큰은 거부하고, 있으면 이 자리에서 지운다 (같은 토큰으로 동시에 와도 한 요청만 통과한다)
+        if (!consumeRefresh(refreshToken)) {
             throw new BusinessException(ErrorCode.UNAUTHORIZED);
         }
 
@@ -132,14 +136,11 @@ public class JwtService {
         String newAccessToken = jwtUtil.createJWT(username, role, true);
         String newRefreshToken = jwtUtil.createJWT(username, role, false);
 
-        // 기존 Refresh 토큰 DB 삭제 후 신규 추가
+        // 기존 Refresh 토큰은 위에서 지웠으니 신규만 추가
         RefreshToken newRefreshEntity = RefreshToken.builder()
                 .username(username)
                 .refresh(newRefreshToken)
                 .build();
-
-        // 기존 Refresh 토큰 제거
-        removeRefresh(refreshToken);
 
         // 새 쿠키로 덮어쓰기
         ResponseCookie newCookie = ResponseCookie.from("refreshToken", newRefreshToken)
@@ -152,7 +153,6 @@ public class JwtService {
 
         response.addHeader(HttpHeaders.SET_COOKIE, newCookie.toString());
 
-        refreshRepository.flush(); // 같은 트랜잭션 내부라 : 삭제 -> 생성 문제 해결
         refreshRepository.save(newRefreshEntity);
 
         return new JWTResponseDTO(newAccessToken);
@@ -169,10 +169,13 @@ public class JwtService {
         refreshRepository.save(entity);
     }
 
-    // JWT Refresh 존재 확인 메소드
-    @Transactional(readOnly = true)
-    public Boolean existsRefresh(String refreshToken) {
-        return refreshRepository.existsByRefresh(refreshToken);
+    /*
+     * JWT Refresh 토큰을 한 번만 쓰게 DB 에서 지우고, 지운 행이 있을 때만 true 를 준다.
+     * 확인과 삭제를 DELETE 한 번으로 하므로, 같은 토큰으로 동시에 온 요청은 먼저 지운 쪽만 true 를 받고
+     * 나머지는 그 트랜잭션이 끝날 때까지 기다린 뒤 false 를 받는다. 호출하는 쪽의 트랜잭션 안에서 실행한다.
+     */
+    private boolean consumeRefresh(String refreshToken) {
+        return refreshRepository.deleteAllByRefresh(refreshToken) > 0;
     }
 
     // JWT Refresh 토큰 삭제 메소드

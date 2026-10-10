@@ -21,6 +21,11 @@ Backend facts (dev):
   `{ accessToken }` with no envelope. Signup calls return the same token
   shape inside the envelope. No call returns a refresh token in the body, so
   the old `saveTokens` stored the string `"undefined"` as the refresh token.
+  Both refuse (401 `COMMON_401`) a cookie whose token is no longer in the
+  server's refresh token table (rotated or logged out).
+- `POST /logout` needs no access token: it deletes the token in the
+  `refreshToken` cookie, always expires the cookie, and answers 200
+  `{ "success": true }`, also when there was no cookie.
 - An expired or invalid access token gets a raw 401
   `{ "error": "…" }`; other 401s use the envelope with `COMMON_401`.
 - `POST /media/images/uploads` takes `purpose` `PROFILE` · `STORE` ·
@@ -30,9 +35,10 @@ Backend facts (dev):
   hyphens optional), `openedAt` (`YYYY-MM-DD`), `representativeName`,
   `description?`, `storeImageUrls` (up to 5), `profileImageUrl?`. 200
   `{ data: { accessToken } }` with role OWNER; refresh token only as the
-  cookie. Errors: 409 `USER_409_REGISTERED`, 409
-  `OWNER_409_BUSINESS_NUMBER`, 400 `CATEGORY_400`, 400 `COMMON_400`,
-  409 `COMMON_409`, 401.
+  cookie. The server checks the business with 국세청 again before saving.
+  Errors: 409 `USER_409_REGISTERED`, 409 `OWNER_409_BUSINESS_NUMBER`,
+  400 `OWNER_400_BUSINESS_NOT_VERIFIED`, 503 `OWNER_BUSINESS_503`, 400
+  `CATEGORY_400`, 400 `COMMON_400`, 409 `COMMON_409`, 401.
 - Business categories have a table but no list endpoint and no seed
   migration. The backend teammate filled the table; `GET
   /business-categories` was requested and is not deployed yet (the deployed
@@ -51,6 +57,14 @@ Backend facts (dev):
   token, and retries. If the refresh fails it clears the token and rethrows
   the 401 `ApiError`; pages still send the user to /login. `apiFetch` stays
   the raw call for endpoints without the envelope.
+- 「로그아웃」 on both 내 정보 screens calls the auth feature's `logOut()`
+  (`src/features/auth/lib/session.ts`): it clears the stored tokens first,
+  then sends `POST /logout` through `apiFetch` (cookies included, no
+  `Authorization`, since an expired token would be refused before the
+  logout runs). The page goes to /login without waiting, and a failed call
+  is ignored, so logging out never gets stuck and needs no loading state.
+  Other `clearTokens` calls (failed refresh, unreadable role, ended demo
+  pair) are not logouts and stay local.
 - `src/api/media.ts` `uploadImage(file, purpose)` is the one image upload
   for every feature. Signup's `uploadProfileImage` and the new
   `uploadStoreImage` call it.
@@ -64,7 +78,8 @@ Backend facts (dev):
   Failures show one line above the button: category lookup or
   `CATEGORY_400` → 「업종 정보를 불러오지 못했어요…」,
   `OWNER_409_BUSINESS_NUMBER` → 「이미 다른 계정에서 가입한 사업자등록번호예요」,
-  photo upload → 「사진을 올리지 못했어요…」, other 400 / 409 / 5xx as in
+  `OWNER_400_BUSINESS_NOT_VERIFIED` → 「사업자 정보를 확인하지 못했어요.
+  사업자등록번호 · 개업일 · 대표자 이름을 다시 확인해 주세요」, photo upload → 「사진을 올리지 못했어요…」, other 400 / 409 / 5xx as in
   ADR 0019. `USER_409_REGISTERED` alerts and goes to `landingPath()`; 401
   goes to /login. Photos of the wrong type or size are rejected when picked.
 

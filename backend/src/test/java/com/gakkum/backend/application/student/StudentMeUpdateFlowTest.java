@@ -35,6 +35,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.util.unit.DataSize;
 
 import com.gakkum.backend.application.student.controller.StudentController;
 import com.gakkum.backend.application.student.facade.StudentFacade;
@@ -48,6 +49,8 @@ import com.gakkum.backend.domain.job.repository.JobSpecialtyRepository;
 import com.gakkum.backend.domain.job.repository.JobSubmissionRepository;
 import com.gakkum.backend.domain.job.service.JobService;
 import com.gakkum.backend.domain.jwt.service.JwtService;
+import com.gakkum.backend.domain.media.client.MediaImageStorageClient;
+import com.gakkum.backend.domain.media.service.MediaService;
 import com.gakkum.backend.domain.owner.repository.OwnerRepository;
 import com.gakkum.backend.domain.owner.service.OwnerService;
 import com.gakkum.backend.domain.payment.repository.PaymentRepository;
@@ -83,6 +86,9 @@ class StudentMeUpdateFlowTest {
     private static final String OLD_IMAGE_URL = "https://cdn.gakkum.test/old.png";
     private static final String OLD_INTRODUCTION = "예전 소개";
     private static final String OLD_PORTFOLIO_URL = "https://old.gakkum.test/portfolio";
+    private static final String PROFILE_KEY_PREFIX = "images/profile/" + STUDENT_USER_ID + "/";
+    private static final String PROFILE_KEY = PROFILE_KEY_PREFIX + "0b6f3c1e-8a4d-4f7e-9d2a-1c5b7e9f0a12.png";
+    private static final String UPLOADED_IMAGE_URL = "https://bucket.s3.amazonaws.com/" + PROFILE_KEY;
 
     private final UserRepository userRepository = mock(UserRepository.class);
     private final StudentRepository studentRepository = mock(StudentRepository.class);
@@ -90,6 +96,8 @@ class StudentMeUpdateFlowTest {
     private final StudentSpecialtyRepository studentSpecialtyRepository = mock(StudentSpecialtyRepository.class);
     private final StudentCertificateRepository studentCertificateRepository =
             mock(StudentCertificateRepository.class);
+    // 사진 저장소만 가짜로 두고 본인 업로드 확인은 실제 MediaService가 한다
+    private final MediaImageStorageClient imageStorageClient = mock(MediaImageStorageClient.class);
     private final UsernamePasswordAuthenticationToken authentication =
             new UsernamePasswordAuthenticationToken(USERNAME, null);
 
@@ -114,7 +122,8 @@ class StudentMeUpdateFlowTest {
                         Clock.systemUTC()),
                 new ReviewService(mock(ReviewRepository.class)),
                 new PaymentService(mock(PaymentRepository.class), Clock.systemUTC()),
-                new OwnerService(mock(OwnerRepository.class)));
+                new OwnerService(mock(OwnerRepository.class)),
+                new MediaService(imageStorageClient, DataSize.ofMegabytes(10)));
         mockMvc = MockMvcBuilders.standaloneSetup(new StudentController(facade))
                 .setControllerAdvice(new GlobalExceptionHandler())
                 .build();
@@ -133,10 +142,12 @@ class StudentMeUpdateFlowTest {
     void replacesOwnEditableInformation() throws Exception {
         givenUser(UserRole.STUDENT);
         givenProfile();
+        when(imageStorageClient.findKey(UPLOADED_IMAGE_URL, PROFILE_KEY_PREFIX)).thenReturn(Optional.of(PROFILE_KEY));
+        when(imageStorageClient.exists(PROFILE_KEY)).thenReturn(true);
 
         perform("""
                 {
-                  "profileImageUrl": "https://example.com/profile.png",
+                  "profileImageUrl": "%s",
                   "introduction": "  디자인을 좋아하는 학생입니다.  ",
                   "specialtyIds": [1, 2],
                   "certificates": [
@@ -145,12 +156,12 @@ class StudentMeUpdateFlowTest {
                   ],
                   "portfolioUrl": "https://example.com/portfolio"
                 }
-                """)
+                """.formatted(UPLOADED_IMAGE_URL))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(1))
                 .andExpect(jsonPath("$.success").value(true));
 
-        assertThat(student.getProfileImageUrl()).isEqualTo("https://example.com/profile.png");
+        assertThat(student.getProfileImageUrl()).isEqualTo(UPLOADED_IMAGE_URL);
         assertThat(student.getIntroduction()).isEqualTo("디자인을 좋아하는 학생입니다.");
         assertThat(student.getPortfolioUrl()).isEqualTo("https://example.com/portfolio");
         verify(studentRepository).save(student);
@@ -203,6 +214,38 @@ class StudentMeUpdateFlowTest {
         verify(studentSpecialtyRepository, never()).save(any());
         verify(studentCertificateRepository).deleteByStudentProfileId(STUDENT_PROFILE_ID);
         verify(studentCertificateRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("외부 주소의 사진 URL로 바꾸면 400 MEDIA_400_IMAGE_URL로 거부하고 아무것도 쓰지 않는다")
+    void rejectsExternalProfileImage() throws Exception {
+        givenUser(UserRole.STUDENT);
+        givenProfile();
+
+        perform("{\"profileImageUrl\": \"https://evil.example.com/tracker.png\", \"specialtyIds\": [],"
+                + " \"certificates\": []}")
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error.code").value("MEDIA_400_IMAGE_URL"));
+
+        verify(imageStorageClient, never()).exists(any());
+        assertNothingWritten();
+    }
+
+    @Test
+    @DisplayName("저장된 프로필 사진 URL을 그대로 보내면 우리 저장소 주소가 아니어도 확인 없이 받아 다른 항목을 저장한다")
+    void keepsUnchangedStoredProfileImage() throws Exception {
+        givenUser(UserRole.STUDENT);
+        givenProfile();
+
+        perform("{\"profileImageUrl\": \"" + OLD_IMAGE_URL + "\", \"introduction\": \"새 소개\","
+                + " \"specialtyIds\": [], \"certificates\": []}")
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true));
+
+        assertThat(student.getProfileImageUrl()).isEqualTo(OLD_IMAGE_URL);
+        assertThat(student.getIntroduction()).isEqualTo("새 소개");
+        verify(studentRepository).save(student);
+        verifyNoInteractions(imageStorageClient);
     }
 
     @Test

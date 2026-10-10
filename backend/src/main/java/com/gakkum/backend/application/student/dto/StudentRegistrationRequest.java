@@ -52,6 +52,7 @@ public class StudentRegistrationRequest {
     @Pattern(regexp = "^$|^https?://\\S+$")
     private String portfolioUrl;
 
+    @Size(max = 5000)
     private String introduction;
 
     @Size(max = 255)

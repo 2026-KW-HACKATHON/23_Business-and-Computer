@@ -16,6 +16,7 @@ import java.time.Instant;
 import java.util.Optional;
 
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.http.MediaType;
@@ -136,6 +137,7 @@ class UserServiceTest {
             .build();
         when(userRepository.findByUsernameAndIsLock("KAKAO_12345", false))
             .thenReturn(Optional.of(user));
+        when(userRepository.updateRoleIfCurrent(user.getId(), UserRole.PENDING, UserRole.STUDENT)).thenReturn(1);
 
         User registeredUser = userService.completeStudentRegistration(
             "KAKAO_12345",
@@ -149,7 +151,47 @@ class UserServiceTest {
         assertThat(user.getRole()).isEqualTo(UserRole.STUDENT);
         verify(userRepository).findByUsernameAndIsLock("KAKAO_12345", false);
         verify(userRepository).existsByEmailIgnoreCase("kwangwoon@kw.ac.kr");
+        verify(userRepository).updateRoleIfCurrent(user.getId(), UserRole.PENDING, UserRole.STUDENT);
         verifyNoMoreInteractions(userRepository);
+    }
+
+    @Test
+    @DisplayName("확인 뒤 다른 가입 요청이 먼저 역할을 바꿨으면 학생 가입을 ALREADY_REGISTERED로 거부하고 사용자 값을 바꾸지 않는다")
+    void studentRegistrationLosesRaceToAnotherRegistration() {
+        User user = User.builder()
+            .id("01K58M6PJV8VAJMXHBHJ2PNB5C")
+            .username("KAKAO_12345")
+            .isLock(false)
+            .role(UserRole.PENDING)
+            .build();
+        when(userRepository.updateRoleIfCurrent(user.getId(), UserRole.PENDING, UserRole.STUDENT)).thenReturn(0);
+
+        assertThatThrownBy(() -> userService.completeStudentRegistration(user, "김광운", "kwangwoon@kw.ac.kr"))
+            .isInstanceOfSatisfying(BusinessException.class, exception ->
+                assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.ALREADY_REGISTERED));
+
+        assertThat(user.getRole()).isEqualTo(UserRole.PENDING);
+        assertThat(user.getName()).isNull();
+        assertThat(user.getEmail()).isNull();
+    }
+
+    @Test
+    @DisplayName("확인 뒤 다른 가입 요청이 먼저 역할을 바꿨으면 사장님 가입을 ALREADY_REGISTERED로 거부하고 사용자 값을 바꾸지 않는다")
+    void ownerRegistrationLosesRaceToAnotherRegistration() {
+        User user = User.builder()
+            .id("01K58M6PJV8VAJMXHBHJ2PNB5C")
+            .username("KAKAO_12345")
+            .isLock(false)
+            .role(UserRole.PENDING)
+            .build();
+        when(userRepository.updateRoleIfCurrent(user.getId(), UserRole.PENDING, UserRole.OWNER)).thenReturn(0);
+
+        assertThatThrownBy(() -> userService.completeOwnerRegistration(user, "김사장"))
+            .isInstanceOfSatisfying(BusinessException.class, exception ->
+                assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.ALREADY_REGISTERED));
+
+        assertThat(user.getRole()).isEqualTo(UserRole.PENDING);
+        assertThat(user.getName()).isNull();
     }
 
     @Test
@@ -227,6 +269,7 @@ class UserServiceTest {
             .build();
         when(userRepository.findByUsernameAndIsLock("KAKAO_12345", false))
             .thenReturn(Optional.of(user));
+        when(userRepository.updateRoleIfCurrent(user.getId(), UserRole.PENDING, UserRole.OWNER)).thenReturn(1);
 
         User validatedUser = userService.validateOwnerRegistration("KAKAO_12345");
         User registeredUser = userService.completeOwnerRegistration(validatedUser, "김사장");
@@ -236,6 +279,7 @@ class UserServiceTest {
         assertThat(user.getEmail()).isNull();
         assertThat(user.getRole()).isEqualTo(UserRole.OWNER);
         verify(userRepository).findByUsernameAndIsLock("KAKAO_12345", false);
+        verify(userRepository).updateRoleIfCurrent(user.getId(), UserRole.PENDING, UserRole.OWNER);
         verifyNoMoreInteractions(userRepository);
     }
 

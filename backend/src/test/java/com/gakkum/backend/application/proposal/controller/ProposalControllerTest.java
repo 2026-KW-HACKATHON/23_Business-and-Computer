@@ -137,6 +137,32 @@ class ProposalControllerTest {
         assertThat(captor.getValue().getReferenceImageUrls()).isEmpty();
     }
 
+    @Test
+    @DisplayName("서로 다른 사진 URL 5장(2048자 URL 포함)까지는 제안을 전송한다")
+    void acceptsFiveDistinctImages() throws Exception {
+        when(proposalFacade.createProposal(any()))
+                .thenReturn(ProposalCreateResult.from(Proposal.builder().id(33L).build()));
+        String longUrl = "https://img.example.com/" + "a".repeat(2048 - 24);
+
+        mockMvc.perform(post("/proposals").principal(authentication)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body("[1]", "\"제목\"", "\"문제\"", "1", "0", "0",
+                                imageUrls(4).replace("]", ",\"" + longUrl + "\"]"))))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.data.proposalId").value(33));
+
+        ArgumentCaptor<CreateProposalCommand> captor = ArgumentCaptor.forClass(CreateProposalCommand.class);
+        verify(proposalFacade).createProposal(captor.capture());
+        assertThat(captor.getValue().getReferenceImageUrls()).hasSize(5).contains(longUrl);
+    }
+
+    /** 서로 다른 사진 URL count개를 JSON 배열 문자열로 만든다. */
+    private static String imageUrls(int count) {
+        return java.util.stream.IntStream.rangeClosed(1, count)
+                .mapToObj(index -> "\"https://img.example.com/" + index + ".png\"")
+                .collect(java.util.stream.Collectors.joining(",", "[", "]"));
+    }
+
     static Stream<Arguments> invalidBodies() {
         return Stream.of(
                 Arguments.of("소분류 없음", body("[]", "\"제목\"", "\"문제\"", "1", "0", "0", null)),
@@ -152,6 +178,11 @@ class ProposalControllerTest {
                 Arguments.of("최종 기간 누락", body("[1]", "\"제목\"", "\"문제\"", "1", "0", null, null)),
                 Arguments.of("최종 기간이 초안보다 짧음", body("[1]", "\"제목\"", "\"문제\"", "1", "5", "4", null)),
                 Arguments.of("빈 사진 URL", body("[1]", "\"제목\"", "\"문제\"", "1", "0", "0", "[\" \"]")),
+                Arguments.of("사진 6장", body("[1]", "\"제목\"", "\"문제\"", "1", "0", "0", imageUrls(6))),
+                Arguments.of("중복 사진 URL", body("[1]", "\"제목\"", "\"문제\"", "1", "0", "0",
+                        "[\"https://img.example.com/a.png\",\"https://img.example.com/a.png\"]")),
+                Arguments.of("2049자 사진 URL", body("[1]", "\"제목\"", "\"문제\"", "1", "0", "0",
+                        "[\"https://img.example.com/" + "a".repeat(2049 - 24) + "\"]")),
                 Arguments.of("사장님 ID 누락", "{\"specialtyIds\":[1],\"title\":\"제목\",\"customerProblem\":\"문제\","
                         + "\"proposedSolution\":\"해결\",\"workPlan\":\"계획\",\"proposedFee\":1,"
                         + "\"draftDays\":0,\"finalDays\":0}"));
@@ -734,7 +765,7 @@ class ProposalControllerTest {
     }
 
     @Test
-    @DisplayName("받은 제안 목록은 200과 카드·학생 5개 필드(프로필 사진 포함), 연결 의뢰 상태, 한국 시각 생성 시각을 반환한다")
+    @DisplayName("받은 제안 목록은 200과 카드·학생 5개 필드(프로필 사진 포함, 학번은 입학연도 두 자리), 연결 의뢰 상태, 한국 시각 생성 시각을 반환한다")
     void returnsReceivedProposals() throws Exception {
         // UTC 10월 5일 15:30 = 한국 10월 6일 00:30
         Proposal proposal = Proposal.builder().id(101L).title("메뉴판 개선 제안").likeCount(12)
@@ -766,7 +797,7 @@ class ProposalControllerTest {
                 .andExpect(jsonPath("$.data.proposals[0].proposedSolution").value("사진 중심 메뉴판으로 바꿔드릴게요."))
                 .andExpect(jsonPath("$.data.proposals[0].student.studentProfileId").value(7))
                 .andExpect(jsonPath("$.data.proposals[0].student.name").value("홍길동"))
-                .andExpect(jsonPath("$.data.proposals[0].student.studentNumber").value("2024123456"))
+                .andExpect(jsonPath("$.data.proposals[0].student.studentNumber").value("24"))
                 .andExpect(jsonPath("$.data.proposals[0].student.major").value("소프트웨어학부"))
                 .andExpect(jsonPath("$.data.proposals[0].student.profileImageUrl")
                         .value("https://cdn.example.com/students/7/profile.png"))

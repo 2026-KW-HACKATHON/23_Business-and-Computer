@@ -15,7 +15,8 @@ save. The backend (dev) is ready, and differs from the Notion spec:
   valid **10 minutes**. 200 `{ "success": true }`. Errors: 401 `COMMON_401`,
   409 `USER_409_REGISTERED`, 409 `USER_409_EMAIL` (mail used by another
   account), 429 `STUDENT_EMAIL_429` (sent less than 60 s ago — counted **per
-  user**, not per address), 503 `STUDENT_EMAIL_503` (mail not sent),
+  user**, not per address), 429 `COMMON_429` (more than 10 sends in the last
+  hour, also per user), 503 `STUDENT_EMAIL_503` (mail not sent),
   400 `COMMON_400`.
 - `POST /auth/student-verification/email/verify` `{ email, code }`. A wrong,
   expired, or 6th+ attempt all return the same 400 `STUDENT_EMAIL_400`; after
@@ -72,7 +73,7 @@ states.
   loading dots (ADR 0059) and inputs are read-only while a request runs.
   - Resend countdown: every successful send or resend starts a 60 s
     countdown at once; send and resend stay disabled and a grey line reads
-    「N초 뒤에 다시 보낼 수 있어요」. A 429 shows the same text in red; its end
+    「N초 뒤에 다시 보낼 수 있어요」. A 429 `STUDENT_EMAIL_429` shows the same text in red; its end
     is 60 s after the last send from this screen, or 60 s from now when
     unknown. The countdown survives 「변경」, because the server limit is per
     user, not per address.
@@ -85,6 +86,9 @@ states.
     「메일 인증을 다시 해 주세요」) goes back to normal verification. When step
     3 sends the user back because of `STUDENT_EMAIL_403` or
     `USER_409_EMAIL`, the skip does not apply.
+  - 429 `COMMON_429` (hourly send limit) is not the 60 s cooldown: no
+    countdown, a red 「인증번호를 너무 많이 요청했어요. 잠시 후 다시 시도해
+    주세요」.
   - 503 → 「메일을 보내지 못했어요. 잠시 후 다시 시도해 주세요」.
   - 409 `USER_409_EMAIL` → red email field 「이미 다른 계정에서 사용 중인
     메일이에요」.

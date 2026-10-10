@@ -8,6 +8,7 @@ import com.gakkum.backend.domain.job.dto.JobQueryDto.ApplicantCertificateResult;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.ApplicantReviewResult;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.ApplicantStudentResult;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.JobApplicantProfileResult;
+import com.gakkum.backend.global.response.AdmissionYear;
 
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -60,6 +61,7 @@ public class JobApplicantProfileResponse {
         private final String profileImageUrl;
         private final String university;
         private final String major;
+        // 학번 전체 대신 입학연도 두 자리만 내린다: 2024402001 → "24". 학번이 없거나 네 자리보다 짧으면 null
         private final String studentNumber;
 
         public static StudentInfo from(ApplicantStudentResult result) {
@@ -69,7 +71,7 @@ public class JobApplicantProfileResponse {
                     .profileImageUrl(result.getProfileImageUrl())
                     .university(result.getUniversity())
                     .major(result.getMajor())
-                    .studentNumber(result.getStudentNumber())
+                    .studentNumber(AdmissionYear.from(result.getStudentNumber()))
                     .build();
         }
     }

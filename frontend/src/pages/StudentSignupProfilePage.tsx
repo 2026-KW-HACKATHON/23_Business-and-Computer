@@ -264,6 +264,7 @@ function StudentSignupProfilePage() {
           placeholder="나를 표현하는 한 줄 소개"
           aria-label="한 줄 소개"
           value={draft.intro}
+          maxLength={5000}
           onChange={(e) => update({ intro: e.target.value })}
         />
 

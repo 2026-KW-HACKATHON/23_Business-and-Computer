@@ -59,6 +59,8 @@ public enum ErrorCode {
     MEDIA_UPLOAD_TYPE_NOT_ALLOWED(HttpStatus.BAD_REQUEST, "MEDIA_UPLOAD_400_TYPE", "허용되지 않는 사진 형식입니다."),
     MEDIA_UPLOAD_TOO_LARGE(HttpStatus.BAD_REQUEST, "MEDIA_UPLOAD_400_SIZE", "사진 크기가 허용 범위를 넘었습니다."),
     MEDIA_UPLOAD_UNAVAILABLE(HttpStatus.BAD_GATEWAY, "MEDIA_UPLOAD_502", "사진 저장소에 연결하지 못했습니다. 잠시 후 다시 시도해 주세요."),
+    MEDIA_IMAGE_URL_INVALID(HttpStatus.BAD_REQUEST, "MEDIA_400_IMAGE_URL", "본인의 프로필·매장 사진용으로 발급된 사진 URL이 아닙니다."),
+    MEDIA_IMAGE_NOT_UPLOADED(HttpStatus.CONFLICT, "MEDIA_409_IMAGE_NOT_UPLOADED", "업로드가 끝나지 않은 사진이 있습니다."),
     PAYMENT_NOT_AVAILABLE(HttpStatus.CONFLICT, "PAYMENT_409_UNAVAILABLE", "결제를 준비할 수 없는 의뢰 또는 지원서입니다."),
     PAYMENT_ALREADY_PAID(HttpStatus.CONFLICT, "PAYMENT_409_PAID", "이미 결제된 의뢰입니다."),
     PAYMENT_OWNER_REQUIRED(HttpStatus.FORBIDDEN, "PAYMENT_403_OWNER", "사장님만 결제를 준비할 수 있습니다."),
@@ -98,6 +100,7 @@ public enum ErrorCode {
     STUDENT_EMAIL_VERIFICATION_COOLDOWN(HttpStatus.TOO_MANY_REQUESTS, "STUDENT_EMAIL_429", "인증번호 재발송은 잠시 후 다시 시도해 주세요."),
     STUDENT_EMAIL_DELIVERY_FAILED(HttpStatus.SERVICE_UNAVAILABLE, "STUDENT_EMAIL_503", "인증 메일을 발송하지 못했습니다."),
     OWNER_BUSINESS_VERIFICATION_UNAVAILABLE(HttpStatus.SERVICE_UNAVAILABLE, "OWNER_BUSINESS_503", "사업자등록정보를 확인할 수 없습니다. 잠시 후 다시 시도해 주세요."),
+    OWNER_BUSINESS_NOT_VERIFIED(HttpStatus.BAD_REQUEST, "OWNER_400_BUSINESS_NOT_VERIFIED", "사업자 정보를 확인할 수 없습니다."),
     ALREADY_REGISTERED(HttpStatus.CONFLICT, "USER_409_REGISTERED", "이미 회원가입이 완료된 사용자입니다."),
     STUDENT_ME_REQUIRED(HttpStatus.FORBIDDEN, "STUDENT_403_ME", "학생만 내 정보를 조회할 수 있습니다."),
     STUDENT_ME_UPDATE_REQUIRED(HttpStatus.FORBIDDEN, "STUDENT_403_ME_UPDATE", "학생만 내 정보를 수정할 수 있습니다."),
@@ -111,6 +114,7 @@ public enum ErrorCode {
     METHOD_NOT_ALLOWED(HttpStatus.METHOD_NOT_ALLOWED, "COMMON_405", "지원하지 않는 HTTP 메서드입니다."),
     UNSUPPORTED_MEDIA_TYPE(HttpStatus.UNSUPPORTED_MEDIA_TYPE, "COMMON_415", "지원하지 않는 Content-Type입니다."),
     DATA_CONFLICT(HttpStatus.CONFLICT, "COMMON_409", "이미 존재하는 데이터와 충돌합니다."),
+    TOO_MANY_REQUESTS(HttpStatus.TOO_MANY_REQUESTS, "COMMON_429", "요청이 너무 많습니다. 잠시 후 다시 시도해 주세요."),
     INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "COMMON_500", "서버 내부 오류가 발생했습니다.");
 
     private final HttpStatus status;

@@ -18,7 +18,7 @@ The backend (dev) has:
   without dashes; either may be missing.
 - PUT /owners/me with `{ storeName (required, ≤ 255), categoryId (required),
   profileImageUrl (http(s) URL or empty), storeAddress (≤ 255), description
-  }`. Every field is overwritten, so a missing one is cleared. An unknown
+  (≤ 5000) }`. Every field is overwritten, so a missing one is cleared. An unknown
   category is CATEGORY_400; a non-owner gets 403.
 - GET /business-categories → `[{ id, name }]`; the names match the 11 store
   category chips used at signup.

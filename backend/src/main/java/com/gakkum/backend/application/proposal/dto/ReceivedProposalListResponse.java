@@ -9,6 +9,7 @@ import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.ReceivedProposalR
 import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.ReceivedProposalStudentResult;
 import com.gakkum.backend.domain.proposal.entity.ProposalRejectedBy;
 import com.gakkum.backend.domain.proposal.entity.ProposalStatus;
+import com.gakkum.backend.global.response.AdmissionYear;
 import com.gakkum.backend.global.response.KoreaTime;
 
 import lombok.AccessLevel;
@@ -70,6 +71,7 @@ public class ReceivedProposalListResponse {
 
         private final Long studentProfileId;
         private final String name;
+        // 학번 전체 대신 입학연도 두 자리만 내린다: 2024402001 → "24". 학번이 없거나 네 자리보다 짧으면 null
         private final String studentNumber;
         private final String major;
         // 학생 프로필 사진. 사진이 없으면 null
@@ -77,7 +79,7 @@ public class ReceivedProposalListResponse {
 
         public static ReceivedProposalStudent from(ReceivedProposalStudentResult result) {
             return new ReceivedProposalStudent(result.getStudentProfileId(), result.getName(),
-                    result.getStudentNumber(), result.getMajor(), result.getProfileImageUrl());
+                    AdmissionYear.from(result.getStudentNumber()), result.getMajor(), result.getProfileImageUrl());
         }
     }
 }

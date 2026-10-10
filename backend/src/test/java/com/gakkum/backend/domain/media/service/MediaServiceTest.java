@@ -13,6 +13,7 @@ import static org.mockito.Mockito.when;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.TimeZone;
@@ -176,5 +177,48 @@ class MediaServiceTest {
 
         assertThat(service.isImageUploaded("images/proposal/u/a.png")).isTrue();
         assertThat(service.isImageUploaded("images/proposal/u/b.png")).isFalse();
+    }
+
+    @Test
+    @DisplayName("프로필·매장 사진 확인은 본인이 그 용도로 올린 사진이면 통과하고, 다른 사용자·다른 용도·외부 주소면 MEDIA_400_IMAGE_URL로 거부한다")
+    void validatesImagesUploadedByUserForPurpose() {
+        String uuid = "0b4f2a3e-6a8c-4a39-9f55-8f1d8f0b2c11";
+        String own = "https://images.example.com/images/store/" + USER_ID + "/" + uuid + ".png";
+        String otherUser = "https://images.example.com/images/store/OTHERUSER0000000000000001/" + uuid + ".png";
+        String otherPurpose = "https://images.example.com/images/profile/" + USER_ID + "/" + uuid + ".png";
+        givenPublicUrls();
+        when(storageClient.exists("images/store/" + USER_ID + "/" + uuid + ".png")).thenReturn(true);
+
+        service.validateUploadedImages(USER_ID, ImagePurpose.STORE, List.of(own));
+        service.validateUploadedImages(USER_ID, ImagePurpose.STORE, List.of());
+
+        for (String url : List.of(otherUser, otherPurpose, "https://evil.example.com/" + uuid + ".png")) {
+            assertThatThrownBy(() -> service.validateUploadedImages(USER_ID, ImagePurpose.STORE, List.of(own, url)))
+                    .isInstanceOfSatisfying(BusinessException.class, exception ->
+                            assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.MEDIA_IMAGE_URL_INVALID));
+        }
+    }
+
+    @Test
+    @DisplayName("발급한 형태지만 아직 올리지 않은 사진이 있으면 MEDIA_409_IMAGE_NOT_UPLOADED로 거부한다")
+    void rejectsImageNotYetUploaded() {
+        String url = "https://images.example.com/images/profile/" + USER_ID
+                + "/0b4f2a3e-6a8c-4a39-9f55-8f1d8f0b2c11.webp";
+        givenPublicUrls();
+
+        assertThatThrownBy(() -> service.validateUploadedImages(USER_ID, ImagePurpose.PROFILE, List.of(url)))
+                .isInstanceOfSatisfying(BusinessException.class, exception ->
+                        assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.MEDIA_IMAGE_NOT_UPLOADED));
+    }
+
+    // 실제 저장소 클라이언트처럼 공개 URL이 경로 접두사로 시작할 때만 키를 돌려준다
+    private void givenPublicUrls() {
+        when(storageClient.findKey(anyString(), anyString())).thenAnswer(invocation -> {
+            String url = invocation.getArgument(0);
+            String base = "https://images.example.com/" + invocation.getArgument(1);
+            return url.startsWith(base)
+                    ? Optional.of(invocation.<String>getArgument(1) + url.substring(base.length()))
+                    : Optional.empty();
+        });
     }
 }

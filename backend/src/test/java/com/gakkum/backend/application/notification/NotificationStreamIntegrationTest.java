@@ -177,7 +177,7 @@ class NotificationStreamIntegrationTest {
     @BeforeEach
     void setUp() {
         properties = new NotificationStreamProperties(STREAM_KEY,
-                "notification-test-group", 100, Duration.ZERO);
+                "notification-test-group", 100, Duration.ZERO, 10000);
         publisher = new NotificationEventPublisher(redisTemplate, properties);
         when(userService.getActiveUser(USERNAME)).thenReturn(
                 User.builder().id(RECIPIENT).username(USERNAME).role(UserRole.STUDENT).build());
@@ -355,7 +355,7 @@ class NotificationStreamIntegrationTest {
         assertThat(service.countUnread(RECIPIENT)).isZero();
 
         consumer(service, new NotificationStreamProperties(properties.key(), properties.group(), 100,
-                Duration.ofDays(1))).poll();
+                Duration.ofDays(1), properties.maxLength())).poll();
         assertThat(pendingCount()).isEqualTo(1);
         assertThat(service.countUnread(RECIPIENT)).isZero();
 
@@ -389,28 +389,30 @@ class NotificationStreamIntegrationTest {
     }
 
     @Test
-    @DisplayName("형식 오류·DB 제약 위반은 pending에 남기고 배치 앞쪽의 실패 메시지가 뒤쪽 복구를 막지 않는다")
+    @DisplayName("형식 오류는 저장하지 않고 ACK하며, DB 제약 위반은 pending에 남기고 배치 앞쪽의 실패 메시지가 뒤쪽 복구를 막지 않는다")
     void skipsPoisonMessagesWithoutStarvingLaterPendingMessages() {
         var invalidFields = new HashMap<>(event(UUID.randomUUID(), RECIPIENT, "잘못된 타입").toMap());
         invalidFields.put("type", "UNKNOWN_TYPE");
         redisTemplate.<String, String>opsForStream().add(properties.key(), invalidFields);
         publisher.publish(event(UUID.randomUUID(), RECIPIENT, "x".repeat(256)));
         publisher.publish(event(UUID.randomUUID(), RECIPIENT, "정상 알림"));
-        var singleBatch = new NotificationStreamProperties(properties.key(), properties.group(), 1, Duration.ZERO);
+        var singleBatch = new NotificationStreamProperties(properties.key(), properties.group(), 1, Duration.ZERO,
+                properties.maxLength());
         NotificationService unavailable = mock(NotificationService.class);
         doThrow(new DataAccessResourceFailureException("테스트 DB 장애")).when(unavailable).storeEvent(any());
         var failedConsumer = consumer(unavailable, singleBatch);
         for (int i = 0; i < 3; i++) {
             failedConsumer.poll();
         }
-        assertThat(pendingCount()).isEqualTo(3);
+        // 형식 오류 메시지는 DB 장애와 무관하게 처리할 수 없으므로 첫 폴링에서 ACK되어 pending에 남지 않는다
+        assertThat(pendingCount()).isEqualTo(2);
 
         var recoveredConsumer = consumer(service, singleBatch);
         for (int i = 0; i < 3; i++) {
             recoveredConsumer.poll();
         }
 
-        assertThat(pendingCount()).isEqualTo(2);
+        assertThat(pendingCount()).isEqualTo(1);
         assertThat(service.countUnread(RECIPIENT)).isEqualTo(1);
         assertThat(facade.getNotifications(GetNotificationsCommand.of(USERNAME, 20, null, null))
                 .getItems().getFirst().getTitle()).isEqualTo("정상 알림");

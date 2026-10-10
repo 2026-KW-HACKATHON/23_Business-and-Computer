@@ -28,6 +28,7 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import com.gakkum.backend.application.owner.controller.OwnerController;
 import com.gakkum.backend.application.owner.facade.OwnerFacade;
+import com.gakkum.backend.domain.auth.service.AuthService;
 import com.gakkum.backend.domain.category.service.BusinessCategoryService;
 import com.gakkum.backend.domain.job.entity.JobStatus;
 import com.gakkum.backend.domain.job.repository.JobApplicationRepository;
@@ -36,6 +37,7 @@ import com.gakkum.backend.domain.job.repository.JobSpecialtyRepository;
 import com.gakkum.backend.domain.job.repository.JobSubmissionRepository;
 import com.gakkum.backend.domain.job.service.JobService;
 import com.gakkum.backend.domain.jwt.service.JwtService;
+import com.gakkum.backend.domain.media.service.MediaService;
 import com.gakkum.backend.domain.owner.entity.Owner;
 import com.gakkum.backend.domain.owner.repository.OwnerRepository;
 import com.gakkum.backend.domain.owner.service.OwnerService;
@@ -49,6 +51,7 @@ import com.gakkum.backend.domain.user.entity.UserRole;
 import com.gakkum.backend.domain.user.repository.UserRepository;
 import com.gakkum.backend.domain.user.service.UserService;
 import com.gakkum.backend.global.exception.GlobalExceptionHandler;
+import com.gakkum.backend.global.transaction.ImmediateTransactionTemplate;
 
 @DisplayName("사장님 내 정보 조회 전체 흐름 (GET /owners/me)")
 class OwnerMeFlowTest {
@@ -79,7 +82,10 @@ class OwnerMeFlowTest {
                 new JobService(jobRepository, mock(JobSpecialtyRepository.class), jobApplicationRepository,
                         mock(JobSubmissionRepository.class), Clock.systemUTC()),
                 new ProposalService(proposalRepository, mock(ProposalSpecialtyRepository.class),
-                        mock(ProposalLikeRepository.class)));
+                        mock(ProposalLikeRepository.class)),
+                mock(AuthService.class),
+                mock(MediaService.class),
+                new ImmediateTransactionTemplate());
         mockMvc = MockMvcBuilders.standaloneSetup(new OwnerController(facade))
                 .setControllerAdvice(new GlobalExceptionHandler())
                 .build();

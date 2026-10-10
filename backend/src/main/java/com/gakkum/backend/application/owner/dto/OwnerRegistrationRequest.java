@@ -10,6 +10,7 @@ import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
 
+import com.gakkum.backend.domain.auth.dto.AuthCommandDto.VerifyOwnerBusinessCommand;
 import com.gakkum.backend.domain.owner.dto.OwnerCommandDto.CreateOwnerProfileCommand;
 
 import lombok.AccessLevel;
@@ -43,12 +44,16 @@ public class OwnerRegistrationRequest {
     @Pattern(regexp = "^\\d{3}-?\\d{2}-?\\d{5}$")
     private String businessNumber;
 
+    // 국세청 진위 확인에 개업일과 대표자 이름이 함께 필요해 필수로 받는다
+    @NotNull
     @PastOrPresent
     private LocalDate openedAt;
 
+    @NotBlank
     @Size(max = 255)
     private String representativeName;
 
+    @Size(max = 5000)
     private String description;
 
     @Size(max = 5)
@@ -89,6 +94,18 @@ public class OwnerRegistrationRequest {
 
     public String getNormalizedBusinessNumber() {
         return businessNumber.replace("-", "");
+    }
+
+    /**
+     * 가입 전에 사업자등록정보 진위 확인에 넘길 값. 사업자등록증에 적힌 대표자 이름을 그대로 쓰고,
+     * 가입하는 사람의 이름(name)과는 비교하지 않는다.
+     */
+    public VerifyOwnerBusinessCommand toBusinessVerificationCommand(String username) {
+        return VerifyOwnerBusinessCommand.of(
+                username,
+                representativeName.trim(),
+                openedAt,
+                getNormalizedBusinessNumber());
     }
 
     public CreateOwnerProfileCommand toCommand(String userId) {

@@ -25,6 +25,9 @@ public final class ExploreCursor {
     private static final String DELIMITER = "|";
     private static final String EMPTY = "-";
     private static final int PART_COUNT = 8;
+    // PostgreSQL timestamp가 지원하는 범위(기원전 4713년~294276년, 마이크로초 정밀도). 범위 밖 시각은 쿼리에 넘기지 않는다
+    private static final LocalDateTime MIN_CREATED_AT = LocalDateTime.of(-4712, 1, 1, 0, 0);
+    private static final LocalDateTime MAX_CREATED_AT = LocalDateTime.of(294276, 12, 31, 23, 59, 59, 999_999_000);
 
     private final ExploreSort sort;
     private final ExploreType type;
@@ -75,7 +78,8 @@ public final class ExploreCursor {
             boolean validLikes = sort == ExploreSort.LIKES
                     ? type == ExploreType.PROPOSAL && likeCount != null && likeCount >= 0
                     : likeCount == null;
-            if (!validCategory || !validItemType || !validLikes || id <= 0) {
+            boolean validCreatedAt = !createdAt.isBefore(MIN_CREATED_AT) && !createdAt.isAfter(MAX_CREATED_AT);
+            if (!validCategory || !validItemType || !validLikes || !validCreatedAt || id <= 0) {
                 throw invalid();
             }
             return new ExploreCursor(sort, type, specialtyCategoryId, itemType, likeCount, createdAt, id);

@@ -2,6 +2,14 @@ logging:
   pattern:
     console: '%clr(%5p) %clr([%X{tid:-}]){magenta} %clr(%replace(%logger){''^.*\.([^.]+\.[^.]+)$'',''$1''}){cyan} %clr(:){faint} %m%n%wEx'
 
+server:
+  servlet:
+    session:
+      cookie: # 세션(JSESSIONID)은 카카오 로그인 중 인가 요청(state)과 시작 주소만 담는다. 카카오가 돌려보내는 콜백은 최상위 GET 이동이라 Lax 쿠키도 실린다
+        http-only: true
+        secure: true # Chrome·Firefox 는 http://localhost 에서도 Secure 쿠키를 받는다. http 로 IP 주소에 접속해 로그인할 때만 SERVER_SERVLET_SESSION_COOKIE_SECURE=false 로 끈다
+        same-site: lax
+
 spring:
   application:
     name: backend
@@ -63,16 +71,16 @@ spring:
       mail.smtp.writetimeout: 5000
 jwt:
   secret: ${JWT_SECRET}
-  # 개발 편의를 위해 임시로 1000시간. 운영 전환 전에 1시간(3600000)으로 되돌린다
-  access-token-expiration: ${JWT_ACCESS_TOKEN_EXPIRATION:3600000000}
+  access-token-expiration: ${JWT_ACCESS_TOKEN_EXPIRATION:7200000} # 2시간. 만료되면 프론트가 /refresh로 새로 받는다
   refresh-token-expiration: 604800000 # 7일
 demo-login: # 로그인 없는 체험용 데모 로그인(POST /demo/login). enabled가 true인 서버에서만 엔드포인트가 등록된다
   enabled: ${DEMO_LOGIN_ENABLED:true}
-  max-new-sessions-per-hour: ${DEMO_LOGIN_MAX_NEW_SESSIONS_PER_HOUR:3600000000} # 최근 1시간에 새로 만들 수 있는 데모 계정 쌍 수
+  max-new-sessions-per-hour: ${DEMO_LOGIN_MAX_NEW_SESSIONS_PER_HOUR:500} # 최근 1시간에 새로 만들 수 있는 데모 계정 쌍 수
 nts-businessman:
   service-key: ${NTS_BUSINESSMAN_SERVICE_KEY}
 frontend: # 프론트 주소. CORS 허용 목록이자 소셜 로그인 뒤 돌아갈 수 있는 주소이고, 로그인은 시작한 프론트로 돌아간다
-  allowed-origin-patterns: ${FRONTEND_ALLOWED_ORIGIN_PATTERNS:http://localhost:5173,http://192.168.*.*:5173,https://gakkum.hubspacekw.com}
+  # 같은 와이파이 폰으로 로컬 프론트를 볼 때만 http://192.168.0.24:5173 처럼 정확한 주소를 환경변수에 더한다 (* 는 IP 숫자 한 칸에만 맞는다)
+  allowed-origin-patterns: ${FRONTEND_ALLOWED_ORIGIN_PATTERNS:http://localhost:5173,https://gakkum.hubspacekw.com}
   default-origin: ${FRONTEND_DEFAULT_ORIGIN:https://gakkum.hubspacekw.com} # 시작한 프론트를 알 수 없을 때 돌아갈 주소
 kakao-pay:
   cid: ${KAKAO_PAY_CID:TC0ONETIME}
@@ -99,6 +107,7 @@ notification:
     batch-size: 100
     poll-interval: 1s
     retry-idle: 30s
+    max-length: 10000 # 발행할 때 Stream 을 대략 이 개수로 자른다 (XADD MAXLEN ~). Consumer 가 이만큼 밀리면 오래된 미처리 메시지도 잘린다
 job:
   auto-completion: # 최신 제출물이 168시간 동안 검토되지 않은 진행 중 의뢰를 자동 완료한다. 알림 Consumer 활성화 여부와 무관하다
     enabled: ${JOB_AUTO_COMPLETION_ENABLED:true}

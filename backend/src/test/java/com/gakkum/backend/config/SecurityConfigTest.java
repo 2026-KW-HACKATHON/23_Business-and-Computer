@@ -20,6 +20,8 @@ import java.util.List;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
@@ -678,31 +680,11 @@ class SecurityConfigTest {
     }
 
     @Test
-    @DisplayName("LAN 프론트 Origin의 preflight는 credentials와 함께 허용된다")
-    void allowsLanOriginWithCredentials() throws Exception {
-        mockMvc.perform(options("/refresh")
-                .header(HttpHeaders.ORIGIN, "http://192.168.0.10:5173")
-                .header(HttpHeaders.ACCESS_CONTROL_REQUEST_METHOD, "POST"))
-            .andExpect(status().isOk())
-            .andExpect(header().string(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, "http://192.168.0.10:5173"))
-            .andExpect(header().string(HttpHeaders.ACCESS_CONTROL_ALLOW_CREDENTIALS, "true"));
-    }
-
-    @Test
-    @DisplayName("허용된 LAN Origin도 보호된 API는 인증이 필요하다")
-    void allowsLanOriginWithoutBypassingAuthentication() throws Exception {
-        mockMvc.perform(get("/api/protected")
-                .header(HttpHeaders.ORIGIN, "http://192.168.0.10:5173"))
-            .andExpect(status().isUnauthorized())
-            .andExpect(header().string(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, "http://192.168.0.10:5173"))
-            .andExpect(header().string(HttpHeaders.ACCESS_CONTROL_ALLOW_CREDENTIALS, "true"));
-    }
-
-    @Test
-    @DisplayName("다른 출처, IP 대역, 포트 또는 HTTPS의 preflight는 차단된다")
+    @DisplayName("기본 허용 목록에는 배포 사이트와 localhost만 있어 같은 와이파이 주소, 다른 출처, 포트, HTTPS의 preflight는 차단된다")
     void rejectsOriginsOutsideAllowedPatterns() throws Exception {
         for (String origin : List.of("https://other.example.com", "http://10.0.0.10:5173",
-                "http://192.168.0.10:5174", "http://localhost:5174", "https://192.168.0.10:5173")) {
+                "http://192.168.0.10:5173", "http://192.168.0.10:5174", "http://localhost:5174",
+                "https://192.168.0.10:5173", "http://192.168.evil.com:5173", "http://192.168.1.1.attacker.io:5173")) {
             mockMvc.perform(options("/refresh")
                     .header(HttpHeaders.ORIGIN, origin)
                     .header(HttpHeaders.ACCESS_CONTROL_REQUEST_METHOD, "POST"))
@@ -735,6 +717,18 @@ class SecurityConfigTest {
             .andExpect(status().isUnauthorized());
 
         verifyNoInteractions(notificationFacade);
+    }
+
+    @ParameterizedTest(name = "[{index}] \"{0}\"")
+    @ValueSource(strings = { "student-access-token", "Basic dXNlcjpwYXNz", "Bearer", "Bearer " })
+    @DisplayName("Bearer 접두사가 없거나 토큰이 비어 있는 Authorization 헤더는 500이 아닌 401로 거부하고 컨트롤러에 도달하지 않는다")
+    void malformedAuthorizationHeaderReturnsUnauthorized(String authorization) throws Exception {
+        mockMvc.perform(get("/students/me")
+                .header(HttpHeaders.AUTHORIZATION, authorization))
+            .andExpect(status().isUnauthorized())
+            .andExpect(content().json("{\"error\":\"토큰 만료 또는 유효하지 않은 토큰\"}"));
+
+        verifyNoInteractions(studentFacade);
     }
 
     @Test
