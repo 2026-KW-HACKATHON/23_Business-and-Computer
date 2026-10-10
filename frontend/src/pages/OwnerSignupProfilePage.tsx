@@ -26,6 +26,7 @@ type SubmitError =
   | "photo"
   | "category"
   | "businessNumberTaken"
+  | "businessNotVerified"
   | "invalidInput"
   | "dataConflict"
   | "retry"
@@ -40,6 +41,8 @@ const SUBMIT_ERROR_TEXT: Record<Exclude<SubmitError, null>, string> = {
   photo: "사진을 올리지 못했어요. 다시 시도해 주세요",
   category: "업종 정보를 불러오지 못했어요. 잠시 후 다시 시도해 주세요",
   businessNumberTaken: "이미 다른 계정에서 가입한 사업자등록번호예요",
+  businessNotVerified:
+    "사업자 정보를 확인하지 못했어요. 사업자등록번호 · 개업일 · 대표자 이름을 다시 확인해 주세요",
   invalidInput: "입력한 내용을 다시 확인해 주세요",
   dataConflict: "일시적인 문제가 생겼어요. 다시 시도해도 안 되면 문의해 주세요",
   retry: "잠시 후 다시 시도해 주세요",
@@ -192,6 +195,7 @@ function OwnerSignupProfilePage() {
         setSubmitError("category");
         break;
       case "businessNumberTaken":
+      case "businessNotVerified":
       case "invalidInput":
       case "dataConflict":
         setSubmitError(result);

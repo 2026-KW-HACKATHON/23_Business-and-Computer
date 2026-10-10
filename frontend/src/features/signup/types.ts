@@ -202,6 +202,8 @@ export type OwnerRegisterResult =
   | "alreadyRegistered"
   /** OWNER_409_BUSINESS_NUMBER: 다른 계정이 이미 쓰는 사업자등록번호 */
   | "businessNumberTaken"
+  /** OWNER_400_BUSINESS_NOT_VERIFIED: 가입 저장 때 국세청이 사업자 정보를 확인하지 못했다 */
+  | "businessNotVerified"
   /** CATEGORY_400: 보낸 업종 id 가 서버에 없다 */
   | "categoryInvalid"
   /** 그 밖의 400. 같은 값으로 다시 보내도 실패한다 */
