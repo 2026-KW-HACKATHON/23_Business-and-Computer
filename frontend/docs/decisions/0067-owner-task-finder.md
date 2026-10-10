@@ -22,9 +22,12 @@ example, the same way the home 「이런 의뢰는 어때요?」 cards do (B-2).
 ## Decision
 
 - **Banner** (owner home, above 확인할 일, also on the first-visit home and
-  in 둘러보기): 「무엇을 맡길지 모르겠다면?」 / 「몇 가지에 답하면 지금
-  맡기면 좋은 일을 골라 드려요」 and 「›」 on `--color-main`. It has no
-  close button.
+  in 둘러보기), on a left-to-right gradient from #fff4cc to #ffdb9e: the title 「무엇을 맡길지 모르겠다면?」
+  (16px bold), one line 「몇 가지에 답하면 맡길 일을 골라 드려요」, the link
+  text 「1분 만에 찾아보기 ›」, and the 3D 「전체」 field icon (56px) on the
+  right. A 40%-white 170px circle hangs over the top-right corner (the card
+  clips it). The whole card is the button and shrinks a little while pressed.
+  It has no close button.
 - **Questions** (`/owner/task-finder/:step`, 1–12, app bar 「맡길 일
   찾기」): a progress bar with 「n/12」, the question, the hint 「가게
   상황에 가까운 답을 골라 주세요」, and two answer buttons. Tapping an
