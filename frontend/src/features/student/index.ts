@@ -7,6 +7,7 @@ export { default as PeerProposalRow } from "./components/PeerProposalRow";
 export { default as RequestCard } from "./components/RequestCard";
 export { default as SettlementSummaryBox } from "./components/SettlementSummaryBox";
 export { default as StoreBox } from "./components/StoreBox";
+export { default as StoreConcernLine } from "./components/StoreConcernLine";
 export { default as StudentFirstVisitGuide } from "./components/StudentFirstVisitGuide";
 export { default as StudentMissing } from "./components/StudentMissing";
 export { default as StudentTabScreen } from "./components/StudentTabScreen";
@@ -31,6 +32,7 @@ export type { StudentMe, StudentMeChanges, StudentMeReview, StudentMeSaveResult 
 export { SETTLEMENT_STATUS_LABEL, settlementDetailText, settlementSummaryOf } from "./lib/settlements";
 export type { SettlementHistory, SettlementItem, SettlementStatus } from "./lib/settlements";
 export { useExploreStores } from "./hooks/useExploreStores";
+export { sortStoresByConcern } from "./lib/storeConcern";
 export type { ExploreStoresLoad } from "./hooks/useExploreStores";
 export { useAppliedJobs } from "./hooks/useAppliedJobs";
 export type { AppliedJobsLoad } from "./hooks/useAppliedJobs";
