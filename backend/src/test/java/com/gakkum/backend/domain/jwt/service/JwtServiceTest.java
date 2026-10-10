@@ -61,6 +61,7 @@ class JwtServiceTest {
     @DisplayName("토큰 교환 시 기존 토큰을 교체하고 7일짜리 크로스 사이트 쿠키 하나만 내려준다")
     void exchangeReplacesTokenAndSetsSingleCrossSiteCookie() {
         givenValidOldToken();
+        when(refreshRepository.existsByRefresh("old-refresh")).thenReturn(true);
         MockHttpServletResponse response = new MockHttpServletResponse();
 
         JWTResponseDTO result = jwtService.cookie2Header(requestWithRefreshCookie("old-refresh"), response);
@@ -116,6 +117,18 @@ class JwtServiceTest {
 
         assertRejected(() -> jwtService.refreshToken(
                 requestWithRefreshCookie("old-refresh"), new MockHttpServletResponse()));
+    }
+
+    @Test
+    @DisplayName("서명이 맞아도 DB에서 지워진 refreshToken이면 토큰 교환을 거부하고 쿠키를 내려주지 않는다")
+    void rejectsUnregisteredRefreshTokenOnExchange() {
+        when(jwtUtil.isValid("old-refresh", false)).thenReturn(true);
+        when(refreshRepository.existsByRefresh("old-refresh")).thenReturn(false);
+        MockHttpServletResponse response = new MockHttpServletResponse();
+
+        assertRejected(() -> jwtService.cookie2Header(requestWithRefreshCookie("old-refresh"), response));
+        assertThat(response.getHeaders(HttpHeaders.SET_COOKIE)).isEmpty();
+        verify(refreshRepository, never()).deleteByRefresh(any());
     }
 
     private void givenValidOldToken() {
