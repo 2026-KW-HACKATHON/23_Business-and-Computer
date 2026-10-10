@@ -72,7 +72,8 @@ demo-login: # 로그인 없는 체험용 데모 로그인(POST /demo/login). ena
 nts-businessman:
   service-key: ${NTS_BUSINESSMAN_SERVICE_KEY}
 frontend: # 프론트 주소. CORS 허용 목록이자 소셜 로그인 뒤 돌아갈 수 있는 주소이고, 로그인은 시작한 프론트로 돌아간다
-  allowed-origin-patterns: ${FRONTEND_ALLOWED_ORIGIN_PATTERNS:http://localhost:5173,http://192.168.*.*:5173,https://gakkum.hubspacekw.com}
+  # 같은 와이파이 폰으로 로컬 프론트를 볼 때만 http://192.168.0.24:5173 처럼 정확한 주소를 환경변수에 더한다 (* 는 IP 숫자 한 칸에만 맞는다)
+  allowed-origin-patterns: ${FRONTEND_ALLOWED_ORIGIN_PATTERNS:http://localhost:5173,https://gakkum.hubspacekw.com}
   default-origin: ${FRONTEND_DEFAULT_ORIGIN:https://gakkum.hubspacekw.com} # 시작한 프론트를 알 수 없을 때 돌아갈 주소
 kakao-pay:
   cid: ${KAKAO_PAY_CID:TC0ONETIME}

@@ -121,14 +121,10 @@ public class SecurityConfig {
 
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
-        CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOriginPatterns(frontendOrigins.allowedOriginPatterns());
-        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
-        configuration.setAllowedHeaders(List.of("*"));
-        configuration.setAllowCredentials(true);
+        CorsConfiguration configuration = frontendCorsConfiguration();
 
         // 브라우저가 내려받는 파일명을 읽을 수 있게 다운로드 경로에서만 Content-Disposition을 노출한다. 허용 출처와 메서드는 같다
-        CorsConfiguration downloadConfiguration = new CorsConfiguration(configuration);
+        CorsConfiguration downloadConfiguration = frontendCorsConfiguration();
         downloadConfiguration.setExposedHeaders(List.of(HttpHeaders.CONTENT_DISPOSITION));
 
         // 먼저 등록한 경로가 먼저 적용되므로 다운로드 경로를 /** 앞에 둔다
@@ -136,5 +132,22 @@ public class SecurityConfig {
         source.registerCorsConfiguration("/jobs/submissions/download", downloadConfiguration);
         source.registerCorsConfiguration("/**", configuration);
         return source;
+    }
+
+    /**
+     * 프론트 허용 목록(FrontendOrigins)으로만 출처를 판정하는 CORS 설정. 소셜 로그인 뒤 돌아갈 주소와 같은 규칙이다.
+     * Spring 의 allowedOriginPatterns 는 * 를 아무 글자로 풀어 http://192.168.evil.com:5173 도 허용하므로 쓰지 않는다.
+     */
+    private CorsConfiguration frontendCorsConfiguration() {
+        CorsConfiguration configuration = new CorsConfiguration() {
+            @Override
+            public String checkOrigin(String origin) {
+                return frontendOrigins.isAllowed(origin) ? origin : null;
+            }
+        };
+        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
+        configuration.setAllowedHeaders(List.of("*"));
+        configuration.setAllowCredentials(true);
+        return configuration;
     }
 }
