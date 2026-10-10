@@ -88,6 +88,61 @@
   gap: 8px;
 }
 
+/* 우리 가게 고민: 제목 줄 + 고민 상자(분야 · 한 줄 · 설명) + 고치기 · 해결됐어요 */
+.owner-me__concern {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: flex-start;
+  padding: 14px;
+  border: 1px solid var(--role-border);
+  border-radius: 12px;
+  background: var(--color-white);
+  font-family: var(--font-sans);
+}
+
+.owner-me__concern-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 21px;
+  color: var(--color-black);
+}
+
+.owner-me__concern-body {
+  margin: 0;
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--text-body);
+  white-space: pre-line;
+}
+
+.owner-me__concern-empty {
+  margin: 0;
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--role-secondary);
+}
+
+.owner-me__concern-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.owner-me__concern-actions > * {
+  flex: 1;
+}
+
+/* 해결 확인 창: 왼쪽 「아직이에요」 · 오른쪽 「해결됐어요」 가로 배치 */
+.owner-me__dialog-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.owner-me__dialog-actions > * {
+  flex: 1;
+}
+
 .owner-me__section-title {
   margin: 0;
   font-family: var(--font-sans);
