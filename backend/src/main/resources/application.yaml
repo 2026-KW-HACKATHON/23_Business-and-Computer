@@ -2,6 +2,14 @@ logging:
   pattern:
     console: '%clr(%5p) %clr([%X{tid:-}]){magenta} %clr(%replace(%logger){''^.*\.([^.]+\.[^.]+)$'',''$1''}){cyan} %clr(:){faint} %m%n%wEx'
 
+server:
+  servlet:
+    session:
+      cookie: # 세션(JSESSIONID)은 카카오 로그인 중 인가 요청(state)과 시작 주소만 담는다. 카카오가 돌려보내는 콜백은 최상위 GET 이동이라 Lax 쿠키도 실린다
+        http-only: true
+        secure: true # Chrome·Firefox 는 http://localhost 에서도 Secure 쿠키를 받는다. http 로 IP 주소에 접속해 로그인할 때만 SERVER_SERVLET_SESSION_COOKIE_SECURE=false 로 끈다
+        same-site: lax
+
 spring:
   application:
     name: backend
