@@ -3,7 +3,7 @@ import type { RequestExample } from "../types";
 import { SAMPLE_REQUEST_EXAMPLES } from "./sampleHome";
 
 /**
- * 「맡길 일 찾기」 (피그마 「I. 맡길 일 찾기」 · 「질문 12개 · 추천 연결」 표, ADR 0067).
+ * 「맡길 일 찾기」 (피그마 「I. 맡길 일 찾기」 · 「질문 12개 · 추천 연결」 표, ADR 0068).
  * 질문마다 답이 두 개이고, 그중 `need` 번째 답을 고르면 그 질문의 일을 추천한다.
  * 추천 카드를 누르면 홈 「이런 의뢰는 어때요?」 예시처럼 의뢰 등록을 그 예시 내용으로 채워 시작한다.
  */
