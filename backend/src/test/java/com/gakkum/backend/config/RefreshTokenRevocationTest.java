@@ -83,8 +83,8 @@ class RefreshTokenRevocationTest {
 
     @BeforeEach
     void fakeRefreshTable() {
-        when(refreshRepository.existsByRefresh(anyString()))
-                .thenAnswer(invocation -> whitelist.contains(invocation.<String>getArgument(0)));
+        when(refreshRepository.deleteAllByRefresh(anyString()))
+                .thenAnswer(invocation -> whitelist.remove(invocation.<String>getArgument(0)) ? 1 : 0);
         doAnswer(invocation -> whitelist.remove(invocation.<String>getArgument(0)))
                 .when(refreshRepository).deleteByRefresh(anyString());
         when(refreshRepository.save(any(RefreshToken.class))).thenAnswer(invocation -> {
