@@ -20,6 +20,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import com.gakkum.backend.application.owner.dto.OwnerMeUpdateRequest;
 import com.gakkum.backend.application.owner.facade.OwnerFacade;
+import com.gakkum.backend.domain.auth.service.AuthService;
 import com.gakkum.backend.domain.category.entity.BusinessCategory;
 import com.gakkum.backend.domain.category.repository.BusinessCategoryRepository;
 import com.gakkum.backend.domain.category.service.BusinessCategoryService;
@@ -78,6 +79,9 @@ class OwnerMeUpdatePersistenceIntegrationTest {
 
     @MockitoBean
     private ProposalService proposalService;
+
+    @MockitoBean
+    private AuthService authService;
 
     private Long cafe;
     private Long restaurant;

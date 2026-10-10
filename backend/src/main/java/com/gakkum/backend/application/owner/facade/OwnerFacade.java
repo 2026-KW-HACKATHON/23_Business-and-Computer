@@ -2,9 +2,11 @@ package com.gakkum.backend.application.owner.facade;
 
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import com.gakkum.backend.application.owner.dto.OwnerRegistrationRequest;
 import com.gakkum.backend.application.owner.dto.OwnerRegistrationResponse;
+import com.gakkum.backend.domain.auth.service.AuthService;
 import com.gakkum.backend.domain.category.service.BusinessCategoryService;
 import com.gakkum.backend.domain.job.service.JobService;
 import com.gakkum.backend.domain.jwt.service.JwtService;
@@ -31,19 +33,36 @@ public class OwnerFacade {
     private final JwtService jwtService;
     private final JobService jobService;
     private final ProposalService proposalService;
+    private final AuthService authService;
+    private final TransactionTemplate transactionTemplate;
 
-    @Transactional
+    /**
+     * 사장님 회원가입. 가입 대기 사용자·사업자등록번호 중복·업종을 먼저 확인하고, 국세청 사업자등록정보 진위 확인을
+     * 통과해야 저장한다. 진위 확인은 사업자가 실제로 있는지만 본다. 사업자등록증의 대표자 이름과 가입하는 사람의
+     * 이름(name)은 비교하지 않으므로 직원·대리인·공동 운영자처럼 대표자가 아닌 사람도 사업자 정보가 맞으면 가입할 수 있다.
+     * 외부 확인 동안 DB 트랜잭션과 커넥션을 붙잡지 않도록 저장과 토큰 발급만 트랜잭션으로 묶는다.
+     */
     public OwnerRegistrationResponse register(String username, OwnerRegistrationRequest request) {
-        User user = userService.validateOwnerRegistration(username);
+        userService.validateOwnerRegistration(username);
         ownerService.validateBusinessNumberAvailable(request.getNormalizedBusinessNumber());
         businessCategoryService.validateCategoryExists(request.getCategoryId());
 
-        userService.completeOwnerRegistration(user, request.getOwnerName());
-        ownerService.createOwnerProfile(request.toCommand(user.getId()), null);
+        // 국세청이 "확인되지 않음"으로 답하면 400, 국세청에 닿지 못하면 진위 확인 API와 같은 503을 그대로 전달한다
+        if (!authService.verifyOwnerBusiness(request.toBusinessVerificationCommand(username))) {
+            throw new BusinessException(ErrorCode.OWNER_BUSINESS_NOT_VERIFIED);
+        }
 
-        String accessToken = jwtService.issueAccessToken(username, UserRole.OWNER);
-        String refreshToken = jwtService.replaceRefreshToken(username, UserRole.OWNER);
-        return OwnerRegistrationResponse.of(accessToken, refreshToken);
+        return transactionTemplate.execute(status -> {
+            // 외부 확인 사이에 가입이 끝났을 수 있어 트랜잭션 안에서 가입 대기 사용자를 다시 확인한다.
+            // 같은 사업자등록번호의 동시 가입은 DB 유니크 제약이 막는다.
+            User user = userService.validateOwnerRegistration(username);
+            userService.completeOwnerRegistration(user, request.getOwnerName());
+            ownerService.createOwnerProfile(request.toCommand(user.getId()), null);
+
+            String accessToken = jwtService.issueAccessToken(username, UserRole.OWNER);
+            String refreshToken = jwtService.replaceRefreshToken(username, UserRole.OWNER);
+            return OwnerRegistrationResponse.of(accessToken, refreshToken);
+        });
     }
 
     /**

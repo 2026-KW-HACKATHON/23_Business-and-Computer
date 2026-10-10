@@ -98,6 +98,7 @@ public enum ErrorCode {
     STUDENT_EMAIL_VERIFICATION_COOLDOWN(HttpStatus.TOO_MANY_REQUESTS, "STUDENT_EMAIL_429", "인증번호 재발송은 잠시 후 다시 시도해 주세요."),
     STUDENT_EMAIL_DELIVERY_FAILED(HttpStatus.SERVICE_UNAVAILABLE, "STUDENT_EMAIL_503", "인증 메일을 발송하지 못했습니다."),
     OWNER_BUSINESS_VERIFICATION_UNAVAILABLE(HttpStatus.SERVICE_UNAVAILABLE, "OWNER_BUSINESS_503", "사업자등록정보를 확인할 수 없습니다. 잠시 후 다시 시도해 주세요."),
+    OWNER_BUSINESS_NOT_VERIFIED(HttpStatus.BAD_REQUEST, "OWNER_400_BUSINESS_NOT_VERIFIED", "사업자 정보를 확인할 수 없습니다."),
     ALREADY_REGISTERED(HttpStatus.CONFLICT, "USER_409_REGISTERED", "이미 회원가입이 완료된 사용자입니다."),
     STUDENT_ME_REQUIRED(HttpStatus.FORBIDDEN, "STUDENT_403_ME", "학생만 내 정보를 조회할 수 있습니다."),
     STUDENT_ME_UPDATE_REQUIRED(HttpStatus.FORBIDDEN, "STUDENT_403_ME_UPDATE", "학생만 내 정보를 수정할 수 있습니다."),

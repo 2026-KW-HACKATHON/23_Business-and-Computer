@@ -35,6 +35,7 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import com.gakkum.backend.application.owner.controller.OwnerController;
 import com.gakkum.backend.application.owner.facade.OwnerFacade;
+import com.gakkum.backend.domain.auth.service.AuthService;
 import com.gakkum.backend.domain.category.repository.BusinessCategoryRepository;
 import com.gakkum.backend.domain.category.service.BusinessCategoryService;
 import com.gakkum.backend.domain.job.repository.JobApplicationRepository;
@@ -55,6 +56,7 @@ import com.gakkum.backend.domain.user.entity.UserRole;
 import com.gakkum.backend.domain.user.repository.UserRepository;
 import com.gakkum.backend.domain.user.service.UserService;
 import com.gakkum.backend.global.exception.GlobalExceptionHandler;
+import com.gakkum.backend.global.transaction.ImmediateTransactionTemplate;
 
 @DisplayName("사장님 내 정보 수정 전체 흐름 (PUT /owners/me)")
 class OwnerMeUpdateFlowTest {
@@ -91,7 +93,9 @@ class OwnerMeUpdateFlowTest {
                         mock(JobApplicationRepository.class), mock(JobSubmissionRepository.class),
                         Clock.systemUTC()),
                 new ProposalService(mock(ProposalRepository.class), mock(ProposalSpecialtyRepository.class),
-                        mock(ProposalLikeRepository.class)));
+                        mock(ProposalLikeRepository.class)),
+                mock(AuthService.class),
+                new ImmediateTransactionTemplate());
         mockMvc = MockMvcBuilders.standaloneSetup(new OwnerController(facade))
                 .setControllerAdvice(new GlobalExceptionHandler())
                 .build();

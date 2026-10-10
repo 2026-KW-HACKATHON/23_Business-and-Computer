@@ -23,6 +23,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import com.gakkum.backend.application.owner.dto.OwnerRegistrationRequest;
 import com.gakkum.backend.application.owner.dto.OwnerRegistrationResponse;
 import com.gakkum.backend.application.owner.facade.OwnerFacade;
+import com.gakkum.backend.domain.auth.dto.AuthCommandDto.VerifyOwnerBusinessCommand;
 import com.gakkum.backend.domain.owner.dto.OwnerCommandDto.CreateOwnerProfileCommand;
 import com.gakkum.backend.global.response.ApiResponse;
 
@@ -76,7 +77,7 @@ class OwnerControllerTest {
     @Test
     void acceptsRequestWithOnlyRequiredFields() {
         OwnerRegistrationRequest request = OwnerRegistrationRequest.of(
-                "김사장", "치킨플러스", null, 2L, "1234567890", null, null, null, null, null);
+                "김사장", "치킨플러스", null, 2L, "1234567890", LocalDate.of(2020, 3, 1), "김사장", null, null, null);
 
         assertThat(validator.validate(request)).isEmpty();
     }
@@ -102,14 +103,27 @@ class OwnerControllerTest {
 
         assertThat(validator.validate(request))
                 .extracting(violation -> violation.getPropertyPath().toString())
-                .containsExactlyInAnyOrder("name", "storeName", "categoryId", "businessNumber");
+                .containsExactlyInAnyOrder(
+                        "name", "storeName", "categoryId", "businessNumber", "openedAt", "representativeName");
+    }
+
+    @Test
+    @DisplayName("국세청 진위 확인에 필요한 개업일과 대표자 이름은 비우거나 공백으로 보낼 수 없다")
+    void rejectsMissingOpenedAtOrBlankRepresentativeName() {
+        OwnerRegistrationRequest request = OwnerRegistrationRequest.of(
+                "김사장", "치킨플러스", null, 2L, "1234567890", null, "  ", null, null, null);
+
+        assertThat(validator.validate(request))
+                .extracting(violation -> violation.getPropertyPath().toString())
+                .containsExactlyInAnyOrder("openedAt", "representativeName");
     }
 
     @ParameterizedTest
     @ValueSource(longs = {0L, -1L})
     void rejectsNonPositiveCategoryId(long categoryId) {
         OwnerRegistrationRequest request = OwnerRegistrationRequest.of(
-                "김사장", "치킨플러스", null, categoryId, "1234567890", null, null, null, null, null);
+                "김사장", "치킨플러스", null, categoryId, "1234567890", LocalDate.of(2020, 3, 1), "김사장",
+                null, null, null);
 
         assertThat(validator.validate(request))
                 .extracting(violation -> violation.getPropertyPath().toString())
@@ -120,7 +134,7 @@ class OwnerControllerTest {
     void rejectsTooLongTextFields() {
         String tooLong = "가".repeat(256);
         OwnerRegistrationRequest request = OwnerRegistrationRequest.of(
-                tooLong, tooLong, tooLong, 2L, "1234567890", null, tooLong, null, null, null);
+                tooLong, tooLong, tooLong, 2L, "1234567890", LocalDate.of(2020, 3, 1), tooLong, null, null, null);
 
         assertThat(validator.validate(request))
                 .extracting(violation -> violation.getPropertyPath().toString())
@@ -130,9 +144,10 @@ class OwnerControllerTest {
     @Test
     void acceptsTodayButRejectsFutureOpenedAt() {
         OwnerRegistrationRequest today = OwnerRegistrationRequest.of(
-                "김사장", "치킨플러스", null, 2L, "1234567890", LocalDate.now(), null, null, null, null);
+                "김사장", "치킨플러스", null, 2L, "1234567890", LocalDate.now(), "김사장", null, null, null);
         OwnerRegistrationRequest tomorrow = OwnerRegistrationRequest.of(
-                "김사장", "치킨플러스", null, 2L, "1234567890", LocalDate.now().plusDays(1), null, null, null, null);
+                "김사장", "치킨플러스", null, 2L, "1234567890", LocalDate.now().plusDays(1), "김사장",
+                null, null, null);
 
         assertThat(validator.validate(today)).isEmpty();
         assertThat(validator.validate(tomorrow))
@@ -143,7 +158,7 @@ class OwnerControllerTest {
     @Test
     void rejectsInvalidImageUrls() {
         OwnerRegistrationRequest request = OwnerRegistrationRequest.of(
-                "김사장", "치킨플러스", null, 2L, "1234567890", null, null, null,
+                "김사장", "치킨플러스", null, 2L, "1234567890", LocalDate.of(2020, 3, 1), "김사장", null,
                 List.of("https://image.example.com/store.png", "not-a-url", " "),
                 "ftp://image.example.com/profile.png");
 
@@ -177,7 +192,7 @@ class OwnerControllerTest {
                 2L,
                 "123-45-67890",
                 LocalDate.of(2020, 3, 1),
-                "",
+                " 김대표 ",
                 " 매장 한 줄 소개 ",
                 List.of(" https://image.example.com/store.png "),
                 "");
@@ -192,7 +207,13 @@ class OwnerControllerTest {
         assertThat(command.getCategoryId()).isEqualTo(2L);
         assertThat(command.getBusinessNumber()).isEqualTo("1234567890");
         assertThat(command.getOpenedAt()).isEqualTo(LocalDate.of(2020, 3, 1));
-        assertThat(command.getRepresentativeName()).isNull();
+        assertThat(command.getRepresentativeName()).isEqualTo("김대표");
+
+        VerifyOwnerBusinessCommand verifyCommand = request.toBusinessVerificationCommand("KAKAO_12345");
+        assertThat(verifyCommand.getUsername()).isEqualTo("KAKAO_12345");
+        assertThat(verifyCommand.getBusinessNumber()).isEqualTo("1234567890");
+        assertThat(verifyCommand.getOpenedAt()).isEqualTo(LocalDate.of(2020, 3, 1));
+        assertThat(verifyCommand.getRepresentativeName()).isEqualTo("김대표");
         assertThat(command.getDescription()).isEqualTo("매장 한 줄 소개");
         assertThat(command.getStoreImageUrls()).containsExactly("https://image.example.com/store.png");
         assertThat(command.getProfileImageUrl()).isNull();
