@@ -29,6 +29,8 @@ import OwnerRequestPage from './pages/OwnerRequestPage'
 import OwnerApplicantsPage from './pages/OwnerApplicantsPage'
 import OwnerChatRoomPage from './pages/OwnerChatRoomPage'
 import OwnerRequestNewPage from './pages/OwnerRequestNewPage'
+import OwnerTaskFinderPage from './pages/OwnerTaskFinderPage'
+import OwnerTaskFinderResultPage from './pages/OwnerTaskFinderResultPage'
 import OwnerRequestContentPage from './pages/OwnerRequestContentPage'
 import OwnerRequestConfirmPage from './pages/OwnerRequestConfirmPage'
 import OwnerRequestDonePage from './pages/OwnerRequestDonePage'
@@ -122,6 +124,8 @@ function App() {
       <Route path="/owner/works/:workId/result" element={<OwnerWorkResultPage />} />
       <Route path="/owner/works/:workId/history" element={<OwnerWorkHistoryPage />} />
       <Route path="/owner/proposals/:proposalId" element={<OwnerProposalPage />} />
+      <Route path="/owner/task-finder/result" element={<OwnerTaskFinderResultPage />} />
+      <Route path="/owner/task-finder/:step" element={<OwnerTaskFinderPage />} />
       <Route path="/owner/requests/new" element={<OwnerRequestNewPage />} />
       <Route path="/owner/requests/new/2" element={<OwnerRequestContentPage />} />
       <Route path="/owner/requests/new/3" element={<OwnerRequestConfirmPage />} />

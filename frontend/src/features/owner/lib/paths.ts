@@ -20,6 +20,9 @@ export const OWNER_PATHS = {
   newRequest: "/owner/requests/new",
   newRequestStep: (step: number) => `/owner/requests/new/${step}`,
   newRequestDone: "/owner/requests/new/done",
+  /** 맡길 일 찾기 질문 (1 ~ 12) */
+  taskFinder: (step: number) => `/owner/task-finder/${step}`,
+  taskFinderResult: "/owner/task-finder/result",
   request: (id: string) => `/owner/requests/${id}`,
   requestCancel: (id: string) => `/owner/requests/${id}/cancel`,
   requestApplicants: (id: string) => `/owner/requests/${id}/applicants`,

@@ -1,0 +1,162 @@
+/* 맡길 일 찾기 — 질문 · 결과 (ADR 0067) */
+.task-finder {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  padding: 20px 16px 32px;
+  font-family: var(--font-sans);
+}
+
+.task-finder--result {
+  gap: 16px;
+}
+
+.task-finder__progress {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.task-finder__track {
+  flex: 1;
+  height: 6px;
+  overflow: hidden;
+  border-radius: 3px;
+  background: var(--role-border);
+}
+
+.task-finder__track > span {
+  display: block;
+  height: 100%;
+  border-radius: 3px;
+  background: var(--color-owner);
+  transition: width 0.24s ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .task-finder__track > span {
+    transition: none;
+  }
+}
+
+.task-finder__count {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--role-secondary);
+}
+
+.task-finder__intro {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.task-finder__question {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.4;
+  color: var(--color-black);
+  white-space: pre-line;
+}
+
+.task-finder__hint {
+  margin: 0;
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--role-secondary);
+}
+
+.task-finder__answers {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.task-finder__answer {
+  box-sizing: border-box;
+  min-height: 60px;
+  padding: 0 20px;
+  border: 1px solid var(--role-border);
+  border-radius: 14px;
+  background: var(--color-white);
+  font-family: var(--font-sans);
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--color-black);
+  text-align: left;
+  cursor: pointer;
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.task-finder__answer:active {
+  border-color: var(--color-owner);
+  background: var(--color-main);
+}
+
+.task-finder__answer:focus-visible,
+.task-finder__pick:focus-visible {
+  outline: 2px solid var(--role-focus);
+  outline-offset: 2px;
+}
+
+.task-finder__picks {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.task-finder__pick {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  box-sizing: border-box;
+  width: 100%;
+  padding: 16px;
+  border: 1px solid var(--role-border);
+  border-radius: 16px;
+  background: var(--color-white);
+  font-family: var(--font-sans);
+  text-align: left;
+  cursor: pointer;
+}
+
+.task-finder__pick-title {
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.4;
+  color: var(--color-black);
+}
+
+.task-finder__pick-reason {
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--role-secondary);
+}
+
+.task-finder__pick-foot {
+  display: flex;
+  align-self: stretch;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 4px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-black);
+}
+
+.task-finder__pick-link {
+  font-weight: 700;
+  color: #a87600;
+}
+
+.task-finder__footer {
+  display: flex;
+  gap: 10px;
+}
