@@ -25,6 +25,8 @@ import com.gakkum.backend.domain.user.entity.UserRole;
 import com.gakkum.backend.domain.user.service.UserService;
 import com.gakkum.backend.global.exception.BusinessException;
 import com.gakkum.backend.global.exception.ErrorCode;
+import com.gakkum.backend.global.ratelimit.RateLimitedAction;
+import com.gakkum.backend.global.ratelimit.UserRateLimit;
 
 import lombok.RequiredArgsConstructor;
 
@@ -47,7 +49,9 @@ public class OwnerFacade {
      * 통과해야 저장한다. 진위 확인은 사업자가 실제로 있는지만 본다. 사업자등록증의 대표자 이름과 가입하는 사람의
      * 이름(name)은 비교하지 않으므로 직원·대리인·공동 운영자처럼 대표자가 아닌 사람도 사업자 정보가 맞으면 가입할 수 있다.
      * 외부 확인 동안 DB 트랜잭션과 커넥션을 붙잡지 않도록 저장과 토큰 발급만 트랜잭션으로 묶는다.
+     * 가입도 국세청을 부르므로 진위 확인 API와 같은 시간당 횟수를 나눠 쓴다.
      */
+    @UserRateLimit(RateLimitedAction.OWNER_BUSINESS_VERIFICATION)
     public OwnerRegistrationResponse register(String username, OwnerRegistrationRequest request) {
         User pendingUser = userService.validateOwnerRegistration(username);
         ownerService.validateBusinessNumberAvailable(request.getNormalizedBusinessNumber());

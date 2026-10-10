@@ -8,6 +8,8 @@ import com.gakkum.backend.domain.auth.service.AuthService;
 import com.gakkum.backend.domain.user.entity.User;
 import com.gakkum.backend.domain.user.service.UserService;
 import com.gakkum.backend.global.exception.BusinessException;
+import com.gakkum.backend.global.ratelimit.RateLimitedAction;
+import com.gakkum.backend.global.ratelimit.UserRateLimit;
 
 import lombok.RequiredArgsConstructor;
 
@@ -18,7 +20,8 @@ public class AuthFacade {
     private final UserService userService;
     private final AuthService authService;
 
-    /** 가입 대기 사용자와 이메일 중복을 확인한 뒤 학생 이메일 인증번호를 발송한다. */
+    /** 가입 대기 사용자와 이메일 중복을 확인한 뒤 학생 이메일 인증번호를 발송한다. 재발송 대기와 별도로 시간당 횟수를 제한한다. */
+    @UserRateLimit(RateLimitedAction.STUDENT_EMAIL_SEND)
     @Transactional
     public void sendStudentEmailVerification(String username, String email) {
         User user = userService.validateStudentRegistration(username, email);
@@ -32,7 +35,11 @@ public class AuthFacade {
         authService.verifyStudentEmail(user.getId(), email, code);
     }
 
-    /** 외부 진위 확인 동안 DB 커넥션을 잡지 않도록 트랜잭션 없이 가입 대기 사용자만 먼저 확인한다. */
+    /**
+     * 외부 진위 확인 동안 DB 커넥션을 잡지 않도록 트랜잭션 없이 가입 대기 사용자만 먼저 확인한다.
+     * 국세청 호출 횟수는 사장님 가입과 함께 시간당으로 제한한다.
+     */
+    @UserRateLimit(RateLimitedAction.OWNER_BUSINESS_VERIFICATION)
     public boolean verifyOwnerBusiness(VerifyOwnerBusinessCommand command) {
         userService.validateOwnerRegistration(command.getUsername());
         return authService.verifyOwnerBusiness(command);

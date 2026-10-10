@@ -116,6 +116,8 @@ import com.gakkum.backend.domain.user.entity.UserRole;
 import com.gakkum.backend.domain.user.service.UserService;
 import com.gakkum.backend.global.exception.BusinessException;
 import com.gakkum.backend.global.exception.ErrorCode;
+import com.gakkum.backend.global.ratelimit.RateLimitedAction;
+import com.gakkum.backend.global.ratelimit.UserRateLimit;
 
 import lombok.RequiredArgsConstructor;
 
@@ -349,7 +351,11 @@ public class JobFacade {
         throw new BusinessException(ErrorCode.JOB_RESULT_NOT_FOUND);
     }
 
-    /** 매칭된 학생에게 작업물 파일 업로드 URL과 제출에 쓸 공개 URL을 발급한다. 형식·크기는 채팅 첨부 규칙을 따른다. */
+    /**
+     * 매칭된 학생에게 작업물 파일 업로드 URL과 제출에 쓸 공개 URL을 발급한다. 형식·크기는 채팅 첨부 규칙을 따른다.
+     * 발급 횟수는 사용자별 시간당으로 제한한다.
+     */
+    @UserRateLimit(RateLimitedAction.JOB_SUBMISSION_FILE_UPLOAD)
     @Transactional(readOnly = true)
     public PrepareSubmissionFileUploadResult prepareSubmissionFileUpload(PrepareSubmissionFileUploadCommand command) {
         Student student = getSubmittingStudent(userService.getActiveUser(command.getUsername()));
