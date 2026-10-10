@@ -97,4 +97,26 @@ public final class OwnerCommandDto {
                     .build();
         }
     }
+
+    /** 가게 고민 저장. 설명·분야의 null은 기존 값 삭제다. 분야는 특기 대분류 ID다. */
+    @Getter
+    @Builder(access = AccessLevel.PRIVATE)
+    @AllArgsConstructor(access = AccessLevel.PRIVATE)
+    public static class SaveStoreConcernCommand {
+
+        private final String username;
+        private final String title;
+        private final String description;
+        private final Long specialtyCategoryId;
+
+        public static SaveStoreConcernCommand of(String username, String title, String description,
+                Long specialtyCategoryId) {
+            return SaveStoreConcernCommand.builder()
+                    .username(username)
+                    .title(title)
+                    .description(description)
+                    .specialtyCategoryId(specialtyCategoryId)
+                    .build();
+        }
+    }
 }

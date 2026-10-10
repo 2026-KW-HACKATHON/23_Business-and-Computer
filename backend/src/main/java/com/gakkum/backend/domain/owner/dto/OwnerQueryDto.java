@@ -1,6 +1,9 @@
 package com.gakkum.backend.domain.owner.dto;
 
+import java.time.LocalDateTime;
+
 import com.gakkum.backend.domain.owner.entity.Owner;
+import com.gakkum.backend.domain.owner.entity.StoreConcern;
 import com.gakkum.backend.domain.user.entity.User;
 
 import lombok.AccessLevel;
@@ -57,6 +60,35 @@ public final class OwnerQueryDto {
                     .receivedProposalCount(receivedProposalCount)
                     .inProgressJobCount(inProgressJobCount)
                     .completedJobCount(completedJobCount)
+                    .build();
+        }
+    }
+
+    /** 가게 고민. 분야를 고르지 않았으면 분야 ID·이름이 null이다. */
+    @Getter
+    @Builder(access = AccessLevel.PRIVATE)
+    @AllArgsConstructor(access = AccessLevel.PRIVATE)
+    public static class StoreConcernResult {
+
+        private final Long concernId;
+        private final Long ownerProfileId;
+        private final String title;
+        private final String description;
+        private final Long specialtyCategoryId;
+        private final String specialtyCategoryName;
+        private final LocalDateTime createdAt;
+        private final LocalDateTime updatedAt;
+
+        public static StoreConcernResult of(StoreConcern concern, String specialtyCategoryName) {
+            return StoreConcernResult.builder()
+                    .concernId(concern.getId())
+                    .ownerProfileId(concern.getOwnerProfileId())
+                    .title(concern.getTitle())
+                    .description(concern.getDescription())
+                    .specialtyCategoryId(concern.getSpecialtyCategoryId())
+                    .specialtyCategoryName(specialtyCategoryName)
+                    .createdAt(concern.getCreatedAt())
+                    .updatedAt(concern.getUpdatedAt())
                     .build();
         }
     }

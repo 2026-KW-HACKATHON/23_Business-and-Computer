@@ -37,6 +37,8 @@ import com.gakkum.backend.domain.user.entity.UserRole;
 import com.gakkum.backend.domain.user.service.UserService;
 import com.gakkum.backend.global.exception.BusinessException;
 import com.gakkum.backend.global.exception.ErrorCode;
+import com.gakkum.backend.domain.owner.service.StoreConcernService;
+import com.gakkum.backend.domain.specialty.service.SpecialtyCategoryService;
 
 import jakarta.persistence.EntityManager;
 
@@ -87,6 +89,12 @@ class OwnerMeUpdatePersistenceIntegrationTest {
     // 본인 업로드 확인은 흐름 테스트에서 검증하고, 여기서는 저장 반영만 본다
     @MockitoBean
     private MediaService mediaService;
+
+    @MockitoBean
+    private StoreConcernService storeConcernService;
+
+    @MockitoBean
+    private SpecialtyCategoryService specialtyCategoryService;
 
     private Long cafe;
     private Long restaurant;
