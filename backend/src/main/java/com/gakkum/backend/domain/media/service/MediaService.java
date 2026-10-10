@@ -3,6 +3,8 @@ package com.gakkum.backend.domain.media.service;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
+import java.util.Collection;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
@@ -73,6 +75,22 @@ public class MediaService {
     /** 공개 이미지가 실제로 업로드되어 있는지 확인한다. */
     public boolean isImageUploaded(String key) {
         return mediaImageStorageClient.exists(key);
+    }
+
+    /**
+     * 프로필·매장 사진 URL이 모두 이 사용자가 이 용도로 올린 사진인지 확인한다. 의뢰·제안 사진과 같은 규칙으로,
+     * 모든 URL이 발급한 형태인지 먼저 확인한 뒤(아니면 400) 실제 업로드 여부를 확인한다(아니면 409).
+     */
+    public void validateUploadedImages(String userId, ImagePurpose purpose, Collection<String> imageUrls) {
+        List<String> keys = imageUrls.stream()
+                .map(imageUrl -> findImageKey(userId, purpose, imageUrl)
+                        .orElseThrow(() -> new BusinessException(ErrorCode.MEDIA_IMAGE_URL_INVALID)))
+                .toList();
+        for (String key : keys) {
+            if (!isImageUploaded(key)) {
+                throw new BusinessException(ErrorCode.MEDIA_IMAGE_NOT_UPLOADED);
+            }
+        }
     }
 
     private static String keyPrefix(String userId, ImagePurpose purpose) {

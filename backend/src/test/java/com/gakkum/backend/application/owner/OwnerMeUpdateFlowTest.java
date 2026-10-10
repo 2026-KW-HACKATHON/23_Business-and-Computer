@@ -32,6 +32,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.util.unit.DataSize;
 
 import com.gakkum.backend.application.owner.controller.OwnerController;
 import com.gakkum.backend.application.owner.facade.OwnerFacade;
@@ -44,6 +45,8 @@ import com.gakkum.backend.domain.job.repository.JobSpecialtyRepository;
 import com.gakkum.backend.domain.job.repository.JobSubmissionRepository;
 import com.gakkum.backend.domain.job.service.JobService;
 import com.gakkum.backend.domain.jwt.service.JwtService;
+import com.gakkum.backend.domain.media.client.MediaImageStorageClient;
+import com.gakkum.backend.domain.media.service.MediaService;
 import com.gakkum.backend.domain.owner.entity.Owner;
 import com.gakkum.backend.domain.owner.repository.OwnerRepository;
 import com.gakkum.backend.domain.owner.service.OwnerService;
@@ -71,10 +74,15 @@ class OwnerMeUpdateFlowTest {
     private static final String OLD_ADDRESS = "서울시 노원구 광운로 20";
     private static final String OLD_DESCRIPTION = "예전 소개";
     private static final List<String> STORE_IMAGE_URLS = List.of("https://cdn.gakkum.test/store.png");
+    private static final String PROFILE_KEY_PREFIX = "images/profile/" + OWNER_USER_ID + "/";
+    private static final String UPLOADED_IMAGE_URL = "https://bucket.s3.amazonaws.com/" + PROFILE_KEY_PREFIX
+            + "0b6f3c1e-8a4d-4f7e-9d2a-1c5b7e9f0a12.png";
 
     private final UserRepository userRepository = mock(UserRepository.class);
     private final OwnerRepository ownerRepository = mock(OwnerRepository.class);
     private final BusinessCategoryRepository businessCategoryRepository = mock(BusinessCategoryRepository.class);
+    // 사진 저장소만 가짜로 두고 본인 업로드 확인은 실제 MediaService가 한다
+    private final MediaImageStorageClient imageStorageClient = mock(MediaImageStorageClient.class);
     private final UsernamePasswordAuthenticationToken authentication =
             new UsernamePasswordAuthenticationToken(USERNAME, null);
 
@@ -95,6 +103,7 @@ class OwnerMeUpdateFlowTest {
                 new ProposalService(mock(ProposalRepository.class), mock(ProposalSpecialtyRepository.class),
                         mock(ProposalLikeRepository.class)),
                 mock(AuthService.class),
+                new MediaService(imageStorageClient, DataSize.ofMegabytes(10)),
                 new ImmediateTransactionTemplate());
         mockMvc = MockMvcBuilders.standaloneSetup(new OwnerController(facade))
                 .setControllerAdvice(new GlobalExceptionHandler())
@@ -110,23 +119,24 @@ class OwnerMeUpdateFlowTest {
     void replacesOwnEditableInformation() throws Exception {
         givenUser(UserRole.OWNER);
         givenProfile();
+        givenUploadedProfileImage(UPLOADED_IMAGE_URL);
 
         perform("""
                 {
                   "storeName": "  가꿈 베이커리  ",
                   "categoryId": 2,
-                  "profileImageUrl": "https://example.com/profile.png",
+                  "profileImageUrl": "%s",
                   "storeAddress": "  서울시 노원구 광운로 1  ",
                   "description": "  매일 굽는 빵집입니다.  "
                 }
-                """)
+                """.formatted(UPLOADED_IMAGE_URL))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(1))
                 .andExpect(jsonPath("$.success").value(true));
 
         assertThat(owner.getStoreName()).isEqualTo("가꿈 베이커리");
         assertThat(owner.getCategoryId()).isEqualTo(2L);
-        assertThat(owner.getProfileImageUrl()).isEqualTo("https://example.com/profile.png");
+        assertThat(owner.getProfileImageUrl()).isEqualTo(UPLOADED_IMAGE_URL);
         assertThat(owner.getStoreAddress()).isEqualTo("서울시 노원구 광운로 1");
         assertThat(owner.getDescription()).isEqualTo("매일 굽는 빵집입니다.");
         verify(ownerRepository).save(owner);
@@ -189,6 +199,7 @@ class OwnerMeUpdateFlowTest {
         givenProfile();
         String storeName = "가".repeat(255);
         String imageUrl = "https://example.com/" + "a".repeat(235);
+        givenUploadedProfileImage(imageUrl);
         String address = "나".repeat(255);
         String description = "다".repeat(2000);
 
@@ -237,6 +248,56 @@ class OwnerMeUpdateFlowTest {
                 invalid("255자를 넘는 사진 URL", withOptional("\"profileImageUrl\": \"" + longUrl + "\"")),
                 invalid("255자를 넘는 주소", withOptional("\"storeAddress\": \"" + "나".repeat(256) + "\"")),
                 invalid("본문 없음", ""));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {
+            "https://evil.example.com/tracker.png",
+            "https://bucket.s3.amazonaws.com/images/profile/OTHERUSER0000000000000001/0b6f3c1e-8a4d-4f7e-9d2a-1c5b7e9f0a12.png" })
+    @DisplayName("외부 주소나 다른 사용자의 사진 URL로 바꾸면 400 MEDIA_400_IMAGE_URL로 거부하고 저장하지 않는다")
+    void rejectsProfileImageNotUploadedByOwner(String imageUrl) throws Exception {
+        givenUser(UserRole.OWNER);
+        givenProfile();
+
+        perform(withOptional("\"profileImageUrl\": \"" + imageUrl + "\""))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error.code").value("MEDIA_400_IMAGE_URL"));
+
+        verify(imageStorageClient).findKey(imageUrl, PROFILE_KEY_PREFIX);
+        verify(imageStorageClient, never()).exists(any());
+        assertNothingWritten();
+    }
+
+    @Test
+    @DisplayName("본인 프로필용으로 발급만 받고 올리지 않은 사진이면 409 MEDIA_409_IMAGE_NOT_UPLOADED로 거부하고 저장하지 않는다")
+    void rejectsProfileImageNotYetUploaded() throws Exception {
+        givenUser(UserRole.OWNER);
+        givenProfile();
+        givenUploadedProfileImage(UPLOADED_IMAGE_URL);
+        when(imageStorageClient.exists(any())).thenReturn(false);
+
+        perform(withOptional("\"profileImageUrl\": \"" + UPLOADED_IMAGE_URL + "\""))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.error.code").value("MEDIA_409_IMAGE_NOT_UPLOADED"));
+
+        assertNothingWritten();
+    }
+
+    @Test
+    @DisplayName("저장된 프로필 사진 URL을 그대로 보내면 우리 저장소 주소가 아니어도 확인 없이 받아 다른 항목을 저장한다")
+    void keepsUnchangedStoredProfileImage() throws Exception {
+        givenUser(UserRole.OWNER);
+        givenProfile();
+
+        perform(body("\"가꿈 베이커리\"", "2", "\"profileImageUrl\": \"" + OLD_IMAGE_URL + "\""))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true));
+
+        assertThat(owner.getStoreName()).isEqualTo("가꿈 베이커리");
+        assertThat(owner.getCategoryId()).isEqualTo(2L);
+        assertThat(owner.getProfileImageUrl()).isEqualTo(OLD_IMAGE_URL);
+        verify(ownerRepository).save(owner);
+        verifyNoInteractions(imageStorageClient);
     }
 
     @ParameterizedTest
@@ -306,6 +367,13 @@ class OwnerMeUpdateFlowTest {
                 .storeImageUrls(STORE_IMAGE_URLS)
                 .build();
         when(ownerRepository.findByUserId(OWNER_USER_ID)).thenReturn(Optional.of(owner));
+    }
+
+    // 이 사장님이 프로필용으로 발급받아 실제로 올린 사진
+    private void givenUploadedProfileImage(String imageUrl) {
+        String key = PROFILE_KEY_PREFIX + "0b6f3c1e-8a4d-4f7e-9d2a-1c5b7e9f0a12.png";
+        when(imageStorageClient.findKey(imageUrl, PROFILE_KEY_PREFIX)).thenReturn(Optional.of(key));
+        when(imageStorageClient.exists(key)).thenReturn(true);
     }
 
     // 가입자 이름·사업자 정보·매장 사진 목록은 수정 대상이 아니다

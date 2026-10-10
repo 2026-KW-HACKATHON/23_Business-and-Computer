@@ -59,6 +59,8 @@ import com.gakkum.backend.domain.user.entity.UserRole;
 import com.gakkum.backend.domain.user.service.UserService;
 import com.gakkum.backend.global.exception.BusinessException;
 import com.gakkum.backend.global.exception.ErrorCode;
+import com.gakkum.backend.global.ratelimit.RateLimitedAction;
+import com.gakkum.backend.global.ratelimit.UserRateLimit;
 
 import lombok.RequiredArgsConstructor;
 
@@ -230,6 +232,8 @@ public class ChatFacade {
         return chatService.sendTextMessage(room, sender.getId(), command.getClientMessageId(), command.getContent());
     }
 
+    /** 채팅 첨부 파일 업로드 URL을 발급한다. 발급마다 업로드 기록이 남으므로 사용자별 시간당 횟수를 제한한다. */
+    @UserRateLimit(RateLimitedAction.CHAT_ATTACHMENT_UPLOAD)
     @Transactional
     public PrepareAttachmentUploadResult prepareAttachmentUpload(PrepareAttachmentUploadCommand command) {
         User uploader = userService.getActiveUser(command.getUsername());

@@ -51,6 +51,7 @@ import com.gakkum.backend.domain.job.repository.JobSpecialtyRepository;
 import com.gakkum.backend.domain.job.repository.JobSubmissionRepository;
 import com.gakkum.backend.domain.job.service.JobService;
 import com.gakkum.backend.domain.jwt.service.JwtService;
+import com.gakkum.backend.domain.media.service.MediaService;
 import com.gakkum.backend.domain.owner.entity.Owner;
 import com.gakkum.backend.domain.owner.repository.OwnerRepository;
 import com.gakkum.backend.domain.owner.service.OwnerService;
@@ -134,7 +135,8 @@ class StudentMeFlowTest {
                         mock(JobSubmissionRepository.class), Clock.systemUTC()),
                 new ReviewService(reviewRepository),
                 new PaymentService(paymentRepository, Clock.systemUTC()),
-                new OwnerService(ownerRepository));
+                new OwnerService(ownerRepository),
+                mock(MediaService.class));
         mockMvc = MockMvcBuilders.standaloneSetup(new StudentController(facade))
                 .setControllerAdvice(new GlobalExceptionHandler())
                 .build();

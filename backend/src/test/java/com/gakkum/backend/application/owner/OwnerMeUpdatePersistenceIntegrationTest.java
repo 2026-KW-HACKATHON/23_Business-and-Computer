@@ -26,6 +26,7 @@ import com.gakkum.backend.domain.category.repository.BusinessCategoryRepository;
 import com.gakkum.backend.domain.category.service.BusinessCategoryService;
 import com.gakkum.backend.domain.job.service.JobService;
 import com.gakkum.backend.domain.jwt.service.JwtService;
+import com.gakkum.backend.domain.media.service.MediaService;
 import com.gakkum.backend.domain.owner.dto.OwnerQueryDto.OwnerMeResult;
 import com.gakkum.backend.domain.owner.entity.Owner;
 import com.gakkum.backend.domain.owner.repository.OwnerRepository;
@@ -82,6 +83,10 @@ class OwnerMeUpdatePersistenceIntegrationTest {
 
     @MockitoBean
     private AuthService authService;
+
+    // 본인 업로드 확인은 흐름 테스트에서 검증하고, 여기서는 저장 반영만 본다
+    @MockitoBean
+    private MediaService mediaService;
 
     private Long cafe;
     private Long restaurant;

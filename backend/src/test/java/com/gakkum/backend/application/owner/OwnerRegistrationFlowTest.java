@@ -38,6 +38,7 @@ import com.gakkum.backend.domain.auth.client.NtsBusinessVerificationClient;
 import com.gakkum.backend.domain.auth.repository.StudentEmailVerificationRepository;
 import com.gakkum.backend.domain.auth.service.AuthService;
 import com.gakkum.backend.domain.job.service.JobService;
+import com.gakkum.backend.domain.media.service.MediaService;
 import com.gakkum.backend.domain.proposal.service.ProposalService;
 import com.gakkum.backend.domain.category.repository.BusinessCategoryRepository;
 import com.gakkum.backend.domain.category.service.BusinessCategoryService;
@@ -118,6 +119,7 @@ class OwnerRegistrationFlowTest {
                         businessVerificationClient,
                         Clock.systemUTC(),
                         "noreply@example.com"),
+                mock(MediaService.class),
                 new ImmediateTransactionTemplate());
         OwnerController controller = new OwnerController(facade);
 
@@ -242,6 +244,24 @@ class OwnerRegistrationFlowTest {
 
         assertThat(student.getRole()).isEqualTo(UserRole.STUDENT);
         verifyNoInteractions(ownerRepository, businessCategoryRepository, refreshRepository);
+    }
+
+    @Test
+    @DisplayName("확인을 통과한 뒤 같은 사용자의 다른 가입 요청이 먼저 역할을 바꿨으면 409를 반환하고 프로필 저장·토큰 발급을 하지 않는다")
+    void rejectsWhenAnotherRegistrationClaimedUserFirst() throws Exception {
+        givenPendingUser();
+        givenBusinessVerified(true);
+        when(businessCategoryRepository.existsById(2L)).thenReturn(true);
+        when(userRepository.updateRoleIfCurrent(pendingUser.getId(), UserRole.PENDING, UserRole.OWNER)).thenReturn(0);
+
+        register(REQUEST_BODY)
+            .andExpect(status().isConflict())
+            .andExpect(jsonPath("$.error.code").value("USER_409_REGISTERED"));
+
+        assertThat(pendingUser.getRole()).isEqualTo(UserRole.PENDING);
+        assertThat(pendingUser.getName()).isNull();
+        verify(ownerRepository, never()).save(any());
+        verifyNoInteractions(refreshRepository, jwtUtil);
     }
 
     @Test
@@ -422,6 +442,7 @@ class OwnerRegistrationFlowTest {
 
     private void givenPendingUser() {
         when(userRepository.findByUsernameAndIsLock(USERNAME, false)).thenReturn(Optional.of(pendingUser));
+        when(userRepository.updateRoleIfCurrent(pendingUser.getId(), UserRole.PENDING, UserRole.OWNER)).thenReturn(1);
     }
 
     private void givenBusinessVerified(boolean verified) {

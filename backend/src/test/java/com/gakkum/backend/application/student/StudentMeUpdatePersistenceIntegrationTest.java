@@ -33,6 +33,7 @@ import com.gakkum.backend.domain.auth.service.AuthService;
 import com.gakkum.backend.domain.certificate.service.CertificateService;
 import com.gakkum.backend.domain.job.service.JobService;
 import com.gakkum.backend.domain.jwt.service.JwtService;
+import com.gakkum.backend.domain.media.service.MediaService;
 import com.gakkum.backend.domain.owner.service.OwnerService;
 import com.gakkum.backend.domain.payment.service.PaymentService;
 import com.gakkum.backend.domain.proposal.service.ProposalService;
@@ -110,6 +111,10 @@ class StudentMeUpdatePersistenceIntegrationTest {
 
     @MockitoBean
     private OwnerService ownerService;
+
+    // 본인 업로드 확인은 흐름 테스트에서 검증하고, 여기서는 저장 반영만 본다
+    @MockitoBean
+    private MediaService mediaService;
 
     private final List<Long> studentProfileIds = new ArrayList<>();
     private final List<Long> specialtyIds = new ArrayList<>();

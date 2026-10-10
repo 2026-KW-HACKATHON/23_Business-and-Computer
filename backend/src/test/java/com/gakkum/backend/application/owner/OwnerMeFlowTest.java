@@ -37,6 +37,7 @@ import com.gakkum.backend.domain.job.repository.JobSpecialtyRepository;
 import com.gakkum.backend.domain.job.repository.JobSubmissionRepository;
 import com.gakkum.backend.domain.job.service.JobService;
 import com.gakkum.backend.domain.jwt.service.JwtService;
+import com.gakkum.backend.domain.media.service.MediaService;
 import com.gakkum.backend.domain.owner.entity.Owner;
 import com.gakkum.backend.domain.owner.repository.OwnerRepository;
 import com.gakkum.backend.domain.owner.service.OwnerService;
@@ -83,6 +84,7 @@ class OwnerMeFlowTest {
                 new ProposalService(proposalRepository, mock(ProposalSpecialtyRepository.class),
                         mock(ProposalLikeRepository.class)),
                 mock(AuthService.class),
+                mock(MediaService.class),
                 new ImmediateTransactionTemplate());
         mockMvc = MockMvcBuilders.standaloneSetup(new OwnerController(facade))
                 .setControllerAdvice(new GlobalExceptionHandler())
