@@ -147,7 +147,7 @@ class NotificationPublishingIntegrationTest {
     @BeforeEach
     void setUp() {
         properties = new NotificationStreamProperties(STREAM_KEY, "notification-publishing-test-group", 100,
-                Duration.ZERO);
+                Duration.ZERO, 10000);
         when(userService.getActiveUser(LIKER_USERNAME)).thenReturn(User.builder()
                 .id(LIKER_USER_ID).username(LIKER_USERNAME).name("이공감").role(UserRole.STUDENT).build());
         when(studentService.findStudentProfileByUserId(LIKER_USER_ID)).thenReturn(Optional.of(

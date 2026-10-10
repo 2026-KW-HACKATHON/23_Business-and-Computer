@@ -12,6 +12,7 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import org.springframework.stereotype.Component;
 
@@ -50,7 +51,21 @@ public class SocialSuccessHandler implements AuthenticationSuccessHandler {
         response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
 
         // 로그인을 시작한 프론트(LoginOriginFilter 가 세션에 담음)로 돌려보내고, 모르면 기본 프론트로 보낸다
-        response.sendRedirect(frontendOrigins.resolve(takeLoginOrigin(request)) + "/cookie");
+        String loginOrigin = takeLoginOrigin(request);
+
+        // 카카오 로그인이 세션에 저장한 인증을 지운다. API 는 JWT 로만 인증하므로, 남겨 두면 세션 쿠키(JSESSIONID)만으로
+        // 프론트에서 로그아웃한 뒤에도 세션이 끝날 때까지 인증된다. 인가 요청(state)과 시작 주소는 이미 다 썼으니 세션을 끝낸다
+        clearSessionAuthentication(request);
+
+        response.sendRedirect(frontendOrigins.resolve(loginOrigin) + "/cookie");
+    }
+
+    private void clearSessionAuthentication(HttpServletRequest request) {
+        SecurityContextHolder.clearContext();
+        HttpSession session = request.getSession(false);
+        if (session != null) {
+            session.invalidate();
+        }
     }
 
     private String takeLoginOrigin(HttpServletRequest request) {

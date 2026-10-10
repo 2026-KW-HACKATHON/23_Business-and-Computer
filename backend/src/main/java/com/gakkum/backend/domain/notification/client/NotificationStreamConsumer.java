@@ -95,14 +95,31 @@ public class NotificationStreamConsumer {
         }
         for (MapRecord<String, String, String> record : records) {
             try {
-                // 별도 Spring 프록시의 트랜잭션 커밋이 끝난 뒤에만 ACK한다.
-                notificationService.storeEvent(NotificationEvent.from(record.getValue()));
+                NotificationEvent event = parse(record);
+                if (event != null) {
+                    // 별도 Spring 프록시의 트랜잭션 커밋이 끝난 뒤에만 ACK한다.
+                    notificationService.storeEvent(event);
+                }
                 streams.acknowledge(properties.key(), properties.group(), record.getId());
             } catch (RuntimeException exception) {
                 // 본문·수신자 정보는 로그에 남기지 않는다. 실패 메시지는 pending에 보존한다.
                 log.warn("알림 이벤트 처리 실패: recordId={}, error={}", record.getId(),
                         exception.getClass().getSimpleName());
             }
+        }
+    }
+
+    /**
+     * 형식이 깨진 메시지(필드 누락·모르는 타입·잘못된 eventId)는 다시 읽어도 처리할 수 없으므로 null 을 돌려 저장하지 않고 ACK하게 한다.
+     * 경고는 이때 한 번만 남긴다. DB 장애처럼 다시 하면 될 수 있는 실패는 여기서 다루지 않고 pending에 남긴다.
+     */
+    private NotificationEvent parse(MapRecord<String, String, String> record) {
+        try {
+            return NotificationEvent.from(record.getValue());
+        } catch (IllegalArgumentException | NullPointerException exception) {
+            log.warn("알림 이벤트 형식 오류로 저장하지 않고 ACK: recordId={}, error={}", record.getId(),
+                    exception.getClass().getSimpleName());
+            return null;
         }
     }
 }

@@ -6,6 +6,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -61,7 +62,7 @@ class JwtServiceTest {
     @DisplayName("토큰 교환 시 기존 토큰을 교체하고 7일짜리 크로스 사이트 쿠키 하나만 내려준다")
     void exchangeReplacesTokenAndSetsSingleCrossSiteCookie() {
         givenValidOldToken();
-        when(refreshRepository.existsByRefresh("old-refresh")).thenReturn(true);
+        when(refreshRepository.deleteAllByRefresh("old-refresh")).thenReturn(1);
         MockHttpServletResponse response = new MockHttpServletResponse();
 
         JWTResponseDTO result = jwtService.cookie2Header(requestWithRefreshCookie("old-refresh"), response);
@@ -75,7 +76,7 @@ class JwtServiceTest {
     @DisplayName("토큰 재발급 시 기존 토큰을 교체하고 7일짜리 크로스 사이트 쿠키 하나만 내려준다")
     void refreshReplacesTokenAndSetsSingleCrossSiteCookie() {
         givenValidOldToken();
-        when(refreshRepository.existsByRefresh("old-refresh")).thenReturn(true);
+        when(refreshRepository.deleteAllByRefresh("old-refresh")).thenReturn(1);
         MockHttpServletResponse response = new MockHttpServletResponse();
 
         JWTResponseDTO result = jwtService.refreshToken(requestWithRefreshCookie("old-refresh"), response);
@@ -113,7 +114,7 @@ class JwtServiceTest {
     @DisplayName("DB에 등록되지 않은 refreshToken이면 재발급을 거부한다")
     void rejectsUnregisteredRefreshTokenOnRefresh() {
         when(jwtUtil.isValid("old-refresh", false)).thenReturn(true);
-        when(refreshRepository.existsByRefresh("old-refresh")).thenReturn(false);
+        when(refreshRepository.deleteAllByRefresh("old-refresh")).thenReturn(0);
 
         assertRejected(() -> jwtService.refreshToken(
                 requestWithRefreshCookie("old-refresh"), new MockHttpServletResponse()));
@@ -123,12 +124,34 @@ class JwtServiceTest {
     @DisplayName("서명이 맞아도 DB에서 지워진 refreshToken이면 토큰 교환을 거부하고 쿠키를 내려주지 않는다")
     void rejectsUnregisteredRefreshTokenOnExchange() {
         when(jwtUtil.isValid("old-refresh", false)).thenReturn(true);
-        when(refreshRepository.existsByRefresh("old-refresh")).thenReturn(false);
+        when(refreshRepository.deleteAllByRefresh("old-refresh")).thenReturn(0);
         MockHttpServletResponse response = new MockHttpServletResponse();
 
         assertRejected(() -> jwtService.cookie2Header(requestWithRefreshCookie("old-refresh"), response));
         assertThat(response.getHeaders(HttpHeaders.SET_COOKIE)).isEmpty();
         verify(refreshRepository, never()).deleteByRefresh(any());
+    }
+
+    @Test
+    @DisplayName("같은 refreshToken을 두 번째로 쓰면 이미 지워진 토큰이라 재발급과 교환을 401로 거부하고 쿠키를 내려주지 않는다")
+    void rejectsSecondUseOfSameRefreshToken() {
+        givenValidOldToken();
+        // 첫 요청이 행을 지우면 같은 토큰으로 다시 지울 행이 없다
+        when(refreshRepository.deleteAllByRefresh("old-refresh")).thenReturn(1, 0);
+        jwtService.refreshToken(requestWithRefreshCookie("old-refresh"), new MockHttpServletResponse());
+        MockHttpServletResponse refreshAgain = new MockHttpServletResponse();
+        MockHttpServletResponse exchangeAgain = new MockHttpServletResponse();
+
+        assertThatThrownBy(() -> jwtService.refreshToken(requestWithRefreshCookie("old-refresh"), refreshAgain))
+                .isInstanceOfSatisfying(BusinessException.class,
+                        exception -> assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.UNAUTHORIZED));
+        assertThatThrownBy(() -> jwtService.cookie2Header(requestWithRefreshCookie("old-refresh"), exchangeAgain))
+                .isInstanceOfSatisfying(BusinessException.class,
+                        exception -> assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.UNAUTHORIZED));
+
+        assertThat(refreshAgain.getHeaders(HttpHeaders.SET_COOKIE)).isEmpty();
+        assertThat(exchangeAgain.getHeaders(HttpHeaders.SET_COOKIE)).isEmpty();
+        verify(refreshRepository, times(1)).save(any());
     }
 
     private void givenValidOldToken() {
@@ -147,8 +170,7 @@ class JwtServiceTest {
 
     private void assertTokenReplaced() {
         InOrder order = inOrder(refreshRepository);
-        order.verify(refreshRepository).deleteByRefresh("old-refresh");
-        order.verify(refreshRepository).flush();
+        order.verify(refreshRepository).deleteAllByRefresh("old-refresh");
         ArgumentCaptor<RefreshToken> tokenCaptor = ArgumentCaptor.forClass(RefreshToken.class);
         order.verify(refreshRepository).save(tokenCaptor.capture());
         assertThat(tokenCaptor.getValue().getUsername()).isEqualTo("KAKAO_12345");

@@ -3,7 +3,6 @@ package com.gakkum.backend.config;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.orm.jpa.support.OpenEntityManagerInViewInterceptor;
-import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
@@ -15,17 +14,6 @@ public class MvcConfig implements WebMvcConfigurer {
 
     // JPA 없이 웹 계층만 띄우는 테스트에는 빈이 없다
     private final ObjectProvider<OpenEntityManagerInViewInterceptor> openEntityManagerInViewInterceptor;
-
-    @Override
-    public void addCorsMappings(CorsRegistry corsRegistry) {
-
-        corsRegistry.addMapping("/**")
-                .allowedOrigins("http://localhost:5173")
-                .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
-                .allowCredentials(true)
-                .allowedHeaders("*")
-                .exposedHeaders("Set-Cookie", "Authorization");
-    }
 
     /**
      * OSIV는 요청이 끝날 때까지 DB 커넥션을 쥔다. 전송이 오래 이어지는 ZIP 다운로드만 빼서,

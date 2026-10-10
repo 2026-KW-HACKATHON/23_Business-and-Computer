@@ -20,6 +20,7 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.scheduling.annotation.ScheduledAnnotationBeanPostProcessor;
 
 import com.gakkum.backend.domain.notification.client.NotificationStreamConsumer;
+import com.gakkum.backend.domain.notification.config.NotificationStreamProperties;
 import com.gakkum.backend.domain.notification.service.NotificationService;
 
 @DisplayName("알림 Stream Consumer 활성화 설정")
@@ -38,6 +39,20 @@ class NotificationStreamConfigTest {
             assertThat(context).hasNotFailed().doesNotHaveBean(NotificationStreamConsumer.class)
                     .doesNotHaveBean(ScheduledAnnotationBeanPostProcessor.class);
         });
+    }
+
+    @Test
+    @DisplayName("발행 때 Stream을 자르는 개수는 application.yaml 기준 10000개이고, 설정이 없어도 10000개다")
+    void bindsStreamMaxLength() {
+        runner.withPropertyValues("NOTIFICATION_STREAM_ENABLED=false").run(context -> assertThat(
+                context.getBean(NotificationStreamProperties.class).maxLength()).isEqualTo(10000L));
+        new ApplicationContextRunner()
+                .withUserConfiguration(NotificationStreamConfig.class)
+                .withPropertyValues("notification.stream.key=notification-events",
+                        "notification.stream.group=notification-persistence", "notification.stream.batch-size=100",
+                        "notification.stream.retry-idle=30s")
+                .run(context -> assertThat(
+                        context.getBean(NotificationStreamProperties.class).maxLength()).isEqualTo(10000L));
     }
 
     @Test
