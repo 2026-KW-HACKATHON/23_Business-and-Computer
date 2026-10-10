@@ -30,7 +30,9 @@ import com.gakkum.backend.domain.category.service.BusinessCategoryService;
 import com.gakkum.backend.domain.job.service.JobService;
 import com.gakkum.backend.domain.owner.dto.OwnerCommandDto.GetExploreStoresCommand;
 import com.gakkum.backend.domain.owner.entity.Owner;
+import com.gakkum.backend.domain.owner.entity.StoreConcern;
 import com.gakkum.backend.domain.owner.service.OwnerService;
+import com.gakkum.backend.domain.owner.service.StoreConcernService;
 import com.gakkum.backend.domain.proposal.service.ProposalService;
 import com.gakkum.backend.domain.specialty.service.SpecialtyCategoryService;
 import com.gakkum.backend.domain.student.service.StudentService;
@@ -50,9 +52,40 @@ class StoreExploreFacadeTest {
     private final UserService userService = mock(UserService.class);
     private final OwnerService ownerService = mock(OwnerService.class);
     private final BusinessCategoryService businessCategoryService = mock(BusinessCategoryService.class);
+    private final SpecialtyCategoryService specialtyCategoryService = mock(SpecialtyCategoryService.class);
+    private final StoreConcernService storeConcernService = mock(StoreConcernService.class);
     private final ExploreFacade exploreFacade = new ExploreFacade(userService, mock(ProposalService.class),
-            mock(JobService.class), ownerService, mock(SpecialtyCategoryService.class), businessCategoryService,
-            mock(StudentService.class));
+            mock(JobService.class), ownerService, specialtyCategoryService, businessCategoryService,
+            mock(StudentService.class), storeConcernService);
+
+    @Test
+    @DisplayName("이번 페이지 매장의 해결되지 않은 고민과 그 분야 이름을 한 번에 조회해 붙이고, 고민 없는 매장은 null로 둔다")
+    void attachesOpenConcerns() {
+        givenUser(UserRole.STUDENT);
+        when(ownerService.getExploreStores(any())).thenReturn(List.of(
+                store(9L, T2, 3L), store(8L, T2, 3L), store(7L, T1, 3L)));
+        when(businessCategoryService.getCategoryNames(List.of(3L))).thenReturn(Map.of(3L, "카페"));
+        StoreConcern withCategory = StoreConcern.builder().id(1L).ownerProfileId(9L).title("점심 손님이 적어요")
+                .specialtyCategoryId(5L).build();
+        StoreConcern withoutCategory = StoreConcern.builder().id(2L).ownerProfileId(7L).title("메뉴판이 오래됐어요")
+                .build();
+        when(storeConcernService.getOpenConcerns(List.of(9L, 8L, 7L)))
+                .thenReturn(Map.of(9L, withCategory, 7L, withoutCategory));
+        when(specialtyCategoryService.getCategoryNames(List.of(5L))).thenReturn(Map.of(5L, "디자인"));
+
+        StoreExploreResult result = exploreFacade.exploreStores(command(StoreExploreSort.LATEST, null, 20, null));
+
+        StoreItemResult first = result.getItems().get(0);
+        assertThat(first.getConcern().getTitle()).isEqualTo("점심 손님이 적어요");
+        assertThat(first.getConcern().getSpecialtyCategoryName()).isEqualTo("디자인");
+        assertThat(result.getItems().get(1).getConcern()).isNull();
+        StoreItemResult third = result.getItems().get(2);
+        assertThat(third.getConcern().getTitle()).isEqualTo("메뉴판이 오래됐어요");
+        assertThat(third.getConcern().getSpecialtyCategoryId()).isNull();
+        assertThat(third.getConcern().getSpecialtyCategoryName()).isNull();
+        // 분야 이름은 고민에 고른 분야만, 한 번에 조회한다
+        verify(specialtyCategoryService).getCategoryNames(List.of(5L));
+    }
 
     @Test
     @DisplayName("학생은 size+1개를 읽어 size개만 받고, 남은 한 개로 다음 페이지를 판단해 마지막 매장으로 커서를 만든다")

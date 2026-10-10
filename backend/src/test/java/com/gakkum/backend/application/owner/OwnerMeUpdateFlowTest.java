@@ -60,6 +60,8 @@ import com.gakkum.backend.domain.user.repository.UserRepository;
 import com.gakkum.backend.domain.user.service.UserService;
 import com.gakkum.backend.global.exception.GlobalExceptionHandler;
 import com.gakkum.backend.global.transaction.ImmediateTransactionTemplate;
+import com.gakkum.backend.domain.owner.service.StoreConcernService;
+import com.gakkum.backend.domain.specialty.service.SpecialtyCategoryService;
 
 @DisplayName("사장님 내 정보 수정 전체 흐름 (PUT /owners/me)")
 class OwnerMeUpdateFlowTest {
@@ -104,7 +106,7 @@ class OwnerMeUpdateFlowTest {
                         mock(ProposalLikeRepository.class)),
                 mock(AuthService.class),
                 new MediaService(imageStorageClient, DataSize.ofMegabytes(10)),
-                new ImmediateTransactionTemplate());
+                new ImmediateTransactionTemplate(), mock(StoreConcernService.class), mock(SpecialtyCategoryService.class));
         mockMvc = MockMvcBuilders.standaloneSetup(new OwnerController(facade))
                 .setControllerAdvice(new GlobalExceptionHandler())
                 .build();

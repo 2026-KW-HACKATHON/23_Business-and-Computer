@@ -1,6 +1,7 @@
 package com.gakkum.backend.application.owner.facade;
 
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -15,11 +16,16 @@ import com.gakkum.backend.domain.jwt.service.JwtService;
 import com.gakkum.backend.domain.media.dto.ImagePurpose;
 import com.gakkum.backend.domain.media.service.MediaService;
 import com.gakkum.backend.domain.owner.dto.OwnerCommandDto.CreateOwnerProfileCommand;
+import com.gakkum.backend.domain.owner.dto.OwnerCommandDto.SaveStoreConcernCommand;
 import com.gakkum.backend.domain.owner.dto.OwnerCommandDto.UpdateOwnerMeCommand;
 import com.gakkum.backend.domain.owner.dto.OwnerQueryDto.OwnerMeResult;
+import com.gakkum.backend.domain.owner.dto.OwnerQueryDto.StoreConcernResult;
 import com.gakkum.backend.domain.owner.entity.Owner;
+import com.gakkum.backend.domain.owner.entity.StoreConcern;
 import com.gakkum.backend.domain.owner.service.OwnerService;
+import com.gakkum.backend.domain.owner.service.StoreConcernService;
 import com.gakkum.backend.domain.proposal.service.ProposalService;
+import com.gakkum.backend.domain.specialty.service.SpecialtyCategoryService;
 import com.gakkum.backend.domain.user.entity.User;
 import com.gakkum.backend.domain.user.entity.UserRole;
 import com.gakkum.backend.domain.user.service.UserService;
@@ -43,6 +49,8 @@ public class OwnerFacade {
     private final AuthService authService;
     private final MediaService mediaService;
     private final TransactionTemplate transactionTemplate;
+    private final StoreConcernService storeConcernService;
+    private final SpecialtyCategoryService specialtyCategoryService;
 
     /**
      * 사장님 회원가입. 가입 대기 사용자·사업자등록번호 중복·업종과 프로필·매장 사진이 본인이 올린 사진인지 먼저 확인하고, 국세청 사업자등록정보 진위 확인을
@@ -129,5 +137,49 @@ public class OwnerFacade {
         }
 
         ownerService.updateOwnerProfile(owner, command);
+    }
+
+    /** 사장님 본인 가게의 해결되지 않은 고민. 없으면 빈 값이다. 사장님 프로필이 없으면 500으로 거부한다. */
+    @Transactional(readOnly = true)
+    public Optional<StoreConcernResult> getConcern(String username) {
+        Owner owner = getConcernOwner(username);
+        return storeConcernService.findOpenConcern(owner.getId()).map(this::toConcernResult);
+    }
+
+    /**
+     * 가게 고민을 올리거나 해결되지 않은 고민을 통째로 고친다. 고른 분야(특기 대분류)는 있는 분야여야 한다.
+     * 고민은 매장에 붙으므로 데모 사장님의 고민은 같은 데모 세션의 학생에게만 보인다.
+     */
+    @Transactional
+    public StoreConcernResult saveConcern(SaveStoreConcernCommand command) {
+        Owner owner = getConcernOwner(command.getUsername());
+        if (command.getSpecialtyCategoryId() != null) {
+            specialtyCategoryService.validateCategoryExists(command.getSpecialtyCategoryId());
+        }
+        return toConcernResult(storeConcernService.saveConcern(owner.getId(), command));
+    }
+
+    /** 「해결됐어요」. 해결되지 않은 고민이 없으면 404로 거부한다. */
+    @Transactional
+    public void resolveConcern(String username) {
+        Owner owner = getConcernOwner(username);
+        storeConcernService.resolveConcern(owner.getId());
+    }
+
+    private Owner getConcernOwner(String username) {
+        User user = userService.getActiveUser(username);
+        if (user.getRole() != UserRole.OWNER) {
+            throw new BusinessException(ErrorCode.OWNER_CONCERN_REQUIRED);
+        }
+        return ownerService.findOwnerProfileByUserId(user.getId())
+                .orElseThrow(() -> new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR));
+    }
+
+    private StoreConcernResult toConcernResult(StoreConcern concern) {
+        Long categoryId = concern.getSpecialtyCategoryId();
+        String categoryName = categoryId == null
+                ? null
+                : specialtyCategoryService.getCategoryNames(List.of(categoryId)).get(categoryId);
+        return StoreConcernResult.of(concern, categoryName);
     }
 }

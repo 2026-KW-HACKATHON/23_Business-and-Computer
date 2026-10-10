@@ -61,6 +61,10 @@ import com.gakkum.backend.domain.review.service.ReviewService;
 import com.gakkum.backend.domain.specialty.dto.SpecialtyCommandDto.AddStudentSpecialtyCommand;
 import com.gakkum.backend.domain.specialty.service.SpecialtyService;
 import com.gakkum.backend.domain.student.dto.StudentCommandDto.CreateStudentProfileCommand;
+import com.gakkum.backend.domain.owner.dto.OwnerCommandDto.SaveStoreConcernCommand;
+import com.gakkum.backend.domain.owner.entity.StoreConcern;
+import com.gakkum.backend.domain.owner.service.StoreConcernService;
+import com.gakkum.backend.domain.specialty.service.SpecialtyCategoryService;
 import com.gakkum.backend.domain.student.entity.Student;
 import com.gakkum.backend.domain.student.service.StudentService;
 import com.gakkum.backend.domain.user.entity.User;
@@ -104,6 +108,8 @@ public class DemoSampleDataSeeder {
     private final ReviewService reviewService;
     private final CertificateService certificateService;
     private final ChatRoomService chatRoomService;
+    private final StoreConcernService storeConcernService;
+    private final SpecialtyCategoryService specialtyCategoryService;
     private final Clock clock;
     // 모아 둔 행을 넣고 지난 일의 시각을 옮길 때 쓴다 (Session.finish)
     @PersistenceContext
@@ -226,6 +232,24 @@ public class DemoSampleDataSeeder {
             seedMyStoreProposals(kim, park, lee, nuri, choi);
             seedOtherStores(dino, kwCafe, banjeom, chicken, kim, park, lee, nuri, choi);
             seedStudentHistories(dino, kwCafe, banjeom, chicken, kim, park, lee, nuri, choi);
+            seedStoreConcerns(dino, banjeom, chicken);
+        }
+
+        /**
+         * 예시 가게 세 곳의 가게 고민. 학생 탐색 「가게」 탭에서 고민 있는 가게가 위로 오고, 광운카페는 「고민 없음」으로 보인다.
+         * 방문자 가게에는 고민을 넣지 않아 사장님 홈의 「우리 가게 고민을 올려 보세요」를 직접 해 볼 수 있다.
+         */
+        private void seedStoreConcerns(Owner dino, Owner banjeom, Owner chicken) {
+            concern(dino, at(2, 15), "평일 오후에 손님이 확 줄어요",
+                    "주말에는 가족 손님으로 자리가 꽉 차는데, 평일 오후 2시부터 5시까지는 거의 비어 있어요. "
+                            + "근처 대학생이나 직장인이 들르게 할 방법이 있을까요?",
+                    "홍보·이벤트 기획");
+            concern(banjeom, at(4, 11), "배달앱 리뷰에 '양이 적다'는 말이 자주 보여요",
+                    "실제 양은 예전과 같은데 메뉴 사진 때문인지 그런 리뷰가 늘었어요. 사진이나 소개 문구를 바꾸면 나아질지 궁금해요.",
+                    "리뷰 분석");
+            concern(chicken, at(1, 20), "메뉴판이 오래돼서 신메뉴가 안 보여요",
+                    "벽 메뉴판을 5년 전에 만들어서 새로 나온 메뉴는 종이에 적어 붙여 두고 있어요. 손님들이 신메뉴를 잘 못 찾아요.",
+                    "메뉴판·가격표 디자인");
         }
 
         /**
@@ -749,6 +773,19 @@ public class DemoSampleDataSeeder {
                     address, description, null, List.of()), demoSessionId);
             stores.put(owner.getId(), owner);
             return owner;
+        }
+
+        /** 해결되지 않은 가게 고민. 분야는 그 특기의 대분류이고, 특기를 찾지 못하면 분야 없이 둔다 */
+        private void concern(Owner store, Instant postedAt, String title, String description, String specialtyName) {
+            Long specialtyId = specialtyIds.get(specialtyName);
+            Long categoryId = specialtyId == null
+                    ? null
+                    : specialtyCategoryService.getSpecialtyDetails(List.of(specialtyId)).get(specialtyId)
+                            .getCategoryId();
+            StoreConcern concern = storeConcernService.saveConcern(store.getId(),
+                    SaveStoreConcernCommand.of(null, title, description, categoryId));
+            backdate("store_concerns", "created_at", concern.getId(), postedAt);
+            backdate("store_concerns", "updated_at", concern.getId(), postedAt);
         }
 
         private Job openJob(Owner store, Instant postedAt, String title, String description, long budget,

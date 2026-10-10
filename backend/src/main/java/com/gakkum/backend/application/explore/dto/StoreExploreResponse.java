@@ -6,6 +6,7 @@ import java.util.List;
 import com.gakkum.backend.application.explore.dto.ExploreQueryDto.BusinessCategoryResult;
 import com.gakkum.backend.application.explore.dto.ExploreQueryDto.StoreExploreResult;
 import com.gakkum.backend.application.explore.dto.ExploreQueryDto.StoreItemResult;
+import com.gakkum.backend.application.owner.dto.StoreConcernResponse;
 import com.gakkum.backend.global.response.KoreaTime;
 
 import lombok.AccessLevel;
@@ -40,6 +41,8 @@ public class StoreExploreResponse {
         private final String storeAddress;
         private final Long ownerProfileId;
         private final OffsetDateTime createdAt;
+        // 해결되지 않은 가게 고민. 없으면 null
+        private final StoreConcernResponse concern;
 
         public static Item from(StoreItemResult result) {
             return Item.builder()
@@ -49,6 +52,7 @@ public class StoreExploreResponse {
                     .storeAddress(result.getStoreAddress())
                     .ownerProfileId(result.getOwnerProfileId())
                     .createdAt(KoreaTime.from(result.getCreatedAt()))
+                    .concern(result.getConcern() == null ? null : StoreConcernResponse.from(result.getConcern()))
                     .build();
         }
     }

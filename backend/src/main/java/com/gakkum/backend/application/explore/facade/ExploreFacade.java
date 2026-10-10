@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
@@ -35,8 +36,11 @@ import com.gakkum.backend.domain.job.dto.JobQueryDto.ExploreJobData;
 import com.gakkum.backend.domain.job.entity.JobApplicationStatus;
 import com.gakkum.backend.domain.job.service.JobService;
 import com.gakkum.backend.domain.owner.dto.OwnerCommandDto.GetExploreStoresCommand;
+import com.gakkum.backend.domain.owner.dto.OwnerQueryDto.StoreConcernResult;
 import com.gakkum.backend.domain.owner.entity.Owner;
+import com.gakkum.backend.domain.owner.entity.StoreConcern;
 import com.gakkum.backend.domain.owner.service.OwnerService;
+import com.gakkum.backend.domain.owner.service.StoreConcernService;
 import com.gakkum.backend.domain.proposal.dto.ProposalCommandDto.GetExploreProposalsCommand;
 import com.gakkum.backend.domain.proposal.dto.ProposalExploreOrder;
 import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.ExploreProposalData;
@@ -72,6 +76,7 @@ public class ExploreFacade {
     private final SpecialtyCategoryService specialtyCategoryService;
     private final BusinessCategoryService businessCategoryService;
     private final StudentService studentService;
+    private final StoreConcernService storeConcernService;
 
     /**
      * 제안과 의뢰를 한 목록으로 탐색한다. 취소·거절된 제안, 조회자가 작성한 제안·의뢰, 조회 학생의 지원이 탈락한 의뢰는
@@ -148,11 +153,29 @@ public class ExploreFacade {
                 .map(Owner::getCategoryId)
                 .distinct()
                 .toList());
+        // 가게 고민과 그 분야 이름도 이번 페이지 매장에 대해서만 한 번에 조회한다
+        Map<Long, StoreConcern> concerns = storeConcernService.getOpenConcerns(page.stream()
+                .map(Owner::getId)
+                .toList());
+        Map<Long, String> concernCategoryNames = specialtyCategoryService.getCategoryNames(concerns.values().stream()
+                .map(StoreConcern::getSpecialtyCategoryId)
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList());
         List<StoreItemResult> items = page.stream()
                 .map(store -> StoreItemResult.of(store, BusinessCategoryResult.of(
-                        store.getCategoryId(), categoryNames.get(store.getCategoryId()))))
+                        store.getCategoryId(), categoryNames.get(store.getCategoryId())),
+                        concernResult(concerns.get(store.getId()), concernCategoryNames)))
                 .toList();
         return StoreExploreResult.of(items, nextCursor);
+    }
+
+    private static StoreConcernResult concernResult(StoreConcern concern, Map<Long, String> categoryNames) {
+        if (concern == null) {
+            return null;
+        }
+        Long categoryId = concern.getSpecialtyCategoryId();
+        return StoreConcernResult.of(concern, categoryId == null ? null : categoryNames.get(categoryId));
     }
 
     private GetExploreProposalsCommand proposalCommand(

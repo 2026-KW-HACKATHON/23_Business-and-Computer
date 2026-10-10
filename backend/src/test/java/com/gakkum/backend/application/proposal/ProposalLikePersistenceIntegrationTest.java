@@ -64,6 +64,7 @@ import com.gakkum.backend.domain.user.entity.UserRole;
 import com.gakkum.backend.domain.user.service.UserService;
 import com.gakkum.backend.global.exception.BusinessException;
 import com.gakkum.backend.global.exception.ErrorCode;
+import com.gakkum.backend.domain.owner.service.StoreConcernService;
 
 /**
  * 공감 기록과 공감 수의 커밋·롤백·행 잠금을 실제로 확인해야 하므로 클래스 트랜잭션을 끄고 직접 데이터를 정리한다.
@@ -132,6 +133,9 @@ class ProposalLikePersistenceIntegrationTest {
 
     @MockitoBean
     private ChatRoomService chatRoomService;
+
+    @MockitoBean
+    private StoreConcernService storeConcernService;
 
     private final List<Long> proposalIds = new ArrayList<>();
 

@@ -76,4 +76,29 @@ public class SpecialtyCategoryService {
                 })
                 .collect(Collectors.toMap(SpecialtyDetail::getId, detail -> detail));
     }
+
+    /** 특기 대분류가 있는지 확인한다. 없으면 SPECIALTY_CATEGORY_400으로 거부한다. */
+    @Transactional(readOnly = true)
+    public void validateCategoryExists(Long categoryId) {
+        if (!specialtyCategoryRepository.existsById(categoryId)) {
+            throw new BusinessException(ErrorCode.SPECIALTY_CATEGORY_NOT_FOUND);
+        }
+    }
+
+    /**
+     * 특기 대분류 ID별 이름을 한 번에 조회한다.
+     * @return 요청한 대분류 중 하나라도 없으면 참조 무결성 오류(500)
+     */
+    @Transactional(readOnly = true)
+    public Map<Long, String> getCategoryNames(Collection<Long> categoryIds) {
+        if (categoryIds.isEmpty()) {
+            return Map.of();
+        }
+        Map<Long, String> names = specialtyCategoryRepository.findAllById(categoryIds).stream()
+                .collect(Collectors.toMap(SpecialtyCategory::getId, SpecialtyCategory::getName));
+        if (!names.keySet().containsAll(categoryIds)) {
+            throw new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR);
+        }
+        return names;
+    }
 }

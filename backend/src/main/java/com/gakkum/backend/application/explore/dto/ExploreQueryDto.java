@@ -8,6 +8,7 @@ import com.gakkum.backend.domain.job.entity.Job;
 import com.gakkum.backend.domain.job.entity.JobApplicationStatus;
 import com.gakkum.backend.domain.job.entity.JobProgressStage;
 import com.gakkum.backend.domain.job.entity.JobStatus;
+import com.gakkum.backend.domain.owner.dto.OwnerQueryDto.StoreConcernResult;
 import com.gakkum.backend.domain.owner.entity.Owner;
 import com.gakkum.backend.domain.proposal.entity.Proposal;
 import com.gakkum.backend.domain.proposal.entity.ProposalStatus;
@@ -164,8 +165,11 @@ public final class ExploreQueryDto {
         private final String storeAddress;
         private final Long ownerProfileId;
         private final LocalDateTime createdAt;
+        // 해결되지 않은 가게 고민. 없으면 null
+        private final StoreConcernResult concern;
 
-        public static StoreItemResult of(Owner owner, BusinessCategoryResult businessCategory) {
+        public static StoreItemResult of(Owner owner, BusinessCategoryResult businessCategory,
+                StoreConcernResult concern) {
             return StoreItemResult.builder()
                     .storeName(owner.getStoreName())
                     .profileImageUrl(owner.getProfileImageUrl())
@@ -173,6 +177,7 @@ public final class ExploreQueryDto {
                     .storeAddress(owner.getStoreAddress())
                     .ownerProfileId(owner.getId())
                     .createdAt(owner.getCreatedAt())
+                    .concern(concern)
                     .build();
         }
     }
