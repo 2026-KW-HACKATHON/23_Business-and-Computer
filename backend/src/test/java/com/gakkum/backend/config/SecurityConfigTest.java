@@ -20,6 +20,8 @@ import java.util.List;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
@@ -715,6 +717,18 @@ class SecurityConfigTest {
             .andExpect(status().isUnauthorized());
 
         verifyNoInteractions(notificationFacade);
+    }
+
+    @ParameterizedTest(name = "[{index}] \"{0}\"")
+    @ValueSource(strings = { "student-access-token", "Basic dXNlcjpwYXNz", "Bearer", "Bearer " })
+    @DisplayName("Bearer 접두사가 없거나 토큰이 비어 있는 Authorization 헤더는 500이 아닌 401로 거부하고 컨트롤러에 도달하지 않는다")
+    void malformedAuthorizationHeaderReturnsUnauthorized(String authorization) throws Exception {
+        mockMvc.perform(get("/students/me")
+                .header(HttpHeaders.AUTHORIZATION, authorization))
+            .andExpect(status().isUnauthorized())
+            .andExpect(content().json("{\"error\":\"토큰 만료 또는 유효하지 않은 토큰\"}"));
+
+        verifyNoInteractions(studentFacade);
     }
 
     @Test
