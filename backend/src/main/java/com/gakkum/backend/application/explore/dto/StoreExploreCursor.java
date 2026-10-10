@@ -26,6 +26,9 @@ public final class StoreExploreCursor {
     private static final String DELIMITER = "|";
     private static final String EMPTY = "-";
     private static final int PART_COUNT = 5;
+    // PostgreSQL timestamp가 지원하는 범위(기원전 4713년~294276년, 마이크로초 정밀도). 범위 밖 시각은 쿼리에 넘기지 않는다
+    private static final LocalDateTime MIN_CREATED_AT = LocalDateTime.of(-4712, 1, 1, 0, 0);
+    private static final LocalDateTime MAX_CREATED_AT = LocalDateTime.of(294276, 12, 31, 23, 59, 59, 999_999_000);
 
     private final StoreExploreSort sort;
     private final Long businessCategoryId;
@@ -60,7 +63,8 @@ public final class StoreExploreCursor {
             LocalDateTime createdAt = LocalDateTime.parse(parts[3]);
             Long id = Long.valueOf(parts[4]);
 
-            if ((businessCategoryId != null && businessCategoryId <= 0) || id <= 0) {
+            if ((businessCategoryId != null && businessCategoryId <= 0) || id <= 0
+                    || createdAt.isBefore(MIN_CREATED_AT) || createdAt.isAfter(MAX_CREATED_AT)) {
                 throw invalid();
             }
             return new StoreExploreCursor(sort, businessCategoryId, createdAt, id);

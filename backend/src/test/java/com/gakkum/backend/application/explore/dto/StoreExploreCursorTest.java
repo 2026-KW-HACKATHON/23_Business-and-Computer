@@ -75,6 +75,35 @@ class StoreExploreCursorTest {
         assertInvalid("!!!");
     }
 
+    @ParameterizedTest(name = "{0}")
+    @ValueSource(strings = { "-4712-01-01T00:00", "+294276-12-31T23:59:59.999999" })
+    @DisplayName("PostgreSQL timestamp 범위의 가장 이른 시각과 가장 늦은 시각은 그대로 복원한다")
+    void acceptsDatabaseRangeBoundaries(String createdAt) {
+        StoreExploreCursor decoded = StoreExploreCursor.decode(encode("store-v1|LATEST|-|" + createdAt + "|42"));
+
+        assertThat(decoded.getCreatedAt()).isEqualTo(LocalDateTime.parse(createdAt));
+        assertThat(StoreExploreCursor.decode(decoded.encode()).getCreatedAt()).isEqualTo(decoded.getCreatedAt());
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @ValueSource(strings = {
+            "-4713-12-31T23:59:59.999999999",
+            "+294276-12-31T23:59:59.999999001",
+            "+294277-01-01T00:00",
+            "+999999999-01-01T00:00",
+            "-999999999-01-01T00:00"})
+    @DisplayName("PostgreSQL timestamp 범위를 벗어난 시각의 커서는 Java가 해석할 수 있어도 COMMON_400으로 거부한다")
+    void rejectsCreatedAtOutsideDatabaseRange(String createdAt) {
+        // 형식 오류가 아니라 범위 때문에 거부되는 입력이다
+        assertThat(LocalDateTime.parse(createdAt)).isNotNull();
+
+        assertInvalid(encode("store-v1|LATEST|-|" + createdAt + "|42"));
+    }
+
+    private static String encode(String raw) {
+        return Base64.getUrlEncoder().withoutPadding().encodeToString(raw.getBytes(StandardCharsets.UTF_8));
+    }
+
     private void assertInvalid(String cursor) {
         assertThatThrownBy(() -> StoreExploreCursor.decode(cursor))
                 .isInstanceOfSatisfying(BusinessException.class, exception ->
