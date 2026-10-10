@@ -15,11 +15,16 @@ export const OWNER_PATHS = {
   notifications: "/owner/notifications",
   me: "/owner/me",
   store: "/owner/me/store",
+  /** 가게 고민 올리기 · 고치기 */
+  concern: "/owner/me/concern",
   payments: "/owner/me/payments",
   activity: (tab: ActivityTab) => `/owner/requests?tab=${tab}`,
   newRequest: "/owner/requests/new",
   newRequestStep: (step: number) => `/owner/requests/new/${step}`,
   newRequestDone: "/owner/requests/new/done",
+  /** 맡길 일 찾기 질문 (1 ~ 12) */
+  taskFinder: (step: number) => `/owner/task-finder/${step}`,
+  taskFinderResult: "/owner/task-finder/result",
   request: (id: string) => `/owner/requests/${id}`,
   requestCancel: (id: string) => `/owner/requests/${id}/cancel`,
   requestApplicants: (id: string) => `/owner/requests/${id}/applicants`,

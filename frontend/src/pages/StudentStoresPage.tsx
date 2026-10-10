@@ -4,7 +4,9 @@ import { LoadNotice, RoleAvatar, SearchBar, TextButton } from "../components";
 import {
   ExploreTabs,
   STUDENT_PATHS,
+  StoreConcernLine,
   StudentTabScreen,
+  sortStoresByConcern,
   useExploreStores,
 } from "../features/student";
 import { STORE_CATEGORIES } from "../types/storeCategory";
@@ -17,6 +19,7 @@ import "./StudentStoresPage.css";
  * 피그마 「학생 탐색 · 가게」. 월계1동 가게를 업종 · 이름으로 찾고,
  * 「제안하기」를 누르면 그 가게를 고른 채 제안 보내기 2/4 로 간다.
  * 가게는 GET /explore/stores 를 모두 불러와 화면에서 거른다 (이름 검색 API 가 없다, ADR 0020).
+ * 사장님이 고민을 올린 가게가 위에 오고, 고민 한 줄 또는 「고민 없음」을 보인다 (ADR 0069).
  */
 function StudentStoresPage() {
   const navigate = useNavigate();
@@ -26,7 +29,7 @@ function StudentStoresPage() {
   const chipScroll = useDragScroll<HTMLDivElement>();
 
   const keyword = query.trim();
-  const stores = load.status === "loaded" ? load.stores : [];
+  const stores = load.status === "loaded" ? sortStoresByConcern(load.stores) : [];
   // 업종 칩은 피그마의 고정 11개, 백엔드 업종 이름과 같은 글자로 거른다
   const visible = stores
     .filter((s) => category === null || s.category === category)
@@ -78,7 +81,7 @@ function StudentStoresPage() {
               등록순
             </TextButton>
           </div>
-          <p className="student-explore__description">자주 가는 가게를 골라 먼저 제안해 보세요.</p>
+          <p className="student-explore__description">사장님 고민이 있는 가게부터 보여 드려요.</p>
         </div>
 
         {load.status !== "loaded" ? (
@@ -99,6 +102,7 @@ function StudentStoresPage() {
                     <span className="student-stores__category">{store.category}</span>
                   </span>
                   <span className="student-stores__address">{store.address}</span>
+                  <StoreConcernLine concern={store.concern} />
                 </span>
                 <TextButton
                   onClick={() =>

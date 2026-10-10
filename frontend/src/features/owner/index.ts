@@ -1,5 +1,6 @@
 /** 사장님 화면 기능의 공개 입구 — 다른 폴더는 여기서만 import 한다. */
 export { default as FirstVisitGuide } from "./components/FirstVisitGuide";
+export { default as OwnerConcernCard } from "./components/OwnerConcernCard";
 export { default as OwnerMissing } from "./components/OwnerMissing";
 export { default as PaymentProgress } from "./components/PaymentProgress";
 export { default as PaymentSection } from "./components/PaymentSection";
@@ -13,6 +14,10 @@ export { markOwnerWorkReviewed, useRequestExample } from "./hooks/useOwnerData";
 export { useJobAssignment } from "./hooks/useJobAssignment";
 export type { JobAssignment } from "./hooks/useJobAssignment";
 export { useOwnerHome } from "./hooks/useOwnerHome";
+export { useOwnerConcern } from "./hooks/useOwnerConcern";
+export type { OwnerConcernLoad } from "./hooks/useOwnerConcern";
+export { CONCERN_DESCRIPTION_MAX, CONCERN_TITLE_MAX, concernForm, resolveConcern, saveConcern } from "./lib/storeConcern";
+export type { OwnerConcern, OwnerConcernForm } from "./lib/storeConcern";
 export { useOwnerMe, useStoreCategories } from "./hooks/useOwnerMe";
 export type { OwnerMeLoad, StoreCategoriesLoad } from "./hooks/useOwnerMe";
 export { businessInfoText, ownerMeChanges, ownerStoreForm, saveOwnerMe, storeAddressOf, storeCategoryId } from "./lib/ownerMe";
@@ -103,6 +108,7 @@ export type { NewRequestState, RequestChoice } from "./lib/newRequest";
 export { notificationPath } from "./lib/notifications";
 export { OWNER_PATHS } from "./lib/paths";
 export { startReward } from "./lib/payment";
+export { TASK_FINDER_QUESTIONS, readTaskFinderAnswers, taskFinderPicks } from "./lib/taskFinder";
 export { readProposalAcceptDraft, saveProposalAcceptDraft } from "./lib/proposalAccept";
 export type { ActivityTab } from "./lib/paths";
 export type {

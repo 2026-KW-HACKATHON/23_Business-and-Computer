@@ -1,7 +1,13 @@
 import { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Button, LoadNotice, RoleAvatar, SearchBar, StepIndicator, SubScreen } from "../components";
-import { STUDENT_PATHS, readNewProposalState, useExploreStores } from "../features/student";
+import {
+  STUDENT_PATHS,
+  StoreConcernLine,
+  readNewProposalState,
+  sortStoresByConcern,
+  useExploreStores,
+} from "../features/student";
 import type { ExploreStore, NewProposalState } from "../features/student";
 import { useBack } from "../hooks/useBack";
 import { useDragScroll } from "../hooks/useDragScroll";
@@ -14,6 +20,7 @@ import "./StudentProposalNewPage.css";
  * 피그마 「제안 보내기 1/4 - 가게 고르기」. 업종 · 이름으로 찾아 가게 하나를 고른다.
  * 홈 「+ 새 제안」 · 「이런 제안은 어때요?」 예시에서 들어온다.
  * 가게는 GET /explore/stores 를 모두 불러와 화면에서 거른다 (이름 검색 API 가 없다, ADR 0020).
+ * 가게 탭처럼 고민을 올린 가게가 위에 오고 고민 한 줄 또는 「고민 없음」을 보인다 (ADR 0069).
  */
 function StudentProposalStorePage() {
   const navigate = useNavigate();
@@ -29,7 +36,7 @@ function StudentProposalStorePage() {
   const chipScroll = useDragScroll<HTMLDivElement>();
 
   const keyword = query.trim();
-  const stores = load.status === "loaded" ? load.stores : [];
+  const stores = load.status === "loaded" ? sortStoresByConcern(load.stores) : [];
   // 업종 칩은 피그마의 고정 11개, 백엔드 업종 이름과 같은 글자로 거른다
   const visible = stores
     .filter((s) => category === null || s.category === category)
@@ -125,6 +132,7 @@ function StudentProposalStorePage() {
                         <span>
                           {s.category} · {s.address}
                         </span>
+                        <StoreConcernLine concern={s.concern} />
                       </span>
                       <span className="student-new__radio" aria-hidden="true">
                         {selected && (

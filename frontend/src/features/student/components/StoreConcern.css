@@ -1,0 +1,74 @@
+/* 가게 목록의 고민 한 줄: 자주 색 「고민」 꼬리표 + 한 줄 (넘치면 …) */
+.store-concern-line {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  font-size: 13px;
+  line-height: 18px;
+}
+
+.store-concern-line__label {
+  flex-shrink: 0;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--color-student) 12%, var(--color-white));
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 16px;
+  color: var(--color-student);
+}
+
+.store-concern-line__title {
+  overflow: hidden;
+  font-weight: 500;
+  color: var(--color-black);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.store-concern-line--none {
+  color: var(--text-placeholder);
+}
+
+/* 제안 내용 위 「사장님 고민」 카드 */
+.store-concern-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  box-sizing: border-box;
+  width: 100%;
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--color-student) 8%, var(--color-white));
+  font-family: var(--font-sans);
+}
+
+.store-concern-card__head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.store-concern-card__label {
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 17px;
+  color: var(--color-student);
+}
+
+.store-concern-card__title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 21px;
+  color: var(--color-black);
+}
+
+.store-concern-card__body {
+  margin: 0;
+  font-size: 14px;
+  line-height: 21px;
+  color: var(--text-body);
+  white-space: pre-line;
+}

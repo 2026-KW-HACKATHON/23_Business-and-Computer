@@ -29,6 +29,8 @@ import OwnerRequestPage from './pages/OwnerRequestPage'
 import OwnerApplicantsPage from './pages/OwnerApplicantsPage'
 import OwnerChatRoomPage from './pages/OwnerChatRoomPage'
 import OwnerRequestNewPage from './pages/OwnerRequestNewPage'
+import OwnerTaskFinderPage from './pages/OwnerTaskFinderPage'
+import OwnerTaskFinderResultPage from './pages/OwnerTaskFinderResultPage'
 import OwnerRequestContentPage from './pages/OwnerRequestContentPage'
 import OwnerRequestConfirmPage from './pages/OwnerRequestConfirmPage'
 import OwnerRequestDonePage from './pages/OwnerRequestDonePage'
@@ -48,6 +50,7 @@ import OwnerWorkCanceledPage from './pages/OwnerWorkCanceledPage'
 import OwnerExploreProposalPage from './pages/OwnerExploreProposalPage'
 import OwnerExploreRequestPage from './pages/OwnerExploreRequestPage'
 import OwnerStoreEditPage from './pages/OwnerStoreEditPage'
+import OwnerConcernPage from './pages/OwnerConcernPage'
 import OwnerPaymentsPage from './pages/OwnerPaymentsPage'
 import KakaoPayResultPage from './pages/KakaoPayResultPage'
 import OwnerActivityPage from './pages/OwnerActivityPage'
@@ -115,6 +118,7 @@ function App() {
       <Route path="/owner/notifications" element={<OwnerNotificationsPage />} />
       <Route path="/owner/me" element={<OwnerMePage />} />
       <Route path="/owner/me/store" element={<OwnerStoreEditPage />} />
+      <Route path="/owner/me/concern" element={<OwnerConcernPage />} />
       <Route path="/owner/me/payments" element={<OwnerPaymentsPage />} />
       <Route path="/owner/requests" element={<OwnerActivityPage />} />
       <Route path="/owner/chats/:roomId" element={<OwnerChatRoomPage />} />
@@ -122,6 +126,8 @@ function App() {
       <Route path="/owner/works/:workId/result" element={<OwnerWorkResultPage />} />
       <Route path="/owner/works/:workId/history" element={<OwnerWorkHistoryPage />} />
       <Route path="/owner/proposals/:proposalId" element={<OwnerProposalPage />} />
+      <Route path="/owner/task-finder/result" element={<OwnerTaskFinderResultPage />} />
+      <Route path="/owner/task-finder/:step" element={<OwnerTaskFinderPage />} />
       <Route path="/owner/requests/new" element={<OwnerRequestNewPage />} />
       <Route path="/owner/requests/new/2" element={<OwnerRequestContentPage />} />
       <Route path="/owner/requests/new/3" element={<OwnerRequestConfirmPage />} />

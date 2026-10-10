@@ -9,6 +9,13 @@ interface StoreExploreResponse {
     storeAddress: string;
     ownerProfileId: number;
     createdAt: string;
+    /** 해결되지 않은 가게 고민. 없으면 null */
+    concern?: {
+      title: string;
+      description: string | null;
+      specialtyCategory: { id: number; name: string } | null;
+      updatedAt: string;
+    } | null;
   }[];
   nextCursor: string | null;
   hasNext: boolean;
@@ -39,6 +46,14 @@ export async function fetchAllExploreStores(): Promise<ExploreStore[]> {
         category: item.businessCategory.name,
         address: item.storeAddress,
         photo: item.profileImageUrl,
+        concern: item.concern
+          ? {
+              title: item.concern.title,
+              description: item.concern.description,
+              category: item.concern.specialtyCategory?.name ?? null,
+              updatedAt: item.concern.updatedAt,
+            }
+          : null,
       });
     }
     if (!data?.hasNext || !data.nextCursor) break;

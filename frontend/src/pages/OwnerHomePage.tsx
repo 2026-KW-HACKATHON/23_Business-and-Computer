@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
+  AppImage,
   CategoryBadge,
   DemoGuide,
   LoadNotice,
@@ -12,11 +13,13 @@ import {
 import {
   FirstVisitGuide,
   OWNER_PATHS,
+  OwnerConcernCard,
   OwnerTabScreen,
   TodoCarousel,
   WAITING_STATUS_LABEL,
   deadlineText,
   studentLabel,
+  useOwnerConcern,
   useOwnerHome,
 } from "../features/owner";
 import type { OwnerTodo, OwnerWorkingItem } from "../features/owner";
@@ -28,12 +31,15 @@ import "./OwnerHomePage.css";
 
 /**
  * 피그마 「사장님 홈 (개선안)」.
- * 확인할 일 → 학생이 작업 중 → 기다리는 중 → 이런 의뢰는 어때요? → 끝난 일.
+ * 맡길 일 찾기 배너 → 확인할 일 → 학생이 작업 중 → 기다리는 중 → 이런 의뢰는 어때요? → 끝난 일.
+ * 맡길 일 찾기 배너는 처음 들어온 홈 · 둘러보기에서도 늘 보이고 닫지 않는다 (ADR 0068).
  * 비어 있는 목록은 섹션째 숨기고, 「이런 의뢰는 어때요?」는 늘 보인다. 확인할 일은 할 일이 없어도 남아
  * 「지금 확인할 일이 없어요」 카드를, 이력이 하나도 없는 계정(피그마 「사장님 홈 - 처음」)이면 첫 의뢰 안내 카드를
  * 보인다 (ADR 0051).
  * 섹션은 모두 GET /me/home 한 번에서 온다 (ADR 0064). 홈을 불러오는 중 · 실패면 확인할 일 아래에 안내 줄
  * 하나만 보이고, 홈은 왔는데 섹션 하나만 실패하면 그 섹션 자리에 안내 줄을 보인다. 개수는 불러온 섹션만 보인다.
+ * 확인할 일 바로 아래에는 가게 고민 카드(GET /owners/me/concern, ADR 0070)를 둔다. 고민을 불러오는 중이거나
+ * 실패하면 카드만 숨긴다.
  */
 /** 가입 후 첫 안내 말풍선: ① 확인할 일 · ② 새 의뢰 · ③ 알림 */
 const SIGNUP_GUIDE_TIPS = [
@@ -58,6 +64,7 @@ function OwnerHomePage() {
     setDemoGuide(false);
   };
   const home = useOwnerHome();
+  const { load: concernLoad } = useOwnerConcern();
   // 끝난 일은 접힌 채 최근 1건만 보인다
   const [doneExpanded, setDoneExpanded] = useState(false);
   const exampleScroll = useDragScroll<HTMLUListElement>();
@@ -86,6 +93,24 @@ function OwnerHomePage() {
 
   return (
     <OwnerTabScreen tab="home" showFab>
+      <button
+        type="button"
+        className="owner-home__finder"
+        onClick={() => navigate(OWNER_PATHS.taskFinder(1))}
+      >
+        <span className="owner-home__finder-text">
+          <strong>무엇을 맡길지 모르겠다면?</strong>
+          <span>몇 가지에 답하면 맡길 일을 골라 드려요</span>
+          <span className="owner-home__finder-link">
+            1분 만에 찾아보기{" "}
+            <span className="owner-home__finder-arrow" aria-hidden="true">
+              ›
+            </span>
+          </span>
+        </span>
+        <AppImage name="iconFieldAll" width={56} alt="" />
+      </button>
+
       {home.firstVisit && (
         <section className="owner-home__section">
           <SectionHeader title="확인할 일" count={0} />
@@ -108,6 +133,13 @@ function OwnerHomePage() {
               onRetry={home.reload}
             />
           )}
+        </section>
+      )}
+
+      {concernLoad.status === "loaded" && (
+        <section className="owner-home__section">
+          {concernLoad.concern && <SectionHeader title="현재 올려둔 고민" />}
+          <OwnerConcernCard concern={concernLoad.concern} onOpen={() => navigate(OWNER_PATHS.concern)} />
         </section>
       )}
 
