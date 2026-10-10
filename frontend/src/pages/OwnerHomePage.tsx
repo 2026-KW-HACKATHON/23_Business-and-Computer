@@ -96,7 +96,12 @@ function OwnerHomePage() {
         <span className="owner-home__finder-text">
           <strong>무엇을 맡길지 모르겠다면?</strong>
           <span>몇 가지에 답하면 맡길 일을 골라 드려요</span>
-          <span className="owner-home__finder-link">1분 만에 찾아보기 ›</span>
+          <span className="owner-home__finder-link">
+            1분 만에 찾아보기{" "}
+            <span className="owner-home__finder-arrow" aria-hidden="true">
+              ›
+            </span>
+          </span>
         </span>
         <AppImage name="iconFieldAll" width={56} alt="" />
       </button>

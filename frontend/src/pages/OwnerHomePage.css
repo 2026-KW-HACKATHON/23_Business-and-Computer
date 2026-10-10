@@ -119,16 +119,6 @@
   transition: transform 0.2s cubic-bezier(0.2, 0, 0, 1);
 }
 
-/* 누르면 살짝 작아진다 */
-.owner-home__finder:active {
-  transform: scale(0.98);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .owner-home__finder {
-    transition: none;
-  }
-}
 
 .owner-home__finder:focus-visible {
   outline: 2px solid var(--role-focus);
@@ -166,6 +156,12 @@
 .owner-home__finder > img {
   position: relative;
   flex-shrink: 0;
+  transition: transform 0.3s cubic-bezier(0.2, 0, 0, 1);
+}
+
+.owner-home__finder-arrow {
+  display: inline-block;
+  transition: transform 0.2s ease-out;
 }
 
 /* 오른쪽 위 모서리에 크게 걸친 반투명 흰 원 (지름 170px, 카드 밖은 잘림) */
@@ -178,4 +174,46 @@
   height: 170px;
   border-radius: 50%;
   background: rgb(255 255 255 / 40%);
+  transition: transform 0.3s cubic-bezier(0.2, 0, 0, 1);
+}
+
+/* 누르면(마우스는 올리면) 카드는 살짝 작아지고, 원은 커지고, 아이콘은 기울며 커지고, 「›」는 오른쪽으로 */
+@media (hover: hover) {
+  .owner-home__finder:hover::before {
+    transform: scale(1.08);
+  }
+
+  .owner-home__finder:hover > img {
+    transform: rotate(-6deg) scale(1.05);
+  }
+
+  .owner-home__finder:hover .owner-home__finder-arrow {
+    transform: translateX(3px);
+  }
+}
+
+.owner-home__finder:active {
+  transform: scale(0.98);
+}
+
+.owner-home__finder:active::before {
+  transform: scale(1.12);
+}
+
+.owner-home__finder:active > img {
+  transform: rotate(-8deg) scale(1.08);
+}
+
+.owner-home__finder:active .owner-home__finder-arrow {
+  transform: translateX(4px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .owner-home__finder,
+  .owner-home__finder::before,
+  .owner-home__finder > img,
+  .owner-home__finder-arrow {
+    transition: none;
+    transform: none !important;
+  }
 }
