@@ -1,0 +1,137 @@
+name: Frontend CI/CD
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - frontend/**
+      - .github/workflows/frontend-cicd.yml
+  pull_request:
+    branches: [main]
+    paths:
+      - frontend/**
+      - .github/workflows/frontend-cicd.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+
+    defaults:
+      run:
+        working-directory: frontend
+
+    env:
+      VITE_BACKEND_API_BASE_URL: ${{ vars.VITE_BACKEND_API_BASE_URL }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up Node 22
+        uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Validate build configuration
+        run: test -n "$VITE_BACKEND_API_BASE_URL"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run frontend checks
+        run: npm run check
+
+      - name: Check documentation references
+        run: npm run check:docs
+
+      - name: Upload checked build
+        if: ${{ github.repository == '2026-KW-HACKATHON/23_Business-and-Computer' && github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch') }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: frontend-dist
+          path: frontend/dist/
+          retention-days: 7
+          if-no-files-found: error
+
+  deploy:
+    needs: check
+    if: ${{ github.repository == '2026-KW-HACKATHON/23_Business-and-Computer' && github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch') }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+
+    permissions:
+      contents: read
+      id-token: write
+
+    env:
+      AWS_REGION: ${{ vars.AWS_REGION }}
+      FRONTEND_AWS_ROLE_ARN: ${{ vars.FRONTEND_AWS_ROLE_ARN }}
+      FRONTEND_S3_BUCKET: ${{ vars.FRONTEND_S3_BUCKET }}
+      CLOUDFRONT_DISTRIBUTION_ID: ${{ vars.CLOUDFRONT_DISTRIBUTION_ID }}
+
+    steps:
+      - name: Download checked build
+        uses: actions/download-artifact@v8
+        with:
+          name: frontend-dist
+          path: dist/
+
+      - name: Validate deployment inputs
+        run: |
+          test -n "$AWS_REGION"
+          test -n "$FRONTEND_AWS_ROLE_ARN"
+          test -n "$FRONTEND_S3_BUCKET"
+          test -n "$CLOUDFRONT_DISTRIBUTION_ID"
+          test -s dist/index.html
+          test -d dist/assets
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v6.3.0
+        with:
+          role-to-assume: ${{ vars.FRONTEND_AWS_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+          allowed-account-ids: "975049927748"
+
+      - name: Upload new files
+        run: |
+          aws s3 sync dist/assets/ "s3://$FRONTEND_S3_BUCKET/assets/" \
+            --cache-control 'public,max-age=31536000,immutable'
+          aws s3 sync dist/ "s3://$FRONTEND_S3_BUCKET/" \
+            --exclude 'index.html' --exclude 'assets/*' \
+            --cache-control 'public,max-age=60'
+
+      - name: Publish entry page
+        run: |
+          aws s3 cp dist/index.html "s3://$FRONTEND_S3_BUCKET/index.html" \
+            --cache-control 'no-cache,max-age=0,must-revalidate'
+
+      - name: Delete previous deployment files
+        run: aws s3 sync dist/ "s3://$FRONTEND_S3_BUCKET/" --delete
+
+      - name: Invalidate CloudFront cache
+        id: invalidation
+        run: |
+          invalidation_id=$(aws cloudfront create-invalidation \
+            --distribution-id "$CLOUDFRONT_DISTRIBUTION_ID" \
+            --paths '/*' \
+            --query 'Invalidation.Id' --output text)
+          echo "id=$invalidation_id" >> "$GITHUB_OUTPUT"
+
+      - name: Wait for CloudFront cache refresh
+        env:
+          INVALIDATION_ID: ${{ steps.invalidation.outputs.id }}
+        run: |
+          aws cloudfront wait invalidation-completed \
+            --distribution-id "$CLOUDFRONT_DISTRIBUTION_ID" \
+            --id "$INVALIDATION_ID"

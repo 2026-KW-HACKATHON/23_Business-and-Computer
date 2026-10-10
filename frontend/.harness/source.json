@@ -19,10 +19,10 @@
     "docs/decisions/",
     "docs/failures/",
     "docs/domain/glossary.md",
-    "package.json scripts: typecheck, check, check:docs"
+    "package.json scripts: typecheck, check, check:docs",
+    "Frontend CI completion gate and S3/CloudFront deployment workflow (ADR 0067)"
   ],
   "deferred_pieces": [
-    "CI harness-check workflow (README documents no frontend CI yet)",
     "decision-memory / failure-memory / effectiveness Python enforcement scripts (kept as manual review discipline in AGENTS.md until the app has real product flows)"
   ]
 }
