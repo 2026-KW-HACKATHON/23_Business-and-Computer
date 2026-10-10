@@ -84,8 +84,6 @@ flowchart LR
 | Infra | AWS EC2 · ECR · Systems Manager · CloudWatch · CloudFront, Cloudflare, Docker, GitHub Actions |
 | 외부 API | 카카오 로그인, 카카오페이, 국세청 사업자등록 진위확인 |
 
-## 폴더 구조
-
 ## 프로젝트 구조
 
 ```text
@@ -141,46 +139,6 @@ flowchart LR
 ├── docs/                         기획 문서 (서비스 기획 · 핵심 기능 · 취소·환불 정책) · README 이미지
 └── .github/                      이슈 · PR 템플릿, 백엔드 CI/CD 워크플로
 ```
-
-## 로컬에서 실행하기
-
-### Frontend
-
-```bash
-cd frontend
-cp .env.example .env.local   # VITE_BACKEND_API_BASE_URL 에 연결할 API 서버 주소
-npm ci
-npm run dev                  # http://localhost:5173
-```
-
-`npm run check`로 폴더 구조 검사 · lint · 타입 검사 · 빌드 · 알림 이동 경로 검사를 한 번에 확인합니다.
-
-배포된 API 서버는 `http://localhost:5173`에서 보낸 요청을 받아 줍니다(CORS). 로컬 화면은 이 주소로 띄워 배포 API에 붙여 테스트합니다.
-
-### Backend
-
-Java 21, PostgreSQL, Redis가 필요합니다.
-
-```bash
-git submodule update --init                   # backend/harness/core
-cd backend
-docker compose -f compose.redis.yaml up -d    # 로컬 Redis
-./gradlew bootRun
-```
-
-설정 값은 `backend/src/main/resources/application.yaml`이 환경 변수에서 읽습니다. 실행 전에 아래 값을 채워 주세요(값은 저장소에 올리지 않습니다).
-
-- `DATABASE_URL`, `DATABASE_MAX_POOL_SIZE` 등 `DATABASE_*` 풀 설정
-- `JWT_SECRET`
-- `KAKAO_CLIENT_ID`, `KAKAO_CLIENT_SECRET`, `KAKAO_REDIRECT_URI`
-- `KAKAO_PAY_SECRET_KEY`, `KAKAO_PAY_FRONTEND_BASE_URL`
-- `MAIL_HOST`, `MAIL_PORT`, `MAIL_USERNAME`, `MAIL_PASSWORD`
-- `NTS_BUSINESSMAN_SERVICE_KEY`
-- `S3_BUCKET`, `S3_IMAGE_BUCKET` (`S3_REGION` 기본값 `ap-northeast-1`)
-- 필요하면 `REDIS_*`, `FRONTEND_ALLOWED_ORIGIN_PATTERNS`
-
-DB 스키마는 시작할 때 Flyway가 `db/migration`의 SQL을 적용합니다. 테스트는 `./gradlew test`로 돌립니다.
-
 ## 브랜치
 
 - `dev`: 기본 브랜치. 기능 브랜치의 PR이 모이는 곳입니다.
