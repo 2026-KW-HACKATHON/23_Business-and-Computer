@@ -26,8 +26,11 @@ example, the same way the home 「이런 의뢰는 어때요?」 cards do (B-2).
   (16px bold), one line 「몇 가지에 답하면 맡길 일을 골라 드려요」, the link
   text 「1분 만에 찾아보기 ›」, and the 3D 「전체」 field icon (56px) on the
   right. A 40%-white 170px circle hangs over the top-right corner (the card
-  clips it). The whole card is the button and shrinks a little while pressed.
-  It has no close button.
+  clips it). The whole card is the button. While it is pressed the card
+  shrinks to 98%, the circle grows to 112%, the icon tilts −8° and grows to
+  108%, and 「›」 moves 4px right. A mouse hover does a smaller version
+  (circle 108%, icon −6° and 105%, 「›」 3px). With reduced motion nothing
+  moves. It has no close button.
 - **Questions** (`/owner/task-finder/:step`, 1–12, app bar 「맡길 일
   찾기」): a progress bar with 「n/12」, the question, the hint 「가게
   상황에 가까운 답을 골라 주세요」, and two answer buttons. Tapping an
