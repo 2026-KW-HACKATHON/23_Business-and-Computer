@@ -25,7 +25,7 @@ public class JwtService {
     private final RefreshRepository refreshRepository;
     private final JWTUtil jwtUtil;
 
-    // 소셜 로그인 성공 후 쿠키(Refresh) -> 헤더 방식으로 응답 <-- 이건 추후에 작성
+    // 소셜 로그인 성공 후 쿠키(Refresh) -> 헤더 방식으로 응답. 쿠키의 토큰이 DB 에 있어야 교환한다
     @Transactional
     public JWTResponseDTO cookie2Header(
             HttpServletRequest request,
@@ -54,6 +54,11 @@ public class JwtService {
         // Refresh 토큰 검증
         Boolean isValid = jwtUtil.isValid(refreshToken, false);
         if (!isValid) {
+            throw new BusinessException(ErrorCode.UNAUTHORIZED);
+        }
+
+        // 로그아웃이나 교체로 DB 에서 지워진 토큰은 서명이 맞아도 거부한다 (/refresh 와 같은 확인)
+        if (!existsRefresh(refreshToken)) {
             throw new BusinessException(ErrorCode.UNAUTHORIZED);
         }
 
