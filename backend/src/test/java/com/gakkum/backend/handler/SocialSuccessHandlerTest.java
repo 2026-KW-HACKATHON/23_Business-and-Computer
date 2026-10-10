@@ -7,15 +7,21 @@ import static org.mockito.Mockito.when;
 
 import java.util.List;
 
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpHeaders;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
+import org.springframework.mock.web.MockHttpSession;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.context.SecurityContextImpl;
+import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 
 import com.gakkum.backend.config.FrontendOrigins;
 import com.gakkum.backend.domain.jwt.service.JwtService;
@@ -36,6 +42,34 @@ class SocialSuccessHandlerTest {
     @BeforeEach
     void givenRefreshToken() {
         when(jwtUtil.createJWT("KAKAO_12345", "ROLE_PENDING", false)).thenReturn("refresh-token");
+    }
+
+    @AfterEach
+    void clearSecurityContext() {
+        SecurityContextHolder.clearContext();
+    }
+
+    @Test
+    @DisplayName("소셜 로그인 성공 뒤 세션에 저장된 인증을 지우고 세션을 끝내며, 쿠키와 이동 주소는 그대로다")
+    void invalidatesSessionHoldingAuthentication() throws Exception {
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        MockHttpSession session = new MockHttpSession();
+        request.setSession(session);
+        session.setAttribute(FrontendOrigins.LOGIN_ORIGIN_SESSION_KEY, LOCAL);
+        // oauth2Login 이 성공 핸들러를 부르기 전에 세션과 SecurityContextHolder 에 인증을 저장한 상태
+        SecurityContext context = new SecurityContextImpl(authentication);
+        session.setAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY, context);
+        SecurityContextHolder.setContext(context);
+        MockHttpServletResponse response = new MockHttpServletResponse();
+
+        handler.onAuthenticationSuccess(request, response, authentication);
+
+        assertThat(session.isInvalid()).isTrue();
+        assertThat(request.getSession(false)).isNull();
+        assertThat(SecurityContextHolder.getContext().getAuthentication()).isNull();
+        assertThat(response.getHeaders(HttpHeaders.SET_COOKIE)).singleElement().asString()
+                .contains("refreshToken=refresh-token", "Path=/", "Max-Age=60;", "Secure", "HttpOnly", "SameSite=None");
+        assertThat(response.getRedirectedUrl()).isEqualTo(LOCAL + "/cookie");
     }
 
     @Test
