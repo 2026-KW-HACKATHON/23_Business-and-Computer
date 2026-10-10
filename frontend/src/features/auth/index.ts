@@ -13,6 +13,6 @@ export { useDemoRoleSwitch, useIsDemo } from "./hooks/useDemoSession";
 export { default as DemoSessionStrip } from "./components/DemoSessionStrip";
 export { default as RoleRouteGuard } from "./components/RoleRouteGuard";
 export { default as RoleColorScope } from "./components/RoleColorScope";
-export { getUserRole, landingPath } from "./lib/session";
+export { getUserRole, landingPath, logOut } from "./lib/session";
 export type { UserRole } from "./lib/session";
 export type { SocialProvider } from "./types";

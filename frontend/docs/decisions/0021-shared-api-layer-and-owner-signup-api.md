@@ -21,6 +21,11 @@ Backend facts (dev):
   `{ accessToken }` with no envelope. Signup calls return the same token
   shape inside the envelope. No call returns a refresh token in the body, so
   the old `saveTokens` stored the string `"undefined"` as the refresh token.
+  Both refuse (401 `COMMON_401`) a cookie whose token is no longer in the
+  server's refresh token table (rotated or logged out).
+- `POST /logout` needs no access token: it deletes the token in the
+  `refreshToken` cookie, always expires the cookie, and answers 200
+  `{ "success": true }`, also when there was no cookie.
 - An expired or invalid access token gets a raw 401
   `{ "error": "…" }`; other 401s use the envelope with `COMMON_401`.
 - `POST /media/images/uploads` takes `purpose` `PROFILE` · `STORE` ·
@@ -52,6 +57,14 @@ Backend facts (dev):
   token, and retries. If the refresh fails it clears the token and rethrows
   the 401 `ApiError`; pages still send the user to /login. `apiFetch` stays
   the raw call for endpoints without the envelope.
+- 「로그아웃」 on both 내 정보 screens calls the auth feature's `logOut()`
+  (`src/features/auth/lib/session.ts`): it clears the stored tokens first,
+  then sends `POST /logout` through `apiFetch` (cookies included, no
+  `Authorization`, since an expired token would be refused before the
+  logout runs). The page goes to /login without waiting, and a failed call
+  is ignored, so logging out never gets stuck and needs no loading state.
+  Other `clearTokens` calls (failed refresh, unreadable role, ended demo
+  pair) are not logouts and stay local.
 - `src/api/media.ts` `uploadImage(file, purpose)` is the one image upload
   for every feature. Signup's `uploadProfileImage` and the new
   `uploadStoreImage` call it.
