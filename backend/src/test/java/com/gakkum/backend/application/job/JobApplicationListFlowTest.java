@@ -155,7 +155,7 @@ class JobApplicationListFlowTest {
                 .andExpect(jsonPath("$.data.applicants[2].studentProfileId").value(7))
                 .andExpect(jsonPath("$.data.applicants[2].profileImageUrl").value("https://example.com/7.jpg"))
                 .andExpect(jsonPath("$.data.applicants[2].name").value("학생7"))
-                .andExpect(jsonPath("$.data.applicants[2].studentNumber").value("2023000007"))
+                .andExpect(jsonPath("$.data.applicants[2].studentNumber").value("23"))
                 .andExpect(jsonPath("$.data.applicants[2].major").value("소프트웨어학부"))
                 .andExpect(jsonPath("$.data.applicants[2].averageRating").value(4.3))
                 .andExpect(jsonPath("$.data.applicants[2].completedJobCount").value(3))

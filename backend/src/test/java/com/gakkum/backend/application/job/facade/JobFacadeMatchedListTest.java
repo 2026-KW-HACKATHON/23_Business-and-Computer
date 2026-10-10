@@ -123,7 +123,7 @@ class JobFacadeMatchedListTest {
                 null, null);
         assertThat(response.getJobs().get(0).getDraftDeadline()).isEqualTo(LocalDate.of(2026, 10, 10));
         assertThat(response.getJobs().get(0).getStudentProfileId()).isEqualTo(7L);
-        assertThat(response.getJobs().get(0).getStudentNumber()).isEqualTo("2023123456");
+        assertThat(response.getJobs().get(0).getStudentNumber()).isEqualTo("23");
         assertThat(response.getJobs().get(0).getMajor()).isEqualTo("컴퓨터정보공학부");
         assertThat(response.getJobs().get(0).getSubmissionType()).isEqualTo("DRAFT");
         assertThat(response.getJobs().get(0).getPendingSubmissionId()).isEqualTo(81L);

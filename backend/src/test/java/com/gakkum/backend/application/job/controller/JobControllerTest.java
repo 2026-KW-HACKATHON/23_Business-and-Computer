@@ -105,7 +105,7 @@ class JobControllerTest {
     }
 
     @Test
-    @DisplayName("MATCHED 상태이면 학생 정보(프로필 사진 포함)·계약 조건과 대기 중 제출물을 응답한다")
+    @DisplayName("MATCHED 상태이면 학생 정보(프로필 사진 포함, 학번은 입학연도 두 자리)·계약 조건과 대기 중 제출물을 응답한다")
     void returnsMatchedJobList() throws Exception {
         Job job = Job.builder()
                 .id(42L)
@@ -147,7 +147,7 @@ class JobControllerTest {
                 .andExpect(jsonPath("$.data.jobs[0].draftDeadline").value("2026-10-10"))
                 .andExpect(jsonPath("$.data.jobs[0].finalDeadline").value("2026-10-20"))
                 .andExpect(jsonPath("$.data.jobs[0].studentProfileId").value(7))
-                .andExpect(jsonPath("$.data.jobs[0].studentNumber").value("2023123456"))
+                .andExpect(jsonPath("$.data.jobs[0].studentNumber").value("23"))
                 .andExpect(jsonPath("$.data.jobs[0].major").value("컴퓨터정보공학부"))
                 .andExpect(jsonPath("$.data.jobs[0].submissionType").value("DRAFT"))
                 .andExpect(jsonPath("$.data.jobs[0].pendingSubmissionId").value(81))

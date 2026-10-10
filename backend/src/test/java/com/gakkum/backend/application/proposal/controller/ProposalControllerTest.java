@@ -765,7 +765,7 @@ class ProposalControllerTest {
     }
 
     @Test
-    @DisplayName("받은 제안 목록은 200과 카드·학생 5개 필드(프로필 사진 포함), 연결 의뢰 상태, 한국 시각 생성 시각을 반환한다")
+    @DisplayName("받은 제안 목록은 200과 카드·학생 5개 필드(프로필 사진 포함, 학번은 입학연도 두 자리), 연결 의뢰 상태, 한국 시각 생성 시각을 반환한다")
     void returnsReceivedProposals() throws Exception {
         // UTC 10월 5일 15:30 = 한국 10월 6일 00:30
         Proposal proposal = Proposal.builder().id(101L).title("메뉴판 개선 제안").likeCount(12)
@@ -797,7 +797,7 @@ class ProposalControllerTest {
                 .andExpect(jsonPath("$.data.proposals[0].proposedSolution").value("사진 중심 메뉴판으로 바꿔드릴게요."))
                 .andExpect(jsonPath("$.data.proposals[0].student.studentProfileId").value(7))
                 .andExpect(jsonPath("$.data.proposals[0].student.name").value("홍길동"))
-                .andExpect(jsonPath("$.data.proposals[0].student.studentNumber").value("2024123456"))
+                .andExpect(jsonPath("$.data.proposals[0].student.studentNumber").value("24"))
                 .andExpect(jsonPath("$.data.proposals[0].student.major").value("소프트웨어학부"))
                 .andExpect(jsonPath("$.data.proposals[0].student.profileImageUrl")
                         .value("https://cdn.example.com/students/7/profile.png"))
