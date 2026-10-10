@@ -20,9 +20,13 @@ The backend (dev) has:
   student's job), JOB_SUBMISSION_404_LATEST (nothing submitted),
   JOB_SUBMISSION_403_VIEW (not a student). Times are Korean time (+09:00);
   file URLs end with the uploaded file name.
-- GET /students/{studentProfileId}/profile (any owner) → the same shape as
-  the applicant profile (ADR 0030). Errors: STUDENT_PROFILE_403_OWNER,
-  STUDENT_PROFILE_404.
+- GET /students/{studentProfileId}/profile (an owner related to the
+  student: the student applied to or was picked for one of the owner's
+  requests, sent the owner a proposal, or has a proposal shown in explore)
+  → the same shape as the applicant profile (ADR 0030). In both profiles
+  `studentNumber` is the two-digit entry year (「24」). Errors:
+  STUDENT_PROFILE_403_OWNER, STUDENT_PROFILE_404 (also for an unrelated
+  student).
 - The owner matched list, GET /me/received-proposals, and GET
   /proposals/{id} carry the student's `studentProfileId`.
 
