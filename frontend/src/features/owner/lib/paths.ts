@@ -15,6 +15,8 @@ export const OWNER_PATHS = {
   notifications: "/owner/notifications",
   me: "/owner/me",
   store: "/owner/me/store",
+  /** 가게 고민 올리기 · 고치기 */
+  concern: "/owner/me/concern",
   payments: "/owner/me/payments",
   activity: (tab: ActivityTab) => `/owner/requests?tab=${tab}`,
   newRequest: "/owner/requests/new",

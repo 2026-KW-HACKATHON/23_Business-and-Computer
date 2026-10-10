@@ -1,0 +1,43 @@
+/* 가게 고민 올리기 · 고치기 */
+.owner-concern {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  padding: 20px 16px 32px;
+  font-family: var(--font-sans);
+}
+
+.owner-concern__intro {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.owner-concern__title {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 30px;
+  color: var(--color-black);
+}
+
+.owner-concern__description {
+  margin: 0;
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--role-secondary);
+}
+
+.owner-concern__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.owner-concern__send-error {
+  margin: 0 0 8px;
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--color-danger);
+  text-align: center;
+}
