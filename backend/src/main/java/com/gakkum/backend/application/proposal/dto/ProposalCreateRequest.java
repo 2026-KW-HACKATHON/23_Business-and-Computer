@@ -1,5 +1,6 @@
 package com.gakkum.backend.application.proposal.dto;
 
+import java.util.HashSet;
 import java.util.List;
 
 import jakarta.validation.constraints.AssertTrue;
@@ -60,8 +61,9 @@ public class ProposalCreateRequest {
     @PositiveOrZero
     private Integer finalDays;
 
-    // 선택 입력. 개수 상한 없음
-    private List<@NotBlank String> referenceImageUrls;
+    // 선택 입력. 최대 5장
+    @Size(max = 5)
+    private List<@NotBlank @Size(max = 2048) String> referenceImageUrls;
 
     public static ProposalCreateRequest of(
             Long ownerProfileId,
@@ -94,6 +96,11 @@ public class ProposalCreateRequest {
             return true;
         }
         return draftDays <= finalDays;
+    }
+
+    @AssertTrue(message = "참고 사진 URL은 중복될 수 없습니다.")
+    private boolean isReferenceImageUrlsUnique() {
+        return referenceImageUrls == null || new HashSet<>(referenceImageUrls).size() == referenceImageUrls.size();
     }
 
     public CreateProposalCommand toCommand(String username) {
