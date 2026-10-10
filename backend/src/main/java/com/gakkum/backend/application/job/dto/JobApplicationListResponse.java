@@ -8,6 +8,7 @@ import com.gakkum.backend.application.job.dto.JobListResponse.SpecialtyCategory;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.JobApplicantResult;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.JobApplicationJobResult;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.JobApplicationListResult;
+import com.gakkum.backend.global.response.AdmissionYear;
 
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -68,6 +69,7 @@ public class JobApplicationListResponse {
         private final Long studentProfileId;
         private final String profileImageUrl;
         private final String name;
+        // 학번 전체 대신 입학연도 두 자리만 내린다: 2024402001 → "24". 학번이 없거나 네 자리보다 짧으면 null
         private final String studentNumber;
         private final String major;
         private final BigDecimal averageRating;
@@ -83,7 +85,7 @@ public class JobApplicationListResponse {
                     .studentProfileId(result.getStudentProfileId())
                     .profileImageUrl(result.getProfileImageUrl())
                     .name(result.getName())
-                    .studentNumber(result.getStudentNumber())
+                    .studentNumber(AdmissionYear.from(result.getStudentNumber()))
                     .major(result.getMajor())
                     .averageRating(result.getAverageRating())
                     .completedJobCount(result.getCompletedJobCount())

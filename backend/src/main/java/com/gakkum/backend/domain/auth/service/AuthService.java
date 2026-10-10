@@ -11,6 +11,7 @@ import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ClassPathResource;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.mail.MailException;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
@@ -79,7 +80,8 @@ public class AuthService {
     @Transactional
     public void sendStudentEmailVerification(String userId, String email) {
         Instant now = clock.instant();
-        StudentEmailVerification verification = verificationRepository.findById(userId).orElse(null);
+        // 동시 재발송이 모두 대기 시간을 통과하지 않도록 기존 인증 행을 잠근 뒤 확인한다
+        StudentEmailVerification verification = verificationRepository.findLockedByUserId(userId).orElse(null);
         if (verification != null && verification.getSentAt().plusSeconds(60).isAfter(now)) {
             throw new BusinessException(ErrorCode.STUDENT_EMAIL_VERIFICATION_COOLDOWN);
         }
@@ -91,11 +93,17 @@ public class AuthService {
                 && CODE_ENCODER.matches(code, verification.getCodeHash()));
         String codeHash = CODE_ENCODER.encode(code);
         if (verification == null) {
-            verification = StudentEmailVerification.create(userId, email, codeHash, now);
+            // 잠글 행이 없는 첫 발송이 겹치면 기본 키 충돌로 하나만 남기고, 나머지는 재발송 대기로 거부한다
+            try {
+                verificationRepository.saveAndFlush(
+                        StudentEmailVerification.create(userId, email, codeHash, now));
+            } catch (DataIntegrityViolationException exception) {
+                throw new BusinessException(ErrorCode.STUDENT_EMAIL_VERIFICATION_COOLDOWN);
+            }
         } else {
             verification.renew(email, codeHash, now);
+            verificationRepository.save(verification);
         }
-        verificationRepository.save(verification);
 
         try {
             MimeMessage message = mailSender.createMimeMessage();
@@ -117,13 +125,14 @@ public class AuthService {
 
     /**
      * 학생 이메일 인증번호 확인. 오입력 횟수는 예외를 던져도 저장되어야 하므로 BusinessException에 롤백하지 않는다.
+     * 동시 확인 요청이 같은 오입력 횟수를 읽어 5회 제한을 넘지 않도록 인증 행을 잠근 뒤 확인한다.
      * @param userId 검증을 마친 가입 대기 사용자 ID
      * @param email
      * @param code
      */
     @Transactional(noRollbackFor = BusinessException.class)
     public void verifyStudentEmail(String userId, String email, String code) {
-        StudentEmailVerification verification = verificationRepository.findById(userId)
+        StudentEmailVerification verification = verificationRepository.findLockedByUserId(userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.STUDENT_EMAIL_VERIFICATION_INVALID));
         Instant now = clock.instant();
         if (!verification.getEmail().equals(email)

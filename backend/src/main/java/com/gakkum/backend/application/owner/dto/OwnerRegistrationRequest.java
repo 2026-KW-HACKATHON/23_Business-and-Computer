@@ -53,6 +53,7 @@ public class OwnerRegistrationRequest {
     @Size(max = 255)
     private String representativeName;
 
+    @Size(max = 5000)
     private String description;
 
     @Size(max = 5)

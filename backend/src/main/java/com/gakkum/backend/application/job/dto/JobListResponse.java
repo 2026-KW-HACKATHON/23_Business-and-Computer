@@ -21,6 +21,7 @@ import com.gakkum.backend.domain.job.dto.JobQueryDto.StudentMatchedJobResult;
 import com.gakkum.backend.domain.job.entity.JobApplicationStatus;
 import com.gakkum.backend.domain.job.entity.JobProgressStage;
 import com.gakkum.backend.domain.job.entity.JobStatus;
+import com.gakkum.backend.global.response.AdmissionYear;
 import com.gakkum.backend.global.response.KoreaTime;
 
 import lombok.AccessLevel;
@@ -146,6 +147,7 @@ public final class JobListResponse {
         private final LocalDate draftDeadline;
         private final LocalDate finalDeadline;
         private final Long studentProfileId;
+        // 학번 전체 대신 입학연도 두 자리만 내린다: 2024402001 → "24". 학번이 없거나 네 자리보다 짧으면 null
         private final String studentNumber;
         private final String major;
         private final String submissionType;
@@ -169,7 +171,7 @@ public final class JobListResponse {
                     .draftDeadline(result.getDraftDeadline())
                     .finalDeadline(result.getFinalDeadline())
                     .studentProfileId(result.getStudentProfileId())
-                    .studentNumber(result.getStudentNumber())
+                    .studentNumber(AdmissionYear.from(result.getStudentNumber()))
                     .major(result.getMajor())
                     .submissionType(result.getSubmissionType())
                     .pendingSubmissionId(result.getPendingSubmissionId())

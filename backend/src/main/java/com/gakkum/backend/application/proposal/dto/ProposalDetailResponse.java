@@ -13,6 +13,7 @@ import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.ProposalStudentRe
 import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.ProposalDetailResult;
 import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.SpecialtyCategoryResult;
 import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.SpecialtyResult;
+import com.gakkum.backend.global.response.AdmissionYear;
 import com.gakkum.backend.global.response.KoreaTime;
 
 import lombok.AccessLevel;
@@ -131,10 +132,9 @@ public class ProposalDetailResponse {
         private final long completedJobCount;
 
         public static ProposalStudent from(ProposalStudentResult result) {
-            String studentNumber = result.getStudentNumber();
             return new ProposalStudent(result.getStudentProfileId(), result.getName(), result.getProfileImageUrl(),
                     result.getMajor(),
-                    studentNumber == null ? null : studentNumber.substring(2, 4),
+                    AdmissionYear.from(result.getStudentNumber()),
                     result.getAverageRating(), result.getCompletedJobCount());
         }
     }

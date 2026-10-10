@@ -29,6 +29,7 @@ public class StudentMeUpdateRequest {
     @Pattern(regexp = "^$|^https?://\\S+$")
     private String profileImageUrl;
 
+    @Size(max = 5000)
     private String introduction;
 
     // 전체 저장이라 목록은 생략할 수 없다. 빈 목록은 기존 목록 전체 삭제다

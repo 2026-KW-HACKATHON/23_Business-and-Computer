@@ -8,6 +8,7 @@ import com.gakkum.backend.domain.job.dto.JobQueryDto.ApplicantCertificateResult;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.ApplicantReviewResult;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.ApplicantStudentResult;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.JobApplicantProfileResult;
+import com.gakkum.backend.global.response.AdmissionYear;
 
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -70,16 +71,8 @@ public class JobApplicantProfileResponse {
                     .profileImageUrl(result.getProfileImageUrl())
                     .university(result.getUniversity())
                     .major(result.getMajor())
-                    .studentNumber(admissionYear(result.getStudentNumber()))
+                    .studentNumber(AdmissionYear.from(result.getStudentNumber()))
                     .build();
-        }
-
-        // 학번 열 자리의 셋째·넷째 자리가 입학연도 두 자리다
-        private static String admissionYear(String studentNumber) {
-            if (studentNumber == null || studentNumber.length() < 4) {
-                return null;
-            }
-            return studentNumber.substring(2, 4);
         }
     }
 

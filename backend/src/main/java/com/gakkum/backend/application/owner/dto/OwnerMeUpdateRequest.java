@@ -35,6 +35,7 @@ public class OwnerMeUpdateRequest {
     @Size(max = 255)
     private String storeAddress;
 
+    @Size(max = 5000)
     private String description;
 
     public static OwnerMeUpdateRequest of(
