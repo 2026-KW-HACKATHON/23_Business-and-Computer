@@ -242,6 +242,7 @@ function ProfileForm({
           <TextField
             placeholder="나를 표현하는 한 줄 소개"
             value={intro}
+            maxLength={5000}
             onChange={(e) => setIntro(e.target.value)}
           />
         </label>

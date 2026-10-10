@@ -252,6 +252,7 @@ function OwnerSignupProfilePage() {
           placeholder="매장 소개"
           aria-label="매장 소개"
           value={draft.description}
+          maxLength={5000}
           readOnly={submitting}
           onChange={(e) => update({ description: e.target.value })}
         />
