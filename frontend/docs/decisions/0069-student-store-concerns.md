@@ -1,4 +1,4 @@
-# 0067. Students see store concerns on the store tab and while writing a proposal
+# 0069. Students see store concerns on the store tab and while writing a proposal
 
 ## Status
 

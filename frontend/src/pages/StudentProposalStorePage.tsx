@@ -20,7 +20,7 @@ import "./StudentProposalNewPage.css";
  * 피그마 「제안 보내기 1/4 - 가게 고르기」. 업종 · 이름으로 찾아 가게 하나를 고른다.
  * 홈 「+ 새 제안」 · 「이런 제안은 어때요?」 예시에서 들어온다.
  * 가게는 GET /explore/stores 를 모두 불러와 화면에서 거른다 (이름 검색 API 가 없다, ADR 0020).
- * 가게 탭처럼 고민을 올린 가게가 위에 오고 고민 한 줄 또는 「고민 없음」을 보인다 (ADR 0067).
+ * 가게 탭처럼 고민을 올린 가게가 위에 오고 고민 한 줄 또는 「고민 없음」을 보인다 (ADR 0069).
  */
 function StudentProposalStorePage() {
   const navigate = useNavigate();
