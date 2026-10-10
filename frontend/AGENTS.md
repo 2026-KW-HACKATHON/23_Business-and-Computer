@@ -42,7 +42,9 @@ Other useful scripts:
 
 Use `python3` (not `python`) — it is the available interpreter.
 
-There is no automated browser test or frontend CI workflow yet. Changes to user
+Frontend CI runs the completion gate and docs drift check on PRs targeting main;
+main changes deploy through S3 and CloudFront (ADR 0067).
+There is no automated browser test yet. Changes to user
 flows should also be verified in the browser; API changes require a running
 backend and a check against its contract.
 
