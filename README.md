@@ -86,12 +86,60 @@ flowchart LR
 
 ## 폴더 구조
 
+## 프로젝트 구조
+
 ```text
 .
-├── frontend/   React 앱 (화면, API 연동, 설계 결정 기록)
-├── backend/    Spring Boot API 서버 (Flyway 마이그레이션 포함)
-├── docs/       기획 문서(서비스 기획·핵심 기능·취소·환불 정책)와 README 이미지
-└── .github/    이슈·PR 템플릿, 백엔드 CI/CD 워크플로
+├── frontend/                     React 앱 (Vite · TypeScript)
+│   ├── src/
+│   │   ├── pages/                화면 단위 페이지 (사장님 · 학생 · 가입 · 채팅 · 결제 결과 등)
+│   │   ├── features/             도메인별 API 호출 · 훅 · 화면 조각
+│   │   │   ├── auth/             로그인 · 토큰 · 데모(둘러보기)
+│   │   │   ├── signup/           가입 단계 · 학교 메일 인증 · 사업자 확인 · 약관
+│   │   │   ├── owner/            사장님 홈 · 의뢰 · 지원자 · 작업 진행 · 취소 · 후기
+│   │   │   ├── student/          학생 홈 · 지원 · 작업 제출 · 프로필 · 포트폴리오
+│   │   │   ├── proposal/         제안 보내기 · 공감 · 수락 · 거절
+│   │   │   ├── explore/          가게 · 의뢰 · 제안 둘러보기
+│   │   │   ├── chat/             채팅방 · 작업 이력
+│   │   │   ├── payment/          카카오페이 안전결제
+│   │   │   ├── notification/     알림 목록 · 알림 이동 경로
+│   │   │   └── specialty/        분야 · 특기 목록
+│   │   ├── components/           공용 UI 컴포넌트 (버튼 · 시트 · 탭바 · 로딩 등)
+│   │   ├── api/                  API 클라이언트 · 토큰 · 파일 업로드
+│   │   ├── hooks/                공용 훅 (뒤로가기 · 화면 전환 · 지연 표시 등)
+│   │   ├── lib/                  날짜 · 금액 · 파일 주소 등 공용 함수
+│   │   ├── styles/               디자인 토큰 · 모션 · 눌림 효과
+│   │   ├── types/                공용 타입
+│   │   └── assets/               로고 · 아이콘 · 일러스트 · 로딩 캐릭터
+│   ├── docs/
+│   │   ├── decisions/            화면 · 구조 설계 결정 기록 (ADR)
+│   │   ├── conventions/          코드 · 폴더 규칙
+│   │   ├── domain/               용어집
+│   │   └── failures/             장애 · 실수 기록
+│   ├── scripts/                  폴더 구조 · 알림 경로 · 문서 검사 스크립트
+│   └── public/                   파비콘 · 앱 아이콘
+│
+├── backend/                      Spring Boot API 서버 (Java 21)
+│   ├── src/main/java/com/gakkum/backend/
+│   │   ├── application/          기능별 Controller · DTO · Facade (+ 스케줄러)
+│   │   │   └── auth · job · proposal · payment · chat · review · notification
+│   │   │       · home · explore · owner · student · specialty · category · media · demo · jwt
+│   │   ├── domain/               도메인별 Entity · Repository · Service
+│   │   ├── config/               Security · S3 · 알림 스트림 · 자동 완료 설정
+│   │   ├── filter/ · handler/    JWT 인증 · 요청 로그 · 카카오 로그인 성공 · 로그아웃
+│   │   ├── global/               공통 응답 · 예외 · 로깅
+│   │   └── util/                 JWT · ULID 생성
+│   ├── src/main/resources/
+│   │   ├── application.yaml      환경 변수로 읽는 설정
+│   │   ├── db/migration/         Flyway 마이그레이션 SQL
+│   │   └── mail/                 학교 메일 인증 메일 템플릿
+│   ├── src/test/                 단위 · 통합 테스트
+│   ├── harness/                  백엔드 구조 · 규칙 문서 (core 는 서브모듈)
+│   ├── Dockerfile                배포 이미지
+│   └── compose.redis.yaml        로컬 Redis
+│
+├── docs/                         기획 문서 (서비스 기획 · 핵심 기능 · 취소·환불 정책) · README 이미지
+└── .github/                      이슈 · PR 템플릿, 백엔드 CI/CD 워크플로
 ```
 
 ## 로컬에서 실행하기
