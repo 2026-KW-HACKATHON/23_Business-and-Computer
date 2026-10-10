@@ -3,6 +3,7 @@ package com.gakkum.backend.application.owner.facade;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
@@ -26,6 +27,8 @@ import com.gakkum.backend.domain.auth.service.AuthService;
 import com.gakkum.backend.domain.category.service.BusinessCategoryService;
 import com.gakkum.backend.domain.job.service.JobService;
 import com.gakkum.backend.domain.jwt.service.JwtService;
+import com.gakkum.backend.domain.media.dto.ImagePurpose;
+import com.gakkum.backend.domain.media.service.MediaService;
 import com.gakkum.backend.domain.owner.dto.OwnerCommandDto.CreateOwnerProfileCommand;
 import com.gakkum.backend.domain.owner.service.OwnerService;
 import com.gakkum.backend.domain.proposal.service.ProposalService;
@@ -43,6 +46,7 @@ class OwnerFacadeTest {
     private final BusinessCategoryService businessCategoryService = mock(BusinessCategoryService.class);
     private final JwtService jwtService = mock(JwtService.class);
     private final AuthService authService = mock(AuthService.class);
+    private final MediaService mediaService = mock(MediaService.class);
     private final OwnerFacade facade = new OwnerFacade(
             userService,
             ownerService,
@@ -51,6 +55,7 @@ class OwnerFacadeTest {
             mock(JobService.class),
             mock(ProposalService.class),
             authService,
+            mediaService,
             new ImmediateTransactionTemplate());
 
     private final User user = User.builder()
@@ -121,6 +126,53 @@ class OwnerFacadeTest {
 
         order.verify(jwtService).issueAccessToken("KAKAO_12345", UserRole.OWNER);
         order.verify(jwtService).replaceRefreshToken("KAKAO_12345", UserRole.OWNER);
+    }
+
+    @Test
+    @DisplayName("프로필 사진은 프로필 용도로, 매장 사진은 매장 용도로 본인이 올린 사진인지 국세청 확인 전에 확인한다")
+    void validatesUploadedImagesBeforeBusinessVerification() {
+        when(userService.validateOwnerRegistration("KAKAO_12345")).thenReturn(user);
+        when(authService.verifyOwnerBusiness(any(VerifyOwnerBusinessCommand.class))).thenReturn(true);
+
+        facade.register("KAKAO_12345", request);
+
+        InOrder order = inOrder(mediaService, authService);
+        order.verify(mediaService).validateUploadedImages(user.getId(), ImagePurpose.PROFILE,
+                List.of("https://image.example.com/profile.png"));
+        order.verify(mediaService).validateUploadedImages(user.getId(), ImagePurpose.STORE,
+                List.of("https://image.example.com/store1.png", "https://image.example.com/store2.png"));
+        order.verify(authService).verifyOwnerBusiness(any(VerifyOwnerBusinessCommand.class));
+    }
+
+    @Test
+    @DisplayName("프로필 사진이 없으면 프로필 사진 확인은 건너뛰고 매장 사진만 확인한다")
+    void skipsProfileImageCheckWhenAbsent() {
+        when(userService.validateOwnerRegistration("KAKAO_12345")).thenReturn(user);
+        when(authService.verifyOwnerBusiness(any(VerifyOwnerBusinessCommand.class))).thenReturn(true);
+        OwnerRegistrationRequest withoutImages = OwnerRegistrationRequest.of(
+                "김사장", "치킨플러스", null, 2L, "12341453312", LocalDate.of(2020, 3, 1), "김사장", null,
+                null, "  ");
+
+        facade.register("KAKAO_12345", withoutImages);
+
+        verify(mediaService, never()).validateUploadedImages(any(), eq(ImagePurpose.PROFILE), any());
+        verify(mediaService).validateUploadedImages(user.getId(), ImagePurpose.STORE, List.of());
+    }
+
+    @Test
+    @DisplayName("본인이 올리지 않은 사진이면 국세청 확인 전에 그 오류로 거부하고 저장하지 않는다")
+    void rejectsImageNotUploadedByUserBeforeBusinessVerification() {
+        when(userService.validateOwnerRegistration("KAKAO_12345")).thenReturn(user);
+        doThrow(new BusinessException(ErrorCode.MEDIA_IMAGE_URL_INVALID))
+                .when(mediaService).validateUploadedImages(any(), any(), any());
+
+        assertThatThrownBy(() -> facade.register("KAKAO_12345", request))
+                .isInstanceOfSatisfying(BusinessException.class, exception ->
+                        assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.MEDIA_IMAGE_URL_INVALID));
+
+        verifyNoInteractions(authService, jwtService);
+        verify(userService, never()).completeOwnerRegistration(any(), any());
+        verify(ownerService, never()).createOwnerProfile(any(), any());
     }
 
     @Test

@@ -29,6 +29,8 @@ import com.gakkum.backend.domain.job.entity.Job;
 import com.gakkum.backend.domain.job.entity.JobApplication;
 import com.gakkum.backend.domain.job.service.JobService;
 import com.gakkum.backend.domain.jwt.service.JwtService;
+import com.gakkum.backend.domain.media.dto.ImagePurpose;
+import com.gakkum.backend.domain.media.service.MediaService;
 import com.gakkum.backend.domain.owner.entity.Owner;
 import com.gakkum.backend.domain.owner.service.OwnerService;
 import com.gakkum.backend.domain.payment.dto.PaymentQueryDto.SettlementHistoryData;
@@ -42,6 +44,7 @@ import com.gakkum.backend.domain.specialty.dto.SpecialtyCommandDto.AddStudentSpe
 import com.gakkum.backend.domain.specialty.dto.SpecialtyQueryDto.SpecialtyDetail;
 import com.gakkum.backend.domain.specialty.service.SpecialtyCategoryService;
 import com.gakkum.backend.domain.specialty.service.SpecialtyService;
+import com.gakkum.backend.domain.student.dto.StudentCommandDto.CreateStudentProfileCommand;
 import com.gakkum.backend.domain.student.dto.StudentCommandDto.UpdateStudentCertificateCommand;
 import com.gakkum.backend.domain.student.dto.StudentCommandDto.UpdateStudentMeCommand;
 import com.gakkum.backend.domain.student.dto.StudentQueryDto.StudentMeResult;
@@ -79,7 +82,9 @@ public class StudentFacade {
     private final ReviewService reviewService;
     private final PaymentService paymentService;
     private final OwnerService ownerService;
+    private final MediaService mediaService;
 
+    /** 학생 회원가입. 프로필 사진은 본인이 프로필용으로 올린 사진이어야 한다. */
     @Transactional
     public StudentRegistrationResponse register(String username, StudentRegistrationRequest request) {
         String normalizedEmail = request.getNormalizedEmail();
@@ -87,10 +92,15 @@ public class StudentFacade {
         studentService.validateStudentNumberAvailable(request.getStudentNumber());
         List<Long> specialtyIds = request.getNormalizedSpecialtyIds();
         specialtyService.validateSpecialtyIds(specialtyIds);
+        CreateStudentProfileCommand profile = request.toCommand(user.getId());
+        if (profile.getProfileImageUrl() != null) {
+            mediaService.validateUploadedImages(
+                    user.getId(), ImagePurpose.PROFILE, List.of(profile.getProfileImageUrl()));
+        }
         authService.consumeVerifiedStudentEmail(user.getId(), normalizedEmail);
 
         userService.completeStudentRegistration(user, request.getStudentName(), normalizedEmail);
-        Student student = studentService.createStudentProfile(request.toCommand(user.getId()));
+        Student student = studentService.createStudentProfile(profile);
 
         for (Long specialtyId : specialtyIds) {
             specialtyService.addStudentSpecialty(AddStudentSpecialtyCommand.of(student.getId(), specialtyId));
@@ -247,6 +257,7 @@ public class StudentFacade {
     /**
      * 학생 본인의 프로필 사진·소개·포트폴리오와 특기·자격증 목록을 요청 값으로 전체 교체한다.
      * 입력을 모두 검증한 뒤에 쓰기 시작하고, 도중에 실패하면 전부 롤백한다. 학생 프로필이 없으면 500으로 거부한다.
+     * 새 프로필 사진은 본인이 올린 사진이어야 한다. 저장된 값을 그대로 보내면 예전 계정·데모 데이터의 다른 주소여도 그대로 둔다.
      */
     @Transactional
     public void updateMe(UpdateStudentMeCommand command) {
@@ -259,6 +270,10 @@ public class StudentFacade {
         specialtyService.validateSpecialtyIds(command.getSpecialtyIds());
         command.getCertificates().forEach(
                 certificate -> certificateService.validateAcquiredYear(certificate.getAcquiredYear()));
+        String profileImageUrl = command.getProfileImageUrl();
+        if (profileImageUrl != null && !profileImageUrl.equals(student.getProfileImageUrl())) {
+            mediaService.validateUploadedImages(user.getId(), ImagePurpose.PROFILE, List.of(profileImageUrl));
+        }
 
         studentService.updateStudentProfile(student, command);
 

@@ -38,6 +38,7 @@ import com.gakkum.backend.domain.auth.client.NtsBusinessVerificationClient;
 import com.gakkum.backend.domain.auth.repository.StudentEmailVerificationRepository;
 import com.gakkum.backend.domain.auth.service.AuthService;
 import com.gakkum.backend.domain.job.service.JobService;
+import com.gakkum.backend.domain.media.service.MediaService;
 import com.gakkum.backend.domain.proposal.service.ProposalService;
 import com.gakkum.backend.domain.category.repository.BusinessCategoryRepository;
 import com.gakkum.backend.domain.category.service.BusinessCategoryService;
@@ -118,6 +119,7 @@ class OwnerRegistrationFlowTest {
                         businessVerificationClient,
                         Clock.systemUTC(),
                         "noreply@example.com"),
+                mock(MediaService.class),
                 new ImmediateTransactionTemplate());
         OwnerController controller = new OwnerController(facade);
 

@@ -35,6 +35,7 @@ import com.gakkum.backend.domain.jwt.entity.RefreshToken;
 import com.gakkum.backend.domain.jwt.repository.RefreshRepository;
 import com.gakkum.backend.domain.jwt.service.JwtService;
 import com.gakkum.backend.domain.job.service.JobService;
+import com.gakkum.backend.domain.media.service.MediaService;
 import com.gakkum.backend.domain.owner.service.OwnerService;
 import com.gakkum.backend.domain.payment.service.PaymentService;
 import com.gakkum.backend.domain.proposal.service.ProposalService;
@@ -87,7 +88,8 @@ class StudentRegistrationFlowTest {
                 mock(JobService.class),
                 mock(ReviewService.class),
                 mock(PaymentService.class),
-                mock(OwnerService.class));
+                mock(OwnerService.class),
+                mock(MediaService.class));
         StudentController controller = new StudentController(facade);
 
         mockMvc = MockMvcBuilders.standaloneSetup(controller)
