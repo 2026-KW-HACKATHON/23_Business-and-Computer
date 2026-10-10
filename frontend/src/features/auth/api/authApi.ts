@@ -24,3 +24,13 @@ export async function exchangeCookieForAccessToken(): Promise<string> {
   });
   return accessToken;
 }
+
+/**
+ * `POST /logout`: the backend deletes the refresh token in the HTTP-only
+ * cookie (sent by `credentials: "include"`) and expires the cookie. It needs
+ * no access token, so none is sent: an expired one would be refused with 401
+ * before the logout runs. Answers `{"success":true}` even without a cookie.
+ */
+export async function requestLogout(): Promise<void> {
+  await apiFetch("/logout", { method: "POST" });
+}

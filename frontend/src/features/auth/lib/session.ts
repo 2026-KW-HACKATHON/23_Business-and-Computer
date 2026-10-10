@@ -1,4 +1,18 @@
 import { clearTokens, getAccessToken } from "../../../api/tokens";
+import { requestLogout } from "../api/authApi";
+
+/**
+ * 「로그아웃」: clears the stored tokens (and any 둘러보기 session) right away,
+ * then asks the backend to revoke the refresh cookie so the next person on
+ * the same browser is not logged in by `/refresh` or `/jwt/exchange`.
+ * The local logout never waits for or depends on the server call: the
+ * returned promise always resolves, so a network error cannot leave the user
+ * stuck on the screen.
+ */
+export function logOut(): Promise<void> {
+  clearTokens();
+  return requestLogout().catch(() => undefined);
+}
 
 /** Account state read from the access token's `role` claim. */
 export type UserRole = "owner" | "student" | "pending";

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { LoadNotice, MenuList, ProfilePhoto, SubScreen, SummaryCard } from "../components";
-import { clearTokens } from "../features/auth";
+import { logOut } from "../features/auth";
 import {
   STUDENT_PATHS,
   studentYearText,
@@ -43,8 +43,9 @@ function StudentMePage() {
   ];
   const openActivity = (tab: StudentActivityTab) => navigate(STUDENT_PATHS.activity(tab));
 
+  // 저장된 토큰은 바로 지우고 서버의 refresh 쿠키 폐기(POST /logout)는 기다리지 않는다
   const logout = () => {
-    clearTokens();
+    void logOut();
     navigate("/login", { replace: true });
   };
 
