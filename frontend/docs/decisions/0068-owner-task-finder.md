@@ -31,21 +31,21 @@ example, the same way the home 「이런 의뢰는 어때요?」 cards do (B-2).
   108%, and 「›」 moves 4px right. A mouse hover does a smaller version
   (circle 108%, icon −6° and 105%, 「›」 3px). With reduced motion nothing
   moves. It has no close button.
-- **Questions** (`/owner/task-finder/:step`, 1–12, app bar 「맡길 일
+- **Questions** (/owner/task-finder/:step, 1–12, app bar 「맡길 일
   찾기」): a progress bar with 「n/12」, the question, the hint 「가게
   상황에 가까운 답을 골라 주세요」, and two answer buttons. Tapping an
   answer goes straight to the next question. The answers travel in the
   route state (`{ answers: (0 | 1)[] }`), so ← returns to the previous
   question with its answers. A step whose earlier answers are missing (for
   example a typed URL) goes to question 1.
-- **Data** (`features/owner/lib/taskFinder.ts`): each question has two
+- **Data** (`src/features/owner/lib/taskFinder.ts`): each question has two
   answers, the answer that leads to a suggestion (`need`), a card title, a
   reason line, and an example id. Nine new examples (`finder-*`) sit next
   to the home examples; 리뷰 분석, 예약서, and 도장카드 reuse the home
   examples. `useRequestExample` looks in both lists (`findRequestExample`).
   Example budgets stay between 10,000 and 50,000 won, and the copy does not
   assume the store is a restaurant.
-- **Result** (`/owner/task-finder/result`): the first three questions whose
+- **Result** (/owner/task-finder/result): the first three questions whose
   answer was the `need` answer, in question order, under 「지금 맡기면 좋은
   일 N가지」 (N = the number of cards). With none, 「이런 일도 맡겨 볼 수
   있어요」 shows ⑫ 홍보·이벤트 기획, ⑪ 영상 제작 및 편집, and ⑩ 전단지·포스터

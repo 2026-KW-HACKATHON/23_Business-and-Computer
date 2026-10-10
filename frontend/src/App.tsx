@@ -50,6 +50,7 @@ import OwnerWorkCanceledPage from './pages/OwnerWorkCanceledPage'
 import OwnerExploreProposalPage from './pages/OwnerExploreProposalPage'
 import OwnerExploreRequestPage from './pages/OwnerExploreRequestPage'
 import OwnerStoreEditPage from './pages/OwnerStoreEditPage'
+import OwnerConcernPage from './pages/OwnerConcernPage'
 import OwnerPaymentsPage from './pages/OwnerPaymentsPage'
 import KakaoPayResultPage from './pages/KakaoPayResultPage'
 import OwnerActivityPage from './pages/OwnerActivityPage'
@@ -117,6 +118,7 @@ function App() {
       <Route path="/owner/notifications" element={<OwnerNotificationsPage />} />
       <Route path="/owner/me" element={<OwnerMePage />} />
       <Route path="/owner/me/store" element={<OwnerStoreEditPage />} />
+      <Route path="/owner/me/concern" element={<OwnerConcernPage />} />
       <Route path="/owner/me/payments" element={<OwnerPaymentsPage />} />
       <Route path="/owner/requests" element={<OwnerActivityPage />} />
       <Route path="/owner/chats/:roomId" element={<OwnerChatRoomPage />} />

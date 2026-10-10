@@ -1,8 +1,26 @@
 import { useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { LoadNotice, MenuList, ProfilePhoto, StoreInfo, SubScreen, SummaryCard } from "../components";
+import {
+  Button,
+  CategoryBadge,
+  Dialog,
+  LoadNotice,
+  MenuList,
+  ProfilePhoto,
+  StoreInfo,
+  SubScreen,
+  SummaryCard,
+} from "../components";
 import { landingPath, logOut } from "../features/auth";
-import { OWNER_PATHS, ownerMeChanges, saveOwnerMe, useOpenJobs, useOwnerMe } from "../features/owner";
+import {
+  OWNER_PATHS,
+  ownerMeChanges,
+  resolveConcern,
+  saveOwnerMe,
+  useOpenJobs,
+  useOwnerConcern,
+  useOwnerMe,
+} from "../features/owner";
 import type { ActivityTab, OwnerMe } from "../features/owner";
 import { PROFILE_PHOTO_ACCEPT, TermsSheet, checkProfilePhoto } from "../features/signup";
 import { useBack } from "../hooks/useBack";
@@ -20,6 +38,7 @@ const PHOTO_CHECK_TEXT = {
  * 피그마 「내 정보 · 설정 (사장님)」. 가게 정보 · 요약 · 내 활동 · 설정 · 로그아웃.
  * 가게 정보와 요약 4칸은 GET /owners/me (ADR 0040). 불러오는 중이거나 실패하면 가게 정보 자리에
  * 안내, 요약은 「-」. 사진을 고르면 바로 올리고(PROFILE) PUT /owners/me 로 저장한다.
+ * 요약 아래 「우리 가게 고민」에서 지금 고민을 보고 고치거나 「해결됐어요」로 내린다 (ADR 0070).
  */
 function OwnerMePage() {
   const navigate = useNavigate();
@@ -70,6 +89,8 @@ function OwnerMePage() {
         />
       </section>
 
+      <ConcernSection />
+
       <section className="owner-me__section">
         <h2 className="owner-me__section-title">내 활동</h2>
         <MenuList
@@ -92,6 +113,88 @@ function OwnerMePage() {
 
       <TermsSheet open={termsOpen} onClose={() => setTermsOpen(false)} tone="owner" />
     </SubScreen>
+  );
+}
+
+/**
+ * 「우리 가게 고민」. 고민이 있으면 분야 · 한 줄 · 설명과 「고치기」 · 「해결됐어요」(한 번 더 묻는다),
+ * 없으면 「올려 둔 고민이 없어요」와 「고민 올리기」. 해결하면 다시 불러와 빈 상태로 바뀐다.
+ */
+function ConcernSection() {
+  const navigate = useNavigate();
+  const { load, reload } = useOwnerConcern();
+  const [confirming, setConfirming] = useState(false);
+  const [resolving, setResolving] = useState(false);
+  const concern = load.status === "loaded" ? load.concern : null;
+
+  const resolve = async () => {
+    if (resolving) return;
+    setResolving(true);
+    const result = await resolveConcern();
+    setResolving(false);
+    setConfirming(false);
+    if (result.status === "resolved") {
+      reload();
+    } else if (result.status === "unauthorized") {
+      navigate("/login", { replace: true });
+    } else if (result.status === "forbidden") {
+      window.alert("사장님만 가게 고민을 내릴 수 있어요");
+      navigate(landingPath(), { replace: true });
+    } else {
+      window.alert("고민을 내리지 못했어요. 잠시 후 다시 시도해 주세요");
+    }
+  };
+
+  return (
+    <section className="owner-me__section">
+      <h2 className="owner-me__section-title">우리 가게 고민</h2>
+      {load.status !== "loaded" ? (
+        <LoadNotice
+          status={load.status}
+          loadingText="가게 고민을 불러오는 중이에요"
+          errorText="가게 고민을 불러오지 못했어요"
+          onRetry={reload}
+        />
+      ) : concern ? (
+        <>
+          <div className="owner-me__concern">
+            {concern.categoryName && <CategoryBadge field={concern.categoryName} />}
+            <p className="owner-me__concern-title">{concern.title}</p>
+            {concern.description && <p className="owner-me__concern-body">{concern.description}</p>}
+          </div>
+          <div className="owner-me__concern-actions">
+            <Button variant="secondary" onClick={() => navigate(OWNER_PATHS.concern)}>
+              고치기
+            </Button>
+            <Button onClick={() => setConfirming(true)}>해결됐어요</Button>
+          </div>
+        </>
+      ) : (
+        <>
+          <p className="owner-me__concern-empty">올려 둔 고민이 없어요. 고민을 올리면 학생들이 먼저 제안해 줘요</p>
+          <Button variant="secondary" onClick={() => navigate(OWNER_PATHS.concern)}>
+            고민 올리기
+          </Button>
+        </>
+      )}
+
+      <Dialog
+        open={confirming}
+        title="고민이 해결됐나요?"
+        description={"고민을 내리면 학생 가게 목록에서 사라져요.\n새 고민은 언제든 다시 올릴 수 있어요."}
+        onClose={() => setConfirming(false)}
+        actions={
+          <div className="owner-me__dialog-actions">
+            <Button variant="secondary" onClick={() => setConfirming(false)}>
+              아직이에요
+            </Button>
+            <Button loading={resolving} loadingLabel="내리는 중" onClick={() => void resolve()}>
+              해결됐어요
+            </Button>
+          </div>
+        }
+      />
+    </section>
   );
 }
 
