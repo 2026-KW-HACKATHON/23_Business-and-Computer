@@ -1,3 +1,19 @@
+<p align="center">
+  <img src="docs/images/brand/app-icon.png" width="120" alt="골목인턴 앱 아이콘" />
+</p>
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/images/brand/logo-golmok-white.png" />
+    <img src="docs/images/brand/logo-golmok.png" width="260" alt="골목인턴" />
+  </picture>
+</p>
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/images/brand/tagline-white.png" />
+    <img src="docs/images/brand/tagline.png" width="340" alt="제안과 의뢰로 함께 만들어 가는 월계1동 골목상권" />
+  </picture>
+</p>
+
 # 골목인턴
 
 > 제안과 의뢰로 함께 만들어 가는 월계1동 골목상권
