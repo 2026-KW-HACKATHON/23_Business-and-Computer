@@ -37,7 +37,9 @@ import com.gakkum.backend.application.explore.dto.ExploreType;
 import com.gakkum.backend.application.explore.dto.StoreExploreCursor;
 import com.gakkum.backend.application.explore.dto.StoreExploreSort;
 import com.gakkum.backend.application.explore.facade.ExploreFacade;
+import com.gakkum.backend.domain.owner.dto.OwnerQueryDto.StoreConcernResult;
 import com.gakkum.backend.domain.owner.entity.Owner;
+import com.gakkum.backend.domain.owner.entity.StoreConcern;
 import com.gakkum.backend.global.exception.BusinessException;
 import com.gakkum.backend.global.exception.ErrorCode;
 import com.gakkum.backend.global.exception.GlobalExceptionHandler;
@@ -114,15 +116,18 @@ class StoreExploreControllerTest {
     }
 
     @Test
-    @DisplayName("응답은 매장 이름·프로필 사진·업종·주소·프로필 ID·생성 시각을 담고 없는 사진·주소는 null로 내린다")
+    @DisplayName("응답은 매장 이름·프로필 사진·업종·주소·프로필 ID·생성 시각·가게 고민을 담고 없는 사진·주소·고민은 null로 내린다")
     void returnsStoreItems() throws Exception {
         Owner full = Owner.builder().id(42L).storeName("가꿈 카페").categoryId(3L)
                 .profileImageUrl("https://example.com/owner-profile.jpg").storeAddress("서울특별시 노원구 광운로 20")
                 .createdAt(CREATED_AT).build();
         Owner bare = Owner.builder().id(41L).storeName("가꿈 분식").categoryId(2L).createdAt(CREATED_AT).build();
+        StoreConcern concern = StoreConcern.builder().id(7L).ownerProfileId(42L).title("평일 점심 손님이 적어요")
+                .description("직장인 손님을 늘리고 싶어요").specialtyCategoryId(1L)
+                .createdAt(CREATED_AT).updatedAt(CREATED_AT.plusHours(1)).build();
         when(exploreFacade.exploreStores(any())).thenReturn(StoreExploreResult.of(List.of(
-                StoreItemResult.of(full, BusinessCategoryResult.of(3L, "카페")),
-                StoreItemResult.of(bare, BusinessCategoryResult.of(2L, "음식점"))), "next"));
+                StoreItemResult.of(full, BusinessCategoryResult.of(3L, "카페"), StoreConcernResult.of(concern, "디자인")),
+                StoreItemResult.of(bare, BusinessCategoryResult.of(2L, "음식점"), null)), "next"));
 
         mockMvc.perform(get("/explore/stores").principal(authentication))
                 .andExpect(status().isOk())
@@ -134,11 +139,18 @@ class StoreExploreControllerTest {
                 .andExpect(jsonPath("$.data.items[0].storeAddress").value("서울특별시 노원구 광운로 20"))
                 .andExpect(jsonPath("$.data.items[0].ownerProfileId").value(42))
                 .andExpect(jsonPath("$.data.items[0].createdAt").value("2026-10-01T19:30:00+09:00"))
-                .andExpect(jsonPath("$.data.items[0].length()").value(6))
+                .andExpect(jsonPath("$.data.items[0].concern.concernId").value(7))
+                .andExpect(jsonPath("$.data.items[0].concern.title").value("평일 점심 손님이 적어요"))
+                .andExpect(jsonPath("$.data.items[0].concern.description").value("직장인 손님을 늘리고 싶어요"))
+                .andExpect(jsonPath("$.data.items[0].concern.specialtyCategory.id").value(1))
+                .andExpect(jsonPath("$.data.items[0].concern.specialtyCategory.name").value("디자인"))
+                .andExpect(jsonPath("$.data.items[0].concern.updatedAt").value("2026-10-01T20:30:00+09:00"))
+                .andExpect(jsonPath("$.data.items[0].length()").value(7))
                 .andExpect(jsonPath("$.data.items[1].storeName").value("가꿈 분식"))
                 .andExpect(jsonPath("$.data.items[1].profileImageUrl").value((Object) null))
                 .andExpect(jsonPath("$.data.items[1].storeAddress").value((Object) null))
-                .andExpect(jsonPath("$.data.items[1].length()").value(6))
+                .andExpect(jsonPath("$.data.items[1].concern").value((Object) null))
+                .andExpect(jsonPath("$.data.items[1].length()").value(7))
                 .andExpect(jsonPath("$.data.nextCursor").value("next"))
                 .andExpect(jsonPath("$.data.hasNext").value(true));
     }
