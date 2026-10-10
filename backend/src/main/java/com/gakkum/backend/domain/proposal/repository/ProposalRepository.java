@@ -45,6 +45,13 @@ public interface ProposalRepository extends JpaRepository<Proposal, Long> {
     List<Proposal> findByOwnerProfileIdAndStatusNotOrderByCreatedAtDescIdDesc(
             Long ownerProfileId, ProposalStatus excludedStatus);
 
+    /** 학생이 이 사장님에게 제안을 보낸 적이 있는지. 상태와 무관하다. */
+    boolean existsByOwnerProfileIdAndStudentProfileId(Long ownerProfileId, Long studentProfileId);
+
+    /** 학생의 제안 중 탐색 목록과 같은 격리 범위·상태 조건에 드는 제안이 있는지. demoSessionId가 null이면 IS NULL로 비교한다. */
+    boolean existsByStudentProfileIdAndDemoSessionIdAndStatusNotIn(
+            Long studentProfileId, String demoSessionId, Collection<ProposalStatus> excludedStatuses);
+
     // 탐색 목록은 demoSessionId가 조회자와 같은 제안만 고른다. 실제 사용자는 null이고 메서드 이름 쿼리는 null을 IS NULL로 비교한다
     // 뺄 상태(excludedStatuses)와 본인 제안(excludedStudentProfileId)은 페이지 크기와 커서가 어긋나지 않도록 모든 구간에서 조회 조건으로 뺀다
     // excludedStudentProfileId가 null이면 메서드 이름 쿼리는 IS NOT NULL로 비교해 작성 학생으로 거르지 않는다

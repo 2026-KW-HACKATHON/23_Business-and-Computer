@@ -165,7 +165,8 @@ class JobApplicantProfileFlowTest {
                 .andExpect(jsonPath("$.data.student.profileImageUrl").value(STUDENT_PROFILE_IMAGE_URL))
                 .andExpect(jsonPath("$.data.student.university").value("광운대학교"))
                 .andExpect(jsonPath("$.data.student.major").value("소프트웨어학부"))
-                .andExpect(jsonPath("$.data.student.studentNumber").value("2023000007"))
+                // 학생 프로필 조회와 같이 학번 전체 대신 입학연도 두 자리만 내린다
+                .andExpect(jsonPath("$.data.student.studentNumber").value("23"))
                 .andExpect(jsonPath("$.data.proposalCount").value(12))
                 .andExpect(jsonPath("$.data.completedJobCount").value(5))
                 // 학생이 등록한 전체 특기를 대분류·소분류 ID 오름차순으로 내린다

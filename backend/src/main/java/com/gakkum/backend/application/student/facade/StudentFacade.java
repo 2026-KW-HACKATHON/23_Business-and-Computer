@@ -29,6 +29,7 @@ import com.gakkum.backend.domain.job.entity.Job;
 import com.gakkum.backend.domain.job.entity.JobApplication;
 import com.gakkum.backend.domain.job.service.JobService;
 import com.gakkum.backend.domain.jwt.service.JwtService;
+import com.gakkum.backend.domain.owner.entity.Owner;
 import com.gakkum.backend.domain.owner.service.OwnerService;
 import com.gakkum.backend.domain.payment.dto.PaymentQueryDto.SettlementHistoryData;
 import com.gakkum.backend.domain.payment.dto.PaymentQueryDto.SettlementHistoryItemResult;
@@ -179,8 +180,11 @@ public class StudentFacade {
     }
 
     /**
-     * 사장님이 학생의 정보와 활동 이력을 조회한다. 학생과의 의뢰·지원·제안 관계와 작업 상태는 확인하지 않는다.
-     * 사장님 역할을 확인한 뒤에만 학생 정보를 조회하고, 격리 범위(demoSessionId)가 조회자와 다른 학생은 없는 학생과 같은 404로 거부한다.
+     * 사장님이 학생의 정보와 활동 이력을 조회한다. 사장님 역할을 확인한 뒤에만 학생 정보를 조회하고,
+     * 격리 범위(demoSessionId)가 조회자와 다른 학생은 없는 학생과 같은 404로 거부한다.
+     * 순번 ID로 아무 학생이나 열어 보지 못하도록 학생과 관계가 있는 사장님만 조회할 수 있다. 관계는 학생이 이 사장님의 의뢰에
+     * 지원했거나 선택된 학생인 경우, 이 사장님에게 제안을 보낸 경우(모두 상태 무관), 학생의 제안이 사장님 탐색 목록에 보이는
+     * 경우다. 관계가 없으면 없는 학생과 구분되지 않도록 같은 404로 거부한다.
      * 응답 항목과 통계·정렬 기준은 지원자 프로필 조회와 같다. 리뷰의 의뢰·매장은 리뷰 수와 무관하게 한 번씩만 조회하고,
      * 참조하는 데이터가 없으면 500으로 거부한다.
      */
@@ -194,6 +198,14 @@ public class StudentFacade {
                 .orElseThrow(() -> new BusinessException(ErrorCode.STUDENT_PROFILE_NOT_FOUND));
         User studentUser = userService.getUser(student.getUserId());
         if (!Objects.equals(studentUser.getDemoSessionId(), viewer.getDemoSessionId())) {
+            throw new BusinessException(ErrorCode.STUDENT_PROFILE_NOT_FOUND);
+        }
+        Long ownerProfileId = ownerService.findOwnerProfileByUserId(viewer.getId())
+                .map(Owner::getId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.STUDENT_PROFILE_NOT_FOUND));
+        if (!jobService.isStudentRelatedToOwnerJobs(ownerProfileId, student.getId())
+                && !proposalService.isStudentProposalVisibleToOwner(
+                        ownerProfileId, student.getId(), viewer.getDemoSessionId())) {
             throw new BusinessException(ErrorCode.STUDENT_PROFILE_NOT_FOUND);
         }
 
