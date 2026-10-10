@@ -74,6 +74,7 @@ import com.gakkum.backend.domain.user.entity.UserRole;
 import com.gakkum.backend.domain.user.repository.UserRepository;
 import com.gakkum.backend.domain.user.service.UserService;
 import com.gakkum.backend.global.exception.GlobalExceptionHandler;
+import com.gakkum.backend.domain.owner.service.StoreConcernService;
 
 @DisplayName("탐색 전체 흐름 (GET /explore)")
 class ExploreFlowTest {
@@ -115,7 +116,7 @@ class ExploreFlowTest {
                 new OwnerService(ownerRepository),
                 new SpecialtyCategoryService(specialtyCategoryRepository, specialtyRepository),
                 mock(BusinessCategoryService.class),
-                new StudentService(studentRepository));
+                new StudentService(studentRepository), mock(StoreConcernService.class));
 
         mockMvc = MockMvcBuilders.standaloneSetup(new ExploreController(facade))
                 .setControllerAdvice(new GlobalExceptionHandler())

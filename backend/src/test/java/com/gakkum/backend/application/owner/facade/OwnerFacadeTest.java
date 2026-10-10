@@ -38,6 +38,8 @@ import com.gakkum.backend.domain.user.service.UserService;
 import com.gakkum.backend.global.exception.BusinessException;
 import com.gakkum.backend.global.exception.ErrorCode;
 import com.gakkum.backend.global.transaction.ImmediateTransactionTemplate;
+import com.gakkum.backend.domain.owner.service.StoreConcernService;
+import com.gakkum.backend.domain.specialty.service.SpecialtyCategoryService;
 
 class OwnerFacadeTest {
 
@@ -56,7 +58,7 @@ class OwnerFacadeTest {
             mock(ProposalService.class),
             authService,
             mediaService,
-            new ImmediateTransactionTemplate());
+            new ImmediateTransactionTemplate(), mock(StoreConcernService.class), mock(SpecialtyCategoryService.class));
 
     private final User user = User.builder()
             .id("01K58M6PJV8VAJMXHBHJ2PNB5C")

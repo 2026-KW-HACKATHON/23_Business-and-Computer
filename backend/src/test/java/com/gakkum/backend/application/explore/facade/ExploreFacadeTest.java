@@ -61,6 +61,7 @@ import com.gakkum.backend.domain.user.entity.User;
 import com.gakkum.backend.domain.user.entity.UserRole;
 import com.gakkum.backend.global.exception.BusinessException;
 import com.gakkum.backend.global.exception.ErrorCode;
+import com.gakkum.backend.domain.owner.service.StoreConcernService;
 
 @DisplayName("탐색 파사드")
 class ExploreFacadeTest {
@@ -80,7 +81,7 @@ class ExploreFacadeTest {
     private final StudentService studentService = mock(StudentService.class);
     private final ExploreFacade exploreFacade = new ExploreFacade(
             userService, proposalService, jobService, ownerService, specialtyCategoryService,
-            mock(BusinessCategoryService.class), studentService);
+            mock(BusinessCategoryService.class), studentService, mock(StoreConcernService.class));
 
     @BeforeEach
     void givenActiveUser() {
@@ -202,7 +203,7 @@ class ExploreFacadeTest {
         ProposalService firstProposalService = mock(ProposalService.class);
         JobService firstJobService = mock(JobService.class);
         new ExploreFacade(userService, firstProposalService, firstJobService, ownerService, specialtyCategoryService,
-                mock(BusinessCategoryService.class), studentService)
+                mock(BusinessCategoryService.class), studentService, mock(StoreConcernService.class))
                 .explore(command(ExploreType.ALL, ExploreSort.OLDEST, 20, null));
         ArgumentCaptor<GetExploreJobsCommand> firstJob = ArgumentCaptor.forClass(GetExploreJobsCommand.class);
         verify(firstJobService).getExploreJobs(firstJob.capture());

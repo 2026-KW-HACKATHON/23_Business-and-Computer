@@ -57,6 +57,8 @@ import com.gakkum.backend.global.exception.ErrorCode;
 import com.gakkum.backend.global.exception.GlobalExceptionHandler;
 import com.gakkum.backend.global.transaction.ImmediateTransactionTemplate;
 import com.gakkum.backend.util.JWTUtil;
+import com.gakkum.backend.domain.owner.service.StoreConcernService;
+import com.gakkum.backend.domain.specialty.service.SpecialtyCategoryService;
 
 @DisplayName("사장님 회원가입 전체 흐름 (POST /auth/owner)")
 class OwnerRegistrationFlowTest {
@@ -120,7 +122,7 @@ class OwnerRegistrationFlowTest {
                         Clock.systemUTC(),
                         "noreply@example.com"),
                 mock(MediaService.class),
-                new ImmediateTransactionTemplate());
+                new ImmediateTransactionTemplate(), mock(StoreConcernService.class), mock(SpecialtyCategoryService.class));
         OwnerController controller = new OwnerController(facade);
 
         mockMvc = MockMvcBuilders.standaloneSetup(controller)
