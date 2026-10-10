@@ -35,6 +35,7 @@ public class JobCreateRequest {
     private String title;
 
     @NotBlank
+    @Size(max = 5000)
     private String description;
 
     @NotNull
