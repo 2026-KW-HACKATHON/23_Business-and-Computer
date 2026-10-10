@@ -98,21 +98,36 @@
   color: #a87600;
 }
 
-/* 맡길 일 찾기 배너 (확인할 일 위, ADR 0067) */
+/* 맡길 일 찾기 배너 (확인할 일 위, ADR 0067). 글 · 바로가기 글자 · 오른쪽 3D 아이콘 */
 .owner-home__finder {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 12px;
   box-sizing: border-box;
   width: calc(100% - 40px);
   margin: 16px 20px 0;
-  padding: 14px 14px 14px 18px;
+  padding: 16px 16px 16px 18px;
   border: none;
   border-radius: 16px;
-  background: var(--color-main);
+  /* 연노랑에서 살구빛으로 (피그마 「배너 / 맡길 일 찾기」) */
+  background: linear-gradient(90deg, #fff4cc, #ffdb9e);
+  overflow: hidden;
   font-family: var(--font-sans);
   text-align: left;
   cursor: pointer;
+  transition: transform 0.2s cubic-bezier(0.2, 0, 0, 1);
+}
+
+/* 누르면 살짝 작아진다 */
+.owner-home__finder:active {
+  transform: scale(0.98);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .owner-home__finder {
+    transition: none;
+  }
 }
 
 .owner-home__finder:focus-visible {
@@ -121,15 +136,16 @@
 }
 
 .owner-home__finder-text {
+  position: relative;
   display: flex;
   flex: 1;
   flex-direction: column;
-  gap: 3px;
+  gap: 4px;
   min-width: 0;
 }
 
 .owner-home__finder-text > strong {
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 700;
   line-height: 1.4;
   color: var(--color-black);
@@ -141,8 +157,25 @@
   color: #4e5968;
 }
 
-.owner-home__finder-arrow {
-  font-size: 20px;
-  line-height: 1;
-  color: #4e5968;
+.owner-home__finder-text > .owner-home__finder-link {
+  margin-top: 2px;
+  font-weight: 700;
+  color: #a87600;
+}
+
+.owner-home__finder > img {
+  position: relative;
+  flex-shrink: 0;
+}
+
+/* 오른쪽 위 모서리에 크게 걸친 반투명 흰 원 (지름 170px, 카드 밖은 잘림) */
+.owner-home__finder::before {
+  content: "";
+  position: absolute;
+  top: -35px;
+  right: -50px;
+  width: 170px;
+  height: 170px;
+  border-radius: 50%;
+  background: rgb(255 255 255 / 40%);
 }
