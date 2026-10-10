@@ -5,9 +5,20 @@ import type { ApplicationPlan } from "../../types/workPlan";
 /** 마감 단계. draft = 초안, final = 최종 */
 export type DeadlineStage = "draft" | "final";
 
+/** 사장님이 올린 가게 고민 (GET /explore/stores 의 concern). 학생이 제안을 쓸 때 참고하는 정보다 */
+export interface StoreConcern {
+  title: string;
+  /** 자세한 설명. 없으면 null */
+  description: string | null;
+  /** 분야(특기 대분류) 이름. 고르지 않았으면 null */
+  category: string | null;
+  /** 올리거나 마지막으로 고친 시각 (+09:00) */
+  updatedAt: string;
+}
+
 /**
  * GET /explore/stores 의 가게 하나 (사장님 프로필 하나 = 가게 하나).
- * 제안을 보낼 때 ownerProfileId 를 쓰고, 가게 하나만 조회하는 API 가 없어 이름·업종·주소도 함께 넘긴다.
+ * 제안을 보낼 때 ownerProfileId 를 쓰고, 가게 하나만 조회하는 API 가 없어 이름·업종·주소·고민도 함께 넘긴다.
  */
 export interface ExploreStore {
   ownerProfileId: number;
@@ -17,6 +28,8 @@ export interface ExploreStore {
   address: string;
   /** 사장님이 올린 가게 사진. 없으면 없다 */
   photo?: string | null;
+  /** 해결되지 않은 가게 고민. 없으면 null */
+  concern?: StoreConcern | null;
 }
 
 export interface WorkFile {
