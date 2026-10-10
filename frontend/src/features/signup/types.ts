@@ -101,10 +101,14 @@ export const EMPTY_STUDENT_SIGNUP: StudentSignupDraft = {
   completed: false,
 };
 
-/** 인증번호 발송 결과. unauthorized·alreadyRegistered 는 화면을 떠난다 */
+/**
+ * 인증번호 발송 결과. unauthorized·alreadyRegistered 는 화면을 떠난다.
+ * cooldown = 60초 재발송 대기 (STUDENT_EMAIL_429), sendLimit = 시간당 발송 횟수 초과 (COMMON_429)
+ */
 export type EmailCodeSendResult =
   | "sent"
   | "cooldown"
+  | "sendLimit"
   | "invalidEmail"
   | "emailTaken"
   | "deliveryFailed"
