@@ -96,6 +96,12 @@ public class JobService {
         return jobRepository.countBySelectedStudentProfileIdAndStatus(studentProfileId, JobStatus.CLOSED);
     }
 
+    /** 학생이 이 사장님의 의뢰에 지원했거나(지원·의뢰 상태 무관) 그 의뢰의 선택된 학생인지. */
+    @Transactional(readOnly = true)
+    public boolean isStudentRelatedToOwnerJobs(Long ownerProfileId, Long studentProfileId) {
+        return jobRepository.existsOwnerJobRelatedToStudent(ownerProfileId, studentProfileId);
+    }
+
     /** 사장님이 보낸 의뢰 수. 직접 등록한 의뢰와 제안 결제로 생긴 의뢰를 함께 세고 취소(CANCELLED)만 뺀다. */
     @Transactional(readOnly = true)
     public long countOwnerJobsExcludingCancelled(Long ownerProfileId) {

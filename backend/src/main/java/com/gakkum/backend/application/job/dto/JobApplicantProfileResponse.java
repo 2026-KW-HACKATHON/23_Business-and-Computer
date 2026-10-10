@@ -60,6 +60,7 @@ public class JobApplicantProfileResponse {
         private final String profileImageUrl;
         private final String university;
         private final String major;
+        // 학번 전체 대신 입학연도 두 자리만 내린다: 2024402001 → "24". 학번이 없거나 네 자리보다 짧으면 null
         private final String studentNumber;
 
         public static StudentInfo from(ApplicantStudentResult result) {
@@ -69,8 +70,16 @@ public class JobApplicantProfileResponse {
                     .profileImageUrl(result.getProfileImageUrl())
                     .university(result.getUniversity())
                     .major(result.getMajor())
-                    .studentNumber(result.getStudentNumber())
+                    .studentNumber(admissionYear(result.getStudentNumber()))
                     .build();
+        }
+
+        // 학번 열 자리의 셋째·넷째 자리가 입학연도 두 자리다
+        private static String admissionYear(String studentNumber) {
+            if (studentNumber == null || studentNumber.length() < 4) {
+                return null;
+            }
+            return studentNumber.substring(2, 4);
         }
     }
 

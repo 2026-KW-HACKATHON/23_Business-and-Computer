@@ -12,6 +12,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import java.time.Clock;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
@@ -24,6 +25,7 @@ import org.mockito.ArgumentCaptor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.web.servlet.MockMvc;
@@ -32,6 +34,9 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import com.gakkum.backend.application.owner.controller.OwnerController;
 import com.gakkum.backend.application.owner.facade.OwnerFacade;
+import com.gakkum.backend.domain.auth.client.NtsBusinessVerificationClient;
+import com.gakkum.backend.domain.auth.repository.StudentEmailVerificationRepository;
+import com.gakkum.backend.domain.auth.service.AuthService;
 import com.gakkum.backend.domain.job.service.JobService;
 import com.gakkum.backend.domain.proposal.service.ProposalService;
 import com.gakkum.backend.domain.category.repository.BusinessCategoryRepository;
@@ -46,7 +51,10 @@ import com.gakkum.backend.domain.user.entity.User;
 import com.gakkum.backend.domain.user.entity.UserRole;
 import com.gakkum.backend.domain.user.repository.UserRepository;
 import com.gakkum.backend.domain.user.service.UserService;
+import com.gakkum.backend.global.exception.BusinessException;
+import com.gakkum.backend.global.exception.ErrorCode;
 import com.gakkum.backend.global.exception.GlobalExceptionHandler;
+import com.gakkum.backend.global.transaction.ImmediateTransactionTemplate;
 import com.gakkum.backend.util.JWTUtil;
 
 @DisplayName("사장님 회원가입 전체 흐름 (POST /auth/owner)")
@@ -74,6 +82,9 @@ class OwnerRegistrationFlowTest {
     private final BusinessCategoryRepository businessCategoryRepository = mock(BusinessCategoryRepository.class);
     private final RefreshRepository refreshRepository = mock(RefreshRepository.class);
     private final JWTUtil jwtUtil = mock(JWTUtil.class);
+    // 실제 국세청 API를 부르지 않도록 진위 확인 클라이언트만 가짜로 둔다
+    private final NtsBusinessVerificationClient businessVerificationClient =
+            mock(NtsBusinessVerificationClient.class);
 
     private final User pendingUser = User.builder()
             .id("01K58M6PJV8VAJMXHBHJ2PNB5C")
@@ -100,7 +111,14 @@ class OwnerRegistrationFlowTest {
                 businessCategoryService,
                 jwtService,
                 mock(JobService.class),
-                mock(ProposalService.class));
+                mock(ProposalService.class),
+                new AuthService(
+                        mock(StudentEmailVerificationRepository.class),
+                        mock(JavaMailSender.class),
+                        businessVerificationClient,
+                        Clock.systemUTC(),
+                        "noreply@example.com"),
+                new ImmediateTransactionTemplate());
         OwnerController controller = new OwnerController(facade);
 
         mockMvc = MockMvcBuilders.standaloneSetup(controller)
@@ -112,6 +130,7 @@ class OwnerRegistrationFlowTest {
     @DisplayName("정상 요청이면 사장님 회원가입이 완료되고 토큰이 발급된다")
     void registersOwnerThroughControllerFacadeAndDomainServices() throws Exception {
         givenPendingUser();
+        givenBusinessVerified(true);
         when(businessCategoryRepository.existsById(2L)).thenReturn(true);
         when(ownerRepository.save(any(Owner.class))).thenAnswer(invocation -> invocation.getArgument(0));
         givenTokens();
@@ -151,6 +170,7 @@ class OwnerRegistrationFlowTest {
         assertThat(owner.getProfileImageUrl()).isEqualTo("https://image.example.com/profile.png");
 
         verify(ownerRepository).existsByBusinessNumber("1234567890");
+        verify(businessVerificationClient).verify("1234567890", LocalDate.of(2020, 3, 1), "김사장");
         verify(refreshRepository).deleteByUsername(USERNAME);
         verify(refreshRepository).flush();
         ArgumentCaptor<RefreshToken> refreshTokenCaptor = ArgumentCaptor.forClass(RefreshToken.class);
@@ -162,6 +182,7 @@ class OwnerRegistrationFlowTest {
     @DisplayName("필수값만 보내도 회원가입되고 선택값은 null, 매장 이미지는 빈 목록으로 저장된다")
     void registersOwnerWithOnlyRequiredFields() throws Exception {
         givenPendingUser();
+        givenBusinessVerified(true);
         when(businessCategoryRepository.existsById(2L)).thenReturn(true);
         when(ownerRepository.save(any(Owner.class))).thenAnswer(invocation -> invocation.getArgument(0));
         givenTokens();
@@ -171,7 +192,9 @@ class OwnerRegistrationFlowTest {
                   "name": "김사장",
                   "storeName": "치킨플러스",
                   "categoryId": 2,
-                  "businessNumber": "1234567890"
+                  "businessNumber": "1234567890",
+                  "openedAt": "2020-03-01",
+                  "representativeName": "김사장"
                 }
                 """)
             .andExpect(status().isOk())
@@ -182,8 +205,8 @@ class OwnerRegistrationFlowTest {
         Owner owner = ownerCaptor.getValue();
         assertThat(owner.getBusinessNumber()).isEqualTo("1234567890");
         assertThat(owner.getStoreAddress()).isNull();
-        assertThat(owner.getOpenedAt()).isNull();
-        assertThat(owner.getRepresentativeName()).isNull();
+        assertThat(owner.getOpenedAt()).isEqualTo(LocalDate.of(2020, 3, 1));
+        assertThat(owner.getRepresentativeName()).isEqualTo("김사장");
         assertThat(owner.getDescription()).isNull();
         assertThat(owner.getProfileImageUrl()).isNull();
         assertThat(owner.getStoreImageUrls()).isEmpty();
@@ -234,7 +257,7 @@ class OwnerRegistrationFlowTest {
 
         assertThat(pendingUser.getRole()).isEqualTo(UserRole.PENDING);
         verify(ownerRepository, never()).save(any());
-        verifyNoInteractions(businessCategoryRepository, refreshRepository);
+        verifyNoInteractions(businessCategoryRepository, refreshRepository, businessVerificationClient);
     }
 
     @Test
@@ -250,13 +273,95 @@ class OwnerRegistrationFlowTest {
 
         assertThat(pendingUser.getRole()).isEqualTo(UserRole.PENDING);
         verify(ownerRepository, never()).save(any());
+        verifyNoInteractions(refreshRepository, businessVerificationClient);
+    }
+
+    @Test
+    @DisplayName("국세청이 사업자 정보를 확인하지 못하면 400을 반환하고 프로필을 만들지 않으며 역할은 가입 대기로 남는다")
+    void rejectsWhenBusinessIsNotVerified() throws Exception {
+        givenPendingUser();
+        givenBusinessVerified(false);
+        when(businessCategoryRepository.existsById(2L)).thenReturn(true);
+
+        register(REQUEST_BODY)
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.success").value(false))
+            .andExpect(jsonPath("$.error.code").value("OWNER_400_BUSINESS_NOT_VERIFIED"))
+            .andExpect(jsonPath("$.error.message").value("사업자 정보를 확인할 수 없습니다."));
+
+        assertThat(pendingUser.getRole()).isEqualTo(UserRole.PENDING);
+        assertThat(pendingUser.getName()).isNull();
+        verify(ownerRepository, never()).save(any());
+        verifyNoInteractions(refreshRepository, jwtUtil);
+    }
+
+    @Test
+    @DisplayName("국세청에 닿지 못하면 진위 확인 API와 같은 503을 반환하고 저장하지 않는다")
+    void returnsUnavailableWhenNtsIsDown() throws Exception {
+        givenPendingUser();
+        when(businessCategoryRepository.existsById(2L)).thenReturn(true);
+        when(businessVerificationClient.verify(any(), any(), any()))
+                .thenThrow(new BusinessException(ErrorCode.OWNER_BUSINESS_VERIFICATION_UNAVAILABLE));
+
+        register(REQUEST_BODY)
+            .andExpect(status().isServiceUnavailable())
+            .andExpect(jsonPath("$.error.code").value("OWNER_BUSINESS_503"));
+
+        assertThat(pendingUser.getRole()).isEqualTo(UserRole.PENDING);
+        verify(ownerRepository, never()).save(any());
         verifyNoInteractions(refreshRepository);
+    }
+
+    @Test
+    @DisplayName("가입하는 사람 이름이 사업자등록증의 대표자와 달라도 사업자 정보가 확인되면 가입된다 (직원·대리인 가입)")
+    void registersWhenAccountNameDiffersFromRepresentative() throws Exception {
+        givenPendingUser();
+        givenBusinessVerified(true);
+        when(businessCategoryRepository.existsById(2L)).thenReturn(true);
+        when(ownerRepository.save(any(Owner.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        givenTokens();
+
+        register(REQUEST_BODY.replace("\"name\": \"김사장\"", "\"name\": \"이직원\""))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.accessToken").value("owner-access-token"));
+
+        // 진위 확인에는 대표자 이름만 넘기고, 가입하는 사람 이름과는 비교하지 않는다
+        verify(businessVerificationClient).verify("1234567890", LocalDate.of(2020, 3, 1), "김사장");
+        assertThat(pendingUser.getRole()).isEqualTo(UserRole.OWNER);
+        assertThat(pendingUser.getName()).isEqualTo("이직원");
+        ArgumentCaptor<Owner> ownerCaptor = ArgumentCaptor.forClass(Owner.class);
+        verify(ownerRepository).save(ownerCaptor.capture());
+        assertThat(ownerCaptor.getValue().getRepresentativeName()).isEqualTo("김사장");
+    }
+
+    @Test
+    @DisplayName("개업일이 없으면 400을 반환하고 국세청 확인·DB 조회를 하지 않는다")
+    void rejectsMissingOpenedAt() throws Exception {
+        register(REQUEST_BODY.replace("\"openedAt\": \"2020-03-01\",", ""))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.error.code").value("COMMON_400"));
+
+        verifyNoInteractions(userRepository, ownerRepository, businessVerificationClient, refreshRepository);
+    }
+
+    @Test
+    @DisplayName("대표자 이름이 없거나 공백이면 400을 반환하고 국세청 확인·DB 조회를 하지 않는다")
+    void rejectsMissingRepresentativeName() throws Exception {
+        register(REQUEST_BODY.replace("\"representativeName\": \"김사장\",", ""))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.error.code").value("COMMON_400"));
+        register(REQUEST_BODY.replace("\"representativeName\": \"김사장\"", "\"representativeName\": \"  \""))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.error.code").value("COMMON_400"));
+
+        verifyNoInteractions(userRepository, ownerRepository, businessVerificationClient, refreshRepository);
     }
 
     @Test
     @DisplayName("저장 시 DB 유니크 제약에 걸리면 409를 반환하고 토큰을 발급하지 않는다")
     void returnsConflictWhenUniqueConstraintIsViolatedOnSave() throws Exception {
         givenPendingUser();
+        givenBusinessVerified(true);
         when(businessCategoryRepository.existsById(2L)).thenReturn(true);
         when(ownerRepository.save(any(Owner.class))).thenThrow(new DataIntegrityViolationException("duplicate"));
 
@@ -317,6 +422,11 @@ class OwnerRegistrationFlowTest {
 
     private void givenPendingUser() {
         when(userRepository.findByUsernameAndIsLock(USERNAME, false)).thenReturn(Optional.of(pendingUser));
+    }
+
+    private void givenBusinessVerified(boolean verified) {
+        when(businessVerificationClient.verify("1234567890", LocalDate.of(2020, 3, 1), "김사장"))
+                .thenReturn(verified);
     }
 
     private void givenTokens() {

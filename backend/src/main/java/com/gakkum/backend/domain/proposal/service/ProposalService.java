@@ -38,6 +38,10 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class ProposalService {
 
+    // 탐색(GET /explore)에서 빠지는 제안 상태. 학생 프로필 열람 권한도 같은 기준으로 본다
+    private static final List<ProposalStatus> EXPLORE_HIDDEN_STATUSES =
+            List.of(ProposalStatus.CANCELLED, ProposalStatus.REJECTED);
+
     private final ProposalRepository proposalRepository;
     private final ProposalSpecialtyRepository proposalSpecialtyRepository;
     private final ProposalLikeRepository proposalLikeRepository;
@@ -234,6 +238,18 @@ public class ProposalService {
         return proposalRepository.countByStudentProfileId(studentProfileId);
     }
 
+    /**
+     * 사장님이 학생의 제안을 볼 수 있는지. 학생이 이 사장님에게 보낸 제안이 있거나(상태 무관),
+     * 학생의 제안 중 사장님이 탐색(GET /explore)에서 보는 제안이 있으면 참이다. 탐색과 같이 조회자의 격리 범위와
+     * 같은 제안만 보고 취소·거절된 제안은 뺀다.
+     */
+    @Transactional(readOnly = true)
+    public boolean isStudentProposalVisibleToOwner(Long ownerProfileId, Long studentProfileId, String demoSessionId) {
+        return proposalRepository.existsByOwnerProfileIdAndStudentProfileId(ownerProfileId, studentProfileId)
+                || proposalRepository.existsByStudentProfileIdAndDemoSessionIdAndStatusNotIn(
+                        studentProfileId, demoSessionId, EXPLORE_HIDDEN_STATUSES);
+    }
+
     /** 학생이 모든 사장님에게 보낸 제안 중 취소하지 않은 제안 수. 수락·거절 여부와 무관하게 센다. */
     @Transactional(readOnly = true)
     public long countProposalsExcludingCancelled(Long studentProfileId) {
@@ -346,7 +362,7 @@ public class ProposalService {
         LocalDateTime createdAt = command.getCreatedAtBound();
         Long idBound = command.getIdBound();
         List<ProposalStatus> excluded = command.isRejectedExcluded()
-                ? List.of(ProposalStatus.CANCELLED, ProposalStatus.REJECTED)
+                ? EXPLORE_HIDDEN_STATUSES
                 : List.of(ProposalStatus.CANCELLED);
         Long excludedStudent = command.getExcludedStudentProfileId();
         if (categoryId != null) {

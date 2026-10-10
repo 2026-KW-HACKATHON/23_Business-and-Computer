@@ -85,6 +85,21 @@ public interface JobRepository extends JpaRepository<Job, Long> {
     long countByOwnerProfileIdAndStatus(Long ownerProfileId, JobStatus status);
 
     /*
+     * 학생이 이 사장님의 의뢰 하나에라도 지원했거나(지원 상태 무관) 선택된 학생인지. 사장님의 학생 프로필 열람 권한 확인용이다.
+     * 연관관계가 없는 JobApplication을 EXISTS로 확인해야 해서 메서드 이름으로 표현할 수 없다.
+     */
+    @Query("""
+            select case when count(j) > 0 then true else false end from Job j
+            where j.ownerProfileId = :ownerProfileId
+              and (j.selectedStudentProfileId = :studentProfileId
+                   or exists (
+                        select 1 from JobApplication a
+                        where a.jobId = j.id and a.studentProfileId = :studentProfileId))
+            """)
+    boolean existsOwnerJobRelatedToStudent(
+            @Param("ownerProfileId") Long ownerProfileId, @Param("studentProfileId") Long studentProfileId);
+
+    /*
      * 학생별 의뢰 수는 GROUP BY 집계가 필요해 메서드 이름으로 표현할 수 없다.
      * 해당 상태의 의뢰가 없는 학생은 행이 없다.
      */
