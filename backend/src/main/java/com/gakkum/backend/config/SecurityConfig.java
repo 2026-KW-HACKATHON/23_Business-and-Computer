@@ -6,6 +6,7 @@ import com.gakkum.backend.domain.jwt.service.JwtService;
 import com.gakkum.backend.domain.user.service.UserService;
 import com.gakkum.backend.filter.JWTFilter;
 import com.gakkum.backend.filter.LoginOriginFilter;
+import com.gakkum.backend.handler.ApiLogoutSuccessHandler;
 import com.gakkum.backend.handler.RefreshTokenLogoutHandler;
 import com.gakkum.backend.util.JWTUtil;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -22,6 +23,7 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import org.springframework.security.oauth2.client.web.OAuth2AuthorizationRequestRedirectFilter;
 import org.springframework.security.web.authentication.logout.LogoutFilter;
+import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -79,8 +81,13 @@ public class SecurityConfig {
                         .userInfoEndpoint(userInfo -> userInfo.userService(userService))
                         .successHandler(socialSuccessHandler));
 
+        // 로그아웃은 POST /logout 만 받는다 (CSRF 를 꺼 두면 기본값이 GET 도 받아 다른 사이트 링크로 로그아웃될 수 있다).
+        // access token 없이 refreshToken 쿠키만으로 처리하고, 쿠키를 지운 뒤 공통 응답 200 을 준다
         http
-                .logout(logout -> logout.addLogoutHandler(new RefreshTokenLogoutHandler(jwtService, jwtUtil)));
+                .logout(logout -> logout
+                        .logoutRequestMatcher(PathPatternRequestMatcher.withDefaults().matcher(HttpMethod.POST, "/logout"))
+                        .addLogoutHandler(new RefreshTokenLogoutHandler(jwtService, jwtUtil))
+                        .logoutSuccessHandler(new ApiLogoutSuccessHandler()));
 
         http
                 .addFilterBefore(jwtFilter, LogoutFilter.class);
