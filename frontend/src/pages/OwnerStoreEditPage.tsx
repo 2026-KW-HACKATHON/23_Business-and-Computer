@@ -211,6 +211,7 @@ function StoreForm({
           <textarea
             className="owner-store__textarea"
             value={form.intro}
+            maxLength={5000}
             onChange={(e) => update({ intro: e.target.value })}
           />
         </label>

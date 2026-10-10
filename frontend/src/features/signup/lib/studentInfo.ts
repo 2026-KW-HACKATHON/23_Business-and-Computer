@@ -158,6 +158,8 @@ export async function sendVerificationCode(email: string): Promise<EmailCodeSend
       if (error.status === 401) return "unauthorized";
       if (error.code === "USER_409_REGISTERED") return "alreadyRegistered";
       if (error.code === "USER_409_EMAIL") return "emailTaken";
+      // 시간당 발송 횟수 초과(COMMON_429)는 60초 재발송 대기(STUDENT_EMAIL_429)와 달리 곧 풀리지 않는다
+      if (error.code === "COMMON_429") return "sendLimit";
       if (error.status === 429) return "cooldown";
       if (error.status === 503) return "deliveryFailed";
       // 사전 검사(@kw.ac.kr)를 통과했는데도 400 이면 메일 형식 오류로 본다

@@ -21,8 +21,8 @@ import "./StudentSignupVerifyPage.css";
 
 type EmailError = "domain" | "taken" | null;
 type CodeError = "mismatch" | "expired" | "tooMany" | null;
-/** 입력칸 테두리와 상관없는 안내. reverify 는 가입 저장(3/3)에서 돌려보낸 경우 */
-type Notice = "reverify" | "deliveryFailed" | "error" | null;
+/** 입력칸 테두리와 상관없는 안내. reverify 는 가입 저장(3/3)에서 돌려보낸 경우, sendLimit 는 시간당 발송 횟수 초과 */
+type Notice = "reverify" | "deliveryFailed" | "sendLimit" | "error" | null;
 type Pending = "send" | "verify" | null;
 
 const EMAIL_ERROR_TEXT: Record<Exclude<EmailError, null>, string> = {
@@ -39,6 +39,7 @@ const CODE_ERROR_TEXT: Record<Exclude<CodeError, null>, string> = {
 const NOTICE_TEXT: Record<Exclude<Notice, null>, string> = {
   reverify: "메일 인증을 다시 해 주세요",
   deliveryFailed: "메일을 보내지 못했어요. 잠시 후 다시 시도해 주세요",
+  sendLimit: "인증번호를 너무 많이 요청했어요. 잠시 후 다시 시도해 주세요",
   error: "잠시 후 다시 시도해 주세요",
 };
 
@@ -175,7 +176,8 @@ function StudentSignupVerifyPage() {
         setEmailError(result === "emailTaken" ? "taken" : "domain");
         break;
       case "deliveryFailed":
-        setNotice("deliveryFailed");
+      case "sendLimit":
+        setNotice(result);
         break;
       case "unauthorized":
       case "alreadyRegistered":
