@@ -30,6 +30,7 @@ import com.gakkum.backend.global.exception.ErrorCode;
 import com.gakkum.backend.util.UlidGenerator;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
@@ -94,7 +95,10 @@ public class UserService extends DefaultOAuth2UserService {
         return completeStudentRegistration(user, name, email);
     }
 
+    /** 가입 트랜잭션 안에서 가입 대기 사용자를 학생으로 바꾼다. 동시 가입 처리는 {@link #claimPendingUser}를 따른다. */
+    @Transactional(propagation = Propagation.MANDATORY)
     public User completeStudentRegistration(User user, String name, String email) {
+        claimPendingUser(user, UserRole.STUDENT);
         user.completeStudentRegistration(name, email);
         return user;
     }
@@ -110,9 +114,24 @@ public class UserService extends DefaultOAuth2UserService {
         return user;
     }
 
+    /** 가입 트랜잭션 안에서 가입 대기 사용자를 사장님으로 바꾼다. 동시 가입 처리는 {@link #claimPendingUser}를 따른다. */
+    @Transactional(propagation = Propagation.MANDATORY)
     public User completeOwnerRegistration(User user, String name) {
+        claimPendingUser(user, UserRole.OWNER);
         user.completeOwnerRegistration(name);
         return user;
+    }
+
+    /**
+     * 같은 가입 대기 사용자의 학생·사장님 가입이 동시에 들어와 앞선 확인을 둘 다 통과해도 하나만 가입되도록,
+     * 아직 PENDING일 때만 역할을 바꾸는 조건부 UPDATE로 사용자 행을 먼저 차지한다. 바뀐 행이 없으면 다른 요청이
+     * 먼저 가입을 끝낸 것이므로 ALREADY_REGISTERED로 거부해 가입 트랜잭션 전체를 롤백한다.
+     * 행 잠금은 가입 트랜잭션이 끝날 때까지 유지되어, 나중 요청은 앞선 가입이 커밋되거나 롤백될 때까지 기다린다.
+     */
+    private void claimPendingUser(User user, UserRole role) {
+        if (userRepository.updateRoleIfCurrent(user.getId(), UserRole.PENDING, role) != 1) {
+            throw new BusinessException(ErrorCode.ALREADY_REGISTERED);
+        }
     }
 
     @Transactional(readOnly = true)

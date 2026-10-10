@@ -247,6 +247,24 @@ class OwnerRegistrationFlowTest {
     }
 
     @Test
+    @DisplayName("확인을 통과한 뒤 같은 사용자의 다른 가입 요청이 먼저 역할을 바꿨으면 409를 반환하고 프로필 저장·토큰 발급을 하지 않는다")
+    void rejectsWhenAnotherRegistrationClaimedUserFirst() throws Exception {
+        givenPendingUser();
+        givenBusinessVerified(true);
+        when(businessCategoryRepository.existsById(2L)).thenReturn(true);
+        when(userRepository.updateRoleIfCurrent(pendingUser.getId(), UserRole.PENDING, UserRole.OWNER)).thenReturn(0);
+
+        register(REQUEST_BODY)
+            .andExpect(status().isConflict())
+            .andExpect(jsonPath("$.error.code").value("USER_409_REGISTERED"));
+
+        assertThat(pendingUser.getRole()).isEqualTo(UserRole.PENDING);
+        assertThat(pendingUser.getName()).isNull();
+        verify(ownerRepository, never()).save(any());
+        verifyNoInteractions(refreshRepository, jwtUtil);
+    }
+
+    @Test
     @DisplayName("이미 등록된 사업자등록번호면 409를 반환하고 저장하지 않는다")
     void rejectsDuplicateBusinessNumber() throws Exception {
         givenPendingUser();
@@ -424,6 +442,7 @@ class OwnerRegistrationFlowTest {
 
     private void givenPendingUser() {
         when(userRepository.findByUsernameAndIsLock(USERNAME, false)).thenReturn(Optional.of(pendingUser));
+        when(userRepository.updateRoleIfCurrent(pendingUser.getId(), UserRole.PENDING, UserRole.OWNER)).thenReturn(1);
     }
 
     private void givenBusinessVerified(boolean verified) {

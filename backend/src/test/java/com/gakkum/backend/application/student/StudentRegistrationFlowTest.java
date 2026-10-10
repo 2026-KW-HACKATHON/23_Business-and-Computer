@@ -107,6 +107,8 @@ class StudentRegistrationFlowTest {
                 .build();
         when(userRepository.findByUsernameAndIsLock("KAKAO_12345", false))
                 .thenReturn(java.util.Optional.of(pendingUser));
+        when(userRepository.updateRoleIfCurrent(pendingUser.getId(), UserRole.PENDING, UserRole.STUDENT))
+                .thenReturn(1);
         when(studentRepository.save(any(Student.class))).thenAnswer(invocation -> {
             Student student = invocation.getArgument(0);
             return Student.builder()
