@@ -16,6 +16,7 @@ import {
   MAX_PROPOSAL_PHOTOS,
   PROPOSAL_PHOTO_ACCEPT,
   STUDENT_PATHS,
+  StoreConcernCard,
   checkProposalPhoto,
   readNewProposalState,
   useProposalExample,
@@ -75,6 +76,7 @@ function DaysField({
 /**
  * 피그마 「제안 보내기 3/4 - 내용 입력」. 제목 · 손님 눈으로 본 문제 · 이렇게 바꿔 드릴게요 ·
  * 작업계획서 · 희망 작업비 · 예상 기간 · 참고 사진. 수정 횟수는 사장님이 의뢰서에서 정한다.
+ * 고른 가게에 고민이 있으면 맨 위에 「사장님 고민」을 보여 참고하며 쓰게 한다 (ADR 0067).
  */
 function StudentProposalContentPage() {
   const navigate = useNavigate();
@@ -151,6 +153,8 @@ function StudentProposalContentPage() {
           <h2 className="student-new__title">제안 내용을 알려 주세요</h2>
           <p className="student-new__description">사장님과 다른 학생들이 보고 공감할 수 있게 적어 주세요</p>
         </div>
+
+        {state.store.concern && <StoreConcernCard storeName={state.store.name} concern={state.store.concern} />}
 
         <FormField label="제안 제목" wrapsInput>
           <TitleField

@@ -7,6 +7,7 @@ export { default as PeerProposalRow } from "./components/PeerProposalRow";
 export { default as RequestCard } from "./components/RequestCard";
 export { default as SettlementSummaryBox } from "./components/SettlementSummaryBox";
 export { default as StoreBox } from "./components/StoreBox";
+export { default as StoreConcernCard } from "./components/StoreConcernCard";
 export { default as StoreConcernLine } from "./components/StoreConcernLine";
 export { default as StudentFirstVisitGuide } from "./components/StudentFirstVisitGuide";
 export { default as StudentMissing } from "./components/StudentMissing";
