@@ -107,6 +107,7 @@ notification:
     batch-size: 100
     poll-interval: 1s
     retry-idle: 30s
+    max-length: 10000 # 발행할 때 Stream 을 대략 이 개수로 자른다 (XADD MAXLEN ~). Consumer 가 이만큼 밀리면 오래된 미처리 메시지도 잘린다
 job:
   auto-completion: # 최신 제출물이 168시간 동안 검토되지 않은 진행 중 의뢰를 자동 완료한다. 알림 Consumer 활성화 여부와 무관하다
     enabled: ${JOB_AUTO_COMPLETION_ENABLED:true}

@@ -1,6 +1,7 @@
 package com.gakkum.backend.domain.notification.client;
 
 import org.springframework.dao.DataAccessException;
+import org.springframework.data.redis.connection.RedisStreamCommands.XAddOptions;
 import org.springframework.data.redis.connection.stream.RecordId;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
@@ -21,9 +22,13 @@ public class NotificationEventPublisher {
     private final StringRedisTemplate redisTemplate;
     private final NotificationStreamProperties properties;
 
-    /** 업무 트랜잭션 커밋 뒤 호출한다. DB와 Redis 사이의 원자적 발행은 제공하지 않는다. */
+    /**
+     * 업무 트랜잭션 커밋 뒤 호출한다. DB와 Redis 사이의 원자적 발행은 제공하지 않는다.
+     * ACK한 메시지도 Stream에 남으므로 발행할 때 대략 max-length 개만 남기고 오래된 것부터 자른다 (~ 라서 조금 더 남을 수 있다).
+     */
     public RecordId publish(NotificationEvent event) {
-        return redisTemplate.<String, String>opsForStream().add(properties.key(), event.toMap());
+        return redisTemplate.<String, String>opsForStream().add(properties.key(), event.toMap(),
+                XAddOptions.maxlen(properties.maxLength()).approximateTrimming(true));
     }
 
     /** 트랜잭션이 있으면 커밋 뒤 발행하고, 이미 커밋된 Facade 호출은 즉시 발행한다. 롤백 때는 발행하지 않는다. */
