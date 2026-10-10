@@ -97,3 +97,52 @@
   line-height: normal;
   color: #a87600;
 }
+
+/* 맡길 일 찾기 배너 (확인할 일 위, ADR 0067) */
+.owner-home__finder {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  box-sizing: border-box;
+  width: calc(100% - 40px);
+  margin: 16px 20px 0;
+  padding: 14px 14px 14px 18px;
+  border: none;
+  border-radius: 16px;
+  background: var(--color-main);
+  font-family: var(--font-sans);
+  text-align: left;
+  cursor: pointer;
+}
+
+.owner-home__finder:focus-visible {
+  outline: 2px solid var(--role-focus);
+  outline-offset: 2px;
+}
+
+.owner-home__finder-text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.owner-home__finder-text > strong {
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.4;
+  color: var(--color-black);
+}
+
+.owner-home__finder-text > span {
+  font-size: 13px;
+  line-height: 18px;
+  color: #4e5968;
+}
+
+.owner-home__finder-arrow {
+  font-size: 20px;
+  line-height: 1;
+  color: #4e5968;
+}

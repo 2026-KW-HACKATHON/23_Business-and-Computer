@@ -28,7 +28,8 @@ import "./OwnerHomePage.css";
 
 /**
  * 피그마 「사장님 홈 (개선안)」.
- * 확인할 일 → 학생이 작업 중 → 기다리는 중 → 이런 의뢰는 어때요? → 끝난 일.
+ * 맡길 일 찾기 배너 → 확인할 일 → 학생이 작업 중 → 기다리는 중 → 이런 의뢰는 어때요? → 끝난 일.
+ * 맡길 일 찾기 배너는 처음 들어온 홈 · 둘러보기에서도 늘 보이고 닫지 않는다 (ADR 0067).
  * 비어 있는 목록은 섹션째 숨기고, 「이런 의뢰는 어때요?」는 늘 보인다. 확인할 일은 할 일이 없어도 남아
  * 「지금 확인할 일이 없어요」 카드를, 이력이 하나도 없는 계정(피그마 「사장님 홈 - 처음」)이면 첫 의뢰 안내 카드를
  * 보인다 (ADR 0051).
@@ -86,6 +87,20 @@ function OwnerHomePage() {
 
   return (
     <OwnerTabScreen tab="home" showFab>
+      <button
+        type="button"
+        className="owner-home__finder"
+        onClick={() => navigate(OWNER_PATHS.taskFinder(1))}
+      >
+        <span className="owner-home__finder-text">
+          <strong>무엇을 맡길지 모르겠다면?</strong>
+          <span>몇 가지에 답하면 지금 맡기면 좋은 일을 골라 드려요</span>
+        </span>
+        <span className="owner-home__finder-arrow" aria-hidden="true">
+          ›
+        </span>
+      </button>
+
       {home.firstVisit && (
         <section className="owner-home__section">
           <SectionHeader title="확인할 일" count={0} />
