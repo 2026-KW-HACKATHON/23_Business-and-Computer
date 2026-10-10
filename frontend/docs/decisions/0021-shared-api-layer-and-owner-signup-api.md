@@ -30,9 +30,10 @@ Backend facts (dev):
   hyphens optional), `openedAt` (`YYYY-MM-DD`), `representativeName`,
   `description?`, `storeImageUrls` (up to 5), `profileImageUrl?`. 200
   `{ data: { accessToken } }` with role OWNER; refresh token only as the
-  cookie. Errors: 409 `USER_409_REGISTERED`, 409
-  `OWNER_409_BUSINESS_NUMBER`, 400 `CATEGORY_400`, 400 `COMMON_400`,
-  409 `COMMON_409`, 401.
+  cookie. The server checks the business with 국세청 again before saving.
+  Errors: 409 `USER_409_REGISTERED`, 409 `OWNER_409_BUSINESS_NUMBER`,
+  400 `OWNER_400_BUSINESS_NOT_VERIFIED`, 503 `OWNER_BUSINESS_503`, 400
+  `CATEGORY_400`, 400 `COMMON_400`, 409 `COMMON_409`, 401.
 - Business categories have a table but no list endpoint and no seed
   migration. The backend teammate filled the table; `GET
   /business-categories` was requested and is not deployed yet (the deployed
@@ -64,7 +65,8 @@ Backend facts (dev):
   Failures show one line above the button: category lookup or
   `CATEGORY_400` → 「업종 정보를 불러오지 못했어요…」,
   `OWNER_409_BUSINESS_NUMBER` → 「이미 다른 계정에서 가입한 사업자등록번호예요」,
-  photo upload → 「사진을 올리지 못했어요…」, other 400 / 409 / 5xx as in
+  `OWNER_400_BUSINESS_NOT_VERIFIED` → 「사업자 정보를 확인하지 못했어요.
+  사업자등록번호 · 개업일 · 대표자 이름을 다시 확인해 주세요」, photo upload → 「사진을 올리지 못했어요…」, other 400 / 409 / 5xx as in
   ADR 0019. `USER_409_REGISTERED` alerts and goes to `landingPath()`; 401
   goes to /login. Photos of the wrong type or size are rejected when picked.
 
