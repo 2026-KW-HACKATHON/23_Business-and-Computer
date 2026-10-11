@@ -34,7 +34,7 @@ const EXPORT_FAILURE_TEXT: Record<Exclude<SubmissionDownloadFailure, "unauthoriz
 function StudentPortfolioPage() {
   const navigate = useNavigate();
   const back = useBack(STUDENT_PATHS.me);
-  const { load, reload } = useFinishedJobs({ reviews: true, files: true });
+  const { load, reload } = useFinishedJobs({ files: true });
   const [exportOpen, setExportOpen] = useState(false);
   const [selected, setSelected] = useState<ReadonlySet<number>>(new Set());
   const [saving, setSaving] = useState(false);

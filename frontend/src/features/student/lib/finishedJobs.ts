@@ -1,8 +1,7 @@
 import { ApiError } from "../../../api/client";
 import type { WorkKind } from "../../../types/workKind";
-import { fetchJobDetail } from "../../explore";
 import type { ExploreSpecialtyCategory } from "../../explore";
-import { fetchJobResult, fetchReceivedReview } from "../api/finishedApi";
+import { fetchJobResult } from "../api/finishedApi";
 import { fetchMyProposals } from "../api/proposalApi";
 import { fetchSettlements } from "../api/settlementApi";
 
@@ -21,9 +20,9 @@ export interface FinishedJob {
   closedOn?: string;
   /** 정산된 작업비 · 착수 보상 (의뢰서 거절은 0) */
   amount: number;
-  /** 의뢰의 분야 (details 로 불러왔을 때만, 못 불러오면 빈 목록) */
+  /** 의뢰의 분야. 없으면 빈 목록 */
   specialtyCategories: ExploreSpecialtyCategory[];
-  /** 받은 후기 별점 (reviews 로 불러왔고 후기가 있을 때만) */
+  /** 받은 후기 별점 (완료했고 후기가 있을 때만) */
   rating?: number;
   /** 최종 결과물 파일 주소 (files 로 불러왔을 때만) */
   fileUrls?: string[];
@@ -31,10 +30,6 @@ export interface FinishedJob {
 
 /** 끝난 작업마다 더 불러올 것. 화면에 필요한 것만 켠다 */
 export interface FinishedJobsOptions {
-  /** 분야 (GET /jobs/{id}) */
-  details?: boolean;
-  /** 받은 후기 별점 (GET /jobs/{id}/review, 완료만) */
-  reviews?: boolean;
   /** 최종 결과물 파일 (GET /jobs/{id}/result, 완료만) */
   files?: boolean;
 }
@@ -46,8 +41,9 @@ export type FinishedJobsResult =
 
 /**
  * 끝난 내 작업 (최근 끝난 것부터). 학생이 맡는 일은 모두 결제된 일이라 정산 내역에 다 있다:
- * 정산 완료 = 완료, 착수 보상 · 환불(의뢰서 거절) = 성사되지 않음. 제안에서 시작했는지는 보낸 제안
- * (GET /me/proposals)의 jobId 로 본다. 작업마다 더 부르는 것(options)은 실패해도 목록은 그대로 보인다.
+ * 정산 완료 = 완료, 착수 보상 · 환불(의뢰서 거절) = 성사되지 않음. 분야와 받은 후기 별점도 정산 내역 줄에
+ * 있다. 제안에서 시작했는지는 보낸 제안(GET /me/proposals)의 jobId 로 본다. 작업마다 더 부르는 것(options)은
+ * 실패해도 목록은 그대로 보인다.
  */
 export async function loadFinishedJobs(options: FinishedJobsOptions = {}): Promise<FinishedJobsResult> {
   const proposals = fetchMyProposals().catch(() => []);
@@ -66,11 +62,7 @@ export async function loadFinishedJobs(options: FinishedJobsOptions = {}): Promi
   const jobs = await Promise.all(
     rows.map(async (row): Promise<FinishedJob> => {
       const completed = row.status === "SETTLED";
-      const [detail, review, result] = await Promise.all([
-        options.details ? fetchJobDetail(row.jobId).catch(() => undefined) : undefined,
-        options.reviews && completed ? fetchReceivedReview(row.jobId).catch(() => undefined) : undefined,
-        options.files && completed ? fetchJobResult(row.jobId).catch(() => undefined) : undefined,
-      ]);
+      const result = options.files && completed ? await fetchJobResult(row.jobId).catch(() => undefined) : undefined;
       return {
         jobId: row.jobId,
         kind: proposalJobIds.has(row.jobId) ? "proposal" : "request",
@@ -79,8 +71,8 @@ export async function loadFinishedJobs(options: FinishedJobsOptions = {}): Promi
         outcome: completed ? "completed" : "canceled",
         closedOn: row.settledDate ?? undefined,
         amount: row.amount,
-        specialtyCategories: detail?.specialtyCategories ?? [],
-        rating: review?.rating,
+        specialtyCategories: row.specialtyCategories ?? [],
+        rating: completed ? (row.rating ?? undefined) : undefined,
         fileUrls: result?.fileUrls,
       };
     }),
