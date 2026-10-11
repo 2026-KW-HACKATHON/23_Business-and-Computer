@@ -1,4 +1,3 @@
-/* 고민이 있을 때: 확인할 일 카드(TodoCarousel)와 같은 노랑 테두리 흰 카드 */
 .owner-concern-card {
   display: flex;
   flex-direction: column;
@@ -6,9 +5,7 @@
   box-sizing: border-box;
   width: 100%;
   padding: 16px;
-  border: 1.5px solid var(--color-owner);
   border-radius: 16px;
-  background: var(--color-white);
   font-family: var(--font-sans);
 }
 
@@ -18,9 +15,16 @@
   align-items: center;
   gap: 12px;
   padding: 14px 16px 14px 14px;
-  border-style: dashed;
+  border: 1.5px dashed var(--color-owner);
+  background: var(--color-white);
   text-align: left;
   cursor: pointer;
+}
+
+/* 고민이 있을 때: 바탕 없이 그림 + 말풍선, 그 아래 오른쪽 「고치기 ›」 */
+.owner-concern-card--posted {
+  gap: 6px;
+  padding: 0;
 }
 
 .owner-concern-card--empty:focus-visible {
@@ -57,15 +61,66 @@
   color: #a87600;
 }
 
-.owner-concern-card__heading {
+/* 그림은 말풍선 아래쪽에 맞춘다 */
+.owner-concern-card__speaker {
   display: flex;
+  align-items: flex-end;
+  gap: 12px;
+}
+
+.owner-concern-card__illustration {
+  flex-shrink: 0;
+}
+
+/* 흰 말풍선. 꼬리가 왼쪽 아래(그림 쪽)라 그 모서리만 작게 둥글린다 */
+.owner-concern-card__bubble {
+  position: relative;
+  display: flex;
+  flex: 1;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid var(--role-border);
+  border-radius: 16px 16px 16px 6px;
+  background: var(--color-white);
+}
+
+/* 꼬리: 왼쪽 · 아래 테두리만 있는 네모를 45도 돌려 말풍선 테두리에 붙인다 */
+.owner-concern-card__bubble::before {
+  position: absolute;
+  bottom: 14px;
+  left: -6px;
+  width: 10px;
+  height: 10px;
+  border-bottom: 1px solid var(--role-border);
+  border-left: 1px solid var(--role-border);
+  background: var(--color-white);
+  content: "";
+  transform: rotate(45deg);
+}
+
+.owner-concern-card__quote {
+  height: 22px;
+  font-size: 36px;
+  font-weight: 700;
+  line-height: 36px;
+  color: var(--color-owner);
+}
+
+.owner-concern-card__sign {
+  margin: 0;
+  overflow: hidden;
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--role-secondary);
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 .owner-concern-card__title {
   margin: 0;
-  font-size: 20px;
+  font-size: 16px;
   font-weight: 700;
   line-height: normal;
   color: var(--color-black);
@@ -73,20 +128,9 @@
   overflow-wrap: break-word;
 }
 
-.owner-concern-card__meta {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-width: 0;
-}
-
-.owner-concern-card__meta-text {
-  overflow: hidden;
-  font-size: 13px;
-  line-height: normal;
-  color: var(--role-secondary);
-  white-space: nowrap;
-  text-overflow: ellipsis;
+.owner-concern-card__edit {
+  align-self: flex-end;
+  padding: 4px 0;
 }
 
 .owner-concern-card__status {
@@ -94,6 +138,7 @@
   flex-direction: column;
   gap: 8px;
   padding: 12px 14px;
+  margin-top: 6px;
   border-radius: 12px;
   background: var(--role-muted);
 }
@@ -115,7 +160,7 @@
   flex-shrink: 0;
   justify-content: flex-end;
   min-width: 60px;
-  margin-top: 3px;
+  margin-top: 1px;
 }
 
 /* 고민 내용과 헷갈리지 않게 작업계획서 이름표처럼 작은 회색 글씨 */

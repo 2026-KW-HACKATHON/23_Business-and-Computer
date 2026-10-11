@@ -29,11 +29,14 @@ Accepted. The owner home shows a store-concern card right below 「확인할 일
     owner character (`sorryOwner`), 「우리 가게 고민을 남겨 보세요」, 「학생들이
     보고 해결 방법을 먼저 제안해 줘요」, and 「고민 올리기 ›」. The whole card
     opens /owner/me/concern.
-  - A concern: the section title 「현재 올려둔 고민」 and a card shaped like the
-    확인할 일 card: the line with 「펼치기 ›」 on its right, the field badge,
-    「○월 ○일에 올렸어요」 (`createdAt`), and a secondary 「고치기」. 「펼치기」
-    opens a gray 「자세한 설명」 box under the heading and becomes 「접기」; a
-    concern without a description has no toggle.
+  - A concern: the section title 「현재 올려둔 고민」 and a speech bubble
+    instead of a card: the thinking owner illustration (`concernOwner`,
+    56px) at the bottom left, a white bordered bubble with a tail toward
+    it, a yellow 「“」, the line (16px bold) with 「펼치기 ›」 on its right,
+    and 「— 우리 가게 고민 · 분야 · ○월 ○일」 (`createdAt`; no field, no
+    middle part). The text button 「고치기 ›」 sits under the bubble on the
+    right. 「펼치기」 opens a gray 「자세한 설명」 box inside the bubble and
+    becomes 「접기」; a concern without a description has no toggle.
 - /owner/me/concern (`OwnerConcernPage`): 「한 줄 고민」 (required),
   「자세한 설명 (선택)」, 「분야 (선택)」 chips from `GET /specialties` (one,
   tap again to clear). The button reads 「올리기」 for a new concern and
@@ -56,8 +59,12 @@ Accepted. The owner home shows a store-concern card right below 「확인할 일
   the editor, so a stray tap cannot take a concern down.
 - The 「맡길 일 찾기」 banner (gradient promo) can sit on the same home; a
   dashed white "empty slot" keeps the concern from reading as a second promo.
-- The gray box header is a small gray 「자세한 설명」 label so it is not read as
-  the concern itself.
+- The 확인할 일 cards right above are white with a yellow border and a full
+  button. With the same shape the concern read as one more task, so the
+  posted concern is the owner's own words in a speech bubble, with a text
+  button instead.
+- The detail box header is a small gray 「자세한 설명」 label so it is not read
+  as the concern itself.
 
 ## Alternatives Considered
 
