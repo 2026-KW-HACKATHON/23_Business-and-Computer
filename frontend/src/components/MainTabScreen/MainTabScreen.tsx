@@ -65,7 +65,6 @@ function MainTabScreen({
         <Fab role={role} collapsed={scrolled} onClick={onFab} className="main-tab-screen__fab" />
       )}
       <TabBar
-        role={role}
         current={tab}
         onSelect={onSelectTab}
         hasUnreadChat={hasUnreadChat}
