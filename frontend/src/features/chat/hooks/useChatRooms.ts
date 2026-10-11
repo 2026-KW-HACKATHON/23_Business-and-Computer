@@ -11,10 +11,10 @@ export type ChatRoomsLoad =
   | { status: "loaded"; rooms: ChatRoom[] };
 
 /** 목록을 다시 불러오는 간격. 채팅방(useChatRoom)과 같다 */
-const POLL_MS = 3_000;
+const POLL_MS = 1_000;
 
 /**
- * 내 채팅방 목록 (GET /me/chat-rooms). 화면에 들어올 때, 보이는 동안 3초마다, 탭이 다시 보일 때,
+ * 내 채팅방 목록 (GET /me/chat-rooms). 화면에 들어올 때, 보이는 동안 응답 후 1초 뒤, 탭이 다시 보일 때,
  * 읽음 처리가 끝날 때 불러온다. 탭이 안 보이면 멈춘다. 보내는 중인 읽음 처리가 있으면 끝난 뒤에 불러온다.
  * 다시 보일 때는 지금 목록을 그대로 둔 채 바꾸고, 그때 실패하면 지금 목록을 둔다.
  * 401 은 /login 으로 보낸다. 화면을 떠난 뒤 온 응답은 버린다.

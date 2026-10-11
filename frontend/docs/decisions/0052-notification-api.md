@@ -115,9 +115,11 @@ The backend (dev) has, for any logged-in user:
   default, and the unknown-target and invalid-id cases.
 - **Bell dot**: `GET /me/notifications/unread-count`, one check shared with
   the 채팅 tab dot (ADR 0078), when a tab-bar screen opens and the last
-  answer is 20 seconds old (not again on a tab switch), when the tab becomes visible, after each read (one or all), and
-  every 20 seconds while visible; it stops while hidden and hides on
-  failure. `src/features/notification/lib/readSync.ts` makes the dot load
+  answer is 2 seconds old (not again on a tab switch within that interval),
+  when the tab becomes visible and the answer is at least 2 seconds old,
+  after each read (one or all), and 2 seconds after each answer while visible;
+  it stops while hidden and hides on failure.
+  `src/features/notification/lib/readSync.ts` makes the dot load
   after pending reads settle. The count is the server's, so unread
   CHAT_MESSAGE_RECEIVED notifications light the dot although the list does
   not show them.

@@ -74,16 +74,16 @@ owner and its selected student may use a room):
   attachments, which do not carry it. A sending or failed bubble is always
   mine. Until the first history answer arrives (or if one lacks
   `viewerUserId`), only messages this screen sent are mine.
-- **Refresh**: the list loads on entry, every 3 seconds while
+- **Refresh**: the list loads on entry, 1 second after each answer while
   `document.visibilityState` is visible (the next load is set after the
   answer arrives, so slow answers do not pile up), and again when the tab
   becomes visible (a failed refresh keeps the current list). Two windows side
-  by side never change visibility, so without the 3-second reload a new
+  by side never change visibility, so without the periodic reload a new
   message reached the open room but not the list. Entering the room is one
   request: GET /chat-rooms/{roomId} brings the room, the whole history with
   `viewerUserId`, and `reviewed`, and `useChatRoom` feeds its messages into the
   same merge as a history reload. The history then reloads (GET …/messages)
-  every 3 seconds while `document.visibilityState` is visible. When the tab
+  1 second after each answer while `document.visibilityState` is visible. When the tab
   becomes visible again, the same one request reloads the room card and the
   history at once, with no extra GET …/messages; if a history reload is
   already running then, the room request runs beside it. A merge keeps a view
@@ -101,9 +101,11 @@ owner and its selected student may use a room):
   shared with the bell dot (`useUnreadDots`). `OwnerTabScreen` and
   `StudentTabScreen` pass it to `MainTabScreen` → `TabBar`, which shows a
   10px red dot (`--color-unread`, ADR 0076) with a 2px white ring at the top
-  right of the 「채팅」 icon, like the dot on the app bar's 알림 bell. It loads when a tab-bar screen opens and the last answer is 20 seconds old, when the tab becomes
-  visible, after each read, and every 20 seconds while visible; it stops
-  while hidden. A failed load hides the dot. The dot is `aria-hidden`; the tab
+  right of the 「채팅」 icon, like the dot on the app bar's 알림 bell. It loads
+  when a tab-bar screen opens and the last answer is 2 seconds old, when the
+  tab becomes visible and the answer is at least 2 seconds old, after each
+  read, and 2 seconds after each answer while visible; it stops while hidden.
+  A failed load hides the dot. The dot is `aria-hidden`; the tab
   button carries visually hidden text, so a screen reader reads 「채팅, 안 읽은
   메시지 있음」.
 - **Send**: `newClientMessageId()` makes `clientMessageId` as a UUID v4 with
@@ -150,8 +152,13 @@ owner and its selected student may use a room):
 
 ## Rationale
 
-- Polling every 3 seconds needs no package and matches a two-person room;
-  stopping while hidden avoids requests nobody sees.
+- Waiting 1 second between polls instead of 3 seconds reduces the wait for
+  incoming messages without adding a realtime service. With fast responses,
+  this makes about three times as many requests while the chat screen is open;
+  each history response still contains the whole conversation. Waiting until
+  each request settles avoids overlapping periodic requests, and stopping
+  while hidden avoids requests nobody sees. The shared unread dots use a
+  separate 2-second interval (ADR 0078).
 - Reusing `clientMessageId` makes a resend safe even when the first request
   was stored but its answer was lost.
 - Deciding the work actions from `jobStatus` keeps a cancel button off a
@@ -161,6 +168,9 @@ owner and its selected student may use a room):
 
 - STOMP over WebSocket (the @stomp/stompjs package): rejected, the backend has no
   WebSocket endpoint.
+- Supabase Realtime: deferred in favor of shortening the existing polling
+  interval; a separate realtime subscription and its integration are more
+  complexity than the current chat needs.
 - Telling sides apart by remembering `senderUserId` from a send answer:
   rejected, it fails before the first send and after a reload.
 

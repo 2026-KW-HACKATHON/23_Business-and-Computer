@@ -36,7 +36,7 @@ interface AttachmentJob {
 }
 
 /** 채팅방 안에서 대화 내역을 다시 불러오는 간격 */
-const POLL_MS = 3_000;
+const POLL_MS = 1_000;
 
 /** 대화 내역 한 번 (GET /chat-rooms/{roomId}/messages 의 답, 입장 정보의 대화 내역) */
 type ChatMessagesPage = Awaited<ReturnType<typeof fetchChatMessages>>;
@@ -82,7 +82,7 @@ export interface ChatRoomState {
 
 /**
  * 채팅방 하나 (GET /chat-rooms/{roomId}). 들어올 때 방 정보 · 대화 내역 · 후기 여부를 요청 하나로 받는다.
- * - 대화 내역(GET /chat-rooms/{roomId}/messages)은 3초마다 다시 불러오고, 탭이 안 보이면 멈췄다가
+ * - 대화 내역(GET /chat-rooms/{roomId}/messages)은 응답 후 1초 뒤 다시 불러오고, 탭이 안 보이면 멈췄다가
  *   다시 보이면 방 정보와 대화 내역을 요청 하나로 바로 다시 받는다
  * - 마지막 메시지가 바뀌면 그 id 로 읽음 처리한다 (들어올 때 · 새 메시지를 받을 때)
  * - 401 은 /login, CHAT_403 · CHAT_ROOM_404 는 안내 후 listPath 로 보낸다
