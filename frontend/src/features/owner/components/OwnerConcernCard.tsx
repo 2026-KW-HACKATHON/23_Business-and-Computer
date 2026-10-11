@@ -25,7 +25,7 @@ function OwnerConcernCard({ concern, onOpen }: OwnerConcernCardProps) {
   if (!concern) {
     return (
       <button type="button" className="owner-concern-card owner-concern-card--empty" onClick={onOpen}>
-        <AppImage name="sorryOwner" width={48} alt="" />
+        <AppImage name="concernOwner" width={44} alt="" />
         <span className="owner-concern-card__text">
           <span className="owner-concern-card__empty-title">우리 가게 고민을 남겨 보세요</span>
           <span className="owner-concern-card__empty-description">학생들이 보고 해결 방법을 먼저 제안해 줘요</span>

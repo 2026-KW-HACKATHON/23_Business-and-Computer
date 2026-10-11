@@ -26,7 +26,7 @@ Accepted. The owner home shows a store-concern card right below 「확인할 일
   first-visit home). While loading or on error the section is hidden, so the
   rest of the home is unaffected.
   - No concern: an "empty slot" card — white, dashed owner-yellow border, the
-    owner character (`sorryOwner`), 「우리 가게 고민을 남겨 보세요」, 「학생들이
+    thinking owner illustration (`concernOwner`, 44px, the same one as the posted bubble), 「우리 가게 고민을 남겨 보세요」, 「학생들이
     보고 해결 방법을 먼저 제안해 줘요」, and 「고민 올리기 ›」. The whole card
     opens /owner/me/concern.
   - A concern: the section title 「현재 올려둔 고민」 and a speech bubble
