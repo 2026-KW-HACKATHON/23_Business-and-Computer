@@ -51,6 +51,13 @@ function RoleSelectPage({ mode }: RoleSelectPageProps) {
   const [error, setError] = useState("");
   // 다시 그려지기 전에 두 번 눌러도 데모 계정은 한 번만 만든다
   const inFlight = useRef(false);
+  // 누르는 순간(손을 떼기 전) 시작한 둘러보기. 클릭은 같은 요청을 이어받는다 (ADR 0081)
+  const pressed = useRef<{ role: Role; result: Promise<DemoLoginResult> } | null>(null);
+
+  const press = (role: Role) => {
+    if (mode !== "demo" || inFlight.current || pressed.current) return;
+    pressed.current = { role, result: startDemo(role) };
+  };
 
   const select = (role: Role) => {
     if (mode === "signup") {
@@ -61,7 +68,12 @@ function RoleSelectPage({ mode }: RoleSelectPageProps) {
     inFlight.current = true;
     setEntering(role);
     setError("");
-    void startDemo(role).then((result) => {
+    const early = pressed.current;
+    pressed.current = null;
+    // 다른 카드에서 누르기 시작했으면 그 요청이 끝난 뒤 이 역할로 들어간다 (같은 쌍이라 역할만 바뀐다)
+    const result =
+      early?.role === role ? early.result : (early?.result ?? Promise.resolve()).then(() => startDemo(role));
+    void result.then((result) => {
       inFlight.current = false;
       setEntering(null);
       if (result === "ok") {
@@ -93,6 +105,7 @@ function RoleSelectPage({ mode }: RoleSelectPageProps) {
               loading={entering === role}
               disabled={entering !== null}
               onSelect={() => select(role)}
+              onPress={() => press(role)}
             />
           ))}
         </div>
