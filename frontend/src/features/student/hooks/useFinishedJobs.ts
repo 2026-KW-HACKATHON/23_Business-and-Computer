@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { loadFinishedJobs } from "../lib/finishedJobs";
 import type { FinishedJob, FinishedJobsOptions } from "../lib/finishedJobs";
+import { useCachedListRevision } from "../../../hooks/useCachedListRevision";
 
 export type FinishedJobsLoad =
   | { status: "loading" }
@@ -21,6 +22,8 @@ export function useFinishedJobs({ details = false, reviews = false, files = fals
   const [result, setResult] = useState<{ key: string; load: FinishedJobsLoad }>();
   const current = `${details}:${reviews}:${files}:${request}`;
 
+  // 기억해 둔 목록이 뒤에서 새로 바뀌면 다시 그린다 (ADR 0076)
+  const revision = useCachedListRevision();
   useEffect(() => {
     let active = true;
     void loadFinishedJobs({ details, reviews, files }).then((loaded) => {
@@ -34,7 +37,7 @@ export function useFinishedJobs({ details = false, reviews = false, files = fals
     return () => {
       active = false;
     };
-  }, [details, reviews, files, current, navigate]);
+  }, [details, reviews, files, current, navigate, revision]);
 
   const reload = useCallback(() => setRequest((n) => n + 1), []);
   return { load: result?.key === current ? result.load : { status: "loading" }, reload };

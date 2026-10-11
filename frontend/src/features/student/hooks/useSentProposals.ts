@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { landingPath } from "../../auth";
 import { loadSentProposals } from "../lib/sentProposals";
 import type { SentProposal } from "../lib/sentProposals";
+import { useCachedListRevision } from "../../../hooks/useCachedListRevision";
 
 export type SentProposalsLoad =
   | { status: "loading" }
@@ -19,6 +20,8 @@ export function useSentProposals(): { load: SentProposalsLoad; reload: () => voi
   const [load, setLoad] = useState<SentProposalsLoad>({ status: "loading" });
   const [request, setRequest] = useState(0);
 
+  // 기억해 둔 목록이 뒤에서 새로 바뀌면 다시 그린다 (ADR 0076)
+  const revision = useCachedListRevision();
   useEffect(() => {
     let active = true;
     void loadSentProposals().then((result) => {
@@ -35,7 +38,7 @@ export function useSentProposals(): { load: SentProposalsLoad; reload: () => voi
     return () => {
       active = false;
     };
-  }, [request, navigate]);
+  }, [request, navigate, revision]);
 
   const reload = useCallback(() => {
     setLoad({ status: "loading" });

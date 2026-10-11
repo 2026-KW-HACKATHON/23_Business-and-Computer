@@ -4,6 +4,7 @@ import { loadOwnerHome } from "../lib/ownerHome";
 import type { OwnerHomeData } from "../lib/ownerHome";
 import { SAMPLE_REQUEST_EXAMPLES } from "../lib/sampleHome";
 import type { OwnerHome, OwnerHomeSectionStatus } from "../types";
+import { useCachedListRevision } from "../../../hooks/useCachedListRevision";
 
 /** retrying = 불러온 홈을 두고 다시 부르는 중 (실패한 섹션만 로딩으로 보인다) */
 type OwnerHomeLoad =
@@ -22,6 +23,8 @@ export function useOwnerHome(): OwnerHome {
   const [load, setLoad] = useState<OwnerHomeLoad>({ status: "loading" });
   const [request, setRequest] = useState(0);
 
+  // 기억해 둔 목록이 뒤에서 새로 바뀌면 다시 그린다 (ADR 0076)
+  const revision = useCachedListRevision();
   useEffect(() => {
     let active = true;
     void loadOwnerHome().then((result) => {
@@ -40,7 +43,7 @@ export function useOwnerHome(): OwnerHome {
     return () => {
       active = false;
     };
-  }, [request, navigate]);
+  }, [request, navigate, revision]);
 
   const reload = useCallback(() => {
     setLoad((prev) => (prev.status === "loaded" ? { ...prev, retrying: true } : { status: "loading" }));
