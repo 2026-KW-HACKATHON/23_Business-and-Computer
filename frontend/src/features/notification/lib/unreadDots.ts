@@ -7,7 +7,7 @@ import { notificationReadsSettled, onNotificationReadSettled } from "./readSync"
 /*
  * 앱바 종 점과 탭바 「채팅」 점 (ADR 0078). 탭 화면마다 따로 부르지 않고 여기 하나가
  * GET /me/notifications/unread-count 한 번으로 둘 다 받아 나눠 준다.
- * 탭 화면이 떠 있는 동안: 마지막으로 받은 지 20초가 지났으면 받고, 보이는 동안 20초마다,
+ * 탭 화면이 떠 있는 동안: 마지막으로 받은 지 2초가 지났으면 받고, 보이는 동안 응답 후 2초 뒤,
  * 탭이 다시 보일 때, 읽음 처리(알림 · 채팅)가 끝날 때 받는다. 탭이 안 보이면 멈춘다.
  * 그래서 홈 → 탐색 → 채팅처럼 탭을 옮길 때는 다시 부르지 않는다.
  * 받은 답은 계정(액세스 토큰)마다라, 둘러보기 역할을 바꾸면 비우고 새로 받는다.
@@ -21,7 +21,7 @@ export interface UnreadDots {
 }
 
 /** 다시 받는 간격 */
-const POLL_MS = 20_000;
+const POLL_MS = 2_000;
 const NONE: UnreadDots = { notification: false, chat: false };
 
 let dots: UnreadDots = NONE;
@@ -73,7 +73,7 @@ function refresh(): void {
     });
 }
 
-/** 받은 지 20초가 지났으면 지금(탭이 안 보여도), 아니면 보이는 동안 20초가 되는 때에 받는다 */
+/** 받은 지 2초가 지났으면 지금(탭이 안 보여도), 아니면 보이는 동안 2초가 되는 때에 받는다 */
 function schedule(): void {
   if (loading) return;
   window.clearTimeout(timer);
@@ -112,7 +112,7 @@ function start(): void {
 
 /**
  * 읽음 처리가 끝나면 탭 화면이 떠 있을 때는 바로 받고, 채팅방 · 알림 화면처럼 탭 화면이 없을 때는
- * 다음 탭 화면이 들어오자마자 받도록 해 둔다 (20초를 기다리지 않는다).
+ * 다음 탭 화면이 들어오자마자 받도록 해 둔다 (2초를 기다리지 않는다).
  */
 function onReadSettled(): void {
   if (stopListening) {

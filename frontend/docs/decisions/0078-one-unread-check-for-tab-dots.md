@@ -32,9 +32,10 @@ tab switch no longer asks again.
 - Frontend: `src/features/notification/lib/unreadDots.ts` keeps the latest
   answer for the account (access token) and `useUnreadDots` reads it with
   `useSyncExternalStore`.
-  - While any tab screen is open it loads when the last answer is 20 seconds
-    old, every 20 seconds while the browser tab is visible, when the browser
-    tab becomes visible again, and after each notification or chat read
+  - While any tab screen is open it loads when the last answer is 2 seconds
+    old, 2 seconds after each answer while the browser tab is visible, and
+    when the browser tab becomes visible again if the answer is at least
+    2 seconds old. It also loads after each notification or chat read
     settles (after pending reads, as before). It stops while hidden.
   - When the last tab screen leaves, it stops one tick later, so a tab switch
     (old screen out, new screen in) keeps the same timer and answer.
@@ -50,11 +51,15 @@ tab switch no longer asks again.
 ## Rationale
 
 - One call and one timer for two dots: tab switches send 2 fewer calls
-  (홈 4 → 2, 탐색 5 → 3, 채팅 3 → 1) and polling halves (2 → 1 per 20 s).
+  (홈 4 → 2, 탐색 5 → 3, 채팅 3 → 1). Both dots still share one poll.
 - An `EXISTS` query stops at the first unread message instead of building
   the chat list.
-- Dots can be up to 20 seconds behind a change by the other side, the same
-  as the polling before; the user's own reads still update them at once.
+- Reducing the wait between polls from 20 seconds to 2 seconds makes the
+  other side's changes appear sooner. Network response time adds to that
+  wait; with fast responses, polling sends about ten times as many requests
+  while a tab screen is visible. The user's own reads still update the dots
+  at once. The notification list keeps loading on entry and pagination,
+  without periodic refresh (ADR 0052).
 
 ## Alternatives Considered
 
