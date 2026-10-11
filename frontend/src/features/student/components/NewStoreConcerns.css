@@ -67,18 +67,15 @@
   -webkit-line-clamp: 2;
 }
 
-/* 오른쪽 작은 학생 색 버튼 모양 (줄 전체가 버튼이라 글자만) */
+/* 오른쪽 학생 색 글자 「제안하기 ›」 (줄 전체가 버튼이라 글자만) */
 .new-concerns__action {
   flex-shrink: 0;
-  padding: 5px 10px;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--color-student) 10%, var(--color-white));
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 700;
   line-height: 18px;
   color: var(--color-student);
 }
 
 .new-concerns__row:active .new-concerns__action {
-  background: color-mix(in srgb, var(--color-student) 18%, var(--color-white));
+  opacity: 0.6;
 }
