@@ -18,6 +18,8 @@ export interface TaskFinderQuestion {
   reason: string;
   /** 의뢰 등록을 채울 예시 (findRequestExample 로 찾는다) */
   exampleId: string;
+  /** 이 질문에서 추천이 나오면 함께 1점씩 더 받는 다른 질문(0부터 센 번호)의 일 */
+  also: readonly number[];
 }
 
 /** 맡길 일 찾기 예시. 홈 예시와 같은 일(리뷰 분석 · 예약서 · 도장카드)은 홈 예시를 그대로 쓴다 */
@@ -173,6 +175,7 @@ export const TASK_FINDER_QUESTIONS: readonly TaskFinderQuestion[] = [
     cardTitle: "새 메뉴판·가격표를 만들어 드려요",
     reason: "메뉴판을 바꾼 지 오래됐다고 하셨어요",
     exampleId: "finder-menu",
+    also: [9],
   },
   {
     question: "네이버 지도에 올라간\n가게 사진이 마음에 드나요?",
@@ -181,6 +184,7 @@ export const TASK_FINDER_QUESTIONS: readonly TaskFinderQuestion[] = [
     cardTitle: "가게와 상품 사진을 새로 찍어 드려요",
     reason: "지도 속 가게 사진을 바꾸고 싶다고 하셨어요",
     exampleId: "finder-photo",
+    also: [7, 2],
   },
   {
     question: "이번 달에 가게 SNS에\n글을 올렸나요?",
@@ -189,6 +193,7 @@ export const TASK_FINDER_QUESTIONS: readonly TaskFinderQuestion[] = [
     cardTitle: "가게 SNS에 올릴 글을 만들어 드려요",
     reason: "이번 달 SNS에 글을 못 올렸다고 하셨어요",
     exampleId: "finder-sns",
+    also: [10, 11],
   },
   {
     question: "손님 리뷰를 꼼꼼히\n읽어 볼 시간이 있나요?",
@@ -197,6 +202,7 @@ export const TASK_FINDER_QUESTIONS: readonly TaskFinderQuestion[] = [
     cardTitle: "손님 리뷰에서 아쉬운 점을 찾아 드려요",
     reason: "리뷰를 읽을 시간이 없다고 하셨어요",
     exampleId: "example-review",
+    also: [7],
   },
   {
     question: "예약이나 단체 주문을\n전화로만 받아도 괜찮나요?",
@@ -205,6 +211,7 @@ export const TASK_FINDER_QUESTIONS: readonly TaskFinderQuestion[] = [
     cardTitle: "전화 대신 받는 예약서를 만들어 드려요",
     reason: "온라인으로도 예약을 받고 싶다고 하셨어요",
     exampleId: "example-booking",
+    also: [],
   },
   {
     question: "단골에게 주는 쿠폰이나\n도장카드가 있나요?",
@@ -213,6 +220,7 @@ export const TASK_FINDER_QUESTIONS: readonly TaskFinderQuestion[] = [
     cardTitle: "단골 쿠폰·도장카드를 만들어 드려요",
     reason: "단골 쿠폰이 있으면 좋겠다고 하셨어요",
     exampleId: "example-coupon",
+    also: [11],
   },
   {
     question: "간판이나 현수막을\n바꾸고 싶지 않으신가요?",
@@ -221,6 +229,7 @@ export const TASK_FINDER_QUESTIONS: readonly TaskFinderQuestion[] = [
     cardTitle: "새 간판·현수막 시안을 그려 드려요",
     reason: "간판이나 현수막을 바꾸고 싶다고 하셨어요",
     exampleId: "finder-sign",
+    also: [9],
   },
   {
     question: "네이버 지도 같은 곳에\n가게 소개 글이 채워져 있나요?",
@@ -229,6 +238,7 @@ export const TASK_FINDER_QUESTIONS: readonly TaskFinderQuestion[] = [
     cardTitle: "가게 소개 글을 써 드려요",
     reason: "가게 소개 글이 비어 있다고 하셨어요",
     exampleId: "finder-intro",
+    also: [1],
   },
   {
     question: "외국인 손님이\n자주 오나요?",
@@ -237,6 +247,7 @@ export const TASK_FINDER_QUESTIONS: readonly TaskFinderQuestion[] = [
     cardTitle: "메뉴·가게 안내를 영어로 옮겨 드려요",
     reason: "외국인 손님이 자주 온다고 하셨어요",
     exampleId: "finder-english",
+    also: [0],
   },
   {
     question: "새 메뉴·상품이나 할인을\n알릴 계획이 있나요?",
@@ -245,6 +256,7 @@ export const TASK_FINDER_QUESTIONS: readonly TaskFinderQuestion[] = [
     cardTitle: "새 메뉴·상품, 할인 전단지를 만들어 드려요",
     reason: "새 메뉴·상품이나 할인을 알릴 계획이 있다고 하셨어요",
     exampleId: "finder-flyer",
+    also: [11],
   },
   {
     question: "가게를 알릴 짧은 영상이\n필요하진 않나요?",
@@ -253,6 +265,7 @@ export const TASK_FINDER_QUESTIONS: readonly TaskFinderQuestion[] = [
     cardTitle: "가게를 알리는 짧은 영상을 만들어 드려요",
     reason: "가게 영상이 필요하다고 하셨어요",
     exampleId: "finder-video",
+    also: [2],
   },
   {
     question: "손님을 끌기 위해 홍보나 이벤트\n기획이 필요하지 않으신가요?",
@@ -261,6 +274,7 @@ export const TASK_FINDER_QUESTIONS: readonly TaskFinderQuestion[] = [
     cardTitle: "손님을 끄는 홍보·이벤트를 짜 드려요",
     reason: "홍보나 이벤트 기획이 필요하다고 하셨어요",
     exampleId: "finder-event",
+    also: [2, 9],
   },
 ];
 
@@ -292,16 +306,96 @@ const pickOf = (index: number, reason?: string): TaskFinderPick | undefined => {
 /** 질문 하나의 답. 고른 답 0 · 1, 「건너뛰기」로 넘긴 질문이면 null */
 export type TaskFinderAnswer = 0 | 1 | null;
 
+/** 점검표의 영역 하나. questions 는 0부터 센 질문 번호 */
+export interface TaskFinderArea {
+  name: string;
+  questions: readonly number[];
+}
+
+/** 점검표 네 영역 (피그마 「질문 12개 · 추천 연결」 표의 영역 칸) */
+export const TASK_FINDER_AREAS: readonly TaskFinderArea[] = [
+  {
+    name: "손님이 찾아오게",
+    questions: [1, 6, 7],
+  },
+  {
+    name: "가게 알리기",
+    questions: [2, 9, 10, 11],
+  },
+  {
+    name: "단골 만들기",
+    questions: [3, 5],
+  },
+  {
+    name: "주문·안내",
+    questions: [0, 4, 8],
+  },
+];
+
+/** 영역 상태. good 좋아요 · watch 살펴보기 · need 챙겨야 해요 · unknown 모두 건너뜀 */
+export type TaskFinderAreaStatus = "good" | "watch" | "need" | "unknown";
+
+/** 영역 안 질문 하나의 칸. good 괜찮다고 함 · need 추천 답 · skipped 건너뜀 */
+export type TaskFinderMark = "good" | "need" | "skipped";
+
+export interface TaskFinderAreaResult {
+  area: TaskFinderArea;
+  status: TaskFinderAreaStatus;
+  /** 영역의 질문 순서대로 한 칸씩 */
+  marks: TaskFinderMark[];
+}
+
+export interface TaskFinderResult {
+  /** false 면 「해당 없음」 (picks 는 ⑫ → ⑪ → ⑩) */
+  matched: boolean;
+  /** 먼저 맡기면 좋은 일 (점수 높은 순 3개까지) */
+  picks: TaskFinderPick[];
+  /** 「다른 추천 더 보기」에 접어 두는 나머지 */
+  more: TaskFinderPick[];
+  areas: TaskFinderAreaResult[];
+}
+
+/** 먼저 크게 보이는 추천 수 */
+const TOP_PICKS = 3;
+
+/** 추천 답이 나온 질문은 자기 일에 3점, also 로 이어진 다른 추천 일에 1점씩 더 준다 */
+const OWN_POINTS = 3;
+
 /**
- * 답(질문 순서대로)으로 추천 3개를 고른다. 추천 답이 나온 질문 중 위 순서대로 3개 (넘긴 질문은 추천하지 않는다),
- * 하나도 없으면 ⑫ → ⑪ → ⑩. matched 가 false 면 「해당 없음」 화면.
+ * 답(질문 순서대로)으로 점검표와 추천을 만든다.
+ * - 추천: 추천 답이 나온 질문의 일만 후보로 두고(넘긴 질문 · 괜찮다고 한 질문의 일은 빠진다), 자기 점수 3점에
+ *   다른 후보 질문의 also 로 1점씩 더해 높은 순(같으면 질문 순서)으로 3개는 picks, 나머지는 more.
+ *   하나도 없으면 ⑫ → ⑪ → ⑩ (matched false).
+ * - 점검표: 영역마다 답한 질문 중 추천 답 비율로 0개면 좋아요, 절반 미만이면 살펴보기, 절반 이상이면 챙겨야 해요,
+ *   모두 넘겼으면 unknown.
  */
-export function taskFinderPicks(answers: readonly TaskFinderAnswer[]): { matched: boolean; picks: TaskFinderPick[] } {
-  const matched = TASK_FINDER_QUESTIONS.flatMap((question, i) => (answers[i] === question.need ? [i] : []));
-  if (matched.length > 0) {
-    return { matched: true, picks: matched.slice(0, 3).flatMap((i) => pickOf(i) ?? []) };
+export function taskFinderResult(answers: readonly TaskFinderAnswer[]): TaskFinderResult {
+  const candidates = TASK_FINDER_QUESTIONS.flatMap((question, i) => (answers[i] === question.need ? [i] : []));
+  const score = (i: number) =>
+    OWN_POINTS + candidates.filter((j) => j !== i && TASK_FINDER_QUESTIONS[j].also.includes(i)).length;
+  const ranked = [...candidates].sort((a, b) => score(b) - score(a) || a - b).flatMap((i) => pickOf(i) ?? []);
+
+  const areas = TASK_FINDER_AREAS.map((area): TaskFinderAreaResult => {
+    const marks = area.questions.map((i): TaskFinderMark =>
+      answers[i] === null || answers[i] === undefined
+        ? "skipped"
+        : answers[i] === TASK_FINDER_QUESTIONS[i].need
+          ? "need"
+          : "good",
+    );
+    const answered = marks.filter((mark) => mark !== "skipped").length;
+    const needs = marks.filter((mark) => mark === "need").length;
+    if (answered === 0) return { area, status: "unknown", marks };
+    const needRatio = needs / answered;
+    const status = needs === 0 ? "good" : needRatio < 0.5 ? "watch" : "need";
+    return { area, status, marks };
+  });
+
+  if (ranked.length === 0) {
+    const picks = NO_MATCH.flatMap(({ index, reason }) => pickOf(index, reason) ?? []);
+    return { matched: false, picks, more: [], areas };
   }
-  return { matched: false, picks: NO_MATCH.flatMap(({ index, reason }) => pickOf(index, reason) ?? []) };
+  return { matched: true, picks: ranked.slice(0, TOP_PICKS), more: ranked.slice(TOP_PICKS), areas };
 }
 
 /** 화면 기록에 들고 다니는 답. 질문 수보다 길거나 0 · 1 · null 이 아니면 버린다 */
@@ -310,3 +404,4 @@ export function readTaskFinderAnswers(state: unknown): TaskFinderAnswer[] | unde
   if (!Array.isArray(answers) || answers.length > TASK_FINDER_QUESTIONS.length) return undefined;
   return answers.every((a) => a === 0 || a === 1 || a === null) ? (answers as TaskFinderAnswer[]) : undefined;
 }
+
