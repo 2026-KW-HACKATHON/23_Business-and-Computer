@@ -1,12 +1,14 @@
 import { Navigate, useLocation, useNavigate, useParams } from "react-router-dom";
-import { SubScreen } from "../components";
+import { SubScreen, TextButton } from "../components";
 import { OWNER_PATHS, TASK_FINDER_QUESTIONS, readTaskFinderAnswers } from "../features/owner";
+import type { TaskFinderAnswer } from "../features/owner";
 import { useBack } from "../hooks/useBack";
 import "./OwnerTaskFinderPage.css";
 
 /**
  * 피그마 「맡길 일 찾기 - 질문」 (ADR 0068). 한 화면에 질문 하나, 답을 누르면 바로 다음 질문으로 간다.
  * 답은 서버에 저장하지 않고 화면 기록(state)에 들고 다녀서, ← 로 앞 질문에 돌아가면 그때의 답으로 돌아간다.
+ * 앱바 오른쪽 「건너뛰기」를 누르면 남은 질문을 답 없이(null) 넘기고 바로 결과로 간다. 넘긴 질문의 일은 추천하지 않는다.
  * 앞 질문에 답하지 않고 들어왔으면(주소로 바로 등) 첫 질문부터. 마지막 질문에 답하면 결과로.
  */
 function OwnerTaskFinderPage() {
@@ -28,8 +30,21 @@ function OwnerTaskFinderPage() {
     });
   };
 
+  const skipToResult = () => {
+    const rest: TaskFinderAnswer[] = Array(total - answers.length).fill(null);
+    navigate(OWNER_PATHS.taskFinderResult, { state: { answers: [...answers, ...rest] } });
+  };
+
   return (
-    <SubScreen title="맡길 일 찾기" onBack={back}>
+    <SubScreen
+      title="맡길 일 찾기"
+      onBack={back}
+      right={
+        <TextButton showChevron={false} onClick={skipToResult}>
+          건너뛰기
+        </TextButton>
+      }
+    >
       <div className="task-finder">
         <div className="task-finder__progress">
           <div

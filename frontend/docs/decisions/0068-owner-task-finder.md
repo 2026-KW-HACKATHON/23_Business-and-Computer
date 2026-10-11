@@ -3,9 +3,11 @@
 ## Status
 
 Accepted. The owner home shows a 「맡길 일 찾기」 banner above 확인할 일. It
-opens 12 yes/no questions, one per screen, and a result screen with up to
-three suggested requests. A suggestion starts 의뢰 등록 filled with an
-example, the same way the home 「이런 의뢰는 어때요?」 cards do (B-2).
+opens 12 yes/no questions, one per screen (「건너뛰기」 jumps to the
+result). The result is a store check: a 「우리 가게 점검표」 with four
+areas, then the three highest-scoring requests first and the rest folded.
+A suggestion starts 의뢰 등록 filled with an example, the same way the home 「이런
+의뢰는 어때요?」 cards do (B-2).
 
 ## Context
 
@@ -34,22 +36,44 @@ example, the same way the home 「이런 의뢰는 어때요?」 cards do (B-2).
 - **Questions** (/owner/task-finder/:step, 1–12, app bar 「맡길 일
   찾기」): a progress bar with 「n/12」, the question, the hint 「가게
   상황에 가까운 답을 골라 주세요」, and two answer buttons. Tapping an
-  answer goes straight to the next question. The answers travel in the
-  route state (`{ answers: (0 | 1)[] }`), so ← returns to the previous
-  question with its answers. A step whose earlier answers are missing (for
+  answer goes straight to the next question. 「건너뛰기」 on the right of
+  the app bar fills the remaining questions with `null` and opens the
+  result at once; a `null` question never leads to a suggestion, so
+  skipping from question 1 shows the no-match result. The answers travel
+  in the route state (`{ answers: (0 | 1 | null)[] }`), so ← returns to
+  the previous question with its answers. A step whose earlier answers are missing (for
   example a typed URL) goes to question 1.
 - **Data** (`src/features/owner/lib/taskFinder.ts`): each question has two
   answers, the answer that leads to a suggestion (`need`), a card title, a
-  reason line, and an example id. Nine new examples (`finder-*`) sit next
+  reason line, an example id, and `also` (other questions whose tasks get
+  one extra point when this question's `need` answer is picked). Nine new
+  examples (`finder-*`) sit next
   to the home examples; 리뷰 분석, 예약서, and 도장카드 reuse the home
   examples. `useRequestExample` looks in both lists (`findRequestExample`).
   Example budgets stay between 10,000 and 50,000 won, and the copy does not
-  assume the store is a restaurant.
-- **Result** (/owner/task-finder/result): the first three questions whose
-  answer was the `need` answer, in question order, under 「지금 맡기면 좋은
-  일 N가지」 (N = the number of cards). With none, 「이런 일도 맡겨 볼 수
-  있어요」 shows ⑫ 홍보·이벤트 기획, ⑪ 영상 제작 및 편집, and ⑩ 전단지·포스터
-  디자인 with their own reason lines. A card shows the field badge, title,
+  assume the store is a restaurant. `TASK_FINDER_AREAS` puts the 12
+  questions into four areas: 손님이 찾아오게 (②⑦⑧), 가게 알리기 (③⑩⑪⑫),
+  단골 만들기 (④⑥), and 주문·안내 (①⑤⑨).
+- **Scoring** (`taskFinderResult`): only questions answered with `need` are
+  candidates; a skipped question or a "fine" answer never suggests its
+  task. A candidate scores 3 plus 1 for every other candidate whose `also`
+  names it. Candidates sort by score, then question order.
+- **Area status**: per area, the share of answered questions with the
+  `need` answer. None → 「좋아요」 (green), under half → 「살펴보기」
+  (yellow text), half or more → 「챙겨야 해요」 (red), all skipped →
+  「답 안 함」 (gray).
+- **Result** (/owner/task-finder/result): the title 「우리 가게 점검 결과」
+  and 「답해 주신 내용으로 가게를 네 가지로 살펴봤어요」. Then the gray
+  「우리 가게 점검표」 card with a legend (green 괜찮음, red 필요): one
+  row per area with its name, one segment per question (green fine, red
+  `need`, gray skipped), and the status. Then 「먼저 맡기면 좋은 일 N가지」
+  (the top three by score, N = the number of cards) with 「여러 답과
+  이어지는 일부터 골랐어요. 누르면 의뢰서가 채워져요」, and 「다른 추천 M가지
+  더 보기 ›」 / 「다른 추천 접기」 for the rest. With no `need` answer,
+  「이런 일도 맡겨 볼 수 있어요」 shows ⑫ 홍보·이벤트 기획, ⑪ 영상 제작 및 편집, and ⑩ 전단지·포스터
+  디자인 with their own reason lines, under 「지금도 가게를 잘 챙기고
+  계세요 …」, or 「답한 질문이 없어서 손님을 모을 때 많이 맡기는 일부터
+  골랐어요」 when every question was skipped. A card shows the field badge, title,
   reason, 「예시 작업비 N원」, and 「이 일로 의뢰하기 ›」, and opens
   의뢰 등록 with `{ exampleId }`. The footer has 「다시 점검하기」 (secondary,
   question 1) and 「홈으로」 (primary, owner yellow).
@@ -64,6 +88,11 @@ example, the same way the home 「이런 의뢰는 어때요?」 cards do (B-2).
   busy at the counter.
 - Keeping the answers in the route state needs no storage and makes ← work
   without extra code.
+- One question mapped to one task read like a checklist, not a check-up.
+  Store-check tools (website graders, business profile strength) show area
+  scores first, and recommendation quizzes rank results by weighted points,
+  show the top three, and fold the rest. The area card and the score do the
+  same with the existing 12 questions.
 
 ## Alternatives Considered
 
@@ -73,11 +102,16 @@ example, the same way the home 「이런 의뢰는 어때요?」 cards do (B-2).
   The team chose to fill them like the home examples.
 - **Saving the answers on the server**: not needed for a suggestion, and
   there is no endpoint.
+- **A 0–100 total score**: a single number invites "is 60 bad?" and needs
+  weights we cannot justify. Area statuses say what to look at.
+- **Showing every suggestion at once**: with many `need` answers the list
+  had no order. The top three by score with the rest folded keeps both.
 
 ## Agent Guidance
 
-- Questions, buttons, card copy, and prices come from the Figma table
-  「질문 12개 · 추천 연결」 in section 「I. 맡길 일 찾기」 (page 2). Change
-  that table and `taskFinder.ts` together.
+- Questions, buttons, card copy, prices, areas, and `also` links come from
+  the Figma table 「질문 12개 · 추천 연결」 in section
+  「I. 맡길 일 찾기」 (page 2). Change that table and `taskFinder.ts`
+  together.
 - A new example must use a field and task name that exist in GET
   /specialties, or 의뢰 등록 1/3 starts with nothing picked.

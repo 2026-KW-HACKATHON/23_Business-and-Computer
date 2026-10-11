@@ -160,3 +160,133 @@
   display: flex;
   gap: 10px;
 }
+
+/* 결과: 「우리 가게 점검표」. 영역 이름 · 질문 칸 · 상태 */
+.task-finder__report {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 16px;
+  border-radius: 16px;
+  background: var(--role-muted);
+}
+
+.task-finder__report-title,
+.task-finder__section-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 22px;
+  color: var(--color-black);
+}
+
+.task-finder__areas {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.task-finder__area {
+  display: grid;
+  grid-template-columns: 96px 1fr 72px;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  line-height: 18px;
+}
+
+.task-finder__area-name {
+  font-weight: 500;
+  color: var(--color-black);
+  white-space: nowrap;
+}
+
+.task-finder__report-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+/* 칸 색 안내: 초록 괜찮음 · 빨강 필요 (회색 건너뜀은 칸에서 바로 보인다) */
+.task-finder__legend {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--role-secondary);
+}
+
+.task-finder__legend-dot {
+  width: 8px;
+  height: 8px;
+  margin-left: 4px;
+  border-radius: 50%;
+}
+
+/* 영역의 질문마다 한 칸 */
+.task-finder__area-marks {
+  display: flex;
+  gap: 4px;
+}
+
+.task-finder__area-mark {
+  flex: 1;
+  height: 8px;
+  border-radius: 4px;
+}
+
+.task-finder__area-mark--good {
+  background: var(--color-success);
+}
+
+.task-finder__area-mark--need {
+  background: var(--color-danger);
+}
+
+.task-finder__area-mark--skipped {
+  background: var(--role-border);
+}
+
+.task-finder__area-status {
+  font-weight: 700;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.task-finder__area-status--good {
+  color: var(--color-success);
+}
+
+.task-finder__area-status--watch {
+  color: #a87600;
+}
+
+.task-finder__area-status--need {
+  color: var(--color-danger);
+}
+
+.task-finder__area-status--unknown {
+  color: var(--role-secondary);
+}
+
+.task-finder__section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.task-finder__section-head {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.task-finder__more {
+  align-self: center;
+  padding: 4px 8px;
+}
