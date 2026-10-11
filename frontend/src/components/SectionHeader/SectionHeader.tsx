@@ -1,13 +1,14 @@
 import "./SectionHeader.css";
+import FoldChevron from "../FoldChevron/FoldChevron";
 
 interface SectionHeaderProps {
   title: string;
   /** 제목 옆 회색 숫자 */
   count?: number;
-  /** 오른쪽 글자 버튼 (예: 더 보기 ›, 펼치기 ›, 접기) */
+  /** 오른쪽 글자 버튼 (예: 더 보기 ›, 펼치기, 접기) */
   actionLabel?: string;
   onAction?: () => void;
-  /** 오른쪽 버튼이 목록을 펼치고 접을 때만 넣는다 */
+  /** 오른쪽 버튼이 목록을 펼치고 접을 때만 넣는다. 글자 뒤에 아래(펼치기) · 위(접기) 화살표가 붙는다 */
   expanded?: boolean;
 }
 
@@ -27,6 +28,7 @@ function SectionHeader({ title, count, actionLabel, onAction, expanded }: Sectio
           onClick={onAction}
         >
           {actionLabel}
+          {expanded !== undefined && <FoldChevron open={expanded} />}
         </button>
       )}
     </div>

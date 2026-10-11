@@ -2,6 +2,7 @@ import { useCallback, useRef, useState } from "react";
 import { useGuideMeasure } from "../../hooks/useGuideMeasure";
 import type { Role } from "../../types/role";
 import AppImage from "../AppImage/AppImage";
+import { SwitchArrows } from "../DemoRoleBadge/DemoRoleBadge";
 import GuideOverlay from "../GuideOverlay/GuideOverlay";
 import "./DemoGuide.css";
 
@@ -45,7 +46,8 @@ function DemoGuide({ tone, onClose }: DemoGuideProps) {
         <>
           <span className="demo-guide__badge demo-role-badge" style={{ top: badge.top, left: badge.left }} aria-hidden="true">
             <span className="demo-role-badge__dot" />
-            <span className="demo-role-badge__switch">{other}으로 보기 ⇄</span>
+            <span className="demo-role-badge__switch">{other}으로 보기</span>
+            <SwitchArrows />
           </span>
           <p className="demo-guide__bubble" style={{ top: badge.top + badge.height + 10, left: badge.left }}>
             누르면 {other} 화면으로 바뀌어요

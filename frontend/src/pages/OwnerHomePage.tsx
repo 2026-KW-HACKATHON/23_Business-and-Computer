@@ -236,7 +236,7 @@ function OwnerHomePage() {
           <SectionHeader
             title="끝난 일"
             count={countOf("done", home.done.length)}
-            actionLabel={home.done.length > 1 ? (doneExpanded ? "접기" : "펼치기 ›") : undefined}
+            actionLabel={home.done.length > 1 ? (doneExpanded ? "접기" : "펼치기") : undefined}
             expanded={doneExpanded}
             onAction={() => setDoneExpanded((v) => !v)}
           />

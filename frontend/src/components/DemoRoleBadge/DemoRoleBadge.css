@@ -33,7 +33,22 @@
   outline-offset: 2px;
 }
 
-/* 누를 때 반응: 살짝 작아진다 */
+/* 화살표가 밀려도 아이콘 칸 밖에서 잘리지 않게 */
+.demo-role-badge__arrows {
+  display: block;
+  flex-shrink: 0;
+  overflow: visible;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.demo-role-badge__arrow {
+  transition: transform 0.2s ease;
+}
+
+/* 누를 때 반응: 살짝 작아지고, 화살표 두 개가 서로 반대쪽으로 밀린다 (마우스를 올려도 밀린다) */
 .demo-role-badge {
   transition:
     box-shadow 0.15s ease,
@@ -42,4 +57,32 @@
 
 .demo-role-badge:active {
   transform: scale(0.96);
+}
+
+@media (hover: hover) {
+  .demo-role-badge:hover .demo-role-badge__arrow--right {
+    transform: translateX(2px);
+  }
+
+  .demo-role-badge:hover .demo-role-badge__arrow--left {
+    transform: translateX(-2px);
+  }
+}
+
+.demo-role-badge:active .demo-role-badge__arrow--right {
+  transform: translateX(3px);
+}
+
+.demo-role-badge:active .demo-role-badge__arrow--left {
+  transform: translateX(-3px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .demo-role-badge__arrow {
+    transition: none;
+  }
+
+  .demo-role-badge:is(:hover, :active) .demo-role-badge__arrow {
+    transform: none;
+  }
 }

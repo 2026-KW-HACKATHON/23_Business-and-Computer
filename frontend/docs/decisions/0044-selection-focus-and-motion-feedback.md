@@ -38,6 +38,13 @@ the confirm screens show picked photos like the detail screens.
   shrinks from `1fr` to `0fr` and fades while the plus grows from 20 to 24 px,
   over 0.28 s, ending in a 52 px circle.
 - **App bar**: 14px between the bell and 내 정보.
+- **둘러보기 badge**: the 「⇄」 is two drawn arrows (`SwitchArrows`, also on
+  the badge the 둘러보기 first guide lights up). Hovered they part by 2px:
+  the top arrow to the right, the bottom one to the left. Pressed they part
+  by 3px while the badge shrinks to 96%.
+- **Fold buttons**: 「펼치기」 and 「접기」 end in a chevron that turns down or
+  up (`FoldChevron`), on the 「끝난 일」 section headers and the store concern
+  bubble.
 - **Photos**: the confirm screens use `ReferencePhotos`, which now also takes
   `blob:` preview URLs.
 - `prefers-reduced-motion` turns the transitions off.
