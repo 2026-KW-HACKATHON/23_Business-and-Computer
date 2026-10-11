@@ -59,6 +59,10 @@ buttons shade in a rounded shape. Replaces the 6px rounded shade of the
   (replacing the 94% tab shrink of ADR 0046). The new tab's text darkens from
   gray as the selection arrives (0.2 s after a 0.12 s delay), like the icon
   pop.
+- **Home finder banners** (사장님 「맡길 일 찾기」, 학생 「나에게 맞는 일 찾기」):
+  no shade on hover or press, because the gray tint muddies the gradient and
+  the picture. Under the mouse the banner lifts 2px with a soft shadow in the
+  role color (owner yellow, student magenta); pressed, it still shrinks to 98%.
 - Without a mouse only the press reacts, as in ADR 0046; `.press-text` and
   the card hover sit in `@media (hover: hover)`.
 - `prefers-reduced-motion` turns the `.press-text` and card transitions off.
