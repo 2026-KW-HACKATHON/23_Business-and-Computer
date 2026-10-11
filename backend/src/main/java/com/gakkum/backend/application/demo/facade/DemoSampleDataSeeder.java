@@ -573,6 +573,7 @@ public class DemoSampleDataSeeder {
                             + "끝나면 할인 받은 손님 수를 정리해 드려요.",
                     30_000L, 3, 7, "홍보·이벤트 기획");
             like(discount, lee, nuri, choi);
+            likeByOtherStudents(discount, 9, at(1, 21));
 
             Proposal translation = propose(choi, myStore, at(1, 15), "영어 메뉴판 번역",
                     "근처 기숙사에 교환학생이 많은데, 메뉴판이 한국어로만 되어 있어 사진만 보고 주문하거나 그냥 나가는 "
@@ -583,6 +584,7 @@ public class DemoSampleDataSeeder {
                             + "확인받을게요. 지금 메뉴판 옆에 붙일 수 있는 A4 한 장 크기로 정리해 드려요.",
                     40_000L, 4, 8, "영어 번역");
             like(translation, kim);
+            likeByOtherStudents(translation, 6, at(1, 20));
 
             Proposal lunchMenu = propose(me, myStore, at(4, 17), "점심 세트 메뉴판 정리",
                     "점심시간에 세트 메뉴가 6가지나 돼서 손님이 고르는 데 오래 걸리고, 계산대 앞에 줄이 길어져요.",
@@ -591,6 +593,7 @@ public class DemoSampleDataSeeder {
                     "지난달 점심 주문 기록을 보고 많이 팔린 세트를 사장님과 함께 고른 뒤, 세트별 구성을 사진과 아이콘으로 "
                             + "정리할게요. 시안을 보여 드리고 고르신 쪽으로 다듬어 A4 세움 간판에 넣을 파일로 드려요.",
                     45_000L, 3, 7, "메뉴판·가격표 디자인");
+            likeByOtherStudents(lunchMenu, 6, at(4, 21));
             pay(lunchMenu, myStore, 45_000L, 1, "점심 손님이 많아서 기대돼요! 세트는 떡볶이·김밥 위주로 3가지만 남기면 좋겠어요.",
                     at(1, 13));
 
@@ -601,6 +604,7 @@ public class DemoSampleDataSeeder {
                     "사장님과 15분 정도 통화하면서 가게를 연 이야기와 자신 있는 메뉴를 여쭤볼게요. 그 내용으로 소개글 초안을 "
                             + "쓰고, 맞춤법과 말투를 다듬어 앱별 글자 수에 맞춰 정리해 드려요.",
                     30_000L, 4, 8, "소개·공지 글쓰기");
+            likeByOtherStudents(intro, 8, at(5, 20));
             Job introJob = pay(intro, myStore, 30_000L, 1, "편하게 써 주세요. 학생 손님들이 좋아하는 분위기로 부탁드려요.",
                     at(3, 14));
             start(intro, introJob, at(2, 10));
@@ -617,6 +621,7 @@ public class DemoSampleDataSeeder {
                     "자주 들어오는 단체 주문 내용을 여쭤보고, 10인분·20인분처럼 인원별 세트와 가격을 표로 정리할게요. "
                             + "A4 인쇄용과 휴대폰 이미지용 두 가지로 디자인해서 드려요.",
                     35_000L, 3, 7, "전단지·포스터 디자인");
+            likeByOtherStudents(groupOrder, 4, at(10, 20));
             decline(groupOrder, pay(groupOrder, myStore, 35_000L, 1, null, at(8, 13)), at(7, 10));
 
             Proposal monitorVideo = propose(nuri, myStore, at(6, 14), "가게 앞 모니터 메뉴 영상",
@@ -626,6 +631,7 @@ public class DemoSampleDataSeeder {
                     "가게에 한 번 찾아가 메뉴 촬영을 하고, 15초 안에 대표 메뉴 3가지가 나오도록 편집할게요. 소리 없이 봐도 "
                             + "이해되게 큰 자막을 넣고, 모니터 해상도에 맞춰 드려요.",
                     60_000L, 5, 10, "영상 제작 및 편집");
+            likeByOtherStudents(monitorVideo, 3, at(5, 20));
             rejectByOwner(monitorVideo, at(4, 11));
 
             Proposal photoMenu = propose(me, myStore, at(30, 15), "대표 메뉴 사진 다시 찍기",
@@ -635,6 +641,7 @@ public class DemoSampleDataSeeder {
                     "손님이 적은 오후 시간에 찾아가 창가 자연광에서 메뉴별로 20장 정도 찍을게요. 그중 잘 나온 사진을 골라 "
                             + "보정하고, 배달앱과 인스타그램 규격에 맞춰 잘라 드려요.",
                     40_000L, 3, 7, "음식·매장 사진");
+            likeByOtherStudents(photoMenu, 9, at(29, 20));
             Job photoJob = pay(photoMenu, myStore, 40_000L, 1, "사진 잘 부탁드려요! 떡볶이는 김이 올라올 때 찍어 주시면 좋겠어요.",
                     at(28, 13));
             start(photoMenu, photoJob, at(27, 10));
@@ -764,6 +771,7 @@ public class DemoSampleDataSeeder {
                             + "배치안을 만들고 시안을 보여 드린 뒤 다듬어 인쇄용으로 드릴게요.",
                     35_000L, 3, 7, "메뉴판·가격표 디자인");
             like(menuDraft, kim, park, nuri, choi);
+            likeByOtherStudents(menuDraft, 30, at(3, 12));
 
             Proposal examEvent = propose(nuri, kwCafe, at(4, 19), "시험 기간 광운대생 이벤트 기획",
                     "시험 기간에는 낮에 자리가 부족하다가도 밤 10시 이후에는 빈자리가 많아요. 늦은 시간에도 학생들이 찾을 "
@@ -774,6 +782,7 @@ public class DemoSampleDataSeeder {
                             + "안내문을 같은 디자인으로 만들게요. 이벤트 기간 동안 인증 게시물 수도 정리해 드려요.",
                     30_000L, 3, 7, "홍보·이벤트 기획");
             like(examEvent, lee, choi);
+            likeByOtherStudents(examEvent, 21, at(2, 13));
 
             Proposal photos = propose(kim, chicken, at(3, 21), "치킨 세트 사진 다시 찍기",
                     "배달앱 메뉴 사진이 어둡고 치킨이 작게 나와서, 다른 가게보다 맛있어 보이지 않는다는 리뷰가 있었어요.",
@@ -783,6 +792,7 @@ public class DemoSampleDataSeeder {
                             + "규격에 맞춰 잘라 드리고, 인스타그램용 정사각형 버전도 함께 드려요.",
                     50_000L, 5, 10, "음식·매장 사진");
             like(photos, park);
+            likeByOtherStudents(photos, 16, at(2, 20));
         }
 
         /** @param admissionYear 입학 연도 두 자리. 화면에 「24학번」처럼 보인다 */
@@ -1033,17 +1043,35 @@ public class DemoSampleDataSeeder {
             for (Student liker : likers) {
                 proposalLikeRows.add(List.of(proposal.getId(), liker.getId(), creationTime()));
                 proposal.increaseLikeCount();
-                // 새 공감으로 기준 수에 닿으면 받은 사장님과 제안한 학생에게 알린다 (공감은 지금 시각에 남는다)
-                int likeCount = proposal.getLikeCount();
-                if (LIKE_MILESTONES.contains(likeCount)) {
-                    addNotification(NotificationEventFactory.proposalLikeMilestoneReachedForOwner(
-                            stores.get(proposal.getOwnerProfileId()).getUserId(), proposal.getId(), proposal.getTitle(),
-                            likeCount), now);
-                    addNotification(NotificationEventFactory.proposalLikeMilestoneReachedForStudent(
-                            students.get(proposal.getStudentProfileId()).getUserId(), proposal.getId(),
-                            proposal.getTitle(), likeCount), now);
-                }
+                // 공감은 지금 시각에 남는다
+                notifyLikeMilestone(proposal, now);
             }
+        }
+
+        /**
+         * 데모 학생 다섯 명 말고 다른 학생 손님들이 누른 공감. 그 학생들은 데모 계정이 없어 공감 기록 없이 공감 수만 올린다.
+         * 방문자 학생은 이 제안에 처음 공감할 수 있고, 취소하면 자기 공감만 빠진다.
+         * @param likedAt 기준 수(10 · 30 · 50)에 닿은 공감 알림의 시각
+         */
+        private void likeByOtherStudents(Proposal proposal, int count, Instant likedAt) {
+            for (int i = 0; i < count; i++) {
+                proposal.increaseLikeCount();
+                notifyLikeMilestone(proposal, likedAt);
+            }
+        }
+
+        /** 새 공감으로 기준 수에 닿으면 받은 사장님과 제안한 학생에게 알린다 (ProposalFacade 와 같다) */
+        private void notifyLikeMilestone(Proposal proposal, Instant at) {
+            int likeCount = proposal.getLikeCount();
+            if (!LIKE_MILESTONES.contains(likeCount)) {
+                return;
+            }
+            addNotification(NotificationEventFactory.proposalLikeMilestoneReachedForOwner(
+                    stores.get(proposal.getOwnerProfileId()).getUserId(), proposal.getId(), proposal.getTitle(),
+                    likeCount), at);
+            addNotification(NotificationEventFactory.proposalLikeMilestoneReachedForStudent(
+                    students.get(proposal.getStudentProfileId()).getUserId(), proposal.getId(),
+                    proposal.getTitle(), likeCount), at);
         }
 
         /** 사장님이 제안을 받아 결제한 상태(학생 시작 전). PaymentApprovalService.approveProposalPayment와 순서가 같다. */

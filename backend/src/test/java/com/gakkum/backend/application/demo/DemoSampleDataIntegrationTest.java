@@ -1,6 +1,7 @@
 package com.gakkum.backend.application.demo;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 
@@ -31,6 +32,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.gakkum.backend.domain.job.entity.Job;
@@ -131,7 +133,7 @@ class DemoSampleDataIntegrationTest {
         assertThat(jobs.values()).filteredOn(job -> myStoreId.equals(job.getOwnerProfileId())).hasSize(13);
 
         assertThat(proposals.get("시험 기간 학생 할인 이벤트").getStatus()).isEqualTo(ProposalStatus.PENDING);
-        assertThat(proposals.get("시험 기간 학생 할인 이벤트").getLikeCount()).isEqualTo(3);
+        assertThat(proposals.get("시험 기간 학생 할인 이벤트").getLikeCount()).isEqualTo(12);
         assertThat(proposals.get("점심 세트 메뉴판 정리").getStatus()).isEqualTo(ProposalStatus.AWAITING_START);
         assertThat(proposals.get("가게 소개글 다시 쓰기").getStatus()).isEqualTo(ProposalStatus.ACCEPTED);
         assertThat(proposals.get("단체 주문 안내문 디자인").getStatus()).isEqualTo(ProposalStatus.REJECTED);
@@ -212,19 +214,21 @@ class DemoSampleDataIntegrationTest {
         JsonNode ownerItems = data(read(ownerToken, "/me/notifications?size=100")).get("items");
         JsonNode studentItems = data(read(studentToken, "/me/notifications?size=100")).get("items");
 
-        // 사장님: 지원 9 · 받은 제안 7 · 작업 시작 2 · 초안 6 · 수정안 2 · 후기 요청 3 · 환불 2
-        assertThat(ownerItems).hasSize(31);
+        // 사장님: 지원 9 · 받은 제안 7 · 작업 시작 2 · 초안 6 · 수정안 2 · 후기 요청 3 · 환불 2 · 공감 10명 1
+        assertThat(ownerItems).hasSize(32);
         assertThat(types(ownerItems)).containsOnly("JOB_APPLICATION_RECEIVED", "PROPOSAL_RECEIVED", "JOB_STARTED",
-                "JOB_DRAFT_SUBMITTED", "JOB_REVISION_SUBMITTED", "JOB_REVIEW_REQUESTED", "PAYMENT_REFUNDED");
-        // 학생: 선정 4 · 미선정 1 · 제안 수락 3 · 수정 요청 1 · 정산 3 · 후기 3
-        assertThat(studentItems).hasSize(15);
+                "JOB_DRAFT_SUBMITTED", "JOB_REVISION_SUBMITTED", "JOB_REVIEW_REQUESTED", "PAYMENT_REFUNDED",
+                "PROPOSAL_LIKE_MILESTONE_REACHED");
+        // 학생: 선정 4 · 미선정 1 · 제안 수락 3 · 수정 요청 1 · 정산 3 · 후기 3 · 공감 10명 1
+        assertThat(studentItems).hasSize(16);
         assertThat(types(studentItems)).containsOnly("JOB_APPLICATION_SELECTED", "JOB_APPLICATION_REJECTED",
-                "PROPOSAL_ACCEPTED", "JOB_REVISION_REQUESTED", "PAYMENT_SETTLED", "JOB_REVIEW_RECEIVED");
+                "PROPOSAL_ACCEPTED", "JOB_REVISION_REQUESTED", "PAYMENT_SETTLED", "JOB_REVIEW_RECEIVED",
+                "PROPOSAL_LIKE_MILESTONE_REACHED");
 
-        // 어제 온 알림만 읽지 않았다: 사장님은 지원 2 · 제안 1 · 초안 1 · 수정안 1, 학생은 제안 수락 · 수정 요청
-        assertThat(data(read(ownerToken, "/me/notifications/unread-count")).get("unreadCount").asLong()).isEqualTo(5);
+        // 어제 온 알림만 읽지 않았다: 사장님은 지원 2 · 제안 1 · 초안 1 · 수정안 1 · 공감 10명, 학생은 제안 수락 · 수정 요청 · 공감 10명
+        assertThat(data(read(ownerToken, "/me/notifications/unread-count")).get("unreadCount").asLong()).isEqualTo(6);
         assertThat(data(read(studentToken, "/me/notifications/unread-count")).get("unreadCount").asLong())
-                .isEqualTo(2);
+                .isEqualTo(3);
         Instant unreadFrom = LocalDate.now(ZoneId.of("Asia/Seoul")).minusDays(1).atStartOfDay(ZoneId.of("Asia/Seoul"))
                 .toInstant();
         for (JsonNode item : List.of(ownerItems, studentItems).stream().flatMap(items -> items.valueStream()).toList()) {
@@ -254,6 +258,34 @@ class DemoSampleDataIntegrationTest {
                     or (n.target_type = 'CHAT_ROOM' and exists (select 1 from chat_rooms c where c.id = n.target_id))
                     or (n.target_type = 'PAYMENT' and exists (select 1 from payments p where p.id::text = n.target_id)))
                 """, Long.class, sessionId)).isZero();
+    }
+
+    @Test
+    @DisplayName("공감 수는 데모 학생 다섯 명 말고 다른 학생 손님 공감까지 더해지지만, 공감 기록은 데모 학생 것만 남는다")
+    void addsOtherStudentLikesWithoutLikeRows() throws Exception {
+        assertThat(proposals.get("인기 메뉴를 강조한 메뉴판 시안").getLikeCount()).isEqualTo(34);
+        assertThat(proposals.get("시험 기간 광운대생 이벤트 기획").getLikeCount()).isEqualTo(23);
+        assertThat(proposals.get("치킨 세트 사진 다시 찍기").getLikeCount()).isEqualTo(17);
+        assertThat(proposals.get("영어 메뉴판 번역").getLikeCount()).isEqualTo(7);
+        assertThat(proposals.get("점심 세트 메뉴판 정리").getLikeCount()).isEqualTo(6);
+
+        Long discount = proposals.get("시험 기간 학생 할인 이벤트").getId();
+        assertThat(jdbcTemplate.queryForObject("select count(*) from proposal_likes where proposal_id = ?",
+                Long.class, discount)).isEqualTo(3);
+
+        // 방문자 학생이 공감하면 하나 늘고, 취소하면 자기 공감만 빠진다
+        Long menuDraft = proposals.get("인기 메뉴를 강조한 메뉴판 시안").getId();
+        assertThat(likeCountAfter(post("/proposals/" + menuDraft + "/likes"))).isEqualTo(35);
+        assertThat(likeCountAfter(delete("/proposals/" + menuDraft + "/likes"))).isEqualTo(34);
+    }
+
+    /** 방문자 학생으로 공감 · 공감 취소를 보내고 응답의 공감 수를 읽는다 */
+    private int likeCountAfter(MockHttpServletRequestBuilder request) throws Exception {
+        MvcResult result = mockMvc.perform(request.header(HttpHeaders.AUTHORIZATION, "Bearer " + studentToken))
+                .andReturn();
+        String body = result.getResponse().getContentAsString(StandardCharsets.UTF_8);
+        assertThat(result.getResponse().getStatus()).as(body).isEqualTo(200);
+        return data(body).get("likeCount").asInt();
     }
 
     private Instant notifiedAt(String type, Long jobId) {
