@@ -30,12 +30,14 @@ import com.gakkum.backend.application.home.facade.HomeFacade;
 import com.gakkum.backend.application.home.service.HomeQueryService;
 import com.gakkum.backend.application.payment.facade.PaymentFacade;
 import com.gakkum.backend.config.ClockConfig;
+import com.gakkum.backend.domain.category.service.BusinessCategoryService;
 import com.gakkum.backend.domain.job.entity.Job;
 import com.gakkum.backend.domain.job.entity.JobStatus;
 import com.gakkum.backend.domain.job.repository.JobRepository;
 import com.gakkum.backend.domain.job.service.JobService;
 import com.gakkum.backend.domain.owner.entity.Owner;
 import com.gakkum.backend.domain.owner.service.OwnerService;
+import com.gakkum.backend.domain.owner.service.StoreConcernService;
 import com.gakkum.backend.domain.proposal.service.ProposalService;
 import com.gakkum.backend.domain.specialty.service.SpecialtyCategoryService;
 import com.gakkum.backend.domain.student.entity.Student;
@@ -80,6 +82,10 @@ class HomeQueryPostgresTest {
     private StudentService studentService;
     @MockitoBean
     private PaymentFacade paymentFacade;
+    @MockitoBean
+    private StoreConcernService storeConcernService;
+    @MockitoBean
+    private BusinessCategoryService businessCategoryService;
 
     private final List<Long> jobIds = new ArrayList<>();
 

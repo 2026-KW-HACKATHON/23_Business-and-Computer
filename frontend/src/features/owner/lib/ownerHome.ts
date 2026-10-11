@@ -9,6 +9,8 @@ import type {
   OwnerHomeWorkingResponse,
 } from "../api/homeApi";
 import type { OwnerDoneItem, OwnerTodo, OwnerWaitingItem, OwnerWorkingItem, StudentRef } from "../types";
+import { toOwnerConcern } from "./storeConcern";
+import type { OwnerConcern } from "./storeConcern";
 
 /** 사장님 홈에 그릴 섹션들 (GET /me/home). 섹션이 null 이면 그 섹션만 불러오지 못했다 */
 export interface OwnerHomeData {
@@ -18,6 +20,8 @@ export interface OwnerHomeData {
   working: OwnerWorkingItem[] | null;
   waiting: OwnerWaitingItem[] | null;
   done: OwnerDoneItem[] | null;
+  /** 해결되지 않은 가게 고민. [] 이면 없음, null 이면 고민만 못 불러옴 */
+  concerns: OwnerConcern[] | null;
 }
 
 export type OwnerHomeResult =
@@ -110,6 +114,7 @@ function toOwnerHomeData(home: OwnerHomeResponse): OwnerHomeData {
     working: home.working?.map(toWorking) ?? null,
     waiting: home.waiting?.map(toWaiting) ?? null,
     done: home.done?.map(toDone) ?? null,
+    concerns: home.concerns?.map(toOwnerConcern) ?? null,
   };
 }
 

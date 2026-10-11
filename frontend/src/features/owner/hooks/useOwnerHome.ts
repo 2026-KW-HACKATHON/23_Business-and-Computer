@@ -14,7 +14,7 @@ type OwnerHomeLoad =
 
 /**
  * 사장님 홈에 그릴 데이터. GET /me/home 한 번으로 확인할 일 · 학생이 작업 중 · 기다리는 중 · 끝난 일과
- * 처음 온 계정인지(firstVisit, ADR 0051)를 함께 받는다 (ADR 0064). 순서 · 자동 완료 날짜도 서버 값 그대로 쓴다.
+ * 처음 온 계정인지(firstVisit, ADR 0051), 가게 고민(ADR 0080)을 함께 받는다 (ADR 0064). 순서 · 자동 완료 날짜도 서버 값 그대로 쓴다.
  * 서버가 null 로 준 섹션만 실패로 보이고, 다시 시도하면 홈 전체를 다시 부른다.
  * 401 은 /login, 403 HOME_403(가입 전)은 /signup/role 로 보낸다 (그동안은 loading). 화면을 떠난 뒤 온 응답은 버린다.
  */
@@ -57,6 +57,11 @@ export function useOwnerHome(): OwnerHome {
     return load.retrying ? "loading" : "error";
   };
 
+  let concern: OwnerHome["concern"];
+  if (load.status !== "loaded") concern = { status: load.status };
+  else if (home?.concerns) concern = { status: "loaded", concern: home.concerns[0] ?? null };
+  else concern = { status: load.retrying ? "loading" : "error" };
+
   return {
     firstVisit: load.status === "loading" ? undefined : (home?.firstVisit ?? false),
     status: load.status,
@@ -72,5 +77,6 @@ export function useOwnerHome(): OwnerHome {
     waiting: home?.waiting ?? [],
     examples: SAMPLE_REQUEST_EXAMPLES,
     done: home?.done ?? [],
+    concern,
   };
 }

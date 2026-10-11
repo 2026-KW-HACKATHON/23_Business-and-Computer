@@ -43,7 +43,11 @@ import com.gakkum.backend.domain.job.entity.JobStatus;
 import com.gakkum.backend.domain.job.entity.JobSubmission;
 import com.gakkum.backend.domain.job.entity.JobSubmissionReviewStatus;
 import com.gakkum.backend.domain.job.entity.JobSubmissionType;
+import com.gakkum.backend.application.explore.dto.ExploreQueryDto.BusinessCategoryResult;
+import com.gakkum.backend.application.explore.dto.ExploreQueryDto.StoreItemResult;
+import com.gakkum.backend.domain.owner.dto.OwnerQueryDto.StoreConcernResult;
 import com.gakkum.backend.domain.owner.entity.Owner;
+import com.gakkum.backend.domain.owner.entity.StoreConcern;
 import com.gakkum.backend.domain.owner.service.OwnerService;
 import com.gakkum.backend.domain.proposal.entity.Proposal;
 import com.gakkum.backend.domain.proposal.entity.ProposalStatus;
@@ -489,6 +493,99 @@ class HomeFlowTest {
         mockMvc.perform(get("/me/home").principal(authentication))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.error.code").value("COMMON_401"));
+    }
+
+    @Test
+    @DisplayName("사장님 홈은 해결되지 않은 가게 고민을 고민 API와 같은 모양으로 담고, 없으면 빈 배열이다")
+    void returnsOwnerConcern() throws Exception {
+        givenOwner();
+        when(homeQueryService.getOwnerConcerns(OWNER_PROFILE_ID))
+                .thenReturn(List.of(StoreConcernResult.of(storeConcern(31L, "단골이 줄었어요", 2L), "마케팅")));
+
+        mockMvc.perform(get("/me/home").principal(authentication))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.concerns.length()").value(1))
+                .andExpect(jsonPath("$.data.concerns[0].concernId").value(31))
+                .andExpect(jsonPath("$.data.concerns[0].title").value("단골이 줄었어요"))
+                .andExpect(jsonPath("$.data.concerns[0].description").value("손님을 다시 부르고 싶어요"))
+                .andExpect(jsonPath("$.data.concerns[0].specialtyCategory.id").value(2))
+                .andExpect(jsonPath("$.data.concerns[0].specialtyCategory.name").value("마케팅"))
+                // UTC 10-10 15:30은 한국 10-11 00:30
+                .andExpect(jsonPath("$.data.concerns[0].updatedAt").value("2026-10-11T00:30:00+09:00"));
+
+        when(homeQueryService.getOwnerConcerns(OWNER_PROFILE_ID)).thenReturn(List.of());
+        mockMvc.perform(get("/me/home").principal(authentication))
+                .andExpect(jsonPath("$.data.concerns").isArray())
+                .andExpect(jsonPath("$.data.concerns").isEmpty());
+    }
+
+    @Test
+    @DisplayName("가게 고민 조회만 실패하면 concerns만 null이고 나머지 섹션은 그대로다")
+    void keepsOwnerHomeWhenConcernFails() throws Exception {
+        givenOwner();
+        when(homeQueryService.getOwnerConcerns(OWNER_PROFILE_ID)).thenThrow(new IllegalStateException("boom"));
+
+        mockMvc.perform(get("/me/home").principal(authentication))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.concerns").value(nullValue()))
+                .andExpect(jsonPath("$.data.todos").isEmpty())
+                .andExpect(jsonPath("$.data.done").isEmpty());
+    }
+
+    @Test
+    @DisplayName("학생 홈은 내 데모 범위의 새로 올라온 가게 고민을 가게 목록 한 줄과 같은 모양으로 담는다")
+    void returnsNewStoreConcerns() throws Exception {
+        givenStudent();
+        Owner store = Owner.builder()
+                .id(12L)
+                .storeName("월계카페")
+                .storeAddress("서울 노원구 월계동")
+                .profileImageUrl("https://example.com/store.png")
+                .categoryId(8L)
+                .createdAt(LocalDateTime.of(2026, 10, 1, 0, 0))
+                .build();
+        when(homeQueryService.getNewStoreConcerns(DEMO_SESSION_ID)).thenReturn(List.of(StoreItemResult.of(store,
+                BusinessCategoryResult.of(8L, "카페"),
+                StoreConcernResult.of(storeConcern(41L, "배달 리뷰가 적어요", null), null))));
+
+        mockMvc.perform(get("/me/home").principal(authentication))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.newStoreConcerns.length()").value(1))
+                .andExpect(jsonPath("$.data.newStoreConcerns[0].ownerProfileId").value(12))
+                .andExpect(jsonPath("$.data.newStoreConcerns[0].storeName").value("월계카페"))
+                .andExpect(jsonPath("$.data.newStoreConcerns[0].storeAddress").value("서울 노원구 월계동"))
+                .andExpect(jsonPath("$.data.newStoreConcerns[0].profileImageUrl")
+                        .value("https://example.com/store.png"))
+                .andExpect(jsonPath("$.data.newStoreConcerns[0].businessCategory.name").value("카페"))
+                .andExpect(jsonPath("$.data.newStoreConcerns[0].concern.title").value("배달 리뷰가 적어요"))
+                .andExpect(jsonPath("$.data.newStoreConcerns[0].concern.specialtyCategory").value(nullValue()))
+                .andExpect(jsonPath("$.data.newStoreConcerns[0].concern.updatedAt")
+                        .value("2026-10-11T00:30:00+09:00"));
+    }
+
+    @Test
+    @DisplayName("새로 올라온 가게 고민 조회만 실패하면 newStoreConcerns만 null이고 나머지 섹션은 그대로다")
+    void keepsStudentHomeWhenNewStoreConcernsFail() throws Exception {
+        givenStudent();
+        when(homeQueryService.getNewStoreConcerns(DEMO_SESSION_ID)).thenThrow(new IllegalStateException("boom"));
+
+        mockMvc.perform(get("/me/home").principal(authentication))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.newStoreConcerns").value(nullValue()))
+                .andExpect(jsonPath("$.data.peerProposals").isEmpty())
+                .andExpect(jsonPath("$.data.done").isEmpty());
+    }
+
+    private static StoreConcern storeConcern(Long id, String title, Long specialtyCategoryId) {
+        return StoreConcern.builder()
+                .id(id)
+                .ownerProfileId(12L)
+                .title(title)
+                .description("손님을 다시 부르고 싶어요")
+                .specialtyCategoryId(specialtyCategoryId)
+                .createdAt(LocalDateTime.of(2026, 10, 9, 3, 0))
+                .updatedAt(LocalDateTime.of(2026, 10, 10, 15, 30))
+                .build();
     }
 
     private void givenOwner() {

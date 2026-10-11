@@ -1,6 +1,7 @@
 import type { Field } from "../../types/field";
 import type { WorkKind } from "../../types/workKind";
 import type { ApplicationPlan } from "../../types/workPlan";
+import type { OwnerConcern } from "./lib/storeConcern";
 
 /** 마감 단계. draft = 초안, final = 최종 */
 export type DeadlineStage = "draft" | "final";
@@ -145,6 +146,11 @@ export interface OwnerHome {
   examples: RequestExample[];
   /** 최근 끝난 것부터 */
   done: OwnerDoneItem[];
+  /**
+   * 우리 가게의 해결되지 않은 고민 (홈 응답의 concerns, ADR 0080). 홈을 불러오는 중이면 loading,
+   * 홈이나 고민만 못 불러왔으면 error, 불러왔으면 고민(없으면 null)
+   */
+  concern: { status: "loading" } | { status: "error" } | { status: "loaded"; concern: OwnerConcern | null };
 }
 
 /** 프로필로 갈 수 있는 학생 */

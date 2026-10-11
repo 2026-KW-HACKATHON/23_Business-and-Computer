@@ -4,6 +4,7 @@ import java.time.LocalDate;
 import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.gakkum.backend.application.explore.dto.StoreExploreResponse;
 import com.gakkum.backend.application.home.dto.HomeQueryDto.StudentApplication;
 import com.gakkum.backend.application.home.dto.HomeQueryDto.StudentProgressJob;
 import com.gakkum.backend.application.home.dto.HomeQueryDto.StudentSentProposal;
@@ -37,10 +38,14 @@ public class StudentHomeResponse implements HomeResponse {
     private final List<Waiting> waiting;
     private final List<PeerProposal> peerProposals;
     private final List<Done> done;
+    // 「새로 올라온 가게 고민」: 고민이 있는 가게를 최근에 올리거나 고친 순으로 3곳까지. 한 줄은 GET /explore/stores와 같다
+    private final List<StoreExploreResponse.Item> newStoreConcerns;
 
     public static StudentHomeResponse of(Boolean firstVisit, List<Todo> todos, List<Checking> checking,
-            List<Waiting> waiting, List<PeerProposal> peerProposals, List<Done> done) {
-        return new StudentHomeResponse(UserRole.STUDENT, firstVisit, todos, checking, waiting, peerProposals, done);
+            List<Waiting> waiting, List<PeerProposal> peerProposals, List<Done> done,
+            List<StoreExploreResponse.Item> newStoreConcerns) {
+        return new StudentHomeResponse(UserRole.STUDENT, firstVisit, todos, checking, waiting, peerProposals, done,
+                newStoreConcerns);
     }
 
     /** 확인할 일. stage·due는 지금 지킬 마감이다. */

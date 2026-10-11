@@ -1,24 +1,46 @@
 import { apiData } from "../../../api/client";
 import type { ExploreStore } from "../types";
 
+/** GET /explore/stores 의 가게 한 줄. 학생 홈 GET /me/home 의 newStoreConcerns 도 같은 모양이다 */
+export interface StoreExploreItemResponse {
+  storeName: string;
+  profileImageUrl: string | null;
+  businessCategory: { id: number; name: string };
+  storeAddress: string;
+  ownerProfileId: number;
+  createdAt: string;
+  /** 해결되지 않은 가게 고민. 없으면 null */
+  concern?: {
+    title: string;
+    description: string | null;
+    specialtyCategory: { id: number; name: string } | null;
+    updatedAt: string;
+  } | null;
+}
+
 interface StoreExploreResponse {
-  items: {
-    storeName: string;
-    profileImageUrl: string | null;
-    businessCategory: { id: number; name: string };
-    storeAddress: string;
-    ownerProfileId: number;
-    createdAt: string;
-    /** 해결되지 않은 가게 고민. 없으면 null */
-    concern?: {
-      title: string;
-      description: string | null;
-      specialtyCategory: { id: number; name: string } | null;
-      updatedAt: string;
-    } | null;
-  }[];
+  items: StoreExploreItemResponse[];
   nextCursor: string | null;
   hasNext: boolean;
+}
+
+/** 가게 한 줄을 화면 모양으로 */
+export function toExploreStore(item: StoreExploreItemResponse): ExploreStore {
+  return {
+    ownerProfileId: item.ownerProfileId,
+    name: item.storeName,
+    category: item.businessCategory.name,
+    address: item.storeAddress,
+    photo: item.profileImageUrl,
+    concern: item.concern
+      ? {
+          title: item.concern.title,
+          description: item.concern.description,
+          category: item.concern.specialtyCategory?.name ?? null,
+          updatedAt: item.concern.updatedAt,
+        }
+      : null,
+  };
 }
 
 /** 백엔드 한 번에 최대 100개 (StoreExploreRequest) */
@@ -39,23 +61,7 @@ export async function fetchAllExploreStores(): Promise<ExploreStore[]> {
     const data: StoreExploreResponse | undefined = await apiData<StoreExploreResponse | undefined>(
       `/explore/stores?${params.toString()}`,
     );
-    for (const item of data?.items ?? []) {
-      stores.push({
-        ownerProfileId: item.ownerProfileId,
-        name: item.storeName,
-        category: item.businessCategory.name,
-        address: item.storeAddress,
-        photo: item.profileImageUrl,
-        concern: item.concern
-          ? {
-              title: item.concern.title,
-              description: item.concern.description,
-              category: item.concern.specialtyCategory?.name ?? null,
-              updatedAt: item.concern.updatedAt,
-            }
-          : null,
-      });
-    }
+    stores.push(...(data?.items ?? []).map(toExploreStore));
     if (!data?.hasNext || !data.nextCursor) break;
     cursor = data.nextCursor;
   }

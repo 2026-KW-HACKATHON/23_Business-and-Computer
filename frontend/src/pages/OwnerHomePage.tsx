@@ -19,7 +19,6 @@ import {
   WAITING_STATUS_LABEL,
   deadlineText,
   studentLabel,
-  useOwnerConcern,
   useOwnerHome,
 } from "../features/owner";
 import type { OwnerTodo, OwnerWorkingItem } from "../features/owner";
@@ -38,8 +37,8 @@ import "./OwnerHomePage.css";
  * 보인다 (ADR 0051).
  * 섹션은 모두 GET /me/home 한 번에서 온다 (ADR 0064). 홈을 불러오는 중 · 실패면 확인할 일 아래에 안내 줄
  * 하나만 보이고, 홈은 왔는데 섹션 하나만 실패하면 그 섹션 자리에 안내 줄을 보인다. 개수는 불러온 섹션만 보인다.
- * 확인할 일 바로 아래에는 가게 고민 카드(GET /owners/me/concern, ADR 0070)를 둔다. 고민을 불러오는 중이거나
- * 실패하면 카드만 숨긴다.
+ * 확인할 일 바로 아래에는 가게 고민 카드(ADR 0070)를 둔다. 고민도 GET /me/home 에서 함께 온다 (ADR 0080).
+ * 고민을 불러오는 중이거나 실패하면 카드만 숨긴다.
  */
 /** 가입 후 첫 안내 말풍선: ① 확인할 일 · ② 새 의뢰 · ③ 알림 */
 const SIGNUP_GUIDE_TIPS = [
@@ -64,7 +63,7 @@ function OwnerHomePage() {
     setDemoGuide(false);
   };
   const home = useOwnerHome();
-  const { load: concernLoad } = useOwnerConcern();
+  const concernLoad = home.concern;
   // 끝난 일은 접힌 채 최근 1건만 보인다
   const [doneExpanded, setDoneExpanded] = useState(false);
   const exampleScroll = useDragScroll<HTMLUListElement>();
