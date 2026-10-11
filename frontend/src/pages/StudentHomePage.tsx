@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
+  AppImage,
   CategoryBadge,
   DemoGuide,
   LoadNotice,
@@ -117,6 +118,23 @@ function StudentHomePage() {
       likedByMe: proposal.likedByMe,
     });
 
+  // 맨 위 「나에게 맞는 일 찾기」 배너. 처음 홈 · 둘러보기 · 불러오는 중에도 늘 보이고 닫지 않는다 (ADR 0072)
+  const finderBanner = (
+    <button type="button" className="student-home__finder" onClick={() => navigate(STUDENT_PATHS.jobFinder(1))}>
+      <span className="student-home__finder-text">
+        <strong>어떤 일을 해 볼지 모르겠다면?</strong>
+        <span>몇 가지에 답하면 지금 지원하기 좋은 의뢰를 골라 드려요</span>
+        <span className="student-home__finder-link">
+          1분 만에 찾아보기{" "}
+          <span className="student-home__finder-arrow" aria-hidden="true">
+            ›
+          </span>
+        </span>
+      </span>
+      <AppImage name="iconFieldAll" width={56} alt="" />
+    </button>
+  );
+
   const examplesSection = (
     <section className="student-home__section student-home__section--wide">
       <div className="student-home__section-head">
@@ -150,6 +168,7 @@ function StudentHomePage() {
   if (load.status !== "loaded") {
     return (
       <StudentTabScreen tab="home" showFab>
+        {finderBanner}
         <section className="student-home__section">
           <LoadNotice
             status={load.status}
@@ -197,6 +216,7 @@ function StudentHomePage() {
   if (home.firstVisit === undefined) {
     return (
       <StudentTabScreen tab="home" showFab>
+        {finderBanner}
         <section className="student-home__section">{sectionNotice("홈을")}</section>
       </StudentTabScreen>
     );
@@ -205,6 +225,7 @@ function StudentHomePage() {
   if (home.firstVisit) {
     return (
       <StudentTabScreen tab="home" showFab>
+        {finderBanner}
         <section className="student-home__section">
           <SectionHeader title="확인할 일" count={0} />
           <div ref={firstCardRef}>
@@ -231,6 +252,7 @@ function StudentHomePage() {
 
   return (
     <StudentTabScreen tab="home" showFab>
+      {finderBanner}
       <section className="student-home__section">
         {todos === null ? (
           <>
