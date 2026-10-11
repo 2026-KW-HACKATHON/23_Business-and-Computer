@@ -12,6 +12,8 @@ import java.util.stream.Stream;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 
+import com.gakkum.backend.application.explore.dto.ExploreQueryDto.StoreItemResult;
+import com.gakkum.backend.application.explore.dto.StoreExploreResponse;
 import com.gakkum.backend.application.home.dto.HomeQueryDto.OwnerClosedJob;
 import com.gakkum.backend.application.home.dto.HomeQueryDto.OwnerOpenJob;
 import com.gakkum.backend.application.home.dto.HomeQueryDto.OwnerProgressJob;
@@ -26,11 +28,13 @@ import com.gakkum.backend.application.home.dto.HomeResponse;
 import com.gakkum.backend.application.home.dto.OwnerHomeResponse;
 import com.gakkum.backend.application.home.dto.StudentHomeResponse;
 import com.gakkum.backend.application.home.service.HomeQueryService;
+import com.gakkum.backend.application.owner.dto.StoreConcernResponse;
 import com.gakkum.backend.domain.job.entity.Job;
 import com.gakkum.backend.domain.job.entity.JobProgressStage;
 import com.gakkum.backend.domain.job.entity.JobStatus;
 import com.gakkum.backend.domain.job.entity.JobSubmission;
 import com.gakkum.backend.domain.job.entity.JobSubmissionReviewStatus;
+import com.gakkum.backend.domain.owner.dto.OwnerQueryDto.StoreConcernResult;
 import com.gakkum.backend.domain.owner.entity.Owner;
 import com.gakkum.backend.domain.owner.service.OwnerService;
 import com.gakkum.backend.domain.proposal.entity.ProposalStatus;
@@ -83,6 +87,8 @@ public class HomeFacade {
                 () -> homeQueryService.getOwnerProgressJobs(ownerProfileId));
         List<OwnerClosedJob> closed = load("owner.closedJobs", ownerProfileId,
                 () -> homeQueryService.getOwnerClosedJobs(ownerProfileId));
+        List<StoreConcernResult> concernResults = load("owner.concern", ownerProfileId,
+                () -> homeQueryService.getOwnerConcerns(ownerProfileId));
 
         // 지금 지킬 마감이 빠른 것부터, 모집 중 의뢰는 초안 마감이 빠른 것부터. 같은 날이면 목록 순서를 지킨다
         List<OwnerProgressJob> progressByDue = progress == null ? null : progress.stream()
@@ -122,8 +128,14 @@ public class HomeFacade {
                 .map(OwnerHomeResponse.Done::from)
                 .toList();
 
+        List<StoreConcernResponse> concerns = concernResults == null ? null : concernResults.stream()
+                .map(StoreConcernResponse::from)
+                .toList();
+
+        // 가게 고민은 일감 섹션에 덧붙는 정보라 고민만 성공한 것은 부분 성공으로 보지 않는다
         requireAnySection(ownerProfileId, todos, working, waiting, done);
-        return OwnerHomeResponse.of(firstVisit(open, proposals, progress, closed), todos, working, waiting, done);
+        return OwnerHomeResponse.of(firstVisit(open, proposals, progress, closed), todos, working, waiting, done,
+                concerns);
     }
 
     private StudentHomeResponse getStudentHome(User user) {
@@ -141,6 +153,8 @@ public class HomeFacade {
                 () -> homeQueryService.getStudentSettlements(user.getUsername()));
         List<PeerProposal> peers = load("student.peerProposals", studentProfileId,
                 () -> homeQueryService.getPeerProposals(studentProfileId, user.getDemoSessionId()));
+        List<StoreItemResult> concernStores = load("student.newStoreConcerns", studentProfileId,
+                () -> homeQueryService.getNewStoreConcerns(user.getDemoSessionId()));
 
         List<StudentHomeResponse.Todo> todos = null;
         if (proposals != null && progress != null) {
@@ -181,12 +195,17 @@ public class HomeFacade {
                 .map(StudentHomeResponse.Done::from)
                 .toList();
 
+        List<StoreExploreResponse.Item> newStoreConcerns = concernStores == null ? null : concernStores.stream()
+                .map(StoreExploreResponse.Item::from)
+                .toList();
+
+        // 새로 올라온 가게 고민은 탐색 가게 목록을 앞당겨 보여 주는 것이라 이것만 성공한 것은 부분 성공으로 보지 않는다
         requireAnySection(studentProfileId, todos, checking, waiting, peerProposals, done);
         // 다른 학생 제안은 내 이력이 아니다. 정산 내역은 한 줄이라도 있으면 이력이다
         List<?> settlementHistory = settlements == null ? null
                 : settlements.isHasHistory() ? List.of(Boolean.TRUE) : List.of();
         return StudentHomeResponse.of(firstVisit(proposals, applications, progress, settlementHistory),
-                todos, checking, waiting, peerProposals, done);
+                todos, checking, waiting, peerProposals, done, newStoreConcerns);
     }
 
     /**

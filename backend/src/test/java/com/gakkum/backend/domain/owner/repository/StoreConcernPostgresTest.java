@@ -17,6 +17,7 @@ import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabas
 import org.springframework.dao.DataIntegrityViolationException;
 
 import com.gakkum.backend.domain.owner.dto.OwnerCommandDto.SaveStoreConcernCommand;
+import com.gakkum.backend.domain.owner.entity.Owner;
 import com.gakkum.backend.domain.owner.entity.StoreConcern;
 import com.gakkum.backend.domain.owner.service.StoreConcernService;
 
@@ -38,6 +39,9 @@ class StoreConcernPostgresTest {
 
     @Autowired
     private StoreConcernRepository storeConcernRepository;
+
+    @Autowired
+    private OwnerRepository ownerRepository;
 
     @Autowired
     private EntityManager entityManager;
@@ -90,6 +94,41 @@ class StoreConcernPostgresTest {
         assertThat(updated.getId()).isEqualTo(first.getId());
         assertThat(storeConcernRepository.findByOwnerProfileIdAndResolvedAtIsNull(OWNER_ID))
                 .get().extracting(StoreConcern::getTitle).isEqualTo("고친 고민");
+    }
+
+    @Test
+    @DisplayName("새로 올라온 고민은 같은 데모 세션 가게의 해결되지 않은 고민만 최근에 고친 순으로 정한 수까지 읽는다")
+    void readsNewestOpenConcernsInDemoScope() throws InterruptedException {
+        String demo = "01K58M6PJV8VAJMXHBHJ2CNCRN";
+        Owner first = owner("A", demo);
+        Owner second = owner("B", demo);
+        Owner third = owner("C", demo);
+        Owner resolved = owner("D", demo);
+        Owner otherDemo = owner("E", "01K58M6PJV8VAJMXHBHJ2OTHER");
+        service.saveConcern(first.getId(), command("가장 먼저 올린 고민"));
+        Thread.sleep(5);
+        service.saveConcern(second.getId(), command("두 번째 고민"));
+        Thread.sleep(5);
+        service.saveConcern(resolved.getId(), command("해결한 고민"));
+        service.resolveConcern(resolved.getId());
+        service.saveConcern(otherDemo.getId(), command("다른 둘러보기 고민"));
+        Thread.sleep(5);
+        service.saveConcern(third.getId(), command("세 번째 고민"));
+        Thread.sleep(5);
+        // 고치면 맨 앞으로 온다
+        service.saveConcern(first.getId(), command("고친 고민"));
+        entityManager.clear();
+
+        assertThat(service.getNewestOpenConcerns(demo, 2))
+                .extracting(StoreConcern::getTitle).containsExactly("고친 고민", "세 번째 고민");
+        assertThat(service.getNewestOpenConcerns(demo, 10))
+                .extracting(StoreConcern::getTitle).containsExactly("고친 고민", "세 번째 고민", "두 번째 고민");
+    }
+
+    private Owner owner(String suffix, String demoSessionId) {
+        return ownerRepository.saveAndFlush(Owner.create("01K58M6PJV8VAJMXHBHJ2CNCR" + suffix,
+                "CNCR-TEST-" + suffix, null, null, "가게 " + suffix, 1L, null, null, null, List.of(),
+                demoSessionId));
     }
 
     private SaveStoreConcernCommand command(String title) {

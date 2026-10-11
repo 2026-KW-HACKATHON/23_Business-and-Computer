@@ -8,6 +8,7 @@ import com.gakkum.backend.application.home.dto.HomeQueryDto.OwnerClosedJob;
 import com.gakkum.backend.application.home.dto.HomeQueryDto.OwnerOpenJob;
 import com.gakkum.backend.application.home.dto.HomeQueryDto.OwnerProgressJob;
 import com.gakkum.backend.application.home.dto.HomeQueryDto.OwnerReceivedProposal;
+import com.gakkum.backend.application.owner.dto.StoreConcernResponse;
 import com.gakkum.backend.domain.job.entity.Job;
 import com.gakkum.backend.domain.job.entity.JobSubmission;
 import com.gakkum.backend.domain.job.entity.JobSubmissionType;
@@ -38,10 +39,12 @@ public class OwnerHomeResponse implements HomeResponse {
     private final List<Working> working;
     private final List<Waiting> waiting;
     private final List<Done> done;
+    // 해결되지 않은 가게 고민 (GET /owners/me/concern과 같은 내용). 가게마다 하나라서 비었거나 하나다
+    private final List<StoreConcernResponse> concerns;
 
     public static OwnerHomeResponse of(Boolean firstVisit, List<Todo> todos, List<Working> working,
-            List<Waiting> waiting, List<Done> done) {
-        return new OwnerHomeResponse(UserRole.OWNER, firstVisit, todos, working, waiting, done);
+            List<Waiting> waiting, List<Done> done, List<StoreConcernResponse> concerns) {
+        return new OwnerHomeResponse(UserRole.OWNER, firstVisit, todos, working, waiting, done, concerns);
     }
 
     /** 확인할 일. type에 따라 필요한 값만 채우고 나머지는 내리지 않는다. */
