@@ -22,8 +22,8 @@ owner's 「맡길 일 찾기」 (ADR 0068).
 - **Banner** (student home, above 확인할 일, also on the first-visit home,
   while the home loads, and in 둘러보기): the same shape and motion as the
   owner banner on a left-to-right gradient from #fdeef3 to #f6cfdc, 「어떤
-  일을 해 볼지 모르겠다면?」, 「몇 가지에 답하면 지금 지원하기 좋은 의뢰를
-  골라 드려요」, 「1분 만에 찾아보기 ›」 in student color, and the 3D
+  일을 해 볼지 모르겠다면?」, 「몇 가지에 답하면 맞는 일을 골라 드려요」 (one
+  line), 「1분 만에 찾아보기 ›」 in student color, and the 3D
   「전체」 field icon. No close button.
 - **Questions** (/student/job-finder/:step, 1–3, app bar 「나에게 맞는 일
   찾기」, the owner finder layout with student color, progress 「n/3」):
