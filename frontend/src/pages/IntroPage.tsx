@@ -1,11 +1,30 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import type { ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import { AppImage } from "../components";
 import { landingPath } from "../features/auth";
 import "./IntroPage.css";
 
-/** 한 단계씩 차례로 나타난다 (0.4초 간격, 5단계면 약 2초) */
-const FLOW_STEPS = ["제안 또는 의뢰", "작업 시작", "초안", "수정", "완료"];
+/**
+ * 한 단계씩 차례로 나타난다 (0.4초 간격, 5단계면 약 2초).
+ * 1단계만 두 갈래(사장님 의뢰 또는 학생 제안)이고 2단계부터 같은 흐름이다 (ADR 0075).
+ */
+const FLOW_STEPS: readonly { key: string; label: ReactNode }[] = [
+  {
+    key: "start",
+    label: (
+      <span className="intro__either">
+        <span className="intro__chip intro__chip--owner">사장님 의뢰</span>
+        <span className="intro__or">또는</span>
+        <span className="intro__chip intro__chip--student">학생 제안</span>
+      </span>
+    ),
+  },
+  { key: "work", label: "작업 시작" },
+  { key: "draft", label: "초안" },
+  { key: "revision", label: "수정" },
+  { key: "done", label: "완료" },
+];
 
 /** 다 나타난 뒤 1초 더 머물러 모두 3초 */
 const AUTO_LEAVE_MS = 3000;
@@ -57,8 +76,8 @@ function IntroPage() {
       <span className="intro__flow">
         <span className="intro__flow-title">저희 서비스의 흐름이에요</span>
         <span className="intro__steps">
-          {FLOW_STEPS.map((label, i) => (
-            <span key={label} className="intro__step" style={{ animationDelay: `${i * 0.4}s` }}>
+          {FLOW_STEPS.map(({ key, label }, i) => (
+            <span key={key} className="intro__step" style={{ animationDelay: `${i * 0.4}s` }}>
               <span className="intro__step-number">{i + 1}</span>
               {label}
             </span>
