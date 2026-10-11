@@ -2,9 +2,10 @@
 
 ## Status
 
-Accepted. On the main tab screens (홈 · 탐색 · 채팅) the top app bar is light
-owner yellow for owners and light student magenta for students, instead of
-the shared gray.
+Accepted. On owner and student screens the top app bar is light owner
+yellow for owners and light student magenta for students, instead of the
+shared gray: the main tab bars (홈 · 탐색 · 채팅) and the 「← 제목」 bars of
+sub screens.
 
 ## Context
 
@@ -25,7 +26,10 @@ the shared gray.
   bar.
 - On the tinted bar the 둘러보기 role badge (「학생으로 보기 ⇄」) has a white
   background so it does not blend into the yellow.
-- Sub screens (← app bars) keep their current look.
+- Sub screens: `--role-bar` follows `<html data-role>` (set from the URL by
+  `RoleColorScope`), so the gray `app-bar--muted` bar of `SubScreen`
+  becomes the same owner or student tint. Screens without a role (로그인,
+  역할 선택) keep the gray.
 
 ## Rationale
 
