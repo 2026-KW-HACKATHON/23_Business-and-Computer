@@ -11,9 +11,10 @@
   font-family: var(--font-sans);
 }
 
+/* 제목이 두 줄이면 아이콘 · 마감은 첫 줄에 맞춘다 */
 .student-card__head {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 6px;
 }
 
@@ -32,7 +33,7 @@
   word-break: keep-all;
   overflow-wrap: break-word;
   cursor: pointer;
-  text-wrap: balance;
+  text-wrap: pretty;
 }
 
 .student-card__title:focus-visible {
