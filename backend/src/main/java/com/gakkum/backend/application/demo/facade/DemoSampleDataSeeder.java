@@ -44,15 +44,12 @@ import com.gakkum.backend.domain.job.entity.JobSubmissionReviewStatus;
 import com.gakkum.backend.domain.job.entity.JobSubmissionType;
 import com.gakkum.backend.domain.notification.dto.NotificationEvent;
 import com.gakkum.backend.domain.notification.dto.NotificationEventFactory;
-import com.gakkum.backend.domain.owner.dto.OwnerCommandDto.CreateOwnerProfileCommand;
 import com.gakkum.backend.domain.owner.entity.Owner;
-import com.gakkum.backend.domain.owner.service.OwnerService;
 import com.gakkum.backend.domain.payment.entity.Payment;
 import com.gakkum.backend.domain.proposal.entity.Proposal;
 import com.gakkum.backend.domain.review.entity.Review;
 import com.gakkum.backend.domain.review.entity.ReviewPositivePoint;
 import com.gakkum.backend.domain.specialty.service.SpecialtyService;
-import com.gakkum.backend.domain.student.dto.StudentCommandDto.CreateStudentProfileCommand;
 import com.gakkum.backend.domain.owner.entity.StoreConcern;
 import com.gakkum.backend.domain.specialty.service.SpecialtyCategoryService;
 import com.gakkum.backend.domain.student.entity.Student;
@@ -60,6 +57,7 @@ import com.gakkum.backend.domain.student.service.StudentService;
 import com.gakkum.backend.domain.user.entity.User;
 import com.gakkum.backend.domain.user.entity.UserRole;
 import com.gakkum.backend.domain.user.service.UserService;
+import com.gakkum.backend.util.UlidGenerator;
 
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
@@ -70,7 +68,7 @@ import tools.jackson.databind.ObjectMapper;
  * 새 데모 세션의 예시 데이터. 방문자 사장님·학생이 홈·내 활동·탐색·채팅·결제 내역의 상태를 처음부터 모두 볼 수 있게 채운다.
  * 학생 지원자·다른 학생의 제안·다른 가게의 의뢰가 필요해서 같은 세션에 로그인할 수 없는 예시 사장님·학생을 둔다.
  * 결제는 카카오페이를 거치지 않고 PaymentApprovalService·ProposalFacade와 같은 순서로 상태만 바꾼다.
- * 의뢰 · 지원 · 결제 · 제출 · 후기 · 제안 · 가게 고민 · 채팅방은 서비스를 거치지 않고 엔티티를 바로 만든다. 서비스의 잠금
+ * 예시 계정 · 프로필과 의뢰 · 지원 · 결제 · 제출 · 후기 · 제안 · 가게 고민 · 채팅방은 서비스를 거치지 않고 엔티티를 바로 만든다. 서비스의 잠금
  * 조회와 중복 확인은 막 만든 예시 데이터에는 필요 없다. 상태는 서비스와 같은 엔티티 메서드로 바꾸고, 엔티티는 저장소에 넣지 않고
  * 모았다가 마지막에 표마다 쿼리 한 번으로 넣는다. id 를 DB 가 정하는 표(IDENTITY)는 엔티티를 저장할 때마다 DB 왕복이라
  * 둘러보기 시작이 느려지므로, 같은 시퀀스에서 id 를 미리 한 번에 받아 둔다.
@@ -99,10 +97,11 @@ public class DemoSampleDataSeeder {
             JobSubmission.class, new IdTable("job_submissions", 19),
             Review.class, new IdTable("reviews", 12),
             Proposal.class, new IdTable("proposals", 10),
-            StoreConcern.class, new IdTable("store_concerns", 4));
+            StoreConcern.class, new IdTable("store_concerns", 4),
+            Owner.class, new IdTable("owner_profiles", 4),
+            Student.class, new IdTable("student_profiles", 5));
 
     private final UserService userService;
-    private final OwnerService ownerService;
     private final StudentService studentService;
     private final BusinessCategoryService businessCategoryService;
     private final SpecialtyService specialtyService;
@@ -126,6 +125,7 @@ public class DemoSampleDataSeeder {
         private static final ValueColumn BIGINT = new ValueColumn("bigint", Long.class);
         private static final ValueColumn INTEGER = new ValueColumn("integer", Integer.class);
         private static final ValueColumn VARCHAR = new ValueColumn("varchar", String.class);
+        private static final ValueColumn BOOLEAN = new ValueColumn("boolean", Boolean.class);
         private static final ValueColumn UUID = new ValueColumn("uuid", java.util.UUID.class);
         private static final ValueColumn DATE = new ValueColumn("date", LocalDate.class);
         private static final ValueColumn JSONB = new ValueColumn("jsonb", String.class);
@@ -827,10 +827,10 @@ public class DemoSampleDataSeeder {
         /** @param admissionYear 입학 연도 두 자리. 화면에 「24학번」처럼 보인다 */
         private Student student(int number, int admissionYear, String name, String major, String introduction,
                                 String... specialties) {
-            User user = userService.createDemoSampleUser(demoSessionId, UserRole.STUDENT, number, name);
-            Student student = studentService.createStudentProfile(CreateStudentProfileCommand.of(
-                    user.getId(), UNIVERSITY, DemoStudentNumbers.next(studentService, admissionYear), major, null,
-                    introduction, null));
+            User user = sampleUser(UserRole.STUDENT, number, name);
+            // StudentService.createStudentProfile 과 같은 프로필
+            Student student = stage(Student.create(user.getId(), UNIVERSITY,
+                    DemoStudentNumbers.next(studentService, admissionYear), major, null, introduction, null));
             // SpecialtyService.addStudentSpecialty 와 같은 특기 (특기 이름으로 찾은 id 라 있는지 다시 묻지 않는다)
             LocalDateTime specialtyCreatedAt = creationTime();
             for (Long specialtyId : specialties(specialties)) {
@@ -844,16 +844,31 @@ public class DemoSampleDataSeeder {
         /** 예시 가게. imageFile 은 프론트 public/demo 의 가게 사진 파일 이름이고, 없으면 사진 없이 둔다 */
         private Owner store(int number, String ownerName, String storeName, String categoryName, String address,
                             String description, String imageFile) {
-            User user = userService.createDemoSampleUser(demoSessionId, UserRole.OWNER, number, ownerName);
+            User user = sampleUser(UserRole.OWNER, number, ownerName);
             Long categoryId = categoryIds.containsKey(categoryName)
                     ? categoryIds.get(categoryName)
                     : businessCategoryService.getFirstCategoryId();
-            Owner owner = ownerService.createOwnerProfile(CreateOwnerProfileCommand.of(
-                    user.getId(), "DEMO-" + demoSessionId + "-" + number, null, ownerName, storeName, categoryId,
-                    address, description, imageFile == null ? null : profileImageBaseUrl + "/demo/" + imageFile,
-                    List.of()), demoSessionId);
+            // OwnerService.createOwnerProfile 과 같은 가게
+            Owner owner = stage(Owner.create(user.getId(), "DEMO-" + demoSessionId + "-" + number, null, ownerName,
+                    storeName, categoryId, address, description,
+                    imageFile == null ? null : profileImageBaseUrl + "/demo/" + imageFile, List.of(), demoSessionId));
             stores.put(owner.getId(), owner);
             return owner;
+        }
+
+        /**
+         * UserService.createDemoSampleUser 와 같은 예시 사장님 · 학생 계정. 방문자 계정과 같은 demoSessionId 를 쓰지만 잠긴
+         * 계정이라 로그인할 수 없다. username 은 DEMO_<세션>_<역할>_<번호>다
+         */
+        private User sampleUser(UserRole role, int number, String name) {
+            return stage(User.builder()
+                    .id(UlidGenerator.generate())
+                    .username("DEMO_" + demoSessionId + "_" + role.name() + "_" + number)
+                    .name(name)
+                    .isLock(true)
+                    .role(role)
+                    .demoSessionId(demoSessionId)
+                    .build());
         }
 
         /**
@@ -1304,8 +1319,46 @@ public class DemoSampleDataSeeder {
                     .add("created_at", ValueColumn.TIMESTAMP, room -> creationTime()));
         }
 
-        /** 상태를 다 바꾼 의뢰 · 지원 · 결제 · 제출물 · 후기 · 제안 · 가게 고민을 넣는다. 칼럼은 엔티티 매핑과 같다 */
+        /** 예시 계정 · 프로필과 상태를 다 바꾼 의뢰 · 지원 · 결제 · 제출물 · 후기 · 제안 · 가게 고민을 넣는다. 칼럼은 엔티티 매핑과 같다 */
         private void insertEntities() {
+            insertEntities(User.class, "users", new EntityColumns<User>()
+                    .add("user_id", ValueColumn.VARCHAR, User::getId)
+                    .add("email", ValueColumn.VARCHAR, User::getEmail)
+                    .add("name", ValueColumn.VARCHAR, User::getName)
+                    .add("username", ValueColumn.VARCHAR, User::getUsername)
+                    .add("is_lock", ValueColumn.BOOLEAN, User::getIsLock)
+                    .add("social_provider_type", ValueColumn.VARCHAR, user -> name(user.getSocialProviderType()))
+                    .add("role", ValueColumn.VARCHAR, user -> name(user.getRole()))
+                    .add("demo_session_id", ValueColumn.VARCHAR, User::getDemoSessionId)
+                    .add("created_at", ValueColumn.TIMESTAMP, user -> creationTime())
+                    .add("updated_at", ValueColumn.TIMESTAMP, user -> creationTime()));
+            insertEntities(Owner.class, "owner_profiles", new EntityColumns<Owner>()
+                    .add("id", ValueColumn.BIGINT, Owner::getId)
+                    .add("user_id", ValueColumn.VARCHAR, Owner::getUserId)
+                    .add("business_number", ValueColumn.VARCHAR, Owner::getBusinessNumber)
+                    .add("opened_at", ValueColumn.DATE, Owner::getOpenedAt)
+                    .add("representative_name", ValueColumn.VARCHAR, Owner::getRepresentativeName)
+                    .add("store_name", ValueColumn.VARCHAR, Owner::getStoreName)
+                    .add("category_id", ValueColumn.BIGINT, Owner::getCategoryId)
+                    .add("store_address", ValueColumn.VARCHAR, Owner::getStoreAddress)
+                    .add("description", ValueColumn.VARCHAR, Owner::getDescription)
+                    .add("profile_image_url", ValueColumn.VARCHAR, Owner::getProfileImageUrl)
+                    .add("store_image_url", ValueColumn.JSONB, owner -> json(owner.getStoreImageUrls()))
+                    .add("demo_session_id", ValueColumn.VARCHAR, Owner::getDemoSessionId)
+                    .add("created_at", ValueColumn.TIMESTAMP, owner -> creationTime())
+                    .add("updated_at", ValueColumn.TIMESTAMP, owner -> creationTime()));
+            insertEntities(Student.class, "student_profiles", new EntityColumns<Student>()
+                    .add("id", ValueColumn.BIGINT, Student::getId)
+                    .add("user_id", ValueColumn.VARCHAR, Student::getUserId)
+                    .add("university", ValueColumn.VARCHAR, Student::getUniversity)
+                    .add("student_number", ValueColumn.VARCHAR, Student::getStudentNumber)
+                    .add("major", ValueColumn.VARCHAR, Student::getMajor)
+                    .add("portfolio_url", ValueColumn.VARCHAR, Student::getPortfolioUrl)
+                    .add("introduction", ValueColumn.VARCHAR, Student::getIntroduction)
+                    .add("profile_image_url", ValueColumn.VARCHAR, Student::getProfileImageUrl)
+                    .add("penalty_count", ValueColumn.INTEGER, Student::getPenaltyCount)
+                    .add("created_at", ValueColumn.TIMESTAMP, student -> creationTime())
+                    .add("updated_at", ValueColumn.TIMESTAMP, student -> creationTime()));
             insertEntities(Job.class, "jobs", new EntityColumns<Job>()
                     .add("id", ValueColumn.BIGINT, Job::getId)
                     .add("owner_profile_id", ValueColumn.BIGINT, Job::getOwnerProfileId)
