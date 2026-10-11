@@ -3,7 +3,7 @@
 ## Status
 
 Accepted. The student home shows a 「나에게 맞는 일 찾기」 banner above
-확인할 일. It opens three questions (fields, weekly hours, budget) and a
+확인할 일. It opens three questions (fields, how much time the student has, budget) and a
 result with the open requests that fit best, the student-side twin of the
 owner's 「맡길 일 찾기」 (ADR 0068).
 
@@ -29,19 +29,20 @@ owner's 「맡길 일 찾기」 (ADR 0068).
   찾기」, the owner finder layout with student color, progress 「n/3」):
   1. 「어떤 일을 해 보고 싶나요?」: the six field chips (several) or
      「아무 일이나 좋아요」 (alone), then 「다음」.
-  2. 「일주일에 시간을 얼마나 낼 수 있나요?」: 3시간이 안 돼요 / 3~8시간쯤
-     돼요 / 8시간 넘게 돼요.
+  2. 「요즘 얼마나 여유가 있나요?」 (「첫 결과물(초안)을 보낼 때까지 필요한
+     시간이에요」): 지금 바로 시작할 수 있어요 / 1주쯤 여유를 두고 하고
+     싶어요 / 시험·과제로 바빠서 2주는 필요해요.
   3. 「작업비는 어느 정도면 좋을까요?」: 2만 원이면 충분해요 / 2만~4만 원이
      좋아요 / 4만 원 넘는 일이 좋아요.
   Tapping an answer goes on; 「건너뛰기」 on the app bar opens the result
   with the rest unanswered. Answers travel in the route state
-  (`{ jobFinder: { fields, hours, budget } }`, `null` = skipped), so ←
+  (`{ jobFinder: { fields, pace, budget } }`, `null` = skipped), so ←
   keeps them. A step whose earlier answers are missing goes to question 1.
 - **Scoring** (`src/features/student/lib/jobFinder.ts`): only requests
   that are open, not applied to, and whose draft deadline is today or later.
   With fields chosen, only requests with one of them stay (+3). 「마감
-  여유」 +2 when the draft deadline is at least 10 / 5 / 0 days away for the
-  three hour answers. Budget in the chosen band +2, in the next band +1.
+  여유」 +2 when the draft deadline is at least 0 / 7 / 14 days away for the
+  three answers to question 2. Budget in the chosen band +2, in the next band +1.
   Ties go to the earlier draft deadline.
 - **Result** (/student/job-finder/result): my answers as gray pills (skipped
   ones left out), 「지금 지원하기 좋은 의뢰 N개」 (top three), and 「다른 의뢰
@@ -59,6 +60,10 @@ owner's 「맡길 일 찾기」 (ADR 0068).
 - Three questions are enough to rank the requests we can read; questions
   without data behind them (team or solo, experience) would only look
   thorough.
+- Requests carry deadlines, not hours of work, so question 2 asks how much
+  time the student needs before the first draft and compares it with the
+  draft deadline directly. Asking for weekly hours would need a guessed
+  hours-per-request to turn into days.
 - Filtering by field first and then scoring the rest follows how
   recommendation quizzes work, and the reason chips show why a request was
   picked.

@@ -3,7 +3,7 @@ import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import { Button, CategoryBadge, LoadNotice, SubScreen, TextButton } from "../components";
 import {
   JOB_FINDER_BUDGETS,
-  JOB_FINDER_HOURS,
+  JOB_FINDER_PACE,
   STUDENT_PATHS,
   jobFinderResult,
   readJobFinderAnswers,
@@ -19,10 +19,10 @@ import "./OwnerTaskFinderPage.css";
 import "./StudentJobFinderPage.css";
 
 /** 결과 위에 보이는 내 답 요약. 넘긴 질문은 빠진다 */
-function answerSummary({ fields, hours, budget }: JobFinderAnswers): string[] {
+function answerSummary({ fields, pace, budget }: JobFinderAnswers): string[] {
   return [
     ...(fields === null ? [] : [fields.length === 0 ? "아무 분야나" : fields.join(" · ")]),
-    ...(hours === null ? [] : [JOB_FINDER_HOURS[hours].short]),
+    ...(pace === null ? [] : [JOB_FINDER_PACE[pace].short]),
     ...(budget === null ? [] : [JOB_FINDER_BUDGETS[budget].short]),
   ];
 }

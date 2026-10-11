@@ -5,7 +5,7 @@ import {
   EMPTY_JOB_FINDER_ANSWERS,
   JOB_FINDER_BUDGETS,
   JOB_FINDER_FIELDS,
-  JOB_FINDER_HOURS,
+  JOB_FINDER_PACE,
   JOB_FINDER_STEPS,
   STUDENT_PATHS,
   answeredSteps,
@@ -19,7 +19,7 @@ import "./StudentJobFinderPage.css";
 
 const QUESTIONS = [
   { question: "어떤 일을\n해 보고 싶나요?", hint: "할 수 있는 분야를 모두 골라 주세요" },
-  { question: "일주일에 시간을\n얼마나 낼 수 있나요?", hint: "수업과 함께 할 수 있는 시간이요" },
+  { question: "요즘 얼마나\n여유가 있나요?", hint: "첫 결과물(초안)을 보낼 때까지 필요한 시간이에요" },
   { question: "작업비는\n어느 정도면 좋을까요?", hint: "의뢰 한 건에 받는 작업비예요" },
 ] as const;
 
@@ -122,12 +122,12 @@ function StudentJobFinderPage() {
           </div>
         ) : (
           <div className="task-finder__answers">
-            {(index === 1 ? JOB_FINDER_HOURS : JOB_FINDER_BUDGETS).map(({ label }, choice) => (
+            {(index === 1 ? JOB_FINDER_PACE : JOB_FINDER_BUDGETS).map(({ label }, choice) => (
               <button
                 key={label}
                 type="button"
                 className="task-finder__answer"
-                onClick={() => go(index === 1 ? { ...answers, hours: choice } : { ...answers, budget: choice })}
+                onClick={() => go(index === 1 ? { ...answers, pace: choice } : { ...answers, budget: choice })}
               >
                 {label}
               </button>
