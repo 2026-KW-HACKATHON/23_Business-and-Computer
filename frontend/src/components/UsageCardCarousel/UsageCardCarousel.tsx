@@ -37,7 +37,7 @@ const CARDS: UsageCard[] = [
 ];
 const SLIDES = withLoopClones(CARDS);
 
-const AUTO_ADVANCE_MS = 2000;
+const AUTO_ADVANCE_MS = 3000;
 /** UsageCardCarousel.css 의 transition 시간과 같게 둔다 */
 const SLIDE_MS = 300;
 
@@ -46,7 +46,7 @@ interface UsageCardCarouselProps {
 }
 
 /**
- * 사용법 카드 넘기기 (의뢰 → 제안 → 공감). 카드마다 위에 라벨, 아래에 한 줄 설명. 2초마다 저절로 다음 카드로 넘어가고,
+ * 사용법 카드 넘기기 (의뢰 → 제안 → 공감). 카드마다 위에 라벨, 아래에 한 줄 설명. 3초마다 저절로 다음 카드로 넘어가고,
  * 옆으로 넘기거나 눌러도 넘어간다. 마지막 다음은 오른쪽으로 이어서 처음.
  */
 function UsageCardCarousel({ className = "" }: UsageCardCarouselProps) {
