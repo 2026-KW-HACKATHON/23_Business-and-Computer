@@ -45,7 +45,7 @@ function useOwnerJobLoad<T>(
   const [request, setRequest] = useState(0);
   const [result, setResult] = useState<{ key: string; load: OwnerJobLoad<T> }>();
   const runRef = useRef(run);
-  // 기억해 둔 목록이 뒤에서 새로 바뀌면 다시 그린다 (ADR 0076)
+  // 기억해 둔 목록이 뒤에서 새로 바뀌면 다시 그린다 (ADR 0077)
   const revision = useCachedListRevision();
   useEffect(() => {
     runRef.current = run;

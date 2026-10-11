@@ -30,7 +30,7 @@ export function useStudentHome(): {
   const [request, setRequest] = useState(0);
   const examples = useProposalExamples();
 
-  // 기억해 둔 목록이 뒤에서 새로 바뀌면 다시 그린다 (ADR 0076)
+  // 기억해 둔 목록이 뒤에서 새로 바뀌면 다시 그린다 (ADR 0077)
   const revision = useCachedListRevision();
   useEffect(() => {
     let active = true;
