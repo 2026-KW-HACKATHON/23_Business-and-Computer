@@ -13,6 +13,8 @@
   --color-background: #f9fafb;
   --color-success: #1f883d;
   --color-danger: #f04452;
+  /* 안 읽음 점 (앱바 알림 종 · 채팅 탭). 연노랑 · 연분홍 · 흰 바탕 어디서나 보이는 알림 빨강 */
+  --color-unread: #ff3040;
 
   --role-muted: #f2f4f6;
   --role-secondary: #6b7684;

@@ -94,9 +94,8 @@ owner and its selected student may use a room):
 - **Tab dot** (`useChatUnread`, owner and student): true when any room in
   GET /me/chat-rooms has `unreadCount` above 0. `OwnerTabScreen` and
   `StudentTabScreen` pass it to `MainTabScreen` → `TabBar`, which shows a
-  10px dot in the role color (owner yellow, student purple) with a 2px white
-  ring at the top right of the 「채팅」 icon, like the dot on the app bar's
-  알림 bell. It loads when a tab-bar screen opens, when the tab becomes
+  10px red dot (`--color-unread`, ADR 0077) with a 2px white ring at the top
+  right of the 「채팅」 icon, like the dot on the app bar's 알림 bell. It loads when a tab-bar screen opens, when the tab becomes
   visible, after each read, and every 20 seconds while visible; it stops
   while hidden. A failed load hides the dot. The dot is `aria-hidden`; the tab
   button carries visually hidden text, so a screen reader reads 「채팅, 안 읽은
