@@ -360,7 +360,7 @@ class DemoSampleDataIntegrationTest {
         assertThat(read(ownerToken, "/payments")).contains("포장 스티커 디자인", "인스타 게시물 5개 제작");
         read(ownerToken, "/owners/me");
         assertThat(read(ownerToken, "/me/chat-rooms")).contains("수정 요청 남겼어요");
-        assertThat(read(ownerToken, "/explore?type=ALL&sort=LATEST&size=20")).contains("카페베르데");
+        assertThat(read(ownerToken, "/explore?type=ALL&sort=LATEST&size=20")).contains("카페O르데");
 
         read(ownerToken, "/jobs/" + id("신메뉴 인스타그램 홍보 게시물") + "/applications?sort=LATEST");
         assertThat(read(ownerToken, "/jobs/" + id("단골 쿠폰·도장카드 디자인") + "/submission")).contains("도장카드 시안");
@@ -389,10 +389,10 @@ class DemoSampleDataIntegrationTest {
                 .contains("가게 소개 릴스 영상 편집", "쿠폰·스티커 디자인", "가게 소개글 다시 쓰기");
         assertThat(read(studentToken, "/explore?type=PROPOSAL&sort=LIKES&size=5"))
                 .contains("인기 메뉴를 강조한 메뉴판 시안", "시험 기간 광운대생 이벤트 기획");
-        assertThat(read(studentToken, "/explore/stores?sort=OLDEST&size=100")).contains("치킨플러스");
+        assertThat(read(studentToken, "/explore/stores?sort=OLDEST&size=100")).contains("치킨O러스");
         read(studentToken, "/students/me");
         read(studentToken, "/settlements");
-        assertThat(read(studentToken, "/me/chat-rooms")).contains("카페베르데");
+        assertThat(read(studentToken, "/me/chat-rooms")).contains("카페O르데");
 
         assertThat(read(studentToken, "/jobs/" + id("가게 소개 릴스 영상 편집") + "/submissions/latest"))
                 .contains("자막이 조금 작아서 한 단계 키워 주세요");

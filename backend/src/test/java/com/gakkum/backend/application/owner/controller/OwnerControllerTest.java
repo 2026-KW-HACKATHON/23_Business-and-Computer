@@ -77,7 +77,7 @@ class OwnerControllerTest {
     @Test
     void acceptsRequestWithOnlyRequiredFields() {
         OwnerRegistrationRequest request = OwnerRegistrationRequest.of(
-                "김사장", "치킨플러스", null, 2L, "1234567890", LocalDate.of(2020, 3, 1), "김사장", null, null, null);
+                "김사장", "치킨O러스", null, 2L, "1234567890", LocalDate.of(2020, 3, 1), "김사장", null, null, null);
 
         assertThat(validator.validate(request)).isEmpty();
     }
@@ -111,7 +111,7 @@ class OwnerControllerTest {
     @DisplayName("국세청 진위 확인에 필요한 개업일과 대표자 이름은 비우거나 공백으로 보낼 수 없다")
     void rejectsMissingOpenedAtOrBlankRepresentativeName() {
         OwnerRegistrationRequest request = OwnerRegistrationRequest.of(
-                "김사장", "치킨플러스", null, 2L, "1234567890", null, "  ", null, null, null);
+                "김사장", "치킨O러스", null, 2L, "1234567890", null, "  ", null, null, null);
 
         assertThat(validator.validate(request))
                 .extracting(violation -> violation.getPropertyPath().toString())
@@ -122,7 +122,7 @@ class OwnerControllerTest {
     @ValueSource(longs = {0L, -1L})
     void rejectsNonPositiveCategoryId(long categoryId) {
         OwnerRegistrationRequest request = OwnerRegistrationRequest.of(
-                "김사장", "치킨플러스", null, categoryId, "1234567890", LocalDate.of(2020, 3, 1), "김사장",
+                "김사장", "치킨O러스", null, categoryId, "1234567890", LocalDate.of(2020, 3, 1), "김사장",
                 null, null, null);
 
         assertThat(validator.validate(request))
@@ -144,9 +144,9 @@ class OwnerControllerTest {
     @Test
     void acceptsTodayButRejectsFutureOpenedAt() {
         OwnerRegistrationRequest today = OwnerRegistrationRequest.of(
-                "김사장", "치킨플러스", null, 2L, "1234567890", LocalDate.now(), "김사장", null, null, null);
+                "김사장", "치킨O러스", null, 2L, "1234567890", LocalDate.now(), "김사장", null, null, null);
         OwnerRegistrationRequest tomorrow = OwnerRegistrationRequest.of(
-                "김사장", "치킨플러스", null, 2L, "1234567890", LocalDate.now().plusDays(1), "김사장",
+                "김사장", "치킨O러스", null, 2L, "1234567890", LocalDate.now().plusDays(1), "김사장",
                 null, null, null);
 
         assertThat(validator.validate(today)).isEmpty();
@@ -158,7 +158,7 @@ class OwnerControllerTest {
     @Test
     void rejectsInvalidImageUrls() {
         OwnerRegistrationRequest request = OwnerRegistrationRequest.of(
-                "김사장", "치킨플러스", null, 2L, "1234567890", LocalDate.of(2020, 3, 1), "김사장", null,
+                "김사장", "치킨O러스", null, 2L, "1234567890", LocalDate.of(2020, 3, 1), "김사장", null,
                 List.of("https://image.example.com/store.png", "not-a-url", " "),
                 "ftp://image.example.com/profile.png");
 
@@ -187,7 +187,7 @@ class OwnerControllerTest {
     void toCommandTrimsValuesAndNormalizesBlankOptionalFields() {
         OwnerRegistrationRequest request = OwnerRegistrationRequest.of(
                 "  김사장  ",
-                " 치킨플러스 ",
+                " 치킨O러스 ",
                 "   ",
                 2L,
                 "123-45-67890",
@@ -202,7 +202,7 @@ class OwnerControllerTest {
         CreateOwnerProfileCommand command = request.toCommand("01K58M6PJV8VAJMXHBHJ2PNB5C");
 
         assertThat(command.getUserId()).isEqualTo("01K58M6PJV8VAJMXHBHJ2PNB5C");
-        assertThat(command.getStoreName()).isEqualTo("치킨플러스");
+        assertThat(command.getStoreName()).isEqualTo("치킨O러스");
         assertThat(command.getStoreAddress()).isNull();
         assertThat(command.getCategoryId()).isEqualTo(2L);
         assertThat(command.getBusinessNumber()).isEqualTo("1234567890");
@@ -222,7 +222,7 @@ class OwnerControllerTest {
     private OwnerRegistrationRequest validRequest(String businessNumber, List<String> storeImageUrls) {
         return OwnerRegistrationRequest.of(
                 "김사장",
-                "치킨플러스",
+                "치킨O러스",
                 "서울시 월계1동 광운로23",
                 2L,
                 businessNumber,

@@ -106,7 +106,7 @@ class JobCreationFlowTest {
             .id(5L)
             .userId(USER_ID)
             .businessNumber("1234567890")
-            .storeName("치킨플러스")
+            .storeName("치킨O러스")
             .categoryId(2L)
             .storeImageUrls(List.of())
             .build();
