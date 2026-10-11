@@ -15,8 +15,8 @@ interface OwnerConcernCardProps {
  * 사장님 홈 「확인할 일」 아래 가게 고민 (ADR 0070).
  * 고민이 없으면 흰 바탕 · 노랑 점선의 「빈 자리」 카드라 위 「맡길 일 찾기」 배너와 겹쳐 보이지 않는다.
  * 고민이 있으면 확인할 일 카드(흰 바탕 · 노랑 테두리 · 꽉 찬 버튼)와 달리 사장님이 털어놓는 말풍선이다.
- * 왼쪽 아래 생각하는 사장님 그림, 꼬리 달린 흰 말풍선 안에 노랑 따옴표 · 제목 · 「— 우리 가게 고민 · 분야 · 올린 날」,
- * 말풍선 아래 오른쪽에 글자 버튼 「고치기 ›」. 섹션 제목 「현재 올려둔 고민」은 홈이 붙인다.
+ * 왼쪽 아래 생각하는 사장님 그림, 그 머리 쪽으로 꼬리가 달린 흰 말풍선 안에 노랑 따옴표 · 제목 ·
+ * 「— 우리 가게 고민 · 분야 · 올린 날」, 말풍선 아래 오른쪽에 진한 노랑 글자 버튼 「고치기 ›」. 섹션 제목 「현재 올려둔 고민」은 홈이 붙인다.
  * 제목 옆 「펼치기」를 누르면 말풍선 안에 회색 「자세한 설명」 상자가 열린다 (설명이 없으면 버튼 없음).
  */
 function OwnerConcernCard({ concern, onOpen }: OwnerConcernCardProps) {
@@ -67,8 +67,8 @@ function OwnerConcernCard({ concern, onOpen }: OwnerConcernCardProps) {
           )}
         </div>
       </div>
-      <TextButton className="owner-concern-card__edit" onClick={onOpen}>
-        고치기
+      <TextButton className="owner-concern-card__edit" showChevron={false} onClick={onOpen}>
+        고치기 ›
       </TextButton>
     </div>
   );

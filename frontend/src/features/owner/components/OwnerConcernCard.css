@@ -72,7 +72,7 @@
   flex-shrink: 0;
 }
 
-/* 흰 말풍선. 꼬리가 왼쪽 아래(그림 쪽)라 그 모서리만 작게 둥글린다 */
+/* 흰 말풍선. 꼬리는 왼쪽, 그림 속 사장님 머리 높이 */
 .owner-concern-card__bubble {
   position: relative;
   display: flex;
@@ -82,14 +82,15 @@
   min-width: 0;
   padding: 14px;
   border: 1px solid var(--role-border);
-  border-radius: 16px 16px 16px 6px;
+  border-radius: 16px;
   background: var(--color-white);
 }
 
-/* 꼬리: 왼쪽 · 아래 테두리만 있는 네모를 45도 돌려 말풍선 테두리에 붙인다 */
+/* 꼬리: 왼쪽 · 아래 테두리만 있는 네모를 45도 돌려 말풍선 테두리에 붙인다.
+   그림(56px 폭, 80px 높이)이 말풍선 아래에 맞춰 있으므로 아래에서 52px 이면 머리 쪽을 향한다 */
 .owner-concern-card__bubble::before {
   position: absolute;
-  bottom: 14px;
+  bottom: 52px;
   left: -6px;
   width: 10px;
   height: 10px;
@@ -128,9 +129,12 @@
   overflow-wrap: break-word;
 }
 
-.owner-concern-card__edit {
+/* 「고민 올리기 ›」와 같은 진한 노랑 굵은 글씨 */
+.owner-concern-card .owner-concern-card__edit {
   align-self: flex-end;
   padding: 4px 0;
+  font-weight: 700;
+  color: #a87600;
 }
 
 .owner-concern-card__status {
