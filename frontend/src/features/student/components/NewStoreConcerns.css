@@ -1,74 +1,84 @@
+/* 흰 카드 하나에 고민 한 줄씩, 줄 사이 1px 선 */
 .new-concerns {
   display: flex;
   flex-direction: column;
-  gap: 8px;
   margin: 0;
   padding: 0;
+  overflow: hidden;
+  border: 1px solid var(--role-border);
+  border-radius: 16px;
+  background: var(--color-white);
   list-style: none;
 }
 
-/* 고민 카드: 제안 3/4 「사장님 고민」 카드와 같은 연한 학생 색 */
-.new-concerns__card {
+.new-concerns > li + li {
+  border-top: 1px solid var(--role-border);
+}
+
+/* 가게 사진 · 글 · 오른쪽 「제안하기」. 줄 전체를 누를 수 있다 */
+.new-concerns__row {
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 6px;
+  align-items: center;
+  gap: 10px;
   box-sizing: border-box;
   width: 100%;
-  padding: 14px 16px;
+  padding: 10px 12px;
   border: 0;
-  border-radius: 14px;
-  background: color-mix(in srgb, var(--color-student) 8%, var(--color-white));
+  background: transparent;
   font-family: var(--font-sans);
   text-align: left;
   cursor: pointer;
 }
 
-.new-concerns__card:focus-visible {
+.new-concerns__row:focus-visible {
   outline: 2px solid var(--role-focus);
-  outline-offset: 2px;
+  outline-offset: -2px;
 }
 
-/* 가게 사진 · 이름 · 업종, 오른쪽에 올린 날 */
-.new-concerns__store {
+.new-concerns__text {
   display: flex;
-  align-items: center;
-  gap: 8px;
-  align-self: stretch;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
   min-width: 0;
 }
 
-.new-concerns__store-name {
-  flex: 1;
-  min-width: 0;
+/* 「가게 · 업종 · 10월 9일」 */
+.new-concerns__meta {
   overflow: hidden;
-  font-size: 13px;
-  font-weight: 500;
-  line-height: 18px;
-  color: var(--text-body);
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--role-secondary);
   white-space: nowrap;
   text-overflow: ellipsis;
 }
 
-.new-concerns__date {
-  flex-shrink: 0;
-  font-size: 12px;
-  line-height: 16px;
-  color: var(--role-secondary);
-}
-
+/* 고민 한 줄. 길면 두 줄까지 (전체 글은 탐색 「가게」 · 제안 3/4 에서) */
 .new-concerns__title {
-  font-size: 15px;
+  display: -webkit-box;
+  overflow: hidden;
+  font-size: 13px;
   font-weight: 700;
-  line-height: 21px;
+  line-height: 19px;
   color: var(--color-black);
   word-break: keep-all;
   overflow-wrap: break-word;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
 }
 
-.new-concerns__link {
-  font-size: 13px;
+/* 오른쪽 작은 학생 색 버튼 모양 (줄 전체가 버튼이라 글자만) */
+.new-concerns__action {
+  flex-shrink: 0;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-student) 10%, var(--color-white));
+  font-size: 12px;
   font-weight: 700;
   line-height: 18px;
   color: var(--color-student);
+}
+
+.new-concerns__row:active .new-concerns__action {
+  background: color-mix(in srgb, var(--color-student) 18%, var(--color-white));
 }

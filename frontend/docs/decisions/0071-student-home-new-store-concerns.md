@@ -26,12 +26,12 @@ opens 제안 보내기 2/4 with that store picked.
   the home is unchanged.
 - **Section**: 「새로 올라온 가게 고민」 with 「전체 ›」 → 탐색 「가게」
   (/student/explore/stores).
-- **Card** (`NewStoreConcerns`): the light student-tint background of the
-  3/4 「사장님 고민」 card, the store photo (28px), 「가게 이름 · 업종」, the
-  date on the right (「M월 D일」 from `updatedAt`), the concern line in
-  quotes (15px bold), and 「이 가게에 제안하기 ›」 in student color. The
-  whole card opens 제안 보내기 2/4 with `{ store }` in the route state, the
-  same as 「제안하기」 in the 가게 tab.
+- **List** (`NewStoreConcerns`): one white bordered card with a row per
+  store, divided by 1px lines: the store photo (32px), 「가게 · 업종 · M월
+  D일」 (12px gray, date from `updatedAt`), the concern line in quotes (13px
+  bold, up to two lines), and a small student-tint 「제안하기」 pill on the right.
+  The whole row opens 제안 보내기 2/4 with `{ store }` in the route state,
+  the same as 「제안하기」 in the 가게 tab.
 - The concern is reference information only: the proposal is not filled
   from it (ADR 0069).
 
@@ -51,6 +51,9 @@ opens 제안 보내기 2/4 with that store picked.
   already chosen here.
 - **A horizontal card row**: it would look like 「이런 제안은 어때요?」 right
   below, which are examples, not real requests from owners.
+- **One tinted card per store with the link under the line**: three cards
+  took most of a screen. Rows in one card with the action on the right keep
+  the section short.
 
 ## Agent Guidance
 
