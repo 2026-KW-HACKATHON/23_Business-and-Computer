@@ -1,0 +1,84 @@
+/* 흰 카드 하나에 고민 한 줄씩, 줄 사이 1px 선 */
+.new-concerns {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid var(--role-border);
+  border-radius: 16px;
+  background: var(--color-white);
+  list-style: none;
+}
+
+.new-concerns > li + li {
+  border-top: 1px solid var(--role-border);
+}
+
+/* 가게 사진 · 글 · 오른쪽 「제안하기」. 줄 전체를 누를 수 있다 */
+.new-concerns__row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  box-sizing: border-box;
+  width: 100%;
+  padding: 10px 12px;
+  border: 0;
+  background: transparent;
+  font-family: var(--font-sans);
+  text-align: left;
+  cursor: pointer;
+}
+
+.new-concerns__row:focus-visible {
+  outline: 2px solid var(--role-focus);
+  outline-offset: -2px;
+}
+
+.new-concerns__text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+/* 「가게 · 업종 · 10월 9일」 */
+.new-concerns__meta {
+  overflow: hidden;
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--role-secondary);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* 고민 한 줄. 길면 두 줄까지 (전체 글은 탐색 「가게」 · 제안 3/4 에서) */
+.new-concerns__title {
+  display: -webkit-box;
+  overflow: hidden;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 19px;
+  color: var(--color-black);
+  word-break: keep-all;
+  overflow-wrap: break-word;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+/* 오른쪽 작은 학생 색 버튼 모양 (줄 전체가 버튼이라 글자만) */
+.new-concerns__action {
+  flex-shrink: 0;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-student) 10%, var(--color-white));
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 18px;
+  color: var(--color-student);
+}
+
+.new-concerns__row:active .new-concerns__action {
+  background: color-mix(in srgb, var(--color-student) 18%, var(--color-white));
+}

@@ -26,7 +26,7 @@ export const SETTLEMENT_STATUS_LABEL: Record<SettlementStatus, string> = {
 };
 
 /**
- * 정산 한 줄의 둘째 줄. 「치킨플러스 · 작업 중」 · 「공룡카페 · 9월 12일 정산」 ·
+ * 정산 한 줄의 둘째 줄. 「치킨플러스 · 작업 중」 · 「카페베르데 · 9월 12일 정산」 ·
  * 「치킨플러스 · 8월 10일 사장님 사정 취소」 · 「광운카페 · 9월 3일 성사되지 않음」
  */
 export function settlementDetailText(item: SettlementItem): string {

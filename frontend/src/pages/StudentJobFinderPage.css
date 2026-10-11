@@ -1,0 +1,54 @@
+/* 나에게 맞는 일 찾기 (ADR 0072). 맡길 일 찾기(OwnerTaskFinderPage.css) 틀을 쓰고 색만 학생 자주로 */
+.task-finder--student .task-finder__track > span {
+  background: var(--color-student);
+}
+
+.task-finder--student .task-finder__answer:active {
+  border-color: var(--color-student);
+  background: color-mix(in srgb, var(--color-student) 8%, var(--color-white));
+}
+
+.task-finder--student .task-finder__pick-link {
+  color: var(--color-student);
+}
+
+/* 1번 질문: 분야 칩 (다시 누르면 빠짐, 「아무 일이나 좋아요」는 혼자) */
+.job-finder__fields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* 결과 맨 위: 내 답 요약 */
+.job-finder__summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.job-finder__summary-item {
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--role-muted);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 16px;
+  color: var(--text-body);
+}
+
+/* 결과 카드: 맞은 까닭 (분야 · 마감 여유 · 작업비 맞음) */
+.job-finder__reasons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.job-finder__reason {
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--color-student) 10%, var(--color-white));
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 18px;
+  color: var(--color-student);
+}

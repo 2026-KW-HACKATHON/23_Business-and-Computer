@@ -20,6 +20,7 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import org.hibernate.query.NativeQuery;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -111,6 +112,9 @@ public class DemoSampleDataSeeder {
     private final StoreConcernService storeConcernService;
     private final SpecialtyCategoryService specialtyCategoryService;
     private final Clock clock;
+    // 예시 가게 사진(프론트 public/demo)을 내주는 프론트 주소. DemoFacade 의 방문자 프로필 사진과 같다
+    @Value("${demo-login.profile-image-base-url}")
+    private String profileImageBaseUrl;
     // 모아 둔 행을 넣고 지난 일의 시각을 옮길 때 쓴다 (Session.finish)
     @PersistenceContext
     private EntityManager entityManager;
@@ -219,20 +223,22 @@ public class DemoSampleDataSeeder {
                             + "가게 소개글이나 공지 문구도 읽기 쉽게 다듬어 드려요.",
                     "영어 번역", "소개·공지 글쓰기");
 
-            Owner dino = store(1, "정민호", "공룡카페", "카페", "서울 노원구 광운로 12길 5",
-                    "공룡 피규어 200여 개가 진열된 동네 카페예요. 아이와 함께 오는 손님이 많고, 공룡 모양 쿠키와 계절 음료가 인기예요.");
+            Owner verde = store(1, "정민호", "카페베르데", "카페", "서울 노원구 광운로 12길 5",
+                    "광운대 근처 골목의 동네 카페예요. 직접 만든 디저트와 계절 음료가 인기이고, 시험 기간에는 공부하러 오는 "
+                            + "학생 손님이 많아요.", "store-cafe-verde.webp");
             Owner kwCafe = store(2, "한지수", "광운카페", "카페", "서울 노원구 광운로 21",
-                    "광운대 정문 앞 스터디 카페예요. 1인석과 4인 스터디룸이 있고, 시험 기간에는 밤늦게까지 학생들이 찾아와요.");
+                    "광운대 정문 앞 스터디 카페예요. 1인석과 4인 스터디룸이 있고, 시험 기간에는 밤늦게까지 학생들이 찾아와요.", null);
             Owner banjeom = store(3, "오승철", "월계반점", "음식점", "서울 노원구 월계로 45길 8",
-                    "30년째 같은 자리에서 영업하는 동네 중국집이에요. 짜장면과 탕수육이 대표 메뉴이고, 배달 주문이 절반을 넘어요.");
+                    "30년째 같은 자리에서 영업하는 동네 중국집이에요. 짜장면과 탕수육이 대표 메뉴이고, 배달 주문이 절반을 넘어요.", null);
             Owner chicken = store(4, "배정훈", "치킨플러스", "음식점", "서울 노원구 석계로 3",
-                    "석계역 근처 배달 중심 치킨집이에요. 저녁 시간에 전화 주문이 몰려서 사장님 혼자 주문 받기가 벅찬 날이 많아요.");
+                    "석계역 근처 배달 중심 치킨집이에요. 저녁 시간에 전화 주문이 몰려서 사장님 혼자 주문 받기가 벅찬 날이 많아요.",
+                    "store-chicken-plus.webp");
 
             seedMyStoreJobs(kim, park, lee, nuri, choi);
             seedMyStoreProposals(kim, park, lee, nuri, choi);
-            seedOtherStores(dino, kwCafe, banjeom, chicken, kim, park, lee, nuri, choi);
-            seedStudentHistories(dino, kwCafe, banjeom, chicken, kim, park, lee, nuri, choi);
-            seedStoreConcerns(dino, banjeom, chicken);
+            seedOtherStores(verde, kwCafe, banjeom, chicken, kim, park, lee, nuri, choi);
+            seedStudentHistories(verde, kwCafe, banjeom, chicken, kim, park, lee, nuri, choi);
+            seedStoreConcerns(verde, banjeom, chicken);
         }
 
         /**
@@ -240,13 +246,13 @@ public class DemoSampleDataSeeder {
          * 할인 이벤트」가 이 고민에 답하는 모양이 된다. 「해결됐어요」를 누르면 「우리 가게 고민을 남겨 보세요」로 새로 올려 볼
          * 수 있다. 학생 탐색 「가게」 탭에서는 고민 있는 가게가 위로 오고, 광운카페는 「고민 없음」으로 보인다.
          */
-        private void seedStoreConcerns(Owner dino, Owner banjeom, Owner chicken) {
+        private void seedStoreConcerns(Owner verde, Owner banjeom, Owner chicken) {
             concern(myStore, at(3, 21), "시험 기간만 되면 저녁 손님이 줄어요",
                     "학생 손님이 많은 가게라 시험 기간 2주 동안은 저녁 손님이 평소보다 30% 정도 줄어요. "
                             + "이 시기에도 학생들이 들르게 할 방법이 있을까요?",
                     "홍보·이벤트 기획");
-            concern(dino, at(2, 15), "평일 오후에 손님이 확 줄어요",
-                    "주말에는 가족 손님으로 자리가 꽉 차는데, 평일 오후 2시부터 5시까지는 거의 비어 있어요. "
+            concern(verde, at(2, 15), "평일 오후에 손님이 확 줄어요",
+                    "주말과 시험 기간에는 자리가 꽉 차는데, 평일 오후 2시부터 5시까지는 거의 비어 있어요. "
                             + "근처 대학생이나 직장인이 들르게 할 방법이 있을까요?",
                     "홍보·이벤트 기획");
             concern(banjeom, at(4, 11), "배달앱 리뷰에 '양이 적다'는 말이 자주 보여요",
@@ -261,7 +267,7 @@ public class DemoSampleDataSeeder {
          * 학생들이 다른 가게에서 끝낸 지난 작업·후기와 자격증. 사장님이 보는 지원자 프로필(완료한 작업 · 평점 · 후기 ·
          * 자격증)과 방문자 학생의 내 정보 · 받은 후기 · 정산 내역이 비어 보이지 않게 한다.
          */
-        private void seedStudentHistories(Owner dino, Owner kwCafe, Owner banjeom, Owner chicken,
+        private void seedStudentHistories(Owner verde, Owner kwCafe, Owner banjeom, Owner chicken,
                                           Student kim, Student park, Student lee, Student nuri, Student choi) {
             pastWork(banjeom, kim, 15, "중식 메뉴판 가격표 정리",
                     "메뉴가 40가지가 넘는데 가격표가 빽빽해서 손님들이 잘 못 읽어요. 홀 벽에 붙일 큰 가격표(A1)를 "
@@ -276,16 +282,16 @@ public class DemoSampleDataSeeder {
                     "Menu+Board", 5, "메뉴가 한눈에 들어와서 주문이 빨라졌어요. 손님들이 메뉴판 앞에서 고민하는 시간이 확 줄었어요.",
                     List.of(ReviewPositivePoint.QUALITY_OUTPUT, ReviewPositivePoint.ON_TIME_DELIVERY),
                     "메뉴판·가격표 디자인");
-            pastWork(dino, kim, 52, "카페 신메뉴 포스터",
+            pastWork(verde, kim, 52, "카페 신메뉴 포스터",
                     "가을 신메뉴 음료 2가지(밤 라떼, 고구마 라떼)를 알리는 A3 포스터가 필요해요. 입구 유리문에 붙일 거라 "
-                            + "밖에서도 메뉴 이름이 잘 보였으면 좋겠어요. 가게 공룡 캐릭터를 살짝 넣어 주시면 좋겠어요.",
+                            + "밖에서도 메뉴 이름이 잘 보였으면 좋겠어요. 간판처럼 초록색을 살짝 넣어 주시면 좋겠어요.",
                     40_000L,
-                    new Pitch("가을 느낌과 공룡 캐릭터를 함께 살린 신메뉴 포스터를 만들게요",
-                            "밤과 고구마 색에서 따온 갈색·주황 계열로 따뜻한 분위기를 만들고, 공룡 캐릭터가 컵을 들고 있는 그림을 "
+                    new Pitch("가을 느낌과 가게 초록색을 함께 살린 신메뉴 포스터를 만들게요",
+                            "밤과 고구마 색에서 따온 갈색·주황 계열로 따뜻한 분위기를 만들고, 간판의 초록색을 포인트로 "
                                     + "한쪽에 넣을게요. 음료 이름과 가격은 유리문 밖에서도 읽히게 크게, 설명은 한 줄로 짧게 정리해요.",
                             "A3 인쇄용 PDF"),
-                    "포스터 완성본이에요. 공룡이 밤 라떼를 들고 있는 그림을 오른쪽 아래에 넣었어요.",
-                    "Cafe+Poster", 4, "포스터 색감이 가게 분위기랑 잘 어울렸어요. 아이 손님들이 공룡 그림을 보고 좋아했어요.",
+                    "포스터 완성본이에요. 오른쪽 아래에 초록 잎 무늬를 넣어 가게 간판과 맞췄어요.",
+                    "Cafe+Poster", 4, "포스터 색감이 가게 분위기랑 잘 어울렸어요. 지나가던 학생들이 신메뉴를 보고 많이 들어왔어요.",
                     List.of(ReviewPositivePoint.QUALITY_OUTPUT, ReviewPositivePoint.KINDNESS), "전단지·포스터 디자인");
             certify(kim, "GTQ 포토샵 1급", 2024);
             certify(kim, "컬러리스트기사", 2025);
@@ -342,16 +348,16 @@ public class DemoSampleDataSeeder {
                     "Chicken+Reels", 4, "영상 템포가 좋아서 조회수가 많이 나왔어요. 릴스를 보고 주문했다는 손님이 꽤 있었어요.",
                     List.of(ReviewPositivePoint.QUALITY_OUTPUT, ReviewPositivePoint.FAST_COMMUNICATION),
                     "영상 제작 및 편집");
-            pastWork(dino, nuri, 58, "공룡카페 인스타 게시물 3장",
-                    "카페 인스타그램에 올릴 게시물 3장을 만들어 주세요. 공룡 피규어 진열장, 대표 음료, 공룡 쿠키를 "
+            pastWork(verde, nuri, 58, "카페베르데 인스타 게시물 3장",
+                    "카페 인스타그램에 올릴 게시물 3장을 만들어 주세요. 창가 자리, 대표 음료, 직접 만든 디저트를 "
                             + "한 장씩 소개하고 싶어요. 사진은 직접 찍어 둔 게 있어요.",
                     45_000L,
-                    new Pitch("공룡카페만의 분위기가 살아나는 게시물 3장을 만들어 드릴게요",
-                            "진열장 사진은 피규어가 잘 보이게 밝게 보정하고, 음료와 쿠키는 가까이 찍은 사진으로 맛있어 보이게 "
+                    new Pitch("카페베르데만의 분위기가 살아나는 게시물 3장을 만들어 드릴게요",
+                            "창가 자리 사진은 햇빛이 잘 보이게 밝게 보정하고, 음료와 디저트는 가까이 찍은 사진으로 맛있어 보이게 "
                                     + "다듬을게요. 세 장이 이어지도록 같은 글씨체와 색을 쓰고, 짧고 재미있는 문구를 붙여 드려요.",
                             "인스타그램 피드 규격(1080×1350) PNG 3장"),
-                    "게시물 3장이에요. 공룡 발자국 무늬를 세 장에 똑같이 넣어 이어 보이게 했어요.",
-                    "Dino+Posts", 5, "사진 보정이 깔끔해서 계정이 확 살아났어요. 게시물 올린 주에 처음 왔다는 손님이 많았어요.",
+                    "게시물 3장이에요. 초록 잎 무늬를 세 장에 똑같이 넣어 이어 보이게 했어요.",
+                    "Verde+Posts", 5, "사진 보정이 깔끔해서 계정이 확 살아났어요. 게시물 올린 주에 처음 왔다는 손님이 많았어요.",
                     List.of(ReviewPositivePoint.QUALITY_OUTPUT), "SNS 게시물");
             certify(nuri, "GTQ 포토샵 2급", 2025);
 
@@ -654,22 +660,22 @@ public class DemoSampleDataSeeder {
         }
 
         /** 다른 가게: 방문자 학생의 작업·지원·선택되지 않은 지원, 공감할 다른 학생의 제안, 탐색에 보일 의뢰. */
-        private void seedOtherStores(Owner dino, Owner kwCafe, Owner banjeom, Owner chicken,
+        private void seedOtherStores(Owner verde, Owner kwCafe, Owner banjeom, Owner chicken,
                                      Student kim, Student park, Student lee, Student nuri, Student choi) {
-            Job stickers = openJob(dino, at(9, 11), "쿠폰·스티커 디자인",
-                    "공룡카페 캐릭터 「디노」가 들어간 쿠폰과 포장 스티커를 만들어 주세요. 쿠폰은 음료 10잔을 마시면 1잔을 "
-                            + "드리는 방식이고, 스티커는 테이크아웃 컵 홀더에 붙일 지름 5cm 원형이에요. 캐릭터 원본 그림은 드릴게요.",
+            Job stickers = openJob(verde, at(9, 11), "쿠폰·스티커 디자인",
+                    "카페베르데 로고가 들어간 쿠폰과 포장 스티커를 만들어 주세요. 쿠폰은 음료 10잔을 마시면 1잔을 "
+                            + "드리는 방식이고, 스티커는 테이크아웃 컵 홀더에 붙일 지름 5cm 원형이에요. 로고 원본 파일은 드릴게요.",
                     50_000L, 2, 9, 2, "쿠폰·스티커·명함 디자인");
-            match(dino, stickers, apply(stickers, me, at(8, 15), "디노 캐릭터를 살려 쿠폰과 스티커를 한 세트처럼 만들게요",
-                    "보내 주신 디노 그림을 쿠폰과 스티커에 맞게 다듬고, 쿠폰 도장 칸은 공룡 발자국 모양으로 만들어 재미를 "
+            match(verde, stickers, apply(stickers, me, at(8, 15), "가게 로고를 살려 쿠폰과 스티커를 한 세트처럼 만들게요",
+                    "보내 주신 로고를 쿠폰과 스티커에 맞게 다듬고, 쿠폰 도장 칸은 커피잔 모양으로 만들어 재미를 "
                             + "더할게요. 쿠폰과 스티커가 한 세트처럼 보이도록 색을 맞추고, 시안 확인 후 인쇄용 파일로 정리해 드려요.",
                     "쿠폰(90×50mm) 양면 PDF와 지름 5cm 원형 스티커 PDF, 칼선 포함"), at(5, 13));
             submitDraft(stickers, me, at(1, 16),
-                    "쿠폰과 스티커 초안이에요. 도장 칸을 공룡 발자국 모양으로 만들었고, 스티커에는 컵을 들고 있는 디노를 넣었어요.",
-                    "1080x1080.png?text=Dino+Coupon", "1080x1350.png?text=Dino+Sticker");
+                    "쿠폰과 스티커 초안이에요. 도장 칸을 커피잔 모양으로 만들었고, 스티커에는 가게 로고와 초록 잎을 넣었어요.",
+                    "1080x1080.png?text=Verde+Coupon", "1080x1350.png?text=Verde+Sticker");
             conversation(stickers, me, true,
-                    owner(at(5, 14), "디노 원본 그림 보내 드렸어요. 아이들이 좋아하게 귀엽게 부탁드려요!"),
-                    student(at(5, 15), "네! 도장 칸을 공룡 발자국으로 만들어 볼게요. 캐릭터부터 정리해서 보여 드릴게요."),
+                    owner(at(5, 14), "로고 원본 파일 보내 드렸어요. 학생 손님들이 좋아하게 깔끔하게 부탁드려요!"),
+                    student(at(5, 15), "네! 도장 칸을 커피잔 모양으로 만들어 볼게요. 로고부터 정리해서 보여 드릴게요."),
                     student(at(1, 17), "초안 올렸어요. 쿠폰과 스티커 색을 맞춰 한 세트처럼 만들었어요. 확인 부탁드려요!"));
 
             Job menuTranslation = openJob(kwCafe, at(3, 11), "영어·중국어 메뉴판 번역",
@@ -706,11 +712,11 @@ public class DemoSampleDataSeeder {
                             + "수 있는 도구였으면 해요.",
                     90_000L, 7, 14, 1, "온라인 예약·주문서");
 
-            Job poster = openJob(dino, at(29, 10), "여름 음료 포스터",
+            Job poster = openJob(verde, at(29, 10), "여름 음료 포스터",
                     "여름 신메뉴 음료 2가지(수박 에이드, 망고 스무디)를 알리는 포스터를 만들어 주세요. 카페 입구 유리문에 "
                             + "붙일 A3 크기이고, 보기만 해도 시원한 느낌이었으면 좋겠어요.",
                     40_000L, -22, -16, 1, "전단지·포스터 디자인");
-            match(dino, poster, apply(poster, choi, at(28, 13), "여름에 딱 맞는 시원한 느낌의 음료 포스터를 만들게요",
+            match(verde, poster, apply(poster, choi, at(28, 13), "여름에 딱 맞는 시원한 느낌의 음료 포스터를 만들게요",
                     "음료 색이 잘 보이도록 하늘색 바탕에 얼음 그림을 더하고, 음료 이름과 가격은 유리문 밖에서도 읽히게 크게 "
                             + "넣을게요. 시안을 확인받은 뒤 A3 인쇄용으로 정리해 드려요.",
                     "A3 인쇄용 PDF"), at(26, 15));
@@ -767,15 +773,17 @@ public class DemoSampleDataSeeder {
             return student;
         }
 
+        /** 예시 가게. imageFile 은 프론트 public/demo 의 가게 사진 파일 이름이고, 없으면 사진 없이 둔다 */
         private Owner store(int number, String ownerName, String storeName, String categoryName, String address,
-                            String description) {
+                            String description, String imageFile) {
             User user = userService.createDemoSampleUser(demoSessionId, UserRole.OWNER, number, ownerName);
             Long categoryId = categoryIds.containsKey(categoryName)
                     ? categoryIds.get(categoryName)
                     : businessCategoryService.getFirstCategoryId();
             Owner owner = ownerService.createOwnerProfile(CreateOwnerProfileCommand.of(
                     user.getId(), "DEMO-" + demoSessionId + "-" + number, null, ownerName, storeName, categoryId,
-                    address, description, null, List.of()), demoSessionId);
+                    address, description, imageFile == null ? null : profileImageBaseUrl + "/demo/" + imageFile,
+                    List.of()), demoSessionId);
             stores.put(owner.getId(), owner);
             return owner;
         }

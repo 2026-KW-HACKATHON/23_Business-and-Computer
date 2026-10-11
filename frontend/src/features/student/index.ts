@@ -9,6 +9,7 @@ export { default as SettlementSummaryBox } from "./components/SettlementSummaryB
 export { default as StoreBox } from "./components/StoreBox";
 export { default as StoreConcernCard } from "./components/StoreConcernCard";
 export { default as StoreConcernLine } from "./components/StoreConcernLine";
+export { default as NewStoreConcerns } from "./components/NewStoreConcerns";
 export { default as StudentFirstVisitGuide } from "./components/StudentFirstVisitGuide";
 export { default as StudentMissing } from "./components/StudentMissing";
 export { default as StudentTabScreen } from "./components/StudentTabScreen";
@@ -119,3 +120,16 @@ export type {
   StudentWaitingItem,
   WorkFile,
 } from "./types";
+export {
+  EMPTY_JOB_FINDER_ANSWERS,
+  JOB_FINDER_BUDGETS,
+  JOB_FINDER_FIELDS,
+  JOB_FINDER_PACE,
+  JOB_FINDER_STEPS,
+  answeredSteps,
+  jobFinderResult,
+  readJobFinderAnswers,
+} from "./lib/jobFinder";
+export type { JobFinderAnswers, JobFinderPick, JobFinderResult } from "./lib/jobFinder";
+export { useOpenJobs } from "./hooks/useOpenJobs";
+export type { OpenJobsLoad } from "./hooks/useOpenJobs";

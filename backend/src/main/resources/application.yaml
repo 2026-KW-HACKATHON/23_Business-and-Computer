@@ -76,6 +76,7 @@ jwt:
 demo-login: # 로그인 없는 체험용 데모 로그인(POST /demo/login). enabled가 true인 서버에서만 엔드포인트가 등록된다
   enabled: ${DEMO_LOGIN_ENABLED:true}
   max-new-sessions-per-hour: ${DEMO_LOGIN_MAX_NEW_SESSIONS_PER_HOUR:200} # 최근 1시간에 새로 만들 수 있는 데모 계정 쌍 수
+  profile-image-base-url: ${DEMO_PROFILE_IMAGE_BASE_URL:https://gakkum.hubspacekw.com} # 방문자 사장님 · 학생 프로필 사진(프론트 public/demo)을 내주는 프론트 주소
 nts-businessman:
   service-key: ${NTS_BUSINESSMAN_SERVICE_KEY}
 frontend: # 프론트 주소. CORS 허용 목록이자 소셜 로그인 뒤 돌아갈 수 있는 주소이고, 로그인은 시작한 프론트로 돌아간다

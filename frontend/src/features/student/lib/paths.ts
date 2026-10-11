@@ -27,6 +27,9 @@ export const STUDENT_PATHS = {
   requestFull: (id: string) => `/student/requests/${id}/full`,
   apply: (id: string) => `/student/requests/${id}/apply`,
   newProposal: "/student/proposals/new",
+  /** 나에게 맞는 일 찾기 질문 1~3 · 결과 (ADR 0072) */
+  jobFinder: (step: number) => `/student/job-finder/${step}`,
+  jobFinderResult: "/student/job-finder/result",
   newProposalStep: (step: number) => `/student/proposals/new/${step}`,
   newProposalDone: "/student/proposals/new/done",
   proposal: (id: string) => `/student/proposals/${id}`,

@@ -46,6 +46,9 @@ public class DemoFacade {
     private static final String STUDENT_NAME = "이인턴";
     // 방문자 데모 학생은 「24학번」으로 보인다
     private static final int VISITOR_ADMISSION_YEAR = 24;
+    // 방문자 사장님(가게 사진) · 학생 프로필 사진. 프론트가 public/demo 에 두고 같은 주소에서 내준다
+    private static final String OWNER_PROFILE_IMAGE_PATH = "/demo/owner-profile.webp";
+    private static final String STUDENT_PROFILE_IMAGE_PATH = "/demo/student-profile.webp";
 
     private final UserService userService;
     private final OwnerService ownerService;
@@ -56,6 +59,7 @@ public class DemoFacade {
     private final JwtService jwtService;
     private final Clock clock;
     private final long maxNewSessionsPerHour;
+    private final String profileImageBaseUrl;
 
     public DemoFacade(UserService userService,
                       OwnerService ownerService,
@@ -65,7 +69,8 @@ public class DemoFacade {
                       DemoSampleDataSeeder sampleDataSeeder,
                       JwtService jwtService,
                       Clock clock,
-                      @Value("${demo-login.max-new-sessions-per-hour}") long maxNewSessionsPerHour) {
+                      @Value("${demo-login.max-new-sessions-per-hour}") long maxNewSessionsPerHour,
+                      @Value("${demo-login.profile-image-base-url}") String profileImageBaseUrl) {
         this.userService = userService;
         this.ownerService = ownerService;
         this.studentService = studentService;
@@ -75,6 +80,7 @@ public class DemoFacade {
         this.jwtService = jwtService;
         this.clock = clock;
         this.maxNewSessionsPerHour = maxNewSessionsPerHour;
+        this.profileImageBaseUrl = profileImageBaseUrl;
     }
 
     /**
@@ -116,7 +122,7 @@ public class DemoFacade {
                 "서울 노원구 광운로 20",
                 "광운대 정문 앞에서 10년째 떡볶이와 김밥을 파는 분식집이에요. 학생 손님이 많고, 시험 기간에는 밤늦게까지 "
                         + "문을 열어요. 체험용 데모 매장이에요.",
-                null,
+                profileImageBaseUrl + OWNER_PROFILE_IMAGE_PATH,
                 List.of()), demoSessionId);
         Student profile = studentService.createStudentProfile(CreateStudentProfileCommand.of(
                 student.getId(),
@@ -126,7 +132,7 @@ public class DemoFacade {
                 null,
                 "개발 공부를 하면서 동네 가게의 SNS 게시물과 짧은 영상 편집을 도와 왔어요. 사진 보정과 카드뉴스 만들기를 "
                         + "좋아해요. 체험용 데모 학생이에요.",
-                null));
+                profileImageBaseUrl + STUDENT_PROFILE_IMAGE_PATH));
         for (Long specialtyId : specialtyIds) {
             specialtyService.addStudentSpecialty(AddStudentSpecialtyCommand.of(profile.getId(), specialtyId));
         }
