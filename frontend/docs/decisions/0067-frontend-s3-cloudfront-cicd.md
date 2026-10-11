@@ -37,6 +37,12 @@ previous deployments. The backend already uses GitHub Actions with AWS OIDC.
   files with a 60-second cache header, then publish the entry page with
   revalidation required. Finally sync the complete build with `--delete` to
   remove obsolete files. The bucket is dedicated to frontend build output.
+- Gzip the text files of the built assets folder (`.js`, `.css`, `.svg`,
+  `.json`) in the deployment job and upload them with `Content-Encoding: gzip`, then check
+  that header on one uploaded script. The distribution does not compress
+  responses: on 2026-10-11 the 820 KB script (252 KB gzipped) and the 209 KB
+  stylesheet (28 KB) were sent as is. The final `--delete` sync uses
+  `--size-only`, so it never uploads those files again without the header.
 - Invalidate all CloudFront paths and wait for completion before reporting
   deployment success.
 - Cancel obsolete PR checks, but serialize main workflow runs without
@@ -64,6 +70,8 @@ Removing obsolete files follows the user's explicit deployment policy.
 - IAM requires bucket listing, object reading/writing/deletion, and
   `cloudfront:CreateInvalidation` / `cloudfront:GetInvalidation` on the target
   distribution. Keep permissions scoped to these resources.
+- Keep the file types in the compress step and the two asset syncs the same.
+  A gzipped file uploaded without `Content-Encoding: gzip` breaks the site.
 - Keep deletion after publishing the entry page and after validating the build.
   Never empty the bucket before uploading the new build. There is no automatic
   rollback if S3 synchronization or invalidation fails.
