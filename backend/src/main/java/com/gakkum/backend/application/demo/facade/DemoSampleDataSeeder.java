@@ -252,14 +252,14 @@ public class DemoSampleDataSeeder {
                             + "가게 소개글이나 공지 문구도 읽기 쉽게 다듬어 드려요.",
                     "영어 번역", "소개·공지 글쓰기");
 
-            Owner verde = store(1, "정민호", "카페베르데", "카페", "서울 노원구 광운로 12길 5",
+            Owner verde = store(1, "정민호", "카페O르데", "카페", "서울 노원구 광운로 12길 5",
                     "광운대 근처 골목의 동네 카페예요. 직접 만든 디저트와 계절 음료가 인기이고, 시험 기간에는 공부하러 오는 "
                             + "학생 손님이 많아요.", "store-cafe-verde.webp");
             Owner kwCafe = store(2, "한지수", "광운카페", "카페", "서울 노원구 광운로 21",
                     "광운대 정문 앞 스터디 카페예요. 1인석과 4인 스터디룸이 있고, 시험 기간에는 밤늦게까지 학생들이 찾아와요.", null);
             Owner banjeom = store(3, "오승철", "월계반점", "음식점", "서울 노원구 월계로 45길 8",
                     "30년째 같은 자리에서 영업하는 동네 중국집이에요. 짜장면과 탕수육이 대표 메뉴이고, 배달 주문이 절반을 넘어요.", null);
-            Owner chicken = store(4, "배정훈", "치킨플러스", "음식점", "서울 노원구 석계로 3",
+            Owner chicken = store(4, "배정훈", "치킨O러스", "음식점", "서울 노원구 석계로 3",
                     "석계역 근처 배달 중심 치킨집이에요. 저녁 시간에 전화 주문이 몰려서 사장님 혼자 주문 받기가 벅찬 날이 많아요.",
                     "store-chicken-plus.webp");
 
@@ -377,11 +377,11 @@ public class DemoSampleDataSeeder {
                     "Chicken+Reels", 4, "영상 템포가 좋아서 조회수가 많이 나왔어요. 릴스를 보고 주문했다는 손님이 꽤 있었어요.",
                     List.of(ReviewPositivePoint.QUALITY_OUTPUT, ReviewPositivePoint.FAST_COMMUNICATION),
                     "영상 제작 및 편집");
-            pastWork(verde, nuri, 58, "카페베르데 인스타 게시물 3장",
+            pastWork(verde, nuri, 58, "카페O르데 인스타 게시물 3장",
                     "카페 인스타그램에 올릴 게시물 3장을 만들어 주세요. 창가 자리, 대표 음료, 직접 만든 디저트를 "
                             + "한 장씩 소개하고 싶어요. 사진은 직접 찍어 둔 게 있어요.",
                     45_000L,
-                    new Pitch("카페베르데만의 분위기가 살아나는 게시물 3장을 만들어 드릴게요",
+                    new Pitch("카페O르데만의 분위기가 살아나는 게시물 3장을 만들어 드릴게요",
                             "창가 자리 사진은 햇빛이 잘 보이게 밝게 보정하고, 음료와 디저트는 가까이 찍은 사진으로 맛있어 보이게 "
                                     + "다듬을게요. 세 장이 이어지도록 같은 글씨체와 색을 쓰고, 짧고 재미있는 문구를 붙여 드려요.",
                             "인스타그램 피드 규격(1080×1350) PNG 3장"),
@@ -699,7 +699,7 @@ public class DemoSampleDataSeeder {
         private void seedOtherStores(Owner verde, Owner kwCafe, Owner banjeom, Owner chicken,
                                      Student kim, Student park, Student lee, Student nuri, Student choi) {
             Job stickers = openJob(verde, at(9, 11), "쿠폰·스티커 디자인",
-                    "카페베르데 로고가 들어간 쿠폰과 포장 스티커를 만들어 주세요. 쿠폰은 음료 10잔을 마시면 1잔을 "
+                    "카페O르데 로고가 들어간 쿠폰과 포장 스티커를 만들어 주세요. 쿠폰은 음료 10잔을 마시면 1잔을 "
                             + "드리는 방식이고, 스티커는 테이크아웃 컵 홀더에 붙일 지름 5cm 원형이에요. 로고 원본 파일은 드릴게요.",
                     50_000L, 2, 9, 2, "쿠폰·스티커·명함 디자인");
             match(verde, stickers, apply(stickers, me, at(8, 15), "가게 로고를 살려 쿠폰과 스티커를 한 세트처럼 만들게요",

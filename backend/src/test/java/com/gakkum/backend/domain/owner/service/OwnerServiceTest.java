@@ -41,7 +41,7 @@ class OwnerServiceTest {
                 "12341453312",
                 LocalDate.of(2020, 3, 1),
                 "김사장",
-                "치킨플러스",
+                "치킨O러스",
                 2L,
                 "서울시 월계1동 광운로23",
                 "매장 한 줄 소개",
@@ -57,7 +57,7 @@ class OwnerServiceTest {
         assertThat(savedOwner.getBusinessNumber()).isEqualTo("12341453312");
         assertThat(savedOwner.getOpenedAt()).isEqualTo(LocalDate.of(2020, 3, 1));
         assertThat(savedOwner.getRepresentativeName()).isEqualTo("김사장");
-        assertThat(savedOwner.getStoreName()).isEqualTo("치킨플러스");
+        assertThat(savedOwner.getStoreName()).isEqualTo("치킨O러스");
         assertThat(savedOwner.getCategoryId()).isEqualTo(2L);
         assertThat(savedOwner.getStoreAddress()).isEqualTo("서울시 월계1동 광운로23");
         assertThat(savedOwner.getDescription()).isEqualTo("매장 한 줄 소개");

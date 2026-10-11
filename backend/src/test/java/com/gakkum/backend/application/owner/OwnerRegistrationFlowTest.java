@@ -68,7 +68,7 @@ class OwnerRegistrationFlowTest {
     private static final String REQUEST_BODY = """
             {
               "name": "김사장",
-              "storeName": "치킨플러스",
+              "storeName": "치킨O러스",
               "storeAddress": "서울시 월계1동 광운로23",
               "categoryId": 2,
               "businessNumber": "123-45-67890",
@@ -162,7 +162,7 @@ class OwnerRegistrationFlowTest {
         verify(ownerRepository).save(ownerCaptor.capture());
         Owner owner = ownerCaptor.getValue();
         assertThat(owner.getUserId()).isEqualTo(pendingUser.getId());
-        assertThat(owner.getStoreName()).isEqualTo("치킨플러스");
+        assertThat(owner.getStoreName()).isEqualTo("치킨O러스");
         assertThat(owner.getStoreAddress()).isEqualTo("서울시 월계1동 광운로23");
         assertThat(owner.getCategoryId()).isEqualTo(2L);
         assertThat(owner.getBusinessNumber()).isEqualTo("1234567890");
@@ -194,7 +194,7 @@ class OwnerRegistrationFlowTest {
         register("""
                 {
                   "name": "김사장",
-                  "storeName": "치킨플러스",
+                  "storeName": "치킨O러스",
                   "categoryId": 2,
                   "businessNumber": "1234567890",
                   "openedAt": "2020-03-01",

@@ -69,7 +69,7 @@ class OwnerFacadeTest {
 
     private final OwnerRegistrationRequest request = OwnerRegistrationRequest.of(
             "김사장",
-            "치킨플러스",
+            "치킨O러스",
             "서울시 월계1동 광운로23",
             2L,
             "12341453312",
@@ -118,7 +118,7 @@ class OwnerFacadeTest {
         assertThat(ownerCommand.getBusinessNumber()).isEqualTo("12341453312");
         assertThat(ownerCommand.getOpenedAt()).isEqualTo(LocalDate.of(2020, 3, 1));
         assertThat(ownerCommand.getRepresentativeName()).isEqualTo("김사장");
-        assertThat(ownerCommand.getStoreName()).isEqualTo("치킨플러스");
+        assertThat(ownerCommand.getStoreName()).isEqualTo("치킨O러스");
         assertThat(ownerCommand.getCategoryId()).isEqualTo(2L);
         assertThat(ownerCommand.getStoreAddress()).isEqualTo("서울시 월계1동 광운로23");
         assertThat(ownerCommand.getDescription()).isEqualTo("매장 한 줄 소개");
@@ -152,7 +152,7 @@ class OwnerFacadeTest {
         when(userService.validateOwnerRegistration("KAKAO_12345")).thenReturn(user);
         when(authService.verifyOwnerBusiness(any(VerifyOwnerBusinessCommand.class))).thenReturn(true);
         OwnerRegistrationRequest withoutImages = OwnerRegistrationRequest.of(
-                "김사장", "치킨플러스", null, 2L, "12341453312", LocalDate.of(2020, 3, 1), "김사장", null,
+                "김사장", "치킨O러스", null, 2L, "12341453312", LocalDate.of(2020, 3, 1), "김사장", null,
                 null, "  ");
 
         facade.register("KAKAO_12345", withoutImages);
