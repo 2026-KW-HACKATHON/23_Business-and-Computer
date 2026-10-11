@@ -2,7 +2,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 32px;
+  gap: 14px;
   width: 100%;
   max-width: 350px;
 }
@@ -34,7 +34,45 @@
 }
 
 .usage-carousel__card {
+  display: flex;
   flex: 0 0 100%;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+}
+
+/* 누가 먼저 시작하는지: 사장님(노랑) · 학생(자주) · 공감(연한 자주) */
+.usage-carousel__label {
+  padding: 5px 12px;
+  border-radius: 999px;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 20px;
+}
+
+.usage-carousel__label--owner {
+  background: var(--color-owner);
+  color: var(--color-black);
+}
+
+.usage-carousel__label--student {
+  background: var(--color-student);
+  color: var(--color-white);
+}
+
+.usage-carousel__label--empathy {
+  background: #f6e7ec;
+  color: var(--color-student);
+}
+
+.usage-carousel__caption {
+  font-family: var(--font-sans);
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 22px;
+  color: #4e5968;
+  text-align: center;
 }
 
 /* 일러스트는 350 × 199 비율 그대로 폭에 맞춘다 */
