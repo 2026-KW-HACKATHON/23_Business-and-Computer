@@ -1,4 +1,4 @@
-# 0077. Deadline as a dot and short date, card titles that wrap less
+# 0082. Deadline as a dot and short date, card titles that wrap less
 
 ## Status
 
