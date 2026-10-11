@@ -120,7 +120,7 @@ sheet.
   /jobs/{id}/result.
 - **Student past documents** (/student/works/:id/submissions/:submissionId and
   .../request, `StudentPastSubmissionPage`): 제출한 초안 · 수정안 shows the work
-  box (「카페베르데 · 9월 22일 제출 · 수정 0/2」), the flow bar, 「사장님이 이 초안에
+  box (「카페O르데 · 9월 22일 제출 · 수정 0/2」), the flow bar, 「사장님이 이 초안에
   수정을 요청했어요」 when it got one, 원본 파일, and 내가 남긴 한마디; 받은 수정
   요청 shows the owner's request (date, text, 참고 사진) and the files it was
   about. Both have only 「확인」.
