@@ -1,4 +1,5 @@
 import { apiData } from "../../../api/client";
+import type { StoreExploreItemResponse } from "./storeApi";
 
 /** 제안에서 시작했으면 proposal, 사장님이 올린 의뢰면 request */
 type HomeWorkKind = "proposal" | "request";
@@ -87,6 +88,8 @@ export interface StudentHomeResponse {
   waiting: StudentHomeWaitingResponse[] | null;
   peerProposals: StudentHomePeerProposalResponse[] | null;
   done: StudentHomeDoneResponse[] | null;
+  /** 새로 올라온 가게 고민: 고민이 있는 가게를 최근에 올리거나 고친 순으로 3곳까지 (GET /explore/stores 의 한 줄과 같다) */
+  newStoreConcerns: StoreExploreItemResponse[] | null;
 }
 
 /** GET /me/home — 학생 홈 한 화면 분량을 한 번에. 가입을 끝내지 않은 계정은 403 HOME_403 */

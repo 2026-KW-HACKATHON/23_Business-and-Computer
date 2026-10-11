@@ -6,12 +6,15 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.gakkum.backend.application.explore.dto.ExploreQueryDto.BusinessCategoryResult;
+import com.gakkum.backend.application.explore.dto.ExploreQueryDto.StoreItemResult;
 import com.gakkum.backend.application.home.dto.HomeQueryDto.OwnerClosedJob;
 import com.gakkum.backend.application.home.dto.HomeQueryDto.OwnerOpenJob;
 import com.gakkum.backend.application.home.dto.HomeQueryDto.OwnerProgressJob;
@@ -23,6 +26,7 @@ import com.gakkum.backend.application.home.dto.HomeQueryDto.StudentSentProposal;
 import com.gakkum.backend.application.home.dto.HomeQueryDto.StudentSettledJob;
 import com.gakkum.backend.application.home.dto.HomeQueryDto.StudentSettlements;
 import com.gakkum.backend.application.payment.facade.PaymentFacade;
+import com.gakkum.backend.domain.category.service.BusinessCategoryService;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.GetClosedJobsCommand;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.GetMatchedJobsCommand;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.GetOpenJobsCommand;
@@ -36,7 +40,11 @@ import com.gakkum.backend.domain.job.dto.JobQueryDto.StudentMatchedJobData;
 import com.gakkum.backend.domain.job.entity.Job;
 import com.gakkum.backend.domain.job.entity.JobApplicationStatus;
 import com.gakkum.backend.domain.job.service.JobService;
+import com.gakkum.backend.domain.owner.dto.OwnerQueryDto.StoreConcernResult;
+import com.gakkum.backend.domain.owner.entity.Owner;
+import com.gakkum.backend.domain.owner.entity.StoreConcern;
 import com.gakkum.backend.domain.owner.service.OwnerService;
+import com.gakkum.backend.domain.owner.service.StoreConcernService;
 import com.gakkum.backend.domain.payment.dto.PaymentQueryDto.SettlementHistoryItemResult;
 import com.gakkum.backend.domain.payment.dto.SettlementHistoryStatus;
 import com.gakkum.backend.domain.proposal.dto.ProposalCommandDto.GetExploreProposalsCommand;
@@ -68,6 +76,8 @@ public class HomeQueryService {
     private static final int PEER_CANDIDATE_SIZE = 5;
     // 이만큼만 내린다
     private static final int PEER_SIZE = 2;
+    // 학생 홈 「새로 올라온 가게 고민」 수
+    private static final int NEW_CONCERN_SIZE = 3;
     // 첫 페이지에서 모든 행이 경계 안에 들도록 쓰는 시각. DB에 저장되는 생성 시각 범위 밖이다
     private static final LocalDateTime LATEST_START = LocalDateTime.of(9999, 1, 1, 0, 0);
 
@@ -78,6 +88,8 @@ public class HomeQueryService {
     private final OwnerService ownerService;
     private final SpecialtyCategoryService specialtyCategoryService;
     private final PaymentFacade paymentFacade;
+    private final StoreConcernService storeConcernService;
+    private final BusinessCategoryService businessCategoryService;
 
     /** 사장님의 모집 중 의뢰를 대기 중 지원자 수와 함께 생성 최신순으로 읽는다. */
     @Transactional(readOnly = true)
@@ -276,6 +288,58 @@ public class HomeQueryService {
                         storeNames.get(proposal.getOwnerProfileId()),
                         likedProposalIds.contains(proposal.getId())))
                 .toList();
+    }
+
+    /**
+     * 사장님 가게의 해결되지 않은 고민. 가게마다 하나라서 비었거나 하나다. GET /owners/me/concern과 같은 조회다.
+     */
+    @Transactional(readOnly = true)
+    public List<StoreConcernResult> getOwnerConcerns(Long ownerProfileId) {
+        Optional<StoreConcern> concern = storeConcernService.findOpenConcern(ownerProfileId);
+        Map<Long, String> categoryNames = concernCategoryNames(concern.stream().toList());
+        return concern.map(open -> List.of(concernResult(open, categoryNames))).orElse(List.of());
+    }
+
+    /**
+     * 학생 홈 「새로 올라온 가게 고민」. 탐색 가게 목록(GET /explore/stores)과 같은 가게 범위에서 해결되지 않은 고민이 있는
+     * 가게를 최근에 올리거나 고친 순으로 3곳까지, 가게 목록의 한 줄과 같은 모양으로 읽는다.
+     */
+    @Transactional(readOnly = true)
+    public List<StoreItemResult> getNewStoreConcerns(String demoSessionId) {
+        List<StoreConcern> concerns = storeConcernService.getNewestOpenConcerns(demoSessionId, NEW_CONCERN_SIZE);
+        if (concerns.isEmpty()) {
+            return List.of();
+        }
+        Map<Long, Owner> owners = ownerService.getOwnerProfilesByIds(concerns.stream()
+                .map(StoreConcern::getOwnerProfileId)
+                .toList());
+        Map<Long, String> businessCategoryNames = businessCategoryService.getCategoryNames(owners.values().stream()
+                .map(Owner::getCategoryId)
+                .distinct()
+                .toList());
+        Map<Long, String> categoryNames = concernCategoryNames(concerns);
+        return concerns.stream()
+                .map(concern -> {
+                    Owner owner = owners.get(concern.getOwnerProfileId());
+                    return StoreItemResult.of(owner,
+                            BusinessCategoryResult.of(owner.getCategoryId(),
+                                    businessCategoryNames.get(owner.getCategoryId())),
+                            concernResult(concern, categoryNames));
+                })
+                .toList();
+    }
+
+    private Map<Long, String> concernCategoryNames(List<StoreConcern> concerns) {
+        return specialtyCategoryService.getCategoryNames(concerns.stream()
+                .map(StoreConcern::getSpecialtyCategoryId)
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList());
+    }
+
+    private static StoreConcernResult concernResult(StoreConcern concern, Map<Long, String> categoryNames) {
+        Long categoryId = concern.getSpecialtyCategoryId();
+        return StoreConcernResult.of(concern, categoryId == null ? null : categoryNames.get(categoryId));
     }
 
     private Map<String, User> studentUsers(Collection<Student> students) {

@@ -11,6 +11,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 import org.junit.jupiter.api.DisplayName;
@@ -22,13 +23,17 @@ import com.gakkum.backend.application.home.dto.HomeQueryDto.OwnerOpenJob;
 import com.gakkum.backend.application.home.dto.HomeQueryDto.PeerProposal;
 import com.gakkum.backend.application.home.dto.HomeQueryDto.StudentSettlements;
 import com.gakkum.backend.application.payment.facade.PaymentFacade;
+import com.gakkum.backend.domain.category.service.BusinessCategoryService;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.ClosedJobData;
 import com.gakkum.backend.domain.job.dto.JobQueryDto.OpenJobData;
 import com.gakkum.backend.domain.job.entity.Job;
 import com.gakkum.backend.domain.job.entity.JobProgressStage;
 import com.gakkum.backend.domain.job.entity.JobStatus;
 import com.gakkum.backend.domain.job.service.JobService;
+import com.gakkum.backend.domain.owner.entity.Owner;
+import com.gakkum.backend.domain.owner.entity.StoreConcern;
 import com.gakkum.backend.domain.owner.service.OwnerService;
+import com.gakkum.backend.domain.owner.service.StoreConcernService;
 import com.gakkum.backend.domain.payment.dto.PaymentQueryDto.SettlementHistoryItemResult;
 import com.gakkum.backend.domain.payment.dto.PaymentQueryDto.SettlementHistoryMonthResult;
 import com.gakkum.backend.domain.payment.dto.PaymentQueryDto.SettlementHistoryResult;
@@ -60,8 +65,84 @@ class HomeQueryServiceTest {
     private final OwnerService ownerService = mock(OwnerService.class);
     private final SpecialtyCategoryService specialtyCategoryService = mock(SpecialtyCategoryService.class);
     private final PaymentFacade paymentFacade = mock(PaymentFacade.class);
+    private final StoreConcernService storeConcernService = mock(StoreConcernService.class);
+    private final BusinessCategoryService businessCategoryService = mock(BusinessCategoryService.class);
     private final HomeQueryService service = new HomeQueryService(jobService, proposalService, studentService,
-            userService, ownerService, specialtyCategoryService, paymentFacade);
+            userService, ownerService, specialtyCategoryService, paymentFacade, storeConcernService,
+            businessCategoryService);
+
+    @Test
+    @DisplayName("사장님 고민은 해결되지 않은 고민 하나를 분야 이름과 함께 반환하고, 없으면 빈 목록이다")
+    void returnsOwnerConcernAsSingleItemList() {
+        StoreConcern concern = concern(31L, 5L, "단골이 줄었어요", 2L);
+        when(storeConcernService.findOpenConcern(5L)).thenReturn(Optional.of(concern));
+        when(specialtyCategoryService.getCategoryNames(List.of(2L))).thenReturn(Map.of(2L, "마케팅"));
+        when(storeConcernService.findOpenConcern(6L)).thenReturn(Optional.empty());
+
+        assertThat(service.getOwnerConcerns(5L)).singleElement().satisfies(result -> {
+            assertThat(result.getConcernId()).isEqualTo(31L);
+            assertThat(result.getTitle()).isEqualTo("단골이 줄었어요");
+            assertThat(result.getSpecialtyCategoryName()).isEqualTo("마케팅");
+        });
+        assertThat(service.getOwnerConcerns(6L)).isEmpty();
+    }
+
+    @Test
+    @DisplayName("새로 올라온 가게 고민은 내 데모 범위에서 최근 고민 3개를 그 순서대로 가게 목록 한 줄 모양으로 반환한다")
+    void returnsNewStoreConcernsInConcernOrder() {
+        when(storeConcernService.getNewestOpenConcerns(DEMO_SESSION_ID, 3)).thenReturn(List.of(
+                concern(41L, 12L, "배달 리뷰가 적어요", null),
+                concern(42L, 11L, "메뉴판이 낡았어요", 3L)));
+        when(ownerService.getOwnerProfilesByIds(List.of(12L, 11L))).thenReturn(Map.of(
+                11L, store(11L, "골목분식", 7L),
+                12L, store(12L, "월계카페", 8L)));
+        when(businessCategoryService.getCategoryNames(any())).thenReturn(Map.of(7L, "음식점", 8L, "카페"));
+        when(specialtyCategoryService.getCategoryNames(List.of(3L))).thenReturn(Map.of(3L, "디자인"));
+
+        assertThat(service.getNewStoreConcerns(DEMO_SESSION_ID)).satisfiesExactly(
+                first -> {
+                    assertThat(first.getOwnerProfileId()).isEqualTo(12L);
+                    assertThat(first.getStoreName()).isEqualTo("월계카페");
+                    assertThat(first.getBusinessCategory().getName()).isEqualTo("카페");
+                    assertThat(first.getConcern().getTitle()).isEqualTo("배달 리뷰가 적어요");
+                    assertThat(first.getConcern().getSpecialtyCategoryName()).isNull();
+                },
+                second -> {
+                    assertThat(second.getOwnerProfileId()).isEqualTo(11L);
+                    assertThat(second.getBusinessCategory().getName()).isEqualTo("음식점");
+                    assertThat(second.getConcern().getSpecialtyCategoryName()).isEqualTo("디자인");
+                });
+    }
+
+    @Test
+    @DisplayName("새로 올라온 가게 고민이 없으면 가게를 조회하지 않고 빈 목록을 반환한다")
+    void returnsNoNewStoreConcernsWithoutStoreLookup() {
+        when(storeConcernService.getNewestOpenConcerns(DEMO_SESSION_ID, 3)).thenReturn(List.of());
+
+        assertThat(service.getNewStoreConcerns(DEMO_SESSION_ID)).isEmpty();
+        verifyNoInteractions(ownerService, businessCategoryService);
+    }
+
+    private static StoreConcern concern(Long id, Long ownerProfileId, String title, Long specialtyCategoryId) {
+        return StoreConcern.builder()
+                .id(id)
+                .ownerProfileId(ownerProfileId)
+                .title(title)
+                .specialtyCategoryId(specialtyCategoryId)
+                .createdAt(LocalDateTime.of(2026, 10, 10, 1, 0))
+                .updatedAt(LocalDateTime.of(2026, 10, 11, 1, 0))
+                .build();
+    }
+
+    private static Owner store(Long id, String storeName, Long categoryId) {
+        return Owner.builder()
+                .id(id)
+                .storeName(storeName)
+                .categoryId(categoryId)
+                .storeAddress("서울 노원구 월계동")
+                .createdAt(LocalDateTime.of(2026, 10, 1, 0, 0))
+                .build();
+    }
 
     @Test
     @DisplayName("다른 학생 제안은 내 데모 범위의 공감순 상위 5개에서 본인 제안을 뺀 앞의 2개만 반환한다")

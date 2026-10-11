@@ -116,7 +116,9 @@
   font-family: var(--font-sans);
   text-align: left;
   cursor: pointer;
-  transition: transform 0.2s cubic-bezier(0.2, 0, 0, 1);
+  transition:
+    transform 0.2s cubic-bezier(0.2, 0, 0, 1),
+    box-shadow 0.2s ease;
 }
 
 
@@ -178,7 +180,18 @@
 }
 
 /* 누르면(마우스는 올리면) 카드는 살짝 작아지고, 원은 커지고, 아이콘은 기울며 커지고, 「›」는 오른쪽으로 */
+/* 공통 버튼의 어두운 hover · 누름 막(interaction.css)을 쓰지 않는다: 그림 배너가 탁해 보인다 */
+.owner-home__finder:where(:hover, :active) {
+  box-shadow: none;
+}
+
 @media (hover: hover) {
+  /* 어둡게 하는 대신 살짝 떠오르며 옅은 노랑 그림자가 생긴다 */
+  .owner-home__finder:hover {
+    box-shadow: 0 6px 16px rgb(217 169 31 / 25%);
+    transform: translateY(-2px);
+  }
+
   .owner-home__finder:hover::before {
     transform: scale(1.08);
   }

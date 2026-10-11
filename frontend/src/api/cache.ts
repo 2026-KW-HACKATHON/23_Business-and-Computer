@@ -1,6 +1,6 @@
 /**
  * Memory cache for the list GETs that the 홈 · 탐색 · 내 활동 tabs call again
- * every time a tab mounts (ADR 0076). It is stale-while-revalidate: a tab that
+ * every time a tab mounts (ADR 0077). It is stale-while-revalidate: a tab that
  * opens again shows the remembered list at once, the list is asked for again in
  * the background, and screens that use {@link subscribeApiCache} redraw when
  * the new answer differs. So a change by the other side (e.g. a new 지원자)
@@ -33,6 +33,8 @@ const CACHEABLE: readonly RegExp[] = [
   /^\/me\/job-applications$/,
   /^\/me\/proposals$/,
   /^\/me\/received-proposals$/,
+  // Student 내 활동 reads it twice at once (완료 tab and 정산 summary); only the read is cached, payments are not
+  /^\/settlements$/,
   /^\/owners\/me$/,
   /^\/owners\/me\/concern$/,
   /^\/students\/me$/,

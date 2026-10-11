@@ -175,15 +175,16 @@ class NotificationControllerTest {
     }
 
     @Test
-    @DisplayName("미읽음 개수는 인증 사용자의 개수만 반환한다")
+    @DisplayName("미읽음 개수는 인증 사용자의 알림 개수와 안 읽은 채팅이 있는지만 반환한다")
     void returnsUnreadCount() throws Exception {
-        when(notificationFacade.getUnreadCount(USERNAME)).thenReturn(NotificationUnreadCountResult.of(3L));
+        when(notificationFacade.getUnreadCount(USERNAME)).thenReturn(NotificationUnreadCountResult.of(3L, true));
 
         mockMvc.perform(get("/me/notifications/unread-count").principal(authentication))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.data.length()").value(1))
-                .andExpect(jsonPath("$.data.unreadCount").value(3));
+                .andExpect(jsonPath("$.data.length()").value(2))
+                .andExpect(jsonPath("$.data.unreadCount").value(3))
+                .andExpect(jsonPath("$.data.hasUnreadChat").value(true));
 
         verify(notificationFacade).getUnreadCount(USERNAME);
     }

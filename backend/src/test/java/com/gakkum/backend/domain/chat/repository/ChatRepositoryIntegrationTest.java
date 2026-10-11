@@ -64,6 +64,26 @@ class ChatRepositoryIntegrationTest {
     }
 
     @Test
+    @DisplayName("PostgreSQL에서 의뢰들의 채팅방 가운데 상대가 보낸 안 읽은 메시지가 있는지만 확인한다")
+    void checksUnreadAcrossJobs() {
+        ChatRoom room = roomRepository.saveAndFlush(ChatRoom.create(900011L));
+        roomRepository.saveAndFlush(ChatRoom.create(900012L));
+        ChatMessage fromStudent = saveMessage(room.getId(), STUDENT_ID, "초안 올렸어요");
+        saveMessage(room.getId(), OWNER_ID, "확인할게요");
+
+        assertThat(messageRepository.existsUnreadByJobIds(List.of(900011L, 900012L), OWNER_ID, true)).isTrue();
+        assertThat(messageRepository.existsUnreadByJobIds(List.of(900011L), STUDENT_ID, false)).isTrue();
+        // 메시지가 없는 방만 보면 없다
+        assertThat(messageRepository.existsUnreadByJobIds(List.of(900012L), OWNER_ID, true)).isFalse();
+
+        room.markRead(true, fromStudent.getId());
+        roomRepository.flush();
+
+        // 학생 메시지까지 읽으면 뒤에는 내가 보낸 메시지만 남아 없다
+        assertThat(messageRepository.existsUnreadByJobIds(List.of(900011L, 900012L), OWNER_ID, true)).isFalse();
+    }
+
+    @Test
     @DisplayName("PostgreSQL은 같은 의뢰의 두 번째 채팅방을 거부한다")
     void rejectsSecondRoomForSameJob() {
         roomRepository.saveAndFlush(ChatRoom.create(900002L));

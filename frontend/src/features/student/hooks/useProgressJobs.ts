@@ -11,11 +11,10 @@ export type ProgressJobsLoad =
 
 /**
  * 나와 매칭된 진행 중 작업 (GET /me/jobs?status=MATCHED). 내 활동 · 홈 · 제출 화면이 함께 쓴다.
- * 가게 주소를 그리는 화면만 storeAddress 를 켠다 (의뢰마다 GET /jobs/{id}).
  * 실패하면 reload 로 다시 불러온다. 401 은 /login 으로 보낸다 (그동안은 loading).
  * 화면을 떠난 뒤 온 응답은 버린다.
  */
-export function useProgressJobs({ storeAddress = false }: { storeAddress?: boolean } = {}): {
+export function useProgressJobs(): {
   load: ProgressJobsLoad;
   reload: () => void;
 } {
@@ -23,11 +22,11 @@ export function useProgressJobs({ storeAddress = false }: { storeAddress?: boole
   const [load, setLoad] = useState<ProgressJobsLoad>({ status: "loading" });
   const [request, setRequest] = useState(0);
 
-  // 기억해 둔 목록이 뒤에서 새로 바뀌면 다시 그린다 (ADR 0076)
+  // 기억해 둔 목록이 뒤에서 새로 바뀌면 다시 그린다 (ADR 0077)
   const revision = useCachedListRevision();
   useEffect(() => {
     let active = true;
-    void loadProgressJobs({ storeAddress }).then((result) => {
+    void loadProgressJobs().then((result) => {
       if (!active) return;
       if (result.status === "unauthorized") {
         navigate("/login", { replace: true });
@@ -38,7 +37,7 @@ export function useProgressJobs({ storeAddress = false }: { storeAddress?: boole
     return () => {
       active = false;
     };
-  }, [request, storeAddress, navigate, revision]);
+  }, [request, navigate, revision]);
 
   const reload = useCallback(() => {
     setLoad({ status: "loading" });

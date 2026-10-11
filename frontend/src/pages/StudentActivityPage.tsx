@@ -96,9 +96,9 @@ function StudentActivityPage() {
   const { load: proposalsLoad, reload: reloadProposals } = useSentProposals();
   const proposals = proposalsLoad.status === "loaded" ? proposalsLoad.proposals : [];
   // 완료 카드에 분야와 받은 후기 별점이 있어서 작업마다 함께 불러온다
-  const { load: finishedLoad, reload: reloadFinished } = useFinishedJobs({ details: true, reviews: true });
+  const { load: finishedLoad, reload: reloadFinished } = useFinishedJobs();
   // 진행 중 카드에 가게 주소가 있어서 주소까지 불러온다
-  const { load: progressLoad, reload: reloadProgress } = useProgressJobs({ storeAddress: true });
+  const { load: progressLoad, reload: reloadProgress } = useProgressJobs();
   // 완료 탭 위 정산 요약 (GET /settlements). 불러오지 못하면 요약 칸을 숨긴다
   const { load: settlementLoad } = useSettlementHistory();
   const [sheetJobId, setSheetJobId] = useState<number>();

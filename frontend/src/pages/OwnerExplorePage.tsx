@@ -19,7 +19,7 @@ import {
   receivedProposalStatusLabel,
   useReceivedProposals,
 } from "../features/owner";
-import { formatMonthDay } from "../lib/date";
+import { formatDueShort } from "../lib/date";
 import { FIELDS } from "../types/field";
 import type { Field } from "../types/field";
 import { useDragScroll } from "../hooks/useDragScroll";
@@ -125,7 +125,7 @@ function OwnerExplorePage() {
                         storeName={item.storeName}
                         deadline={
                           item.status === "OPEN"
-                            ? { stage: "draft", due: `${formatMonthDay(item.draftDeadline)}까지` }
+                            ? { stage: "draft", due: formatDueShort(item.draftDeadline) }
                             : undefined
                         }
                         status={jobStatusLabel(item.status)}

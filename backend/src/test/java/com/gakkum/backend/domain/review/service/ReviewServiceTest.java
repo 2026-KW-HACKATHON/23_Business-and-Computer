@@ -134,6 +134,25 @@ class ReviewServiceTest {
         assertThat(reviewService.getStudentReviews(7L)).isEmpty();
     }
 
+    @Test
+    @DisplayName("학생이 받은 리뷰 별점을 의뢰 ID별로 한 번에 조회하고 다른 학생의 리뷰와 리뷰 없는 의뢰는 뺀다")
+    void readsStudentRatingsByJobIds() {
+        when(reviewRepository.findByJobIdIn(List.of(41L, 42L, 43L))).thenReturn(List.of(
+                Review.builder().id(1L).jobId(41L).studentProfileId(7L).rating(5).build(),
+                Review.builder().id(2L).jobId(42L).studentProfileId(8L).rating(3).build()));
+
+        assertThat(reviewService.getStudentRatingsByJobIds(List.of(41L, 42L, 43L), 7L))
+                .containsExactlyEntriesOf(java.util.Map.of(41L, 5));
+        verify(reviewRepository).findByJobIdIn(List.of(41L, 42L, 43L));
+    }
+
+    @Test
+    @DisplayName("의뢰 ID가 없으면 리뷰를 조회하지 않고 빈 별점을 반환한다")
+    void skipsRatingsWithoutJobs() {
+        assertThat(reviewService.getStudentRatingsByJobIds(List.of(), 7L)).isEmpty();
+        verifyNoInteractions(reviewRepository);
+    }
+
     private static Review review(Long id, LocalDateTime createdAt) {
         return Review.builder().id(id).studentProfileId(7L).createdAt(createdAt).build();
     }

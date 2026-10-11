@@ -11,7 +11,6 @@ export type { ChatRoomLoad, ChatRoomState } from "./hooks/useChatRoom";
 export { useChatRooms } from "./hooks/useChatRooms";
 export { findJobChatRoomId, useOpenJobChat } from "./hooks/useOpenJobChat";
 export type { ChatRoomsLoad } from "./hooks/useChatRooms";
-export { useChatUnread } from "./hooks/useChatUnread";
 export { useScrollToLatest } from "./hooks/useScrollToLatest";
 export { useWorkHistory } from "./hooks/useWorkHistory";
 export type { WorkHistoryLoad } from "./hooks/useWorkHistory";
@@ -34,6 +33,7 @@ export {
 } from "./lib/workDocs";
 export type { ChatWorkDoc, ChatWorkEntry, ChatWorkStage, ChatWorkSubmission } from "./lib/workDocs";
 export { attachmentDetailText, isAttachmentExpired } from "./lib/messages";
+export { onReadSettled as onChatReadSettled, readsSettled as chatReadsSettled } from "./lib/readSync";
 
 export type { ChatJobStatus } from "./api/chatApi";
 export type { ChatMessage, ChatRoom } from "./types";

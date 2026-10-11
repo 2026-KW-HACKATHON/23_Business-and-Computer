@@ -96,6 +96,15 @@ jobs:
           test -s dist/index.html
           test -d dist/assets
 
+      # CloudFront 가 압축하지 않아서, 글자로 된 파일은 미리 gzip 으로 줄여 올린다 (ADR 0067)
+      - name: Compress text assets
+        run: |
+          find dist/assets -type f \( -name '*.js' -o -name '*.css' -o -name '*.svg' -o -name '*.json' \) -print0 |
+            while IFS= read -r -d '' file; do
+              gzip -9 -n -c "$file" > "$file.gz"
+              mv "$file.gz" "$file"
+            done
+
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v6.3.0
         with:
@@ -106,10 +115,22 @@ jobs:
       - name: Upload new files
         run: |
           aws s3 sync dist/assets/ "s3://$FRONTEND_S3_BUCKET/assets/" \
+            --exclude '*' --include '*.js' --include '*.css' --include '*.svg' --include '*.json' \
+            --content-encoding gzip \
+            --cache-control 'public,max-age=31536000,immutable'
+          aws s3 sync dist/assets/ "s3://$FRONTEND_S3_BUCKET/assets/" \
+            --exclude '*.js' --exclude '*.css' --exclude '*.svg' --exclude '*.json' \
             --cache-control 'public,max-age=31536000,immutable'
           aws s3 sync dist/ "s3://$FRONTEND_S3_BUCKET/" \
             --exclude 'index.html' --exclude 'assets/*' \
             --cache-control 'public,max-age=60'
+
+      - name: Check compressed upload
+        run: |
+          script=$(find dist/assets -name '*.js' -print -quit)
+          encoding=$(aws s3api head-object --bucket "$FRONTEND_S3_BUCKET" --key "assets/$(basename "$script")" \
+            --query ContentEncoding --output text)
+          test "$encoding" = gzip
 
       - name: Publish entry page
         run: |
@@ -117,7 +138,8 @@ jobs:
             --cache-control 'no-cache,max-age=0,must-revalidate'
 
       - name: Delete previous deployment files
-        run: aws s3 sync dist/ "s3://$FRONTEND_S3_BUCKET/" --delete
+        # 크기가 같으면 다시 올리지 않아, 압축해 올린 파일의 Content-Encoding 이 빠지지 않는다
+        run: aws s3 sync dist/ "s3://$FRONTEND_S3_BUCKET/" --delete --size-only
 
       - name: Invalidate CloudFront cache
         id: invalidation

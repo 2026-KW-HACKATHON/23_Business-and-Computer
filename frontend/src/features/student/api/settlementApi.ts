@@ -1,4 +1,5 @@
 import { apiData } from "../../../api/client";
+import type { ExploreSpecialtyCategory } from "../../explore";
 
 /**
  * 정산 한 줄의 상태. SCHEDULED 정산 예정(작업 중) · SETTLED 정산 완료 ·
@@ -16,6 +17,10 @@ export interface SettlementItem {
   settledDate?: string | null;
   storeName?: string | null;
   status: SettlementStatus;
+  /** 의뢰의 분야. 분야가 없는 의뢰는 빈 목록 */
+  specialtyCategories?: ExploreSpecialtyCategory[] | null;
+  /** 사장님이 남긴 후기 별점 (1 ~ 5). 후기가 없으면 빠진다 */
+  rating?: number | null;
 }
 
 /** GET /settlements 의 답 (SettlementHistoryResponse) */

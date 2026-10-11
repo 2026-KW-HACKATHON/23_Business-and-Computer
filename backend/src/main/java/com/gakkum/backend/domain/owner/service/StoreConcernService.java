@@ -4,11 +4,13 @@ import java.time.Clock;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.domain.Limit;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -65,6 +67,12 @@ public class StoreConcernService {
                 .orElseThrow(() -> new BusinessException(ErrorCode.STORE_CONCERN_NOT_FOUND));
         concern.resolve(LocalDateTime.ofInstant(clock.instant(), ZoneOffset.UTC));
         storeConcernRepository.save(concern);
+    }
+
+    /** 데모 세션 범위에서 최근에 올리거나 고친 해결되지 않은 고민을 limit개까지 읽는다. */
+    @Transactional(readOnly = true)
+    public List<StoreConcern> getNewestOpenConcerns(String demoSessionId, int limit) {
+        return storeConcernRepository.findNewestOpen(demoSessionId, Limit.of(limit));
     }
 
     /** 사장님 프로필 ID별 해결되지 않은 고민. 고민이 없는 가게는 맵에 없다. */

@@ -34,6 +34,8 @@ import com.gakkum.backend.domain.job.entity.JobApplication;
 import com.gakkum.backend.domain.job.entity.JobStatus;
 import com.gakkum.backend.domain.job.service.JobService;
 import com.gakkum.backend.domain.owner.service.OwnerService;
+import com.gakkum.backend.domain.review.service.ReviewService;
+import com.gakkum.backend.domain.specialty.service.SpecialtyCategoryService;
 import com.gakkum.backend.domain.payment.client.KakaoPayClient;
 import com.gakkum.backend.domain.payment.dto.PaymentHistoryStatus;
 import com.gakkum.backend.domain.payment.dto.PaymentQueryDto.PaymentHistoryData;
@@ -484,7 +486,8 @@ class PaymentHistoryFacadeTest {
     private PaymentFacade facadeAt(String now) {
         return new PaymentFacade(mock(PaymentPreparationService.class),
                 mock(KakaoPayClient.class), paymentService, mock(PaymentApprovalService.class),
-                userService, jobService, studentService, mock(OwnerService.class),
+                userService, jobService, studentService, mock(OwnerService.class), mock(ReviewService.class),
+                mock(SpecialtyCategoryService.class),
                 Clock.fixed(Instant.parse(now), ZoneOffset.UTC));
     }
 

@@ -1,5 +1,6 @@
 import { apiData } from "../../../api/client";
 import type { WorkKind } from "../../../types/workKind";
+import type { StoreConcernResponse } from "./concernApi";
 
 /** 확인할 일의 학생 (OwnerHomeResponse.Student). 전공이 없으면 없음 */
 export interface OwnerHomeStudentResponse {
@@ -78,6 +79,8 @@ export interface OwnerHomeResponse {
   waiting: OwnerHomeWaitingResponse[] | null;
   /** 완료한 작업, 최근 끝난 것부터 */
   done: OwnerHomeDoneResponse[] | null;
+  /** 해결되지 않은 가게 고민 (GET /owners/me/concern 과 같은 모양). 가게마다 하나라서 [] 이거나 하나다 */
+  concerns: StoreConcernResponse[] | null;
 }
 
 /** GET /me/home 의 역할. 사장님 화면은 OWNER 만 쓴다 */
