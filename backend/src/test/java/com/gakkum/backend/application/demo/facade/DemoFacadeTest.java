@@ -49,6 +49,7 @@ class DemoFacadeTest {
 
     private static final String SESSION = "01K6DEMO00000000000000000A";
     private static final long MAX_NEW_SESSIONS_PER_HOUR = 3;
+    private static final String PROFILE_IMAGE_BASE_URL = "https://gakkum.example.com";
 
     private final UserService userService = mock(UserService.class);
     private final OwnerService ownerService = mock(OwnerService.class);
@@ -59,7 +60,8 @@ class DemoFacadeTest {
     private final JwtService jwtService = mock(JwtService.class);
     private final Clock clock = Clock.fixed(Instant.parse("2026-10-04T23:00:00Z"), ZoneOffset.UTC);
     private final DemoFacade facade = new DemoFacade(userService, ownerService, studentService,
-            businessCategoryService, specialtyService, sampleDataSeeder, jwtService, clock, MAX_NEW_SESSIONS_PER_HOUR);
+            businessCategoryService, specialtyService, sampleDataSeeder, jwtService, clock, MAX_NEW_SESSIONS_PER_HOUR,
+            PROFILE_IMAGE_BASE_URL);
 
     @BeforeEach
     void givenTokens() {
@@ -106,11 +108,14 @@ class DemoFacadeTest {
         assertThat(store.getRepresentativeName()).isEqualTo("김골목");
         assertThat(store.getBusinessNumber()).isEqualTo("DEMO-" + session);
         assertThat(store.getCategoryId()).isEqualTo(3L);
+        assertThat(store.getProfileImageUrl()).isEqualTo(PROFILE_IMAGE_BASE_URL + "/demo/owner-profile.webp");
 
         ArgumentCaptor<CreateStudentProfileCommand> studentCaptor =
                 ArgumentCaptor.forClass(CreateStudentProfileCommand.class);
         verify(studentService).createStudentProfile(studentCaptor.capture());
         assertThat(studentCaptor.getValue().getUserId()).isEqualTo("student-user-" + session);
+        assertThat(studentCaptor.getValue().getProfileImageUrl())
+                .isEqualTo(PROFILE_IMAGE_BASE_URL + "/demo/student-profile.webp");
         assertThat(studentCaptor.getValue().getStudentNumber()).matches("^20240\\d{5}$");
         ArgumentCaptor<AddStudentSpecialtyCommand> specialtyCaptor =
                 ArgumentCaptor.forClass(AddStudentSpecialtyCommand.class);
