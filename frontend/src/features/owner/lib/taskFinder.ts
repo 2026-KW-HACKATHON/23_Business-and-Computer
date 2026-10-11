@@ -289,11 +289,14 @@ const pickOf = (index: number, reason?: string): TaskFinderPick | undefined => {
   return question && example ? { example, cardTitle: question.cardTitle, reason: reason ?? question.reason } : undefined;
 };
 
+/** 질문 하나의 답. 고른 답 0 · 1, 「건너뛰기」로 넘긴 질문이면 null */
+export type TaskFinderAnswer = 0 | 1 | null;
+
 /**
- * 답(질문 순서대로 고른 답 0 · 1)으로 추천 3개를 고른다. 추천 답이 나온 질문 중 위 순서대로 3개,
+ * 답(질문 순서대로)으로 추천 3개를 고른다. 추천 답이 나온 질문 중 위 순서대로 3개 (넘긴 질문은 추천하지 않는다),
  * 하나도 없으면 ⑫ → ⑪ → ⑩. matched 가 false 면 「해당 없음」 화면.
  */
-export function taskFinderPicks(answers: readonly number[]): { matched: boolean; picks: TaskFinderPick[] } {
+export function taskFinderPicks(answers: readonly TaskFinderAnswer[]): { matched: boolean; picks: TaskFinderPick[] } {
   const matched = TASK_FINDER_QUESTIONS.flatMap((question, i) => (answers[i] === question.need ? [i] : []));
   if (matched.length > 0) {
     return { matched: true, picks: matched.slice(0, 3).flatMap((i) => pickOf(i) ?? []) };
@@ -301,9 +304,9 @@ export function taskFinderPicks(answers: readonly number[]): { matched: boolean;
   return { matched: false, picks: NO_MATCH.flatMap(({ index, reason }) => pickOf(index, reason) ?? []) };
 }
 
-/** 화면 기록에 들고 다니는 답. 질문 수보다 길거나 0 · 1 이 아니면 버린다 */
-export function readTaskFinderAnswers(state: unknown): number[] | undefined {
+/** 화면 기록에 들고 다니는 답. 질문 수보다 길거나 0 · 1 · null 이 아니면 버린다 */
+export function readTaskFinderAnswers(state: unknown): TaskFinderAnswer[] | undefined {
   const answers = (state as { answers?: unknown } | null)?.answers;
   if (!Array.isArray(answers) || answers.length > TASK_FINDER_QUESTIONS.length) return undefined;
-  return answers.every((a) => a === 0 || a === 1) ? (answers as number[]) : undefined;
+  return answers.every((a) => a === 0 || a === 1 || a === null) ? (answers as TaskFinderAnswer[]) : undefined;
 }

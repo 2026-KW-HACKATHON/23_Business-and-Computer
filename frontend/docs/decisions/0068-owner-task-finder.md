@@ -3,8 +3,8 @@
 ## Status
 
 Accepted. The owner home shows a 「맡길 일 찾기」 banner above 확인할 일. It
-opens 12 yes/no questions, one per screen, and a result screen with up to
-three suggested requests. A suggestion starts 의뢰 등록 filled with an
+opens 12 yes/no questions, one per screen (「건너뛰기」 jumps to the
+result), and a result screen with up to three suggested requests. A suggestion starts 의뢰 등록 filled with an
 example, the same way the home 「이런 의뢰는 어때요?」 cards do (B-2).
 
 ## Context
@@ -34,9 +34,12 @@ example, the same way the home 「이런 의뢰는 어때요?」 cards do (B-2).
 - **Questions** (/owner/task-finder/:step, 1–12, app bar 「맡길 일
   찾기」): a progress bar with 「n/12」, the question, the hint 「가게
   상황에 가까운 답을 골라 주세요」, and two answer buttons. Tapping an
-  answer goes straight to the next question. The answers travel in the
-  route state (`{ answers: (0 | 1)[] }`), so ← returns to the previous
-  question with its answers. A step whose earlier answers are missing (for
+  answer goes straight to the next question. 「건너뛰기」 on the right of
+  the app bar fills the remaining questions with `null` and opens the
+  result at once; a `null` question never leads to a suggestion, so
+  skipping from question 1 shows the no-match result. The answers travel
+  in the route state (`{ answers: (0 | 1 | null)[] }`), so ← returns to
+  the previous question with its answers. A step whose earlier answers are missing (for
   example a typed URL) goes to question 1.
 - **Data** (`src/features/owner/lib/taskFinder.ts`): each question has two
   answers, the answer that leads to a suggestion (`need`), a card title, a
