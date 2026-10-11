@@ -1,4 +1,4 @@
-# 0077. Red unread dots and app bar icon sizing
+# 0076. Red unread dots and app bar icon sizing
 
 ## Status
 
