@@ -147,24 +147,21 @@
   background: var(--role-muted);
 }
 
-/* 고민 제목 + 오른쪽 「펼치기 › / 접기」. 제목이 두 줄이 되어도 버튼은 첫 줄에 붙는다 */
-.owner-concern-card__title-row {
+/* 말풍선 첫 줄: 왼쪽 노랑 「“」, 오른쪽 「펼치기 › / 접기」 */
+.owner-concern-card__top {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
+  justify-content: space-between;
   gap: 8px;
 }
 
-.owner-concern-card__title-row > .owner-concern-card__title {
-  flex: 1;
-  min-width: 0;
-}
-
-/* 「펼치기 ›」와 「접기」의 폭을 같게 둬서 눌러도 제목 줄바꿈이 바뀌지 않는다 */
-.owner-concern-card__toggle {
+/* 「고치기 ›」와 같은 진한 노랑 굵은 글씨. 「펼치기 ›」와 「접기」의 폭을 같게 둔다 */
+.owner-concern-card .owner-concern-card__toggle {
   flex-shrink: 0;
   justify-content: flex-end;
   min-width: 60px;
-  margin-top: 1px;
+  font-weight: 700;
+  color: #a87600;
 }
 
 /* 고민 내용과 헷갈리지 않게 작업계획서 이름표처럼 작은 회색 글씨 */

@@ -1,8 +1,23 @@
+/* 바탕은 역할 색: 사장님 연노랑 · 학생 연자주 (아래 --owner · --student) */
 .main-app-bar {
+  --main-app-bar-bg: var(--role-muted);
   flex-shrink: 0;
   padding-top: env(safe-area-inset-top);
-  background: var(--role-muted);
+  background: var(--main-app-bar-bg);
   font-family: var(--font-sans);
+}
+
+.main-app-bar--owner {
+  --main-app-bar-bg: var(--color-owner-bar);
+}
+
+.main-app-bar--student {
+  --main-app-bar-bg: var(--color-student-bar);
+}
+
+/* 역할 색 바탕 위에서 둘러보기 역할 전환 배지가 묻히지 않게 흰 바탕 */
+.main-app-bar .demo-role-badge {
+  background: var(--color-white);
 }
 
 .main-app-bar__row {
@@ -59,7 +74,7 @@
   box-sizing: border-box;
   width: 10px;
   height: 10px;
-  border: 2px solid var(--role-muted);
+  border: 2px solid var(--main-app-bar-bg);
   border-radius: 50%;
   background: var(--color-owner);
 }

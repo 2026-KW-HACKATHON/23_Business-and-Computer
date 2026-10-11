@@ -32,7 +32,8 @@ Accepted. The owner home shows a store-concern card right below 「확인할 일
   - A concern: the section title 「현재 올려둔 고민」 and a speech bubble
     instead of a card: the thinking owner illustration (`concernOwner`,
     56px) at the bottom left, a white bordered bubble with a tail toward
-    the owner's head, a yellow 「“」, the line (16px bold) with 「펼치기 ›」 on its right,
+    the owner's head, a first row with a yellow 「“」 on the left and 「펼치기 ›」
+    (bold #a87600, like 「고치기 ›」) on the right, the line (16px bold),
     and 「— 우리 가게 고민 · 분야 · ○월 ○일」 (`createdAt`; no field, no
     middle part). The text button 「고치기 ›」 (bold, #a87600 like 「고민
     올리기 ›」) sits under the bubble on the right. 「펼치기」 opens a gray 「자세한 설명」 box inside the bubble and

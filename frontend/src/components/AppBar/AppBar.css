@@ -6,8 +6,9 @@
   font-family: var(--font-sans);
 }
 
+/* 회색 앱바. 사장님 · 학생 화면에서는 역할 색 (--role-bar, ADR 0073) */
 .app-bar--muted {
-  background: var(--role-muted);
+  background: var(--role-bar);
 }
 
 .app-bar__row {
