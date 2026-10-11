@@ -68,8 +68,44 @@
   gap: 12px;
 }
 
+/* 그림 자리: 두 그림을 아래에 맞춰 겹친다 (생각하는 사장님 56×81 · 설명하는 사장님 56×71) */
 .owner-concern-card__illustration {
+  position: relative;
   flex-shrink: 0;
+  width: 56px;
+  height: 81px;
+}
+
+.owner-concern-card__face {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  transform-origin: 50% 100%;
+  transition:
+    opacity 0.2s ease-out,
+    transform 0.32s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* 펼치면 생각하는 사장님은 살짝 작아지며 사라지고, 설명하는 사장님이 톡 튀어 오르며 나타난다 */
+.owner-concern-card__face--explain {
+  opacity: 0;
+  transform: translateY(6px) scale(0.85);
+}
+
+.owner-concern-card__illustration--open .owner-concern-card__face--think {
+  opacity: 0;
+  transform: scale(0.85);
+}
+
+.owner-concern-card__illustration--open .owner-concern-card__face--explain {
+  opacity: 1;
+  transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .owner-concern-card__face {
+    transition: none;
+  }
 }
 
 /* 흰 말풍선. 꼬리는 왼쪽, 그림 속 사장님 머리 높이 */

@@ -17,7 +17,8 @@ interface OwnerConcernCardProps {
  * 고민이 있으면 확인할 일 카드(흰 바탕 · 노랑 테두리 · 꽉 찬 버튼)와 달리 사장님이 털어놓는 말풍선이다.
  * 왼쪽 아래 생각하는 사장님 그림, 그 머리 쪽으로 꼬리가 달린 흰 말풍선 안에 노랑 따옴표 · 제목 ·
  * 「— 우리 가게 고민 · 분야 · 올린 날」, 말풍선 아래 오른쪽에 진한 노랑 글자 버튼 「고치기 ›」. 섹션 제목 「현재 올려둔 고민」은 홈이 붙인다.
- * 「“」와 같은 줄 오른쪽의 노랑 「펼치기 ›」를 누르면 말풍선 안에 회색 「자세한 설명」 상자가 열린다 (설명이 없으면 버튼 없음).
+ * 「“」와 같은 줄 오른쪽의 노랑 「펼치기 ›」를 누르면 말풍선 안에 회색 「자세한 설명」 상자가 열리고,
+ * 그림은 생각하는 사장님에서 손으로 가리키며 설명하는 사장님으로 바뀐다 (설명이 없으면 버튼 없음).
  */
 function OwnerConcernCard({ concern, onOpen }: OwnerConcernCardProps) {
   const [open, setOpen] = useState(false);
@@ -40,7 +41,19 @@ function OwnerConcernCard({ concern, onOpen }: OwnerConcernCardProps) {
   return (
     <div className="owner-concern-card owner-concern-card--posted">
       <div className="owner-concern-card__speaker">
-        <AppImage name="concernOwner" width={56} alt="" className="owner-concern-card__illustration" />
+        {/* 접혀 있으면 생각하는 사장님, 펼치면 설명하는 사장님으로 바뀐다 (두 그림을 겹쳐 두고 서로 엇갈려 나타난다) */}
+        <span
+          className={`owner-concern-card__illustration${open ? " owner-concern-card__illustration--open" : ""}`}
+          aria-hidden="true"
+        >
+          <AppImage name="concernOwner" width={56} alt="" className="owner-concern-card__face owner-concern-card__face--think" />
+          <AppImage
+            name="concernOwnerExplain"
+            width={56}
+            alt=""
+            className="owner-concern-card__face owner-concern-card__face--explain"
+          />
+        </span>
         <div className="owner-concern-card__bubble">
           <div className="owner-concern-card__top">
             <span className="owner-concern-card__quote" aria-hidden="true">

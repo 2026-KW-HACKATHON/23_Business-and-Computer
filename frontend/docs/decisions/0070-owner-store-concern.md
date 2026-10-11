@@ -36,7 +36,10 @@ Accepted. The owner home shows a store-concern card right below 「확인할 일
     (bold #a87600, like 「고치기 ›」) on the right, the line (16px bold),
     and 「— 우리 가게 고민 · 분야 · ○월 ○일」 (`createdAt`; no field, no
     middle part). The text button 「고치기 ›」 (bold, #a87600 like 「고민
-    올리기 ›」) sits under the bubble on the right. 「펼치기」 opens a gray 「자세한 설명」 box inside the bubble and
+    올리기 ›」) sits under the bubble on the right. 「펼치기」 opens a gray 「자세한 설명」 box inside the bubble, swaps the
+    illustration to the explaining owner (`concernOwnerExplain`; the two
+    images are stacked, the thinking one shrinks and fades while the
+    explaining one pops up from 85%, 0.32s; none with reduced motion), and
     becomes 「접기」; a concern without a description has no toggle.
 - /owner/me/concern (`OwnerConcernPage`): 「한 줄 고민」 (required),
   「자세한 설명 (선택)」, 「분야 (선택)」 chips from `GET /specialties` (one,
