@@ -1,5 +1,5 @@
 import type { MouseEvent } from "react";
-import { Button, CategoryBadge, WorkKindIcon } from "../../../components";
+import { AppImage, Button, CategoryBadge, WorkKindIcon } from "../../../components";
 import { useLoopCarousel, withLoopClones } from "../../../hooks/useLoopCarousel";
 import { formatMonthDay } from "../../../lib/date";
 import { studentLabel } from "../lib/format";
@@ -12,12 +12,13 @@ const SLIDE_MS = 300;
 /** TodoCarousel.css 의 카드 사이 간격과 같게 둔다 */
 const SLIDE_GAP_PX = 12;
 
-/** 카드 종류마다 보여 줄 문구. meta 가 없으면 분야 뱃지만 둔다 */
+/** 카드 종류마다 보여 줄 문구와 안내 상자 오른쪽 그림. meta 가 없으면 분야 뱃지만 둔다 */
 function describe(todo: OwnerTodo): {
   meta?: string;
   status: string;
   detail: string;
   action: string;
+  icon: "todoDraft" | "todoRevision" | "todoProposal" | "todoApplicants";
 } {
   switch (todo.type) {
     case "draftArrived": {
@@ -29,6 +30,7 @@ function describe(todo: OwnerTodo): {
           ? `${formatMonthDay(todo.autoCompleteOn)}까지 확인하지 않으면 자동으로 완료돼요`
           : "7일 동안 확인하지 않으면 자동으로 완료돼요",
         action: `${noun} 확인하기`,
+        icon: todo.revision ? "todoRevision" : "todoDraft",
       };
     }
     case "proposalArrived":
@@ -37,12 +39,14 @@ function describe(todo: OwnerTodo): {
         status: "새 제안이 도착했어요",
         detail: `학생 손님 ${todo.empathyCount}명이 공감했어요`,
         action: "자세히 보기",
+        icon: "todoProposal",
       };
     case "applicants":
       return {
         status: `학생 ${todo.applicantCount}명이 지원했어요`,
         detail: `초안 마감 : ${formatMonthDay(todo.draftDue)}`,
         action: "학생 고르기",
+        icon: "todoApplicants",
       };
   }
 }
@@ -87,7 +91,7 @@ function TodoCarousel({ todos, onAction }: TodoCarouselProps) {
           >
             {slides.map((todo, i) => {
               const hidden = i !== offset || isClone(i);
-              const { meta, status, detail, action } = describe(todo);
+              const { meta, status, detail, action, icon } = describe(todo);
               return (
                 <article
                   key={i}
@@ -106,9 +110,11 @@ function TodoCarousel({ todos, onAction }: TodoCarouselProps) {
                       {meta && <span className="todo-carousel__meta-text">{meta}</span>}
                     </div>
                   </div>
+                  {/* 안내 상자: 왼쪽 지금 상태와 그 아래 자세한 안내, 오른쪽 그 일을 나타내는 그림 (학생 홈 카드와 같은 모양) */}
                   <div className="todo-carousel__status">
                     <p className="todo-carousel__status-title">{status}</p>
                     <p className="todo-carousel__status-detail">{detail}</p>
+                    <AppImage name={icon} width={44} alt="" className="todo-carousel__status-icon" />
                   </div>
                   <Button
                     size="medium"

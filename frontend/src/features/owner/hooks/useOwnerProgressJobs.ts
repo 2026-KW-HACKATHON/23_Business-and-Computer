@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { loadOwnerProgressJobs } from "../lib/progressJobs";
 import type { OwnerProgressJob } from "../lib/progressJobs";
+import { useCachedListRevision } from "../../../hooks/useCachedListRevision";
 
 export type OwnerProgressJobsLoad =
   | { status: "loading" }
@@ -18,6 +19,8 @@ export function useOwnerProgressJobs(): { load: OwnerProgressJobsLoad; reload: (
   const [load, setLoad] = useState<OwnerProgressJobsLoad>({ status: "loading" });
   const [request, setRequest] = useState(0);
 
+  // 기억해 둔 목록이 뒤에서 새로 바뀌면 다시 그린다 (ADR 0076)
+  const revision = useCachedListRevision();
   useEffect(() => {
     let active = true;
     void loadOwnerProgressJobs().then((result) => {
@@ -31,7 +34,7 @@ export function useOwnerProgressJobs(): { load: OwnerProgressJobsLoad; reload: (
     return () => {
       active = false;
     };
-  }, [request, navigate]);
+  }, [request, navigate, revision]);
 
   const reload = useCallback(() => {
     setLoad({ status: "loading" });

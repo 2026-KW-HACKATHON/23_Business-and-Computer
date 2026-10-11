@@ -41,6 +41,9 @@ spring:
   jpa:
     hibernate:
       ddl-auto: validate
+    properties:
+      hibernate:
+        order_updates: true # flush 의 UPDATE 를 표 · id 순으로 모아 보낸다. JDBC 묶음(batch)을 쓰는 데모 예시 데이터가 표마다 한 번에 나간다
   security:
     oauth2:
       client:

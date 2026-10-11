@@ -48,7 +48,9 @@ owner's 「맡길 일 찾기」 (ADR 0068).
   ones left out), 「지금 지원하기 좋은 의뢰 N개」 (top three), and 「다른 의뢰
   N개 더 보기」 / 「다른 의뢰 접기」. A card shows the field badge, title,
   「가게 · 초안 마감 M월 D일」, reason chips (「○○ 분야」 · 「마감 여유」 ·
-  「작업비 맞음」), the budget, and 「의뢰서 보기 ›」, and opens 의뢰서 전체
+  「작업비 맞음」), gray miss chips when an answered question does not fit
+  (「마감 빠듯」 · 「작업비 범위 밖」, the request is ranked lower, not
+  removed), the budget, and 「의뢰서 보기 ›」, and opens 의뢰서 전체
   보기 (apply from there). With nothing left: 「지금 맞는 의뢰가 없어요」
   and the footer 「다시 찾기」 · 「가게에 제안하기」 (제안 보내기 1/4).
   Otherwise the footer is 「다시 찾기」 · 「홈으로」. The requests come from

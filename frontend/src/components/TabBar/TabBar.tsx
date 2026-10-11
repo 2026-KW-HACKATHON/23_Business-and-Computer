@@ -1,6 +1,5 @@
 import { useLayoutEffect, useRef, useState } from "react";
 import type { CSSProperties } from "react";
-import type { Role } from "../../types/role";
 import type { ImageName } from "../AppImage/images";
 import MaskIcon from "../MaskIcon/MaskIcon";
 import "./TabBar.css";
@@ -22,8 +21,6 @@ const tabIndex = (tab: MainTab) => TABS.findIndex((t) => t.tab === tab);
 let lastTab: MainTab | undefined;
 
 interface TabBarProps {
-  /** 점 색을 고른다 (사장님 노랑 · 학생 보라) */
-  role: Role;
   current: MainTab;
   onSelect: (tab: MainTab) => void;
   /** 안 읽은 채팅 메시지가 있으면 「채팅」 아이콘에 점 */
@@ -36,7 +33,7 @@ interface TabBarProps {
  * 다른 탭에서 넘어오면 선택 배경이 그 탭 자리에서 새 탭으로 미끄러지고(가는 동안 살짝 늘어남),
  * 새 탭 아이콘이 한 번 톡 튄다 (ADR 0055)
  */
-function TabBar({ role, current, onSelect, hasUnreadChat = false, className = "" }: TabBarProps) {
+function TabBar({ current, onSelect, hasUnreadChat = false, className = "" }: TabBarProps) {
   const index = tabIndex(current);
   // 선택 배경을 처음 그릴 자리. 다른 탭에서 넘어왔으면 그 탭 자리
   const [from] = useState(() => (lastTab === undefined ? index : tabIndex(lastTab)));
@@ -82,7 +79,7 @@ function TabBar({ role, current, onSelect, hasUnreadChat = false, className = ""
           <span className="tab-bar__icon">
             <MaskIcon name={icon} size={24} />
             {tab === "chat" && hasUnreadChat && (
-              <span className={`tab-bar__dot tab-bar__dot--${role}`} aria-hidden="true" />
+              <span className="tab-bar__dot" aria-hidden="true" />
             )}
           </span>
           {label}

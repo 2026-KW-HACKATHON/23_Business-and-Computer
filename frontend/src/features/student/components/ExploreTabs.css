@@ -2,7 +2,8 @@
   display: flex;
   gap: 20px;
   padding: 0 16px;
-  background: var(--role-muted);
+  /* 바로 위 학생 앱바와 이어지게 같은 연자주 */
+  background: var(--color-student-bar);
   font-family: var(--font-sans);
 }
 

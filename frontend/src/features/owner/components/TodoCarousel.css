@@ -80,13 +80,28 @@
   text-overflow: ellipsis;
 }
 
+/* 학생 홈 카드(StudentTodoCarousel)와 같은 모양: 왼쪽 두 줄(상태 문구 · 자세한 안내), 오른쪽 그림(44px)이 두 줄에 걸친다 */
 .todo-carousel__status {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 12px 14px;
+  /* 그림 옆이라 폭이 좁아 「자동으 / 로」처럼 단어 중간에서 끊기지 않게 단어 단위로 줄을 바꾼다 */
+  word-break: keep-all;
+  text-wrap: pretty;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  /* 카드 높이는 넘기는 카드 중 가장 긴 것에 맞춰 같으므로, 회색 글씨가 한 줄인 카드는 상자가 남는 높이를
+     채우고 글을 가운데에 둔다 (버튼 위에 빈 칸이 생기지 않게) */
+  flex: 1 0 auto;
+  align-content: center;
+  column-gap: 12px;
+  row-gap: 4px;
+  padding: 12px 14px 12px 16px;
   border-radius: 12px;
   background: var(--role-muted);
+}
+
+.todo-carousel__status-icon {
+  grid-row: 1 / span 2;
+  grid-column: 2;
 }
 
 .todo-carousel__status-title {

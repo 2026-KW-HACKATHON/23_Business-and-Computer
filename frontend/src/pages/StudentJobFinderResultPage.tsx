@@ -31,7 +31,8 @@ function answerSummary({ fields, pace, budget }: JobFinderAnswers): string[] {
  * 피그마 「나에게 맞는 일 찾기 - 결과」 · 「결과 (맞는 의뢰 없음)」 (ADR 0072).
  * GET /explore 의 의뢰를 끝까지 받아 모집 중 · 아직 지원 안 한 의뢰에 점수를 매긴다 (jobFinderResult).
  * 위에 내 답 요약, 「지금 지원하기 좋은 의뢰 N개」(점수 높은 3개) + 「다른 의뢰 N개 더 보기」.
- * 카드마다 맞은 까닭(분야 · 마감 여유 · 작업비 맞음)이 보이고, 누르면 의뢰서 전체 보기(거기서 지원하기).
+ * 카드마다 맞은 까닭(분야 · 마감 여유 · 작업비 맞음)과 맞지 않는 점(회색 「마감 빠듯」 · 「작업비 범위 밖」)이 보이고,
+ * 누르면 의뢰서 전체 보기(거기서 지원하기).
  * 맞는 의뢰가 없으면 「지금 맞는 의뢰가 없어요」와 가게에 먼저 제안하기.
  */
 function StudentJobFinderResultPage() {
@@ -49,7 +50,7 @@ function StudentJobFinderResultPage() {
   const none = result !== undefined && result.picks.length === 0;
   const summary = answerSummary(answers);
 
-  const pickCard = ({ job, matchedFields, roomy, budgetFits }: JobFinderPick) => {
+  const pickCard = ({ job, matchedFields, roomy, budgetFits, tight, budgetOff }: JobFinderPick) => {
     const field = job.specialtyCategories
       .map((c) => c.name)
       .find((name): name is Field => (FIELDS as string[]).includes(name));
@@ -58,6 +59,8 @@ function StudentJobFinderResultPage() {
       ...(roomy ? ["마감 여유"] : []),
       ...(budgetFits ? ["작업비 맞음"] : []),
     ];
+    // 답과 맞지 않는 점. 순서만 뒤로 밀리고 빠지지는 않아서 회색으로 알려 준다
+    const misses = [...(tight ? ["마감 빠듯"] : []), ...(budgetOff ? ["작업비 범위 밖"] : [])];
     return (
       <li key={job.jobId}>
         <button
@@ -70,11 +73,16 @@ function StudentJobFinderResultPage() {
           <span className="task-finder__pick-reason">
             {job.storeName} · 초안 마감 {formatMonthDay(job.draftDeadline)}
           </span>
-          {reasons.length > 0 && (
+          {reasons.length + misses.length > 0 && (
             <span className="job-finder__reasons">
               {reasons.map((reason) => (
                 <span key={reason} className="job-finder__reason">
                   {reason}
+                </span>
+              ))}
+              {misses.map((miss) => (
+                <span key={miss} className="job-finder__reason job-finder__reason--miss">
+                  {miss}
                 </span>
               ))}
             </span>

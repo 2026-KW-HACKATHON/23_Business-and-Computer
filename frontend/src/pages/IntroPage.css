@@ -96,6 +96,55 @@
   background: var(--color-black);
 }
 
+
+/* 1단계: 사장님 의뢰 또는 학생 제안. 칩 글자는 다른 단계와 같은 크기 */
+.intro__either {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.intro__chip {
+  flex-shrink: 0;
+  padding: 1px 9px;
+  border-radius: 999px;
+  font-size: inherit;
+  font-weight: 700;
+}
+
+.intro__chip--owner {
+  background: var(--color-owner);
+  color: var(--color-black);
+}
+
+.intro__chip--student {
+  background: var(--color-student);
+  color: var(--color-white);
+}
+
+.intro__or {
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--role-secondary);
+}
+
+/* 폭이 좁은 폰(360px 미만)에서도 1단계가 한 줄에 들어가도록 */
+@media (max-width: 359px) {
+  .intro__either {
+    gap: 4px;
+    font-size: 15px;
+  }
+
+  .intro__chip {
+    padding: 1px 6px;
+  }
+
+  .intro__or {
+    font-size: 13px;
+  }
+}
+
 .intro__step-number {
   position: relative;
   display: flex;

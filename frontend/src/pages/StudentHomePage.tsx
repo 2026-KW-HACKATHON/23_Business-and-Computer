@@ -69,15 +69,7 @@ function StudentHomePage() {
   const [doneExpanded, setDoneExpanded] = useState(false);
   const exampleScroll = useDragScroll<HTMLUListElement>();
 
-  // 상세보기: 지금 화면을 본다 / 아래 버튼: 바로 할 일로 간다
-  const openDetail = (todo: StudentTodo) => {
-    if (todo.type === "proposalAgreement") {
-      return navigate(STUDENT_PATHS.proposalStart(String(todo.proposalId)));
-    }
-    const id = String(todo.jobId);
-    if (todo.type === "drafting") return navigate(STUDENT_PATHS.workSubmit(id));
-    return navigate(STUDENT_PATHS.workRevision(id));
-  };
+  // 확인할 일 카드 버튼: 바로 할 일로 간다
   const openAction = (todo: StudentTodo) => {
     if (todo.type === "proposalAgreement") {
       return navigate(STUDENT_PATHS.proposalStart(String(todo.proposalId)));
@@ -271,7 +263,7 @@ function StudentHomePage() {
           <>
             <SectionHeader title="확인할 일" count={todos.length} />
             {todos.length > 0 ? (
-              <StudentTodoCarousel todos={todos} onDetail={openDetail} onAction={openAction} />
+              <StudentTodoCarousel todos={todos} onAction={openAction} />
             ) : (
               <TodoNoneCard tone="student" />
             )}
