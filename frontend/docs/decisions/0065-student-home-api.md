@@ -68,10 +68,9 @@ hooks.
     중 shows 「가게에 보낸 제안」 · 「손님 N명 공감」 and 「가게 의뢰에 지원」 ·
     「초안 마감 : M월 D일」. 끝난 일 shows `completedOn` as 「완료 : M월 D일」.
   - Links: 의뢰서가 온 제안 → 조건 확인 (`proposalStart`); 초안 차례 →
-    초안 제출; 수정안 차례 → 수정 요청 확인 (상세보기) and 수정안 제출
-    (button); 사장님이 확인 중 → 제출한 결과물; 보낸 제안 → 보낸 제안서
-    상세; 지원 → 의뢰서 전체 보기; 다른 학생 제안 → its detail; 끝난 일 →
-    내 결과물.
+    초안 제출; 수정안 차례 → 수정안 제출; 사장님이 확인 중 → 제출한
+    결과물; 보낸 제안 → 보낸 제안서 상세; 지원 → 의뢰서 전체 보기; 다른
+    학생 제안 → its detail; 끝난 일 → 내 결과물.
   - `PeerProposalRow` takes the title, student name, store name, and status
     of `StudentPeerProposal`; liking from the home still goes through
     `useProposalLikes`.

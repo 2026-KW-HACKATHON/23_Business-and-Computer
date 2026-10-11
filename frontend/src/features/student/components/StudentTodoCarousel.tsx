@@ -1,5 +1,5 @@
 import type { MouseEvent } from "react";
-import { Button, CategoryBadge, TextButton, WorkKindIcon } from "../../../components";
+import { AppImage, Button, CategoryBadge, WorkKindIcon } from "../../../components";
 import { useLoopCarousel, withLoopClones } from "../../../hooks/useLoopCarousel";
 import { deadlineText } from "../lib/format";
 import type { StudentTodo } from "../types";
@@ -11,15 +11,35 @@ const SLIDE_MS = 300;
 /** StudentTodoCarousel.css 의 카드 사이 간격과 같게 둔다 */
 const SLIDE_GAP_PX = 12;
 
-/** 카드 종류마다 보여 줄 문구 */
-function describe(todo: StudentTodo) {
+/** 카드 종류마다 보여 줄 문구와 안내 상자 오른쪽 그림 (사장님 홈 카드처럼 상태 · 회색 안내 두 줄) */
+function describe(todo: StudentTodo): {
+  status: string;
+  detail: string;
+  action: string;
+  icon: "todoSubmitDraft" | "todoCheckTerms" | "todoSubmitRevision";
+} {
   switch (todo.type) {
     case "drafting":
-      return { status: deadlineText(todo.stage, todo.due), action: "초안 제출하기" };
+      return {
+        status: deadlineText(todo.stage, todo.due),
+        detail: "마감 전에 초안을 올려 주세요",
+        action: "초안 제출하기",
+        icon: "todoSubmitDraft",
+      };
     case "revising":
-      return { status: "수정 요청이 도착했어요", action: "수정안 제출하기" };
+      return {
+        status: "수정 요청이 도착했어요",
+        detail: deadlineText(todo.stage, todo.due),
+        action: "수정안 제출하기",
+        icon: "todoSubmitRevision",
+      };
     case "proposalAgreement":
-      return { status: "제안이 받아들여졌어요", action: "조건 확인" };
+      return {
+        status: "제안이 받아들여졌어요",
+        detail: "작업 조건을 확인하고 시작해 주세요",
+        action: "조건 확인",
+        icon: "todoCheckTerms",
+      };
   }
 }
 
@@ -45,8 +65,6 @@ function heading(todo: StudentTodo) {
 
 interface StudentTodoCarouselProps {
   todos: StudentTodo[];
-  /** 「상세보기 ›」 */
-  onDetail: (todo: StudentTodo) => void;
   /** 아래 큰 버튼 */
   onAction: (todo: StudentTodo) => void;
 }
@@ -55,7 +73,7 @@ interface StudentTodoCarouselProps {
  * 학생 홈 「확인할 일」. 할 일 하나에 카드 한 장, 4초마다 다음 카드로 넘어간다.
  * 옆으로 넘기거나 양옆 화살표로도 넘기고, 마지막 다음은 오른쪽으로 이어서 처음.
  */
-function StudentTodoCarousel({ todos, onDetail, onAction }: StudentTodoCarouselProps) {
+function StudentTodoCarousel({ todos, onAction }: StudentTodoCarouselProps) {
   const slides = withLoopClones(todos);
   const { offset, index, animate, looping, trackRef, go, swipeHandlers, takeSwipe, isClone } =
     useLoopCarousel<HTMLDivElement>({
@@ -86,7 +104,7 @@ function StudentTodoCarousel({ todos, onDetail, onAction }: StudentTodoCarouselP
           >
             {slides.map((todo, i) => {
               const hidden = i !== offset || isClone(i);
-              const { status, action } = describe(todo);
+              const { status, detail, action, icon } = describe(todo);
               const head = heading(todo);
               return (
                 <article
@@ -108,9 +126,11 @@ function StudentTodoCarousel({ todos, onDetail, onAction }: StudentTodoCarouselP
                       <span className="student-todo__meta-text">{head.store}</span>
                     </div>
                   </div>
+                  {/* 안내 상자: 왼쪽 지금 상태와 그 아래 회색 안내, 오른쪽 그 일을 나타내는 그림 (사장님 홈 카드와 같은 모양) */}
                   <div className="student-todo__status">
                     <p className="student-todo__status-title">{status}</p>
-                    <TextButton onClick={() => onDetail(todo)}>상세보기</TextButton>
+                    <p className="student-todo__status-detail">{detail}</p>
+                    <AppImage name={icon} width={44} alt="" className="student-todo__status-icon" />
                   </div>
                   <Button
                     tone="student"
