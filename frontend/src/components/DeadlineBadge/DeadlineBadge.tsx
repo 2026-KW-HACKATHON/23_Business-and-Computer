@@ -7,7 +7,7 @@ interface DeadlineBadgeProps {
   due: string;
 }
 
-/** 마감 뱃지. 칩 없이 점 + 단계 + 「~월/일」 (초안 = 노란 점, 최종 = 빨간 점, ADR 0077) */
+/** 마감 뱃지. 칩 없이 점 + 단계 + 「~월/일」 (초안 = 노란 점, 최종 = 빨간 점, ADR 0082) */
 function DeadlineBadge({ stage, due }: DeadlineBadgeProps) {
   return (
     <span className={`deadline-badge deadline-badge--${stage}`}>

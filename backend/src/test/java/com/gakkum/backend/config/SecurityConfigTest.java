@@ -680,6 +680,25 @@ class SecurityConfigTest {
     }
 
     @Test
+    @DisplayName("허용된 Origin의 preflight는 브라우저가 2시간 기억하도록 Max-Age를 내리고 다운로드 경로도 같다")
+    void preflightIsRememberedForTwoHours() throws Exception {
+        for (String path : List.of("/students/me", "/jobs/submissions/download")) {
+            mockMvc.perform(options(path)
+                    .header(HttpHeaders.ORIGIN, "http://localhost:5173")
+                    .header(HttpHeaders.ACCESS_CONTROL_REQUEST_METHOD, "GET")
+                    .header(HttpHeaders.ACCESS_CONTROL_REQUEST_HEADERS, "authorization"))
+                .andExpect(status().isOk())
+                .andExpect(header().string(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, "http://localhost:5173"))
+                .andExpect(header().string(HttpHeaders.ACCESS_CONTROL_MAX_AGE, "7200"));
+        }
+        mockMvc.perform(options("/students/me")
+                .header(HttpHeaders.ORIGIN, "https://other.example.com")
+                .header(HttpHeaders.ACCESS_CONTROL_REQUEST_METHOD, "GET"))
+            .andExpect(status().isForbidden())
+            .andExpect(header().doesNotExist(HttpHeaders.ACCESS_CONTROL_MAX_AGE));
+    }
+
+    @Test
     @DisplayName("기본 허용 목록에는 배포 사이트와 localhost만 있어 같은 와이파이 주소, 다른 출처, 포트, HTTPS의 preflight는 차단된다")
     void rejectsOriginsOutsideAllowedPatterns() throws Exception {
         for (String origin : List.of("https://other.example.com", "http://10.0.0.10:5173",

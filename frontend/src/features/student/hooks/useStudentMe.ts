@@ -3,23 +3,33 @@ import { useNavigate } from "react-router-dom";
 import { useObjectUrls } from "../../../hooks/useObjectUrls";
 import { landingPath } from "../../auth";
 import { checkProfilePhoto } from "../../signup";
-import { loadStudentMe, saveStudentMe, studentMeChanges } from "../lib/studentMe";
-import type { StudentMe } from "../lib/studentMe";
+import { loadStudentMe, loadStudentMeSummary, saveStudentMe, studentMeChanges } from "../lib/studentMe";
+import type { StudentMe, StudentMeResult, StudentMeSummary } from "../lib/studentMe";
 
-export type StudentMeLoad = { status: "loading" } | { status: "error" } | { status: "loaded"; data: StudentMe };
+export type StudentMeLoad<T = StudentMe> = { status: "loading" } | { status: "error" } | { status: "loaded"; data: T };
+
+/** 내 정보 전체 (GET /students/me). 받은 후기 · 정산을 보여 주는 프로필 수정이 쓴다 */
+export function useStudentMe(): { load: StudentMeLoad; reload: () => void } {
+  return useMeLoad(loadStudentMe);
+}
+
+/** 내 정보 요약 (GET /students/me/summary). 내 정보 · 프로필 편집이 쓴다 (ADR 0084) */
+export function useStudentMeSummary(): { load: StudentMeLoad<StudentMeSummary>; reload: () => void } {
+  return useMeLoad(loadStudentMeSummary);
+}
 
 /**
- * 내 정보 (GET /students/me). 내 정보 · 프로필 수정 · 프로필 편집이 쓴다. reload 로 다시 불러온다.
+ * 내 정보를 불러온다. reload 로 다시 불러온다.
  * 401 은 /login, 403(학생이 아님)은 알림 뒤 landingPath() 로 보낸다. 지난 응답은 버린다.
  */
-export function useStudentMe(): { load: StudentMeLoad; reload: () => void } {
+function useMeLoad<T>(loadMe: () => Promise<StudentMeResult<T>>): { load: StudentMeLoad<T>; reload: () => void } {
   const navigate = useNavigate();
   const [request, setRequest] = useState(0);
-  const [result, setResult] = useState<{ request: number; load: StudentMeLoad }>();
+  const [result, setResult] = useState<{ request: number; load: StudentMeLoad<T> }>();
 
   useEffect(() => {
     let active = true;
-    void loadStudentMe().then((loaded) => {
+    void loadMe().then((loaded) => {
       if (!active) return;
       if (loaded.status === "unauthorized") {
         navigate("/login", { replace: true });
@@ -33,10 +43,10 @@ export function useStudentMe(): { load: StudentMeLoad; reload: () => void } {
     return () => {
       active = false;
     };
-  }, [request, navigate]);
+  }, [request, navigate, loadMe]);
 
   const reload = useCallback(() => setRequest((n) => n + 1), []);
-  const load: StudentMeLoad = result?.request === request ? result.load : { status: "loading" };
+  const load: StudentMeLoad<T> = result?.request === request ? result.load : { status: "loading" };
   return { load, reload };
 }
 
@@ -49,7 +59,7 @@ const PHOTO_CHECK_TEXT = {
  * 내 정보 · 프로필 수정의 사진 바꾸기. 고르면 바로 올리고(PROFILE) PUT /students/me 로 지금 값과 함께 저장한다.
  * 올리는 동안 고른 사진을 보여 주고, 실패하면 알림 뒤 원래 사진으로 돌아간다.
  */
-export function useStudentPhotoChange(me: StudentMe): {
+export function useStudentPhotoChange(me: StudentMeSummary): {
   photoUrl: string | undefined;
   changePhoto: (file: File) => void;
 } {

@@ -1,0 +1,17 @@
+/* 오른쪽 화살표 아이콘을 돌려 쓴다: 펼치기는 아래, 접기는 위 */
+.fold-chevron {
+  margin-left: 1px;
+  vertical-align: -3px;
+  transform: rotate(90deg);
+  transition: transform 0.2s ease;
+}
+
+.fold-chevron--open {
+  transform: rotate(-90deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fold-chevron {
+    transition: none;
+  }
+}

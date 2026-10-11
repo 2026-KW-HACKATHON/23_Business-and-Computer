@@ -20,8 +20,11 @@ export interface StudentMeReview {
   createdAt: string;
 }
 
-/** GET /students/me 의 답 (StudentMeResponse). 내 정보 · 프로필 수정 · 프로필 편집이 쓴다 */
-export interface StudentMeResponse {
+/**
+ * GET /students/me/summary 의 답 (StudentMeSummaryResponse). 내 정보 · 프로필 편집이 쓴다.
+ * 필드는 GET /students/me 와 같고 받은 후기 · 정산 · 제안 수 · 평균 별점만 없다 (ADR 0084)
+ */
+export interface StudentMeSummaryResponse {
   studentProfileId: number;
   /** 없으면 회색 원 */
   profileImageUrl?: string | null;
@@ -33,15 +36,19 @@ export interface StudentMeResponse {
   major?: string | null;
   introduction?: string | null;
   portfolioUrl?: string | null;
-  /** 보낸 제안 수 (취소한 제안 빼고) */
-  proposalCount: number;
   completedJobCount: number;
-  penaltyCount: number;
-  /** 받은 후기 전체의 평균. 후기가 없으면 null */
-  averageRating?: number | null;
   /** 내 특기를 대분류로 묶은 것 */
   specialtyCategories: StudentMeSpecialtyCategory[];
   certificates: { certificateName: string; acquiredYear: number }[];
+}
+
+/** GET /students/me 의 답 (StudentMeResponse). 프로필 수정이 쓴다 */
+export interface StudentMeResponse extends StudentMeSummaryResponse {
+  /** 보낸 제안 수 (취소한 제안 빼고) */
+  proposalCount: number;
+  penaltyCount: number;
+  /** 받은 후기 전체의 평균. 후기가 없으면 null */
+  averageRating?: number | null;
   /** 받은 후기 전체 수 */
   reviewCount: number;
   /** 받은 후기 전부 (최신순) */
@@ -66,6 +73,13 @@ export interface StudentMeUpdateRequest {
 export async function fetchStudentMe(): Promise<StudentMeResponse> {
   const data = await apiData<StudentMeResponse | undefined>("/students/me");
   if (!data) throw new Error("Student me response has no data");
+  return data;
+}
+
+/** GET /students/me/summary — 로그인한 학생의 프로필과 완료 수만. 학생이 아니면 403 */
+export async function fetchStudentMeSummary(): Promise<StudentMeSummaryResponse> {
+  const data = await apiData<StudentMeSummaryResponse | undefined>("/students/me/summary");
+  if (!data) throw new Error("Student me summary response has no data");
   return data;
 }
 

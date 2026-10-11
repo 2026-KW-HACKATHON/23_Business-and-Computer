@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.gakkum.backend.application.job.dto.JobApplicantProfileResponse;
 import com.gakkum.backend.application.student.dto.StudentMeResponse;
+import com.gakkum.backend.application.student.dto.StudentMeSummaryResponse;
 import com.gakkum.backend.application.student.dto.StudentMeUpdateRequest;
 import com.gakkum.backend.application.student.dto.StudentRegistrationRequest;
 import com.gakkum.backend.application.student.dto.StudentRegistrationResponse;
@@ -60,6 +61,13 @@ public class StudentController {
     public ResponseEntity<ApiResponse<StudentMeResponse>> getMe(Authentication authentication) {
         return ResponseEntity.ok(ApiResponse.success(
                 StudentMeResponse.from(studentFacade.getMe(authentication.getName()))));
+    }
+
+    /** 내 정보 화면용 요약. 내 정보 조회와 같은 필드 중 받은 리뷰·정산 내역·제안 수·평균 별점을 뺀다 */
+    @GetMapping("/students/me/summary")
+    public ResponseEntity<ApiResponse<StudentMeSummaryResponse>> getMeSummary(Authentication authentication) {
+        return ResponseEntity.ok(ApiResponse.success(
+                StudentMeSummaryResponse.from(studentFacade.getMeSummary(authentication.getName()))));
     }
 
     @PutMapping("/students/me")

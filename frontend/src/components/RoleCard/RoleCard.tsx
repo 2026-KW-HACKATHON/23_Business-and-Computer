@@ -11,6 +11,8 @@ interface RoleCardProps {
   /** 카드 아래 버튼 글자 (예: 시작하기 ›) */
   actionLabel: string;
   onSelect: () => void;
+  /** 손가락 · 마우스가 닿는 순간 (떼기 전). 시간이 걸리는 일을 먼저 시작할 때 */
+  onPress?: () => void;
   /** 요청 중에는 눌리지 않게 */
   disabled?: boolean;
   /** 이 카드로 들어가는 중: 버튼 글자 자리에 점 세 개 */
@@ -28,13 +30,22 @@ function RoleCard({
   description,
   actionLabel,
   onSelect,
+  onPress,
   disabled = false,
   loading = false,
 }: RoleCardProps) {
   const { name, character } = ROLE_INFO[role];
 
   return (
-    <button type="button" className="role-card" onClick={onSelect} disabled={disabled}>
+    <button
+      type="button"
+      className="role-card"
+      onClick={onSelect}
+      onPointerDown={(event) => {
+        if (event.button === 0) onPress?.();
+      }}
+      disabled={disabled}
+    >
       <span className="role-card__character">
         <AppImage name={character} width={108.8} alt="" priority />
       </span>

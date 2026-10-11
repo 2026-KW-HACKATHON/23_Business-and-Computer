@@ -331,7 +331,7 @@ function StudentHomePage() {
             <SectionHeader
               title="끝난 일"
               count={done.length}
-              actionLabel={done.length > 1 ? (doneExpanded ? "접기" : "펼치기 ›") : undefined}
+              actionLabel={done.length > 1 ? (doneExpanded ? "접기" : "펼치기") : undefined}
               expanded={doneExpanded}
               onAction={() => setDoneExpanded((v) => !v)}
             />

@@ -38,6 +38,7 @@ const CACHEABLE: readonly RegExp[] = [
   /^\/owners\/me$/,
   /^\/owners\/me\/concern$/,
   /^\/students\/me$/,
+  /^\/students\/me\/summary$/,
   /^\/specialties$/,
   /^\/business-categories$/,
 ];
