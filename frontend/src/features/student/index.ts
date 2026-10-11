@@ -120,3 +120,16 @@ export type {
   StudentWaitingItem,
   WorkFile,
 } from "./types";
+export {
+  EMPTY_JOB_FINDER_ANSWERS,
+  JOB_FINDER_BUDGETS,
+  JOB_FINDER_FIELDS,
+  JOB_FINDER_PACE,
+  JOB_FINDER_STEPS,
+  answeredSteps,
+  jobFinderResult,
+  readJobFinderAnswers,
+} from "./lib/jobFinder";
+export type { JobFinderAnswers, JobFinderPick, JobFinderResult } from "./lib/jobFinder";
+export { useOpenJobs } from "./hooks/useOpenJobs";
+export type { OpenJobsLoad } from "./hooks/useOpenJobs";

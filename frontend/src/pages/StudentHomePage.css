@@ -97,3 +97,120 @@
   line-height: normal;
   color: var(--color-student);
 }
+
+/* 맨 위 「나에게 맞는 일 찾기」 배너 (ADR 0072). 사장님 「맡길 일 찾기」 배너와 같은 모양 · 움직임, 학생 자주 색 */
+.student-home__finder {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  box-sizing: border-box;
+  width: calc(100% - 40px);
+  margin: 16px 20px 0;
+  padding: 16px 16px 16px 18px;
+  border: none;
+  border-radius: 16px;
+  background: linear-gradient(90deg, #fdeef3, #f6cfdc);
+  overflow: hidden;
+  font-family: var(--font-sans);
+  text-align: left;
+  cursor: pointer;
+  transition: transform 0.2s cubic-bezier(0.2, 0, 0, 1);
+}
+
+.student-home__finder:focus-visible {
+  outline: 2px solid var(--role-focus);
+  outline-offset: 2px;
+}
+
+.student-home__finder-text {
+  position: relative;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.student-home__finder-text > strong {
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.4;
+  color: var(--color-black);
+}
+
+.student-home__finder-text > span {
+  font-size: 13px;
+  line-height: 18px;
+  color: #4e5968;
+}
+
+.student-home__finder-text > .student-home__finder-link {
+  margin-top: 2px;
+  font-weight: 700;
+  color: var(--color-student);
+}
+
+.student-home__finder > img {
+  position: relative;
+  flex-shrink: 0;
+  transition: transform 0.3s cubic-bezier(0.2, 0, 0, 1);
+}
+
+.student-home__finder-arrow {
+  display: inline-block;
+  transition: transform 0.2s ease-out;
+}
+
+/* 오른쪽 위 모서리에 크게 걸친 반투명 흰 원 (지름 170px, 카드 밖은 잘림) */
+.student-home__finder::before {
+  content: "";
+  position: absolute;
+  top: -35px;
+  right: -64px;
+  width: 170px;
+  height: 170px;
+  border-radius: 50%;
+  background: rgb(255 255 255 / 40%);
+  transition: transform 0.3s cubic-bezier(0.2, 0, 0, 1);
+}
+
+@media (hover: hover) {
+  .student-home__finder:hover::before {
+    transform: scale(1.08);
+  }
+
+  .student-home__finder:hover > img {
+    transform: rotate(-6deg) scale(1.05);
+  }
+
+  .student-home__finder:hover .student-home__finder-arrow {
+    transform: translateX(3px);
+  }
+}
+
+.student-home__finder:active {
+  transform: scale(0.98);
+}
+
+.student-home__finder:active::before {
+  transform: scale(1.12);
+}
+
+.student-home__finder:active > img {
+  transform: rotate(-8deg) scale(1.08);
+}
+
+.student-home__finder:active .student-home__finder-arrow {
+  transform: translateX(4px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .student-home__finder,
+  .student-home__finder::before,
+  .student-home__finder > img,
+  .student-home__finder-arrow {
+    transition: none;
+    transform: none !important;
+  }
+}
