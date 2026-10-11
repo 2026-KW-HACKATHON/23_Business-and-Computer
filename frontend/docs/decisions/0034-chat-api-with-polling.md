@@ -74,8 +74,12 @@ owner and its selected student may use a room):
   attachments, which do not carry it. A sending or failed bubble is always
   mine. Until the first history answer arrives (or if one lacks
   `viewerUserId`), only messages this screen sent are mine.
-- **Refresh**: the list loads on entry and again when the tab becomes visible
-  (a failed refresh keeps the current list). Entering the room is one
+- **Refresh**: the list loads on entry, every 3 seconds while
+  `document.visibilityState` is visible (the next load is set after the
+  answer arrives, so slow answers do not pile up), and again when the tab
+  becomes visible (a failed refresh keeps the current list). Two windows side
+  by side never change visibility, so without the 3-second reload a new
+  message reached the open room but not the list. Entering the room is one
   request: GET /chat-rooms/{roomId} brings the room, the whole history with
   `viewerUserId`, and `reviewed`, and `useChatRoom` feeds its messages into the
   same merge as a history reload. The history then reloads (GET …/messages)
