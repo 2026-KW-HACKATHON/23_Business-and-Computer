@@ -61,8 +61,8 @@ The backend (dev) has, for any logged-in user:
     call, after which the end-of-list loading continues. It marks one or all read
     on screen first and then on the server; reloads the list when 「모두
     읽음」 fails; sends 401 to /login.
-  - `src/features/notification/hooks/useNotificationUnread.ts` drives the
-    bell dot.
+  - `src/features/notification/lib/unreadDots.ts` (`useUnreadDots`) drives
+    the bell dot together with the 채팅 tab dot (ADR 0078).
 - **Screens** (`OwnerNotificationsPage`, `StudentNotificationsPage`): groups
   오늘 / 어제 / 이전 with `NotificationRow`; the next page loads when the end
   of the list comes near (`useLoadMoreSentinel` in
@@ -113,8 +113,9 @@ The backend (dev) has, for any logged-in user:
   routing modules through Vite and checks every type for both roles, the
   PROPOSAL_ACCEPTED fallbacks, an unknown type going to each `targetType`
   default, and the unknown-target and invalid-id cases.
-- **Bell dot**: `GET /me/notifications/unread-count` when a tab-bar screen
-  opens, when the tab becomes visible, after each read (one or all), and
+- **Bell dot**: `GET /me/notifications/unread-count`, one check shared with
+  the 채팅 tab dot (ADR 0078), when a tab-bar screen opens and the last
+  answer is 20 seconds old (not again on a tab switch), when the tab becomes visible, after each read (one or all), and
   every 20 seconds while visible; it stops while hidden and hides on
   failure. `src/features/notification/lib/readSync.ts` makes the dot load
   after pending reads settle. The count is the server's, so unread

@@ -91,11 +91,13 @@ owner and its selected student may use a room):
   read request: the chat list and the tab dot load after the pending reads
   settle and load again whenever one settles, so the unread counts and the
   dot update right after reading. When loads overlap, only the last answer is used.
-- **Tab dot** (`useChatUnread`, owner and student): true when any room in
-  GET /me/chat-rooms has `unreadCount` above 0. `OwnerTabScreen` and
+- **Tab dot** (owner and student): true when any room in
+  GET /me/chat-rooms has `unreadCount` above 0. Since ADR 0078 it comes from
+  `hasUnreadChat` of GET /me/notifications/unread-count (the same rooms),
+  shared with the bell dot (`useUnreadDots`). `OwnerTabScreen` and
   `StudentTabScreen` pass it to `MainTabScreen` → `TabBar`, which shows a
   10px red dot (`--color-unread`, ADR 0076) with a 2px white ring at the top
-  right of the 「채팅」 icon, like the dot on the app bar's 알림 bell. It loads when a tab-bar screen opens, when the tab becomes
+  right of the 「채팅」 icon, like the dot on the app bar's 알림 bell. It loads when a tab-bar screen opens and the last answer is 20 seconds old, when the tab becomes
   visible, after each read, and every 20 seconds while visible; it stops
   while hidden. A failed load hides the dot. The dot is `aria-hidden`; the tab
   button carries visually hidden text, so a screen reader reads 「채팅, 안 읽은

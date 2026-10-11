@@ -64,9 +64,11 @@ public final class NotificationQueryDto {
     public static class NotificationUnreadCountResult {
 
         private final long unreadCount;
+        /** 안 읽은 채팅 메시지가 있는 방이 있는지 (탭바 채팅 점) */
+        private final boolean hasUnreadChat;
 
-        public static NotificationUnreadCountResult of(long unreadCount) {
-            return new NotificationUnreadCountResult(unreadCount);
+        public static NotificationUnreadCountResult of(long unreadCount, boolean hasUnreadChat) {
+            return new NotificationUnreadCountResult(unreadCount, hasUnreadChat);
         }
     }
 

@@ -10,6 +10,7 @@ import static org.mockito.Mockito.when;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.LongStream;
 
@@ -20,6 +21,9 @@ import org.junit.jupiter.params.provider.EnumSource;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import com.gakkum.backend.application.notification.dto.NotificationCursor;
+import com.gakkum.backend.domain.chat.repository.ChatMessageRepository;
+import com.gakkum.backend.domain.job.entity.Job;
+import com.gakkum.backend.domain.job.repository.JobRepository;
 import com.gakkum.backend.domain.notification.dto.NotificationCommandDto.GetNotificationsCommand;
 import com.gakkum.backend.domain.notification.dto.NotificationQueryDto.NotificationListResult;
 import com.gakkum.backend.domain.notification.dto.NotificationQueryDto.NotificationReadResult;
@@ -28,6 +32,10 @@ import com.gakkum.backend.domain.notification.entity.Notification;
 import com.gakkum.backend.domain.notification.entity.NotificationTargetType;
 import com.gakkum.backend.domain.notification.entity.NotificationType;
 import com.gakkum.backend.domain.notification.service.NotificationService;
+import com.gakkum.backend.domain.owner.entity.Owner;
+import com.gakkum.backend.domain.owner.repository.OwnerRepository;
+import com.gakkum.backend.domain.student.entity.Student;
+import com.gakkum.backend.domain.student.repository.StudentRepository;
 import com.gakkum.backend.domain.user.entity.User;
 import com.gakkum.backend.domain.user.entity.UserRole;
 import com.gakkum.backend.domain.user.service.UserService;
@@ -44,7 +52,12 @@ class NotificationFacadeTest {
 
     private final UserService userService = mock(UserService.class);
     private final NotificationService notificationService = mock(NotificationService.class);
-    private final NotificationFacade facade = new NotificationFacade(userService, notificationService);
+    private final OwnerRepository ownerRepository = mock(OwnerRepository.class);
+    private final StudentRepository studentRepository = mock(StudentRepository.class);
+    private final JobRepository jobRepository = mock(JobRepository.class);
+    private final ChatMessageRepository chatMessageRepository = mock(ChatMessageRepository.class);
+    private final NotificationFacade facade = new NotificationFacade(userService, notificationService,
+            ownerRepository, studentRepository, jobRepository, chatMessageRepository);
 
     @ParameterizedTest
     @EnumSource(value = UserRole.class, names = { "STUDENT", "OWNER" })
@@ -63,6 +76,67 @@ class NotificationFacadeTest {
         verify(notificationService).countUnread(USER_ID);
         // 조회는 읽음 처리를 호출하지 않는다
         verifyNoMoreInteractions(notificationService);
+    }
+
+    @Test
+    @DisplayName("사장님은 내 의뢰들의 채팅방에서 안 읽은 채팅이 있는지를 미읽음 개수와 같이 받는다")
+    void ownerUnreadChatUsesOwnJobs() {
+        givenUser(UserRole.OWNER);
+        Owner owner = mock(Owner.class);
+        when(owner.getId()).thenReturn(7L);
+        List<Job> jobs = List.of(job(11L), job(12L));
+        when(ownerRepository.findByUserId(USER_ID)).thenReturn(Optional.of(owner));
+        when(jobRepository.findByOwnerProfileId(7L)).thenReturn(jobs);
+        when(notificationService.countUnread(USER_ID)).thenReturn(2L);
+        when(chatMessageRepository.existsUnreadByJobIds(List.of(11L, 12L), USER_ID, true)).thenReturn(true);
+
+        var result = facade.getUnreadCount(USERNAME);
+
+        assertThat(result.getUnreadCount()).isEqualTo(2L);
+        assertThat(result.isHasUnreadChat()).isTrue();
+        verifyNoInteractions(studentRepository);
+    }
+
+    @Test
+    @DisplayName("학생은 내가 맡은 의뢰들의 채팅방에서 안 읽은 채팅이 있는지를 받는다")
+    void studentUnreadChatUsesSelectedJobs() {
+        givenUser(UserRole.STUDENT);
+        Student student = mock(Student.class);
+        when(student.getId()).thenReturn(5L);
+        List<Job> jobs = List.of(job(21L));
+        when(studentRepository.findByUserId(USER_ID)).thenReturn(Optional.of(student));
+        when(jobRepository.findBySelectedStudentProfileId(5L)).thenReturn(jobs);
+        when(chatMessageRepository.existsUnreadByJobIds(List.of(21L), USER_ID, false)).thenReturn(false);
+
+        assertThat(facade.getUnreadCount(USERNAME).isHasUnreadChat()).isFalse();
+        verify(chatMessageRepository).existsUnreadByJobIds(List.of(21L), USER_ID, false);
+        verifyNoInteractions(ownerRepository);
+    }
+
+    @Test
+    @DisplayName("맡은 의뢰가 없으면 채팅 메시지를 조회하지 않고 안 읽은 채팅이 없다고 받는다")
+    void noJobsSkipsChatQuery() {
+        givenUser(UserRole.OWNER);
+        Owner owner = mock(Owner.class);
+        when(owner.getId()).thenReturn(7L);
+        when(ownerRepository.findByUserId(USER_ID)).thenReturn(Optional.of(owner));
+        when(jobRepository.findByOwnerProfileId(7L)).thenReturn(List.of());
+
+        assertThat(facade.getUnreadCount(USERNAME).isHasUnreadChat()).isFalse();
+        verifyNoInteractions(chatMessageRepository);
+    }
+
+    @Test
+    @DisplayName("가입을 끝내지 않은 사용자는 채팅방이 없어 채팅을 조회하지 않고 안 읽은 채팅이 없다고 받는다")
+    void pendingUserHasNoUnreadChat() {
+        givenUser(UserRole.PENDING);
+        when(notificationService.countUnread(USER_ID)).thenReturn(1L);
+
+        var result = facade.getUnreadCount(USERNAME);
+
+        assertThat(result.getUnreadCount()).isEqualTo(1L);
+        assertThat(result.isHasUnreadChat()).isFalse();
+        verifyNoInteractions(ownerRepository, studentRepository, jobRepository, chatMessageRepository);
     }
 
     @Test
@@ -172,6 +246,12 @@ class NotificationFacadeTest {
         assertError(() -> facade.markRead(USERNAME, 31L), ErrorCode.UNAUTHORIZED);
         assertError(() -> facade.markAllRead(USERNAME), ErrorCode.UNAUTHORIZED);
         verifyNoInteractions(notificationService);
+    }
+
+    private static Job job(long id) {
+        Job job = mock(Job.class);
+        when(job.getId()).thenReturn(id);
+        return job;
     }
 
     private void givenUser(UserRole role) {

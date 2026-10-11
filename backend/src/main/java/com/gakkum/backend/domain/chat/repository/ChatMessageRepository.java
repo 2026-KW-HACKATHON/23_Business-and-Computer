@@ -42,6 +42,23 @@ public interface ChatMessageRepository extends JpaRepository<ChatMessage, Long> 
             @Param("viewerUserId") String viewerUserId,
             @Param("ownerView") boolean ownerView);
 
+    // 탭바 채팅 점은 방별 개수가 아니라 상대가 보낸 안 읽은 메시지가 하나라도 있는지만 본다.
+    @Query(value = """
+            SELECT EXISTS (
+                SELECT 1
+                FROM chat_messages m
+                JOIN chat_rooms r ON r.id = m.room_id
+                WHERE r.job_id IN (:jobIds)
+                  AND m.sender_user_id <> :viewerUserId
+                  AND m.id > COALESCE(
+                      CASE WHEN :ownerView THEN r.owner_last_read_message_id
+                           ELSE r.student_last_read_message_id END, 0))
+            """, nativeQuery = true)
+    boolean existsUnreadByJobIds(
+            @Param("jobIds") List<Long> jobIds,
+            @Param("viewerUserId") String viewerUserId,
+            @Param("ownerView") boolean ownerView);
+
     interface UnreadCount {
         String getRoomId();
         Long getUnreadCount();

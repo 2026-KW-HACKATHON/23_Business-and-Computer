@@ -6,6 +6,9 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.gakkum.backend.application.notification.dto.NotificationCursor;
+import com.gakkum.backend.domain.chat.repository.ChatMessageRepository;
+import com.gakkum.backend.domain.job.entity.Job;
+import com.gakkum.backend.domain.job.repository.JobRepository;
 import com.gakkum.backend.domain.notification.dto.NotificationCommandDto.GetNotificationsCommand;
 import com.gakkum.backend.domain.notification.dto.NotificationQueryDto.NotificationListResult;
 import com.gakkum.backend.domain.notification.dto.NotificationQueryDto.NotificationReadAllResult;
@@ -14,7 +17,10 @@ import com.gakkum.backend.domain.notification.dto.NotificationQueryDto.Notificat
 import com.gakkum.backend.domain.notification.dto.NotificationQueryDto.NotificationUnreadCountResult;
 import com.gakkum.backend.domain.notification.entity.Notification;
 import com.gakkum.backend.domain.notification.service.NotificationService;
+import com.gakkum.backend.domain.owner.repository.OwnerRepository;
+import com.gakkum.backend.domain.student.repository.StudentRepository;
 import com.gakkum.backend.domain.user.entity.User;
+import com.gakkum.backend.domain.user.entity.UserRole;
 import com.gakkum.backend.domain.user.service.UserService;
 
 import lombok.RequiredArgsConstructor;
@@ -26,6 +32,10 @@ public class NotificationFacade {
 
     private final UserService userService;
     private final NotificationService notificationService;
+    private final OwnerRepository ownerRepository;
+    private final StudentRepository studentRepository;
+    private final JobRepository jobRepository;
+    private final ChatMessageRepository chatMessageRepository;
 
     /**
      * 알림 목록. 읽음 여부와 무관하게 최신순으로 커서 뒤의 알림을 size+1개까지 읽어
@@ -46,11 +56,35 @@ public class NotificationFacade {
         return NotificationListResult.of(page.stream().map(NotificationResult::from).toList(), nextCursor);
     }
 
-    /** 미읽음 알림 수. 읽음 상태는 바꾸지 않는다. */
+    /**
+     * 미읽음 알림 수와 안 읽은 채팅이 있는지. 앱바 종 점과 탭바 채팅 점을 한 번에 확인하도록 같이 내린다.
+     * 읽음 상태는 바꾸지 않는다.
+     */
     @Transactional(readOnly = true)
     public NotificationUnreadCountResult getUnreadCount(String username) {
         User user = userService.getActiveUser(username);
-        return NotificationUnreadCountResult.of(notificationService.countUnread(user.getId()));
+        return NotificationUnreadCountResult.of(notificationService.countUnread(user.getId()), hasUnreadChat(user));
+    }
+
+    /**
+     * 채팅방 목록과 같은 방(사장님은 내 의뢰, 학생은 내가 맡은 의뢰)에서 상대가 보낸 안 읽은 메시지가 있는지.
+     * 프로필이 없거나 가입을 끝내지 않은 사용자는 채팅방이 없으므로 false다.
+     */
+    private boolean hasUnreadChat(User user) {
+        List<Job> jobs;
+        if (user.getRole() == UserRole.OWNER) {
+            jobs = ownerRepository.findByUserId(user.getId())
+                    .map(owner -> jobRepository.findByOwnerProfileId(owner.getId()))
+                    .orElse(List.of());
+        } else if (user.getRole() == UserRole.STUDENT) {
+            jobs = studentRepository.findByUserId(user.getId())
+                    .map(student -> jobRepository.findBySelectedStudentProfileId(student.getId()))
+                    .orElse(List.of());
+        } else {
+            return false;
+        }
+        return !jobs.isEmpty() && chatMessageRepository.existsUnreadByJobIds(
+                jobs.stream().map(Job::getId).toList(), user.getId(), user.getRole() == UserRole.OWNER);
     }
 
     /**
