@@ -1,7 +1,7 @@
 import { ApiError } from "../../../api/client";
 import { clearTokens, getDemoSessionId, saveDemoLogin } from "../../../api/tokens";
 import type { Role } from "../../../types/role";
-import { requestDemoLogin } from "../api/demoApi";
+import { prefetchDemoHome, requestDemoLogin } from "../api/demoApi";
 
 /**
  * ok · limit = 한 시간에 만들 수 있는 데모 쌍을 다 씀 (DEMO_429) ·
@@ -22,6 +22,7 @@ async function login(role: Role, demoSessionId?: string): Promise<DemoLoginResul
   try {
     const answer = await requestDemoLogin(DEMO_ROLE[role], demoSessionId);
     saveDemoLogin(answer.accessToken, answer.demoSessionId);
+    prefetchDemoHome();
     return "ok";
   } catch (error) {
     return toResult(error);
