@@ -66,6 +66,8 @@ import StudentSettlementsPage from './pages/StudentSettlementsPage'
 import StudentPortfolioPage from './pages/StudentPortfolioPage'
 import StudentActivityPage from './pages/StudentActivityPage'
 import StudentProposalStorePage from './pages/StudentProposalStorePage'
+import StudentJobFinderPage from './pages/StudentJobFinderPage'
+import StudentJobFinderResultPage from './pages/StudentJobFinderResultPage'
 import StudentProposalTasksPage from './pages/StudentProposalTasksPage'
 import StudentProposalContentPage from './pages/StudentProposalContentPage'
 import StudentProposalConfirmPage from './pages/StudentProposalConfirmPage'
@@ -165,6 +167,8 @@ function App() {
       <Route path="/student/me/settlements" element={<StudentSettlementsPage />} />
       <Route path="/student/me/portfolio" element={<StudentPortfolioPage />} />
       <Route path="/student/activity" element={<StudentActivityPage />} />
+      <Route path="/student/job-finder/result" element={<StudentJobFinderResultPage />} />
+      <Route path="/student/job-finder/:step" element={<StudentJobFinderPage />} />
       <Route path="/student/proposals/new" element={<StudentProposalStorePage />} />
       <Route path="/student/proposals/new/2" element={<StudentProposalTasksPage />} />
       <Route path="/student/proposals/new/3" element={<StudentProposalContentPage />} />
