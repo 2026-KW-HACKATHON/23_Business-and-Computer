@@ -9,18 +9,23 @@ import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.Deque;
 import java.util.HashMap;
+import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-import org.hibernate.Session;
+import org.hibernate.engine.spi.SessionImplementor;
 import org.hibernate.query.NativeQuery;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -48,9 +53,7 @@ import com.gakkum.backend.domain.review.entity.Review;
 import com.gakkum.backend.domain.review.entity.ReviewPositivePoint;
 import com.gakkum.backend.domain.specialty.service.SpecialtyService;
 import com.gakkum.backend.domain.student.dto.StudentCommandDto.CreateStudentProfileCommand;
-import com.gakkum.backend.domain.owner.dto.OwnerCommandDto.SaveStoreConcernCommand;
 import com.gakkum.backend.domain.owner.entity.StoreConcern;
-import com.gakkum.backend.domain.owner.service.StoreConcernService;
 import com.gakkum.backend.domain.specialty.service.SpecialtyCategoryService;
 import com.gakkum.backend.domain.student.entity.Student;
 import com.gakkum.backend.domain.student.service.StudentService;
@@ -61,13 +64,16 @@ import com.gakkum.backend.domain.user.service.UserService;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import lombok.RequiredArgsConstructor;
+import tools.jackson.databind.ObjectMapper;
 
 /**
  * 새 데모 세션의 예시 데이터. 방문자 사장님·학생이 홈·내 활동·탐색·채팅·결제 내역의 상태를 처음부터 모두 볼 수 있게 채운다.
  * 학생 지원자·다른 학생의 제안·다른 가게의 의뢰가 필요해서 같은 세션에 로그인할 수 없는 예시 사장님·학생을 둔다.
  * 결제는 카카오페이를 거치지 않고 PaymentApprovalService·ProposalFacade와 같은 순서로 상태만 바꾼다.
- * 의뢰 · 지원 · 결제 · 제출 · 후기 · 제안은 서비스를 거치지 않고 엔티티를 바로 만든다. 서비스의 잠금 조회와 중복 확인은
- * 막 만든 예시 데이터에는 필요 없고, 행마다 DB 왕복이라 둘러보기 시작이 느려진다. 상태는 서비스와 같은 엔티티 메서드로 바꾼다.
+ * 의뢰 · 지원 · 결제 · 제출 · 후기 · 제안 · 가게 고민 · 채팅방은 서비스를 거치지 않고 엔티티를 바로 만든다. 서비스의 잠금
+ * 조회와 중복 확인은 막 만든 예시 데이터에는 필요 없다. 상태는 서비스와 같은 엔티티 메서드로 바꾸고, 엔티티는 저장소에 넣지 않고
+ * 모았다가 마지막에 표마다 쿼리 한 번으로 넣는다. id 를 DB 가 정하는 표(IDENTITY)는 엔티티를 저장할 때마다 DB 왕복이라
+ * 둘러보기 시작이 느려지므로, 같은 시퀀스에서 id 를 미리 한 번에 받아 둔다.
  * 지난 일(작성 · 지원 · 결제 · 제출 · 수정 요청 · 완료 · 후기 · 취소)은 결제일과 마감에 맞는 과거 시각으로 둔다.
  * 알림은 같은 일을 실제 API 로 했을 때 Facade 가 보내는 알림을 그 일의 시각으로 방문자 사장님·학생에게만 만든다.
  * 어제부터 온 알림은 아직 읽지 않은 새 알림이고, 그 전 알림은 읽은 기록이다.
@@ -85,21 +91,29 @@ public class DemoSampleDataSeeder {
     private static final Duration READ_AFTER = Duration.ofHours(2);
     // 공감 알림 기준 (ProposalFacade 와 같다)
     private static final Set<Integer> LIKE_MILESTONES = Set.of(10, 30, 50);
-    // 한 번에 묶어 보낼 문장 수. 예시 데이터의 표 하나에 바뀌는 행이 이보다 적다
-    private static final int JDBC_BATCH_SIZE = 100;
+    // id 를 DB 가 정하는 표와 미리 받아 둘 id 수. 수는 지금 예시 데이터의 행 수이고, 모자라면 그 표만 같은 수를 더 받는다
+    private static final Map<Class<?>, IdTable> ID_TABLES = Map.of(
+            Job.class, new IdTable("jobs", 33),
+            JobApplication.class, new IdTable("job_applications", 24),
+            Payment.class, new IdTable("payments", 23),
+            JobSubmission.class, new IdTable("job_submissions", 19),
+            Review.class, new IdTable("reviews", 12),
+            Proposal.class, new IdTable("proposals", 10),
+            StoreConcern.class, new IdTable("store_concerns", 4));
 
     private final UserService userService;
     private final OwnerService ownerService;
     private final StudentService studentService;
     private final BusinessCategoryService businessCategoryService;
     private final SpecialtyService specialtyService;
-    private final StoreConcernService storeConcernService;
     private final SpecialtyCategoryService specialtyCategoryService;
     private final Clock clock;
+    // jsonb 칼럼 값을 Hibernate 처럼 JSON 글자로 바꾼다
+    private final ObjectMapper objectMapper;
     // 예시 가게 사진(프론트 public/demo)을 내주는 프론트 주소. DemoFacade 의 방문자 프로필 사진과 같다
     @Value("${demo-login.profile-image-base-url}")
     private String profileImageBaseUrl;
-    // 엔티티를 바로 저장하고, 모아 둔 행을 넣고 지난 일의 시각을 옮길 때 쓴다 (SampleSession.finish)
+    // id 를 미리 받고 모아 둔 엔티티와 행을 넣을 때 쓴다 (SampleSession.finish)
     @PersistenceContext
     private EntityManager entityManager;
 
@@ -113,16 +127,29 @@ public class DemoSampleDataSeeder {
         private static final ValueColumn INTEGER = new ValueColumn("integer", Integer.class);
         private static final ValueColumn VARCHAR = new ValueColumn("varchar", String.class);
         private static final ValueColumn UUID = new ValueColumn("uuid", java.util.UUID.class);
+        private static final ValueColumn DATE = new ValueColumn("date", LocalDate.class);
+        private static final ValueColumn JSONB = new ValueColumn("jsonb", String.class);
         private static final ValueColumn TIMESTAMP = new ValueColumn("timestamp", LocalDateTime.class);
         private static final ValueColumn TIMESTAMP_WITH_TIME_ZONE =
                 new ValueColumn("timestamp with time zone", OffsetDateTime.class);
     }
 
-    /**
-     * 예시 데이터를 다 만든 뒤 시각을 바꿀 칼럼 하나. keyColumn 으로 행을 찾고, at 은 칼럼 타입이다.
-     * condition 은 행을 더 거르는 조건이고 없으면 빈 문자열이다 (표는 t 로 부른다)
-     */
-    private record TimelineColumn(String table, String column, String keyColumn, ValueColumn at, String condition) {
+    /** id 를 DB 가 정하는 표의 이름과 한 번에 미리 받을 id 수. */
+    private record IdTable(String name, int count) {
+    }
+
+    /** 엔티티 표의 칼럼들. 칼럼마다 이름 · 값 타입 · 엔티티에서 값을 꺼내는 방법을 둔다 */
+    private static final class EntityColumns<T> {
+        private final List<String> names = new ArrayList<>();
+        private final List<ValueColumn> types = new ArrayList<>();
+        private final List<Function<T, Object>> values = new ArrayList<>();
+
+        private EntityColumns<T> add(String name, ValueColumn type, Function<T, Object> value) {
+            names.add(name);
+            types.add(type);
+            values.add(value);
+            return this;
+        }
     }
 
     /** 예시 데이터를 다 만든 뒤 한 번에 넣을 채팅 메시지. readByReceiver 면 받는 쪽도 이 메시지까지 읽었다 */
@@ -140,8 +167,6 @@ public class DemoSampleDataSeeder {
 
     @Transactional
     public void seed(Visitor visitor) {
-        // 상태를 바꾼 엔티티의 UPDATE 와 id 를 미리 정하는 채팅방 INSERT 를 finish 의 flush 에서 묶어 보낸다
-        entityManager.unwrap(Session.class).setJdbcBatchSize(JDBC_BATCH_SIZE);
         SampleSession session = new SampleSession(visitor);
         session.seed();
         session.finish();
@@ -157,8 +182,12 @@ public class DemoSampleDataSeeder {
         private final LocalDate today;
         private final Map<String, Long> specialtyIds;
         private final Map<String, Long> categoryIds;
-        // 칼럼마다 행 키 → 옮길 시각. at 은 칼럼 타입에 맞춘 값이고, 같은 행을 두 번 적으면 나중 시각이 남는다
-        private final Map<TimelineColumn, Map<Long, Object>> timeline = new LinkedHashMap<>();
+        // 표 이름 → 미리 받아 둔 id. 엔티티를 모을 때 앞에서부터 쓴다
+        private final Map<String, Deque<Long>> reservedIds = new HashMap<>();
+        // 엔티티 종류 → 모아 둔 엔티티 (만든 순서)
+        private final Map<Class<?>, List<Object>> entities = new HashMap<>();
+        // 엔티티 → 칼럼 → 엔티티 값 대신 넣을 값 (지난 일의 시각, 채팅방의 읽은 위치). 같은 칼럼을 두 번 적으면 나중 값이 남는다
+        private final Map<Object, Map<String, Object>> columnValues = new IdentityHashMap<>();
         // 알림과 채팅 메시지는 다른 예시 데이터가 읽지 않아서 모아 두었다가 finish 에서 쿼리 한 번으로 넣는다
         private final List<List<Object>> notificationRows = new ArrayList<>();
         private final List<SampleMessage> messages = new ArrayList<>();
@@ -827,7 +856,10 @@ public class DemoSampleDataSeeder {
             return owner;
         }
 
-        /** 해결되지 않은 가게 고민. 분야는 그 특기의 대분류이고, 특기를 찾지 못하면 분야 없이 둔다 */
+        /**
+         * StoreConcernService.saveConcern 과 같은 해결되지 않은 가게 고민 (막 만든 가게라 고칠 고민이 없다).
+         * 분야는 그 특기의 대분류이고, 특기를 찾지 못하면 분야 없이 둔다
+         */
         private void concern(Owner store, Instant postedAt, String title, String description, String specialtyName) {
             Long specialtyId = specialtyIds.get(specialtyName);
             if (specialtyCategoryIds == null) {
@@ -837,31 +869,30 @@ public class DemoSampleDataSeeder {
                         .forEach((id, detail) -> specialtyCategoryIds.put(id, detail.getCategoryId()));
             }
             Long categoryId = specialtyId == null ? null : specialtyCategoryIds.get(specialtyId);
-            StoreConcern concern = storeConcernService.saveConcern(store.getId(),
-                    SaveStoreConcernCommand.of(null, title, description, categoryId));
-            backdate("store_concerns", "created_at", concern.getId(), postedAt);
-            backdate("store_concerns", "updated_at", concern.getId(), postedAt);
+            StoreConcern concern = stage(StoreConcern.create(store.getId(), title, description, categoryId));
+            backdate(concern, "created_at", postedAt);
+            backdate(concern, "updated_at", postedAt);
         }
 
         /** JobService.createJob 과 같은 의뢰와 특기. */
         private Job openJob(Owner store, Instant postedAt, String title, String description, long budget,
                             int draftInDays, int finalInDays, int revisionCount, String... specialties) {
-            Job job = persist(Job.create(store.getId(), title, description, budget, today.plusDays(draftInDays),
+            Job job = stage(Job.create(store.getId(), title, description, budget, today.plusDays(draftInDays),
                     today.plusDays(finalInDays), revisionCount, demoSessionId));
             LocalDateTime createdAt = creationTime();
             for (Long specialtyId : specialties(specialties)) {
                 jobSpecialtyRows.add(List.of(job.getId(), specialtyId, createdAt, createdAt));
             }
-            backdate("jobs", "created_at", job.getId(), postedAt);
+            backdate(job, "created_at", postedAt);
             return job;
         }
 
         /** JobService.createJobApplication 과 같은 지원서. */
         private JobApplication apply(Job job, Student student, Instant appliedAt, String summary, String workPlan,
                                      String deliveryMethod) {
-            JobApplication application = persist(JobApplication.create(
+            JobApplication application = stage(JobApplication.create(
                     student.getId(), job.getId(), summary, workPlan, deliveryMethod));
-            backdate("job_applications", "created_at", application.getId(), appliedAt);
+            backdate(application, "created_at", appliedAt);
             applications.computeIfAbsent(job.getId(), id -> new ArrayList<>()).add(application);
             addNotification(NotificationEventFactory.jobApplicationReceived(storeOf(job).getUserId(),
                     application.getId(), job.getId(), job.getTitle(), nameOf(student)), appliedAt);
@@ -877,9 +908,9 @@ public class DemoSampleDataSeeder {
             job.match(application.getStudentProfileId());
             application.accept();
             payment.approve(approvedAt);
-            paidPayments.put(job.getId(), persist(payment));
+            paidPayments.put(job.getId(), stage(payment));
             ChatRoom chatRoom = roomOf(job);
-            backdateByJob("chat_rooms", "created_at", job.getId(), approvedAt);
+            backdate(chatRoom, "created_at", approvedAt);
             // 고른 학생에게 선정을, 같은 의뢰의 나머지 지원자에게 미선정을 알린다
             addNotification(NotificationEventFactory.jobApplicationSelected(
                     students.get(application.getStudentProfileId()).getUserId(), payment.getId(), chatRoom.getId(),
@@ -898,7 +929,7 @@ public class DemoSampleDataSeeder {
                                           String... files) {
             JobSubmission submission = submit(JobSubmission.create(
                     job.getId(), JobSubmissionType.DRAFT, 0, sampleFiles(files), Map.of(), message));
-            backdate("job_submissions", "created_at", submission.getId(), submittedAt);
+            backdate(submission, "created_at", submittedAt);
             addNotification(NotificationEventFactory.jobDraftSubmitted(storeOf(job).getUserId(), submission.getId(),
                     job.getId(), job.getTitle(), nameOf(student)), submittedAt);
             return submission;
@@ -911,11 +942,10 @@ public class DemoSampleDataSeeder {
             if (latest == null || latest.getReviewStatus() != JobSubmissionReviewStatus.REVISION_REQUESTED) {
                 throw new IllegalStateException("수정 요청 없이 수정안을 만들 수 없다: " + job.getTitle());
             }
-            // 의뢰마다 확인 대기 제출물은 하나라 (job_submissions_one_pending_per_job_key) 앞 제출물의 수정 요청을 먼저 반영한다
-            entityManager.flush();
+            // 앞 제출물은 수정 요청 상태라 의뢰마다 확인 대기 제출물이 하나다 (job_submissions_one_pending_per_job_key)
             JobSubmission submission = submit(JobSubmission.create(job.getId(), JobSubmissionType.REVISION,
                     latest.getRevisionNumber() + 1, sampleFiles(files), Map.of(), message));
-            backdate("job_submissions", "created_at", submission.getId(), submittedAt);
+            backdate(submission, "created_at", submittedAt);
             addNotification(NotificationEventFactory.jobRevisionSubmitted(storeOf(job).getUserId(), submission.getId(),
                     job.getId(), job.getTitle(), nameOf(student)), submittedAt);
             return submission;
@@ -924,7 +954,7 @@ public class DemoSampleDataSeeder {
         // 수정 요청 시각은 제출물의 reviewed_at 에 남는다
         private void requestRevision(Job job, JobSubmission submission, Instant requestedAt, String message) {
             submission.requestRevision(serviceNow(), message, List.of());
-            backdate("job_submissions", "reviewed_at", submission.getId(), requestedAt);
+            backdate(submission, "reviewed_at", requestedAt);
             addNotification(NotificationEventFactory.jobRevisionRequested(
                     students.get(job.getSelectedStudentProfileId()).getUserId(), submission.getId(), job.getId(),
                     job.getTitle(), storeOf(job).getStoreName()), requestedAt);
@@ -934,8 +964,8 @@ public class DemoSampleDataSeeder {
         private void complete(Job job, JobSubmission submission, Instant completedAt) {
             submission.approve();
             job.complete(serviceNow());
-            backdate("job_submissions", "reviewed_at", submission.getId(), completedAt);
-            backdate("jobs", "completed_at", job.getId(), completedAt);
+            backdate(submission, "reviewed_at", completedAt);
+            backdate(job, "completed_at", completedAt);
             // 사장님에게 후기 요청을, 결제가 있으면 담당 학생에게 정산 내역을 알린다
             Student student = students.get(job.getSelectedStudentProfileId());
             addNotification(NotificationEventFactory.jobReviewRequested(storeOf(job).getUserId(), job.getId(),
@@ -950,10 +980,10 @@ public class DemoSampleDataSeeder {
         /** ReviewService.createReview 와 같은 후기. */
         private void review(Job job, Student student, Instant reviewedAt, int rating, String content,
                             ReviewPositivePoint... points) {
-            Long reviewId = persist(Review.create(job.getId(), job.getOwnerProfileId(), student.getId(),
-                    List.of(points), content, rating)).getId();
-            backdateByJob("reviews", "created_at", job.getId(), reviewedAt);
-            addNotification(NotificationEventFactory.jobReviewReceived(student.getUserId(), reviewId, job.getId(),
+            Review review = stage(Review.create(job.getId(), job.getOwnerProfileId(), student.getId(),
+                    List.of(points), content, rating));
+            backdate(review, "created_at", reviewedAt);
+            addNotification(NotificationEventFactory.jobReviewReceived(student.getUserId(), review.getId(), job.getId(),
                     job.getTitle(), storeOf(job).getStoreName()), reviewedAt);
         }
 
@@ -962,8 +992,8 @@ public class DemoSampleDataSeeder {
             job.cancel(serviceNow(), reason, messageToStudent);
             Payment refund = paidPayments.get(job.getId());
             refund.refundOnCancel(clock.instant());
-            backdate("jobs", "completed_at", job.getId(), cancelledAt);
-            backdateRefund(job.getId(), cancelledAt);
+            backdate(job, "completed_at", cancelledAt);
+            backdateRefund(refund, cancelledAt);
             // 담당 학생에게 취소를, 환불 기록을 받는 사장님에게 환불 내역을 알린다
             Owner store = storeOf(job);
             addNotification(NotificationEventFactory.jobCancelledByOwner(
@@ -1024,7 +1054,7 @@ public class DemoSampleDataSeeder {
         private Proposal propose(Student student, Owner store, Instant createdAt, String title, String customerProblem,
                                  String proposedSolution, String workPlan, long proposedFee, int draftDays,
                                  int finalDays, String... specialties) {
-            Proposal proposal = persist(Proposal.create(student.getId(), store.getId(), title, customerProblem,
+            Proposal proposal = stage(Proposal.create(student.getId(), store.getId(), title, customerProblem,
                     proposedSolution, workPlan, proposedFee, draftDays, finalDays, List.of(), demoSessionId));
             List<Long> specialtyIds = specialties(specialties);
             proposalSpecialtyIds.put(proposal.getId(), specialtyIds);
@@ -1032,7 +1062,7 @@ public class DemoSampleDataSeeder {
             for (Long specialtyId : specialtyIds) {
                 proposalSpecialtyRows.add(List.of(proposal.getId(), specialtyId, specialtyCreatedAt));
             }
-            backdate("proposals", "created_at", proposal.getId(), createdAt);
+            backdate(proposal, "created_at", createdAt);
             addNotification(NotificationEventFactory.proposalReceived(store.getUserId(), proposal.getId(),
                     proposal.getTitle(), nameOf(student)), createdAt);
             return proposal;
@@ -1086,7 +1116,7 @@ public class DemoSampleDataSeeder {
             CreateProposalJobCommand command = CreateProposalJobCommand.of(proposal, specialtyIds,
                     payment.getAmount(), LocalDate.ofInstant(approvedAt, KOREA), payment.getRevisionCount(),
                     payment.getMessageToStudent());
-            Job job = persist(Job.createAwaitingStart(command.getOwnerProfileId(), command.getStudentProfileId(),
+            Job job = stage(Job.createAwaitingStart(command.getOwnerProfileId(), command.getStudentProfileId(),
                     command.getProposalId(), command.getTitle(), command.getDescription(), command.getBudget(),
                     command.getDraftDeadline(), command.getFinalDeadline(), command.getRevisionCount(),
                     command.getAcceptanceMessage(), command.getDemoSessionId()));
@@ -1097,8 +1127,8 @@ public class DemoSampleDataSeeder {
             proposal.awaitStart();
             payment.approve(approvedAt);
             payment.linkJob(job.getId());
-            paidPayments.put(job.getId(), persist(payment));
-            backdate("jobs", "created_at", job.getId(), approvedAt);
+            paidPayments.put(job.getId(), stage(payment));
+            backdate(job, "created_at", approvedAt);
             // 제안한 학생에게 수락을 알린다. 학생이 시작하기 전이라 작업 시작 알림은 없다
             addNotification(NotificationEventFactory.proposalAccepted(
                     students.get(proposal.getStudentProfileId()).getUserId(), payment.getId(), job.getId(),
@@ -1111,8 +1141,8 @@ public class DemoSampleDataSeeder {
             job.start(serviceNow());
             proposal.accept();
             ChatRoom chatRoom = roomOf(job);
-            backdate("jobs", "started_at", job.getId(), startedAt);
-            backdateByJob("chat_rooms", "created_at", job.getId(), startedAt);
+            backdate(job, "started_at", startedAt);
+            backdate(chatRoom, "created_at", startedAt);
             addNotification(NotificationEventFactory.jobStarted(storeOf(job).getUserId(), job.getId(), chatRoom.getId(),
                     job.getTitle(), nameOf(students.get(proposal.getStudentProfileId()))), startedAt);
         }
@@ -1124,8 +1154,8 @@ public class DemoSampleDataSeeder {
             proposal.rejectByStudent(LocalDateTime.ofInstant(declinedAt, ZoneOffset.UTC));
             Payment refund = paidPayments.get(job.getId());
             refund.refundOnDecline(clock.instant());
-            backdate("jobs", "completed_at", job.getId(), declinedAt);
-            backdateRefund(job.getId(), declinedAt);
+            backdate(job, "completed_at", declinedAt);
+            backdateRefund(refund, declinedAt);
             addNotification(NotificationEventFactory.paymentRefunded(store.getUserId(), refund.getId(),
                     job.getTitle(), refund.getRefundAmount()), declinedAt);
         }
@@ -1159,30 +1189,59 @@ public class DemoSampleDataSeeder {
         }
 
         /**
-         * 엔티티를 저장소를 거치지 않고 저장한다. id 를 DB 가 정하는 표는 바로 INSERT 하고, 그 뒤 상태 변경은 finish 의
-         * flush 에서 표마다 묶어 UPDATE 한다.
+         * 엔티티를 저장소에 넣지 않고 모아 두었다가 finish 에서 표마다 쿼리 한 번으로 넣는다. 상태는 넣기 전까지 엔티티 메서드로
+         * 바꾼다. id 를 DB 가 정하는 표는 미리 받아 둔 id 를 바로 넣어서, 다른 예시 데이터와 알림이 그 id 를 쓸 수 있다.
          */
-        private <T> T persist(T entity) {
-            entityManager.persist(entity);
+        private <T> T stage(T entity) {
+            IdTable idTable = ID_TABLES.get(entity.getClass());
+            if (idTable != null) {
+                SessionImplementor hibernate = entityManager.unwrap(SessionImplementor.class);
+                hibernate.getEntityPersister(null, entity).setIdentifier(entity, nextId(idTable), hibernate);
+            }
+            entities.computeIfAbsent(entity.getClass(), type -> new ArrayList<>()).add(entity);
             return entity;
         }
 
+        private Long nextId(IdTable idTable) {
+            Deque<Long> ids = reservedIds.get(idTable.name());
+            if (ids == null || ids.isEmpty()) {
+                // 처음에는 모든 표의 id 를 한 번에 받고, 모자라면 그 표만 더 받는다
+                reserveIds(reservedIds.isEmpty() ? ID_TABLES.values() : List.of(idTable));
+                ids = reservedIds.get(idTable.name());
+            }
+            return ids.removeFirst();
+        }
+
+        /** 표마다 id 를 count 개씩 받는다. IDENTITY 칼럼이 INSERT 때 쓰는 시퀀스라 다른 요청이 만드는 행과 겹치지 않는다 */
+        private void reserveIds(Collection<IdTable> idTables) {
+            List<List<Object>> tables = idTables.stream()
+                    .map(idTable -> List.<Object>of(idTable.name(), idTable.count()))
+                    .toList();
+            for (Object reserved : rowsQuery("select t.name, nextval(pg_get_serial_sequence(t.name, 'id')) "
+                            + "from (values %s) as t(name, n), generate_series(1, t.n) order by 1, 2",
+                    List.of(ValueColumn.VARCHAR, ValueColumn.INTEGER), tables).getResultList()) {
+                Object[] row = (Object[]) reserved;
+                reservedIds.computeIfAbsent((String) row[0], name -> new ArrayDeque<>())
+                        .addLast(((Number) row[1]).longValue());
+            }
+        }
+
         private JobSubmission submit(JobSubmission submission) {
-            latestSubmissions.put(submission.getJobId(), persist(submission));
+            latestSubmissions.put(submission.getJobId(), stage(submission));
             return submission;
         }
 
-        /** 의뢰의 채팅방. ChatRoomService.getOrCreate 처럼 없으면 만든다 (id 를 미리 정해 finish 에서 묶어 넣는다) */
+        /** 의뢰의 채팅방. ChatRoomService.getOrCreate 처럼 없으면 만든다 */
         private ChatRoom roomOf(Job job) {
-            return chatRooms.computeIfAbsent(job.getId(), jobId -> persist(ChatRoom.create(jobId)));
+            return chatRooms.computeIfAbsent(job.getId(), jobId -> stage(ChatRoom.create(jobId)));
         }
 
-        /** JobService.now() 와 같은 시각. 지난 일은 applyTimeline 에서 그 일의 시각으로 옮긴다 */
+        /** JobService.now() 와 같은 시각. 지난 일은 backdate 로 그 일의 시각을 따로 적어 둔다 */
         private LocalDateTime serviceNow() {
             return LocalDateTime.ofInstant(clock.instant(), ZoneOffset.UTC).truncatedTo(ChronoUnit.MICROS);
         }
 
-        /** 특기 · 공감 · 자격증 엔티티의 @CreationTimestamp 와 같은 시각 (JVM 기본 시간대) */
+        /** 엔티티의 @CreationTimestamp · @UpdateTimestamp 와 같은 시각 (JVM 기본 시간대) */
         private LocalDateTime creationTime() {
             return LocalDateTime.ofInstant(clock.instant(), ZoneId.systemDefault()).truncatedTo(ChronoUnit.MICROS);
         }
@@ -1197,37 +1256,28 @@ public class DemoSampleDataSeeder {
         }
 
         /*
-         * 지난 일의 시각을 적어 둔다. 서비스는 지금 시각으로 저장하고 생성 시각 칼럼은 엔티티로 바꿀 수 없어서
-         * (updatable = false) 예시 데이터를 다 만든 뒤 applyTimeline 에서 한꺼번에 고친다.
-         * TIMESTAMP 칼럼은 서비스의 now() 처럼 UTC 시각으로 저장한다.
+         * 지난 일의 시각을 적어 둔다. 엔티티 메서드는 서비스처럼 지금 시각을 남기고 생성 시각은 엔티티로 정할 수 없어서
+         * finish 에서 엔티티를 넣을 때 그 칼럼에 이 시각을 넣는다. TIMESTAMP 칼럼은 서비스의 now() 처럼 UTC 시각으로 둔다.
          */
-        private void backdate(String table, String column, Long id, Instant at) {
-            backdate(new TimelineColumn(table, column, "id", ValueColumn.TIMESTAMP, ""),
-                    id, LocalDateTime.ofInstant(at, ZoneOffset.UTC));
-        }
-
-        private void backdateByJob(String table, String column, Long jobId, Instant at) {
-            backdate(new TimelineColumn(table, column, "job_id", ValueColumn.TIMESTAMP, ""),
-                    jobId, LocalDateTime.ofInstant(at, ZoneOffset.UTC));
+        private void backdate(Object entity, String column, Instant at) {
+            columnValue(entity, column, LocalDateTime.ofInstant(at, ZoneOffset.UTC));
         }
 
         // 환불 시각은 TIMESTAMP WITH TIME ZONE 칼럼이다
-        private void backdateRefund(Long jobId, Instant at) {
-            backdate(new TimelineColumn("payments", "refunded_at", "job_id", ValueColumn.TIMESTAMP_WITH_TIME_ZONE,
-                    " and t.refunded_at is not null"), jobId, at.atOffset(ZoneOffset.UTC));
+        private void backdateRefund(Payment payment, Instant at) {
+            columnValue(payment, "refunded_at", at.atOffset(ZoneOffset.UTC));
         }
 
-        private void backdate(TimelineColumn column, Long key, Object at) {
-            timeline.computeIfAbsent(column, added -> new LinkedHashMap<>()).put(key, at);
+        private void columnValue(Object entity, String column, Object value) {
+            columnValues.computeIfAbsent(entity, added -> new HashMap<>()).put(column, value);
         }
 
         /**
-         * 모아 둔 특기 · 공감 · 자격증 · 알림 · 채팅 메시지를 넣고 적어 둔 시각을 DB 에 옮긴다. 행마다 쿼리를 보내면 DB 왕복이
-         * 수백 번이라 표나 칼럼마다 한 번에 보낸다. flush 는 상태를 바꾼 엔티티의 UPDATE 와 채팅방 INSERT 를 표마다 묶어
-         * 보낸다. 영속성 컨텍스트의 엔티티는 옮기기 전 값을 들고 있어서, 같은 트랜잭션의 다음 조회가 DB 값을 읽도록 비운다.
+         * 모아 둔 엔티티 · 특기 · 공감 · 자격증 · 알림 · 채팅 메시지를 넣는다. 행마다 쿼리를 보내면 DB 왕복이 수백 번이라 표마다
+         * 한 번에 보낸다. 표 사이에 물리 FK 가 없어 넣는 순서는 상관없고, 채팅방은 읽은 위치를 알도록 메시지 다음에 넣는다.
          */
         private void finish() {
-            entityManager.flush();
+            insertEntities();
             insertRows("insert into student_specialties (student_profile_id, specialty_id, created_at, updated_at) "
                             + "values %s",
                     List.of(ValueColumn.BIGINT, ValueColumn.BIGINT, ValueColumn.TIMESTAMP, ValueColumn.TIMESTAMP),
@@ -1246,8 +1296,134 @@ public class DemoSampleDataSeeder {
                     certificateRows);
             insertNotifications();
             insertMessages();
-            applyTimeline();
-            entityManager.clear();
+            insertEntities(ChatRoom.class, "chat_rooms", new EntityColumns<ChatRoom>()
+                    .add("id", ValueColumn.VARCHAR, ChatRoom::getId)
+                    .add("job_id", ValueColumn.BIGINT, ChatRoom::getJobId)
+                    .add("owner_last_read_message_id", ValueColumn.BIGINT, ChatRoom::getOwnerLastReadMessageId)
+                    .add("student_last_read_message_id", ValueColumn.BIGINT, ChatRoom::getStudentLastReadMessageId)
+                    .add("created_at", ValueColumn.TIMESTAMP, room -> creationTime()));
+        }
+
+        /** 상태를 다 바꾼 의뢰 · 지원 · 결제 · 제출물 · 후기 · 제안 · 가게 고민을 넣는다. 칼럼은 엔티티 매핑과 같다 */
+        private void insertEntities() {
+            insertEntities(Job.class, "jobs", new EntityColumns<Job>()
+                    .add("id", ValueColumn.BIGINT, Job::getId)
+                    .add("owner_profile_id", ValueColumn.BIGINT, Job::getOwnerProfileId)
+                    .add("title", ValueColumn.VARCHAR, Job::getTitle)
+                    .add("description", ValueColumn.VARCHAR, Job::getDescription)
+                    .add("budget", ValueColumn.BIGINT, Job::getBudget)
+                    .add("draft_deadline", ValueColumn.DATE, Job::getDraftDeadline)
+                    .add("final_deadline", ValueColumn.DATE, Job::getFinalDeadline)
+                    .add("revision_count", ValueColumn.INTEGER, Job::getRevisionCount)
+                    .add("reference_image_urls", ValueColumn.JSONB, job -> json(job.getReferenceImageUrls()))
+                    .add("status", ValueColumn.VARCHAR, job -> name(job.getStatus()))
+                    .add("selected_student_profile_id", ValueColumn.BIGINT, Job::getSelectedStudentProfileId)
+                    .add("completed_at", ValueColumn.TIMESTAMP, Job::getCompletedAt)
+                    .add("cancel_reason", ValueColumn.VARCHAR, Job::getCancelReason)
+                    .add("message_to_student", ValueColumn.VARCHAR, Job::getMessageToStudent)
+                    .add("proposal_id", ValueColumn.BIGINT, Job::getProposalId)
+                    .add("started_at", ValueColumn.TIMESTAMP, Job::getStartedAt)
+                    .add("acceptance_message", ValueColumn.VARCHAR, Job::getAcceptanceMessage)
+                    .add("demo_session_id", ValueColumn.VARCHAR, Job::getDemoSessionId)
+                    .add("created_at", ValueColumn.TIMESTAMP, job -> creationTime())
+                    .add("updated_at", ValueColumn.TIMESTAMP, job -> creationTime()));
+            insertEntities(JobApplication.class, "job_applications", new EntityColumns<JobApplication>()
+                    .add("id", ValueColumn.BIGINT, JobApplication::getId)
+                    .add("student_profile_id", ValueColumn.BIGINT, JobApplication::getStudentProfileId)
+                    .add("job_id", ValueColumn.BIGINT, JobApplication::getJobId)
+                    .add("summary", ValueColumn.VARCHAR, JobApplication::getSummary)
+                    .add("work_plan", ValueColumn.VARCHAR, JobApplication::getWorkPlan)
+                    .add("delivery_method", ValueColumn.VARCHAR, JobApplication::getDeliveryMethod)
+                    .add("status", ValueColumn.VARCHAR, application -> name(application.getStatus()))
+                    .add("created_at", ValueColumn.TIMESTAMP, application -> creationTime())
+                    .add("updated_at", ValueColumn.TIMESTAMP, application -> creationTime()));
+            insertEntities(Payment.class, "payments", new EntityColumns<Payment>()
+                    .add("id", ValueColumn.BIGINT, Payment::getId)
+                    .add("job_id", ValueColumn.BIGINT, Payment::getJobId)
+                    .add("job_application_id", ValueColumn.BIGINT, Payment::getJobApplicationId)
+                    .add("proposal_id", ValueColumn.BIGINT, Payment::getProposalId)
+                    .add("revision_count", ValueColumn.INTEGER, Payment::getRevisionCount)
+                    .add("message_to_student", ValueColumn.VARCHAR, Payment::getMessageToStudent)
+                    .add("owner_user_id", ValueColumn.VARCHAR, Payment::getOwnerUserId)
+                    .add("order_id", ValueColumn.VARCHAR, Payment::getOrderId)
+                    .add("amount", ValueColumn.BIGINT, Payment::getAmount)
+                    .add("refund_policy_agreed_at", ValueColumn.TIMESTAMP_WITH_TIME_ZONE,
+                            payment -> utc(payment.getRefundPolicyAgreedAt()))
+                    .add("status", ValueColumn.VARCHAR, payment -> name(payment.getStatus()))
+                    .add("payment_key", ValueColumn.VARCHAR, Payment::getPaymentKey)
+                    .add("kakao_tid", ValueColumn.VARCHAR, Payment::getKakaoTid)
+                    .add("approved_at", ValueColumn.TIMESTAMP_WITH_TIME_ZONE, payment -> utc(payment.getApprovedAt()))
+                    .add("refund_amount", ValueColumn.BIGINT, Payment::getRefundAmount)
+                    .add("student_compensation_amount", ValueColumn.BIGINT, Payment::getStudentCompensationAmount)
+                    .add("refunded_at", ValueColumn.TIMESTAMP_WITH_TIME_ZONE, payment -> utc(payment.getRefundedAt())));
+            insertEntities(JobSubmission.class, "job_submissions", new EntityColumns<JobSubmission>()
+                    .add("id", ValueColumn.BIGINT, JobSubmission::getId)
+                    .add("job_id", ValueColumn.BIGINT, JobSubmission::getJobId)
+                    .add("submission_type", ValueColumn.VARCHAR, submission -> name(submission.getSubmissionType()))
+                    .add("revision_number", ValueColumn.INTEGER, JobSubmission::getRevisionNumber)
+                    .add("file_urls", ValueColumn.JSONB, submission -> json(submission.getFileUrls()))
+                    .add("file_sizes", ValueColumn.JSONB, submission -> json(submission.getFileSizes()))
+                    .add("message", ValueColumn.VARCHAR, JobSubmission::getMessage)
+                    .add("review_status", ValueColumn.VARCHAR, submission -> name(submission.getReviewStatus()))
+                    .add("review_comment", ValueColumn.VARCHAR, JobSubmission::getReviewComment)
+                    .add("revision_reference_image_urls", ValueColumn.JSONB,
+                            submission -> json(submission.getRevisionReferenceImageUrls()))
+                    .add("reviewed_at", ValueColumn.TIMESTAMP, JobSubmission::getReviewedAt)
+                    .add("created_at", ValueColumn.TIMESTAMP, submission -> creationTime())
+                    .add("updated_at", ValueColumn.TIMESTAMP, submission -> creationTime()));
+            insertEntities(Review.class, "reviews", new EntityColumns<Review>()
+                    .add("id", ValueColumn.BIGINT, Review::getId)
+                    .add("job_id", ValueColumn.BIGINT, Review::getJobId)
+                    .add("owner_profile_id", ValueColumn.BIGINT, Review::getOwnerProfileId)
+                    .add("student_profile_id", ValueColumn.BIGINT, Review::getStudentProfileId)
+                    .add("positive_points", ValueColumn.JSONB, review -> json(review.getPositivePoints()))
+                    .add("content", ValueColumn.VARCHAR, Review::getContent)
+                    .add("rating", ValueColumn.INTEGER, Review::getRating)
+                    .add("created_at", ValueColumn.TIMESTAMP, review -> creationTime()));
+            insertEntities(Proposal.class, "proposals", new EntityColumns<Proposal>()
+                    .add("id", ValueColumn.BIGINT, Proposal::getId)
+                    .add("student_profile_id", ValueColumn.BIGINT, Proposal::getStudentProfileId)
+                    .add("owner_profile_id", ValueColumn.BIGINT, Proposal::getOwnerProfileId)
+                    .add("title", ValueColumn.VARCHAR, Proposal::getTitle)
+                    .add("customer_problem", ValueColumn.VARCHAR, Proposal::getCustomerProblem)
+                    .add("proposed_solution", ValueColumn.VARCHAR, Proposal::getProposedSolution)
+                    .add("work_plan", ValueColumn.VARCHAR, Proposal::getWorkPlan)
+                    .add("proposed_fee", ValueColumn.BIGINT, Proposal::getProposedFee)
+                    .add("draft_days", ValueColumn.INTEGER, Proposal::getDraftDays)
+                    .add("final_days", ValueColumn.INTEGER, Proposal::getFinalDays)
+                    .add("reference_image_urls", ValueColumn.JSONB, proposal -> json(proposal.getReferenceImageUrls()))
+                    .add("like_count", ValueColumn.INTEGER, Proposal::getLikeCount)
+                    .add("status", ValueColumn.VARCHAR, proposal -> name(proposal.getStatus()))
+                    .add("rejected_by", ValueColumn.VARCHAR, proposal -> name(proposal.getRejectedBy()))
+                    .add("rejected_at", ValueColumn.TIMESTAMP, Proposal::getRejectedAt)
+                    .add("demo_session_id", ValueColumn.VARCHAR, Proposal::getDemoSessionId)
+                    .add("created_at", ValueColumn.TIMESTAMP, proposal -> creationTime()));
+            insertEntities(StoreConcern.class, "store_concerns", new EntityColumns<StoreConcern>()
+                    .add("id", ValueColumn.BIGINT, StoreConcern::getId)
+                    .add("owner_profile_id", ValueColumn.BIGINT, StoreConcern::getOwnerProfileId)
+                    .add("title", ValueColumn.VARCHAR, StoreConcern::getTitle)
+                    .add("description", ValueColumn.VARCHAR, StoreConcern::getDescription)
+                    .add("specialty_category_id", ValueColumn.BIGINT, StoreConcern::getSpecialtyCategoryId)
+                    .add("resolved_at", ValueColumn.TIMESTAMP, StoreConcern::getResolvedAt)
+                    .add("created_at", ValueColumn.TIMESTAMP, concern -> creationTime())
+                    .add("updated_at", ValueColumn.TIMESTAMP, concern -> creationTime()));
+        }
+
+        /** 모아 둔 type 엔티티를 쿼리 한 번으로 넣는다. backdate 등으로 적어 둔 칼럼은 엔티티 값 대신 그 값을 넣는다 */
+        private <T> void insertEntities(Class<T> type, String table, EntityColumns<T> columns) {
+            List<List<Object>> rows = new ArrayList<>();
+            for (Object staged : entities.getOrDefault(type, List.of())) {
+                T entity = type.cast(staged);
+                Map<String, Object> values = columnValues.getOrDefault(entity, Map.of());
+                List<Object> row = new ArrayList<>();
+                for (int column = 0; column < columns.names.size(); column++) {
+                    String name = columns.names.get(column);
+                    row.add(values.containsKey(name) ? values.get(name) : columns.values.get(column).apply(entity));
+                }
+                rows.add(row);
+            }
+            insertRows("insert into " + table + " (" + String.join(", ", columns.names) + ") values %s",
+                    columns.types, rows);
         }
 
         private void insertRows(String sql, List<ValueColumn> columns, List<List<Object>> rows) {
@@ -1268,7 +1444,7 @@ public class DemoSampleDataSeeder {
                     notificationRows).executeUpdate();
         }
 
-        /** 채팅 메시지를 넣고, 받은 메시지 id 로 채팅방마다 사장님 · 학생이 어디까지 읽었는지 적는다. */
+        /** 채팅 메시지를 넣고, 받은 메시지 id 로 채팅방마다 사장님 · 학생이 어디까지 읽었는지 적어 둔다. */
         private void insertMessages() {
             if (messages.isEmpty()) {
                 return;
@@ -1288,33 +1464,19 @@ public class DemoSampleDataSeeder {
                 messageIds.put(row[1].toString(), ((Number) row[0]).longValue());
             }
 
-            // 채팅방 id → [사장님이 읽은 마지막 메시지, 학생이 읽은 마지막 메시지]. 메시지는 시간 순서로 모았다
-            Map<String, Long[]> readPositions = new LinkedHashMap<>();
+            // 보낸 쪽은 자기 메시지까지 읽었다. 메시지는 시간 순서로 모았으니 방마다 마지막으로 적은 메시지가 읽은 위치다
+            Map<String, ChatRoom> rooms = chatRooms.values().stream()
+                    .collect(Collectors.toMap(ChatRoom::getId, room -> room));
             for (SampleMessage message : messages) {
                 Long messageId = messageIds.get(message.clientMessageId().toString());
-                Long[] position = readPositions.computeIfAbsent(message.roomId(), roomId -> new Long[2]);
-                int sender = message.fromOwner() ? 0 : 1;
-                position[sender] = messageId;
+                ChatRoom room = rooms.get(message.roomId());
+                String ownerRead = "owner_last_read_message_id";
+                String studentRead = "student_last_read_message_id";
+                columnValue(room, message.fromOwner() ? ownerRead : studentRead, messageId);
                 if (message.readByReceiver()) {
-                    position[1 - sender] = messageId;
+                    columnValue(room, message.fromOwner() ? studentRead : ownerRead, messageId);
                 }
             }
-            rowsQuery("update chat_rooms t set owner_last_read_message_id = v.owner_read, "
-                            + "student_last_read_message_id = v.student_read "
-                            + "from (values %s) as v(id, owner_read, student_read) where t.id = v.id",
-                    List.of(ValueColumn.VARCHAR, ValueColumn.BIGINT, ValueColumn.BIGINT),
-                    readPositions.entrySet().stream()
-                            .map(room -> Arrays.<Object>asList(room.getKey(), room.getValue()[0], room.getValue()[1]))
-                            .toList()).executeUpdate();
-        }
-
-        private void applyTimeline() {
-            timeline.forEach((column, rows) -> rowsQuery(
-                    "update " + column.table() + " t set " + column.column() + " = v.at from (values %s) as v(key, at) "
-                            + "where t." + column.keyColumn() + " = v.key" + column.condition(),
-                    List.of(ValueColumn.BIGINT, column.at()),
-                    rows.entrySet().stream().map(row -> List.of(row.getKey(), row.getValue())).toList())
-                    .executeUpdate());
         }
 
         /** 여러 행을 쿼리 한 번으로 보낸다. sql 의 %s 자리에 행들이 (값, …), (값, …) 꼴로 들어간다. */
@@ -1334,6 +1496,18 @@ public class DemoSampleDataSeeder {
                 }
             }
             return query;
+        }
+
+        private String json(Object value) {
+            return objectMapper.writeValueAsString(value);
+        }
+
+        private static String name(Enum<?> value) {
+            return value == null ? null : value.name();
+        }
+
+        private static OffsetDateTime utc(Instant at) {
+            return at == null ? null : at.atOffset(ZoneOffset.UTC);
         }
 
         // kakao_tid는 고유한 20자 이하 값이어야 한다
