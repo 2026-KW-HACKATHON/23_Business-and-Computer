@@ -16,7 +16,7 @@ export { default as StudentTabScreen } from "./components/StudentTabScreen";
 export { default as StudentTodoCarousel } from "./components/StudentTodoCarousel";
 export { default as WorkSummary } from "./components/WorkSummary";
 export { useProposalExample, useProposalExamples } from "./hooks/useStudentData";
-export { useStudentMe, useStudentPhotoChange } from "./hooks/useStudentMe";
+export { useStudentMe, useStudentMeSummary, useStudentPhotoChange } from "./hooks/useStudentMe";
 export type { StudentMeLoad } from "./hooks/useStudentMe";
 export { useSettlementHistory } from "./hooks/useSettlementHistory";
 export type { SettlementHistoryLoad } from "./hooks/useSettlementHistory";
@@ -30,7 +30,13 @@ export {
   studentMeChanges,
   studentYearText,
 } from "./lib/studentMe";
-export type { StudentMe, StudentMeChanges, StudentMeReview, StudentMeSaveResult } from "./lib/studentMe";
+export type {
+  StudentMe,
+  StudentMeChanges,
+  StudentMeReview,
+  StudentMeSaveResult,
+  StudentMeSummary,
+} from "./lib/studentMe";
 export { SETTLEMENT_STATUS_LABEL, settlementDetailText, settlementSummaryOf } from "./lib/settlements";
 export type { SettlementHistory, SettlementItem, SettlementStatus } from "./lib/settlements";
 export { useExploreStores } from "./hooks/useExploreStores";
