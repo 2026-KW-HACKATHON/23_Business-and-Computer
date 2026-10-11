@@ -10,6 +10,7 @@ import {
   TodoNoneCard,
 } from "../components";
 import {
+  NewStoreConcerns,
   PeerProposalRow,
   STUDENT_PATHS,
   StudentFirstVisitGuide,
@@ -28,10 +29,12 @@ import { useProposalLikes } from "../features/proposal";
 
 /**
  * 피그마 「학생 홈 (개선안)」.
- * 확인할 일 → 다른 학생들의 제안 공감하기 → 사장님이 확인 중 → 기다리는 중 → 이런 제안은 어때요? → 끝난 일.
+ * 확인할 일 → 새로 올라온 가게 고민 → 다른 학생들의 제안 공감하기 → 사장님이 확인 중 → 기다리는 중 →
+ * 이런 제안은 어때요? → 끝난 일. 새로 올라온 가게 고민은 GET /explore/stores 에서 따로 불러오고, 못 불러오거나
+ * 고민 있는 가게가 없으면 섹션째 숨긴다 (ADR 0071).
  * 비어 있는 목록은 섹션째 숨기되, 확인할 일은 할 일이 없어도 남아 「지금 확인할 일이 없어요」 카드를 보인다.
- * 이력이 하나도 없으면 피그마 「학생 홈 - 처음」처럼 확인할 일 자리의 첫 제안 안내 → 이런 제안은 어때요? →
- * 공감하기만 보인다 (ADR 0051). 공감하기는 이력으로 세지 않는다.
+ * 이력이 하나도 없으면 피그마 「학생 홈 - 처음」처럼 확인할 일 자리의 첫 제안 안내 → 새로 올라온 가게 고민 →
+ * 이런 제안은 어때요? → 공감하기만 보인다 (ADR 0051). 공감하기는 이력으로 세지 않는다.
  * 모두 GET /me/home 한 번에서 온다 (ADR 0065). 통째로 못 불러오면 「다시 시도」 한 줄,
  * 섹션 하나만 못 불러오면 그 섹션 자리에 「다시 시도」 줄을 보인다 (같은 요청을 다시 보낸다).
  * 공감하기는 못 불러오면 섹션째 숨기고 나머지 홈은 그대로 보인다 (ADR 0026).
@@ -211,6 +214,7 @@ function StudentHomePage() {
             <StudentFirstVisitGuide onStart={() => navigate(STUDENT_PATHS.newProposal)} />
           </div>
         </section>
+        <NewStoreConcerns />
         {examplesSection}
         {peerSection}
         {signupGuide && (
@@ -248,6 +252,8 @@ function StudentHomePage() {
           </>
         )}
       </section>
+
+      <NewStoreConcerns />
 
       {peerSection}
 
