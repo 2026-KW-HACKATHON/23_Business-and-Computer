@@ -231,7 +231,8 @@
 
 .student-work__history-date {
   flex-shrink: 0;
-  width: 52px;
+  width: 64px;
+  white-space: nowrap;
   color: var(--role-secondary);
 }
 
