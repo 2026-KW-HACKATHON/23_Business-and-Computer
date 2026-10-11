@@ -1,3 +1,4 @@
+import { cachedLoad, clearApiCache, isCacheable, refreshApiCache } from "./cache";
 import { clearTokens, getAccessToken, saveAccessToken } from "./tokens";
 
 /**
@@ -93,13 +94,35 @@ function refreshAccessToken(): Promise<boolean> {
  * `init.headers` must be a plain object (it is spread, see ADR 0016).
  */
 export async function apiData<T>(path: string, init: RequestInit = {}): Promise<T> {
-  return withSession(async () => {
-    const body = await apiFetch<ApiResponse<T>>(path, {
-      ...init,
-      headers: { ...authHeaders(), ...init.headers },
+  const send = () =>
+    withSession(async () => {
+      const body = await apiFetch<ApiResponse<T>>(path, {
+        ...init,
+        headers: { ...authHeaders(), ...init.headers },
+      });
+      return body.data as T;
     });
-    return body.data as T;
-  });
+  const method = (init.method ?? "GET").toUpperCase();
+  if (method !== "GET") {
+    // A write may change any list, so cached tab lists are dropped before and after it (ADR 0076)
+    clearApiCache();
+    try {
+      return await send();
+    } finally {
+      clearApiCache();
+    }
+  }
+  if (!isCacheable(method, path)) return send();
+  return cachedLoad(getAccessToken() ?? "", path, send);
+}
+
+/**
+ * Asks the remembered tab lists of this account again in the background, e.g.
+ * when a new notification arrives. Open list screens redraw if a list changed
+ * (ADR 0076).
+ */
+export function refreshCachedLists(): void {
+  refreshApiCache(getAccessToken() ?? "");
 }
 
 /**

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { fetchAllExploreStores } from "../api/storeApi";
 import type { ExploreStore } from "../types";
+import { useCachedListRevision } from "../../../hooks/useCachedListRevision";
 
 export type ExploreStoresLoad =
   | { status: "loading" }
@@ -15,6 +16,8 @@ export function useExploreStores(): { load: ExploreStoresLoad; reload: () => voi
   const [load, setLoad] = useState<ExploreStoresLoad>({ status: "loading" });
   const [request, setRequest] = useState(0);
 
+  // 기억해 둔 목록이 뒤에서 새로 바뀌면 다시 그린다 (ADR 0076)
+  const revision = useCachedListRevision();
   useEffect(() => {
     let active = true;
     fetchAllExploreStores().then(
@@ -28,7 +31,7 @@ export function useExploreStores(): { load: ExploreStoresLoad; reload: () => voi
     return () => {
       active = false;
     };
-  }, [request]);
+  }, [request, revision]);
 
   const reload = useCallback(() => {
     setLoad({ status: "loading" });

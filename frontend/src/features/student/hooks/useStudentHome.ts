@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useProposalExamples } from "./useStudentData";
 import { loadStudentHome } from "../lib/studentHome";
 import type { ProposalExample, StudentHome } from "../types";
+import { useCachedListRevision } from "../../../hooks/useCachedListRevision";
 
 /**
  * 학생 홈을 불러온 상태. retrying 은 홈을 보이는 채로 못 불러온 섹션을 다시 부르는 중
@@ -29,6 +30,8 @@ export function useStudentHome(): {
   const [request, setRequest] = useState(0);
   const examples = useProposalExamples();
 
+  // 기억해 둔 목록이 뒤에서 새로 바뀌면 다시 그린다 (ADR 0076)
+  const revision = useCachedListRevision();
   useEffect(() => {
     let active = true;
     void loadStudentHome().then((result) => {
@@ -45,7 +48,7 @@ export function useStudentHome(): {
     return () => {
       active = false;
     };
-  }, [request, navigate]);
+  }, [request, navigate, revision]);
 
   const reload = useCallback(() => {
     setLoad((prev) => (prev.status === "loaded" ? { ...prev, retrying: true } : { status: "loading" }));

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { loadOwnerConcern } from "../lib/storeConcern";
 import type { OwnerConcern } from "../lib/storeConcern";
+import { useCachedListRevision } from "../../../hooks/useCachedListRevision";
 
 export type OwnerConcernLoad =
   | { status: "loading" }
@@ -17,6 +18,8 @@ export function useOwnerConcern(): { load: OwnerConcernLoad; reload: () => void 
   const [request, setRequest] = useState(0);
   const [result, setResult] = useState<{ request: number; load: OwnerConcernLoad }>();
 
+  // 기억해 둔 목록이 뒤에서 새로 바뀌면 다시 그린다 (ADR 0076)
+  const revision = useCachedListRevision();
   useEffect(() => {
     let active = true;
     void loadOwnerConcern().then((loaded) => {
@@ -27,7 +30,7 @@ export function useOwnerConcern(): { load: OwnerConcernLoad; reload: () => void 
     return () => {
       active = false;
     };
-  }, [request, navigate]);
+  }, [request, navigate, revision]);
 
   const reload = useCallback(() => setRequest((n) => n + 1), []);
   const load: OwnerConcernLoad = result?.request === request ? result.load : { status: "loading" };

@@ -22,6 +22,7 @@ import type {
 } from "../lib/ownerJobs";
 import type { JobResult } from "../lib/closedJobs";
 import type { PendingSubmission } from "../lib/submissionReview";
+import { useCachedListRevision } from "../../../hooks/useCachedListRevision";
 
 export type OwnerJobLoad<T> =
   | { status: "loading" }
@@ -44,6 +45,8 @@ function useOwnerJobLoad<T>(
   const [request, setRequest] = useState(0);
   const [result, setResult] = useState<{ key: string; load: OwnerJobLoad<T> }>();
   const runRef = useRef(run);
+  // 기억해 둔 목록이 뒤에서 새로 바뀌면 다시 그린다 (ADR 0076)
+  const revision = useCachedListRevision();
   useEffect(() => {
     runRef.current = run;
   });
@@ -66,7 +69,7 @@ function useOwnerJobLoad<T>(
     return () => {
       active = false;
     };
-  }, [current, forbiddenText, navigate]);
+  }, [current, forbiddenText, navigate, revision]);
 
   const reload = useCallback(() => setRequest((n) => n + 1), []);
   const load: OwnerJobLoad<T> =

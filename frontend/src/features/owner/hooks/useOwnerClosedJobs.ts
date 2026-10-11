@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { loadOwnerClosedJobs } from "../lib/closedJobs";
 import type { OwnerClosedJob } from "../lib/closedJobs";
 import type { PaymentSummary } from "../types";
+import { useCachedListRevision } from "../../../hooks/useCachedListRevision";
 
 export type OwnerClosedJobsLoad =
   | { status: "loading" }
@@ -20,6 +21,8 @@ export function useOwnerClosedJobs(): { load: OwnerClosedJobsLoad; reload: () =>
   const [load, setLoad] = useState<OwnerClosedJobsLoad>({ status: "loading" });
   const [request, setRequest] = useState(0);
 
+  // 기억해 둔 목록이 뒤에서 새로 바뀌면 다시 그린다 (ADR 0076)
+  const revision = useCachedListRevision();
   useEffect(() => {
     let active = true;
     void loadOwnerClosedJobs().then((result) => {
@@ -33,7 +36,7 @@ export function useOwnerClosedJobs(): { load: OwnerClosedJobsLoad; reload: () =>
     return () => {
       active = false;
     };
-  }, [request, navigate]);
+  }, [request, navigate, revision]);
 
   const reload = useCallback(() => {
     setLoad({ status: "loading" });

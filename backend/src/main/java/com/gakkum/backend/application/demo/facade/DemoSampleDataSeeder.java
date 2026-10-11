@@ -8,6 +8,7 @@ import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -19,6 +20,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import org.hibernate.Session;
 import org.hibernate.query.NativeQuery;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -27,39 +29,23 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.gakkum.backend.domain.category.dto.BusinessCategoryResponse;
 import com.gakkum.backend.domain.category.service.BusinessCategoryService;
-import com.gakkum.backend.domain.certificate.dto.CertificateCommandDto.AddStudentCertificateCommand;
-import com.gakkum.backend.domain.certificate.service.CertificateService;
 import com.gakkum.backend.domain.chat.entity.ChatMessageType;
 import com.gakkum.backend.domain.chat.entity.ChatRoom;
-import com.gakkum.backend.domain.chat.service.ChatRoomService;
-import com.gakkum.backend.domain.job.dto.JobCommandDto.CancelJobCommand;
-import com.gakkum.backend.domain.job.dto.JobCommandDto.CompleteJobSubmissionCommand;
-import com.gakkum.backend.domain.job.dto.JobCommandDto.CreateJobApplicationCommand;
-import com.gakkum.backend.domain.job.dto.JobCommandDto.CreateJobCommand;
-import com.gakkum.backend.domain.job.dto.JobCommandDto.CreateJobSubmissionCommand;
 import com.gakkum.backend.domain.job.dto.JobCommandDto.CreateProposalJobCommand;
-import com.gakkum.backend.domain.job.dto.JobCommandDto.RequestJobSubmissionRevisionCommand;
 import com.gakkum.backend.domain.job.entity.Job;
 import com.gakkum.backend.domain.job.entity.JobApplication;
 import com.gakkum.backend.domain.job.entity.JobSubmission;
-import com.gakkum.backend.domain.job.service.JobService;
+import com.gakkum.backend.domain.job.entity.JobSubmissionReviewStatus;
+import com.gakkum.backend.domain.job.entity.JobSubmissionType;
 import com.gakkum.backend.domain.notification.dto.NotificationEvent;
 import com.gakkum.backend.domain.notification.dto.NotificationEventFactory;
 import com.gakkum.backend.domain.owner.dto.OwnerCommandDto.CreateOwnerProfileCommand;
 import com.gakkum.backend.domain.owner.entity.Owner;
 import com.gakkum.backend.domain.owner.service.OwnerService;
-import com.gakkum.backend.domain.payment.dto.PaymentCommandDto.PreparePaymentCommand;
-import com.gakkum.backend.domain.payment.dto.PaymentQueryDto.RefundedPaymentData;
 import com.gakkum.backend.domain.payment.entity.Payment;
-import com.gakkum.backend.domain.payment.service.PaymentService;
-import com.gakkum.backend.domain.proposal.dto.ProposalCommandDto.CreateProposalCommand;
-import com.gakkum.backend.domain.proposal.dto.ProposalQueryDto.ProposalLikeData;
 import com.gakkum.backend.domain.proposal.entity.Proposal;
-import com.gakkum.backend.domain.proposal.service.ProposalService;
-import com.gakkum.backend.domain.review.dto.ReviewCommandDto.CreateReviewCommand;
+import com.gakkum.backend.domain.review.entity.Review;
 import com.gakkum.backend.domain.review.entity.ReviewPositivePoint;
-import com.gakkum.backend.domain.review.service.ReviewService;
-import com.gakkum.backend.domain.specialty.dto.SpecialtyCommandDto.AddStudentSpecialtyCommand;
 import com.gakkum.backend.domain.specialty.service.SpecialtyService;
 import com.gakkum.backend.domain.student.dto.StudentCommandDto.CreateStudentProfileCommand;
 import com.gakkum.backend.domain.owner.dto.OwnerCommandDto.SaveStoreConcernCommand;
@@ -80,6 +66,8 @@ import lombok.RequiredArgsConstructor;
  * 새 데모 세션의 예시 데이터. 방문자 사장님·학생이 홈·내 활동·탐색·채팅·결제 내역의 상태를 처음부터 모두 볼 수 있게 채운다.
  * 학생 지원자·다른 학생의 제안·다른 가게의 의뢰가 필요해서 같은 세션에 로그인할 수 없는 예시 사장님·학생을 둔다.
  * 결제는 카카오페이를 거치지 않고 PaymentApprovalService·ProposalFacade와 같은 순서로 상태만 바꾼다.
+ * 의뢰 · 지원 · 결제 · 제출 · 후기 · 제안은 서비스를 거치지 않고 엔티티를 바로 만든다. 서비스의 잠금 조회와 중복 확인은
+ * 막 만든 예시 데이터에는 필요 없고, 행마다 DB 왕복이라 둘러보기 시작이 느려진다. 상태는 서비스와 같은 엔티티 메서드로 바꾼다.
  * 지난 일(작성 · 지원 · 결제 · 제출 · 수정 요청 · 완료 · 후기 · 취소)은 결제일과 마감에 맞는 과거 시각으로 둔다.
  * 알림은 같은 일을 실제 API 로 했을 때 Facade 가 보내는 알림을 그 일의 시각으로 방문자 사장님·학생에게만 만든다.
  * 어제부터 온 알림은 아직 읽지 않은 새 알림이고, 그 전 알림은 읽은 기록이다.
@@ -97,25 +85,21 @@ public class DemoSampleDataSeeder {
     private static final Duration READ_AFTER = Duration.ofHours(2);
     // 공감 알림 기준 (ProposalFacade 와 같다)
     private static final Set<Integer> LIKE_MILESTONES = Set.of(10, 30, 50);
+    // 한 번에 묶어 보낼 문장 수. 예시 데이터의 표 하나에 바뀌는 행이 이보다 적다
+    private static final int JDBC_BATCH_SIZE = 100;
 
     private final UserService userService;
     private final OwnerService ownerService;
     private final StudentService studentService;
     private final BusinessCategoryService businessCategoryService;
     private final SpecialtyService specialtyService;
-    private final JobService jobService;
-    private final ProposalService proposalService;
-    private final PaymentService paymentService;
-    private final ReviewService reviewService;
-    private final CertificateService certificateService;
-    private final ChatRoomService chatRoomService;
     private final StoreConcernService storeConcernService;
     private final SpecialtyCategoryService specialtyCategoryService;
     private final Clock clock;
     // 예시 가게 사진(프론트 public/demo)을 내주는 프론트 주소. DemoFacade 의 방문자 프로필 사진과 같다
     @Value("${demo-login.profile-image-base-url}")
     private String profileImageBaseUrl;
-    // 모아 둔 행을 넣고 지난 일의 시각을 옮길 때 쓴다 (Session.finish)
+    // 엔티티를 바로 저장하고, 모아 둔 행을 넣고 지난 일의 시각을 옮길 때 쓴다 (SampleSession.finish)
     @PersistenceContext
     private EntityManager entityManager;
 
@@ -126,6 +110,7 @@ public class DemoSampleDataSeeder {
     /** 여러 행을 한 번에 보내는 쿼리의 값 한 칸. sqlType 으로 cast 하고, 값이 null 이어도 javaType 으로 타입을 알려 묶는다 */
     private record ValueColumn(String sqlType, Class<?> javaType) {
         private static final ValueColumn BIGINT = new ValueColumn("bigint", Long.class);
+        private static final ValueColumn INTEGER = new ValueColumn("integer", Integer.class);
         private static final ValueColumn VARCHAR = new ValueColumn("varchar", String.class);
         private static final ValueColumn UUID = new ValueColumn("uuid", java.util.UUID.class);
         private static final ValueColumn TIMESTAMP = new ValueColumn("timestamp", LocalDateTime.class);
@@ -155,13 +140,15 @@ public class DemoSampleDataSeeder {
 
     @Transactional
     public void seed(Visitor visitor) {
-        Session session = new Session(visitor);
+        // 상태를 바꾼 엔티티의 UPDATE 와 id 를 미리 정하는 채팅방 INSERT 를 finish 의 flush 에서 묶어 보낸다
+        entityManager.unwrap(Session.class).setJdbcBatchSize(JDBC_BATCH_SIZE);
+        SampleSession session = new SampleSession(visitor);
         session.seed();
         session.finish();
     }
 
     /** 세션 하나를 채우는 동안의 기준 날짜와 기준 데이터. */
-    private final class Session {
+    private final class SampleSession {
 
         private final String demoSessionId;
         private final Owner myStore;
@@ -181,12 +168,25 @@ public class DemoSampleDataSeeder {
         private final Map<String, String> names = new HashMap<>();
         // 결제하면 고르지 않은 지원자에게도 알리므로 의뢰마다 지원서를 모아 둔다
         private final Map<Long, List<JobApplication>> applications = new HashMap<>();
+        // 의뢰마다 결제 완료된 결제 · 채팅방 · 가장 최근 제출물, 제안마다 특기 (서비스가 다시 조회하던 것)
+        private final Map<Long, Payment> paidPayments = new HashMap<>();
+        private final Map<Long, ChatRoom> chatRooms = new HashMap<>();
+        private final Map<Long, JobSubmission> latestSubmissions = new HashMap<>();
+        private final Map<Long, List<Long>> proposalSpecialtyIds = new HashMap<>();
+        // 다른 예시 데이터가 id 로 찾지 않는 특기 · 공감 · 자격증 행은 모아 두었다가 finish 에서 표마다 쿼리 한 번으로 넣는다
+        private final List<List<Object>> studentSpecialtyRows = new ArrayList<>();
+        private final List<List<Object>> jobSpecialtyRows = new ArrayList<>();
+        // 특기 id → 대분류 id. 가게 고민을 처음 만들 때 채운다
+        private Map<Long, Long> specialtyCategoryIds;
+        private final List<List<Object>> proposalSpecialtyRows = new ArrayList<>();
+        private final List<List<Object>> proposalLikeRows = new ArrayList<>();
+        private final List<List<Object>> certificateRows = new ArrayList<>();
         // 방문자 사장님 · 학생. 예시 사장님 · 학생은 로그인할 수 없어 알림을 만들지 않는다
         private final Set<String> visitorUserIds;
         // 이 시각부터 온 알림(어제 · 오늘)은 읽지 않은 새 알림, 그 전 알림은 읽은 기록
         private final Instant unreadFrom;
 
-        private Session(Visitor visitor) {
+        private SampleSession(Visitor visitor) {
             this.demoSessionId = visitor.demoSessionId();
             this.myStore = visitor.store();
             this.me = visitor.student();
@@ -792,8 +792,10 @@ public class DemoSampleDataSeeder {
             Student student = studentService.createStudentProfile(CreateStudentProfileCommand.of(
                     user.getId(), UNIVERSITY, DemoStudentNumbers.next(studentService, admissionYear), major, null,
                     introduction, null));
+            // SpecialtyService.addStudentSpecialty 와 같은 특기 (특기 이름으로 찾은 id 라 있는지 다시 묻지 않는다)
+            LocalDateTime specialtyCreatedAt = creationTime();
             for (Long specialtyId : specialties(specialties)) {
-                specialtyService.addStudentSpecialty(AddStudentSpecialtyCommand.of(student.getId(), specialtyId));
+                studentSpecialtyRows.add(List.of(student.getId(), specialtyId, specialtyCreatedAt, specialtyCreatedAt));
             }
             students.put(student.getId(), student);
             names.put(user.getId(), name);
@@ -818,29 +820,37 @@ public class DemoSampleDataSeeder {
         /** 해결되지 않은 가게 고민. 분야는 그 특기의 대분류이고, 특기를 찾지 못하면 분야 없이 둔다 */
         private void concern(Owner store, Instant postedAt, String title, String description, String specialtyName) {
             Long specialtyId = specialtyIds.get(specialtyName);
-            Long categoryId = specialtyId == null
-                    ? null
-                    : specialtyCategoryService.getSpecialtyDetails(List.of(specialtyId)).get(specialtyId)
-                            .getCategoryId();
+            if (specialtyCategoryIds == null) {
+                // 특기마다 대분류를 묻지 않고 처음 한 번에 모두 받는다
+                specialtyCategoryIds = new HashMap<>();
+                specialtyCategoryService.getSpecialtyDetails(specialtyIds.values())
+                        .forEach((id, detail) -> specialtyCategoryIds.put(id, detail.getCategoryId()));
+            }
+            Long categoryId = specialtyId == null ? null : specialtyCategoryIds.get(specialtyId);
             StoreConcern concern = storeConcernService.saveConcern(store.getId(),
                     SaveStoreConcernCommand.of(null, title, description, categoryId));
             backdate("store_concerns", "created_at", concern.getId(), postedAt);
             backdate("store_concerns", "updated_at", concern.getId(), postedAt);
         }
 
+        /** JobService.createJob 과 같은 의뢰와 특기. */
         private Job openJob(Owner store, Instant postedAt, String title, String description, long budget,
                             int draftInDays, int finalInDays, int revisionCount, String... specialties) {
-            Job job = jobService.createJob(CreateJobCommand.of(store.getId(), specialties(specialties), title,
-                    description, budget, today.plusDays(draftInDays), today.plusDays(finalInDays), revisionCount),
-                    demoSessionId);
+            Job job = persist(Job.create(store.getId(), title, description, budget, today.plusDays(draftInDays),
+                    today.plusDays(finalInDays), revisionCount, demoSessionId));
+            LocalDateTime createdAt = creationTime();
+            for (Long specialtyId : specialties(specialties)) {
+                jobSpecialtyRows.add(List.of(job.getId(), specialtyId, createdAt, createdAt));
+            }
             backdate("jobs", "created_at", job.getId(), postedAt);
             return job;
         }
 
+        /** JobService.createJobApplication 과 같은 지원서. */
         private JobApplication apply(Job job, Student student, Instant appliedAt, String summary, String workPlan,
                                      String deliveryMethod) {
-            JobApplication application = jobService.createJobApplication(CreateJobApplicationCommand.of(
-                    null, job.getId(), summary, workPlan, deliveryMethod), student.getId(), demoSessionId);
+            JobApplication application = persist(JobApplication.create(
+                    student.getId(), job.getId(), summary, workPlan, deliveryMethod));
             backdate("job_applications", "created_at", application.getId(), appliedAt);
             applications.computeIfAbsent(job.getId(), id -> new ArrayList<>()).add(application);
             addNotification(NotificationEventFactory.jobApplicationReceived(storeOf(job).getUserId(),
@@ -850,13 +860,15 @@ public class DemoSampleDataSeeder {
 
         /** 사장님이 지원자를 고르고 결제한 상태. 카카오페이 승인 뒤 PaymentApprovalService가 하는 일과 같다. */
         private void match(Owner store, Job job, JobApplication application, Instant approvedAt) {
-            Payment payment = paymentService.preparePayment(PreparePaymentCommand.of(
-                    job.getId(), application.getId(), store.getUserId(), job.getBudget()));
+            // PaymentService.preparePayment 의 결제 대기를 승인까지 마친 뒤 한 번에 저장한다
+            Payment payment = Payment.pending(job.getId(), application.getId(), store.getUserId(),
+                    UUID.randomUUID().toString(), job.getBudget(), clock.instant());
             payment.recordKakaoTid(newTid());
             job.match(application.getStudentProfileId());
             application.accept();
             payment.approve(approvedAt);
-            ChatRoom chatRoom = chatRoomService.getOrCreate(job.getId());
+            paidPayments.put(job.getId(), persist(payment));
+            ChatRoom chatRoom = roomOf(job);
             backdateByJob("chat_rooms", "created_at", job.getId(), approvedAt);
             // 고른 학생에게 선정을, 같은 의뢰의 나머지 지원자에게 미선정을 알린다
             addNotification(NotificationEventFactory.jobApplicationSelected(
@@ -871,21 +883,28 @@ public class DemoSampleDataSeeder {
             }
         }
 
-        // 샘플 파일은 저장소에 올린 것이 아니라 크기를 기록하지 않는다
+        // 샘플 파일은 저장소에 올린 것이 아니라 크기를 기록하지 않는다 (JobService.submitDraft 와 같은 초안)
         private JobSubmission submitDraft(Job job, Student student, Instant submittedAt, String message,
                                           String... files) {
-            JobSubmission submission = jobService.submitDraft(CreateJobSubmissionCommand.of(
-                    null, job.getId(), sampleFiles(files), message), student.getId(), Map.of());
+            JobSubmission submission = submit(JobSubmission.create(
+                    job.getId(), JobSubmissionType.DRAFT, 0, sampleFiles(files), Map.of(), message));
             backdate("job_submissions", "created_at", submission.getId(), submittedAt);
             addNotification(NotificationEventFactory.jobDraftSubmitted(storeOf(job).getUserId(), submission.getId(),
                     job.getId(), job.getTitle(), nameOf(student)), submittedAt);
             return submission;
         }
 
+        /** JobService.submitRevision 과 같은 수정안. 수정 번호는 수정 요청을 받은 가장 최근 제출물 다음 번호다 */
         private JobSubmission submitRevision(Job job, Student student, Instant submittedAt, String message,
                                              String... files) {
-            JobSubmission submission = jobService.submitRevision(CreateJobSubmissionCommand.of(
-                    null, job.getId(), sampleFiles(files), message), student.getId(), Map.of());
+            JobSubmission latest = latestSubmissions.get(job.getId());
+            if (latest == null || latest.getReviewStatus() != JobSubmissionReviewStatus.REVISION_REQUESTED) {
+                throw new IllegalStateException("수정 요청 없이 수정안을 만들 수 없다: " + job.getTitle());
+            }
+            // 의뢰마다 확인 대기 제출물은 하나라 (job_submissions_one_pending_per_job_key) 앞 제출물의 수정 요청을 먼저 반영한다
+            entityManager.flush();
+            JobSubmission submission = submit(JobSubmission.create(job.getId(), JobSubmissionType.REVISION,
+                    latest.getRevisionNumber() + 1, sampleFiles(files), Map.of(), message));
             backdate("job_submissions", "created_at", submission.getId(), submittedAt);
             addNotification(NotificationEventFactory.jobRevisionSubmitted(storeOf(job).getUserId(), submission.getId(),
                     job.getId(), job.getTitle(), nameOf(student)), submittedAt);
@@ -894,33 +913,35 @@ public class DemoSampleDataSeeder {
 
         // 수정 요청 시각은 제출물의 reviewed_at 에 남는다
         private void requestRevision(Job job, JobSubmission submission, Instant requestedAt, String message) {
-            jobService.requestRevision(RequestJobSubmissionRevisionCommand.of(
-                    null, job.getId(), submission.getId(), message, List.of()), job.getOwnerProfileId());
+            submission.requestRevision(serviceNow(), message, List.of());
             backdate("job_submissions", "reviewed_at", submission.getId(), requestedAt);
             addNotification(NotificationEventFactory.jobRevisionRequested(
                     students.get(job.getSelectedStudentProfileId()).getUserId(), submission.getId(), job.getId(),
                     job.getTitle(), storeOf(job).getStoreName()), requestedAt);
         }
 
+        /** JobService.completeSubmission 과 같다. */
         private void complete(Job job, JobSubmission submission, Instant completedAt) {
-            jobService.completeSubmission(CompleteJobSubmissionCommand.of(
-                    job.getId(), submission.getId(), job.getOwnerProfileId()));
+            submission.approve();
+            job.complete(serviceNow());
             backdate("job_submissions", "reviewed_at", submission.getId(), completedAt);
             backdate("jobs", "completed_at", job.getId(), completedAt);
             // 사장님에게 후기 요청을, 결제가 있으면 담당 학생에게 정산 내역을 알린다
             Student student = students.get(job.getSelectedStudentProfileId());
             addNotification(NotificationEventFactory.jobReviewRequested(storeOf(job).getUserId(), job.getId(),
                     job.getTitle(), nameOf(student)), completedAt);
-            paymentService.findPaidPayment(job.getId()).ifPresent(paid -> addNotification(
-                    NotificationEventFactory.paymentSettled(student.getUserId(), paid.paymentId(), job.getId(),
-                            job.getTitle(), paid.amount()), completedAt));
+            Payment paid = paidPayments.get(job.getId());
+            if (paid != null) {
+                addNotification(NotificationEventFactory.paymentSettled(student.getUserId(), paid.getId(),
+                        job.getId(), job.getTitle(), paid.getAmount()), completedAt);
+            }
         }
 
+        /** ReviewService.createReview 와 같은 후기. */
         private void review(Job job, Student student, Instant reviewedAt, int rating, String content,
                             ReviewPositivePoint... points) {
-            Long reviewId = reviewService.createReview(
-                    CreateReviewCommand.of(null, job.getId(), List.of(points), content, rating),
-                    job.getOwnerProfileId(), student.getId()).getId();
+            Long reviewId = persist(Review.create(job.getId(), job.getOwnerProfileId(), student.getId(),
+                    List.of(points), content, rating)).getId();
             backdateByJob("reviews", "created_at", job.getId(), reviewedAt);
             addNotification(NotificationEventFactory.jobReviewReceived(student.getUserId(), reviewId, job.getId(),
                     job.getTitle(), storeOf(job).getStoreName()), reviewedAt);
@@ -928,19 +949,19 @@ public class DemoSampleDataSeeder {
 
         /** 사장님이 작업 중에 취소해 착수 보상을 뺀 금액이 환불된 상태. JobFacade.cancelJob과 같다. */
         private void cancel(Job job, Instant cancelledAt, String reason, String messageToStudent) {
-            jobService.cancelJob(CancelJobCommand.of(null, job.getId(), reason, messageToStudent),
-                    job.getOwnerProfileId());
-            RefundedPaymentData refund = paymentService.refundOnCancel(job.getId());
+            job.cancel(serviceNow(), reason, messageToStudent);
+            Payment refund = paidPayments.get(job.getId());
+            refund.refundOnCancel(clock.instant());
             backdate("jobs", "completed_at", job.getId(), cancelledAt);
             backdateRefund(job.getId(), cancelledAt);
             // 담당 학생에게 취소를, 환불 기록을 받는 사장님에게 환불 내역을 알린다
             Owner store = storeOf(job);
             addNotification(NotificationEventFactory.jobCancelledByOwner(
                     students.get(job.getSelectedStudentProfileId()).getUserId(), job.getId(),
-                    chatRoomService.getOrCreate(job.getId()).getId(), job.getTitle(), store.getStoreName()),
+                    roomOf(job).getId(), job.getTitle(), store.getStoreName()),
                     cancelledAt);
-            addNotification(NotificationEventFactory.paymentRefunded(store.getUserId(), refund.paymentId(),
-                    job.getTitle(), refund.refundAmount()), cancelledAt);
+            addNotification(NotificationEventFactory.paymentRefunded(store.getUserId(), refund.getId(),
+                    job.getTitle(), refund.getRefundAmount()), cancelledAt);
         }
 
         /**
@@ -948,7 +969,7 @@ public class DemoSampleDataSeeder {
          * lastUnread 면 마지막 메시지만 받는 쪽이 아직 읽지 않은 채로 둔다 (채팅 탭의 안 읽은 표시).
          */
         private void conversation(Job job, Student student, boolean lastUnread, ChatLine... lines) {
-            String roomId = chatRoomService.getOrCreate(job.getId()).getId();
+            String roomId = roomOf(job).getId();
             String ownerUserId = storeOf(job).getUserId();
             for (int i = 0; i < lines.length; i++) {
                 ChatLine line = lines[i];
@@ -983,29 +1004,38 @@ public class DemoSampleDataSeeder {
             return job;
         }
 
+        /** CertificateService.addStudentCertificate 와 같은 자격증 (finish 에서 넣는다). */
         private void certify(Student student, String certificateName, int acquiredYear) {
-            certificateService.addStudentCertificate(
-                    AddStudentCertificateCommand.of(student.getId(), certificateName, acquiredYear));
+            LocalDateTime createdAt = creationTime();
+            certificateRows.add(List.of(student.getId(), certificateName, acquiredYear, createdAt, createdAt));
         }
 
+        /** ProposalService.createProposal 과 같은 제안과 특기. */
         private Proposal propose(Student student, Owner store, Instant createdAt, String title, String customerProblem,
                                  String proposedSolution, String workPlan, long proposedFee, int draftDays,
                                  int finalDays, String... specialties) {
-            Proposal proposal = proposalService.createProposal(CreateProposalCommand.of(
-                    null, store.getId(), specialties(specialties), title, customerProblem, proposedSolution, workPlan,
-                    proposedFee, draftDays, finalDays, List.of()), student.getId(), demoSessionId);
+            Proposal proposal = persist(Proposal.create(student.getId(), store.getId(), title, customerProblem,
+                    proposedSolution, workPlan, proposedFee, draftDays, finalDays, List.of(), demoSessionId));
+            List<Long> specialtyIds = specialties(specialties);
+            proposalSpecialtyIds.put(proposal.getId(), specialtyIds);
+            LocalDateTime specialtyCreatedAt = creationTime();
+            for (Long specialtyId : specialtyIds) {
+                proposalSpecialtyRows.add(List.of(proposal.getId(), specialtyId, specialtyCreatedAt));
+            }
             backdate("proposals", "created_at", proposal.getId(), createdAt);
             addNotification(NotificationEventFactory.proposalReceived(store.getUserId(), proposal.getId(),
                     proposal.getTitle(), nameOf(student)), createdAt);
             return proposal;
         }
 
+        /** ProposalService.likeProposal 과 같다. 같은 학생이 두 번 공감하지 않게 likers 에 한 번씩만 둔다 */
         private void like(Proposal proposal, Student... likers) {
             for (Student liker : likers) {
-                ProposalLikeData liked = proposalService.likeProposal(proposal.getId(), liker.getId(), demoSessionId);
+                proposalLikeRows.add(List.of(proposal.getId(), liker.getId(), creationTime()));
+                proposal.increaseLikeCount();
                 // 새 공감으로 기준 수에 닿으면 받은 사장님과 제안한 학생에게 알린다 (공감은 지금 시각에 남는다)
-                int likeCount = liked.getProposal().getLikeCount();
-                if (liked.isAdded() && LIKE_MILESTONES.contains(likeCount)) {
+                int likeCount = proposal.getLikeCount();
+                if (LIKE_MILESTONES.contains(likeCount)) {
                     addNotification(NotificationEventFactory.proposalLikeMilestoneReachedForOwner(
                             stores.get(proposal.getOwnerProfileId()).getUserId(), proposal.getId(), proposal.getTitle(),
                             likeCount), now);
@@ -1019,15 +1049,27 @@ public class DemoSampleDataSeeder {
         /** 사장님이 제안을 받아 결제한 상태(학생 시작 전). PaymentApprovalService.approveProposalPayment와 순서가 같다. */
         private Job pay(Proposal proposal, Owner store, long amount, int revisionCount, String messageToStudent,
                         Instant approvedAt) {
-            Payment payment = paymentService.prepareProposalPayment(
-                    proposal.getId(), store.getUserId(), amount, revisionCount, messageToStudent);
+            // PaymentService.prepareProposalPayment 의 결제 대기를 승인 · 의뢰 연결까지 마친 뒤 한 번에 저장한다
+            Payment payment = Payment.pendingForProposal(proposal.getId(), store.getUserId(),
+                    UUID.randomUUID().toString(), amount, revisionCount, messageToStudent, clock.instant());
             payment.recordKakaoTid(newTid());
-            Job job = jobService.createAwaitingStartJob(CreateProposalJobCommand.of(
-                    proposal, proposalService.getSpecialtyIds(proposal.getId()), payment.getAmount(),
-                    LocalDate.ofInstant(approvedAt, KOREA), payment.getRevisionCount(), payment.getMessageToStudent()));
+            List<Long> specialtyIds = proposalSpecialtyIds.getOrDefault(proposal.getId(), List.of());
+            // JobService.createAwaitingStartJob 과 같은 시작 대기 의뢰와 특기
+            CreateProposalJobCommand command = CreateProposalJobCommand.of(proposal, specialtyIds,
+                    payment.getAmount(), LocalDate.ofInstant(approvedAt, KOREA), payment.getRevisionCount(),
+                    payment.getMessageToStudent());
+            Job job = persist(Job.createAwaitingStart(command.getOwnerProfileId(), command.getStudentProfileId(),
+                    command.getProposalId(), command.getTitle(), command.getDescription(), command.getBudget(),
+                    command.getDraftDeadline(), command.getFinalDeadline(), command.getRevisionCount(),
+                    command.getAcceptanceMessage(), command.getDemoSessionId()));
+            LocalDateTime createdAt = creationTime();
+            for (Long specialtyId : command.getSpecialtyIds()) {
+                jobSpecialtyRows.add(List.of(job.getId(), specialtyId, createdAt, createdAt));
+            }
             proposal.awaitStart();
             payment.approve(approvedAt);
             payment.linkJob(job.getId());
+            paidPayments.put(job.getId(), persist(payment));
             backdate("jobs", "created_at", job.getId(), approvedAt);
             // 제안한 학생에게 수락을 알린다. 학생이 시작하기 전이라 작업 시작 알림은 없다
             addNotification(NotificationEventFactory.proposalAccepted(
@@ -1038,9 +1080,9 @@ public class DemoSampleDataSeeder {
 
         /** 학생이 의뢰서 조건을 보고 작업을 시작한 상태. ProposalFacade.startProposalJob과 같다. */
         private void start(Proposal proposal, Job job, Instant startedAt) {
-            jobService.startJob(job.getId(), proposal.getId(), proposal.getStudentProfileId());
+            job.start(serviceNow());
             proposal.accept();
-            ChatRoom chatRoom = chatRoomService.getOrCreate(job.getId());
+            ChatRoom chatRoom = roomOf(job);
             backdate("jobs", "started_at", job.getId(), startedAt);
             backdateByJob("chat_rooms", "created_at", job.getId(), startedAt);
             addNotification(NotificationEventFactory.jobStarted(storeOf(job).getUserId(), job.getId(), chatRoom.getId(),
@@ -1049,15 +1091,15 @@ public class DemoSampleDataSeeder {
 
         /** 학생이 의뢰서를 거절해 전액 환불된 상태. ProposalFacade.declineProposalJob과 같다. */
         private void decline(Proposal proposal, Job job, Instant declinedAt) {
-            Owner store = ownerService.getOwnerProfileById(proposal.getOwnerProfileId());
-            jobService.declineJob(job.getId(), proposal.getId(), proposal.getStudentProfileId());
+            Owner store = stores.get(proposal.getOwnerProfileId());
+            job.decline(serviceNow());
             proposal.rejectByStudent(LocalDateTime.ofInstant(declinedAt, ZoneOffset.UTC));
-            RefundedPaymentData refund = paymentService.refundOnDecline(job.getId(), proposal.getId(),
-                    store.getUserId());
+            Payment refund = paidPayments.get(job.getId());
+            refund.refundOnDecline(clock.instant());
             backdate("jobs", "completed_at", job.getId(), declinedAt);
             backdateRefund(job.getId(), declinedAt);
-            addNotification(NotificationEventFactory.paymentRefunded(store.getUserId(), refund.paymentId(),
-                    job.getTitle(), refund.refundAmount()), declinedAt);
+            addNotification(NotificationEventFactory.paymentRefunded(store.getUserId(), refund.getId(),
+                    job.getTitle(), refund.getRefundAmount()), declinedAt);
         }
 
         private List<Long> specialties(String... names) {
@@ -1086,6 +1128,35 @@ public class DemoSampleDataSeeder {
 
         private Owner storeOf(Job job) {
             return stores.get(job.getOwnerProfileId());
+        }
+
+        /**
+         * 엔티티를 저장소를 거치지 않고 저장한다. id 를 DB 가 정하는 표는 바로 INSERT 하고, 그 뒤 상태 변경은 finish 의
+         * flush 에서 표마다 묶어 UPDATE 한다.
+         */
+        private <T> T persist(T entity) {
+            entityManager.persist(entity);
+            return entity;
+        }
+
+        private JobSubmission submit(JobSubmission submission) {
+            latestSubmissions.put(submission.getJobId(), persist(submission));
+            return submission;
+        }
+
+        /** 의뢰의 채팅방. ChatRoomService.getOrCreate 처럼 없으면 만든다 (id 를 미리 정해 finish 에서 묶어 넣는다) */
+        private ChatRoom roomOf(Job job) {
+            return chatRooms.computeIfAbsent(job.getId(), jobId -> persist(ChatRoom.create(jobId)));
+        }
+
+        /** JobService.now() 와 같은 시각. 지난 일은 applyTimeline 에서 그 일의 시각으로 옮긴다 */
+        private LocalDateTime serviceNow() {
+            return LocalDateTime.ofInstant(clock.instant(), ZoneOffset.UTC).truncatedTo(ChronoUnit.MICROS);
+        }
+
+        /** 특기 · 공감 · 자격증 엔티티의 @CreationTimestamp 와 같은 시각 (JVM 기본 시간대) */
+        private LocalDateTime creationTime() {
+            return LocalDateTime.ofInstant(clock.instant(), ZoneId.systemDefault()).truncatedTo(ChronoUnit.MICROS);
         }
 
         private String nameOf(Student student) {
@@ -1123,16 +1194,38 @@ public class DemoSampleDataSeeder {
         }
 
         /**
-         * 모아 둔 알림 · 채팅 메시지를 넣고 적어 둔 시각을 DB 에 옮긴다. 행마다 쿼리를 보내면 DB 왕복이 수백 번이라
-         * 표나 칼럼마다 한 번에 보낸다. 영속성 컨텍스트의 엔티티는 옮기기 전 값을 들고 있어서, 같은 트랜잭션의 다음 조회가
-         * DB 값을 읽도록 비운다.
+         * 모아 둔 특기 · 공감 · 자격증 · 알림 · 채팅 메시지를 넣고 적어 둔 시각을 DB 에 옮긴다. 행마다 쿼리를 보내면 DB 왕복이
+         * 수백 번이라 표나 칼럼마다 한 번에 보낸다. flush 는 상태를 바꾼 엔티티의 UPDATE 와 채팅방 INSERT 를 표마다 묶어
+         * 보낸다. 영속성 컨텍스트의 엔티티는 옮기기 전 값을 들고 있어서, 같은 트랜잭션의 다음 조회가 DB 값을 읽도록 비운다.
          */
         private void finish() {
             entityManager.flush();
+            insertRows("insert into student_specialties (student_profile_id, specialty_id, created_at, updated_at) "
+                            + "values %s",
+                    List.of(ValueColumn.BIGINT, ValueColumn.BIGINT, ValueColumn.TIMESTAMP, ValueColumn.TIMESTAMP),
+                    studentSpecialtyRows);
+            insertRows("insert into job_specialties (job_id, specialty_id, created_at, updated_at) values %s",
+                    List.of(ValueColumn.BIGINT, ValueColumn.BIGINT, ValueColumn.TIMESTAMP, ValueColumn.TIMESTAMP),
+                    jobSpecialtyRows);
+            insertRows("insert into proposal_specialties (proposal_id, specialty_id, created_at) values %s",
+                    List.of(ValueColumn.BIGINT, ValueColumn.BIGINT, ValueColumn.TIMESTAMP), proposalSpecialtyRows);
+            insertRows("insert into proposal_likes (proposal_id, student_profile_id, created_at) values %s",
+                    List.of(ValueColumn.BIGINT, ValueColumn.BIGINT, ValueColumn.TIMESTAMP), proposalLikeRows);
+            insertRows("insert into student_certificates (student_profile_id, certificate_name, acquired_year, "
+                            + "created_at, updated_at) values %s",
+                    List.of(ValueColumn.BIGINT, ValueColumn.VARCHAR, ValueColumn.INTEGER, ValueColumn.TIMESTAMP,
+                            ValueColumn.TIMESTAMP),
+                    certificateRows);
             insertNotifications();
             insertMessages();
             applyTimeline();
             entityManager.clear();
+        }
+
+        private void insertRows(String sql, List<ValueColumn> columns, List<List<Object>> rows) {
+            if (!rows.isEmpty()) {
+                rowsQuery(sql, columns, rows).executeUpdate();
+            }
         }
 
         private void insertNotifications() {

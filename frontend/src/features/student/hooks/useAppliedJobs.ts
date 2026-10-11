@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { landingPath } from "../../auth";
 import { loadAppliedJobs } from "../lib/appliedJobs";
 import type { AppliedJob } from "../lib/appliedJobs";
+import { useCachedListRevision } from "../../../hooks/useCachedListRevision";
 
 export type AppliedJobsLoad =
   | { status: "loading" }
@@ -19,6 +20,8 @@ export function useAppliedJobs(): { load: AppliedJobsLoad; reload: () => void } 
   const [load, setLoad] = useState<AppliedJobsLoad>({ status: "loading" });
   const [request, setRequest] = useState(0);
 
+  // 기억해 둔 목록이 뒤에서 새로 바뀌면 다시 그린다 (ADR 0076)
+  const revision = useCachedListRevision();
   useEffect(() => {
     let active = true;
     void loadAppliedJobs().then((result) => {
@@ -35,7 +38,7 @@ export function useAppliedJobs(): { load: AppliedJobsLoad; reload: () => void } 
     return () => {
       active = false;
     };
-  }, [request, navigate]);
+  }, [request, navigate, revision]);
 
   const reload = useCallback(() => {
     setLoad({ status: "loading" });
