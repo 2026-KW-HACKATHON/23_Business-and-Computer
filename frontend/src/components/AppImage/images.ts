@@ -52,6 +52,13 @@ import iconLock16 from "../../assets/icons/lock-16.svg";
 import iconLocation12 from "../../assets/icons/location-12.svg";
 import iconPlus13 from "../../assets/icons/plus-13.svg";
 import iconFilter14 from "../../assets/icons/filter-14.svg";
+import todoDraft from "../../assets/icons/todo-draft.webp";
+import todoRevision from "../../assets/icons/todo-revision.webp";
+import todoProposal from "../../assets/icons/todo-proposal.webp";
+import todoApplicants from "../../assets/icons/todo-applicants.webp";
+import todoSubmitDraft from "../../assets/icons/todo-submit-draft.webp";
+import todoCheckTerms from "../../assets/icons/todo-check-terms.webp";
+import todoSubmitRevision from "../../assets/icons/todo-submit-revision.webp";
 
 export interface ImageInfo {
   src: string;
@@ -130,6 +137,15 @@ export const IMAGES = {
   iconLocation12: { src: iconLocation12, width: 12, height: 12, alt: "" },
   iconPlus13: { src: iconPlus13, width: 13, height: 13, alt: "" },
   iconFilter14: { src: iconFilter14, width: 14, height: 14, alt: "" },
+  // 사장님 홈 「확인할 일」 안내 상자의 지금 할 일 그림 (초안 · 수정안 도착 · 새 제안 · 지원자)
+  todoDraft: { src: todoDraft, width: 48, height: 48, alt: "" },
+  todoRevision: { src: todoRevision, width: 48, height: 48, alt: "" },
+  todoProposal: { src: todoProposal, width: 48, height: 48, alt: "" },
+  todoApplicants: { src: todoApplicants, width: 48, height: 48, alt: "" },
+  // 학생 홈 「확인할 일」 안내 상자의 지금 할 일 그림 (초안 제출 · 조건 확인 · 수정안 제출)
+  todoSubmitDraft: { src: todoSubmitDraft, width: 48, height: 48, alt: "" },
+  todoCheckTerms: { src: todoCheckTerms, width: 48, height: 48, alt: "" },
+  todoSubmitRevision: { src: todoSubmitRevision, width: 48, height: 48, alt: "" },
 } satisfies Record<string, ImageInfo>;
 
 export type ImageName = keyof typeof IMAGES;
