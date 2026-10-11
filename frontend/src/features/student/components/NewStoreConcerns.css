@@ -1,0 +1,74 @@
+.new-concerns {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* 고민 카드: 제안 3/4 「사장님 고민」 카드와 같은 연한 학생 색 */
+.new-concerns__card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  box-sizing: border-box;
+  width: 100%;
+  padding: 14px 16px;
+  border: 0;
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--color-student) 8%, var(--color-white));
+  font-family: var(--font-sans);
+  text-align: left;
+  cursor: pointer;
+}
+
+.new-concerns__card:focus-visible {
+  outline: 2px solid var(--role-focus);
+  outline-offset: 2px;
+}
+
+/* 가게 사진 · 이름 · 업종, 오른쪽에 올린 날 */
+.new-concerns__store {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  align-self: stretch;
+  min-width: 0;
+}
+
+.new-concerns__store-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 18px;
+  color: var(--text-body);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.new-concerns__date {
+  flex-shrink: 0;
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--role-secondary);
+}
+
+.new-concerns__title {
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 21px;
+  color: var(--color-black);
+  word-break: keep-all;
+  overflow-wrap: break-word;
+}
+
+.new-concerns__link {
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 18px;
+  color: var(--color-student);
+}

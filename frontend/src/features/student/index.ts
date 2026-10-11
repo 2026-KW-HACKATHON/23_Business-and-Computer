@@ -9,6 +9,7 @@ export { default as SettlementSummaryBox } from "./components/SettlementSummaryB
 export { default as StoreBox } from "./components/StoreBox";
 export { default as StoreConcernCard } from "./components/StoreConcernCard";
 export { default as StoreConcernLine } from "./components/StoreConcernLine";
+export { default as NewStoreConcerns } from "./components/NewStoreConcerns";
 export { default as StudentFirstVisitGuide } from "./components/StudentFirstVisitGuide";
 export { default as StudentMissing } from "./components/StudentMissing";
 export { default as StudentTabScreen } from "./components/StudentTabScreen";
