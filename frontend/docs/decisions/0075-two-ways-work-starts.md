@@ -32,8 +32,9 @@ the login cards from ADR 0007 and the intro flow from ADR 0009.
      제안하면 사장님이 골라요」, proposal illustration;
   3. 「제안에 더하기 · 공감」 (light plum, plum text), 「다른 학생들이 좋은
      제안에 공감해요」, empathy illustration.
-  The label and caption move with the card. Auto-advance (2 s), swipe, tap,
-  and the dots are unchanged. The illustrations are unchanged.
+  The label and caption move with the card. Auto-advance goes from 2 s to
+  3 s, so there is time to read the label and caption. Swipe, tap, and the
+  dots are unchanged. The illustrations are unchanged.
 - **Intro step 1**: two chips, 「사장님 의뢰」 (owner yellow) 「또는」 「학생
   제안」 (student plum), at the same size as the other step labels. Steps
   2–5 (작업 시작 · 초안 · 수정 · 완료) are unchanged, so both starts visibly
