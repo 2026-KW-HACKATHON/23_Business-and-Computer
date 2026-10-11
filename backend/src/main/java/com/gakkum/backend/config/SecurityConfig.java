@@ -126,6 +126,9 @@ public class SecurityConfig {
         return registration;
     }
 
+    /** 브라우저가 preflight 허용 결과를 기억하는 시간(초). Chrome 은 2시간까지만 기억한다 */
+    private static final long PREFLIGHT_MAX_AGE_SECONDS = 7200L;
+
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = frontendCorsConfiguration();
@@ -155,6 +158,9 @@ public class SecurityConfig {
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));
         configuration.setAllowCredentials(true);
+        // 프론트와 API 도메인이 달라 Authorization 을 단 요청마다 preflight 가 먼저 나간다. 값이 없으면 Chrome 은 5초만
+        // 기억해 화면을 열 때마다 왕복이 한 번 더 붙으므로, Chrome 이 허용하는 최대인 2시간 동안 기억하게 한다
+        configuration.setMaxAge(PREFLIGHT_MAX_AGE_SECONDS);
         return configuration;
     }
 }
