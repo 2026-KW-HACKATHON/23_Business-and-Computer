@@ -37,7 +37,7 @@ export function useNotificationUnread(): boolean {
         )
         .then((count) => {
           if (!active || call !== latest) return;
-          // 안 읽은 알림이 늘면 상대가 무언가 바꾼 것이라, 기억해 둔 목록을 뒤에서 다시 받는다 (ADR 0076)
+          // 안 읽은 알림이 늘면 상대가 무언가 바꾼 것이라, 기억해 둔 목록을 뒤에서 다시 받는다 (ADR 0077)
           if (count !== undefined && seenUnreadCount !== undefined && count > seenUnreadCount) {
             refreshCachedLists();
           }

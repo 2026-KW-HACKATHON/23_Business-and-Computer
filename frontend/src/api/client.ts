@@ -104,7 +104,7 @@ export async function apiData<T>(path: string, init: RequestInit = {}): Promise<
     });
   const method = (init.method ?? "GET").toUpperCase();
   if (method !== "GET") {
-    // A write may change any list, so cached tab lists are dropped before and after it (ADR 0076)
+    // A write may change any list, so cached tab lists are dropped before and after it (ADR 0077)
     clearApiCache();
     try {
       return await send();
@@ -119,7 +119,7 @@ export async function apiData<T>(path: string, init: RequestInit = {}): Promise<
 /**
  * Asks the remembered tab lists of this account again in the background, e.g.
  * when a new notification arrives. Open list screens redraw if a list changed
- * (ADR 0076).
+ * (ADR 0077).
  */
 export function refreshCachedLists(): void {
   refreshApiCache(getAccessToken() ?? "");
