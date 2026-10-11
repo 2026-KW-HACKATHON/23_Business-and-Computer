@@ -720,7 +720,7 @@ public class JobFacade {
         return userService.getActiveUser(username).getRole() == UserRole.STUDENT;
     }
 
-    /** 학생 본인과 매칭된 진행 중 의뢰를 최신 제출물 상태, 의뢰한 사장님의 현재 매장 이름·사진과 함께 조회한다. */
+    /** 학생 본인과 매칭된 진행 중 의뢰를 최신 제출물 상태, 의뢰한 사장님의 현재 매장 이름·주소·사진과 함께 조회한다. */
     @Transactional(readOnly = true)
     public StudentMatchedJobListResult getStudentMatchedJobs(String username) {
         User user = userService.getActiveUser(username);

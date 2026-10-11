@@ -33,6 +33,8 @@ const CACHEABLE: readonly RegExp[] = [
   /^\/me\/job-applications$/,
   /^\/me\/proposals$/,
   /^\/me\/received-proposals$/,
+  // Student 내 활동 reads it twice at once (완료 tab and 정산 summary); only the read is cached, payments are not
+  /^\/settlements$/,
   /^\/owners\/me$/,
   /^\/owners\/me\/concern$/,
   /^\/students\/me$/,

@@ -103,6 +103,18 @@ public class ReviewService {
                 .collect(Collectors.toSet());
     }
 
+    /** 학생이 받은 리뷰 별점을 의뢰 ID별로 한 번에 조회한다. 리뷰가 없는 의뢰는 키가 없다. */
+    @Transactional(readOnly = true)
+    public Map<Long, Integer> getStudentRatingsByJobIds(Collection<Long> jobIds, Long studentProfileId) {
+        if (jobIds.isEmpty()) {
+            return Map.of();
+        }
+        return reviewRepository.findByJobIdIn(jobIds).stream()
+                .filter(review -> studentProfileId.equals(review.getStudentProfileId()))
+                .filter(review -> review.getRating() != null)
+                .collect(Collectors.toMap(Review::getJobId, Review::getRating, (left, right) -> left));
+    }
+
     /** 학생이 모든 사장님에게 받은 전체 리뷰 수. */
     @Transactional(readOnly = true)
     public long countStudentReviews(Long studentProfileId) {

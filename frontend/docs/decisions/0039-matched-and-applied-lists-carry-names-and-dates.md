@@ -49,7 +49,8 @@ an offset; the received proposal `createdAt` is Korean time.
 - **Student data** (`src/features/student/lib/progressJobs.ts`): the store
   name and `submittedOn` come from the list. Only 내 활동
   (`useProgressJobs({ storeAddress: true })`) still calls GET /jobs/{id} per
-  job, for the store address on its cards.
+  job, for the store address on its cards (ADR 0079 later moved the address
+  into the list too).
 - **Student dates**: the home 「사장님이 확인 중」 row reads 「초안 제출 : M월
   D일」; 제출한 초안 · 수정안 reads 「가게 · M월 D일 제출 · 수정 n/m」 and
   「M월 D일까지 답이 없으면 자동으로 완료돼요」.

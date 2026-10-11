@@ -2,7 +2,6 @@ import { ApiError } from "../../../api/client";
 import type { FlowStep } from "../../../components";
 import { koreaDate } from "../../../lib/date";
 import type { WorkKind } from "../../../types/workKind";
-import { fetchJobDetail } from "../../explore";
 import type { ExploreSpecialtyCategory } from "../../explore";
 import { fetchMatchedJobs } from "../api/progressApi";
 import type { MatchedJobResponse } from "../api/progressApi";
@@ -39,7 +38,7 @@ export interface ProgressJob {
   storeName?: string;
   /** 가게 사진. 없으면 가게 아이콘 */
   storePhoto?: string;
-  /** 가게 주소. 목록에 없어서 storeAddress 를 부탁한 화면만 GET /jobs/{id} 로 채운다 */
+  /** 가게 주소. 없으면 그 줄을 숨긴다 */
   storeAddress?: string;
 }
 
@@ -96,14 +95,10 @@ export type ProgressJobsResult =
   | { status: "error" };
 
 /**
- * 진행 중 작업을 불러온다. 가게 이름 · 제출 시각은 목록에서, 제안에서 시작했는지는 보낸 제안
- * (GET /me/proposals)의 jobId 로 채운다. 가게 주소는 목록에 없어서 storeAddress 를 부탁한
- * 화면(내 활동)만 의뢰마다 GET /jobs/{id} 로 채운다. 그 둘은 실패해도 목록은 그대로 보인다
- * (주소를 숨기고 의뢰로 본다).
+ * 진행 중 작업을 불러온다. 가게 이름 · 주소 · 사진 · 제출 시각은 목록에서, 제안에서 시작했는지는 보낸 제안
+ * (GET /me/proposals)의 jobId 로 채운다. 보낸 제안은 실패해도 목록은 그대로 보인다 (의뢰로 본다).
  */
-export async function loadProgressJobs({
-  storeAddress = false,
-}: { storeAddress?: boolean } = {}): Promise<ProgressJobsResult> {
+export async function loadProgressJobs(): Promise<ProgressJobsResult> {
   let matched: MatchedJobResponse[];
   try {
     matched = await fetchMatchedJobs();
@@ -113,17 +108,12 @@ export async function loadProgressJobs({
   }
   if (matched.length === 0) return { status: "loaded", jobs: [] };
 
-  const [proposals, details] = await Promise.all([
-    fetchMyProposals().catch(() => []),
-    storeAddress
-      ? Promise.all(matched.map((job) => fetchJobDetail(job.jobId).catch(() => undefined)))
-      : [],
-  ]);
+  const proposals = await fetchMyProposals().catch(() => []);
   const proposalByJob = new Map(proposals.map((proposal) => [proposal.jobId, proposal] as const));
 
   return {
     status: "loaded",
-    jobs: matched.map((job, i) => ({
+    jobs: matched.map((job) => ({
       jobId: job.jobId,
       kind: proposalByJob.has(job.jobId) ? "proposal" : "request",
       title: job.title,
@@ -135,13 +125,9 @@ export async function loadProgressJobs({
       stage: progressStageOf(job),
       revisionSubmitted: job.submissionType === "REVISION",
       submittedOn: job.submittedAt ? koreaDate(job.submittedAt) : undefined,
-      storeName: job.storeName?.trim() || details[i]?.storeName?.trim() || undefined,
-      storeAddress: details[i]?.storeAddress?.trim() || undefined,
-      storePhoto:
-        job.storeProfileImageUrl ||
-        details[i]?.storeProfileImageUrl ||
-        proposalByJob.get(job.jobId)?.store.profileImageUrl ||
-        undefined,
+      storeName: job.storeName?.trim() || undefined,
+      storeAddress: job.storeAddress?.trim() || undefined,
+      storePhoto: job.storeProfileImageUrl || proposalByJob.get(job.jobId)?.store.profileImageUrl || undefined,
     })),
   };
 }

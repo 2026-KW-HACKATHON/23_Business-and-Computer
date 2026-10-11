@@ -34,8 +34,14 @@ import com.gakkum.backend.domain.job.entity.JobApplication;
 import com.gakkum.backend.domain.job.entity.JobStatus;
 import com.gakkum.backend.domain.job.service.JobService;
 import com.gakkum.backend.domain.owner.service.OwnerService;
+import com.gakkum.backend.domain.review.service.ReviewService;
+import com.gakkum.backend.domain.specialty.dto.SpecialtyQueryDto.SpecialtyDetail;
+import com.gakkum.backend.domain.specialty.service.SpecialtyCategoryService;
 import com.gakkum.backend.domain.payment.client.KakaoPayClient;
+import com.gakkum.backend.domain.job.dto.JobQueryDto.SpecialtyCategoryResult;
+import com.gakkum.backend.domain.job.dto.JobQueryDto.SpecialtyResult;
 import com.gakkum.backend.domain.payment.dto.PaymentQueryDto.SettlementHistoryData;
+import com.gakkum.backend.domain.payment.dto.PaymentQueryDto.SettlementHistoryDetailResult;
 import com.gakkum.backend.domain.payment.dto.PaymentQueryDto.SettlementHistoryItemResult;
 import com.gakkum.backend.domain.payment.dto.PaymentQueryDto.SettlementHistoryMonthResult;
 import com.gakkum.backend.domain.payment.dto.PaymentQueryDto.SettlementHistoryResult;
@@ -65,6 +71,8 @@ class SettlementHistoryFacadeTest {
     private final JobService jobService = mock(JobService.class);
     private final StudentService studentService = mock(StudentService.class);
     private final OwnerService ownerService = mock(OwnerService.class);
+    private final ReviewService reviewService = mock(ReviewService.class);
+    private final SpecialtyCategoryService specialtyCategoryService = mock(SpecialtyCategoryService.class);
     private PaymentFacade facade = facadeAt("2026-10-15T00:00:00Z");
 
     private final List<SettlementHistoryData> payments = new ArrayList<>();
@@ -132,6 +140,45 @@ class SettlementHistoryFacadeTest {
         verify(jobService).getJobsBySelectedStudentProfileId(STUDENT_PROFILE_ID);
         verifyNoMoreInteractions(jobService);
         verifyNoInteractions(ownerService);
+    }
+
+    @Test
+    @DisplayName("정산 내역 API는 줄마다 의뢰 분야와 받은 후기 별점을 의뢰 ID를 모아 한 번씩만 조회해 더한다")
+    void addsSpecialtiesAndRatingsOnce() {
+        paid(43L, "2026-10-03T03:00:00Z", JobStatus.MATCHED, null);
+        paid(42L, "2026-10-02T03:00:00Z", JobStatus.CLOSED, "2026-10-10T09:30:00");
+        when(jobService.getSpecialtyIdsByJobIds(List.of(43L, 42L)))
+                .thenReturn(Map.of(42L, List.of(12L, 11L), 43L, List.of(21L)));
+        when(specialtyCategoryService.getSpecialtyDetails(Set.of(11L, 12L, 21L))).thenReturn(Map.of(
+                11L, SpecialtyDetail.of(11L, "포스터", 1L, "디자인"),
+                12L, SpecialtyDetail.of(12L, "메뉴판", 1L, "디자인"),
+                21L, SpecialtyDetail.of(21L, "인스타그램", 2L, "홍보")));
+        when(reviewService.getStudentRatingsByJobIds(List.of(43L, 42L), STUDENT_PROFILE_ID))
+                .thenReturn(Map.of(42L, 5));
+
+        SettlementHistoryDetailResult result = facade.getSettlementHistoryWithJobDetails(USERNAME);
+
+        assertThat(result.getHistory().getMonths().get(0).getSettlements())
+                .extracting(SettlementHistoryItemResult::getJobId).containsExactly(43L, 42L);
+        List<SpecialtyCategoryResult> design = result.getSpecialtyCategoriesByJobId().get(42L);
+        assertThat(design).extracting(SpecialtyCategoryResult::getName).containsExactly("디자인");
+        assertThat(design.get(0).getSpecialties()).extracting(SpecialtyResult::getName)
+                .containsExactly("포스터", "메뉴판");
+        assertThat(result.getSpecialtyCategoriesByJobId().get(43L))
+                .extracting(SpecialtyCategoryResult::getName).containsExactly("홍보");
+        assertThat(result.getRatingsByJobId()).containsExactlyEntriesOf(Map.of(42L, 5));
+        verify(jobService).getSpecialtyIdsByJobIds(List.of(43L, 42L));
+        verify(reviewService).getStudentRatingsByJobIds(List.of(43L, 42L), STUDENT_PROFILE_ID);
+    }
+
+    @Test
+    @DisplayName("정산 내역이 없으면 분야와 후기를 조회하지 않는다")
+    void skipsDetailsWithoutSettlements() {
+        SettlementHistoryDetailResult result = facade.getSettlementHistoryWithJobDetails(USERNAME);
+
+        assertThat(result.getHistory().getMonths()).isEmpty();
+        assertThat(result.getSpecialtyCategoriesByJobId()).isEmpty();
+        verifyNoInteractions(reviewService, specialtyCategoryService);
     }
 
     @Test
@@ -426,7 +473,7 @@ class SettlementHistoryFacadeTest {
     private PaymentFacade facadeAt(String now) {
         return new PaymentFacade(mock(PaymentPreparationService.class),
                 mock(KakaoPayClient.class), paymentService, mock(PaymentApprovalService.class),
-                userService, jobService, studentService, ownerService,
+                userService, jobService, studentService, ownerService, reviewService, specialtyCategoryService,
                 Clock.fixed(Instant.parse(now), ZoneOffset.UTC));
     }
 

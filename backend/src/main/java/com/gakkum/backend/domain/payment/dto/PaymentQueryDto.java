@@ -3,7 +3,9 @@ package com.gakkum.backend.domain.payment.dto;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 
+import com.gakkum.backend.domain.job.dto.JobQueryDto.SpecialtyCategoryResult;
 import com.gakkum.backend.domain.job.entity.JobStatus;
 import com.gakkum.backend.domain.payment.entity.Payment;
 import com.gakkum.backend.domain.payment.entity.PaymentStatus;
@@ -184,6 +186,21 @@ public final class PaymentQueryDto {
         public static SettlementHistoryResult of(
                 SettlementHistorySummaryResult summary, List<SettlementHistoryMonthResult> months) {
             return new SettlementHistoryResult(summary, months);
+        }
+    }
+
+    /** 정산 내역 API용. 정산 내역에 의뢰별 분야와 학생이 받은 후기 별점을 더한다. 후기가 없는 의뢰는 별점 키가 없다 */
+    @Getter
+    @AllArgsConstructor(access = AccessLevel.PRIVATE)
+    public static class SettlementHistoryDetailResult {
+
+        private final SettlementHistoryResult history;
+        private final Map<Long, List<SpecialtyCategoryResult>> specialtyCategoriesByJobId;
+        private final Map<Long, Integer> ratingsByJobId;
+
+        public static SettlementHistoryDetailResult of(SettlementHistoryResult history,
+                Map<Long, List<SpecialtyCategoryResult>> specialtyCategoriesByJobId, Map<Long, Integer> ratingsByJobId) {
+            return new SettlementHistoryDetailResult(history, specialtyCategoriesByJobId, ratingsByJobId);
         }
     }
 

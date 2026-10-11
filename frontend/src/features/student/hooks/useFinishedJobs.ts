@@ -13,20 +13,20 @@ export type FinishedJobsLoad =
  * 끝난 내 작업 (GET /settlements 에서). 홈 끝난 일 · 내 활동 완료 · 내 작업물이 쓴다.
  * 401 은 /login 으로 보낸다 (그동안은 loading). reload 로 다시 불러오고, 지난 응답은 버린다.
  */
-export function useFinishedJobs({ details = false, reviews = false, files = false }: FinishedJobsOptions = {}): {
+export function useFinishedJobs({ files = false }: FinishedJobsOptions = {}): {
   load: FinishedJobsLoad;
   reload: () => void;
 } {
   const navigate = useNavigate();
   const [request, setRequest] = useState(0);
   const [result, setResult] = useState<{ key: string; load: FinishedJobsLoad }>();
-  const current = `${details}:${reviews}:${files}:${request}`;
+  const current = `${files}:${request}`;
 
   // 기억해 둔 목록이 뒤에서 새로 바뀌면 다시 그린다 (ADR 0077)
   const revision = useCachedListRevision();
   useEffect(() => {
     let active = true;
-    void loadFinishedJobs({ details, reviews, files }).then((loaded) => {
+    void loadFinishedJobs({ files }).then((loaded) => {
       if (!active) return;
       if (loaded.status === "unauthorized") {
         navigate("/login", { replace: true });
@@ -37,7 +37,7 @@ export function useFinishedJobs({ details = false, reviews = false, files = fals
     return () => {
       active = false;
     };
-  }, [details, reviews, files, current, navigate, revision]);
+  }, [files, current, navigate, revision]);
 
   const reload = useCallback(() => setRequest((n) => n + 1), []);
   return { load: result?.key === current ? result.load : { status: "loading" }, reload };

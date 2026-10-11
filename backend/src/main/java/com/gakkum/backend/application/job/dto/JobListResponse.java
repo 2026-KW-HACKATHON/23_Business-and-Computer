@@ -215,6 +215,8 @@ public final class JobListResponse {
         private final String reviewStatus;
         private final JobProgressStage progressStage;
         private final String storeName;
+        // 매장 주소(사장님 프로필 주소). 주소가 없으면 null
+        private final String storeAddress;
         // 매장 대표 사진(사장님 프로필 사진). 사진이 없으면 null
         private final String storeProfileImageUrl;
         private final OffsetDateTime submittedAt;
@@ -234,6 +236,7 @@ public final class JobListResponse {
                     .reviewStatus(result.getReviewStatus())
                     .progressStage(result.getProgressStage())
                     .storeName(result.getStoreName())
+                    .storeAddress(result.getStoreAddress())
                     .storeProfileImageUrl(result.getStoreProfileImageUrl())
                     .submittedAt(KoreaTime.from(result.getSubmittedAt()))
                     .build();

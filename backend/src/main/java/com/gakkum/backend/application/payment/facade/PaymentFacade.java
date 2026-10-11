@@ -6,13 +6,16 @@ import java.time.YearMonth;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.TreeMap;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,6 +23,8 @@ import org.springframework.transaction.annotation.Transactional;
 import com.gakkum.backend.application.payment.dto.PaymentPrepareRequest;
 import com.gakkum.backend.application.payment.service.PaymentPreparationService;
 import com.gakkum.backend.application.payment.service.PaymentApprovalService;
+import com.gakkum.backend.domain.job.dto.JobQueryDto.SpecialtyCategoryResult;
+import com.gakkum.backend.domain.job.dto.JobQueryDto.SpecialtyResult;
 import com.gakkum.backend.domain.job.entity.Job;
 import com.gakkum.backend.domain.job.entity.JobApplication;
 import com.gakkum.backend.domain.job.entity.JobStatus;
@@ -38,6 +43,7 @@ import com.gakkum.backend.domain.payment.dto.PaymentCommandDto.PrepareProposalPa
 import com.gakkum.backend.domain.payment.dto.PaymentQueryDto.ApprovedOrderData;
 import com.gakkum.backend.domain.payment.dto.PaymentQueryDto.PreparePaymentResult;
 import com.gakkum.backend.domain.payment.dto.PaymentQueryDto.SettlementHistoryData;
+import com.gakkum.backend.domain.payment.dto.PaymentQueryDto.SettlementHistoryDetailResult;
 import com.gakkum.backend.domain.payment.dto.PaymentQueryDto.SettlementHistoryItemResult;
 import com.gakkum.backend.domain.payment.dto.PaymentQueryDto.SettlementHistoryMonthResult;
 import com.gakkum.backend.domain.payment.dto.PaymentQueryDto.SettlementHistoryResult;
@@ -46,6 +52,9 @@ import com.gakkum.backend.domain.payment.dto.SettlementHistoryStatus;
 import com.gakkum.backend.domain.payment.entity.Payment;
 import com.gakkum.backend.domain.payment.entity.PaymentStatus;
 import com.gakkum.backend.domain.payment.service.PaymentService;
+import com.gakkum.backend.domain.review.service.ReviewService;
+import com.gakkum.backend.domain.specialty.dto.SpecialtyQueryDto.SpecialtyDetail;
+import com.gakkum.backend.domain.specialty.service.SpecialtyCategoryService;
 import com.gakkum.backend.domain.student.entity.Student;
 import com.gakkum.backend.domain.student.service.StudentService;
 import com.gakkum.backend.domain.user.entity.User;
@@ -73,6 +82,8 @@ public class PaymentFacade {
     private final JobService jobService;
     private final StudentService studentService;
     private final OwnerService ownerService;
+    private final ReviewService reviewService;
+    private final SpecialtyCategoryService specialtyCategoryService;
     private final Clock clock;
 
     public ApprovedOrderData approvePayment(String username, String orderId, String pgToken) {
@@ -215,13 +226,48 @@ public class PaymentFacade {
      */
     @Transactional(readOnly = true)
     public SettlementHistoryResult getSettlementHistory(String username) {
+        return buildSettlementHistory(getSettlementStudent(username));
+    }
+
+    /**
+     * 정산 내역 API(GET /settlements)용 정산 내역. 줄마다 의뢰 분야와 학생이 받은 후기 별점을 더해,
+     * 화면이 줄마다 의뢰 상세·후기를 따로 부르지 않게 한다. 의뢰 ID를 모아 분야·후기를 한 번씩만 조회한다.
+     * 홈과 내 정보는 이 값을 쓰지 않아 getSettlementHistory를 그대로 쓴다.
+     */
+    @Transactional(readOnly = true)
+    public SettlementHistoryDetailResult getSettlementHistoryWithJobDetails(String username) {
+        Student student = getSettlementStudent(username);
+        SettlementHistoryResult history = buildSettlementHistory(student);
+        List<Long> jobIds = history.getMonths().stream()
+                .flatMap(month -> month.getSettlements().stream())
+                .map(SettlementHistoryItemResult::getJobId)
+                .distinct()
+                .toList();
+        if (jobIds.isEmpty()) {
+            return SettlementHistoryDetailResult.of(history, Map.of(), Map.of());
+        }
+
+        Map<Long, List<Long>> specialtyIdsByJobId = jobService.getSpecialtyIdsByJobIds(jobIds);
+        Map<Long, SpecialtyDetail> specialtiesById = specialtyCategoryService.getSpecialtyDetails(
+                specialtyIdsByJobId.values().stream().flatMap(List::stream).collect(Collectors.toSet()));
+        Map<Long, List<SpecialtyCategoryResult>> specialtyCategoriesByJobId = new HashMap<>();
+        specialtyIdsByJobId.forEach((jobId, specialtyIds) ->
+                specialtyCategoriesByJobId.put(jobId, groupSpecialties(specialtyIds, specialtiesById)));
+        return SettlementHistoryDetailResult.of(history, specialtyCategoriesByJobId,
+                reviewService.getStudentRatingsByJobIds(jobIds, student.getId()));
+    }
+
+    private Student getSettlementStudent(String username) {
         User user = userService.getActiveUser(username);
 
         if (user.getRole() != UserRole.STUDENT) {
             throw new BusinessException(ErrorCode.SETTLEMENT_LIST_STUDENT_REQUIRED);
         }
-        Student student = studentService.findStudentProfileByUserId(user.getId())
+        return studentService.findStudentProfileByUserId(user.getId())
                 .orElseThrow(() -> new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR));
+    }
+
+    private SettlementHistoryResult buildSettlementHistory(Student student) {
         Map<Long, Job> jobsById = jobService.getJobsBySelectedStudentProfileId(student.getId());
         List<SettlementHistoryData> payments = paymentService.getSettlementHistory(jobsById.keySet());
         if (payments.isEmpty()) {
@@ -406,5 +452,29 @@ public class PaymentFacade {
             throw new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR);
         }
         return payment.getRefundAmount();
+    }
+
+    // 의뢰 목록 응답과 같은 묶음: 대분류 ID 순, 그 안에서 소분류 ID 순
+    private static List<SpecialtyCategoryResult> groupSpecialties(
+            List<Long> specialtyIds, Map<Long, SpecialtyDetail> specialtiesById) {
+        Map<Long, List<SpecialtyDetail>> byCategory = specialtyIds.stream()
+                .map(id -> {
+                    SpecialtyDetail detail = specialtiesById.get(id);
+                    if (detail == null) {
+                        throw new IllegalStateException("Specialty not found: " + id);
+                    }
+                    return detail;
+                })
+                .sorted(Comparator.comparing(SpecialtyDetail::getId))
+                .collect(Collectors.groupingBy(SpecialtyDetail::getCategoryId, TreeMap::new, Collectors.toList()));
+
+        return byCategory.entrySet().stream()
+                .map(entry -> SpecialtyCategoryResult.of(
+                        entry.getKey(),
+                        entry.getValue().get(0).getCategoryName(),
+                        entry.getValue().stream()
+                                .map(detail -> SpecialtyResult.of(detail.getId(), detail.getName()))
+                                .toList()))
+                .toList();
     }
 }
