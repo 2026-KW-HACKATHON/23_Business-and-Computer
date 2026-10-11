@@ -30,7 +30,8 @@ user's own change always shows up.
   (`useCachedListRevision`). The list hooks of 홈 and 내 활동 have it in their
   load effect's dependencies, so they load again — from the cache, without
   showing loading — and draw the new list.
-- When the unread notification count goes up (the bell polls every 20 s),
+- When the unread notification count goes up (the bell polls 2 seconds after
+  each answer while a tab screen is visible, ADR 0078),
   every remembered list of the account is asked again in the background
   (`refreshCachedLists`), so an open 홈 shows the other side's change without
   switching tabs.

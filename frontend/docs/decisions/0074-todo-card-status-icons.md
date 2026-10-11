@@ -27,7 +27,10 @@ picture of the next step at the right of the gray status box.
 - The icon is 44px. Both boxes have the same shape: two lines on the left
   (the status sentence and a gray detail line) and the icon at the right
   across both lines. The box fills the spare card height and centers its
-  text, so a one-line detail does not leave a gap above the button.
+  text, so a one-line detail does not leave a gap above the button. It is
+  at least 88px tall (the status line and two detail lines), so the owner
+  cards, where a detail can take two lines, and the student cards, whose
+  details fit one line, are the same height.
 - The student box's gray line is the deadline hint: 「마감 전에 초안을
   올려 주세요」 (초안 차례), the 최종 마감 date (수정 요청), and 「작업 조건을
   확인하고 시작해 주세요」 (제안 수락).
