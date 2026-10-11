@@ -123,7 +123,11 @@ function StudentHomePage() {
     <button type="button" className="student-home__finder" onClick={() => navigate(STUDENT_PATHS.jobFinder(1))}>
       <span className="student-home__finder-text">
         <strong>어떤 일을 해 볼지 모르겠다면?</strong>
-        <span>몇 가지에 답하면 지금 지원하기 좋은 의뢰를 골라 드려요</span>
+        <span>
+          몇 가지에 답하면 지금 지원하기 좋은
+          <br />
+          의뢰를 골라 드려요
+        </span>
         <span className="student-home__finder-link">
           1분 만에 찾아보기{" "}
           <span className="student-home__finder-arrow" aria-hidden="true">
