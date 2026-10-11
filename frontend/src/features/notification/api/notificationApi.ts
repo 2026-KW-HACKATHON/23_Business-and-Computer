@@ -61,10 +61,18 @@ export async function fetchNotifications(cursor: string | null, size = 20): Prom
   return { items: data?.items ?? [], nextCursor: data?.nextCursor ?? null };
 }
 
-/** GET /me/notifications/unread-count — 안 읽은 알림 수 (모든 종류) */
-export async function fetchUnreadNotificationCount(): Promise<number> {
-  const data = await apiData<{ unreadCount?: number } | undefined>("/me/notifications/unread-count");
-  return data?.unreadCount ?? 0;
+/** GET /me/notifications/unread-count 의 답. 종 점과 탭바 채팅 점을 한 번에 받는다 */
+export interface UnreadStatus {
+  /** 안 읽은 알림 수 (모든 종류) */
+  unreadCount: number;
+  /** 상대가 보낸 안 읽은 채팅 메시지가 있는 방이 있는지 (GET /me/chat-rooms 와 같은 방) */
+  hasUnreadChat: boolean;
+}
+
+/** GET /me/notifications/unread-count — 안 읽은 알림 수와 안 읽은 채팅이 있는지 */
+export async function fetchUnreadStatus(): Promise<UnreadStatus> {
+  const data = await apiData<Partial<UnreadStatus> | undefined>("/me/notifications/unread-count");
+  return { unreadCount: data?.unreadCount ?? 0, hasUnreadChat: data?.hasUnreadChat ?? false };
 }
 
 /** PUT /me/notifications/{id}/read — 하나 읽음. 이미 읽은 알림도 성공한다 */
