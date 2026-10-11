@@ -20,6 +20,7 @@ import firstVisitStudent from "../../assets/illustrations/first-visit-student.sv
 import paymentFailOwner from "../../assets/illustrations/payment-fail-owner.webp";
 import warningStudent from "../../assets/illustrations/warning-student.webp";
 import sorryOwner from "../../assets/illustrations/sorry-owner.webp";
+import concernOwner from "../../assets/illustrations/concern-owner.webp";
 import splashPaperProposal from "../../assets/illustrations/splash-paper-proposal.webp";
 import splashPaperRequest from "../../assets/illustrations/splash-paper-request.webp";
 import logoKakao from "../../assets/logos/kakao.svg";
@@ -91,6 +92,7 @@ export const IMAGES = {
   paymentFailOwner: { src: paymentFailOwner, width: 96, height: 101, alt: "" },
   warningStudent: { src: warningStudent, width: 96, height: 104, alt: "" },
   sorryOwner: { src: sorryOwner, width: 96, height: 103, alt: "" },
+  concernOwner: { src: concernOwner, width: 96, height: 138, alt: "" },
   splashPaperProposal: { src: splashPaperProposal, width: 40, height: 12, alt: "제안" },
   splashPaperRequest: { src: splashPaperRequest, width: 40, height: 12, alt: "의뢰" },
 
