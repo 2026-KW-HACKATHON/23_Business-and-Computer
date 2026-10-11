@@ -48,6 +48,7 @@ import com.gakkum.backend.domain.student.dto.StudentCommandDto.CreateStudentProf
 import com.gakkum.backend.domain.student.dto.StudentCommandDto.UpdateStudentCertificateCommand;
 import com.gakkum.backend.domain.student.dto.StudentCommandDto.UpdateStudentMeCommand;
 import com.gakkum.backend.domain.student.dto.StudentQueryDto.StudentMeResult;
+import com.gakkum.backend.domain.student.dto.StudentQueryDto.StudentMeSummaryResult;
 import com.gakkum.backend.domain.student.dto.StudentQueryDto.StudentReceivedReviewResult;
 import com.gakkum.backend.domain.student.dto.StudentQueryDto.StudentSpecialtyCategoryResult;
 import com.gakkum.backend.domain.student.dto.StudentQueryDto.StudentSpecialtyResult;
@@ -127,11 +128,7 @@ public class StudentFacade {
     @Transactional(readOnly = true)
     public StudentMeResult getMe(String username) {
         User user = userService.getActiveUser(username);
-        if (user.getRole() != UserRole.STUDENT) {
-            throw new BusinessException(ErrorCode.STUDENT_ME_REQUIRED);
-        }
-        Student student = studentService.findStudentProfileByUserId(user.getId())
-                .orElseThrow(() -> new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR));
+        Student student = getOwnStudent(user);
 
         List<Review> reviews = reviewService.getStudentReviews(student.getId());
         List<SettlementHistoryData> payments = paymentService.getLatestSettledPayments(
@@ -187,6 +184,28 @@ public class StudentFacade {
                         .map(payment -> settledItem(payment, jobsById.get(payment.getJobId()), student,
                                 applicationsById, storeNamesByOwnerProfileId))
                         .toList());
+    }
+
+    /**
+     * 내 정보 화면에 필요한 학생 본인의 프로필·특기·자격증과 완료 의뢰 수만 조회한다. 필드 값은 {@link #getMe}와 같고,
+     * 받은 리뷰·정산 완료 내역·제안 수·평균 별점은 조회하지 않는다. 학생 프로필이나 특기 분류가 없으면 500으로 거부한다.
+     */
+    @Transactional(readOnly = true)
+    public StudentMeSummaryResult getMeSummary(String username) {
+        User user = userService.getActiveUser(username);
+        Student student = getOwnStudent(user);
+
+        List<Long> specialtyIds = specialtyService.getSpecialtyIdsByStudentProfileIds(List.of(student.getId()))
+                .getOrDefault(student.getId(), List.of());
+        Map<Long, SpecialtyDetail> specialtiesById = specialtyCategoryService.getSpecialtyDetails(specialtyIds);
+
+        return StudentMeSummaryResult.of(
+                student,
+                user,
+                admissionYear(student.getStudentNumber()),
+                jobService.countClosedJobs(student.getId()),
+                groupSpecialties(specialtyIds, specialtiesById),
+                certificateService.getStudentCertificates(student.getId()));
     }
 
     /**
@@ -319,6 +338,15 @@ public class StudentFacade {
                 job.getCompletedAt().atOffset(ZoneOffset.UTC).atZoneSameInstant(SETTLED_DATE_ZONE).toLocalDate(),
                 storeNamesByOwnerProfileId.get(job.getOwnerProfileId()),
                 SettlementHistoryStatus.SETTLED);
+    }
+
+    // 내 정보는 학생만 조회할 수 있고, 학생 역할인데 프로필이 없으면 데이터 오류다
+    private Student getOwnStudent(User user) {
+        if (user.getRole() != UserRole.STUDENT) {
+            throw new BusinessException(ErrorCode.STUDENT_ME_REQUIRED);
+        }
+        return studentService.findStudentProfileByUserId(user.getId())
+                .orElseThrow(() -> new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR));
     }
 
     // 학번 열 자리의 셋째·넷째 자리가 입학연도 두 자리다: 2024402001 → "24"
