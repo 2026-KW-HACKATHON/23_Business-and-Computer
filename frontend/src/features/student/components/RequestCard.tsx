@@ -5,7 +5,7 @@ import {
   TextButton,
   WorkKindIcon,
 } from "../../../components";
-import { formatMonthDay } from "../../../lib/date";
+import { formatDueShort } from "../../../lib/date";
 import { formatWon } from "../../../lib/money";
 import { categoryNames, jobStatusLabel } from "../../explore";
 import type { ExploreJobCard } from "../../explore";
@@ -34,7 +34,7 @@ function RequestCard({ job, onOpen, onApply }: RequestCardProps) {
           {job.title}
         </button>
         {recruiting && (
-          <DeadlineBadge stage="draft" due={`${formatMonthDay(job.draftDeadline)}까지`} />
+          <DeadlineBadge stage="draft" due={formatDueShort(job.draftDeadline)} />
         )}
       </div>
       <div className="student-card__meta">

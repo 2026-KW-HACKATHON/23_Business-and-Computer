@@ -6,6 +6,12 @@ export function formatMonthDay(isoDate: string): string {
   return `${month}월 ${day}일`;
 }
 
+/** 마감 뱃지의 짧은 날짜: "2026-10-14" → "~10/14" (까지) */
+export function formatDueShort(isoDate: string): string {
+  const [, month, day] = isoDate.split("-").map(Number);
+  return `~${month}/${day}`;
+}
+
 const startOfDay = (date: Date) =>
   new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
 

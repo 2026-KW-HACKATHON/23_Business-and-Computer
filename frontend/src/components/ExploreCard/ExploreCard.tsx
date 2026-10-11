@@ -14,7 +14,7 @@ interface ExploreCardProps {
   storeName: string;
   /** 제안만: 공감 수 */
   empathyCount?: number;
-  /** 의뢰만: 모집 중일 때 마감 (예: 9월 27일까지) */
+  /** 의뢰만: 모집 중일 때 마감 (예: ~9/27) */
   deadline?: { stage: "draft" | "final"; due: string };
   /** 굵은 진행 상태 (예: 수락 대기, 완료) */
   status?: string;

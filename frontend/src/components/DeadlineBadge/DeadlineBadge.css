@@ -1,22 +1,28 @@
+/* 칩 없이 점 + 단계(회색) + 「~월/일」(굵게). 높이는 카드 제목 한 줄(22px)과 같다 */
 .deadline-badge {
   display: inline-flex;
   flex-shrink: 0;
   align-items: center;
   gap: 4px;
-  box-sizing: border-box;
-  height: 24px;
-  padding: 0 10px;
-  border: 1px solid var(--color-black);
-  border-radius: 999px;
-  background: var(--color-white);
+  height: 22px;
   font-family: var(--font-sans);
   font-size: 12px;
   line-height: 16px;
   white-space: nowrap;
 }
 
-.deadline-badge--final {
-  border-width: 1.5px;
+/* 초안 = 노란 점, 최종(초안 제출 후) = 빨간 점 */
+.deadline-badge::before {
+  content: "";
+  flex-shrink: 0;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--color-owner);
+}
+
+.deadline-badge--final::before {
+  background: var(--color-danger);
 }
 
 .deadline-badge__stage {
@@ -24,30 +30,8 @@
   color: var(--role-secondary);
 }
 
-.deadline-badge--final .deadline-badge__stage {
-  color: var(--color-black);
-}
-
-/* 형광펜은 글자 아래쪽 7px, 양옆으로 2px 넘친다 */
 .deadline-badge__due {
-  position: relative;
-  isolation: isolate;
+  font-size: 13px;
   font-weight: 700;
   color: var(--color-black);
-}
-
-.deadline-badge__due::before {
-  content: "";
-  position: absolute;
-  z-index: -1;
-  top: 9px;
-  left: -2px;
-  right: -2px;
-  height: 7px;
-  border-radius: 2px;
-  background: var(--color-main);
-}
-
-.deadline-badge--final .deadline-badge__due::before {
-  background: var(--color-owner);
 }
