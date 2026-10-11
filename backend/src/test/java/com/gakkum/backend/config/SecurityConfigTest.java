@@ -740,7 +740,7 @@ class SecurityConfigTest {
             when(jwtUtil.isValid(token, true)).thenReturn(true);
             when(jwtUtil.getUsername(token)).thenReturn(username);
             when(jwtUtil.getRole(token)).thenReturn(role);
-            when(notificationFacade.getUnreadCount(username)).thenReturn(NotificationUnreadCountResult.of(2L));
+            when(notificationFacade.getUnreadCount(username)).thenReturn(NotificationUnreadCountResult.of(2L, false));
             when(notificationFacade.markAllRead(username)).thenReturn(NotificationReadAllResult.of(2));
 
             mockMvc.perform(get("/me/notifications/unread-count")

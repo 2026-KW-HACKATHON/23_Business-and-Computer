@@ -13,10 +13,12 @@ import lombok.Getter;
 public class NotificationUnreadCountResponse {
 
     private final long unreadCount;
+    private final boolean hasUnreadChat;
 
     public static NotificationUnreadCountResponse from(NotificationUnreadCountResult result) {
         return NotificationUnreadCountResponse.builder()
                 .unreadCount(result.getUnreadCount())
+                .hasUnreadChat(result.isHasUnreadChat())
                 .build();
     }
 }
