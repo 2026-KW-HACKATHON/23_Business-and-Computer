@@ -24,6 +24,8 @@ import com.gakkum.backend.application.payment.service.PaymentPreparationService;
 import com.gakkum.backend.application.payment.service.PaymentApprovalService;
 import com.gakkum.backend.domain.job.service.JobService;
 import com.gakkum.backend.domain.owner.service.OwnerService;
+import com.gakkum.backend.domain.review.service.ReviewService;
+import com.gakkum.backend.domain.specialty.service.SpecialtyCategoryService;
 import com.gakkum.backend.domain.payment.client.KakaoPayClient;
 import com.gakkum.backend.domain.payment.client.KakaoPayClient.ReadyResult;
 import com.gakkum.backend.domain.payment.dto.PaymentCommandDto.PrepareProposalPaymentCommand;
@@ -44,7 +46,8 @@ class PaymentFacadeTest {
     private final PaymentApprovalService approvalService = mock(PaymentApprovalService.class);
     private final PaymentFacade facade = new PaymentFacade(preparationService, kakaoPayClient, paymentService,
             approvalService, mock(UserService.class), mock(JobService.class), mock(StudentService.class),
-            mock(OwnerService.class), Clock.systemUTC());
+            mock(OwnerService.class), mock(ReviewService.class),
+                mock(SpecialtyCategoryService.class), Clock.systemUTC());
     private final PaymentPrepareRequest request = PaymentPrepareRequest.of(21L, true);
     private final PendingPaymentData pending = new PendingPaymentData("order-123", 100_000L, "포스터 제작", "owner-123");
 

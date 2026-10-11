@@ -70,7 +70,7 @@ public class PaymentController {
     public ResponseEntity<ApiResponse<SettlementHistoryResponse>> getSettlementHistory(
             Authentication authentication) {
         SettlementHistoryResponse response = SettlementHistoryResponse.from(
-                paymentFacade.getSettlementHistory(authentication.getName()));
+                paymentFacade.getSettlementHistoryWithJobDetails(authentication.getName()));
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 }

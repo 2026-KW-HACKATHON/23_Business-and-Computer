@@ -18,6 +18,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -41,6 +42,9 @@ import com.gakkum.backend.domain.job.entity.JobStatus;
 import com.gakkum.backend.domain.payment.dto.PaymentCommandDto.PrepareProposalPaymentCommand;
 import com.gakkum.backend.domain.payment.dto.PaymentQueryDto.ApprovedOrderData;
 import com.gakkum.backend.domain.payment.dto.PaymentQueryDto.SettlementHistoryItemResult;
+import com.gakkum.backend.domain.payment.dto.PaymentQueryDto.SettlementHistoryDetailResult;
+import com.gakkum.backend.domain.job.dto.JobQueryDto.SpecialtyResult;
+import com.gakkum.backend.domain.job.dto.JobQueryDto.SpecialtyCategoryResult;
 import com.gakkum.backend.domain.payment.dto.PaymentQueryDto.SettlementHistoryMonthResult;
 import com.gakkum.backend.domain.payment.dto.PaymentQueryDto.SettlementHistoryResult;
 import com.gakkum.backend.domain.payment.dto.PaymentQueryDto.SettlementHistorySummaryResult;
@@ -365,13 +369,17 @@ class PaymentControllerTest {
     @Test
     @DisplayName("정산 내역 조회는 인증 사용자를 Facade에 전달하고 요약 금액과 월별 정산 내역을 반환한다")
     void returnsSettlementHistory() throws Exception {
-        when(paymentFacade.getSettlementHistory(USERNAME)).thenReturn(SettlementHistoryResult.of(
+        when(paymentFacade.getSettlementHistoryWithJobDetails(USERNAME)).thenReturn(SettlementHistoryDetailResult.of(
+                SettlementHistoryResult.of(
                 SettlementHistorySummaryResult.of(120_000L, 100_000L, 3_000_000_000L), List.of(
                 SettlementHistoryMonthResult.of("2026-10", List.of(
                         SettlementHistoryItemResult.of(43L, "매장 홍보 포스터 제작", 100_000L, null, "가꿈 카페",
                                 SettlementHistoryStatus.SCHEDULED),
                         SettlementHistoryItemResult.of(42L, "메뉴판 디자인", 20_000L, LocalDate.of(2026, 10, 5),
-                                "가꿈 분식", SettlementHistoryStatus.START_COMPENSATION))))));
+                                "가꿈 분식", SettlementHistoryStatus.START_COMPENSATION))))),
+                Map.of(43L, List.of(SpecialtyCategoryResult.of(1L, "디자인",
+                        List.of(SpecialtyResult.of(11L, "포스터"))))),
+                Map.of(42L, 4)));
 
         mockMvc.perform(get("/settlements").principal(authentication))
                 .andExpect(status().isOk())
@@ -384,7 +392,13 @@ class PaymentControllerTest {
                 .andExpect(jsonPath("$.data.months.length()").value(1))
                 .andExpect(jsonPath("$.data.months[0].yearMonth").value("2026-10"))
                 .andExpect(jsonPath("$.data.months[0].settlements.length()").value(2))
-                .andExpect(jsonPath("$.data.months[0].settlements[0].length()").value(6))
+                // 분야는 늘 내리고, 후기가 없는 줄은 별점을 생략한다
+                .andExpect(jsonPath("$.data.months[0].settlements[0].length()").value(7))
+                .andExpect(jsonPath("$.data.months[0].settlements[0].specialtyCategories[0].name").value("디자인"))
+                .andExpect(jsonPath("$.data.months[0].settlements[0].specialtyCategories[0].specialties[0].name")
+                        .value("포스터"))
+                .andExpect(jsonPath("$.data.months[0].settlements[1].specialtyCategories").isEmpty())
+                .andExpect(jsonPath("$.data.months[0].settlements[1].rating").value(4))
                 .andExpect(jsonPath("$.data.months[0].settlements[0].jobId").value(43))
                 .andExpect(jsonPath("$.data.months[0].settlements[0].title").value("매장 홍보 포스터 제작"))
                 .andExpect(jsonPath("$.data.months[0].settlements[0].amount").value(100000))
@@ -395,14 +409,15 @@ class PaymentControllerTest {
                 .andExpect(jsonPath("$.data.months[0].settlements[1].amount").value(20000))
                 .andExpect(jsonPath("$.data.months[0].settlements[1].settledDate").value("2026-10-05"))
                 .andExpect(jsonPath("$.data.months[0].settlements[1].status").value("START_COMPENSATION"));
-        verify(paymentFacade).getSettlementHistory(USERNAME);
+        verify(paymentFacade).getSettlementHistoryWithJobDetails(USERNAME);
     }
 
     @Test
     @DisplayName("정산 내역이 없으면 200과 0원 요약, 빈 월 목록을 반환한다")
     void returnsEmptySettlementHistory() throws Exception {
-        when(paymentFacade.getSettlementHistory(USERNAME)).thenReturn(
-                SettlementHistoryResult.of(SettlementHistorySummaryResult.of(0L, 0L, 0L), List.of()));
+        when(paymentFacade.getSettlementHistoryWithJobDetails(USERNAME)).thenReturn(SettlementHistoryDetailResult.of(
+                SettlementHistoryResult.of(SettlementHistorySummaryResult.of(0L, 0L, 0L), List.of()),
+                Map.of(), Map.of()));
 
         mockMvc.perform(get("/settlements").principal(authentication))
                 .andExpect(status().isOk())
@@ -417,7 +432,7 @@ class PaymentControllerTest {
     @Test
     @DisplayName("학생이 아닌 사용자의 정산 내역 조회는 403을, 잠긴 사용자는 401을, 데이터 불일치는 500을 반환한다")
     void rejectsSettlementHistoryForNonStudentLockedUserAndBrokenData() throws Exception {
-        when(paymentFacade.getSettlementHistory(USERNAME))
+        when(paymentFacade.getSettlementHistoryWithJobDetails(USERNAME))
                 .thenThrow(new BusinessException(ErrorCode.SETTLEMENT_LIST_STUDENT_REQUIRED))
                 .thenThrow(new BusinessException(ErrorCode.UNAUTHORIZED))
                 .thenThrow(new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR));
