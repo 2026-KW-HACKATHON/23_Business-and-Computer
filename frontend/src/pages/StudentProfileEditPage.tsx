@@ -19,9 +19,9 @@ import {
   saveStudentMe,
   specialtyIdsOf,
   studentYearText,
-  useStudentMe,
+  useStudentMeSummary,
 } from "../features/student";
-import type { ProfileEditSection, StudentMe } from "../features/student";
+import type { ProfileEditSection, StudentMeSummary } from "../features/student";
 import { useBack } from "../hooks/useBack";
 import { useObjectUrls } from "../hooks/useObjectUrls";
 import { studentTitle } from "../lib/korean";
@@ -35,14 +35,14 @@ const PHOTO_CHECK_TEXT = {
 
 /**
  * 피그마 「프로필 편집(학생)」. 프로필 수정의 「기본 정보 수정」 · 각 「수정」에서 열린다.
- * 지금 값은 GET /students/me, 특기 칩은 GET /specialties (가입 3/3과 같은 칩), 「저장하기」는
+ * 지금 값은 GET /students/me/summary (ADR 0084), 특기 칩은 GET /specialties (가입 3/3과 같은 칩), 「저장하기」는
  * PUT /students/me (ADR 0041). 이름 · 학교 · 학번은 인증 정보라 보여 주기만 한다.
  */
 function StudentProfileEditPage() {
   const back = useBack(STUDENT_PATHS.profile);
   const location = useLocation();
   const section = (location.state as { section?: ProfileEditSection } | null)?.section;
-  const { load: meLoad, reload: reloadMe } = useStudentMe();
+  const { load: meLoad, reload: reloadMe } = useStudentMeSummary();
   const { load: specialtyLoad, reload: reloadSpecialties } = useSpecialties();
 
   if (meLoad.status === "loaded" && specialtyLoad.status === "loaded") {
@@ -77,7 +77,7 @@ function ProfileForm({
   section,
   onBack,
 }: {
-  me: StudentMe;
+  me: StudentMeSummary;
   categories: SpecialtyCategory[];
   section?: ProfileEditSection;
   onBack: () => void;

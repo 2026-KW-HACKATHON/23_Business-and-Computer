@@ -8,10 +8,10 @@ import {
   useAppliedJobs,
   useProgressJobs,
   useSentProposals,
-  useStudentMe,
+  useStudentMeSummary,
   useStudentPhotoChange,
 } from "../features/student";
-import type { StudentActivityTab, StudentMe } from "../features/student";
+import type { StudentActivityTab, StudentMeSummary } from "../features/student";
 import { PROFILE_PHOTO_ACCEPT, TermsSheet } from "../features/signup";
 import { useBack } from "../hooks/useBack";
 import { studentTitle } from "../lib/korean";
@@ -21,14 +21,14 @@ const ACTIVITY_TABS: StudentActivityTab[] = ["applied", "proposals", "inProgress
 
 /**
  * 피그마 「내 정보 · 설정 (학생)」. 프로필 · 요약 · 내 활동 · 설정 · 로그아웃.
- * 프로필과 완료 수는 GET /students/me (ADR 0041), 지원한 의뢰 · 보낸 제안 · 진행 중 수는 각 목록
+ * 프로필과 완료 수는 GET /students/me/summary (ADR 0041 · 0084), 지원한 의뢰 · 보낸 제안 · 진행 중 수는 각 목록
  * (ADR 0027 · 0023 · 0032). 불러오는 중이거나 실패하면 프로필 자리에 안내, 개수는 「-」.
  * 사진을 고르면 바로 올리고(PROFILE) PUT /students/me 로 저장한다.
  */
 function StudentMePage() {
   const navigate = useNavigate();
   const back = useBack(STUDENT_PATHS.home);
-  const { load, reload } = useStudentMe();
+  const { load, reload } = useStudentMeSummary();
   const me = load.status === "loaded" ? load.data : undefined;
   const { load: appliedLoad } = useAppliedJobs();
   const { load: proposalsLoad } = useSentProposals();
@@ -102,7 +102,7 @@ function StudentMePage() {
  * 사진 · 이름 · 학교와 학번 · 특기 대분류, 「광운대 인증 완료」 · 「프로필 수정」.
  * 학교 줄은 「광운대학교 경영학부 24학번」 (학과가 없으면 빼고).
  */
-function MeHead({ me }: { me: StudentMe }) {
+function MeHead({ me }: { me: StudentMeSummary }) {
   const navigate = useNavigate();
   const { photoUrl, changePhoto } = useStudentPhotoChange(me);
   const school = [me.university, me.major?.trim(), studentYearText(me.studentNumber)].filter(Boolean).join(" ");

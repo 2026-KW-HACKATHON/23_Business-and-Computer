@@ -1,23 +1,39 @@
 import { ApiError } from "../../../api/client";
 import { normalizePortfolioUrl, uploadSignupPhoto } from "../../signup";
-import { fetchStudentMe, updateStudentMe } from "../api/meApi";
-import type { StudentMeResponse, StudentMeReview, StudentMeSpecialtyCategory } from "../api/meApi";
+import { fetchStudentMe, fetchStudentMeSummary, updateStudentMe } from "../api/meApi";
+import type {
+  StudentMeResponse,
+  StudentMeReview,
+  StudentMeSpecialtyCategory,
+  StudentMeSummaryResponse,
+} from "../api/meApi";
 
-/** 내 정보 (GET /students/me) */
+/** 내 정보 전체 (GET /students/me) — 받은 후기 · 정산까지 */
 export type StudentMe = StudentMeResponse;
+/** 내 정보 요약 (GET /students/me/summary) — 프로필 · 특기 · 자격증 · 완료 수 */
+export type StudentMeSummary = StudentMeSummaryResponse;
 export type { StudentMeReview };
 
-export type StudentMeResult =
-  | { status: "loaded"; data: StudentMe }
+export type StudentMeResult<T = StudentMe> =
+  | { status: "loaded"; data: T }
   | { status: "unauthorized" }
   /** 403 — 학생이 아님 */
   | { status: "forbidden" }
   | { status: "error" };
 
-/** 내 정보를 불러온다 */
-export async function loadStudentMe(): Promise<StudentMeResult> {
+/** 내 정보 전체를 불러온다 */
+export function loadStudentMe(): Promise<StudentMeResult> {
+  return loadMe(fetchStudentMe);
+}
+
+/** 내 정보 요약을 불러온다 */
+export function loadStudentMeSummary(): Promise<StudentMeResult<StudentMeSummary>> {
+  return loadMe(fetchStudentMeSummary);
+}
+
+async function loadMe<T>(fetchMe: () => Promise<T>): Promise<StudentMeResult<T>> {
   try {
-    return { status: "loaded", data: await fetchStudentMe() };
+    return { status: "loaded", data: await fetchMe() };
   } catch (error) {
     if (error instanceof ApiError) {
       if (error.status === 401) return { status: "unauthorized" };
@@ -39,7 +55,7 @@ export function specialtyNamesOf(categories: StudentMeSpecialtyCategory[]): stri
 }
 
 /** 내 특기 id (프로필 편집에서 고른 칩) */
-export function specialtyIdsOf(me: StudentMe): number[] {
+export function specialtyIdsOf(me: StudentMeSummary): number[] {
   return me.specialtyCategories.flatMap((category) => category.specialties.map((s) => s.id));
 }
 
@@ -70,7 +86,7 @@ export interface StudentMeChanges {
 }
 
 /** 지금 내 정보 그대로 (사진만 바꿀 때 등) */
-export function studentMeChanges(me: StudentMe): StudentMeChanges {
+export function studentMeChanges(me: StudentMeSummary): StudentMeChanges {
   return {
     introduction: me.introduction ?? "",
     specialtyIds: specialtyIdsOf(me),

@@ -84,6 +84,53 @@ public final class StudentQueryDto {
         }
     }
 
+    /** 내 정보 화면용 요약. 받은 리뷰·정산 내역·제안 수·평균 별점은 계산하지 않는다 */
+    @Getter
+    @Builder(access = AccessLevel.PRIVATE)
+    @AllArgsConstructor(access = AccessLevel.PRIVATE)
+    public static class StudentMeSummaryResult {
+
+        private final Long studentProfileId;
+        private final String profileImageUrl;
+        private final String name;
+        private final String university;
+        // 학번 전체가 아닌 입학연도 두 자리
+        private final String studentNumber;
+        private final String major;
+        private final String introduction;
+        private final String portfolioUrl;
+        private final Long completedJobCount;
+        private final List<StudentSpecialtyCategoryResult> specialtyCategories;
+        private final List<StudentCertificateResult> certificates;
+
+        /**
+         * @param admissionYear 학번에서 뽑은 입학연도 두 자리
+         */
+        public static StudentMeSummaryResult of(
+                Student student,
+                User user,
+                String admissionYear,
+                long completedJobCount,
+                List<StudentSpecialtyCategoryResult> specialtyCategories,
+                List<StudentCertificate> certificates) {
+            return StudentMeSummaryResult.builder()
+                    .studentProfileId(student.getId())
+                    .profileImageUrl(student.getProfileImageUrl())
+                    .name(user.getName())
+                    .university(student.getUniversity())
+                    .studentNumber(admissionYear)
+                    .major(student.getMajor())
+                    .introduction(student.getIntroduction())
+                    .portfolioUrl(student.getPortfolioUrl())
+                    .completedJobCount(completedJobCount)
+                    .specialtyCategories(List.copyOf(specialtyCategories))
+                    .certificates(certificates.stream()
+                            .map(StudentCertificateResult::from)
+                            .toList())
+                    .build();
+        }
+    }
+
     @Getter
     @AllArgsConstructor(access = AccessLevel.PRIVATE)
     public static class StudentSpecialtyCategoryResult {
