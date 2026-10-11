@@ -675,12 +675,14 @@ public final class JobQueryDto {
         private final String reviewStatus;
         private final JobProgressStage progressStage;
         private final String storeName;
+        // 매장 주소(사장님 프로필 주소). 주소가 없으면 null
+        private final String storeAddress;
         // 매장 대표 사진(사장님 프로필 사진). 사진이 없으면 null
         private final String storeProfileImageUrl;
         // submissionType·reviewStatus와 같은 최신 제출물의 제출 시각. 제출물이 없으면 null이다
         private final LocalDateTime submittedAt;
 
-        /** 매장 이름과 사진은 의뢰한 사장님의 현재 프로필 값이다. */
+        /** 매장 이름·주소·사진은 의뢰한 사장님의 현재 프로필 값이다. */
         public static StudentMatchedJobResult of(StudentMatchedJobData data, Owner owner,
                 List<SpecialtyCategoryResult> specialtyCategories) {
             Job job = data.getJob();
@@ -697,6 +699,7 @@ public final class JobQueryDto {
                     .reviewStatus(latest == null ? null : latest.getReviewStatus().name())
                     .progressStage(data.getProgressStage())
                     .storeName(owner.getStoreName())
+                    .storeAddress(owner.getStoreAddress())
                     .storeProfileImageUrl(owner.getProfileImageUrl())
                     .submittedAt(latest == null ? null : latest.getCreatedAt())
                     .build();
