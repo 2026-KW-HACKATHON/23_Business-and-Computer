@@ -50,7 +50,7 @@ function NewStoreConcerns() {
                 </span>
                 <strong className="new-concerns__title">“{store.concern?.title}”</strong>
               </span>
-              <span className="new-concerns__action">제안하기</span>
+              <span className="new-concerns__action">제안하기 ›</span>
             </button>
           </li>
         ))}

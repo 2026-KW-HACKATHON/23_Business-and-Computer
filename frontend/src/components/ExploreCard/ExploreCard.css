@@ -12,9 +12,10 @@
   text-align: left;
 }
 
+/* 제목이 두 줄이면 아이콘 · 마감은 첫 줄에 맞춘다 */
 .explore-card__head {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 6px;
 }
 
@@ -28,7 +29,7 @@
   color: var(--color-black);
   word-break: keep-all;
   overflow-wrap: break-word;
-  text-wrap: balance;
+  text-wrap: pretty;
 }
 
 .explore-card__meta {
