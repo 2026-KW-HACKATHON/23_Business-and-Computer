@@ -313,6 +313,24 @@ class DemoSampleDataIntegrationTest {
         assertThat(numbers).anyMatch(number -> number.startsWith("20240"));
     }
 
+    @Test
+    @DisplayName("예시 데이터 행의 id 는 표의 id 시퀀스에서 미리 받은 값이라 다음에 DB 가 정하는 id 와 겹치지 않는다")
+    void seedsIdsFromTableSequences() {
+        for (String table : List.of("jobs", "job_applications", "payments", "job_submissions", "reviews", "proposals",
+                "store_concerns", "owner_profiles", "student_profiles")) {
+            Long maxId = jdbcTemplate.queryForObject("select max(id) from " + table, Long.class);
+            Long lastSequenceValue = jdbcTemplate.queryForObject(
+                    "select pg_sequence_last_value(cast(pg_get_serial_sequence(?, 'id') as regclass))", Long.class,
+                    table);
+            assertThat(maxId).as(table).isNotNull().isLessThanOrEqualTo(lastSequenceValue);
+        }
+        Long nextJobId = jdbcTemplate.queryForObject("""
+                insert into jobs (owner_profile_id, title, description, budget, draft_deadline, final_deadline,
+                    revision_count, status) values (?, '다음 의뢰', '설명', 10000, current_date, current_date, 1, 'OPEN')
+                returning id""", Long.class, myStoreId);
+        assertThat(jobs.values()).extracting(Job::getId).doesNotContain(nextJobId);
+    }
+
     private Instant instant(String sql, Long id) {
         return jdbcTemplate.queryForObject(sql, Timestamp.class, id).toInstant();
     }
