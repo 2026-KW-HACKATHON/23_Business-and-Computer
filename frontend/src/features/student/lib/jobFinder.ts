@@ -68,6 +68,10 @@ export interface JobFinderPick {
   roomy: boolean;
   /** 작업비가 원하는 범위 안 */
   budgetFits: boolean;
+  /** 여유에 답했는데 초안 마감까지 그만큼 남지 않음 (「마감 빠듯」) */
+  tight: boolean;
+  /** 작업비에 답했는데 의뢰 작업비가 그 범위 밖 (「작업비 범위 밖」) */
+  budgetOff: boolean;
 }
 
 export interface JobFinderResult {
@@ -91,6 +95,7 @@ function daysUntil(isoDate: string, today: string): number {
  * 지원할 수 있는 의뢰(모집 중 · 아직 지원 안 함 · 초안 마감이 오늘이거나 뒤)만 후보로 둔다.
  * 분야를 골랐으면 그 분야가 하나라도 맞는 의뢰만 남기고(분야 3점), 마감 여유 2점, 작업비가 범위 안이면 2점 ·
  * 바로 옆 범위면 1점. 점수 높은 순, 같으면 초안 마감이 빠른 순으로 3개는 picks, 나머지는 more.
+ * 여유 · 작업비는 거르지 않고 순서만 바꾸므로, 맞지 않으면 tight · budgetOff 로 카드에 보인다.
  */
 export function jobFinderResult(jobs: readonly ExploreJobCard[], answers: JobFinderAnswers, today: string): JobFinderResult {
   const fields = answers.fields ?? [];
@@ -112,7 +117,9 @@ export function jobFinderResult(jobs: readonly ExploreJobCard[], answers: JobFin
         !budgetFits &&
         [answers.budget - 1, answers.budget + 1].some((i) => JOB_FINDER_BUDGETS[i] && inBand(JOB_FINDER_BUDGETS[i]));
       const score = (matchedFields.length > 0 ? 3 : 0) + (roomy ? 2 : 0) + (budgetFits ? 2 : nearBand ? 1 : 0);
-      return [{ pick: { job, matchedFields, roomy, budgetFits }, score }];
+      const tight = pace !== undefined && !roomy;
+      const budgetOff = budget !== undefined && amount !== undefined && !budgetFits;
+      return [{ pick: { job, matchedFields, roomy, budgetFits, tight, budgetOff }, score }];
     })
     .sort((a, b) => b.score - a.score || a.pick.job.draftDeadline.localeCompare(b.pick.job.draftDeadline))
     .map(({ pick }) => pick);

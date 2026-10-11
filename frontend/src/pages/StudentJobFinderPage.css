@@ -52,3 +52,9 @@
   line-height: 18px;
   color: var(--color-student);
 }
+
+/* 답과 맞지 않는 점 (마감 빠듯 · 작업비 범위 밖) */
+.job-finder__reason--miss {
+  background: var(--role-muted);
+  color: var(--role-secondary);
+}
