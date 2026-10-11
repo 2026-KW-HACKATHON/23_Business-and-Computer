@@ -46,7 +46,8 @@ export type OwnerConcernResolveResult =
   | { status: "forbidden" }
   | { status: "error" };
 
-function toConcern(response: StoreConcernResponse): OwnerConcern {
+/** 고민 API · 홈(GET /me/home 의 concerns)의 고민을 화면 모양으로 */
+export function toOwnerConcern(response: StoreConcernResponse): OwnerConcern {
   return {
     title: response.title,
     description: response.description ?? "",
@@ -70,7 +71,7 @@ export function concernForm(concern: OwnerConcern | null): OwnerConcernForm {
 export async function loadOwnerConcern(): Promise<OwnerConcernLoadResult> {
   try {
     const response = await fetchOwnerConcern();
-    return { status: "loaded", concern: response ? toConcern(response) : null };
+    return { status: "loaded", concern: response ? toOwnerConcern(response) : null };
   } catch (error) {
     if (error instanceof ApiError && error.status === 401) return { status: "unauthorized" };
     return { status: "error" };
@@ -86,7 +87,7 @@ export async function saveConcern(form: OwnerConcernForm): Promise<OwnerConcernS
       description: description === "" ? null : description,
       specialtyCategoryId: form.categoryId,
     });
-    return { status: "saved", concern: toConcern(response) };
+    return { status: "saved", concern: toOwnerConcern(response) };
   } catch (error) {
     if (error instanceof ApiError) {
       if (error.status === 401) return { status: "unauthorized" };

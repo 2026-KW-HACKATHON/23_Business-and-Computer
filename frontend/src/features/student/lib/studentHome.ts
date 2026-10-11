@@ -1,5 +1,6 @@
 import { ApiError } from "../../../api/client";
 import { fetchStudentHome } from "../api/homeApi";
+import { toExploreStore } from "../api/storeApi";
 import type {
   StudentHomeCheckingResponse,
   StudentHomeDoneResponse,
@@ -128,6 +129,7 @@ export function toStudentHome(response: StudentHomeResponse): StudentHome {
     waiting,
     peerProposals: mapList(response.peerProposals, toPeer) ?? [],
     done,
+    newStoreConcerns: mapList(response.newStoreConcerns, toExploreStore) ?? [],
   };
 }
 

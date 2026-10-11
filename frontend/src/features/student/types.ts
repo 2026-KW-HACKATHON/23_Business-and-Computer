@@ -154,4 +154,6 @@ export interface StudentHome {
   peerProposals: StudentPeerProposal[];
   /** 최근 끝난 것부터 */
   done: StudentDoneItem[] | null;
+  /** 새로 올라온 가게 고민 3곳까지 (최근에 올리거나 고친 순, ADR 0080). 못 불러왔으면 빈 목록 (섹션째 숨긴다) */
+  newStoreConcerns: ExploreStore[];
 }
