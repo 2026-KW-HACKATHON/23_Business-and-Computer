@@ -41,9 +41,10 @@ import com.gakkum.backend.util.UlidGenerator;
 public class DemoFacade {
 
     private static final int SAMPLE_SPECIALTY_COUNT = 2;
-    // 방문자 사장님(대표자)·학생 이름. 화면과 알림이 「김골목 사장님」·「이인턴 학생」처럼 뒤에 부르는 말을 붙인다
+    // 방문자 사장님(대표자)·학생 이름. 화면과 알림이 「김골목 사장님」·「[데모] 이인턴 학생」처럼 뒤에 부르는 말을 붙인다.
+    // 학생 이름에도 가게 이름(「[데모] 가꿈 분식」)처럼 「[데모]」를 붙여 사장님 화면에서도 데모 학생을 알아보게 한다
     private static final String OWNER_NAME = "김골목";
-    private static final String STUDENT_NAME = "이인턴";
+    private static final String STUDENT_NAME = "[데모] 이인턴";
     // 방문자 데모 학생은 「24학번」으로 보인다
     private static final int VISITOR_ADMISSION_YEAR = 24;
     // 방문자 사장님(가게 사진) · 학생 프로필 사진. 프론트가 public/demo 에 두고 같은 주소에서 내준다

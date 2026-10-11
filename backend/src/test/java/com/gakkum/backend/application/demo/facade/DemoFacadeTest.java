@@ -83,7 +83,7 @@ class DemoFacadeTest {
         verify(userService).createDemoUser(sessionCaptor.capture(), eq(UserRole.OWNER), eq("김골목"), eq(null));
         String session = sessionCaptor.getValue();
         assertThat(session).matches("^[0-9A-Z]{26}$");
-        verify(userService).createDemoUser(session, UserRole.STUDENT, "이인턴",
+        verify(userService).createDemoUser(session, UserRole.STUDENT, "[데모] 이인턴",
                 "demo-" + session.toLowerCase() + "@example.com");
 
         String username = "DEMO_" + session + "_" + role.name();
