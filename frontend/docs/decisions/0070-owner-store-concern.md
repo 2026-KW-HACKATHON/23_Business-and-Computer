@@ -4,7 +4,8 @@
 
 Accepted. The owner home shows a store-concern card right below 「확인할 일」,
 /owner/me/concern writes or edits the concern, and 내 정보 shows it with
-「고치기」 and 「해결됐어요」.
+「고치기」 and 「해결됐어요」. The home card's data now comes with
+`GET /me/home` (ADR 0080).
 
 ## Context
 

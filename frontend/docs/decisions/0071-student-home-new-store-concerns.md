@@ -4,7 +4,8 @@
 
 Accepted. The student home shows 「새로 올라온 가게 고민」 right below
 확인할 일: up to three stores with an open concern, newest first. A card
-opens 제안 보내기 2/4 with that store picked.
+opens 제안 보내기 2/4 with that store picked. The stores now come with
+`GET /me/home` instead of all of `GET /explore/stores` (ADR 0080).
 
 ## Context
 
