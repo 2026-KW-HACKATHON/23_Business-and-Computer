@@ -191,11 +191,9 @@
   gap: 8px;
 }
 
-/* 「고치기 ›」와 같은 진한 노랑 굵은 글씨. 「펼치기 ›」와 「접기」의 폭을 같게 둔다 */
+/* 「고치기 ›」와 같은 진한 노랑 굵은 글씨. 마우스를 올리면 어두워지는 칸이 글자와 화살표만 감싼다 */
 .owner-concern-card .owner-concern-card__toggle {
   flex-shrink: 0;
-  justify-content: flex-end;
-  min-width: 60px;
   font-weight: 700;
   color: #a87600;
 }

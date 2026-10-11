@@ -46,6 +46,7 @@ export { default as Loader, LoaderArt } from "./Loader/Loader";
 export { default as LoadingDots } from "./LoadingDots/LoadingDots";
 export { default as MainAppBar } from "./MainAppBar/MainAppBar";
 export { default as MainTabScreen } from "./MainTabScreen/MainTabScreen";
+export { default as FoldChevron } from "./FoldChevron/FoldChevron";
 export { default as MaskIcon } from "./MaskIcon/MaskIcon";
 export { default as MenuList } from "./MenuList/MenuList";
 export type { MenuItem } from "./MenuList/MenuList";
