@@ -25,6 +25,7 @@ public class RequestLoggingFilter extends OncePerRequestFilter {
     private static final Logger log = LoggerFactory.getLogger(RequestLoggingFilter.class);
     private static final String TID_ATTRIBUTE = RequestLoggingFilter.class.getName() + ".tid";
     private static final String STARTED_AT_ATTRIBUTE = RequestLoggingFilter.class.getName() + ".startedAt";
+    private static final String POLLING_URI = "/me/notifications/unread-count";
 
     @Override
     protected boolean shouldNotFilterErrorDispatch() {
@@ -41,6 +42,8 @@ public class RequestLoggingFilter extends OncePerRequestFilter {
         }
         MDC.put(RequestLogContext.TID_KEY, tid);
         RequestLogContext.setDepth(0);
+        boolean polling = "GET".equals(request.getMethod()) && POLLING_URI.equals(request.getRequestURI());
+        RequestLogContext.setSuppressed(polling);
         Long startedAt = (Long) request.getAttribute(STARTED_AT_ATTRIBUTE);
         if (startedAt == null) {
             startedAt = System.nanoTime();
@@ -48,8 +51,11 @@ public class RequestLoggingFilter extends OncePerRequestFilter {
         }
         try {
             filterChain.doFilter(request, response);
-            log.info("HTTP {} {} status={} {}", request.getMethod(), request.getRequestURI(),
-                    response.getStatus(), RequestLogContext.elapsed(startedAt));
+            // Successful polling requests are too frequent to be worth a line each.
+            if (!polling || response.getStatus() >= 400) {
+                log.info("HTTP {} {} status={} {}", request.getMethod(), request.getRequestURI(),
+                        response.getStatus(), RequestLogContext.elapsed(startedAt));
+            }
         } catch (IOException | ServletException | RuntimeException | Error exception) {
             // An escaping exception may be mapped to an HTTP status later by the servlet container.
             log.info("HTTP {} {} status=unresolved {} exception={}", request.getMethod(), request.getRequestURI(),
