@@ -28,7 +28,7 @@ public class LayerLoggingAspect {
             + "this(org.springframework.data.repository.Repository)) "
             + "&& !execution(* java.lang.Object.*(..))")
     public Object logLayer(ProceedingJoinPoint joinPoint) throws Throwable {
-        if (MDC.get(RequestLogContext.TID_KEY) == null) {
+        if (MDC.get(RequestLogContext.TID_KEY) == null || RequestLogContext.isSuppressed()) {
             return joinPoint.proceed();
         }
 
