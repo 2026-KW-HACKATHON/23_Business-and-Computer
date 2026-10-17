@@ -31,7 +31,8 @@ The owner side read `SAMPLE_PROPOSALS`, so a proposal a student sent
   - `createdAt` (Korea time, no offset);
   - `agreement`, after payment, only for the owner who received the proposal
     and the student who sent it.
-  - Any active user in the same demo session can open any proposal. Another
+  - Any signed-up owner or student in the same demo session can open any
+    proposal (403 `USER_403_REGISTRATION` before signup). Another
     store's proposal comes without `agreement`, and nothing in the response
     says whose store it is. A different session gives 404 `PROPOSAL_404`.
 - `POST /proposals/{id}/payments` takes `budget` (the fee the owner sets),

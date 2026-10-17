@@ -15,8 +15,9 @@ The student 탐색 tab (/student/explore), 의뢰서 전체 보기
 (/student/requests/:requestId/apply) read sample requests and proposals.
 The backend (dev) has:
 
-- GET /explore?type&specialtyCategoryId&sort&size&cursor for any active
-  user (owner or student) in the same demo session.
+- GET /explore?type&specialtyCategoryId&sort&size&cursor for any signed-up
+  owner or student in the same demo session (403 USER_403_REGISTRATION
+  before signup).
   - type ALL (default), PROPOSAL, or JOB; cancelled jobs never appear.
   - sort LATEST (default), OLDEST, or LIKES. LIKES is only allowed with
     type PROPOSAL; otherwise 400 COMMON_400.
@@ -30,8 +31,9 @@ The backend (dev) has:
     specialtyCategories is [{ id, name, specialties: [{ id, name }] }].
   - `applied` is the student's own application status (PENDING, ACCEPTED,
     or REJECTED). It is left out when they have not applied, and for owners.
-- GET /jobs/{jobId} for any active user in the same demo session; another
-  session's job is 404 JOB_404. Answer: id, title, description,
+- GET /jobs/{jobId} for any signed-up owner or student in the same demo
+  session (403 USER_403_REGISTRATION before signup, like GET /explore);
+  another session's job is 404 JOB_404. Answer: id, title, description,
   referenceImageUrls, budget, specialtyCategories, draftDeadline,
   finalDeadline, revisionCount, progressStage, status, storeName,
   storeAddress (null without an address), and `applied` as on the card. The
@@ -41,8 +43,8 @@ The backend (dev) has:
   { jobApplicationId }. Errors: 403 JOB_APPLICATION_403_STUDENT (not a
   student), 404 JOB_404, 409 JOB_APPLICATION_409_STATUS (not OPEN),
   409 JOB_APPLICATION_409_DUPLICATE (already applied), 400 for invalid input.
-- GET /proposals/{proposalId} (ADR 0023) answers any active user in the
-  same demo session, so it also serves other students' proposals. Besides the
+- GET /proposals/{proposalId} (ADR 0023) answers any signed-up owner or
+  student in the same demo session, so it also serves other students' proposals. Besides the
   fields in ADR 0023 it has `student` (`studentProfileId`, `name`, `major`,
   `studentNumber` as the two-digit entry year, `averageRating` (0 with no
   reviews), `completedJobCount`) and `likedByMe` (false for anyone who is not

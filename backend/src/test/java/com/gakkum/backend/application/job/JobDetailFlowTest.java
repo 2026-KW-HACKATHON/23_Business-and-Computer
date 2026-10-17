@@ -362,11 +362,10 @@ class JobDetailFlowTest {
         verifyNoInteractions(jobApplicationRepository);
     }
 
-    @ParameterizedTest
-    @EnumSource(value = UserRole.class, mode = EnumSource.Mode.EXCLUDE, names = "STUDENT")
-    @DisplayName("학생이 아닌 사용자에게는 학생 프로필·지원서를 조회하지 않고 applied 키를 내리지 않는다")
-    void omitsAppliedForNonStudent(UserRole role) throws Exception {
-        givenActiveUser(role);
+    @Test
+    @DisplayName("사장님에게는 학생 프로필·지원서를 조회하지 않고 applied 키를 내리지 않는다")
+    void omitsAppliedForNonStudent() throws Exception {
+        givenActiveUser(UserRole.OWNER);
         givenJob(job(JobStatus.OPEN));
 
         mockMvc.perform(get("/jobs/42").principal(authentication))
@@ -374,6 +373,18 @@ class JobDetailFlowTest {
                 .andExpect(jsonPath("$.data.storeName").value(STORE_NAME))
                 .andExpect(jsonPath("$.data", not(hasKey("applied"))));
         verifyNoInteractions(studentRepository, jobApplicationRepository);
+    }
+
+    @Test
+    @DisplayName("가입 전(PENDING) 사용자는 403 USER_403_REGISTRATION 으로 거부하고 의뢰를 조회하지 않는다")
+    void rejectsPendingUser() throws Exception {
+        givenActiveUser(UserRole.PENDING);
+        givenJob(job(JobStatus.OPEN));
+
+        mockMvc.perform(get("/jobs/42").principal(authentication))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.error.code").value("USER_403_REGISTRATION"));
+        verifyNoInteractions(jobRepository, ownerRepository, studentRepository, jobApplicationRepository);
     }
 
     @Test

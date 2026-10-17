@@ -149,6 +149,62 @@ class DemoControllerTest {
             .andExpect(header().doesNotExist(HttpHeaders.SET_COOKIE));
     }
 
+    @ParameterizedTest
+    @ValueSource(strings = {"http://localhost:5173", "https://gakkum.hubspacekw.com"})
+    @DisplayName("허용된 프론트 출처에서 보낸 데모 로그인은 쿠키를 내려준다")
+    void logsInFromFrontendOrigin(String origin) throws Exception {
+        when(demoFacade.login(any())).thenReturn(DemoLoginResponse.of("access-token", "refresh-token", SESSION));
+
+        mockMvc.perform(post("/demo/login")
+                .header(HttpHeaders.ORIGIN, origin)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"role\":\"OWNER\"}"))
+            .andExpect(status().isOk())
+            .andExpect(header().string(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, origin))
+            .andExpect(header().string(HttpHeaders.SET_COOKIE, containsString("refreshToken=refresh-token")));
+    }
+
+    @Test
+    @DisplayName("Origin 없이 허용된 프론트 Referer 로 보낸 데모 로그인은 쿠키를 내려준다")
+    void logsInFromFrontendRefererWithoutOrigin() throws Exception {
+        when(demoFacade.login(any())).thenReturn(DemoLoginResponse.of("access-token", "refresh-token", SESSION));
+
+        mockMvc.perform(post("/demo/login")
+                .header(HttpHeaders.REFERER, "https://gakkum.hubspacekw.com/")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"role\":\"STUDENT\"}"))
+            .andExpect(status().isOk())
+            .andExpect(header().string(HttpHeaders.SET_COOKIE, containsString("refreshToken=refresh-token")));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"https://evil.example.com", "null"})
+    @DisplayName("다른 사이트에서 보낸 데모 로그인은 403 COMMON_403 으로 거부하고 계정을 만들거나 쿠키를 심지 않는다")
+    void rejectsDemoLoginFromForeignOrigin(String origin) throws Exception {
+        mockMvc.perform(post("/demo/login")
+                .header(HttpHeaders.ORIGIN, origin)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"role\":\"OWNER\"}"))
+            .andExpect(status().isForbidden())
+            .andExpect(jsonPath("$.error.code").value("COMMON_403"))
+            .andExpect(header().doesNotExist(HttpHeaders.SET_COOKIE));
+
+        verifyNoInteractions(demoFacade);
+    }
+
+    @Test
+    @DisplayName("Origin 없이 다른 사이트 Referer 로 보낸 데모 로그인도 403 으로 거부한다")
+    void rejectsDemoLoginFromForeignReferer() throws Exception {
+        mockMvc.perform(post("/demo/login")
+                .header(HttpHeaders.REFERER, "https://evil.example.com/page")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"role\":\"OWNER\"}"))
+            .andExpect(status().isForbidden())
+            .andExpect(jsonPath("$.error.code").value("COMMON_403"));
+
+        verifyNoInteractions(demoFacade);
+    }
+
     @Test
     @DisplayName("localhost 프론트 Origin의 preflight는 credentials와 함께 허용된다")
     void allowsPreflightFromLocalhostOrigin() throws Exception {

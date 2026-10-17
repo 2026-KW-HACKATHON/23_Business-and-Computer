@@ -20,8 +20,9 @@ student screen, which still read `sampleProposals.ts`. The backend (dev) has:
   `createdAt` were added on the backend after this ADR was first written.
   Errors: 401 `COMMON_401`, 403 `PROPOSAL_403_LIST_STUDENT` (not a student,
   or no student profile).
-- `GET /proposals/{proposalId}` → one proposal for any active user in the
-  same demo session (another session's proposal is 404):
+- `GET /proposals/{proposalId}` → one proposal for any signed-up owner or
+  student in the same demo session (another session's proposal is 404; a
+  user who has not finished signup gets 403 `USER_403_REGISTRATION`):
   `title`, `storeName`, `storeAddress` (the store's current address, null if
   not set; added later), `likeCount`, `specialtyCategories`,
   `student`, `customerProblem`, `proposedSolution`, `workPlan`,

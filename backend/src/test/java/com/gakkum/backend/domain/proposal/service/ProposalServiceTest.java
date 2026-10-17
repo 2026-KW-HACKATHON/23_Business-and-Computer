@@ -284,7 +284,8 @@ class ProposalServiceTest {
     @Test
     @DisplayName("결제할 제안은 행을 잠가 읽고, 없는 제안은 404, 다른 사장님이 받은 제안은 403, 결제 전이 아닌 제안은 409로 거부한다")
     void returnsPayableProposalForUpdate() {
-        Proposal pending = Proposal.builder().id(5L).ownerProfileId(7L).status(ProposalStatus.PENDING).build();
+        Proposal pending = Proposal.builder().id(5L).ownerProfileId(7L).status(ProposalStatus.PENDING)
+                .draftDays(3).finalDays(7).build();
         when(proposalRepository.findLockedById(5L)).thenReturn(Optional.of(pending));
         when(proposalRepository.findLockedById(6L)).thenReturn(Optional.of(
                 Proposal.builder().id(6L).ownerProfileId(7L).status(ProposalStatus.AWAITING_START).build()));
@@ -297,6 +298,24 @@ class ProposalServiceTest {
         assertProposalError(() -> proposalService.getPayableProposalForUpdate(6L, 7L),
                 ErrorCode.PROPOSAL_PAYMENT_NOT_AVAILABLE);
         verify(proposalRepository, never()).findById(anyLong());
+    }
+
+    @Test
+    @DisplayName("기간이 365일 이하인 제안은 결제할 수 있고, 한도가 생기기 전에 저장된 366일 이상 제안은 결제 준비 전에 409로 거부한다")
+    void rejectsPaymentOfProposalWithDaysOverLimit() {
+        Proposal atLimit = Proposal.builder().id(5L).ownerProfileId(7L).status(ProposalStatus.PENDING)
+                .draftDays(365).finalDays(365).build();
+        when(proposalRepository.findLockedById(5L)).thenReturn(Optional.of(atLimit));
+        when(proposalRepository.findLockedById(6L)).thenReturn(Optional.of(Proposal.builder().id(6L).ownerProfileId(7L)
+                .status(ProposalStatus.PENDING).draftDays(0).finalDays(366).build()));
+        when(proposalRepository.findLockedById(7L)).thenReturn(Optional.of(Proposal.builder().id(7L).ownerProfileId(7L)
+                .status(ProposalStatus.PENDING).draftDays(Integer.MAX_VALUE).finalDays(Integer.MAX_VALUE).build()));
+
+        assertThat(proposalService.getPayableProposalForUpdate(5L, 7L)).isSameAs(atLimit);
+        assertProposalError(() -> proposalService.getPayableProposalForUpdate(6L, 7L),
+                ErrorCode.PROPOSAL_PAYMENT_NOT_AVAILABLE);
+        assertProposalError(() -> proposalService.getPayableProposalForUpdate(7L, 7L),
+                ErrorCode.PROPOSAL_PAYMENT_NOT_AVAILABLE);
     }
 
     @Test

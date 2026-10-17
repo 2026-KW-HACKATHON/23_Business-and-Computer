@@ -143,6 +143,7 @@ public class JobFacade {
     private final ChatRoomService chatRoomService;
 
     // 사진 저장소 확인이 DB 트랜잭션과 커넥션을 붙잡지 않도록 저장 트랜잭션은 JobService에 둔다
+    @UserRateLimit(RateLimitedAction.JOB_CREATE)
     public void createJob(String username, JobCreateRequest request) {
         User user = userService.getActiveUser(username);
         Owner owner = ownerService.getOwnerProfile(user.getId());
@@ -166,7 +167,8 @@ public class JobFacade {
     }
 
     /**
-     * 의뢰 상세는 모든 활성 사용자가 조회한다. 매장명·주소는 의뢰한 사장님의 현재 프로필에서 가져와 항상 내리고,
+     * 의뢰 상세는 가입을 마친 사장님 · 학생이 조회하고, 가입 전(PENDING) 사용자는 의뢰를 찾기 전에 403으로 거부한다.
+     * 매장명·주소는 의뢰한 사장님의 현재 프로필에서 가져와 항상 내리고,
      * 학생에게는 본인 지원서 상태를 더한다. 취소된 의뢰의 취소 정보는 의뢰한 사장님과 선정 학생에게만 더한다.
      * 격리 범위(demoSessionId)가 조회자와 다른 의뢰는 없는 의뢰와 같은 404로 거부한다.
      * 결제 후(진행 중) 취소된 의뢰에는 선정 학생이 있고 환불 주문이 반드시 있어야 한다. 모집 중 취소는 결제가 없다.
@@ -174,6 +176,9 @@ public class JobFacade {
     @Transactional(readOnly = true)
     public JobDetailResult getJobDetail(String username, Long jobId) {
         User user = userService.getActiveUser(username);
+        if (user.getRole() == UserRole.PENDING) {
+            throw new BusinessException(ErrorCode.REGISTRATION_REQUIRED);
+        }
         JobDetailData data = jobService.getJobDetail(jobId);
         if (!Objects.equals(data.getJob().getDemoSessionId(), user.getDemoSessionId())) {
             throw new BusinessException(ErrorCode.JOB_NOT_FOUND);
@@ -537,6 +542,7 @@ public class JobFacade {
      * 저장에 성공하면 의뢰한 사장님에게 새 지원 알림을 발행한다.
      * 사용자 확인이 의뢰 행 잠금을 붙잡지 않도록 저장과 알림 준비만 트랜잭션으로 묶는다.
      */
+    @UserRateLimit(RateLimitedAction.JOB_APPLICATION_CREATE)
     public JobApplicationCreateResult createJobApplication(CreateJobApplicationCommand command) {
         User user = userService.getActiveUser(command.getUsername());
         if (user.getRole() != UserRole.STUDENT) {

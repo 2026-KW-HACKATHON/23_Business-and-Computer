@@ -16,7 +16,7 @@ proposal to the demo store. The backend (dev) has:
   `ownerProfileId` (required), `specialtyIds` (**at least one**, no duplicates,
   must exist), `title` (≤ 255), `customerProblem` / `proposedSolution` /
   `workPlan` (each ≤ 500, not blank, trimmed by the server), `proposedFee`
-  (> 0), `draftDays` / `finalDays` (≥ 0, final ≥ draft), and optional
+  (1–99,999,999), `draftDays` / `finalDays` (0–365, final ≥ draft), and optional
   `referenceImageUrls`. Only an active STUDENT with a profile may send.
   Errors: 401 `COMMON_401`, 403 `PROPOSAL_403_STUDENT`, 404 `OWNER_404`,
   400 `SPECIALTY_400` / `SPECIALTY_400_DUPLICATE`, 400

@@ -12,14 +12,18 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.time.Clock;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Stream;
 
 import org.assertj.core.groups.Tuple;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.springframework.context.ApplicationEventPublisher;
@@ -73,17 +77,11 @@ class JobCreationFlowTest {
     private static final String USERNAME = "KAKAO_12345";
     private static final String USER_ID = "01K58M6PJV8VAJMXHBHJ2PNB5C";
 
-    private static final String REQUEST_BODY = """
-            {
-              "specialtyIds": [1, 2, 3],
-              "title": "의뢰 제목",
-              "description": "맡기고 싶은 일",
-              "budget": 500000,
-              "draftDeadline": "2999-01-01",
-              "finalDeadline": "2999-01-15",
-              "revisionCount": 1
-            }
-            """;
+    private static final LocalDate TODAY = LocalDate.now();
+    // 마감일 한도: 오늘부터 2년
+    private static final LocalDate LATEST_DEADLINE = TODAY.plusYears(2);
+
+    private static final String REQUEST_BODY = requestBody(500000, TODAY.plusDays(7), TODAY.plusDays(14), 1);
 
     private final UserRepository userRepository = mock(UserRepository.class);
     private final OwnerRepository ownerRepository = mock(OwnerRepository.class);
@@ -238,8 +236,7 @@ class JobCreationFlowTest {
     @Test
     @DisplayName("선지급 마감일이 최종 마감일보다 늦으면 400을 반환한다")
     void rejectsDraftDeadlineAfterFinalDeadline() throws Exception {
-        createJob(REQUEST_BODY
-                .replace("\"draftDeadline\": \"2999-01-01\"", "\"draftDeadline\": \"2999-01-20\""))
+        createJob(requestBody(500000, TODAY.plusDays(20), TODAY.plusDays(14), 1))
             .andExpect(status().isBadRequest())
             .andExpect(jsonPath("$.error.code").value("COMMON_400"));
 
@@ -250,6 +247,44 @@ class JobCreationFlowTest {
     @DisplayName("수정 횟수가 음수이면 400을 반환한다")
     void rejectsNegativeRevisionCount() throws Exception {
         createJob(REQUEST_BODY.replace("\"revisionCount\": 1", "\"revisionCount\": -1"))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.error.code").value("COMMON_400"));
+
+        verifyNoInteractions(userRepository, ownerRepository, jobRepository, jobSpecialtyRepository);
+    }
+
+    @Test
+    @DisplayName("작업비 99,999,999원 · 수정 5회 · 오늘부터 2년 되는 날 마감까지는 등록한다")
+    void acceptsUpperBounds() throws Exception {
+        givenValidCreation();
+
+        createJob(requestBody(99_999_999, LATEST_DEADLINE, LATEST_DEADLINE, 5))
+            .andExpect(status().isOk());
+
+        ArgumentCaptor<Job> captor = ArgumentCaptor.forClass(Job.class);
+        verify(jobRepository).save(captor.capture());
+        assertThat(captor.getValue().getBudget()).isEqualTo(99_999_999L);
+        assertThat(captor.getValue().getRevisionCount()).isEqualTo(5);
+        assertThat(captor.getValue().getFinalDeadline()).isEqualTo(LATEST_DEADLINE);
+    }
+
+    static Stream<Arguments> overUpperBounds() {
+        return Stream.of(
+                Arguments.of("작업비 1억 원", requestBody(100_000_000, TODAY.plusDays(7), TODAY.plusDays(14), 1)),
+                Arguments.of("작업비 Long 최대값", requestBody(Long.MAX_VALUE, TODAY.plusDays(7), TODAY.plusDays(14), 1)),
+                Arguments.of("수정 6회", requestBody(500000, TODAY.plusDays(7), TODAY.plusDays(14), 6)),
+                Arguments.of("최종 마감이 2년 하루 뒤",
+                        requestBody(500000, TODAY.plusDays(7), LATEST_DEADLINE.plusDays(1), 1)),
+                Arguments.of("두 마감 모두 2년 하루 뒤",
+                        requestBody(500000, LATEST_DEADLINE.plusDays(1), LATEST_DEADLINE.plusDays(1), 1)),
+                Arguments.of("마감 9999년", requestBody(500000, TODAY.plusDays(7), LocalDate.of(9999, 12, 31), 1)));
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("overUpperBounds")
+    @DisplayName("작업비 · 수정 횟수 · 마감일이 한도를 넘으면 400을 반환하고 아무것도 조회 · 저장하지 않는다")
+    void rejectsOverUpperBounds(String caseName, String body) throws Exception {
+        createJob(body)
             .andExpect(status().isBadRequest())
             .andExpect(jsonPath("$.error.code").value("COMMON_400"));
 
@@ -380,6 +415,20 @@ class JobCreationFlowTest {
 
     private String withImages(String images) {
         return REQUEST_BODY.replace("\"revisionCount\": 1", "\"revisionCount\": 1, \"referenceImageUrls\": " + images);
+    }
+
+    private static String requestBody(long budget, LocalDate draftDeadline, LocalDate finalDeadline, int revisionCount) {
+        return """
+                {
+                  "specialtyIds": [1, 2, 3],
+                  "title": "의뢰 제목",
+                  "description": "맡기고 싶은 일",
+                  "budget": %d,
+                  "draftDeadline": "%s",
+                  "finalDeadline": "%s",
+                  "revisionCount": %d
+                }
+                """.formatted(budget, draftDeadline, finalDeadline, revisionCount);
     }
 
     private ResultActions createJob(String body) throws Exception {

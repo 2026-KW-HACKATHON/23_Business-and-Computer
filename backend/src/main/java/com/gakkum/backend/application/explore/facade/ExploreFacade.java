@@ -79,7 +79,8 @@ public class ExploreFacade {
     private final StoreConcernService storeConcernService;
 
     /**
-     * 제안과 의뢰를 한 목록으로 탐색한다. 취소·거절된 제안, 조회자가 작성한 제안·의뢰, 조회 학생의 지원이 탈락한 의뢰는
+     * 제안과 의뢰를 한 목록으로 탐색한다. 가입 전(PENDING) 사용자는 목록을 읽기 전에 403으로 거부한다.
+     * 취소·거절된 제안, 조회자가 작성한 제안·의뢰, 조회 학생의 지원이 탈락한 의뢰는
      * 조회 조건으로 빼서 페이지 크기와 커서에 들지 않는다. 종류마다 커서 뒤의 카드를 size+1개까지 읽어 병합하고,
      * 한 장이 남으면 다음 페이지가 있다고 보고 이번 페이지 마지막 카드로 커서를 만든다.
      * 매장 이름과 대분류·소분류, 제안 작성 학생 이름, 학생의 지원 상태·공감 여부는 이번 페이지 카드에 대해서만 묶어서 조회한다.
@@ -87,6 +88,9 @@ public class ExploreFacade {
     @Transactional(readOnly = true)
     public ExploreResult explore(ExploreCommand command) {
         User user = userService.getActiveUser(command.getUsername());
+        if (user.getRole() == UserRole.PENDING) {
+            throw new BusinessException(ErrorCode.REGISTRATION_REQUIRED);
+        }
         String demoSessionId = user.getDemoSessionId();
         int limit = command.getSize() + 1;
         // 본인 글과 탈락한 지원을 거르는 기준. 역할에 맞는 프로필이 없으면 null이라 그 필터는 적용하지 않는다

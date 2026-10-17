@@ -6,6 +6,7 @@ import com.gakkum.backend.domain.jwt.service.JwtService;
 import com.gakkum.backend.domain.user.service.UserService;
 import com.gakkum.backend.filter.JWTFilter;
 import com.gakkum.backend.filter.LoginOriginFilter;
+import com.gakkum.backend.filter.RefreshCookieOriginFilter;
 import com.gakkum.backend.handler.ApiLogoutSuccessHandler;
 import com.gakkum.backend.handler.RefreshTokenLogoutHandler;
 import com.gakkum.backend.util.JWTUtil;
@@ -27,6 +28,7 @@ import org.springframework.security.web.servlet.util.matcher.PathPatternRequestM
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import org.springframework.web.filter.CorsFilter;
 
 import com.gakkum.backend.global.exception.RestAuthenticationEntryPoint;
 
@@ -91,6 +93,12 @@ public class SecurityConfig {
 
         http
                 .addFilterBefore(jwtFilter, LogoutFilter.class);
+
+        // refreshToken 쿠키로 처리하는 /refresh · /logout · /jwt/exchange 와 쿠키를 심는 /demo/login 은
+        // 허용된 프론트에서 보낸 요청만 받는다 (CSRF 를 대신한다).
+        // CORS 처리보다 앞에 두어 다른 사이트에서 보낸 요청은 CORS 설정과 상관없이 공통 오류 응답 403 으로 거부한다
+        http
+                .addFilterBefore(new RefreshCookieOriginFilter(frontendOrigins), CorsFilter.class);
 
         // 소셜 로그인을 시작한 프론트를 기억해 두었다가 로그인이 끝나면 그쪽으로 돌려보낸다 (SocialSuccessHandler)
         http

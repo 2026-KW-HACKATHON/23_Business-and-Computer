@@ -4,6 +4,7 @@ import java.util.HashSet;
 import java.util.List;
 
 import jakarta.validation.constraints.AssertTrue;
+import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
@@ -11,7 +12,9 @@ import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.PositiveOrZero;
 import jakarta.validation.constraints.Size;
 
+import com.gakkum.backend.domain.job.entity.Job;
 import com.gakkum.backend.domain.proposal.dto.ProposalCommandDto.CreateProposalCommand;
+import com.gakkum.backend.domain.proposal.entity.Proposal;
 
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -50,15 +53,18 @@ public class ProposalCreateRequest {
 
     @NotNull
     @Positive
+    @Max(Job.MAX_BUDGET)
     private Long proposedFee;
 
     // 수락일 기준 일수. 0이면 수락 당일
     @NotNull
     @PositiveOrZero
+    @Max(Proposal.MAX_DAYS)
     private Integer draftDays;
 
     @NotNull
     @PositiveOrZero
+    @Max(Proposal.MAX_DAYS)
     private Integer finalDays;
 
     // 선택 입력. 최대 5장
