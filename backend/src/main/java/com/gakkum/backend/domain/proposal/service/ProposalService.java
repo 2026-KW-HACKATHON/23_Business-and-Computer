@@ -83,7 +83,8 @@ public class ProposalService {
 
     /**
      * 사장님이 결제할 수 있는 본인 제안을 잠가 반환한다. 같은 제안의 결제 준비·승인을 순서대로 처리한다.
-     * 없는 제안은 404, 다른 사장님이 받은 제안은 403, 결제 전(PENDING)이 아닌 제안은 409로 거부한다.
+     * 없는 제안은 404, 다른 사장님이 받은 제안은 403, 결제 전(PENDING)이 아니거나 기간이 한도를 넘는 제안은 409로 거부한다.
+     * 기간 한도를 넘는 제안은 결제가 승인된 뒤 의뢰를 만들지 못하므로 결제창을 열기 전에 막는다.
      * @param proposalId
      * @param ownerProfileId
      * @return 결제 전(PENDING) 제안
@@ -94,7 +95,7 @@ public class ProposalService {
         if (!proposal.getOwnerProfileId().equals(ownerProfileId)) {
             throw new BusinessException(ErrorCode.PROPOSAL_PAYMENT_FORBIDDEN);
         }
-        if (proposal.getStatus() != ProposalStatus.PENDING) {
+        if (proposal.getStatus() != ProposalStatus.PENDING || !proposal.hasDaysWithinLimit()) {
             throw new BusinessException(ErrorCode.PROPOSAL_PAYMENT_NOT_AVAILABLE);
         }
         return proposal;

@@ -37,6 +37,12 @@ public class Job {
     // 학생이 의뢰서를 거절해 취소된 의뢰에 남기는 취소 이유. 거절 사유는 입력받지 않는다
     public static final String DECLINE_CANCEL_REASON = "학생이 작업 시작 전에 의뢰서를 거절했습니다.";
 
+    // 작업비 한도(원). 프론트 작업비 칸이 8자리까지 받는다. 의뢰 예산 · 제안 희망 작업비 · 제안 결제 작업비에 같이 쓴다
+    public static final long MAX_BUDGET = 99_999_999L;
+
+    // 수정 횟수 한도. 서비스 규칙(최대 5회)과 같다
+    public static final int MAX_REVISION_COUNT = 5;
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;

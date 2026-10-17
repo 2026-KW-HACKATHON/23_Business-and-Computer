@@ -12,8 +12,8 @@ request pay screen (`OwnerPayPage`) uses the same flow (ADR 0037).
 The backend (dev) pays through the KakaoPay test merchant:
 
 - `POST /proposals/{id}/payments` takes the following body:
-  - `budget` (Long, required, > 0) — the fee the owner sets;
-  - `revisionCount` (Integer, required, ≥ 0);
+  - `budget` (Long, required, 1–99,999,999) — the fee the owner sets;
+  - `revisionCount` (Integer, required, 0–5);
   - `messageToStudent` (≤ 5000; blank is stored as null);
   - `refundPolicyAgreed` (must be `true`).
   - The fee is that `budget`, and the order name is the proposal title.
@@ -34,7 +34,8 @@ The backend (dev) pays through the KakaoPay test merchant:
 - Error codes:
   - Prepare: 401, 400 `COMMON_400`, 403 `PAYMENT_403_OWNER` / `OWNER_403`,
     404 `PROPOSAL_404`, 403 `PROPOSAL_403_PAYMENT` (another store's
-    proposal), 409 `PROPOSAL_409_PAYMENT` (not PENDING), 409
+    proposal), 409 `PROPOSAL_409_PAYMENT` (not PENDING, or a period over
+    365 days), 409
     `PAYMENT_409_PAID`, 502 `PAYMENT_502_READY`.
   - Approve: 403 `PAYMENT_403_FORBIDDEN`, 404 `PAYMENT_404_ORDER`, 409
     `PAYMENT_409_UNAVAILABLE`, 409 `PAYMENT_409_PAID`, 502
@@ -128,7 +129,7 @@ The backend (dev) pays through the KakaoPay test merchant:
   - 「다시 결제하기」 goes to
     /owner/requests/{jobId}/assign/{jobApplicationId}/pay.
 - 수정 횟수 starts at 1 and stays between 1 and 5 on screen, although the
-  server accepts 0 and more than 5. The hint under the label says so: 「최소
+  server also accepts 0. The hint under the label says so: 「최소
   1회 · 최대 5회 · 등록한 뒤에는 바꿀 수 없어요」 (the same on 의뢰 등록 2/3).
 
 ## Rationale

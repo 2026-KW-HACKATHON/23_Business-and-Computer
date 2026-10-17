@@ -6,6 +6,7 @@ import java.util.List;
 
 import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.FutureOrPresent;
+import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
@@ -14,6 +15,7 @@ import jakarta.validation.constraints.PositiveOrZero;
 import jakarta.validation.constraints.Size;
 
 import com.gakkum.backend.domain.job.dto.JobCommandDto.CreateJobCommand;
+import com.gakkum.backend.domain.job.entity.Job;
 
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -26,6 +28,9 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 public class JobCreateRequest {
+
+    // 마감일은 오늘부터 이 햇수 안. 프론트 날짜 고르기는 내년 12월 31일까지라 항상 그 안이다
+    private static final int MAX_DEADLINE_YEARS = 2;
 
     @NotEmpty
     private List<@NotNull @Positive Long> specialtyIds;
@@ -40,6 +45,7 @@ public class JobCreateRequest {
 
     @NotNull
     @Positive
+    @Max(Job.MAX_BUDGET)
     private Long budget;
 
     @NotNull
@@ -52,6 +58,7 @@ public class JobCreateRequest {
 
     @NotNull
     @PositiveOrZero
+    @Max(Job.MAX_REVISION_COUNT)
     private Integer revisionCount;
 
     // 선택 입력. 최대 4장
@@ -96,6 +103,13 @@ public class JobCreateRequest {
             return true;
         }
         return !draftDeadline.isAfter(finalDeadline);
+    }
+
+    @AssertTrue(message = "마감일은 오늘부터 2년 안이어야 합니다.")
+    private boolean isDeadlineWithinLimit() {
+        LocalDate latest = LocalDate.now().plusYears(MAX_DEADLINE_YEARS);
+        return (draftDeadline == null || !draftDeadline.isAfter(latest))
+                && (finalDeadline == null || !finalDeadline.isAfter(latest));
     }
 
     @AssertTrue(message = "참고 사진 URL은 중복될 수 없습니다.")

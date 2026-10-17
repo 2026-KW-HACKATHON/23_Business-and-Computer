@@ -11,8 +11,9 @@ ADR 0037. 1/3 picks from GET /specialties and carries the ids (ADR 0058).
 - 의뢰 등록 1/3 → 3/3 (ADR 0013, ADR 0022) only added the request to the
   sample list in the browser.
 - The backend (dev) has POST /jobs with `{ specialtyIds (1 or more, positive),
-  title (≤255), description, budget (positive), draftDeadline, finalDeadline
-  (today or later, draft ≤ final), revisionCount (0 or more),
+  title (≤255), description, budget (1–99,999,999), draftDeadline,
+  finalDeadline (today to two years from today, draft ≤ final),
+  revisionCount (0–5),
   referenceImageUrls (up to 4, no duplicates) }`. It answers with no data
   (no job id).
   - Only an owner with a profile may call it: 403 OWNER_403 otherwise.

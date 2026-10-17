@@ -156,6 +156,24 @@ class ProposalControllerTest {
         assertThat(captor.getValue().getReferenceImageUrls()).hasSize(5).contains(longUrl);
     }
 
+    @Test
+    @DisplayName("희망 작업비 99,999,999원과 초안 · 최종 기간 365일까지는 제안을 전송한다")
+    void acceptsUpperBounds() throws Exception {
+        when(proposalFacade.createProposal(any()))
+                .thenReturn(ProposalCreateResult.from(Proposal.builder().id(34L).build()));
+
+        mockMvc.perform(post("/proposals").principal(authentication)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body("[1]", "\"제목\"", "\"문제\"", "99999999", "365", "365", null)))
+                .andExpect(status().isCreated());
+
+        ArgumentCaptor<CreateProposalCommand> captor = ArgumentCaptor.forClass(CreateProposalCommand.class);
+        verify(proposalFacade).createProposal(captor.capture());
+        assertThat(captor.getValue().getProposedFee()).isEqualTo(99_999_999L);
+        assertThat(captor.getValue().getDraftDays()).isEqualTo(365);
+        assertThat(captor.getValue().getFinalDays()).isEqualTo(365);
+    }
+
     /** 서로 다른 사진 URL count개를 JSON 배열 문자열로 만든다. */
     private static String imageUrls(int count) {
         return java.util.stream.IntStream.rangeClosed(1, count)
@@ -177,6 +195,10 @@ class ProposalControllerTest {
                 Arguments.of("음수 초안 기간", body("[1]", "\"제목\"", "\"문제\"", "1", "-1", "0", null)),
                 Arguments.of("최종 기간 누락", body("[1]", "\"제목\"", "\"문제\"", "1", "0", null, null)),
                 Arguments.of("최종 기간이 초안보다 짧음", body("[1]", "\"제목\"", "\"문제\"", "1", "5", "4", null)),
+                Arguments.of("작업비 1억 원", body("[1]", "\"제목\"", "\"문제\"", "100000000", "0", "0", null)),
+                Arguments.of("최종 기간 366일", body("[1]", "\"제목\"", "\"문제\"", "1", "0", "366", null)),
+                Arguments.of("두 기간 366일", body("[1]", "\"제목\"", "\"문제\"", "1", "366", "366", null)),
+                Arguments.of("최종 기간 정수 최대값", body("[1]", "\"제목\"", "\"문제\"", "1", "0", "2147483647", null)),
                 Arguments.of("빈 사진 URL", body("[1]", "\"제목\"", "\"문제\"", "1", "0", "0", "[\" \"]")),
                 Arguments.of("사진 6장", body("[1]", "\"제목\"", "\"문제\"", "1", "0", "0", imageUrls(6))),
                 Arguments.of("중복 사진 URL", body("[1]", "\"제목\"", "\"문제\"", "1", "0", "0",

@@ -198,15 +198,38 @@ class PaymentControllerTest {
     }
 
     @Test
-    @DisplayName("제안 결제의 작업비가 없거나 null·0·음수이거나, 수정 횟수가 없거나 음수이거나, 환불 정책에 동의하지 않았거나, 제안 ID가 양수가 아니면 400을 반환한다")
+    @DisplayName("제안 결제의 작업비 99,999,999원과 수정 횟수 5회까지는 그대로 전달한다")
+    void acceptsProposalPaymentUpperBounds() throws Exception {
+        when(paymentFacade.prepareProposalPayment(any(PrepareProposalPaymentCommand.class)))
+                .thenReturn(PreparePaymentResult.of("order-123", 99_999_999L, "메뉴판 개선 제안", "pc", "mobile"));
+
+        mockMvc.perform(post("/proposals/31/payments")
+                        .principal(authentication)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"budget\":99999999,\"revisionCount\":5,\"refundPolicyAgreed\":true}"))
+                .andExpect(status().isOk());
+
+        ArgumentCaptor<PrepareProposalPaymentCommand> command =
+                ArgumentCaptor.forClass(PrepareProposalPaymentCommand.class);
+        verify(paymentFacade).prepareProposalPayment(command.capture());
+        assertThat(command.getValue().getBudget()).isEqualTo(99_999_999L);
+        assertThat(command.getValue().getRevisionCount()).isEqualTo(5);
+    }
+
+    @Test
+    @DisplayName("제안 결제의 작업비가 없거나 null·0·음수·1억 원 이상이거나, 수정 횟수가 없거나 음수·6회 이상이거나, 환불 정책에 동의하지 않았거나, 제안 ID가 양수가 아니면 400을 반환한다")
     void rejectsInvalidProposalPaymentRequest() throws Exception {
         for (String body : new String[] {
                 "{\"revisionCount\":2,\"refundPolicyAgreed\":true}",
                 "{\"budget\":null,\"revisionCount\":2,\"refundPolicyAgreed\":true}",
                 "{\"budget\":0,\"revisionCount\":2,\"refundPolicyAgreed\":true}",
                 "{\"budget\":-1,\"revisionCount\":2,\"refundPolicyAgreed\":true}",
+                "{\"budget\":100000000,\"revisionCount\":2,\"refundPolicyAgreed\":true}",
+                "{\"budget\":9223372036854775807,\"revisionCount\":2,\"refundPolicyAgreed\":true}",
                 "{\"budget\":120000,\"refundPolicyAgreed\":true}",
                 "{\"budget\":120000,\"revisionCount\":-1,\"refundPolicyAgreed\":true}",
+                "{\"budget\":120000,\"revisionCount\":6,\"refundPolicyAgreed\":true}",
+                "{\"budget\":120000,\"revisionCount\":2147483647,\"refundPolicyAgreed\":true}",
                 "{\"budget\":120000,\"revisionCount\":2}",
                 "{\"budget\":120000,\"revisionCount\":2,\"refundPolicyAgreed\":false}" }) {
             mockMvc.perform(post("/proposals/31/payments")

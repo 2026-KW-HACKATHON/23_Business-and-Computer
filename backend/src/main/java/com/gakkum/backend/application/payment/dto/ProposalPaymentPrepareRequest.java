@@ -1,8 +1,10 @@
 package com.gakkum.backend.application.payment.dto;
 
+import com.gakkum.backend.domain.job.entity.Job;
 import com.gakkum.backend.domain.payment.dto.PaymentCommandDto.PrepareProposalPaymentCommand;
 
 import jakarta.validation.constraints.AssertTrue;
+import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.PositiveOrZero;
@@ -21,10 +23,12 @@ public class ProposalPaymentPrepareRequest {
 
     @NotNull
     @Positive
+    @Max(Job.MAX_BUDGET)
     private Long budget;
 
     @NotNull
     @PositiveOrZero
+    @Max(Job.MAX_REVISION_COUNT)
     private Integer revisionCount;
 
     @Size(max = 5000)

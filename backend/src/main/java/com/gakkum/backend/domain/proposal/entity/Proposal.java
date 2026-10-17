@@ -34,6 +34,9 @@ import lombok.NoArgsConstructor;
 @Table(name = "proposals")
 public class Proposal {
 
+    // 초안 · 최종 기간 한도(일). 프론트는 초안 99일, 최종 198일까지 받는다
+    public static final int MAX_DAYS = 365;
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -121,6 +124,11 @@ public class Proposal {
                 .status(ProposalStatus.PENDING)
                 .demoSessionId(demoSessionId)
                 .build();
+    }
+
+    /** 기간이 한도(MAX_DAYS) 안인지. 한도를 넘는 기간은 결제 승인 뒤 마감일을 저장하지 못할 수 있다. */
+    public boolean hasDaysWithinLimit() {
+        return draftDays <= MAX_DAYS && finalDays <= MAX_DAYS;
     }
 
     /** 기준일에 초안 기간을 더한 초안 마감일. 기준일은 결제 승인 시각의 한국 날짜다. */
