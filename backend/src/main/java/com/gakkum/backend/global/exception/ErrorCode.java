@@ -98,6 +98,7 @@ public enum ErrorCode {
     OWNER_ME_UPDATE_REQUIRED(HttpStatus.FORBIDDEN, "OWNER_403_ME_UPDATE", "사장님만 내 정보를 수정할 수 있습니다."),
     OWNER_CONCERN_REQUIRED(HttpStatus.FORBIDDEN, "OWNER_403_CONCERN", "사장님만 가게 고민을 올리거나 볼 수 있습니다."),
     UNAUTHORIZED(HttpStatus.UNAUTHORIZED, "COMMON_401", "인증이 필요합니다."),
+    ORIGIN_NOT_ALLOWED(HttpStatus.FORBIDDEN, "COMMON_403", "허용되지 않은 곳에서 보낸 요청입니다."),
     DUPLICATE_EMAIL(HttpStatus.CONFLICT, "USER_409_EMAIL", "이미 사용 중인 이메일입니다."),
     STUDENT_EMAIL_VERIFICATION_INVALID(HttpStatus.BAD_REQUEST, "STUDENT_EMAIL_400", "이메일 인증번호가 올바르지 않거나 만료되었습니다."),
     STUDENT_EMAIL_VERIFICATION_REQUIRED(HttpStatus.FORBIDDEN, "STUDENT_EMAIL_403", "학생 이메일 인증이 필요합니다."),

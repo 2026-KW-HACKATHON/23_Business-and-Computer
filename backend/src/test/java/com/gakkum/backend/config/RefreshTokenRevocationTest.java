@@ -10,6 +10,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.options;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
@@ -23,6 +24,8 @@ import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
@@ -218,6 +221,109 @@ class RefreshTokenRevocationTest {
             .andExpect(status().isOk())
             .andExpect(header().string(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, "http://localhost:5173"))
             .andExpect(header().string(HttpHeaders.ACCESS_CONTROL_ALLOW_CREDENTIALS, "true"));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"http://localhost:5173", "https://gakkum.hubspacekw.com"})
+    @DisplayName("허용된 프론트 출처에서 보낸 /refresh 는 토큰을 바꿔 새 refreshToken 쿠키를 준다")
+    void refreshAllowsFrontendOrigin(String origin) throws Exception {
+        String refreshToken = loggedInRefreshToken();
+
+        mockMvc.perform(post("/refresh")
+                .header(HttpHeaders.ORIGIN, origin)
+                .cookie(new Cookie("refreshToken", refreshToken)))
+            .andExpect(status().isOk())
+            .andExpect(header().string(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, origin))
+            .andExpect(header().string(HttpHeaders.SET_COOKIE, containsString("refreshToken=ey")));
+
+        verify(refreshRepository).save(any(RefreshToken.class));
+    }
+
+    @Test
+    @DisplayName("Origin · Referer 가 모두 없는 /refresh 는 출처 검사 없이 토큰을 바꿔 준다")
+    void refreshWithoutOriginOrReferer() throws Exception {
+        String refreshToken = loggedInRefreshToken();
+
+        mockMvc.perform(post("/refresh").cookie(new Cookie("refreshToken", refreshToken)))
+            .andExpect(status().isOk())
+            .andExpect(header().string(HttpHeaders.SET_COOKIE, containsString("refreshToken=ey")));
+
+        verify(refreshRepository).save(any(RefreshToken.class));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"/refresh", "/logout", "/jwt/exchange"})
+    @DisplayName("다른 사이트에서 보낸 쿠키 요청은 403 COMMON_403 으로 거부하고 토큰과 쿠키를 그대로 둔다")
+    void rejectsForeignOrigin(String path) throws Exception {
+        String refreshToken = loggedInRefreshToken();
+
+        mockMvc.perform(post(path)
+                .header(HttpHeaders.ORIGIN, "https://evil.example.com")
+                .contentType(MediaType.APPLICATION_JSON)
+                .cookie(new Cookie("refreshToken", refreshToken)))
+            .andExpect(status().isForbidden())
+            .andExpect(jsonPath("$.success").value(false))
+            .andExpect(jsonPath("$.error.code").value("COMMON_403"))
+            .andExpect(header().doesNotExist(HttpHeaders.SET_COOKIE));
+
+        assertThat(whitelist).containsExactly(refreshToken);
+        verify(refreshRepository, never()).deleteByRefresh(anyString());
+        verify(refreshRepository, never()).save(any());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"null", "https://gakkum.hubspacekw.com.evil.com", "http://gakkum.hubspacekw.com",
+            "http://localhost:5174"})
+    @DisplayName("허용 목록과 정확히 같지 않은 Origin 의 로그아웃은 403 으로 거부한다")
+    void rejectsLookalikeOrigin(String origin) throws Exception {
+        String refreshToken = loggedInRefreshToken();
+
+        mockMvc.perform(post("/logout")
+                .header(HttpHeaders.ORIGIN, origin)
+                .cookie(new Cookie("refreshToken", refreshToken)))
+            .andExpect(status().isForbidden())
+            .andExpect(jsonPath("$.error.code").value("COMMON_403"))
+            .andExpect(header().doesNotExist(HttpHeaders.SET_COOKIE));
+
+        assertThat(whitelist).containsExactly(refreshToken);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"https://evil.example.com/page", "not a url"})
+    @DisplayName("Origin 없이 다른 사이트이거나 읽을 수 없는 Referer 로 보낸 로그아웃은 403 으로 거부한다")
+    void rejectsForeignRefererWithoutOrigin(String referer) throws Exception {
+        String refreshToken = loggedInRefreshToken();
+
+        mockMvc.perform(post("/logout")
+                .header(HttpHeaders.REFERER, referer)
+                .cookie(new Cookie("refreshToken", refreshToken)))
+            .andExpect(status().isForbidden())
+            .andExpect(jsonPath("$.error.code").value("COMMON_403"))
+            .andExpect(header().doesNotExist(HttpHeaders.SET_COOKIE));
+
+        assertThat(whitelist).containsExactly(refreshToken);
+    }
+
+    @Test
+    @DisplayName("Origin 없이 허용된 프론트 Referer 로 보낸 로그아웃은 토큰을 지운다")
+    void logoutAllowsFrontendRefererWithoutOrigin() throws Exception {
+        mockMvc.perform(post("/logout")
+                .header(HttpHeaders.REFERER, "https://gakkum.hubspacekw.com/owner/home")
+                .cookie(new Cookie("refreshToken", loggedInRefreshToken())))
+            .andExpect(status().isOk())
+            .andExpect(clearsRefreshCookie());
+
+        assertThat(whitelist).isEmpty();
+    }
+
+    @Test
+    @DisplayName("허용된 프론트 출처의 로그아웃 preflight 는 출처 검사와 상관없이 CORS 허용 응답을 준다")
+    void preflightIsNotChecked() throws Exception {
+        mockMvc.perform(options("/logout")
+                .header(HttpHeaders.ORIGIN, "https://gakkum.hubspacekw.com")
+                .header(HttpHeaders.ACCESS_CONTROL_REQUEST_METHOD, "POST"))
+            .andExpect(status().isOk())
+            .andExpect(header().string(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, "https://gakkum.hubspacekw.com"));
     }
 
     /** 로그인(소셜 로그인 · 가입 · 데모 로그인)처럼 발급하고 DB에 저장한 refresh token */
