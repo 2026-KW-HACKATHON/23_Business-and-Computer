@@ -3,6 +3,9 @@ package com.gakkum.backend.global.ratelimit;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import java.time.Clock;
 import java.time.Duration;
@@ -23,6 +26,10 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 
+import com.gakkum.backend.domain.jwt.service.JwtService;
+import com.gakkum.backend.domain.user.entity.UserRole;
+import com.gakkum.backend.domain.user.repository.UserRepository;
+import com.gakkum.backend.domain.user.service.UserService;
 import com.gakkum.backend.global.exception.BusinessException;
 import com.gakkum.backend.global.exception.ErrorCode;
 
@@ -166,6 +173,90 @@ class UserRateLimiterTest {
                     assertAllowedTimes(configured, RateLimitedAction.STUDENT_EMAIL_SEND, 1);
                     assertAllowedTimes(configured, RateLimitedAction.CHAT_ATTACHMENT_UPLOAD, 120);
                 });
+    }
+
+    @Test
+    @DisplayName("설정이 없으면 쓰기 작업은 일반 계정 의뢰 30 · 제안 30 · 지원 60 · 채팅 600 · 결제 준비 60회, 데모 계정 20 · 20 · 30 · 300 · 30회가 시간당 한도다")
+    void usesDefaultWriteLimitsForRegularAndDemoUsers() {
+        new ApplicationContextRunner()
+                .withBean(Clock.class, () -> clock)
+                .withBean(UserRateLimiter.class)
+                .run(context -> {
+                    UserRateLimiter defaults = context.getBean(UserRateLimiter.class);
+                    assertAllowedTimes(defaults, RateLimitedAction.JOB_CREATE, 30, REGULAR);
+                    assertAllowedTimes(defaults, RateLimitedAction.PROPOSAL_CREATE, 30, REGULAR);
+                    assertAllowedTimes(defaults, RateLimitedAction.JOB_APPLICATION_CREATE, 60, REGULAR);
+                    assertAllowedTimes(defaults, RateLimitedAction.CHAT_MESSAGE_SEND, 600, REGULAR);
+                    assertAllowedTimes(defaults, RateLimitedAction.PAYMENT_PREPARE, 60, REGULAR);
+                    assertAllowedTimes(defaults, RateLimitedAction.JOB_CREATE, 20, DEMO);
+                    assertAllowedTimes(defaults, RateLimitedAction.PROPOSAL_CREATE, 20, DEMO);
+                    assertAllowedTimes(defaults, RateLimitedAction.JOB_APPLICATION_CREATE, 30, DEMO);
+                    assertAllowedTimes(defaults, RateLimitedAction.CHAT_MESSAGE_SEND, 300, DEMO);
+                    assertAllowedTimes(defaults, RateLimitedAction.PAYMENT_PREPARE, 30, DEMO);
+                    // 업로드 한도는 데모 계정도 같다
+                    assertAllowedTimes(defaults, RateLimitedAction.IMAGE_UPLOAD, 120, DEMO);
+                });
+    }
+
+    @Test
+    @DisplayName("데모 계정 쓰기 한도는 rate-limit.demo-*-per-hour 설정으로 일반 계정과 따로 바꿀 수 있다")
+    void readsDemoLimitsFromProperties() {
+        new ApplicationContextRunner()
+                .withBean(Clock.class, () -> clock)
+                .withBean(UserRateLimiter.class)
+                .withPropertyValues("rate-limit.job-create-per-hour=4", "rate-limit.demo-job-create-per-hour=2")
+                .run(context -> {
+                    UserRateLimiter configured = context.getBean(UserRateLimiter.class);
+                    assertAllowedTimes(configured, RateLimitedAction.JOB_CREATE, 4, REGULAR);
+                    assertAllowedTimes(configured, RateLimitedAction.JOB_CREATE, 2, DEMO);
+                });
+    }
+
+    @Test
+    @DisplayName("DEMO_ 로 시작하는 username 만 데모 계정 한도를 쓰고, 일반 계정과 따로 센다")
+    void appliesDemoLimitOnlyToDemoUsernames() {
+        Map<RateLimitedAction, Integer> demoLimits = limits(3);
+        demoLimits.put(RateLimitedAction.JOB_CREATE, 1);
+        UserRateLimiter split = new UserRateLimiter(clock, limits(3), demoLimits);
+
+        split.acquire(RateLimitedAction.JOB_CREATE, DEMO);
+        assertThatThrownBy(() -> split.acquire(RateLimitedAction.JOB_CREATE, DEMO))
+                .isInstanceOf(BusinessException.class);
+        for (int i = 0; i < 3; i++) {
+            split.acquire(RateLimitedAction.JOB_CREATE, REGULAR);
+        }
+        assertThatThrownBy(() -> split.acquire(RateLimitedAction.JOB_CREATE, REGULAR))
+                .isInstanceOf(BusinessException.class);
+
+        assertThat(UserRateLimiter.isDemoUsername("KAKAO_4123456789")).isFalse();
+        assertThat(UserRateLimiter.isDemoUsername("kakao_DEMO_1")).isFalse();
+        assertThat(UserRateLimiter.isDemoUsername(null)).isFalse();
+    }
+
+    @Test
+    @DisplayName("데모 로그인이 만드는 사장님 · 학생 계정의 username 은 데모 계정으로 알아본다")
+    void recognizesUsernamesCreatedByDemoLogin() {
+        UserRepository userRepository = mock(UserRepository.class);
+        when(userRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        UserService userService = new UserService(userRepository, mock(JwtService.class));
+
+        for (UserRole role : List.of(UserRole.OWNER, UserRole.STUDENT)) {
+            String username = userService.createDemoUser("01K6DEMO00000000000000000A", role, "데모", null)
+                    .getUsername();
+            assertThat(UserRateLimiter.isDemoUsername(username)).as(username).isTrue();
+        }
+    }
+
+    private static final String REGULAR = "KAKAO_1";
+    private static final String DEMO = "DEMO_01K6DEMO00000000000000000A_OWNER";
+
+    private void assertAllowedTimes(UserRateLimiter target, RateLimitedAction action, int times, String userKey) {
+        for (int i = 0; i < times; i++) {
+            target.acquire(action, userKey);
+        }
+        assertThatThrownBy(() -> target.acquire(action, userKey))
+                .isInstanceOfSatisfying(BusinessException.class, exception ->
+                        assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.TOO_MANY_REQUESTS));
     }
 
     private void assertAllowedTimes(UserRateLimiter target, RateLimitedAction action, int times) {

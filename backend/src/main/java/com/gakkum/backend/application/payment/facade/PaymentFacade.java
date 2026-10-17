@@ -62,6 +62,8 @@ import com.gakkum.backend.domain.user.entity.UserRole;
 import com.gakkum.backend.domain.user.service.UserService;
 import com.gakkum.backend.global.exception.BusinessException;
 import com.gakkum.backend.global.exception.ErrorCode;
+import com.gakkum.backend.global.ratelimit.RateLimitedAction;
+import com.gakkum.backend.global.ratelimit.UserRateLimit;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -90,6 +92,7 @@ public class PaymentFacade {
         return approvalService.approve(username, orderId, pgToken);
     }
 
+    @UserRateLimit(RateLimitedAction.PAYMENT_PREPARE)
     public PreparePaymentResult preparePayment(String username, Long jobId, PaymentPrepareRequest request) {
         PendingPaymentData pending;
         try {
@@ -102,6 +105,7 @@ public class PaymentFacade {
     }
 
     /** 사장님이 받은 제안의 결제를 준비한다. 결제창 준비는 일반 결제와 같은 경로를 쓴다. */
+    @UserRateLimit(RateLimitedAction.PAYMENT_PREPARE)
     public PreparePaymentResult prepareProposalPayment(PrepareProposalPaymentCommand command) {
         PendingPaymentData pending;
         try {

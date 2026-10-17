@@ -143,6 +143,7 @@ public class JobFacade {
     private final ChatRoomService chatRoomService;
 
     // 사진 저장소 확인이 DB 트랜잭션과 커넥션을 붙잡지 않도록 저장 트랜잭션은 JobService에 둔다
+    @UserRateLimit(RateLimitedAction.JOB_CREATE)
     public void createJob(String username, JobCreateRequest request) {
         User user = userService.getActiveUser(username);
         Owner owner = ownerService.getOwnerProfile(user.getId());
@@ -537,6 +538,7 @@ public class JobFacade {
      * 저장에 성공하면 의뢰한 사장님에게 새 지원 알림을 발행한다.
      * 사용자 확인이 의뢰 행 잠금을 붙잡지 않도록 저장과 알림 준비만 트랜잭션으로 묶는다.
      */
+    @UserRateLimit(RateLimitedAction.JOB_APPLICATION_CREATE)
     public JobApplicationCreateResult createJobApplication(CreateJobApplicationCommand command) {
         User user = userService.getActiveUser(command.getUsername());
         if (user.getRole() != UserRole.STUDENT) {

@@ -221,6 +221,7 @@ public class ChatFacade {
         chatService.markRead(room, viewer.getRole() == UserRole.OWNER, command.getLastReadMessageId());
     }
 
+    @UserRateLimit(RateLimitedAction.CHAT_MESSAGE_SEND)
     @Transactional
     public SendMessageResult sendTextMessage(SendTextMessageCommand command) {
         User sender = userService.getActiveUser(command.getUsername());
@@ -252,6 +253,7 @@ public class ChatFacade {
                 toLocalDateTime(presigned.expiresAt()));
     }
 
+    @UserRateLimit(RateLimitedAction.CHAT_MESSAGE_SEND)
     @Transactional
     public SendAttachmentMessageResult sendAttachmentMessage(SendAttachmentMessageCommand command) {
         User sender = userService.getActiveUser(command.getUsername());

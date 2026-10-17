@@ -40,6 +40,8 @@ import com.gakkum.backend.application.job.facade.JobFacade;
 import com.gakkum.backend.application.media.controller.MediaController;
 import com.gakkum.backend.application.media.facade.MediaFacade;
 import com.gakkum.backend.application.owner.facade.OwnerFacade;
+import com.gakkum.backend.application.payment.facade.PaymentFacade;
+import com.gakkum.backend.application.proposal.facade.ProposalFacade;
 import com.gakkum.backend.domain.media.dto.MediaQueryDto.PrepareImageUploadResult;
 import com.gakkum.backend.domain.media.service.MediaService;
 import com.gakkum.backend.domain.user.entity.User;
@@ -130,6 +132,51 @@ class UserRateLimitAspectTest {
         assertThat(actionOf(JobFacade.class, "prepareSubmissionFileUpload"))
                 .contains(RateLimitedAction.JOB_SUBMISSION_FILE_UPLOAD);
         assertThat(actionOf(AuthFacade.class, "verifyStudentEmail")).isEmpty();
+    }
+
+    @Test
+    @DisplayName("의뢰 등록 · 제안 · 지원 · 채팅 보내기 · 결제 준비 퍼사드 메서드에 해당 작업의 횟수 제한이 붙어 있다")
+    void annotatesWriteFacadeMethods() {
+        assertThat(actionOf(JobFacade.class, "createJob")).contains(RateLimitedAction.JOB_CREATE);
+        assertThat(actionOf(ProposalFacade.class, "createProposal")).contains(RateLimitedAction.PROPOSAL_CREATE);
+        assertThat(actionOf(JobFacade.class, "createJobApplication"))
+                .contains(RateLimitedAction.JOB_APPLICATION_CREATE);
+        assertThat(actionOf(ChatFacade.class, "sendTextMessage")).contains(RateLimitedAction.CHAT_MESSAGE_SEND);
+        assertThat(actionOf(ChatFacade.class, "sendAttachmentMessage"))
+                .contains(RateLimitedAction.CHAT_MESSAGE_SEND);
+        assertThat(actionOf(PaymentFacade.class, "preparePayment")).contains(RateLimitedAction.PAYMENT_PREPARE);
+        assertThat(actionOf(PaymentFacade.class, "prepareProposalPayment"))
+                .contains(RateLimitedAction.PAYMENT_PREPARE);
+        // 승인은 카카오페이에서 돌아온 뒤 같은 주문을 다시 확인하는 요청이라 막지 않는다
+        assertThat(actionOf(PaymentFacade.class, "approvePayment")).isEmpty();
+    }
+
+    @Test
+    @DisplayName("데모 계정은 데모 한도로 세어, 같은 한도의 일반 계정보다 먼저 429를 받는다")
+    void appliesDemoLimitThroughAspect() throws Exception {
+        Map<RateLimitedAction, Integer> limits = new EnumMap<>(RateLimitedAction.class);
+        Map<RateLimitedAction, Integer> demoLimits = new EnumMap<>(RateLimitedAction.class);
+        for (RateLimitedAction action : RateLimitedAction.values()) {
+            limits.put(action, 2);
+            demoLimits.put(action, 2);
+        }
+        demoLimits.put(RateLimitedAction.IMAGE_UPLOAD, 1);
+        AspectJProxyFactory proxyFactory = new AspectJProxyFactory(new MediaFacade(userService, mediaService));
+        proxyFactory.setProxyTargetClass(true);
+        proxyFactory.addAspect(new UserRateLimitAspect(new UserRateLimiter(Clock.systemUTC(), limits, demoLimits)));
+        mockMvc = MockMvcBuilders.standaloneSetup(new MediaController(proxyFactory.<MediaFacade>getProxy()))
+                .setControllerAdvice(new GlobalExceptionHandler())
+                .build();
+
+        UsernamePasswordAuthenticationToken demo = login("DEMO_01K6DEMO00000000000000000A_OWNER");
+        prepareImageUpload(demo).andExpect(status().isCreated());
+        prepareImageUpload(demo).andExpect(status().isTooManyRequests())
+                .andExpect(jsonPath("$.error.code").value("COMMON_429"));
+
+        UsernamePasswordAuthenticationToken regular = login("KAKAO_1");
+        prepareImageUpload(regular).andExpect(status().isCreated());
+        prepareImageUpload(regular).andExpect(status().isCreated());
+        prepareImageUpload(regular).andExpect(status().isTooManyRequests());
     }
 
     private ResultActions prepareImageUpload(UsernamePasswordAuthenticationToken authentication) throws Exception {

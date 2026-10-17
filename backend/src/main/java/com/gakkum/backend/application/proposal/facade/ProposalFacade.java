@@ -66,6 +66,8 @@ import com.gakkum.backend.domain.user.entity.UserRole;
 import com.gakkum.backend.domain.user.service.UserService;
 import com.gakkum.backend.global.exception.BusinessException;
 import com.gakkum.backend.global.exception.ErrorCode;
+import com.gakkum.backend.global.ratelimit.RateLimitedAction;
+import com.gakkum.backend.global.ratelimit.UserRateLimit;
 
 import lombok.RequiredArgsConstructor;
 
@@ -97,6 +99,7 @@ public class ProposalFacade {
      * 학생의 제안 전송. 역할·대상 사장님·소분류·사진을 검증한 뒤 저장하고 받은 사장님에게 제안 도착 알림을 발행한다.
      * 사진 저장소 확인이 DB 트랜잭션과 커넥션을 붙잡지 않도록 저장과 알림 준비만 트랜잭션으로 묶는다.
      */
+    @UserRateLimit(RateLimitedAction.PROPOSAL_CREATE)
     public ProposalCreateResult createProposal(CreateProposalCommand command) {
         User user = userService.getActiveUser(command.getUsername());
         Student student = getProposingStudent(user);
