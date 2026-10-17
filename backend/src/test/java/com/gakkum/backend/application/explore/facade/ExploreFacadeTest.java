@@ -514,7 +514,7 @@ class ExploreFacadeTest {
     @Test
     @DisplayName("프로필이 없는 사용자의 탐색은 본인 글과 지원 이력 필터 없이 거절된 제안만 뺀다")
     void skipsViewerFiltersWithoutProfile() {
-        for (UserRole role : List.of(UserRole.STUDENT, UserRole.OWNER, UserRole.PENDING)) {
+        for (UserRole role : List.of(UserRole.STUDENT, UserRole.OWNER)) {
             givenUser(role);
 
             exploreFacade.explore(command(ExploreType.ALL, ExploreSort.LATEST, 20, null));
@@ -526,6 +526,17 @@ class ExploreFacadeTest {
             assertThat(jobCommand.getExcludedOwnerProfileId()).isNull();
             assertThat(jobCommand.getRejectedApplicantProfileId()).isNull();
         }
+    }
+
+    @Test
+    @DisplayName("가입 전(PENDING) 사용자의 탐색은 USER_403_REGISTRATION 으로 거부하고 제안 · 의뢰를 읽지 않는다")
+    void rejectsPendingUser() {
+        givenUser(UserRole.PENDING);
+
+        assertThatThrownBy(() -> exploreFacade.explore(command(ExploreType.ALL, ExploreSort.LATEST, 20, null)))
+                .isInstanceOfSatisfying(BusinessException.class, exception ->
+                        assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.REGISTRATION_REQUIRED));
+        verifyNoInteractions(proposalService, jobService, ownerService, studentService);
     }
 
     private void givenUser(UserRole role) {

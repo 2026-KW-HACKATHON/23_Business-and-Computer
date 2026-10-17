@@ -942,7 +942,7 @@ class ProposalFacadeTest {
     }
 
     @ParameterizedTest(name = "{0}")
-    @EnumSource(value = UserRole.class, names = { "OWNER", "PENDING" })
+    @EnumSource(value = UserRole.class, names = "OWNER")
     @DisplayName("학생이 아닌 조회자의 제안 상세는 학생 프로필과 공감 기록을 조회하지 않고 likedByMe를 false로 반환한다")
     void returnsNotLikedToNonStudent(UserRole role) {
         givenProposalDetail(ProposalStatus.PENDING, USER_ID, role);
@@ -950,6 +950,16 @@ class ProposalFacadeTest {
         assertThat(proposalFacade.getProposalDetail(USERNAME, 31L).isLikedByMe()).isFalse();
         verify(studentService, never()).findStudentProfileByUserId(anyString());
         verify(proposalService, never()).getLikedProposalIds(anyLong(), any());
+    }
+
+    @Test
+    @DisplayName("가입 전(PENDING) 조회자의 제안 상세는 USER_403_REGISTRATION 으로 거부하고 제안을 조회하지 않는다")
+    void rejectsProposalDetailForPendingUser() {
+        givenProposalDetail(ProposalStatus.PENDING, USER_ID, UserRole.PENDING);
+
+        assertError(() -> proposalFacade.getProposalDetail(USERNAME, 31L), ErrorCode.REGISTRATION_REQUIRED);
+        verify(proposalService, never()).getProposalDetail(anyLong());
+        verifyNoInteractions(ownerService, reviewService, jobService, paymentService, specialtyCategoryService);
     }
 
     @Test
@@ -1431,8 +1441,7 @@ class ProposalFacadeTest {
     @ParameterizedTest(name = "{0}")
     @org.junit.jupiter.params.provider.CsvSource({
             "01K58M6PJV8VAJMXHBHJ2PNB5F, OWNER",
-            "01K58M6PJV8VAJMXHBHJ2PNB5E, STUDENT",
-            "01K58M6PJV8VAJMXHBHJ2PNB5C, PENDING" })
+            "01K58M6PJV8VAJMXHBHJ2PNB5E, STUDENT" })
     @DisplayName("취소된 제안 상세는 받은 사장님을 포함한 작성자 아닌 사용자에게 PROPOSAL_404로 거부하고 매장·통계·공감 기록을 조회하지 않는다")
     void hidesCancelledProposalDetailFromOthers(String viewerId, UserRole role) {
         givenProposalDetail(ProposalStatus.CANCELLED, viewerId, role);

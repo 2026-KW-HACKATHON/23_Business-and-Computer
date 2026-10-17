@@ -117,7 +117,8 @@ public class ProposalFacade {
     }
 
     /**
-     * 제안 상세. 활성 사용자라면 역할과 무관하게 취소되지 않은 모든 제안을 볼 수 있고 없는 제안은 404다.
+     * 제안 상세. 가입을 마친 사장님 · 학생이라면 역할과 무관하게 취소되지 않은 모든 제안을 볼 수 있고 없는 제안은 404다.
+     * 가입 전(PENDING) 사용자는 제안을 찾기 전에 403으로 거부한다.
      * 격리 범위(demoSessionId)가 조회자와 다른 제안도 없는 제안과 같은 404로 거부한다.
      * 취소된 제안은 제안한 학생 본인에게만 내리고, 받은 사장님을 포함한 다른 사용자에게는 404로 거부한다.
      * 결제 전에는 한국 날짜 기준 오늘에 제안 기간을 더한 예상 마감일을 함께 내린다.
@@ -126,6 +127,9 @@ public class ProposalFacade {
     @Transactional(readOnly = true)
     public ProposalDetailResult getProposalDetail(String username, Long proposalId) {
         User viewer = userService.getActiveUser(username);
+        if (viewer.getRole() == UserRole.PENDING) {
+            throw new BusinessException(ErrorCode.REGISTRATION_REQUIRED);
+        }
         ProposalDetailData data = proposalService.getProposalDetail(proposalId);
         if (!Objects.equals(data.getProposal().getDemoSessionId(), viewer.getDemoSessionId())) {
             throw new BusinessException(ErrorCode.PROPOSAL_NOT_FOUND);
