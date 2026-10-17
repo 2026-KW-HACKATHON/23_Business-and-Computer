@@ -21,8 +21,10 @@ import jakarta.servlet.http.HttpServletResponse;
 import tools.jackson.databind.ObjectMapper;
 
 /**
- * refreshToken 쿠키로 처리하는 POST /refresh · /logout · /jwt/exchange 는 허용 목록(FrontendOrigins)의 프론트에서 보낸 요청만 받는다.
- * 쿠키가 SameSite=None 이라 다른 사이트가 보낸 요청에도 붙으므로, 그 사이트가 로그아웃시키거나 토큰을 바꾸지 못하게 막는다.
+ * refreshToken 쿠키로 처리하는 POST /refresh · /logout · /jwt/exchange 와 쿠키를 새로 심는 POST /demo/login 은
+ * 허용 목록(FrontendOrigins)의 프론트에서 보낸 요청만 받는다.
+ * 쿠키가 SameSite=None 이라 다른 사이트가 보낸 요청에도 붙으므로, 그 사이트가 로그아웃시키거나 토큰을 바꾸거나
+ * 방문자를 데모 계정으로 로그인시키지 못하게 막는다.
  * Origin 을 먼저 보고, 없으면 Referer 의 주소를 본다. 허용 목록에 없으면 토큰 · 쿠키를 건드리지 않고 403 COMMON_403 을 준다.
  * 둘 다 없으면 통과시킨다. 브라우저는 다른 사이트에서 보내는 POST 에 Origin 을 꼭 붙이고, 브라우저가 아닌 곳은 사용자 쿠키를 갖고 있지 않다.
  * 시큐리티 필터 체인 안에서만 쓰도록 빈으로 등록하지 않는다 (SecurityConfig 에서 만든다).
@@ -32,7 +34,8 @@ public class RefreshCookieOriginFilter extends OncePerRequestFilter {
     private static final RequestMatcher REFRESH_COOKIE_REQUESTS = new OrRequestMatcher(
             PathPatternRequestMatcher.withDefaults().matcher(HttpMethod.POST, "/refresh"),
             PathPatternRequestMatcher.withDefaults().matcher(HttpMethod.POST, "/logout"),
-            PathPatternRequestMatcher.withDefaults().matcher(HttpMethod.POST, "/jwt/exchange"));
+            PathPatternRequestMatcher.withDefaults().matcher(HttpMethod.POST, "/jwt/exchange"),
+            PathPatternRequestMatcher.withDefaults().matcher(HttpMethod.POST, "/demo/login"));
 
     private final FrontendOrigins frontendOrigins;
     private final ObjectMapper objectMapper = new ObjectMapper();

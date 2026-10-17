@@ -94,7 +94,8 @@ public class SecurityConfig {
         http
                 .addFilterBefore(jwtFilter, LogoutFilter.class);
 
-        // refreshToken 쿠키로 처리하는 /refresh · /logout · /jwt/exchange 는 허용된 프론트에서 보낸 요청만 받는다 (CSRF 를 대신한다).
+        // refreshToken 쿠키로 처리하는 /refresh · /logout · /jwt/exchange 와 쿠키를 심는 /demo/login 은
+        // 허용된 프론트에서 보낸 요청만 받는다 (CSRF 를 대신한다).
         // CORS 처리보다 앞에 두어 다른 사이트에서 보낸 요청은 CORS 설정과 상관없이 공통 오류 응답 403 으로 거부한다
         http
                 .addFilterBefore(new RefreshCookieOriginFilter(frontendOrigins), CorsFilter.class);
